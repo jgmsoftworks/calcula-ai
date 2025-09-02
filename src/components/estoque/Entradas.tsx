@@ -171,7 +171,7 @@ export const Entradas = () => {
           produto_id: formData.produto_id,
           quantidade,
           custo_unitario: custoUnitario,
-          fornecedor_id: formData.fornecedor_id || null,
+          fornecedor_id: formData.fornecedor_id === 'none' ? null : formData.fornecedor_id || null,
           observacao: formData.observacao || null,
           data: formData.data
         }]);
@@ -275,7 +275,7 @@ export const Entradas = () => {
                     <SelectValue placeholder="Selecione um fornecedor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {fornecedores.map((fornecedor) => (
                       <SelectItem key={fornecedor.id} value={fornecedor.id}>
                         {fornecedor.nome}
