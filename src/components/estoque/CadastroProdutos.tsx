@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit, Power } from 'lucide-react';
+import { Edit, Power, Plus } from 'lucide-react';
 
 interface Produto {
   id: string;
@@ -37,6 +38,7 @@ export const CadastroProdutos = () => {
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAtivo, setFilterAtivo] = useState<'todos' | 'ativo' | 'inativo'>('todos');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -134,6 +136,7 @@ export const CadastroProdutos = () => {
         ativo: true
       });
       setEditingProduct(null);
+      setIsModalOpen(false);
       loadProdutos();
     } catch (error: any) {
       toast({
@@ -178,6 +181,35 @@ export const CadastroProdutos = () => {
       ativo: produto.ativo
     });
     setEditingProduct(produto);
+    setIsModalOpen(true);
+  };
+
+  const openNewProductModal = () => {
+    setFormData({
+      nome: '',
+      categoria: '',
+      unidade: 'g',
+      sku: '',
+      codigo_barras: '',
+      fornecedor_ids: [],
+      ativo: true
+    });
+    setEditingProduct(null);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+    setFormData({
+      nome: '',
+      categoria: '',
+      unidade: 'g',
+      sku: '',
+      codigo_barras: '',
+      fornecedor_ids: [],
+      ativo: true
+    });
   };
 
   const filteredProdutos = produtos.filter(produto => {
@@ -192,112 +224,16 @@ export const CadastroProdutos = () => {
   });
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Formulário */}
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>
-            {editingProduct ? 'Editar Produto' : 'Cadastrar Produto'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="nome">Nome *</Label>
-              <Input
-                id="nome"
-                value={formData.nome}
-                onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                placeholder="Ex: Açúcar refinado"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="categoria">Categoria</Label>
-              <Input
-                id="categoria"
-                value={formData.categoria}
-                onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
-                placeholder="Ex: Ingredientes"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="unidade">Unidade *</Label>
-              <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="g">Gramas (g)</SelectItem>
-                  <SelectItem value="kg">Quilogramas (kg)</SelectItem>
-                  <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                  <SelectItem value="L">Litros (L)</SelectItem>
-                  <SelectItem value="un">Unidades (un)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  value={formData.sku}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                  placeholder="Ex: ACU001"
-                />
-              </div>
-              <div>
-                <Label htmlFor="codigo_barras">Código de Barras</Label>
-                <Input
-                  id="codigo_barras"
-                  value={formData.codigo_barras}
-                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
-                  placeholder="Ex: 1234567890123"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="ativo"
-                checked={formData.ativo}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
-              />
-              <Label htmlFor="ativo">Produto ativo</Label>
-            </div>
-
-            <div className="flex gap-2">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Salvando...' : editingProduct ? 'Atualizar' : 'Cadastrar'}
-              </Button>
-              {editingProduct && (
-                <Button type="button" variant="outline" onClick={() => {
-                  setEditingProduct(null);
-                  setFormData({
-                    nome: '',
-                    categoria: '',
-                    unidade: 'g',
-                    sku: '',
-                    codigo_barras: '',
-                    fornecedor_ids: [],
-                    ativo: true
-                  });
-                }}>
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Tabela */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Produtos</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Lista de Produtos</CardTitle>
+            <Button onClick={openNewProductModal} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Produto
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Input
               placeholder="Buscar por nome ou categoria..."
@@ -369,6 +305,95 @@ export const CadastroProdutos = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Cadastro/Edição */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? 'Editar Produto' : 'Cadastrar Produto'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="nome">Nome *</Label>
+              <Input
+                id="nome"
+                value={formData.nome}
+                onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                placeholder="Ex: Açúcar refinado"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="categoria">Categoria</Label>
+              <Input
+                id="categoria"
+                value={formData.categoria}
+                onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
+                placeholder="Ex: Ingredientes"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="unidade">Unidade *</Label>
+              <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="g">Gramas (g)</SelectItem>
+                  <SelectItem value="kg">Quilogramas (kg)</SelectItem>
+                  <SelectItem value="ml">Mililitros (ml)</SelectItem>
+                  <SelectItem value="L">Litros (L)</SelectItem>
+                  <SelectItem value="un">Unidades (un)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="sku">SKU</Label>
+                <Input
+                  id="sku"
+                  value={formData.sku}
+                  onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
+                  placeholder="Ex: ACU001"
+                />
+              </div>
+              <div>
+                <Label htmlFor="codigo_barras">Código de Barras</Label>
+                <Input
+                  id="codigo_barras"
+                  value={formData.codigo_barras}
+                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
+                  placeholder="Ex: 1234567890123"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="ativo"
+                checked={formData.ativo}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+              />
+              <Label htmlFor="ativo">Produto ativo</Label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={closeModal}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
