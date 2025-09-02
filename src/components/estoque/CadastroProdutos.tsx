@@ -2,28 +2,41 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Power, Plus } from 'lucide-react';
+import { ProductModal } from './ProductModal';
 
 interface Produto {
   id: string;
   nome: string;
   categoria: string | null;
+  categorias: string[] | null;
+  marcas: string[] | null;
   unidade: string;
   estoque_atual: number;
   custo_medio: number;
+  custo_unitario: number;
+  estoque_minimo: number;
   sku: string | null;
+  codigo_interno: string | null;
   codigo_barras: string | null;
+  imagem_url: string | null;
   fornecedor_ids: string[] | null;
   ativo: boolean;
+  rotulo_porcao: string | null;
+  rotulo_kcal: number | null;
+  rotulo_carb: number | null;
+  rotulo_prot: number | null;
+  rotulo_gord_total: number | null;
+  rotulo_gord_sat: number | null;
+  rotulo_gord_trans: number | null;
+  rotulo_fibra: number | null;
+  rotulo_sodio: number | null;
 }
 
 interface Fornecedor {
@@ -33,29 +46,16 @@ interface Fornecedor {
 
 export const CadastroProdutos = () => {
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAtivo, setFilterAtivo] = useState<'todos' | 'ativo' | 'inativo'>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    nome: '',
-    categoria: '',
-    unidade: 'g' as const,
-    sku: '',
-    codigo_barras: '',
-    fornecedor_ids: [] as string[],
-    ativo: true
-  });
+  const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
 
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     loadProdutos();
-    loadFornecedores();
   }, []);
 
   const loadProdutos = async () => {
@@ -66,86 +66,34 @@ export const CadastroProdutos = () => {
         .order('nome');
 
       if (error) throw error;
-      setProdutos(data || []);
+      
+      // Map data to ensure all required fields are present with defaults
+      const mappedData = (data || []).map(produto => ({
+        ...produto,
+        custo_unitario: (produto as any).custo_unitario || 0,
+        estoque_minimo: (produto as any).estoque_minimo || 0,
+        marcas: (produto as any).marcas || null,
+        categorias: (produto as any).categorias || null,
+        codigo_interno: (produto as any).codigo_interno || null,
+        imagem_url: (produto as any).imagem_url || null,
+        rotulo_porcao: (produto as any).rotulo_porcao || null,
+        rotulo_kcal: (produto as any).rotulo_kcal || null,
+        rotulo_carb: (produto as any).rotulo_carb || null,
+        rotulo_prot: (produto as any).rotulo_prot || null,
+        rotulo_gord_total: (produto as any).rotulo_gord_total || null,
+        rotulo_gord_sat: (produto as any).rotulo_gord_sat || null,
+        rotulo_gord_trans: (produto as any).rotulo_gord_trans || null,
+        rotulo_fibra: (produto as any).rotulo_fibra || null,
+        rotulo_sodio: (produto as any).rotulo_sodio || null
+      }));
+      
+      setProdutos(mappedData);
     } catch (error) {
       toast({
         title: "Erro ao carregar produtos",
         description: "Tente novamente mais tarde",
         variant: "destructive"
       });
-    }
-  };
-
-  const loadFornecedores = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('fornecedores')
-        .select('id, nome')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (error) throw error;
-      setFornecedores(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar fornecedores:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.nome.trim()) {
-      toast({
-        title: "Nome é obrigatório",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const payload = {
-        ...formData,
-        user_id: user?.id,
-        fornecedor_ids: formData.fornecedor_ids.length > 0 ? formData.fornecedor_ids : null
-      };
-
-      if (editingProduct) {
-        const { error } = await supabase
-          .from('produtos')
-          .update(payload)
-          .eq('id', editingProduct.id);
-
-        if (error) throw error;
-        toast({ title: "Produto atualizado com sucesso!" });
-      } else {
-        const { error } = await supabase
-          .from('produtos')
-          .insert([payload]);
-
-        if (error) throw error;
-        toast({ title: "Produto cadastrado com sucesso!" });
-      }
-
-      setFormData({
-        nome: '',
-        categoria: '',
-        unidade: 'g',
-        sku: '',
-        codigo_barras: '',
-        fornecedor_ids: [],
-        ativo: true
-      });
-      setEditingProduct(null);
-      setIsModalOpen(false);
-      loadProdutos();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao salvar produto",
-        description: error.message?.includes('duplicate') ? "Já existe um produto com esse nome" : "Tente novamente",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -170,51 +118,29 @@ export const CadastroProdutos = () => {
     }
   };
 
-  const editProduct = (produto: Produto) => {
-    setFormData({
-      nome: produto.nome,
-      categoria: produto.categoria || '',
-      unidade: produto.unidade as any,
-      sku: produto.sku || '',
-      codigo_barras: produto.codigo_barras || '',
-      fornecedor_ids: produto.fornecedor_ids || [],
-      ativo: produto.ativo
-    });
-    setEditingProduct(produto);
+  const openNewProductModal = () => {
+    setSelectedProduct(null);
     setIsModalOpen(true);
   };
 
-  const openNewProductModal = () => {
-    setFormData({
-      nome: '',
-      categoria: '',
-      unidade: 'g',
-      sku: '',
-      codigo_barras: '',
-      fornecedor_ids: [],
-      ativo: true
-    });
-    setEditingProduct(null);
+  const openEditProductModal = (produto: Produto) => {
+    setSelectedProduct(produto);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setEditingProduct(null);
-    setFormData({
-      nome: '',
-      categoria: '',
-      unidade: 'g',
-      sku: '',
-      codigo_barras: '',
-      fornecedor_ids: [],
-      ativo: true
-    });
+    setSelectedProduct(null);
+  };
+
+  const handleModalSave = () => {
+    loadProdutos();
   };
 
   const filteredProdutos = produtos.filter(produto => {
     const matchesSearch = produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (produto.categoria && produto.categoria.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (produto.categoria && produto.categoria.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (produto.categorias && produto.categorias.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase())));
     
     const matchesFilter = filterAtivo === 'todos' || 
                          (filterAtivo === 'ativo' && produto.ativo) ||
@@ -271,7 +197,21 @@ export const CadastroProdutos = () => {
                 {filteredProdutos.map((produto) => (
                   <TableRow key={produto.id}>
                     <TableCell className="font-medium">{produto.nome}</TableCell>
-                    <TableCell>{produto.categoria || '-'}</TableCell>
+                    <TableCell>
+                      {produto.categorias && produto.categorias.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {produto.categorias.map((categoria, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {categoria}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : produto.categoria ? (
+                        <Badge variant="outline" className="text-xs">
+                          {produto.categoria}
+                        </Badge>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>{produto.unidade}</TableCell>
                     <TableCell>{produto.estoque_atual.toFixed(3)}</TableCell>
                     <TableCell>R$ {produto.custo_medio.toFixed(2)}</TableCell>
@@ -285,7 +225,7 @@ export const CadastroProdutos = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => editProduct(produto)}
+                          onClick={() => openEditProductModal(produto)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -306,94 +246,12 @@ export const CadastroProdutos = () => {
         </CardContent>
       </Card>
 
-      {/* Modal de Cadastro/Edição */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? 'Editar Produto' : 'Cadastrar Produto'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="nome">Nome *</Label>
-              <Input
-                id="nome"
-                value={formData.nome}
-                onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                placeholder="Ex: Açúcar refinado"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="categoria">Categoria</Label>
-              <Input
-                id="categoria"
-                value={formData.categoria}
-                onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
-                placeholder="Ex: Ingredientes"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="unidade">Unidade *</Label>
-              <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="g">Gramas (g)</SelectItem>
-                  <SelectItem value="kg">Quilogramas (kg)</SelectItem>
-                  <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                  <SelectItem value="L">Litros (L)</SelectItem>
-                  <SelectItem value="un">Unidades (un)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  value={formData.sku}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                  placeholder="Ex: ACU001"
-                />
-              </div>
-              <div>
-                <Label htmlFor="codigo_barras">Código de Barras</Label>
-                <Input
-                  id="codigo_barras"
-                  value={formData.codigo_barras}
-                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
-                  placeholder="Ex: 1234567890123"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="ativo"
-                checked={formData.ativo}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
-              />
-              <Label htmlFor="ativo">Produto ativo</Label>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={closeModal}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Salvando...' : 'Salvar'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ProductModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        product={selectedProduct}
+        onSave={handleModalSave}
+      />
     </div>
   );
 };
