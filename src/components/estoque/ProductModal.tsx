@@ -10,10 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { MultiSelectTags } from './MultiSelectTags';
 import { ProductImageUpload } from './ProductImageUpload';
-import { HistoricoEntradas } from './HistoricoEntradas';
+import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 
 interface Produto {
   id: string;
@@ -52,7 +52,7 @@ interface ProductModalProps {
 
 export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalProps) => {
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('dados');
+  const [activeTab, setActiveTab] = useState('estoque');
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -62,6 +62,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     codigo_barras: '',
     imagem_url: '',
     unidade: 'un' as const,
+    total_embalagem: 1,
     custo_unitario: 0,
     estoque_minimo: 0,
     ativo: true,
@@ -89,6 +90,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         codigo_barras: product.codigo_barras || '',
         imagem_url: product.imagem_url || '',
         unidade: product.unidade as any,
+        total_embalagem: 1,
         custo_unitario: product.custo_unitario || 0,
         estoque_minimo: product.estoque_minimo || 0,
         ativo: product.ativo,
@@ -111,6 +113,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         codigo_barras: '',
         imagem_url: '',
         unidade: 'un',
+        total_embalagem: 1,
         custo_unitario: 0,
         estoque_minimo: 0,
         ativo: true,
@@ -125,6 +128,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         rotulo_sodio: 0
       });
     }
+    setActiveTab('estoque');
   }, [product]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,10 +236,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-auto">
-        <DialogHeader>
+      <DialogContent className="w-[960px] max-w-[960px] max-h-[90vh] overflow-hidden p-4">
+        <DialogHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
               {product ? 'Editar Produto' : 'Novo Cadastro'}
             </DialogTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -244,285 +248,319 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="dados">Dados Principais</TabsTrigger>
-              <TabsTrigger value="estoque">Estoque e Custos</TabsTrigger>
-              <TabsTrigger value="rotulo">Rótulo Nutricional</TabsTrigger>
-              {product && (
-                <TabsTrigger value="historico">Histórico de Entradas</TabsTrigger>
-              )}
-            </TabsList>
-
-            <TabsContent value="dados" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <Label htmlFor="nome">Nome *</Label>
-                  <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Ex: Farinha de Trigo"
-                    required
-                    className="text-lg font-medium"
-                  />
-                </div>
-
-                <div>
-                  <Label>Marcas</Label>
-                  <MultiSelectTags
-                    values={formData.marcas}
-                    onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
-                    placeholder="Adicionar marca..."
-                  />
-                </div>
-
-                <div>
-                  <Label>Categorias</Label>
-                  <MultiSelectTags
-                    values={formData.categorias}
-                    onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
-                    placeholder="Adicionar categoria..."
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="codigo_interno">Código Interno</Label>
-                  <Input
-                    id="codigo_interno"
-                    value={formData.codigo_interno}
-                    onChange={(e) => setFormData(prev => ({ ...prev, codigo_interno: e.target.value }))}
-                    placeholder="Auto-gerado"
-                    readOnly={!product}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="codigo_barras">Código de Barras</Label>
-                  <Input
-                    id="codigo_barras"
-                    value={formData.codigo_barras}
-                    onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
-                    placeholder="Ex: 1234567890123"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label>Imagem do Produto</Label>
-                  <ProductImageUpload
-                    value={formData.imagem_url}
-                    onChange={(imagem_url) => setFormData(prev => ({ ...prev, imagem_url }))}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="ativo"
-                    checked={formData.ativo}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
-                  />
-                  <Label htmlFor="ativo">
-                    Status: {formData.ativo ? 'Ativo' : 'Desativado'}
-                  </Label>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="estoque" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="unidade">Unidade de Medida *</Label>
-                  <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="un">Unidades (un)</SelectItem>
-                      <SelectItem value="g">Gramas (g)</SelectItem>
-                      <SelectItem value="kg">Quilogramas (kg)</SelectItem>
-                      <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                      <SelectItem value="L">Litros (L)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="custo_unitario">Custo Unitário (R$)</Label>
-                  <Input
-                    id="custo_unitario"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.custo_unitario}
-                    onChange={(e) => setFormData(prev => ({ ...prev, custo_unitario: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="estoque_atual">Quantidade em Estoque (somente leitura)</Label>
-                  <Input
-                    id="estoque_atual"
-                    type="number"
-                    step="0.001"
-                    value={product?.estoque_atual?.toFixed(3) || '0.000'}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="estoque_minimo">Estoque Mínimo</Label>
-                  <Input
-                    id="estoque_minimo"
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    value={formData.estoque_minimo}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estoque_minimo: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="custo_total">Custo Total (R$) - somente leitura</Label>
-                  <Input
-                    id="custo_total"
-                    type="text"
-                    value={`R$ ${custoTotal.toFixed(2)}`}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          {/* Dados Principais - Seção Fixa */}
+          <div className="border-b pb-4 mb-3 max-h-[240px] overflow-y-auto">
+            <h3 className="text-sm font-medium mb-3 text-muted-foreground">DADOS PRINCIPAIS</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label htmlFor="nome" className="text-xs">Nome *</Label>
+                <Input
+                  id="nome"
+                  value={formData.nome}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                  placeholder="Ex: Farinha de Trigo"
+                  required
+                  className="h-8 text-sm"
+                />
               </div>
 
-              <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-                💡 <strong>Dica:</strong> Entradas/Saídas atualizam o estoque automaticamente. Este campo é apenas leitura.
+              <div>
+                <Label className="text-xs">Marcas</Label>
+                <MultiSelectTags
+                  values={formData.marcas}
+                  onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
+                  placeholder="Adicionar marca..."
+                />
               </div>
-            </TabsContent>
 
-            <TabsContent value="rotulo" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="rotulo_porcao">Porção</Label>
-                  <Input
-                    id="rotulo_porcao"
-                    value={formData.rotulo_porcao}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_porcao: e.target.value }))}
-                    placeholder="Ex: 50g"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_kcal">Energia (kcal)</Label>
-                  <Input
-                    id="rotulo_kcal"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_kcal}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_kcal: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_carb">Carboidratos (g)</Label>
-                  <Input
-                    id="rotulo_carb"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_carb}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_carb: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_prot">Proteínas (g)</Label>
-                  <Input
-                    id="rotulo_prot"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_prot}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_prot: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_gord_total">Gorduras Totais (g)</Label>
-                  <Input
-                    id="rotulo_gord_total"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_gord_total}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_total: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_gord_sat">Gorduras Saturadas (g)</Label>
-                  <Input
-                    id="rotulo_gord_sat"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_gord_sat}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_sat: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_gord_trans">Gorduras Trans (g)</Label>
-                  <Input
-                    id="rotulo_gord_trans"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_gord_trans}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_trans: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_fibra">Fibra Alimentar (g)</Label>
-                  <Input
-                    id="rotulo_fibra"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_fibra}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_fibra: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rotulo_sodio">Sódio (mg)</Label>
-                  <Input
-                    id="rotulo_sodio"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.rotulo_sodio}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rotulo_sodio: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
+              <div>
+                <Label className="text-xs">Categorias</Label>
+                <MultiSelectTags
+                  values={formData.categorias}
+                  onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
+                  placeholder="Adicionar categoria..."
+                />
               </div>
-            </TabsContent>
 
-            {product && (
-              <TabsContent value="historico">
-                <HistoricoEntradas produtoId={product.id} />
-              </TabsContent>
-            )}
-          </Tabs>
+              <div>
+                <Label htmlFor="codigo_interno" className="text-xs">Código Interno</Label>
+                <Input
+                  id="codigo_interno"
+                  value={formData.codigo_interno}
+                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_interno: e.target.value }))}
+                  placeholder="Auto-gerado"
+                  readOnly={!product}
+                  className="h-8 text-sm"
+                />
+              </div>
 
-          <div className="flex justify-between pt-4 border-t">
+              <div>
+                <Label htmlFor="codigo_barras" className="text-xs">Código de Barras</Label>
+                <Input
+                  id="codigo_barras"
+                  value={formData.codigo_barras}
+                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
+                  placeholder="Ex: 1234567890123"
+                  className="h-8 text-sm"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label className="text-xs">Imagem do Produto</Label>
+                <ProductImageUpload
+                  value={formData.imagem_url}
+                  onChange={(imagem_url) => setFormData(prev => ({ ...prev, imagem_url }))}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="ativo"
+                  checked={formData.ativo}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+                />
+                <Label htmlFor="ativo" className="text-xs">
+                  Status: {formData.ativo ? 'Ativo' : 'Inativo'}
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          {/* Abas */}
+          <div className="flex-1 min-h-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 h-10 mb-2">
+                <TabsTrigger value="estoque" className="text-xs">Estoque e Custos</TabsTrigger>
+                <TabsTrigger value="rotulo" className="text-xs">Rótulo Nutricional</TabsTrigger>
+                {product && (
+                  <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
+                )}
+              </TabsList>
+
+              <div className="flex-1 min-h-0 max-h-[320px]">
+
+                <TabsContent value="estoque" className="space-y-3 overflow-y-auto max-h-full p-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="total_embalagem" className="text-xs">Total na Embalagem</Label>
+                      <Input
+                        id="total_embalagem"
+                        type="number"
+                        min="1"
+                        value={formData.total_embalagem}
+                        onChange={(e) => setFormData(prev => ({ ...prev, total_embalagem: parseInt(e.target.value) || 1 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="unidade" className="text-xs">Unidade de Medida *</Label>
+                      <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="un">Unidades (un)</SelectItem>
+                          <SelectItem value="g">Gramas (g)</SelectItem>
+                          <SelectItem value="kg">Quilogramas (kg)</SelectItem>
+                          <SelectItem value="ml">Mililitros (ml)</SelectItem>
+                          <SelectItem value="L">Litros (L)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="custo_unitario" className="text-xs">Custo Unitário (R$)</Label>
+                      <Input
+                        id="custo_unitario"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.custo_unitario}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="estoque_atual" className="text-xs">Qtd em Estoque (readonly)</Label>
+                      <Input
+                        id="estoque_atual"
+                        type="number"
+                        step="0.001"
+                        value={product?.estoque_atual?.toFixed(3) || '0.000'}
+                        readOnly
+                        className="h-8 text-sm bg-muted"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="estoque_minimo" className="text-xs">Estoque Mínimo</Label>
+                      <Input
+                        id="estoque_minimo"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={formData.estoque_minimo}
+                        onChange={(e) => setFormData(prev => ({ ...prev, estoque_minimo: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="custo_total" className="text-xs">Custo Total (readonly)</Label>
+                      <Input
+                        id="custo_total"
+                        type="text"
+                        value={`R$ ${custoTotal.toFixed(2)}`}
+                        readOnly
+                        className="h-8 text-sm bg-muted"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                    💡 Entradas/Saídas atualizam o estoque automaticamente.
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="rotulo" className="space-y-3 overflow-y-auto max-h-full p-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="rotulo_porcao" className="text-xs">Porção</Label>
+                      <Input
+                        id="rotulo_porcao"
+                        value={formData.rotulo_porcao}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_porcao: e.target.value }))}
+                        placeholder="Ex: 50g"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_kcal" className="text-xs">Energia (kcal)</Label>
+                      <Input
+                        id="rotulo_kcal"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_kcal}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_kcal: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_carb" className="text-xs">Carboidratos (g)</Label>
+                      <Input
+                        id="rotulo_carb"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_carb}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_carb: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_prot" className="text-xs">Proteínas (g)</Label>
+                      <Input
+                        id="rotulo_prot"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_prot}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_prot: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_gord_total" className="text-xs">Gorduras Totais (g)</Label>
+                      <Input
+                        id="rotulo_gord_total"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_gord_total}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_total: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_gord_sat" className="text-xs">Gorduras Saturadas (g)</Label>
+                      <Input
+                        id="rotulo_gord_sat"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_gord_sat}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_sat: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_gord_trans" className="text-xs">Gorduras Trans (g)</Label>
+                      <Input
+                        id="rotulo_gord_trans"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_gord_trans}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_trans: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_fibra" className="text-xs">Fibra Alimentar (g)</Label>
+                      <Input
+                        id="rotulo_fibra"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_fibra}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_fibra: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rotulo_sodio" className="text-xs">Sódio (mg)</Label>
+                      <Input
+                        id="rotulo_sodio"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_sodio}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_sodio: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {product && (
+                  <TabsContent value="historico" className="overflow-y-auto max-h-full p-2">
+                    <HistoricoMovimentacoes produtoId={product.id} />
+                  </TabsContent>
+                )}
+              </div>
+            </Tabs>
+          </div>
+
+          {/* Footer com botões */}
+          <div className="flex justify-between pt-3 border-t mt-auto">
             <div>
               {product && (
                 <Button
                   type="button"
                   variant="destructive"
+                  size="sm"
                   onClick={handleDelete}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -531,10 +569,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               )}
             </div>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" size="sm" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" size="sm" disabled={loading}>
                 {loading ? 'Salvando...' : 'Salvar'}
               </Button>
             </div>
