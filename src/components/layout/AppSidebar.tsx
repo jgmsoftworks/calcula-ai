@@ -88,9 +88,9 @@ export function AppSidebar() {
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full'}`}>
           {isCollapsed ? (
             <img 
-              src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
+              src="/lovable-uploads/423f3cc2-b0a8-4c9a-83fd-04ba69f73aa2.png" 
               alt="CalculaAi" 
-              className="h-8 w-auto"
+              className="h-8 w-8 object-contain"
             />
           ) : (
             <img 
