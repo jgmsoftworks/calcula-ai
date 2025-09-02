@@ -2,8 +2,6 @@ import { Navigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -35,11 +33,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex-1 flex flex-col min-h-screen">
           {/* Header */}
           <header className="h-16 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 flex items-center px-4 lg:px-6">
-            <SidebarTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SidebarTrigger>
+            <SidebarTrigger className="lg:hidden" />
             
             {/* Header content can be customized per page */}
             <div className="flex-1 ml-4 lg:ml-0">
