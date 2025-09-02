@@ -21,6 +21,10 @@ const buttonVariants = cva(
         gradient: "bg-gradient-primary text-white shadow-brand hover:shadow-glow transition-all duration-300",
         brand: "bg-primary text-primary-foreground shadow-soft hover:shadow-brand hover:scale-105 transition-bounce",
         accent: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-soft",
+        orange: "bg-orange text-orange-foreground shadow-orange hover:shadow-glow transition-smooth",
+        sunset: "bg-gradient-sunset text-white shadow-red hover:shadow-purple transition-all duration-300",
+        ocean: "bg-gradient-ocean text-blue-foreground shadow-brand hover:shadow-glow transition-smooth",
+        vivid: "bg-blue-vivid text-blue-foreground shadow-soft hover:shadow-brand transition-bounce",
       },
       size: {
         default: "h-10 px-4 py-2",

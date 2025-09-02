@@ -53,6 +53,40 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Extended CalculaAi Colors
+				orange: {
+					DEFAULT: 'hsl(var(--orange))',
+					light: 'hsl(var(--orange-light))',
+					foreground: 'hsl(var(--orange-foreground))'
+				},
+				red: {
+					intense: 'hsl(var(--red-intense))',
+					foreground: 'hsl(var(--red-foreground))'
+				},
+				pink: {
+					intense: 'hsl(var(--pink-intense))',
+				},
+				magenta: {
+					DEFAULT: 'hsl(var(--magenta))',
+					purple: 'hsl(var(--magenta-purple))'
+				},
+				purple: {
+					dark: 'hsl(var(--purple-dark))',
+					foreground: 'hsl(var(--purple-foreground))'
+				},
+				violet: {
+					DEFAULT: 'hsl(var(--violet))',
+				},
+				blue: {
+					royal: 'hsl(var(--blue-royal))',
+					vivid: 'hsl(var(--blue-vivid))',
+					bright: 'hsl(var(--blue-bright))',
+					foreground: 'hsl(var(--blue-foreground))'
+				},
+				cyan: {
+					DEFAULT: 'hsl(var(--cyan))',
+					foreground: 'hsl(var(--cyan-foreground))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -72,12 +106,17 @@ export default {
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-secondary': 'var(--gradient-secondary)',
-				'gradient-accent': 'var(--gradient-accent)'
+				'gradient-accent': 'var(--gradient-accent)',
+				'gradient-sunset': 'var(--gradient-sunset)',
+				'gradient-ocean': 'var(--gradient-ocean)'
 			},
 			boxShadow: {
 				'brand': 'var(--shadow-brand)',
 				'glow': 'var(--shadow-glow)',
-				'soft': 'var(--shadow-soft)'
+				'soft': 'var(--shadow-soft)',
+				'orange': 'var(--shadow-orange)',
+				'red': 'var(--shadow-red)',
+				'purple': 'var(--shadow-purple)'
 			},
 			transitionTimingFunction: {
 				'smooth': 'var(--transition-smooth)',

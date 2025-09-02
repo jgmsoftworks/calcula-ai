@@ -41,14 +41,47 @@ All colors MUST be HSL.
     --input: 220 13% 91%;
     --ring: 199 89% 48%;
 
+    /* Extended CalculaAi Color Palette */
+    /* Laranja/Âmbar */
+    --orange: 21 98% 50%;        /* #FC6603 */
+    --orange-light: 19 92% 58%;  /* #F7702E */
+    --orange-foreground: 0 0% 98%;
+
+    /* Vermelho/Rosa Intenso */
+    --red-intense: 2 96% 55%;    /* #F61F1A */
+    --pink-intense: 342 96% 48%; /* #F4024B */
+    --magenta: 335 98% 42%;      /* #DA0173 */
+    --red-foreground: 0 0% 98%;
+
+    /* Roxo/Violeta */
+    --purple-dark: 282 75% 40%;   /* #861AA8 */
+    --violet: 246 66% 49%;        /* #4E37BF */
+    --magenta-purple: 314 84% 38%; /* #B30A8F */
+    --purple-foreground: 0 0% 98%;
+
+    /* Azul Royal e Vivo */
+    --blue-royal: 220 78% 46%;    /* #1A53CF */
+    --blue-vivid: 207 97% 46%;    /* #036EE6 */
+    --blue-bright: 200 100% 47%;  /* #008DEF */
+    --blue-foreground: 0 0% 98%;
+
+    /* Ciano */
+    --cyan: 194 100% 50%;         /* #00C4FF */
+    --cyan-foreground: 224 71% 4%;
+
     /* Custom design tokens */
     --gradient-primary: linear-gradient(135deg, hsl(199 89% 48%), hsl(262 83% 58%), hsl(322 81% 57%));
     --gradient-secondary: linear-gradient(45deg, hsl(199 89% 95%), hsl(262 83% 95%));
     --gradient-accent: linear-gradient(90deg, hsl(322 81% 57%), hsl(262 83% 58%));
+    --gradient-sunset: linear-gradient(135deg, hsl(21 98% 50%), hsl(342 96% 48%), hsl(282 75% 40%));
+    --gradient-ocean: linear-gradient(90deg, hsl(194 100% 50%), hsl(207 97% 46%), hsl(220 78% 46%));
     
     --shadow-brand: 0 10px 40px -10px hsl(199 89% 48% / 0.3);
     --shadow-glow: 0 0 30px hsl(199 89% 48% / 0.4);
     --shadow-soft: 0 4px 20px -2px hsl(220 13% 91% / 0.6);
+    --shadow-orange: 0 8px 32px -8px hsl(21 98% 50% / 0.4);
+    --shadow-red: 0 8px 32px -8px hsl(2 96% 55% / 0.4);
+    --shadow-purple: 0 8px 32px -8px hsl(282 75% 40% / 0.4);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
