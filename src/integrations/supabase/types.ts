@@ -117,13 +117,27 @@ export type Database = {
         Row: {
           ativo: boolean
           categoria: string | null
+          categorias: string[] | null
           codigo_barras: string | null
+          codigo_interno: string | null
           created_at: string
           custo_medio: number
           estoque_atual: number
+          estoque_minimo: number | null
           fornecedor_ids: string[] | null
           id: string
+          imagem_url: string | null
+          marcas: string[] | null
           nome: string
+          rotulo_carb: number | null
+          rotulo_fibra: number | null
+          rotulo_gord_sat: number | null
+          rotulo_gord_total: number | null
+          rotulo_gord_trans: number | null
+          rotulo_kcal: number | null
+          rotulo_porcao: string | null
+          rotulo_prot: number | null
+          rotulo_sodio: number | null
           sku: string | null
           unidade: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
@@ -132,13 +146,27 @@ export type Database = {
         Insert: {
           ativo?: boolean
           categoria?: string | null
+          categorias?: string[] | null
           codigo_barras?: string | null
+          codigo_interno?: string | null
           created_at?: string
           custo_medio?: number
           estoque_atual?: number
+          estoque_minimo?: number | null
           fornecedor_ids?: string[] | null
           id?: string
+          imagem_url?: string | null
+          marcas?: string[] | null
           nome: string
+          rotulo_carb?: number | null
+          rotulo_fibra?: number | null
+          rotulo_gord_sat?: number | null
+          rotulo_gord_total?: number | null
+          rotulo_gord_trans?: number | null
+          rotulo_kcal?: number | null
+          rotulo_porcao?: string | null
+          rotulo_prot?: number | null
+          rotulo_sodio?: number | null
           sku?: string | null
           unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
@@ -147,13 +175,27 @@ export type Database = {
         Update: {
           ativo?: boolean
           categoria?: string | null
+          categorias?: string[] | null
           codigo_barras?: string | null
+          codigo_interno?: string | null
           created_at?: string
           custo_medio?: number
           estoque_atual?: number
+          estoque_minimo?: number | null
           fornecedor_ids?: string[] | null
           id?: string
+          imagem_url?: string | null
+          marcas?: string[] | null
           nome?: string
+          rotulo_carb?: number | null
+          rotulo_fibra?: number | null
+          rotulo_gord_sat?: number | null
+          rotulo_gord_total?: number | null
+          rotulo_gord_trans?: number | null
+          rotulo_kcal?: number | null
+          rotulo_porcao?: string | null
+          rotulo_prot?: number | null
+          rotulo_sodio?: number | null
           sku?: string | null
           unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
@@ -199,7 +241,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_codigo_interno: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
     }
     Enums: {
       tipo_movimentacao: "entrada" | "saida"
