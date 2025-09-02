@@ -85,7 +85,7 @@ export function AppSidebar() {
     >
       {/* Header */}
       <SidebarHeader className="p-4 border-b">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full'}`}>
           {isCollapsed ? (
             <img 
               src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
@@ -96,7 +96,7 @@ export function AppSidebar() {
             <img 
               src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
               alt="CalculaAi - Precificação Inteligente" 
-              className="h-10 w-auto max-w-[200px]"
+              className="h-10 w-full object-contain object-left"
             />
           )}
         </div>
