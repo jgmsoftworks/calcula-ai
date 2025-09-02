@@ -31,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const navigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
-  { title: 'Produtos', url: '/produtos', icon: Package },
+  { title: 'Estoque', url: '/estoque', icon: Package },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Clientes', url: '/clientes', icon: Users },

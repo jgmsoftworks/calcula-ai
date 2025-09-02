@@ -14,6 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          cnpj_cpf: string | null
+          contato: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj_cpf?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj_cpf?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      movimentacoes: {
+        Row: {
+          created_at: string
+          custo_unitario: number | null
+          data: string
+          fornecedor_id: string | null
+          id: string
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number | null
+          data?: string
+          fornecedor_id?: string | null
+          id?: string
+          observacao?: string | null
+          produto_id: string
+          quantidade: number
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number | null
+          data?: string
+          fornecedor_id?: string | null
+          id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          codigo_barras: string | null
+          created_at: string
+          custo_medio: number
+          estoque_atual: number
+          fornecedor_ids: string[] | null
+          id: string
+          nome: string
+          sku: string | null
+          unidade: Database["public"]["Enums"]["unidade_medida"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          custo_medio?: number
+          estoque_atual?: number
+          fornecedor_ids?: string[] | null
+          id?: string
+          nome: string
+          sku?: string | null
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          custo_medio?: number
+          estoque_atual?: number
+          fornecedor_ids?: string[] | null
+          id?: string
+          nome?: string
+          sku?: string | null
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_name: string | null
@@ -55,7 +202,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      tipo_movimentacao: "entrada" | "saida"
+      unidade_medida: "g" | "kg" | "ml" | "L" | "un"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -182,6 +330,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      tipo_movimentacao: ["entrada", "saida"],
+      unidade_medida: ["g", "kg", "ml", "L", "un"],
+    },
   },
 } as const

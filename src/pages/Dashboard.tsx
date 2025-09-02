@@ -52,7 +52,7 @@ const Dashboard = () => {
       title: 'Novo Produto',
       description: 'Cadastrar produto e calcular preço',
       icon: Plus,
-      href: '/produtos',
+      href: '/estoque',
       variant: 'gradient' as const,
     },
     {
