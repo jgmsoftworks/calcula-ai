@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Plus, Camera, X } from 'lucide-react';
 import { ImageCropper } from './ImageCropper';
+import { MarcasSelector } from './MarcasSelector';
 
 interface Fornecedor {
   id: string;
@@ -20,7 +21,7 @@ interface Fornecedor {
 export const CadastroProdutoForm = () => {
   const [formData, setFormData] = useState({
     nome: '',
-    marca: '',
+    marcas: [] as string[], // Mudança: agora é array
     categoria: '',
     codigo_interno: '',
     codigo_barras: '',
@@ -147,7 +148,7 @@ export const CadastroProdutoForm = () => {
     try {
       const payload = {
         nome: formData.nome,
-        marca: formData.marca || null,
+        marcas: formData.marcas.length > 0 ? formData.marcas : null, // Mudança: usar array de marcas
         categorias: formData.categoria ? [formData.categoria] : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigo_barras || null,
@@ -173,7 +174,7 @@ export const CadastroProdutoForm = () => {
       // Reset form
       setFormData({
         nome: '',
-        marca: '',
+        marcas: [], // Mudança: resetar array
         categoria: '',
         codigo_interno: '',
         codigo_barras: '',
@@ -234,19 +235,11 @@ export const CadastroProdutoForm = () => {
 
                 {/* Marca */}
                 <div className="space-y-2">
-                  <Label htmlFor="marca" className="text-sm font-medium text-foreground">Marca</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="marca"
-                      value={formData.marca}
-                      onChange={(e) => handleInputChange('marca', e.target.value)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg flex-1"
-                      placeholder="Marca do produto"
-                    />
-                    <Button type="button" className="h-12 w-12 bg-primary hover:bg-primary/90">
-                      <Plus className="w-5 h-5" />
-                    </Button>
-                  </div>
+                  <Label htmlFor="marcas" className="text-sm font-medium text-foreground">Marca</Label>
+                  <MarcasSelector
+                    selectedMarcas={formData.marcas}
+                    onMarcasChange={(marcas) => handleInputChange('marcas', marcas)}
+                  />
                 </div>
 
                 {/* Categoria */}
