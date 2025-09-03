@@ -357,26 +357,6 @@ export const CadastroProdutoForm = () => {
                     />
                   </div>
                 </div>
-
-                {/* Fornecedor */}
-                <div className="space-y-2">
-                  <Label htmlFor="fornecedor" className="text-sm font-medium text-foreground">Fornecedor</Label>
-                  <Select
-                    value={formData.fornecedor_id}
-                    onValueChange={(value) => handleInputChange('fornecedor_id', value)}
-                  >
-                    <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
-                      <SelectValue placeholder="Selecione um fornecedor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fornecedores.map((fornecedor) => (
-                        <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                          {fornecedor.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </TabsContent>
 
               {/* Aba Rótulo Nutricional */}
