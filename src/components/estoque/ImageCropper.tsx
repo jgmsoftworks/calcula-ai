@@ -21,22 +21,30 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
     
-    // Crop fixo que ocupa toda a imagem
+    // Dimensões fixas do crop: 264x197 pixels
+    const cropWidth = 264;
+    const cropHeight = 197;
+    
+    // Centraliza o crop na imagem
+    const x = Math.max(0, (width - cropWidth) / 2);
+    const y = Math.max(0, (height - cropHeight) / 2);
+    
+    // Crop fixo de 264x197 pixels
     const crop: Crop = {
-      unit: '%',
-      width: 100,
-      height: 100,
-      x: 0,
-      y: 0
+      unit: 'px',
+      width: cropWidth,
+      height: cropHeight,
+      x: x,
+      y: y
     };
     
     setCrop(crop);
     setCompletedCrop({
       unit: 'px',
-      x: 0,
-      y: 0,
-      width: width,
-      height: height
+      x: x,
+      y: y,
+      width: cropWidth,
+      height: cropHeight
     });
   }, []);
 
