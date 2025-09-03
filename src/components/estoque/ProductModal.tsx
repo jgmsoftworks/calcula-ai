@@ -255,7 +255,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[1200px] h-[70vh] max-h-[600px] overflow-hidden p-0 bg-background border-2 border-primary/20">
+      <DialogContent className="w-[95vw] max-w-[1200px] h-[90vh] max-h-[800px] overflow-hidden p-0 bg-background border-2 border-primary/20">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95">
           <DialogTitle className="text-xl font-bold text-primary">
@@ -340,9 +340,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               </div>
 
               {/* Coluna Direita - Painel de Imagem */}
-              <div className="w-80 border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
+              <div className="w-80 h-80 border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
-                <div className="aspect-[4/3] bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
+                <div className="aspect-[4/3] h-32 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
                      onClick={() => document.getElementById('image-upload')?.click()}>
                   {formData.imagem_url ? (
                     <img
@@ -352,21 +352,21 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                     />
                   ) : (
                     <div className="text-center text-muted-foreground group-hover:text-foreground transition-colors">
-                      <Camera className="w-16 h-16 mx-auto mb-3" />
-                      <p className="text-sm font-medium">Sem foto</p>
+                      <Camera className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-xs font-medium">Sem foto</p>
                       <p className="text-xs">Clique para adicionar</p>
                     </div>
                   )}
                 </div>
 
                 {/* Sugestões de Imagem */}
-                <div className="flex-1 space-y-3">
-                  <Label className="text-sm font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="flex-1 space-y-2">
+                  <Label className="text-xs font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
+                  <div className="grid grid-cols-2 gap-2">
                     {imageSuggestions.map((suggestion, index) => (
                       <div
                         key={index}
-                        className="aspect-square bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
+                        className="aspect-square h-16 bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
                         onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
                       >
                         <img
@@ -380,15 +380,15 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Toggle Ativo */}
-                <div className="flex items-center justify-end pt-4 mt-4">
-                  <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-end pt-2 mt-2">
+                  <div className="flex items-center space-x-2">
                     <Switch
                       id="ativo"
                       checked={formData.ativo}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
                       className="data-[state=checked]:bg-primary"
                     />
-                    <Label htmlFor="ativo" className="text-base font-bold text-primary">
+                    <Label htmlFor="ativo" className="text-sm font-bold text-primary">
                       {formData.ativo ? 'Ativo' : 'Inativo'}
                     </Label>
                   </div>
