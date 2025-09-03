@@ -93,53 +93,50 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-6xl w-[95vw] max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <CropIcon className="w-5 h-5 text-primary" />
-            Cortar Imagem
+            Ajustar Imagem
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
-          <div className="w-full h-full flex items-center justify-center">
-            <ReactCrop
-              crop={crop}
-              onChange={(_, percentCrop) => setCrop(percentCrop)}
-              onComplete={(c) => setCompletedCrop(c)}
-              aspect={4/3}
-              minWidth={60}
-              minHeight={45}
-              className="max-w-full max-h-full"
-            >
-              <img
-                ref={imgRef}
-                src={imageSrc}
-                alt="Crop preview"
-                onLoad={onImageLoad}
-                className="max-h-[65vh] max-w-[85vw] object-contain"
-                style={{ display: 'block' }}
-              />
-            </ReactCrop>
-          </div>
+        <div className="flex-1 flex items-center justify-center p-6 bg-muted/20 min-h-[400px]">
+          <ReactCrop
+            crop={crop}
+            onChange={(_, percentCrop) => setCrop(percentCrop)}
+            onComplete={(c) => setCompletedCrop(c)}
+            aspect={4/3}
+            minWidth={50}
+            minHeight={37}
+            className="max-w-full max-h-full"
+          >
+            <img
+              ref={imgRef}
+              src={imageSrc}
+              alt="Ajustar imagem"
+              onLoad={onImageLoad}
+              className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-lg"
+              style={{ display: 'block' }}
+            />
+          </ReactCrop>
         </div>
         
-        <div className="flex-shrink-0 flex justify-center gap-4 p-4 border-t bg-background">
-          <Button
-            onClick={getCroppedImg}
-            disabled={!completedCrop}
-            className="flex items-center gap-2 px-6"
-          >
-            <Check className="w-4 h-4" />
-            Aplicar Corte
-          </Button>
+        <div className="flex justify-end gap-3 p-6 border-t bg-background">
           <Button
             variant="outline"
             onClick={handleCancel}
-            className="flex items-center gap-2 px-6"
+            className="px-6"
           >
-            <X className="w-4 h-4" />
             Cancelar
+          </Button>
+          <Button
+            onClick={getCroppedImg}
+            disabled={!completedCrop}
+            className="px-6 bg-primary hover:bg-primary/90"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            Confirmar
           </Button>
         </div>
         

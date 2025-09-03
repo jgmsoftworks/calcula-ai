@@ -83,10 +83,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   const { toast } = useToast();
 
   const imageSuggestions = [
-    { url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=80&h=80&fit=crop', name: 'Farinha' },
-    { url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=80&h=80&fit=crop', name: 'Açúcar' },
-    { url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=80&h=80&fit=crop', name: 'Óleo' },
-    { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=80&h=80&fit=crop', name: 'Sal' }
+    { url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=400&fit=crop', name: 'Farinha' },
+    { url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=400&h=400&fit=crop', name: 'Açúcar' },
+    { url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=400&h=400&fit=crop', name: 'Óleo' },
+    { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop', name: 'Sal' }
   ];
 
   useEffect(() => {
