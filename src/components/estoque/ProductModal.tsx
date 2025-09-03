@@ -340,7 +340,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               </div>
 
               {/* Coluna Direita - Painel de Imagem */}
-              <div className="w-80 h-80 border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
+              <div className="w-80 h-[370px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
                 <div className="aspect-[4/3] h-32 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
                      onClick={() => document.getElementById('image-upload')?.click()}>
