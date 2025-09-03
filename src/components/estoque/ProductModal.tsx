@@ -235,7 +235,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[1366px] max-w-[1366px] h-[1366px] max-h-[1366px] overflow-hidden p-4">
+      <DialogContent className="w-[1366px] max-w-[1366px] h-[900px] max-h-[900px] overflow-hidden p-6 flex flex-col">
         <DialogHeader className="pb-2">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">
