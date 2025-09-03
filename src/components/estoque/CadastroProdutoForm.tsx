@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus } from 'lucide-react';
+import { Plus, Camera } from 'lucide-react';
 
 interface Fornecedor {
   id: string;
@@ -17,11 +19,18 @@ interface Fornecedor {
 export const CadastroProdutoForm = () => {
   const [formData, setFormData] = useState({
     nome: '',
+    marca: '',
     categoria: '',
+    codigo_interno: '',
+    codigo_barras: '',
     unidade: 'un' as const,
+    total_embalagem: 1,
     custo_unitario: 0,
+    custo_total: 0,
+    estoque_atual: 0,
+    estoque_minimo: 15,
     fornecedor_id: '',
-    estoque_atual: 0
+    ativo: true
   });
   
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -68,13 +77,19 @@ export const CadastroProdutoForm = () => {
     try {
       const payload = {
         nome: formData.nome,
+        marca: formData.marca || null,
         categorias: formData.categoria ? [formData.categoria] : null,
+        codigo_interno: formData.codigo_interno || null,
+        codigo_barras: formData.codigo_barras || null,
         unidade: formData.unidade,
+        total_embalagem: formData.total_embalagem,
         custo_unitario: formData.custo_unitario,
+        custo_total: formData.custo_total,
         estoque_atual: formData.estoque_atual,
+        estoque_minimo: formData.estoque_minimo,
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
         user_id: user?.id,
-        ativo: true
+        ativo: formData.ativo
       };
 
       const { error } = await supabase
@@ -88,11 +103,18 @@ export const CadastroProdutoForm = () => {
       // Reset form
       setFormData({
         nome: '',
+        marca: '',
         categoria: '',
+        codigo_interno: '',
+        codigo_barras: '',
         unidade: 'un',
+        total_embalagem: 1,
         custo_unitario: 0,
+        custo_total: 0,
+        estoque_atual: 0,
+        estoque_minimo: 15,
         fornecedor_id: '',
-        estoque_atual: 0
+        ativo: true
       });
     } catch (error: any) {
       toast({
@@ -122,131 +144,282 @@ export const CadastroProdutoForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="flex flex-col h-full">
-            {/* Layout em duas colunas igual ao modal */}
-            <div className="flex gap-8">
-              {/* Coluna Esquerda - Formulário */}
-              <div className="flex-1 space-y-6 h-[300px] overflow-y-auto pr-2">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Seção Superior - Campos Básicos e Imagem */}
+            <div className="flex gap-6">
+              {/* Campos Básicos */}
+              <div className="flex-1 space-y-4">
                 {/* Nome */}
                 <div className="space-y-2">
-                  <Label htmlFor="nome" className="text-sm font-medium text-foreground">Nome *</Label>
+                  <Label htmlFor="nome" className="text-sm font-medium text-foreground">Nome</Label>
                   <Input
                     id="nome"
                     value={formData.nome}
                     onChange={(e) => handleInputChange('nome', e.target.value)}
                     required
                     className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    placeholder="Digite o nome do produto"
+                    placeholder="teste"
                   />
+                </div>
+
+                {/* Marca */}
+                <div className="space-y-2">
+                  <Label htmlFor="marca" className="text-sm font-medium text-foreground">Marca</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="marca"
+                      value={formData.marca}
+                      onChange={(e) => handleInputChange('marca', e.target.value)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg flex-1"
+                      placeholder="Marca do produto"
+                    />
+                    <Button type="button" className="h-12 w-12 bg-primary hover:bg-primary/90">
+                      <Plus className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Categoria */}
                 <div className="space-y-2">
                   <Label htmlFor="categoria" className="text-sm font-medium text-foreground">Categoria</Label>
-                  <Input
-                    id="categoria"
-                    value={formData.categoria}
-                    onChange={(e) => handleInputChange('categoria', e.target.value)}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    placeholder="Ex: Ingredientes, Bebidas..."
-                  />
-                </div>
-
-                {/* Unidade */}
-                <div className="space-y-2">
-                  <Label htmlFor="unidade" className="text-sm font-medium text-foreground">Unidade</Label>
-                  <Select
-                    value={formData.unidade}
-                    onValueChange={(value) => handleInputChange('unidade', value)}
-                  >
-                    <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="un">Unidade (un)</SelectItem>
-                      <SelectItem value="kg">Quilograma (kg)</SelectItem>
-                      <SelectItem value="g">Grama (g)</SelectItem>
-                      <SelectItem value="l">Litro (l)</SelectItem>
-                      <SelectItem value="ml">Mililitro (ml)</SelectItem>
-                      <SelectItem value="m">Metro (m)</SelectItem>
-                      <SelectItem value="cm">Centímetro (cm)</SelectItem>
-                      <SelectItem value="cx">Caixa (cx)</SelectItem>
-                      <SelectItem value="pct">Pacote (pct)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Preço de Compra e Fornecedor em linha */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="preco" className="text-sm font-medium text-foreground">Preço de Compra (R$)</Label>
+                  <div className="flex gap-2">
                     <Input
-                      id="preco"
+                      id="categoria"
+                      value={formData.categoria}
+                      onChange={(e) => handleInputChange('categoria', e.target.value)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg flex-1"
+                      placeholder="Categoria do produto"
+                    />
+                    <Button type="button" className="h-12 w-12 bg-primary hover:bg-primary/90">
+                      <Plus className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Códigos */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
+                    <Input
+                      id="codigo_interno"
+                      value={formData.codigo_interno}
+                      onChange={(e) => handleInputChange('codigo_interno', e.target.value)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                      placeholder="121212"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras</Label>
+                    <Input
+                      id="codigo_barras"
+                      value={formData.codigo_barras}
+                      onChange={(e) => handleInputChange('codigo_barras', e.target.value)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                      placeholder="Digite o código de barras"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Área de Imagem */}
+              <div className="w-64 flex flex-col items-center">
+                <div className="w-full h-48 border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4">
+                  <Camera className="w-12 h-12 text-primary/50 mb-2" />
+                  <span className="text-sm text-primary/70">Sem foto</span>
+                  <span className="text-xs text-muted-foreground">Clique para adicionar</span>
+                </div>
+                
+                <div className="text-center mb-4">
+                  <h4 className="text-sm font-medium text-primary mb-2">SUGESTÃO DE IMAGEM</h4>
+                  <div className="flex gap-2">
+                    <div className="w-10 h-10 bg-yellow-400 rounded border"></div>
+                    <div className="w-10 h-10 bg-red-500 rounded border"></div>
+                    <div className="w-10 h-10 bg-blue-200 rounded border"></div>
+                    <div className="w-10 h-10 bg-gray-400 rounded border"></div>
+                  </div>
+                  <span className="text-xs text-muted-foreground block mt-1">Mostrar mais</span>
+                </div>
+
+                {/* Switch Ativo */}
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={formData.ativo}
+                    onCheckedChange={(checked) => handleInputChange('ativo', checked)}
+                  />
+                  <span className="text-sm font-medium text-primary">Ativo</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Abas */}
+            <Tabs defaultValue="estoque" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-primary/10">
+                <TabsTrigger value="estoque" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  Estoque e Custos
+                </TabsTrigger>
+                <TabsTrigger value="nutricional" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  Rótulo Nutricional
+                </TabsTrigger>
+                <TabsTrigger value="historico" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  Histórico de Entradas
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Aba Estoque e Custos */}
+              <TabsContent value="estoque" className="space-y-4 mt-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="total_embalagem" className="text-sm font-medium text-foreground">Total na Embalagem</Label>
+                    <Input
+                      id="total_embalagem"
+                      type="number"
+                      min="1"
+                      value={formData.total_embalagem}
+                      onChange={(e) => handleInputChange('total_embalagem', parseInt(e.target.value) || 1)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="unidade" className="text-sm font-medium text-foreground">Unidade de Medida</Label>
+                    <Select
+                      value={formData.unidade}
+                      onValueChange={(value) => handleInputChange('unidade', value)}
+                    >
+                      <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="un">Unidade (un.)</SelectItem>
+                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                        <SelectItem value="g">Grama (g)</SelectItem>
+                        <SelectItem value="l">Litro (l)</SelectItem>
+                        <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                        <SelectItem value="m">Metro (m)</SelectItem>
+                        <SelectItem value="cm">Centímetro (cm)</SelectItem>
+                        <SelectItem value="cx">Caixa (cx)</SelectItem>
+                        <SelectItem value="pct">Pacote (pct)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="custo_total" className="text-sm font-medium text-foreground">Custo Total (R$)</Label>
+                    <Input
+                      id="custo_total"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.custo_total}
+                      onChange={(e) => handleInputChange('custo_total', parseFloat(e.target.value) || 0)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="custo_unitario" className="text-sm font-medium text-foreground">Custo Unitário (R$)</Label>
+                    <Input
+                      id="custo_unitario"
                       type="number"
                       min="0"
                       step="0.01"
                       value={formData.custo_unitario}
                       onChange={(e) => handleInputChange('custo_unitario', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                      placeholder="0,00"
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="estoque_atual" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
+                    <Input
+                      id="estoque_atual"
+                      type="number"
+                      min="0"
+                      value={formData.estoque_atual}
+                      onChange={(e) => handleInputChange('estoque_atual', parseInt(e.target.value) || 0)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fornecedor" className="text-sm font-medium text-foreground">Fornecedor</Label>
-                    <Select
-                      value={formData.fornecedor_id}
-                      onValueChange={(value) => handleInputChange('fornecedor_id', value)}
-                    >
-                      <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
-                        <SelectValue placeholder="Selecione um fornecedor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fornecedores.map((fornecedor) => (
-                          <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                            {fornecedor.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="estoque_minimo" className="text-sm font-medium text-foreground">Estoque Mínimo</Label>
+                    <Input
+                      id="estoque_minimo"
+                      type="number"
+                      min="0"
+                      value={formData.estoque_minimo}
+                      onChange={(e) => handleInputChange('estoque_minimo', parseInt(e.target.value) || 0)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                    />
                   </div>
                 </div>
 
-                {/* Quantidade em Estoque */}
+                {/* Fornecedor */}
                 <div className="space-y-2">
-                  <Label htmlFor="estoque" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
-                  <Input
-                    id="estoque"
-                    type="number"
-                    min="0"
-                    value={formData.estoque_atual}
-                    onChange={(e) => handleInputChange('estoque_atual', parseFloat(e.target.value) || 0)}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    placeholder="0"
-                  />
+                  <Label htmlFor="fornecedor" className="text-sm font-medium text-foreground">Fornecedor</Label>
+                  <Select
+                    value={formData.fornecedor_id}
+                    onValueChange={(value) => handleInputChange('fornecedor_id', value)}
+                  >
+                    <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
+                      <SelectValue placeholder="Selecione um fornecedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fornecedores.map((fornecedor) => (
+                        <SelectItem key={fornecedor.id} value={fornecedor.id}>
+                          {fornecedor.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
+              </TabsContent>
 
-              {/* Coluna Direita - Painel Informativo */}
-              <div className="w-80 h-[300px] border-2 border-dashed border-primary/40 rounded-xl p-4 bg-primary/5 flex flex-col items-center justify-center">
-                <div className="text-center text-primary">
-                  <Plus className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-semibold mb-2">Novo Produto</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Preencha os campos ao lado para cadastrar um novo produto no estoque
-                  </p>
+              {/* Aba Rótulo Nutricional */}
+              <TabsContent value="nutricional" className="space-y-4 mt-6">
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Informações nutricionais serão implementadas em breve</p>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
 
-            <div className="flex justify-end pt-6 mt-4 border-t border-primary/20">
+              {/* Aba Histórico de Entradas */}
+              <TabsContent value="historico" className="space-y-4 mt-6">
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Histórico será exibido após o primeiro cadastro</p>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Botões */}
+            <div className="flex justify-between pt-6 border-t border-primary/20">
               <Button 
-                type="submit" 
-                disabled={loading}
-                className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8 h-12"
+                type="button" 
+                variant="destructive"
+                className="px-8 h-12"
               >
-                {loading ? 'Salvando...' : 'Salvar Produto'}
+                Excluir
               </Button>
+              
+              <div className="flex gap-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  className="px-8 h-12 border-2 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8 h-12"
+                >
+                  {loading ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
