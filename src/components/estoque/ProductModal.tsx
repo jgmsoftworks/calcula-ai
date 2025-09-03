@@ -255,7 +255,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[1366px] max-w-[1366px] h-[900px] max-h-[900px] overflow-hidden p-0 bg-background border-2 border-primary/20">
+      <DialogContent className="w-[95vw] max-w-[1200px] h-[90vh] max-h-[800px] overflow-hidden p-0 bg-background border-2 border-primary/20">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95">
           <DialogTitle className="text-xl font-bold text-primary">
