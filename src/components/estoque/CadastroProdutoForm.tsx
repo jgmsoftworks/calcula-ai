@@ -39,6 +39,8 @@ export const CadastroProdutoForm = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageSrc, setImageSrc] = useState<string>('');
   const [showImageCropper, setShowImageCropper] = useState(false);
+  const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -86,6 +88,49 @@ export const CadastroProdutoForm = () => {
   const handleRemoveImage = () => {
     setSelectedImage(null);
   };
+
+  const generateImageSuggestions = async (productName: string) => {
+    if (!productName.trim()) return;
+    
+    setLoadingSuggestions(true);
+    try {
+      const response = await supabase.functions.invoke('generate-image-suggestions', {
+        body: { productName }
+      });
+      
+      if (response.error) throw response.error;
+      
+      setSuggestedImages(response.data.images || []);
+    } catch (error) {
+      console.error('Erro ao gerar sugestões:', error);
+      toast({
+        title: "Erro ao gerar sugestões",
+        description: "Tente novamente em alguns instantes",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const generateMoreSuggestions = () => {
+    if (formData.nome.trim()) {
+      generateImageSuggestions(formData.nome);
+    }
+  };
+
+  // Efeito para gerar sugestões quando o nome mudar
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.nome.trim()) {
+        generateImageSuggestions(formData.nome);
+      } else {
+        setSuggestedImages([]);
+      }
+    }, 1000); // Debounce de 1 segundo
+
+    return () => clearTimeout(timer);
+  }, [formData.nome]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,13 +330,63 @@ export const CadastroProdutoForm = () => {
                 
                 <div className="text-center mb-4">
                   <h4 className="text-sm font-medium text-primary mb-2">SUGESTÃO DE IMAGEM</h4>
-                  <div className="flex gap-2">
-                    <div className="w-10 h-10 bg-yellow-400 rounded border"></div>
-                    <div className="w-10 h-10 bg-red-500 rounded border"></div>
-                    <div className="w-10 h-10 bg-blue-200 rounded border"></div>
-                    <div className="w-10 h-10 bg-gray-400 rounded border"></div>
-                  </div>
-                  <span className="text-xs text-muted-foreground block mt-1">Mostrar mais</span>
+                  
+                  {!formData.nome.trim() ? (
+                    <div className="py-4">
+                      <span className="text-sm text-muted-foreground">Adicione um nome</span>
+                    </div>
+                  ) : loadingSuggestions ? (
+                    <div className="flex gap-2 justify-center mb-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="w-10 h-10 bg-muted animate-pulse rounded border"></div>
+                      ))}
+                    </div>
+                  ) : suggestedImages.length > 0 ? (
+                    <div className="flex gap-2 justify-center mb-2">
+                      {suggestedImages.slice(0, 4).map((image, index) => (
+                        <div
+                          key={index}
+                          className="w-10 h-10 border rounded cursor-pointer hover:scale-110 transition-transform"
+                          onClick={() => {
+                            setImageSrc(image);
+                            setShowImageCropper(true);
+                          }}
+                        >
+                          <img 
+                            src={image} 
+                            alt={`Sugestão ${index + 1}`}
+                            className="w-full h-full object-cover rounded"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 justify-center mb-2">
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">?</span>
+                      </div>
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">?</span>
+                      </div>
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">?</span>
+                      </div>
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">?</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {formData.nome.trim() && (
+                    <button
+                      type="button"
+                      onClick={generateMoreSuggestions}
+                      disabled={loadingSuggestions}
+                      className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 cursor-pointer"
+                    >
+                      {loadingSuggestions ? 'Gerando...' : 'Mostrar mais'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Switch Ativo */}
