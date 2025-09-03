@@ -381,13 +381,13 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Sugestões de Imagem */}
-                <div className="h-25 space-y-2">
+                <div className="space-y-2">
                   <Label className="text-xs font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-4 gap-2">
                     {imageSuggestions.map((suggestion, index) => (
                       <div
                         key={index}
-                        className="aspect-square h-12 bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
+                        className="aspect-square w-full bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
                         onClick={() => {
                           setImageForCrop(suggestion.url);
                           setShowCropper(true);

@@ -93,38 +93,38 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <CropIcon className="w-5 h-5 text-primary" />
             Cortar Imagem
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
           <div className="w-full h-full flex items-center justify-center">
             <ReactCrop
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               onComplete={(c) => setCompletedCrop(c)}
               aspect={4/3}
-              minWidth={80}
-              minHeight={60}
-              className="w-full h-full flex items-center justify-center"
+              minWidth={60}
+              minHeight={45}
+              className="max-w-full max-h-full"
             >
               <img
                 ref={imgRef}
                 src={imageSrc}
                 alt="Crop preview"
                 onLoad={onImageLoad}
-                className="max-h-[60vh] max-w-[90vw] object-contain"
-                style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+                className="max-h-[65vh] max-w-[85vw] object-contain"
+                style={{ display: 'block' }}
               />
             </ReactCrop>
           </div>
         </div>
         
-        <div className="flex justify-center gap-4 p-4 border-t bg-background">
+        <div className="flex-shrink-0 flex justify-center gap-4 p-4 border-t bg-background">
           <Button
             onClick={getCroppedImg}
             disabled={!completedCrop}
