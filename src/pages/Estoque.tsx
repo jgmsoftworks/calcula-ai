@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CadastroProdutos } from '@/components/estoque/CadastroProdutos';
-import { Entradas } from '@/components/estoque/Entradas';
-import { Saidas } from '@/components/estoque/Saidas';
-import { Fornecedores } from '@/components/estoque/Fornecedores';
-import { Historico } from '@/components/estoque/Historico';
+import { CadastroProdutoForm } from '@/components/estoque/CadastroProdutoForm';
+import { ListaProdutos } from '@/components/estoque/ListaProdutos';
+import { EntradasForm } from '@/components/estoque/EntradasForm';
+import { SaidasForm } from '@/components/estoque/SaidasForm';
+import { FornecedoresTabela } from '@/components/estoque/FornecedoresTabela';
+import { HistoricoLista } from '@/components/estoque/HistoricoLista';
 
 const Estoque = () => {
   return (
@@ -16,8 +17,9 @@ const Estoque = () => {
       </div>
 
       <Tabs defaultValue="cadastro" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
+          <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="entradas">Entradas</TabsTrigger>
           <TabsTrigger value="saidas">Saídas</TabsTrigger>
           <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
@@ -25,23 +27,27 @@ const Estoque = () => {
         </TabsList>
 
         <TabsContent value="cadastro" className="space-y-4">
-          <CadastroProdutos />
+          <CadastroProdutoForm />
+        </TabsContent>
+
+        <TabsContent value="lista" className="space-y-4">
+          <ListaProdutos />
         </TabsContent>
 
         <TabsContent value="entradas" className="space-y-4">
-          <Entradas />
+          <EntradasForm />
         </TabsContent>
 
         <TabsContent value="saidas" className="space-y-4">
-          <Saidas />
+          <SaidasForm />
         </TabsContent>
 
         <TabsContent value="fornecedores" className="space-y-4">
-          <Fornecedores />
+          <FornecedoresTabela />
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-4">
-          <Historico />
+          <HistoricoLista />
         </TabsContent>
       </Tabs>
     </div>
