@@ -12,7 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { X, Trash2 } from 'lucide-react';
 import { MultiSelectTags } from './MultiSelectTags';
-import { ProductImageUpload } from './ProductImageUpload';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 
 interface Produto {
@@ -236,7 +235,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[960px] max-w-[960px] max-h-[90vh] overflow-hidden p-4">
+      <DialogContent className="w-[1040px] max-w-[1040px] max-h-[calc(100vh-120px)] overflow-hidden p-4">
         <DialogHeader className="pb-2">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">
@@ -250,79 +249,161 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           {/* Dados Principais - Seção Fixa */}
-          <div className="border-b pb-4 mb-3 max-h-[240px] overflow-y-auto">
-            <h3 className="text-sm font-medium mb-3 text-muted-foreground">DADOS PRINCIPAIS</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label htmlFor="nome" className="text-xs">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                  placeholder="Ex: Farinha de Trigo"
-                  required
-                  className="h-8 text-sm"
-                />
+          <div className="border-b pb-3 mb-2 h-[240px] overflow-hidden">
+            <h3 className="text-sm font-medium mb-2 text-muted-foreground">DADOS PRINCIPAIS</h3>
+            <div className="grid grid-cols-[1fr_320px] gap-4 h-full">
+              {/* Coluna Esquerda - Dados */}
+              <div className="space-y-3">
+                {/* Nome (largura completa) */}
+                <div>
+                  <Label htmlFor="nome" className="text-xs">Nome *</Label>
+                  <Input
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                    placeholder="Ex: Farinha de Trigo"
+                    required
+                    className="h-8 text-sm"
+                  />
+                </div>
+
+                {/* Marcas e Categorias */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Marcas</Label>
+                    <MultiSelectTags
+                      values={formData.marcas}
+                      onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
+                      placeholder="Adicionar marca..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Categorias</Label>
+                    <MultiSelectTags
+                      values={formData.categorias}
+                      onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
+                      placeholder="Adicionar categoria..."
+                    />
+                  </div>
+                </div>
+
+                {/* Códigos */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="codigo_interno" className="text-xs">Código Interno</Label>
+                    <Input
+                      id="codigo_interno"
+                      value={formData.codigo_interno}
+                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_interno: e.target.value }))}
+                      placeholder="Auto-gerado"
+                      readOnly={!product}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="codigo_barras" className="text-xs">Código de Barras</Label>
+                    <Input
+                      id="codigo_barras"
+                      value={formData.codigo_barras}
+                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
+                      placeholder="Ex: 1234567890123"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <Label className="text-xs">Marcas</Label>
-                <MultiSelectTags
-                  values={formData.marcas}
-                  onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
-                  placeholder="Adicionar marca..."
-                />
-              </div>
+              {/* Coluna Direita - Painel de Imagem */}
+              <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
+                {/* Preview da imagem */}
+                <div className="aspect-[4/3] w-full bg-muted rounded-md overflow-hidden">
+                  {formData.imagem_url ? (
+                    <img
+                      src={formData.imagem_url}
+                      alt="Produto"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://via.placeholder.com/180x135?text=Erro';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                      Sem imagem
+                    </div>
+                  )}
+                </div>
 
-              <div>
-                <Label className="text-xs">Categorias</Label>
-                <MultiSelectTags
-                  values={formData.categorias}
-                  onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
-                  placeholder="Adicionar categoria..."
-                />
-              </div>
+                {/* Botões Upload e Remover */}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs">
+                    Upload
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, imagem_url: '' }))}
+                    disabled={!formData.imagem_url}
+                    className="text-xs"
+                  >
+                    Remover
+                  </Button>
+                </div>
 
-              <div>
-                <Label htmlFor="codigo_interno" className="text-xs">Código Interno</Label>
-                <Input
-                  id="codigo_interno"
-                  value={formData.codigo_interno}
-                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_interno: e.target.value }))}
-                  placeholder="Auto-gerado"
-                  readOnly={!product}
-                  className="h-8 text-sm"
-                />
-              </div>
+                {/* URL Input */}
+                <div>
+                  <Input
+                    placeholder="Cole a URL da imagem..."
+                    value={formData.imagem_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, imagem_url: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="codigo_barras" className="text-xs">Código de Barras</Label>
-                <Input
-                  id="codigo_barras"
-                  value={formData.codigo_barras}
-                  onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
-                  placeholder="Ex: 1234567890123"
-                  className="h-8 text-sm"
-                />
-              </div>
+                {/* Sugestões de imagem - Grade 2x2 */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">Sugestões de imagem</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=64&h=64&fit=crop', name: 'Farinha' },
+                      { url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=64&h=64&fit=crop', name: 'Açúcar' },
+                      { url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=64&h=64&fit=crop', name: 'Óleo' },
+                      { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=64&h=64&fit=crop', name: 'Sal' }
+                    ].map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="cursor-pointer hover:shadow-md transition-shadow rounded p-1 border"
+                        onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
+                      >
+                        <img
+                          src={suggestion.url}
+                          alt={suggestion.name}
+                          className="w-full h-12 object-cover rounded mb-1"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/64x64?text=Erro';
+                          }}
+                        />
+                        <p className="text-[10px] text-center truncate">{suggestion.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-              <div className="col-span-2">
-                <Label className="text-xs">Imagem do Produto</Label>
-                <ProductImageUpload
-                  value={formData.imagem_url}
-                  onChange={(imagem_url) => setFormData(prev => ({ ...prev, imagem_url }))}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="ativo"
-                  checked={formData.ativo}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
-                />
-                <Label htmlFor="ativo" className="text-xs">
-                  Status: {formData.ativo ? 'Ativo' : 'Inativo'}
-                </Label>
+                {/* Status Toggle */}
+                <div className="flex items-center justify-end space-x-2 pt-2">
+                  <Switch
+                    id="ativo"
+                    checked={formData.ativo}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+                  />
+                  <Label htmlFor="ativo" className="text-xs">
+                    Status: {formData.ativo ? 'Ativo' : 'Inativo'}
+                  </Label>
+                </div>
               </div>
             </div>
           </div>
@@ -330,7 +411,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           {/* Abas */}
           <div className="flex-1 min-h-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-3 h-10 mb-2">
+              <TabsList className="grid w-full grid-cols-3 h-9 mb-2">
                 <TabsTrigger value="estoque" className="text-xs">Estoque e Custos</TabsTrigger>
                 <TabsTrigger value="rotulo" className="text-xs">Rótulo Nutricional</TabsTrigger>
                 {product && (
@@ -340,8 +421,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
               <div className="flex-1 min-h-0 max-h-[320px]">
 
-                <TabsContent value="estoque" className="space-y-3 overflow-y-auto max-h-full p-2">
-                  <div className="grid grid-cols-2 gap-3">
+                <TabsContent value="estoque" className="space-y-2 overflow-y-auto max-h-full p-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label htmlFor="total_embalagem" className="text-xs">Total na Embalagem</Label>
                       <Input
@@ -425,8 +506,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   </div>
                 </TabsContent>
 
-                <TabsContent value="rotulo" className="space-y-3 overflow-y-auto max-h-full p-2">
-                  <div className="grid grid-cols-2 gap-3">
+                <TabsContent value="rotulo" className="space-y-2 overflow-y-auto max-h-full p-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label htmlFor="rotulo_porcao" className="text-xs">Porção</Label>
                       <Input
