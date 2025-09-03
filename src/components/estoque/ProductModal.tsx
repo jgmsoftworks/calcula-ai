@@ -388,7 +388,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       <div
                         key={index}
                         className="aspect-square h-12 bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
-                        onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
+                        onClick={() => {
+                          setImageForCrop(suggestion.url);
+                          setShowCropper(true);
+                        }}
                       >
                         <img
                           src={suggestion.url}
