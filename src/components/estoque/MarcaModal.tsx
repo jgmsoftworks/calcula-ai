@@ -228,8 +228,8 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                 </Label>
                 
                 {/* Campo de busca */}
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <div className="relative w-64 p-1">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
