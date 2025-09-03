@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { X, Trash2, Camera, Upload } from 'lucide-react';
 import { MultiSelectTags } from './MultiSelectTags';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
+
 interface Produto {
   id: string;
   nome: string;
@@ -40,20 +41,18 @@ interface Produto {
   rotulo_fibra: number | null;
   rotulo_sodio: number | null;
 }
+
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Produto | null;
   onSave: () => void;
 }
-export const ProductModal = ({
-  isOpen,
-  onClose,
-  product,
-  onSave
-}: ProductModalProps) => {
+
+export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalProps) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('estoque');
+  
   const [formData, setFormData] = useState({
     nome: '',
     marcas: [] as string[],
@@ -76,25 +75,17 @@ export const ProductModal = ({
     rotulo_fibra: 0,
     rotulo_sodio: 0
   });
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
-  const imageSuggestions = [{
-    url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=80&h=80&fit=crop',
-    name: 'Farinha'
-  }, {
-    url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=80&h=80&fit=crop',
-    name: 'Açúcar'
-  }, {
-    url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=80&h=80&fit=crop',
-    name: 'Óleo'
-  }, {
-    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=80&h=80&fit=crop',
-    name: 'Sal'
-  }];
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const imageSuggestions = [
+    { url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=80&h=80&fit=crop', name: 'Farinha' },
+    { url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=80&h=80&fit=crop', name: 'Açúcar' },
+    { url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=80&h=80&fit=crop', name: 'Óleo' },
+    { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=80&h=80&fit=crop', name: 'Sal' }
+  ];
+
   useEffect(() => {
     if (product) {
       setFormData({
@@ -145,29 +136,23 @@ export const ProductModal = ({
     }
     setActiveTab('estoque');
   }, [product]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = e => {
-        setFormData(prev => ({
-          ...prev,
-          imagem_url: e.target?.result as string
-        }));
+      reader.onload = (e) => {
+        setFormData(prev => ({ ...prev, imagem_url: e.target?.result as string }));
       };
       reader.readAsDataURL(file);
     }
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome.trim()) {
@@ -177,6 +162,7 @@ export const ProductModal = ({
       });
       return;
     }
+
     setLoading(true);
     try {
       const payload = {
@@ -194,23 +180,24 @@ export const ProductModal = ({
         rotulo_sodio: formData.rotulo_sodio || null,
         rotulo_porcao: formData.rotulo_porcao.trim() || null
       };
+
       if (product) {
-        const {
-          error
-        } = await supabase.from('produtos').update(payload).eq('id', product.id);
+        const { error } = await supabase
+          .from('produtos')
+          .update(payload)
+          .eq('id', product.id);
+
         if (error) throw error;
-        toast({
-          title: "Produto atualizado com sucesso!"
-        });
+        toast({ title: "Produto atualizado com sucesso!" });
       } else {
-        const {
-          error
-        } = await supabase.from('produtos').insert([payload]);
+        const { error } = await supabase
+          .from('produtos')
+          .insert([payload]);
+
         if (error) throw error;
-        toast({
-          title: "Produto cadastrado com sucesso!"
-        });
+        toast({ title: "Produto cadastrado com sucesso!" });
       }
+
       onSave();
       onClose();
     } catch (error: any) {
@@ -223,11 +210,16 @@ export const ProductModal = ({
       setLoading(false);
     }
   };
+
   const handleDelete = async () => {
     if (!product) return;
-    const {
-      data: movements
-    } = await supabase.from('movimentacoes').select('id').eq('produto_id', product.id).limit(1);
+
+    const { data: movements } = await supabase
+      .from('movimentacoes')
+      .select('id')
+      .eq('produto_id', product.id)
+      .limit(1);
+
     if (movements && movements.length > 0) {
       toast({
         title: "Não é possível excluir",
@@ -236,15 +228,17 @@ export const ProductModal = ({
       });
       return;
     }
+
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
       try {
-        const {
-          error
-        } = await supabase.from('produtos').delete().eq('id', product.id);
+        const { error } = await supabase
+          .from('produtos')
+          .delete()
+          .eq('id', product.id);
+
         if (error) throw error;
-        toast({
-          title: "Produto excluído com sucesso!"
-        });
+        
+        toast({ title: "Produto excluído com sucesso!" });
         onSave();
         onClose();
       } catch (error: any) {
@@ -256,15 +250,23 @@ export const ProductModal = ({
       }
     }
   };
+
   const custoTotal = (formData.custo_unitario || 0) * (product?.estoque_atual || 0);
-  return <Dialog open={isOpen} onOpenChange={onClose}>
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-[1200px] h-[90vh] max-h-[800px] overflow-hidden p-0 bg-background border-2 border-primary/20">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95">
           <DialogTitle className="text-xl font-bold text-primary">
             {product ? "Editar Produto" : "Novo Cadastro"}
           </DialogTitle>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-muted-foreground hover:text-foreground h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground h-8 w-8"
+          >
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -278,72 +280,115 @@ export const ProductModal = ({
                 {/* Nome */}
                 <div className="space-y-2">
                   <Label htmlFor="nome" className="text-sm font-medium text-foreground">Nome</Label>
-                  <Input id="nome" name="nome" value={formData.nome} onChange={handleInputChange} required className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg" placeholder="Digite o nome do produto" />
+                  <Input
+                    id="nome"
+                    name="nome"
+                    value={formData.nome}
+                    onChange={handleInputChange}
+                    required
+                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                    placeholder="Digite o nome do produto"
+                  />
                 </div>
 
                 {/* Marca */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground">Marca</Label>
-                  <MultiSelectTags values={formData.marcas} onChange={marcas => setFormData(prev => ({
-                  ...prev,
-                  marcas
-                }))} placeholder="Adicionar marca..." />
+                  <MultiSelectTags
+                    values={formData.marcas}
+                    onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
+                    placeholder="Adicionar marca..."
+                  />
                 </div>
 
                 {/* Categoria */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground">Categoria</Label>
-                  <MultiSelectTags values={formData.categorias} onChange={categorias => setFormData(prev => ({
-                  ...prev,
-                  categorias
-                }))} placeholder="Adicionar categoria..." />
+                  <MultiSelectTags
+                    values={formData.categorias}
+                    onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
+                    placeholder="Adicionar categoria..."
+                  />
                 </div>
 
                 {/* Códigos em linha */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
-                    <Input id="codigo_interno" name="codigo_interno" value={formData.codigo_interno} onChange={handleInputChange} readOnly={!product} className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg bg-primary/5" placeholder="121212" />
+                    <Input
+                      id="codigo_interno"
+                      name="codigo_interno"
+                      value={formData.codigo_interno}
+                      onChange={handleInputChange}
+                      readOnly={!product}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg bg-primary/5"
+                      placeholder="121212"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras</Label>
-                    <Input id="codigo_barras" name="codigo_barras" value={formData.codigo_barras} onChange={handleInputChange} className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg" placeholder="Digite o código de barras" />
+                    <Input
+                      id="codigo_barras"
+                      name="codigo_barras"
+                      value={formData.codigo_barras}
+                      onChange={handleInputChange}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                      placeholder="Digite o código de barras"
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Coluna Direita - Painel de Imagem */}
-              <div className="w-80 border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
+              <div className="w-80 h-[376px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
-                <div onClick={() => document.getElementById('image-upload')?.click()} className="aspect-[4/3] bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4 py-[100px]">
-                  {formData.imagem_url ? <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover rounded-lg" /> : <div className="text-center text-muted-foreground group-hover:text-foreground transition-colors">
-                      <Camera className="w-16 h-16 mx-auto mb-3" />
-                      <p className="text-sm font-medium">Sem foto</p>
+                <div className="aspect-[4/3] h-32 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
+                     onClick={() => document.getElementById('image-upload')?.click()}>
+                  {formData.imagem_url ? (
+                    <img
+                      src={formData.imagem_url}
+                      alt="Preview"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground group-hover:text-foreground transition-colors">
+                      <Camera className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-xs font-medium">Sem foto</p>
                       <p className="text-xs">Clique para adicionar</p>
-                    </div>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Sugestões de Imagem */}
-                <div className="flex-1 space-y-3">
-                  <Label className="text-sm font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {imageSuggestions.map((suggestion, index) => <div key={index} className="aspect-square bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg" onClick={() => setFormData(prev => ({
-                    ...prev,
-                    imagem_url: suggestion.url
-                  }))}>
-                        <img src={suggestion.url} alt={suggestion.name} className="w-full h-full object-cover" />
-                      </div>)}
+                <div className="flex-1 space-y-2">
+                  <Label className="text-xs font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {imageSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="aspect-square h-12 bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
+                        onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
+                      >
+                        <img
+                          src={suggestion.url}
+                          alt={suggestion.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Toggle Ativo */}
-                <div className="flex items-center justify-end pt-4 mt-4 py-0">
-                  <div className="flex items-center space-x-3 mx-[75px]">
-                    <Switch id="ativo" checked={formData.ativo} onCheckedChange={checked => setFormData(prev => ({
-                    ...prev,
-                    ativo: checked
-                  }))} className="data-[state=checked]:bg-primary" />
-                    <Label htmlFor="ativo" className="text-base font-bold text-primary">
+                <div className="flex items-center justify-end pt-2 mt-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="ativo"
+                      checked={formData.ativo}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <Label htmlFor="ativo" className="text-sm font-bold text-primary">
                       {formData.ativo ? 'Ativo' : 'Inativo'}
                     </Label>
                   </div>
@@ -352,7 +397,13 @@ export const ProductModal = ({
             </div>
 
             {/* Input de arquivo oculto */}
-            <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
           </div>
 
           {/* Abas */}
@@ -371,22 +422,23 @@ export const ProductModal = ({
               </TabsList>
 
               <div className="flex-1 min-h-0">
-                <TabsContent value="estoque" className="space-y-4 p-4 bg-background/50 rounded-lg border h-full overflow-y-auto mx-[15px] my-px">
+                <TabsContent value="estoque" className="space-y-4 p-4 bg-background/50 rounded-lg border h-full overflow-y-auto">
                   <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="total_embalagem" className="text-sm font-medium">Total na Embalagem</Label>
-                      <Input id="total_embalagem" type="number" min="1" value={formData.total_embalagem} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      total_embalagem: parseInt(e.target.value) || 1
-                    }))} className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg" />
+                      <Input
+                        id="total_embalagem"
+                        type="number"
+                        min="1"
+                        value={formData.total_embalagem}
+                        onChange={(e) => setFormData(prev => ({ ...prev, total_embalagem: parseInt(e.target.value) || 1 }))}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="unidade" className="text-sm font-medium">Unidade de Medida</Label>
-                      <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({
-                      ...prev,
-                      unidade: value
-                    }))}>
+                      <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
                         <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
                           <SelectValue />
                         </SelectTrigger>
@@ -402,28 +454,45 @@ export const ProductModal = ({
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Custo Total (R$)</Label>
-                      <Input value={`R$ ${custoTotal.toFixed(2)}`} readOnly className="h-12 border-2 border-primary/30 text-base rounded-lg bg-muted/50" />
+                      <Input
+                        value={`R$ ${custoTotal.toFixed(2)}`}
+                        readOnly
+                        className="h-12 border-2 border-primary/30 text-base rounded-lg bg-muted/50"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="custo_unitario" className="text-sm font-medium">Custo Unitário (R$)</Label>
-                      <Input id="custo_unitario" type="number" step="0.01" min="0" value={formData.custo_unitario} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      custo_unitario: parseFloat(e.target.value) || 0
-                    }))} className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg" />
+                      <Input
+                        id="custo_unitario"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.custo_unitario}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Quantidade em Estoque</Label>
-                      <Input value={product?.estoque_atual || 0} readOnly className="h-12 border-2 border-primary/30 text-base rounded-lg bg-muted/50" />
+                      <Input
+                        value={product?.estoque_atual || 0}
+                        readOnly
+                        className="h-12 border-2 border-primary/30 text-base rounded-lg bg-muted/50"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="estoque_minimo" className="text-sm font-medium">Estoque Mínimo</Label>
-                      <Input id="estoque_minimo" type="number" min="0" value={formData.estoque_minimo} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      estoque_minimo: parseInt(e.target.value) || 0
-                    }))} className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg" />
+                      <Input
+                        id="estoque_minimo"
+                        type="number"
+                        min="0"
+                        value={formData.estoque_minimo}
+                        onChange={(e) => setFormData(prev => ({ ...prev, estoque_minimo: parseInt(e.target.value) || 0 }))}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg"
+                      />
                     </div>
                   </div>
                 </TabsContent>
@@ -432,64 +501,99 @@ export const ProductModal = ({
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_porcao" className="text-sm font-medium">Porção</Label>
-                      <Input id="rotulo_porcao" value={formData.rotulo_porcao} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_porcao: e.target.value
-                    }))} placeholder="Ex: 100g" className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_porcao"
+                        value={formData.rotulo_porcao}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_porcao: e.target.value }))}
+                        placeholder="Ex: 100g"
+                        className="h-10 text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_kcal" className="text-sm font-medium">Energia (kcal)</Label>
-                      <Input id="rotulo_kcal" type="number" step="0.1" min="0" value={formData.rotulo_kcal} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_kcal: parseFloat(e.target.value) || 0
-                    }))} className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_kcal"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_kcal}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_kcal: parseFloat(e.target.value) || 0 }))}
+                        className="h-10 text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_carb" className="text-sm font-medium">Carboidratos (g)</Label>
-                      <Input id="rotulo_carb" type="number" step="0.1" min="0" value={formData.rotulo_carb} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_carb: parseFloat(e.target.value) || 0
-                    }))} className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_carb"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_carb}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_carb: parseFloat(e.target.value) || 0 }))}
+                        className="h-10 text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_prot" className="text-sm font-medium">Proteínas (g)</Label>
-                      <Input id="rotulo_prot" type="number" step="0.1" min="0" value={formData.rotulo_prot} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_prot: parseFloat(e.target.value) || 0
-                    }))} className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_prot"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_prot}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_prot: parseFloat(e.target.value) || 0 }))}
+                        className="h-10 text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_gord_total" className="text-sm font-medium">Gorduras Totais (g)</Label>
-                      <Input id="rotulo_gord_total" type="number" step="0.1" min="0" value={formData.rotulo_gord_total} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_gord_total: parseFloat(e.target.value) || 0
-                    }))} className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_gord_total"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_gord_total}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_total: parseFloat(e.target.value) || 0 }))}
+                        className="h-10 text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_fibra" className="text-sm font-medium">Fibra (g)</Label>
-                      <Input id="rotulo_fibra" type="number" step="0.1" min="0" value={formData.rotulo_fibra} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_fibra: parseFloat(e.target.value) || 0
-                    }))} className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_fibra"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_fibra}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_fibra: parseFloat(e.target.value) || 0 }))}
+                        className="h-10 text-sm"
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="rotulo_sodio" className="text-sm font-medium">Sódio (mg)</Label>
-                      <Input id="rotulo_sodio" type="number" step="0.1" min="0" value={formData.rotulo_sodio} onChange={e => setFormData(prev => ({
-                      ...prev,
-                      rotulo_sodio: parseFloat(e.target.value) || 0
-                    }))} className="h-10 text-sm" />
+                      <Input
+                        id="rotulo_sodio"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.rotulo_sodio}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_sodio: parseFloat(e.target.value) || 0 }))}
+                        className="h-10 text-sm"
+                      />
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="historico" className="p-4 bg-background/50 rounded-lg border h-full overflow-hidden">
-                  {product && <HistoricoMovimentacoes produtoId={product.id} />}
+                  {product && (
+                    <HistoricoMovimentacoes produtoId={product.id} />
+                  )}
                 </TabsContent>
               </div>
             </Tabs>
@@ -497,20 +601,37 @@ export const ProductModal = ({
 
           {/* Footer com Botões */}
           <div className="flex justify-center gap-4 px-6 py-4 border-t border-border bg-background/95">
-            <Button type="submit" disabled={loading} className="px-8 py-3 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-3 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+            >
               {loading ? 'Salvando...' : 'Salvar'}
             </Button>
             
-            <Button type="button" variant="outline" onClick={onClose} className="px-8 py-3 text-base font-semibold border-2 border-muted-foreground text-muted-foreground hover:bg-muted/50 rounded-lg">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="px-8 py-3 text-base font-semibold border-2 border-muted-foreground text-muted-foreground hover:bg-muted/50 rounded-lg"
+            >
               Cancelar
             </Button>
             
-            {product && <Button type="button" variant="destructive" onClick={handleDelete} className="px-8 py-3 text-base font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg">
+            {product && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                className="px-8 py-3 text-base font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg"
+              >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Excluir
-              </Button>}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>
-    </Dialog>;
+    </Dialog>
+  );
 };
