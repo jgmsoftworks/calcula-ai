@@ -200,7 +200,7 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Ex: Coca-Cola, Nike, Apple..."
-                className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                className="h-12 border-2 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 text-base px-4 rounded-lg"
                 required
               />
             </div>
@@ -234,12 +234,12 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Buscar marcas..."
-                    className="pl-10 h-10 border border-border rounded-md"
+                    className="pl-10 h-10 border border-border rounded-md focus:ring-2 focus:ring-primary focus:ring-offset-2"
                   />
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto space-y-2 max-h-64 border border-border rounded-md p-3 bg-muted/10">
+              <div className="flex-1 overflow-y-auto space-y-2 max-h-64 border border-border rounded-md p-4 bg-muted/10">
                 {filteredMarcas.length > 0 ? (
                   filteredMarcas.map((marca) => (
                     <div
@@ -251,13 +251,13 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                           <Input
                             value={editingName}
                             onChange={(e) => setEditingName(e.target.value)}
-                            className="flex-1 h-9"
+                            className="flex-1 h-9 focus:ring-2 focus:ring-primary focus:ring-offset-2"
                             autoFocus
                           />
                           <Button
                             size="sm"
                             onClick={() => handleSaveEdit(marca.id)}
-                            className="h-9 px-3 bg-green-600 hover:bg-green-700"
+                            className="h-9 px-3 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                           >
                             Salvar
                           </Button>
@@ -265,7 +265,7 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                             size="sm"
                             variant="outline"
                             onClick={handleCancelEdit}
-                            className="h-9 px-3"
+                            className="h-9 px-3 focus:ring-2 focus:ring-primary focus:ring-offset-2"
                           >
                             Cancelar
                           </Button>
@@ -280,7 +280,7 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                               size="sm"
                               variant="ghost"
                               onClick={() => handleEdit(marca)}
-                              className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600"
+                              className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                               title="Editar marca"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -289,7 +289,7 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(marca.id, marca.nome)}
-                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                               title="Excluir marca"
                             >
                               <Trash2 className="w-4 h-4" />
