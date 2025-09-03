@@ -340,7 +340,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               </div>
 
               {/* Coluna Direita - Painel de Imagem */}
-              <div className="w-80 h-[370px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
+              <div className="w-80 h-[376px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
                 <div className="aspect-[4/3] h-32 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
                      onClick={() => document.getElementById('image-upload')?.click()}>
@@ -362,11 +362,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 {/* Sugestões de Imagem */}
                 <div className="flex-1 space-y-2">
                   <Label className="text-xs font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-1">
                     {imageSuggestions.map((suggestion, index) => (
                       <div
                         key={index}
-                        className="aspect-square h-16 bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
+                        className="aspect-square h-12 bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
                         onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
                       >
                         <img
