@@ -110,9 +110,22 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
           <div className="w-full h-full flex items-center justify-center" style={{ maxHeight: '50vh', maxWidth: '80vw' }}>
             <ReactCrop
               crop={crop}
-              onChange={() => {}} // Função vazia para manter o crop fixo
-              onComplete={(c) => setCompletedCrop(c)}
-              disabled={true}
+              onChange={(c) => {
+                // Permite mover mas mantém o tamanho fixo
+                if (c.width !== 264 || c.height !== 197) {
+                  c.width = 264;
+                  c.height = 197;
+                }
+                setCrop(c);
+              }}
+              onComplete={(c) => {
+                // Garante que o tamanho seja mantido no completedCrop também
+                if (c.width !== 264 || c.height !== 197) {
+                  c.width = 264;
+                  c.height = 197;
+                }
+                setCompletedCrop(c);
+              }}
               className="w-full h-full"
             >
               <img
