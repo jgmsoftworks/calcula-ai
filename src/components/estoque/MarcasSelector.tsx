@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Plus, X, Check, ChevronsUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarcaModal } from './MarcaModal';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface Marca {
   id: string;
@@ -20,9 +22,7 @@ interface MarcasSelectorProps {
 
 export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelectorProps) => {
   const [availableMarcas, setAvailableMarcas] = useState<Marca[]>([]);
-  const [filteredMarcas, setFilteredMarcas] = useState<Marca[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [open, setOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -31,20 +31,6 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
   useEffect(() => {
     loadMarcas();
   }, []);
-
-  // Filtrar marcas baseado na pesquisa
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      const filtered = availableMarcas.filter(marca =>
-        marca.nome.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !selectedMarcas.includes(marca.nome)
-      );
-      setFilteredMarcas(filtered);
-      setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [searchTerm, availableMarcas, selectedMarcas]);
 
   const loadMarcas = async () => {
     try {
@@ -61,71 +47,78 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
     }
   };
 
-  const handleAddMarca = (marca: string) => {
-    if (marca.trim() && !selectedMarcas.includes(marca.trim())) {
-      onMarcasChange([...selectedMarcas, marca.trim()]);
-      setSearchTerm('');
-      setShowSuggestions(false);
+  const handleSelectMarca = (marcaNome: string) => {
+    if (!selectedMarcas.includes(marcaNome)) {
+      onMarcasChange([...selectedMarcas, marcaNome]);
     }
+    setOpen(false);
   };
 
   const handleRemoveMarca = (marca: string) => {
     onMarcasChange(selectedMarcas.filter(m => m !== marca));
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (searchTerm.trim()) {
-        handleAddMarca(searchTerm);
-      }
-    }
-  };
-
   const handleMarcaCreated = (novaMarca: Marca) => {
     setAvailableMarcas(prev => [...prev, novaMarca]);
-    handleAddMarca(novaMarca.nome);
+    onMarcasChange([...selectedMarcas, novaMarca.nome]);
     toast({
       title: "Marca adicionada!",
       description: `${novaMarca.nome} foi adicionada ao produto`,
     });
   };
 
+  // Filtrar marcas que ainda não foram selecionadas
+  const availableOptions = availableMarcas.filter(
+    marca => !selectedMarcas.includes(marca.nome)
+  );
+
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2 relative">
-        <div className="flex-1 relative">
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Digite o nome da marca"
-            className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-            onFocus={() => searchTerm.trim() && setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          />
-          
-          {/* Sugestões */}
-          {showSuggestions && filteredMarcas.length > 0 && (
-            <div className="absolute top-full mt-1 w-full bg-background border border-border rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
-              {filteredMarcas.map((marca) => (
-                <button
-                  key={marca.id}
-                  type="button"
-                  className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
-                  onClick={() => handleAddMarca(marca.nome)}
-                >
-                  {marca.nome}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="flex-1 justify-between h-12 border-2 border-primary/30 hover:border-primary text-base px-4 rounded-lg"
+            >
+              Selecionar marca...
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Buscar marca..." className="h-9" />
+              <CommandList>
+                <CommandEmpty>Nenhuma marca encontrada.</CommandEmpty>
+                <CommandGroup>
+                  {availableOptions.map((marca) => (
+                    <CommandItem
+                      key={marca.id}
+                      value={marca.nome}
+                      onSelect={() => handleSelectMarca(marca.nome)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedMarcas.includes(marca.nome) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {marca.nome}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         
         <Button 
           type="button" 
           onClick={() => setShowModal(true)}
           className="h-12 w-12 bg-primary hover:bg-primary/90"
+          title="Cadastrar nova marca"
         >
           <Plus className="w-5 h-5" />
         </Button>
@@ -133,7 +126,7 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
 
       {/* Marcas selecionadas */}
       {selectedMarcas.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="flex flex-wrap gap-2">
           {selectedMarcas.map((marca) => (
             <Badge
               key={marca}
@@ -159,6 +152,7 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onMarcaCreated={handleMarcaCreated}
+        existingMarcas={availableMarcas}
       />
     </div>
   );

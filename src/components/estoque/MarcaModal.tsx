@@ -12,9 +12,10 @@ interface MarcaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onMarcaCreated: (marca: { id: string; nome: string }) => void;
+  existingMarcas: { id: string; nome: string }[];
 }
 
-export const MarcaModal = ({ isOpen, onClose, onMarcaCreated }: MarcaModalProps) => {
+export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: MarcaModalProps) => {
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -103,6 +104,27 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated }: MarcaModalProps)
               required
             />
           </div>
+
+          {/* Lista de marcas existentes */}
+          {existingMarcas.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                Marcas já cadastradas:
+              </Label>
+              <div className="max-h-32 overflow-y-auto border border-border rounded-md p-2 bg-muted/20">
+                <div className="flex flex-wrap gap-1">
+                  {existingMarcas.map((marca) => (
+                    <span
+                      key={marca.id}
+                      className="text-xs bg-background border border-border rounded px-2 py-1 text-muted-foreground"
+                    >
+                      {marca.nome}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button
