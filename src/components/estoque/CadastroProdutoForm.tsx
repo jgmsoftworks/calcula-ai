@@ -121,113 +121,129 @@ export const CadastroProdutoForm = () => {
             Novo Produto
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Nome */}
-              <div className="space-y-2">
-                <Label htmlFor="nome" className="text-sm font-medium">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => handleInputChange('nome', e.target.value)}
-                  required
-                  className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="Digite o nome do produto"
-                />
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            {/* Layout em duas colunas igual ao modal */}
+            <div className="flex gap-8">
+              {/* Coluna Esquerda - Formulário */}
+              <div className="flex-1 space-y-6 h-[300px] overflow-y-auto pr-2">
+                {/* Nome */}
+                <div className="space-y-2">
+                  <Label htmlFor="nome" className="text-sm font-medium text-foreground">Nome *</Label>
+                  <Input
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => handleInputChange('nome', e.target.value)}
+                    required
+                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                    placeholder="Digite o nome do produto"
+                  />
+                </div>
+
+                {/* Categoria */}
+                <div className="space-y-2">
+                  <Label htmlFor="categoria" className="text-sm font-medium text-foreground">Categoria</Label>
+                  <Input
+                    id="categoria"
+                    value={formData.categoria}
+                    onChange={(e) => handleInputChange('categoria', e.target.value)}
+                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                    placeholder="Ex: Ingredientes, Bebidas..."
+                  />
+                </div>
+
+                {/* Unidade */}
+                <div className="space-y-2">
+                  <Label htmlFor="unidade" className="text-sm font-medium text-foreground">Unidade</Label>
+                  <Select
+                    value={formData.unidade}
+                    onValueChange={(value) => handleInputChange('unidade', value)}
+                  >
+                    <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="un">Unidade (un)</SelectItem>
+                      <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                      <SelectItem value="g">Grama (g)</SelectItem>
+                      <SelectItem value="l">Litro (l)</SelectItem>
+                      <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                      <SelectItem value="m">Metro (m)</SelectItem>
+                      <SelectItem value="cm">Centímetro (cm)</SelectItem>
+                      <SelectItem value="cx">Caixa (cx)</SelectItem>
+                      <SelectItem value="pct">Pacote (pct)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Preço de Compra e Fornecedor em linha */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="preco" className="text-sm font-medium text-foreground">Preço de Compra (R$)</Label>
+                    <Input
+                      id="preco"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.custo_unitario}
+                      onChange={(e) => handleInputChange('custo_unitario', parseFloat(e.target.value) || 0)}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                      placeholder="0,00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fornecedor" className="text-sm font-medium text-foreground">Fornecedor</Label>
+                    <Select
+                      value={formData.fornecedor_id}
+                      onValueChange={(value) => handleInputChange('fornecedor_id', value)}
+                    >
+                      <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
+                        <SelectValue placeholder="Selecione um fornecedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fornecedores.map((fornecedor) => (
+                          <SelectItem key={fornecedor.id} value={fornecedor.id}>
+                            {fornecedor.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Quantidade em Estoque */}
+                <div className="space-y-2">
+                  <Label htmlFor="estoque" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
+                  <Input
+                    id="estoque"
+                    type="number"
+                    min="0"
+                    value={formData.estoque_atual}
+                    onChange={(e) => handleInputChange('estoque_atual', parseFloat(e.target.value) || 0)}
+                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                    placeholder="0"
+                  />
+                </div>
               </div>
 
-              {/* Categoria */}
-              <div className="space-y-2">
-                <Label htmlFor="categoria" className="text-sm font-medium">Categoria</Label>
-                <Input
-                  id="categoria"
-                  value={formData.categoria}
-                  onChange={(e) => handleInputChange('categoria', e.target.value)}
-                  className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="Ex: Ingredientes, Bebidas..."
-                />
-              </div>
-
-              {/* Unidade */}
-              <div className="space-y-2">
-                <Label htmlFor="unidade" className="text-sm font-medium">Unidade</Label>
-                <Select
-                  value={formData.unidade}
-                  onValueChange={(value) => handleInputChange('unidade', value)}
-                >
-                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="un">Unidade (un)</SelectItem>
-                    <SelectItem value="kg">Quilograma (kg)</SelectItem>
-                    <SelectItem value="g">Grama (g)</SelectItem>
-                    <SelectItem value="l">Litro (l)</SelectItem>
-                    <SelectItem value="ml">Mililitro (ml)</SelectItem>
-                    <SelectItem value="m">Metro (m)</SelectItem>
-                    <SelectItem value="cm">Centímetro (cm)</SelectItem>
-                    <SelectItem value="cx">Caixa (cx)</SelectItem>
-                    <SelectItem value="pct">Pacote (pct)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Preço de Compra */}
-              <div className="space-y-2">
-                <Label htmlFor="preco" className="text-sm font-medium">Preço de Compra (R$)</Label>
-                <Input
-                  id="preco"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.custo_unitario}
-                  onChange={(e) => handleInputChange('custo_unitario', parseFloat(e.target.value) || 0)}
-                  className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="0,00"
-                />
-              </div>
-
-              {/* Fornecedor */}
-              <div className="space-y-2">
-                <Label htmlFor="fornecedor" className="text-sm font-medium">Fornecedor</Label>
-                <Select
-                  value={formData.fornecedor_id}
-                  onValueChange={(value) => handleInputChange('fornecedor_id', value)}
-                >
-                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
-                    <SelectValue placeholder="Selecione um fornecedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fornecedores.map((fornecedor) => (
-                      <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                        {fornecedor.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Quantidade em Estoque */}
-              <div className="space-y-2">
-                <Label htmlFor="estoque" className="text-sm font-medium">Quantidade em Estoque</Label>
-                <Input
-                  id="estoque"
-                  type="number"
-                  min="0"
-                  value={formData.estoque_atual}
-                  onChange={(e) => handleInputChange('estoque_atual', parseFloat(e.target.value) || 0)}
-                  className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="0"
-                />
+              {/* Coluna Direita - Painel Informativo */}
+              <div className="w-80 h-[300px] border-2 border-dashed border-primary/40 rounded-xl p-4 bg-primary/5 flex flex-col items-center justify-center">
+                <div className="text-center text-primary">
+                  <Plus className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">Novo Produto</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Preencha os campos ao lado para cadastrar um novo produto no estoque
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-6 mt-4 border-t border-primary/20">
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8"
+                className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8 h-12"
               >
                 {loading ? 'Salvando...' : 'Salvar Produto'}
               </Button>
