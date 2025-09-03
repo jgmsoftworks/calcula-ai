@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const pixabayApiKey = Deno.env.get('PIXABAY_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,8 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY não configurada');
+    if (!pixabayApiKey) {
+      throw new Error('PIXABAY_API_KEY não configurada');
     }
 
     const { productName } = await req.json();
@@ -31,48 +31,42 @@ serve(async (req) => {
       );
     }
 
-    console.log('Gerando sugestões de imagem para:', productName);
+    console.log('Buscando imagens no Pixabay para:', productName);
 
-    // Gerar 4 imagens diferentes baseadas no nome do produto
-    const promises = [];
+    // Buscar imagens na API do Pixabay
+    const pixabayUrl = new URL('https://pixabay.com/api/');
+    pixabayUrl.searchParams.set('key', pixabayApiKey);
+    pixabayUrl.searchParams.set('q', productName);
+    pixabayUrl.searchParams.set('image_type', 'photo');
+    pixabayUrl.searchParams.set('category', 'all');
+    pixabayUrl.searchParams.set('min_width', '512');
+    pixabayUrl.searchParams.set('min_height', '512');
+    pixabayUrl.searchParams.set('per_page', '20');
+    pixabayUrl.searchParams.set('safesearch', 'true');
+    pixabayUrl.searchParams.set('order', 'popular');
+
+    const response = await fetch(pixabayUrl.toString());
     
-    for (let i = 0; i < 4; i++) {
-      const prompt = `A high-quality product photo of ${productName}, clean white background, professional lighting, commercial photography style, ${i === 0 ? 'front view' : i === 1 ? 'side angle' : i === 2 ? 'top view' : 'slight angle view'}`;
-      
-      const imagePromise = fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt: prompt,
-          n: 1,
-          size: '512x512',
-          quality: 'standard',
-          response_format: 'b64_json'
-        }),
-      });
-      
-      promises.push(imagePromise);
+    if (!response.ok) {
+      throw new Error(`Erro na API do Pixabay: ${response.status}`);
     }
 
-    const responses = await Promise.all(promises);
-    const images = [];
-
-    for (const response of responses) {
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data[0] && data.data[0].b64_json) {
-          images.push(`data:image/png;base64,${data.data[0].b64_json}`);
+    const data = await response.json();
+    
+    if (!data.hits || data.hits.length === 0) {
+      console.log('Nenhuma imagem encontrada para:', productName);
+      return new Response(
+        JSON.stringify({ images: [] }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      } else {
-        console.error('Erro na resposta da OpenAI:', await response.text());
-      }
+      );
     }
 
-    console.log(`Geradas ${images.length} sugestões de imagem`);
+    // Pegar as primeiras 4 imagens (tamanho médio)
+    const images = data.hits.slice(0, 4).map((hit: any) => hit.webformatURL);
+
+    console.log(`Encontradas ${images.length} imagens para: ${productName}`);
 
     return new Response(
       JSON.stringify({ images }),
@@ -82,7 +76,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro ao gerar sugestões de imagem:', error);
+    console.error('Erro ao buscar imagens:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Erro interno do servidor',
