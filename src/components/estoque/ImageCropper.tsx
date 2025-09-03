@@ -99,20 +99,25 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
         </DialogHeader>
         
         <div className="flex-1 flex items-center justify-center p-6 bg-muted/20 overflow-hidden">
-          <div className="flex items-center justify-center max-h-[60vh] max-w-[80vw]">
+          <div className="w-full h-full flex items-center justify-center" style={{ maxHeight: '50vh', maxWidth: '80vw' }}>
             <ReactCrop
               crop={crop}
               onChange={() => {}} // Função vazia para manter o crop fixo
               onComplete={(c) => setCompletedCrop(c)}
               disabled={true}
+              className="w-full h-full"
             >
               <img
                 ref={imgRef}
                 src={imageSrc}
                 alt="Ajustar imagem"
                 onLoad={onImageLoad}
-                className="max-h-[60vh] max-w-[80vw] object-contain"
-                style={{ display: 'block' }}
+                className="w-full h-full object-contain"
+                style={{ 
+                  display: 'block',
+                  maxHeight: '50vh',
+                  maxWidth: '70vw'
+                }}
               />
             </ReactCrop>
           </div>
