@@ -93,16 +93,16 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] flex flex-col">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CropIcon className="w-5 h-5 text-primary" />
             Cortar Imagem
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 px-6 pb-4 min-h-0">
-          <div className="h-full max-h-[50vh] flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+          <div className="w-full h-full flex items-center justify-center">
             <ReactCrop
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -110,20 +110,21 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
               aspect={4/3}
               minWidth={80}
               minHeight={60}
-              className="max-w-full max-h-full"
+              className="w-full h-full flex items-center justify-center"
             >
               <img
                 ref={imgRef}
                 src={imageSrc}
                 alt="Crop preview"
                 onLoad={onImageLoad}
-                className="max-h-[50vh] max-w-full object-contain"
+                className="max-h-[60vh] max-w-[90vw] object-contain"
+                style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
               />
             </ReactCrop>
           </div>
         </div>
         
-        <div className="flex justify-center gap-4 p-6 pt-4 border-t bg-background">
+        <div className="flex justify-center gap-4 p-4 border-t bg-background">
           <Button
             onClick={getCroppedImg}
             disabled={!completedCrop}
