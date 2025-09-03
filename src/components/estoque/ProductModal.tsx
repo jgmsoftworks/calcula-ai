@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { X, Trash2, Camera, Upload } from 'lucide-react';
+import { X, Trash2, Camera, Upload, Crop } from 'lucide-react';
 import { MultiSelectTags } from './MultiSelectTags';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
+import { ImageCropper } from './ImageCropper';
 
 interface Produto {
   id: string;
@@ -52,6 +53,8 @@ interface ProductModalProps {
 export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalProps) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('estoque');
+  const [imageForCrop, setImageForCrop] = useState<string>('');
+  const [showCropper, setShowCropper] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -147,10 +150,23 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData(prev => ({ ...prev, imagem_url: e.target?.result as string }));
+        const result = e.target?.result as string;
+        setImageForCrop(result);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setFormData(prev => ({ ...prev, imagem_url: croppedImage }));
+    setShowCropper(false);
+    setImageForCrop('');
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setImageForCrop('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -342,14 +358,19 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               {/* Coluna Direita - Painel de Imagem */}
               <div className="w-80 h-[376px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
-                <div className="aspect-[4/3] h-42 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
+                <div className="aspect-[4/3] h-42 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4 relative"
                      onClick={() => document.getElementById('image-upload')?.click()}>
                   {formData.imagem_url ? (
-                    <img
-                      src={formData.imagem_url}
-                      alt="Preview"
-                      className="w-full h-full object-cover rounded-lg"
-                    />
+                    <>
+                      <img
+                        src={formData.imagem_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Crop className="w-3 h-3" />
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center text-muted-foreground group-hover:text-foreground transition-colors">
                       <Camera className="w-12 h-12 mx-auto mb-2" />
@@ -380,7 +401,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Toggle Ativo */}
-                <div className="flex items-center justify-end pt-2 mt-2">
+                <div className="flex items-center justify-center pt-2 mt-2">
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="ativo"
@@ -403,6 +424,14 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               accept="image/*"
               className="hidden"
               onChange={handleImageUpload}
+            />
+
+            {/* Image Cropper Modal */}
+            <ImageCropper
+              imageSrc={imageForCrop}
+              isOpen={showCropper}
+              onClose={handleCropCancel}
+              onCropComplete={handleCropComplete}
             />
           </div>
 
