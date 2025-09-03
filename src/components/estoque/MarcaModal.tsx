@@ -188,7 +188,7 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden flex flex-col space-y-4">
+        <div className="flex-1 flex flex-col space-y-4 p-2">
           {/* Formulário para nova marca */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -239,7 +239,7 @@ export const MarcaModal = ({ isOpen, onClose, onMarcaCreated, existingMarcas }: 
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto space-y-2 max-h-64 border border-border rounded-md p-4 bg-muted/10">
+              <div className="flex-1 overflow-y-auto space-y-2 max-h-64 border border-border rounded-md p-6 bg-muted/10 m-1">
                 {filteredMarcas.length > 0 ? (
                   filteredMarcas.map((marca) => (
                     <div
