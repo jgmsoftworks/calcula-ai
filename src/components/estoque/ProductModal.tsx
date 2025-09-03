@@ -342,7 +342,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               {/* Coluna Direita - Painel de Imagem */}
               <div className="w-80 h-[376px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
-                <div className="aspect-[4/3] h-32 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
+                <div className="aspect-[4/3] h-42 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4"
                      onClick={() => document.getElementById('image-upload')?.click()}>
                   {formData.imagem_url ? (
                     <img
@@ -360,7 +360,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Sugestões de Imagem */}
-                <div className="flex-1 space-y-2">
+                <div className="h-25 space-y-2">
                   <Label className="text-xs font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
                   <div className="grid grid-cols-4 gap-1">
                     {imageSuggestions.map((suggestion, index) => (
