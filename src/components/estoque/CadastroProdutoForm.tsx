@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Camera } from 'lucide-react';
+import { Plus, Camera, X } from 'lucide-react';
+import { ImageCropper } from './ImageCropper';
 
 interface Fornecedor {
   id: string;
@@ -35,6 +36,9 @@ export const CadastroProdutoForm = () => {
   
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageSrc, setImageSrc] = useState<string>('');
+  const [showImageCropper, setShowImageCropper] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -60,6 +64,27 @@ export const CadastroProdutoForm = () => {
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImageSrc(e.target?.result as string);
+        setShowImageCropper(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setSelectedImage(croppedImage);
+    setShowImageCropper(false);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,10 +248,39 @@ export const CadastroProdutoForm = () => {
 
               {/* Área de Imagem */}
               <div className="w-64 flex flex-col items-center">
-                <div className="w-full h-48 border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4">
-                  <Camera className="w-12 h-12 text-primary/50 mb-2" />
-                  <span className="text-sm text-primary/70">Sem foto</span>
-                  <span className="text-xs text-muted-foreground">Clique para adicionar</span>
+                <div className="w-full h-48 border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4 relative overflow-hidden cursor-pointer hover:bg-primary/10 transition-colors"
+                     onClick={() => !selectedImage && document.getElementById('image-upload')?.click()}>
+                  {selectedImage ? (
+                    <div className="w-full h-full relative">
+                      <img 
+                        src={selectedImage} 
+                        alt="Produto" 
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveImage();
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Camera className="w-12 h-12 text-primary/50 mb-2" />
+                      <span className="text-sm text-primary/70">Sem foto</span>
+                      <span className="text-xs text-muted-foreground">Clique para adicionar</span>
+                    </>
+                  )}
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
                 </div>
                 
                 <div className="text-center mb-4">
@@ -404,6 +458,13 @@ export const CadastroProdutoForm = () => {
           </form>
         </CardContent>
       </Card>
+
+      <ImageCropper
+        imageSrc={imageSrc}
+        isOpen={showImageCropper}
+        onClose={() => setShowImageCropper(false)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };
