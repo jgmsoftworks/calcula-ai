@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Camera, Upload } from 'lucide-react';
 import { MultiSelectTags } from './MultiSelectTags';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 
@@ -79,6 +79,13 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const imageSuggestions = [
+    { url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=80&h=80&fit=crop', name: 'Farinha' },
+    { url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=80&h=80&fit=crop', name: 'Açúcar' },
+    { url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=80&h=80&fit=crop', name: 'Óleo' },
+    { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=80&h=80&fit=crop', name: 'Sal' }
+  ];
+
   useEffect(() => {
     if (product) {
       setFormData({
@@ -130,6 +137,22 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     setActiveTab('estoque');
   }, [product]);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFormData(prev => ({ ...prev, imagem_url: e.target?.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome.trim()) {
@@ -145,10 +168,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       const payload = {
         ...formData,
         user_id: user?.id,
-        // Convert empty arrays to null for consistency
         marcas: formData.marcas.length > 0 ? formData.marcas : null,
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
-        // Convert 0 values to null for nullable numeric fields
         rotulo_kcal: formData.rotulo_kcal || null,
         rotulo_carb: formData.rotulo_carb || null,
         rotulo_prot: formData.rotulo_prot || null,
@@ -193,7 +214,6 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   const handleDelete = async () => {
     if (!product) return;
 
-    // Check if product has movements
     const { data: movements } = await supabase
       .from('movimentacoes')
       .select('id')
@@ -235,214 +255,205 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[1366px] max-w-[1366px] h-[900px] max-h-[900px] overflow-hidden p-6 flex flex-col">
-        <DialogHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">
-              {product ? 'Editar Produto' : 'Novo Cadastro'}
-            </DialogTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
+      <DialogContent className="w-[1366px] max-w-[1366px] h-[900px] max-h-[900px] overflow-hidden p-0 bg-background border-2 border-primary/20">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95">
+          <DialogTitle className="text-xl font-bold text-primary">
+            {product ? "Editar Produto" : "Novo Cadastro"}
+          </DialogTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground h-8 w-8"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          {/* Dados Principais - Seção Fixa */}
-          <div className="border-b pb-3 mb-2 h-[240px] overflow-hidden">
-            <h3 className="text-sm font-medium mb-2 text-muted-foreground">DADOS PRINCIPAIS</h3>
-            <div className="grid grid-cols-[1fr_320px] gap-4 h-full">
-              {/* Coluna Esquerda - Dados */}
-              <div className="space-y-3">
-                {/* Nome (largura completa) */}
-                <div>
-                  <Label htmlFor="nome" className="text-xs">Nome *</Label>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col h-full">
+          {/* Dados Principais - Layout em duas colunas */}
+          <div className="flex-1 px-6 pt-6 pb-4">
+            <div className="flex gap-8 h-full">
+              {/* Coluna Esquerda */}
+              <div className="flex-1 space-y-6">
+                {/* Nome */}
+                <div className="space-y-2">
+                  <Label htmlFor="nome" className="text-sm font-medium text-foreground">Nome</Label>
                   <Input
                     id="nome"
+                    name="nome"
                     value={formData.nome}
-                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Ex: Farinha de Trigo"
+                    onChange={handleInputChange}
                     required
-                    className="h-8 text-sm"
+                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                    placeholder="Digite o nome do produto"
                   />
                 </div>
 
-                {/* Marcas e Categorias */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Marcas</Label>
-                    <MultiSelectTags
-                      values={formData.marcas}
-                      onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
-                      placeholder="Adicionar marca..."
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Categorias</Label>
-                    <MultiSelectTags
-                      values={formData.categorias}
-                      onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
-                      placeholder="Adicionar categoria..."
-                    />
-                  </div>
+                {/* Marca */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Marca</Label>
+                  <MultiSelectTags
+                    values={formData.marcas}
+                    onChange={(marcas) => setFormData(prev => ({ ...prev, marcas }))}
+                    placeholder="Adicionar marca..."
+                  />
                 </div>
 
-                {/* Códigos */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="codigo_interno" className="text-xs">Código Interno</Label>
+                {/* Categoria */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Categoria</Label>
+                  <MultiSelectTags
+                    values={formData.categorias}
+                    onChange={(categorias) => setFormData(prev => ({ ...prev, categorias }))}
+                    placeholder="Adicionar categoria..."
+                  />
+                </div>
+
+                {/* Códigos em linha */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
                     <Input
                       id="codigo_interno"
+                      name="codigo_interno"
                       value={formData.codigo_interno}
-                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_interno: e.target.value }))}
-                      placeholder="Auto-gerado"
+                      onChange={handleInputChange}
                       readOnly={!product}
-                      className="h-8 text-sm"
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg bg-primary/5"
+                      placeholder="121212"
                     />
                   </div>
-
-                  <div>
-                    <Label htmlFor="codigo_barras" className="text-xs">Código de Barras</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras</Label>
                     <Input
                       id="codigo_barras"
+                      name="codigo_barras"
                       value={formData.codigo_barras}
-                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_barras: e.target.value }))}
-                      placeholder="Ex: 1234567890123"
-                      className="h-8 text-sm"
+                      onChange={handleInputChange}
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                      placeholder="Digite o código de barras"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Coluna Direita - Painel de Imagem */}
-              <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
-                {/* Preview da imagem */}
-                <div className="aspect-[4/3] w-full bg-muted rounded-md overflow-hidden">
-                  {formData.imagem_url ? (
-                    <img
-                      src={formData.imagem_url}
-                      alt="Produto"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'https://via.placeholder.com/180x135?text=Erro';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                      Sem imagem
-                    </div>
-                  )}
-                </div>
+              <div className="w-80 border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5">
+                <div className="flex flex-col h-full space-y-4">
+                  {/* Preview da Imagem */}
+                  <div className="aspect-[4/3] bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group"
+                       onClick={() => document.getElementById('image-upload')?.click()}>
+                    {formData.imagem_url ? (
+                      <img
+                        src={formData.imagem_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="text-center text-muted-foreground group-hover:text-foreground transition-colors">
+                        <Camera className="w-16 h-16 mx-auto mb-3" />
+                        <p className="text-sm font-medium">Sem foto</p>
+                        <p className="text-xs">Clique para adicionar</p>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Botões Upload e Remover */}
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs">
-                    Upload
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setFormData(prev => ({ ...prev, imagem_url: '' }))}
-                    disabled={!formData.imagem_url}
-                    className="text-xs"
-                  >
-                    Remover
-                  </Button>
-                </div>
-
-                {/* URL Input */}
-                <div>
+                  {/* Input URL */}
                   <Input
                     placeholder="Cole a URL da imagem..."
                     value={formData.imagem_url}
                     onChange={(e) => setFormData(prev => ({ ...prev, imagem_url: e.target.value }))}
-                    className="h-8 text-sm"
+                    className="h-10 text-sm border-2 border-primary/30 focus:border-primary rounded-lg"
                   />
-                </div>
 
-                {/* Sugestões de imagem - Grade 2x2 */}
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">Sugestões de imagem</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=64&h=64&fit=crop', name: 'Farinha' },
-                      { url: 'https://images.unsplash.com/photo-1571167530149-c72f2b8b82c5?w=64&h=64&fit=crop', name: 'Açúcar' },
-                      { url: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=64&h=64&fit=crop', name: 'Óleo' },
-                      { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=64&h=64&fit=crop', name: 'Sal' }
-                    ].map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className="cursor-pointer hover:shadow-md transition-shadow rounded p-1 border"
-                        onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
-                      >
-                        <img
-                          src={suggestion.url}
-                          alt={suggestion.name}
-                          className="w-full h-12 object-cover rounded mb-1"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/64x64?text=Erro';
-                          }}
-                        />
-                        <p className="text-[10px] text-center truncate">{suggestion.name}</p>
-                      </div>
-                    ))}
+                  {/* Sugestões de Imagem */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-bold text-primary uppercase tracking-wide">Sugestão de Imagem</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {imageSuggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="aspect-square bg-background/50 rounded-lg cursor-pointer border-2 border-transparent hover:border-primary/60 transition-all duration-200 overflow-hidden hover:shadow-lg"
+                          onClick={() => setFormData(prev => ({ ...prev, imagem_url: suggestion.url }))}
+                        >
+                          <img
+                            src={suggestion.url}
+                            alt={suggestion.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Toggle Ativo */}
+                  <div className="flex items-center justify-end pt-4 mt-auto">
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id="ativo"
+                        checked={formData.ativo}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+                        className="data-[state=checked]:bg-primary"
+                      />
+                      <Label htmlFor="ativo" className="text-base font-bold text-primary">
+                        {formData.ativo ? 'Ativo' : 'Inativo'}
+                      </Label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Status Toggle */}
-                <div className="flex items-center justify-end space-x-2 pt-2">
-                  <Switch
-                    id="ativo"
-                    checked={formData.ativo}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
-                  />
-                  <Label htmlFor="ativo" className="text-xs">
-                    Status: {formData.ativo ? 'Ativo' : 'Inativo'}
-                  </Label>
-                </div>
+                {/* Input de arquivo oculto */}
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
               </div>
             </div>
           </div>
 
           {/* Abas */}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 px-6 pb-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-3 h-9 mb-2">
-                <TabsTrigger value="estoque" className="text-xs">Estoque e Custos</TabsTrigger>
-                <TabsTrigger value="rotulo" className="text-xs">Rótulo Nutricional</TabsTrigger>
-                {product && (
-                  <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
-                )}
+              <TabsList className="grid w-full grid-cols-3 h-12 mb-4 bg-muted/50 rounded-lg">
+                <TabsTrigger value="estoque" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary">
+                  Estoque e Custos
+                </TabsTrigger>
+                <TabsTrigger value="rotulo" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary">
+                  Rótulo Nutricional
+                </TabsTrigger>
+                <TabsTrigger value="historico" className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary">
+                  Histórico de Entradas
+                </TabsTrigger>
               </TabsList>
 
-              <div className="flex-1 min-h-0 max-h-[320px]">
-
-                <TabsContent value="estoque" className="space-y-2 overflow-y-auto max-h-full p-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="total_embalagem" className="text-xs">Total na Embalagem</Label>
+              <div className="flex-1 min-h-0">
+                <TabsContent value="estoque" className="space-y-4 p-4 bg-background/50 rounded-lg border h-full overflow-y-auto">
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="total_embalagem" className="text-sm font-medium">Total na Embalagem</Label>
                       <Input
                         id="total_embalagem"
                         type="number"
                         min="1"
                         value={formData.total_embalagem}
                         onChange={(e) => setFormData(prev => ({ ...prev, total_embalagem: parseInt(e.target.value) || 1 }))}
-                        className="h-8 text-sm"
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="unidade" className="text-xs">Unidade de Medida *</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="unidade" className="text-sm font-medium">Unidade de Medida</Label>
                       <Select value={formData.unidade} onValueChange={(value: any) => setFormData(prev => ({ ...prev, unidade: value }))}>
-                        <SelectTrigger className="h-8 text-sm">
+                        <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="un">Unidades (un)</SelectItem>
+                          <SelectItem value="un">Unidade (un.)</SelectItem>
                           <SelectItem value="g">Gramas (g)</SelectItem>
                           <SelectItem value="kg">Quilogramas (kg)</SelectItem>
                           <SelectItem value="ml">Mililitros (ml)</SelectItem>
@@ -451,8 +462,17 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       </Select>
                     </div>
 
-                    <div>
-                      <Label htmlFor="custo_unitario" className="text-xs">Custo Unitário (R$)</Label>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Custo Total (R$)</Label>
+                      <Input
+                        value={`R$ ${custoTotal.toFixed(2)}`}
+                        readOnly
+                        className="h-12 border-2 border-primary/30 text-base rounded-lg bg-muted/50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="custo_unitario" className="text-sm font-medium">Custo Unitário (R$)</Label>
                       <Input
                         id="custo_unitario"
                         type="number"
@@ -460,67 +480,48 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.custo_unitario}
                         onChange={(e) => setFormData(prev => ({ ...prev, custo_unitario: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="estoque_atual" className="text-xs">Qtd em Estoque (readonly)</Label>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Quantidade em Estoque</Label>
                       <Input
-                        id="estoque_atual"
-                        type="number"
-                        step="0.001"
-                        value={product?.estoque_atual?.toFixed(3) || '0.000'}
+                        value={product?.estoque_atual || 0}
                         readOnly
-                        className="h-8 text-sm bg-muted"
+                        className="h-12 border-2 border-primary/30 text-base rounded-lg bg-muted/50"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="estoque_minimo" className="text-xs">Estoque Mínimo</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="estoque_minimo" className="text-sm font-medium">Estoque Mínimo</Label>
                       <Input
                         id="estoque_minimo"
                         type="number"
-                        step="0.001"
                         min="0"
                         value={formData.estoque_minimo}
-                        onChange={(e) => setFormData(prev => ({ ...prev, estoque_minimo: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        onChange={(e) => setFormData(prev => ({ ...prev, estoque_minimo: parseInt(e.target.value) || 0 }))}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg"
                       />
                     </div>
-
-                    <div>
-                      <Label htmlFor="custo_total" className="text-xs">Custo Total (readonly)</Label>
-                      <Input
-                        id="custo_total"
-                        type="text"
-                        value={`R$ ${custoTotal.toFixed(2)}`}
-                        readOnly
-                        className="h-8 text-sm bg-muted"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                    💡 Entradas/Saídas atualizam o estoque automaticamente.
                   </div>
                 </TabsContent>
 
-                <TabsContent value="rotulo" className="space-y-2 overflow-y-auto max-h-full p-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="rotulo_porcao" className="text-xs">Porção</Label>
+                <TabsContent value="rotulo" className="space-y-4 p-4 bg-background/50 rounded-lg border h-full overflow-y-auto">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_porcao" className="text-sm font-medium">Porção</Label>
                       <Input
                         id="rotulo_porcao"
                         value={formData.rotulo_porcao}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_porcao: e.target.value }))}
-                        placeholder="Ex: 50g"
-                        className="h-8 text-sm"
+                        placeholder="Ex: 100g"
+                        className="h-10 text-sm"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="rotulo_kcal" className="text-xs">Energia (kcal)</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_kcal" className="text-sm font-medium">Energia (kcal)</Label>
                       <Input
                         id="rotulo_kcal"
                         type="number"
@@ -528,12 +529,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.rotulo_kcal}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_kcal: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-10 text-sm"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="rotulo_carb" className="text-xs">Carboidratos (g)</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_carb" className="text-sm font-medium">Carboidratos (g)</Label>
                       <Input
                         id="rotulo_carb"
                         type="number"
@@ -541,12 +542,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.rotulo_carb}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_carb: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-10 text-sm"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="rotulo_prot" className="text-xs">Proteínas (g)</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_prot" className="text-sm font-medium">Proteínas (g)</Label>
                       <Input
                         id="rotulo_prot"
                         type="number"
@@ -554,12 +555,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.rotulo_prot}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_prot: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-10 text-sm"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="rotulo_gord_total" className="text-xs">Gorduras Totais (g)</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_gord_total" className="text-sm font-medium">Gorduras Totais (g)</Label>
                       <Input
                         id="rotulo_gord_total"
                         type="number"
@@ -567,38 +568,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.rotulo_gord_total}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_total: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-10 text-sm"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="rotulo_gord_sat" className="text-xs">Gorduras Saturadas (g)</Label>
-                      <Input
-                        id="rotulo_gord_sat"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={formData.rotulo_gord_sat}
-                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_sat: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="rotulo_gord_trans" className="text-xs">Gorduras Trans (g)</Label>
-                      <Input
-                        id="rotulo_gord_trans"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={formData.rotulo_gord_trans}
-                        onChange={(e) => setFormData(prev => ({ ...prev, rotulo_gord_trans: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="rotulo_fibra" className="text-xs">Fibra Alimentar (g)</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_fibra" className="text-sm font-medium">Fibra (g)</Label>
                       <Input
                         id="rotulo_fibra"
                         type="number"
@@ -606,12 +581,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.rotulo_fibra}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_fibra: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-10 text-sm"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="rotulo_sodio" className="text-xs">Sódio (mg)</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="rotulo_sodio" className="text-sm font-medium">Sódio (mg)</Label>
                       <Input
                         id="rotulo_sodio"
                         type="number"
@@ -619,44 +594,51 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         min="0"
                         value={formData.rotulo_sodio}
                         onChange={(e) => setFormData(prev => ({ ...prev, rotulo_sodio: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 text-sm"
+                        className="h-10 text-sm"
                       />
                     </div>
                   </div>
                 </TabsContent>
 
-                {product && (
-                  <TabsContent value="historico" className="overflow-y-auto max-h-full p-2">
+                <TabsContent value="historico" className="p-4 bg-background/50 rounded-lg border h-full overflow-hidden">
+                  {product && (
                     <HistoricoMovimentacoes produtoId={product.id} />
-                  </TabsContent>
-                )}
+                  )}
+                </TabsContent>
               </div>
             </Tabs>
           </div>
 
-          {/* Footer com botões */}
-          <div className="flex justify-between pt-3 border-t mt-auto">
-            <div>
-              {product && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDelete}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir
-                </Button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={onClose}>
-                Cancelar
+          {/* Footer com Botões */}
+          <div className="flex justify-center gap-4 px-6 py-4 border-t border-border bg-background/95">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-3 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+            >
+              {loading ? 'Salvando...' : 'Salvar'}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="px-8 py-3 text-base font-semibold border-2 border-muted-foreground text-muted-foreground hover:bg-muted/50 rounded-lg"
+            >
+              Cancelar
+            </Button>
+            
+            {product && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                className="px-8 py-3 text-base font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
               </Button>
-              <Button type="submit" size="sm" disabled={loading}>
-                {loading ? 'Salvando...' : 'Salvar'}
-              </Button>
-            </div>
+            )}
           </div>
         </form>
       </DialogContent>
