@@ -102,7 +102,7 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
         </DialogHeader>
         
         <div className="flex-1 flex items-center justify-center p-6 bg-muted/20 overflow-hidden">
-          <div className="w-full h-full flex items-center justify-center max-h-[60vh]">
+          <div className="w-full h-full flex items-center justify-center" style={{ maxHeight: '50vh', maxWidth: '80vw' }}>
             <ReactCrop
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -110,15 +110,19 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
               aspect={4/3}
               minWidth={50}
               minHeight={37}
-              className="max-w-full max-h-full"
+              className="w-full h-full"
             >
               <img
                 ref={imgRef}
                 src={imageSrc}
                 alt="Ajustar imagem"
                 onLoad={onImageLoad}
-                className="max-h-full max-w-full object-contain"
-                style={{ display: 'block' }}
+                className="w-full h-full object-contain"
+                style={{ 
+                  display: 'block',
+                  maxHeight: '50vh',
+                  maxWidth: '70vw'
+                }}
               />
             </ReactCrop>
           </div>
