@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Plus, Camera, X } from 'lucide-react';
 import { ImageCropper } from './ImageCropper';
 import { MarcasSelector } from './MarcasSelector';
+import { CategoriasSelector } from './CategoriasSelector';
 
 interface Fornecedor {
   id: string;
@@ -22,7 +23,7 @@ export const CadastroProdutoForm = () => {
   const [formData, setFormData] = useState({
     nome: '',
     marcas: [] as string[], // Mudança: agora é array
-    categoria: '',
+    categorias: [] as string[], // Mudança: agora é array de categorias
     codigo_interno: '',
     codigo_barras: '',
     unidade: 'un' as const,
@@ -149,7 +150,7 @@ export const CadastroProdutoForm = () => {
       const payload = {
         nome: formData.nome,
         marcas: formData.marcas.length > 0 ? formData.marcas : null, // Mudança: usar array de marcas
-        categorias: formData.categoria ? [formData.categoria] : null,
+        categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigo_barras || null,
         unidade: formData.unidade,
@@ -175,7 +176,7 @@ export const CadastroProdutoForm = () => {
       setFormData({
         nome: '',
         marcas: [], // Mudança: resetar array
-        categoria: '',
+        categorias: [], // Mudança: resetar array
         codigo_interno: '',
         codigo_barras: '',
         unidade: 'un',
@@ -244,19 +245,11 @@ export const CadastroProdutoForm = () => {
 
                 {/* Categoria */}
                 <div className="space-y-2">
-                  <Label htmlFor="categoria" className="text-sm font-medium text-foreground">Categoria</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="categoria"
-                      value={formData.categoria}
-                      onChange={(e) => handleInputChange('categoria', e.target.value)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg flex-1"
-                      placeholder="Categoria do produto"
-                    />
-                    <Button type="button" className="h-12 w-12 bg-primary hover:bg-primary/90">
-                      <Plus className="w-5 h-5" />
-                    </Button>
-                  </div>
+                  <Label htmlFor="categorias" className="text-sm font-medium text-foreground">Categoria</Label>
+                  <CategoriasSelector
+                    selectedCategorias={formData.categorias}
+                    onCategoriasChange={(categorias) => handleInputChange('categorias', categorias)}
+                  />
                 </div>
 
                 {/* Códigos */}
