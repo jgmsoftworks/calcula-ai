@@ -284,7 +284,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           <div className="flex-1 px-6 pt-6 pb-4">
             <div className="flex gap-8 h-full">
               {/* Coluna Esquerda */}
-              <div className="flex-1 space-y-6">
+              <div className="flex-1 space-y-6 h-[300px] overflow-y-auto">
                 {/* Nome */}
                 <div className="space-y-2">
                   <Label htmlFor="nome" className="text-sm font-medium text-foreground">Nome</Label>
