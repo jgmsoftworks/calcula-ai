@@ -20,27 +20,24 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    const aspectRatio = 4 / 3; // Aspecto 4:3 para ficar bem no preview
     
-    let cropWidth, cropHeight;
-    
-    if (width / height > aspectRatio) {
-      cropHeight = height * 0.8;
-      cropWidth = cropHeight * aspectRatio;
-    } else {
-      cropWidth = width * 0.8;
-      cropHeight = cropWidth / aspectRatio;
-    }
-    
+    // Crop fixo que ocupa toda a imagem
     const crop: Crop = {
       unit: '%',
-      width: (cropWidth / width) * 100,
-      height: (cropHeight / height) * 100,
-      x: ((width - cropWidth) / 2 / width) * 100,
-      y: ((height - cropHeight) / 2 / height) * 100
+      width: 100,
+      height: 100,
+      x: 0,
+      y: 0
     };
     
     setCrop(crop);
+    setCompletedCrop({
+      unit: 'px',
+      x: 0,
+      y: 0,
+      width: width,
+      height: height
+    });
   }, []);
 
   const getCroppedImg = useCallback(() => {
@@ -105,11 +102,9 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
           <div className="w-full h-full flex items-center justify-center" style={{ maxHeight: '50vh', maxWidth: '80vw' }}>
             <ReactCrop
               crop={crop}
-              onChange={(_, percentCrop) => setCrop(percentCrop)}
+              onChange={() => {}} // Função vazia para manter o crop fixo
               onComplete={(c) => setCompletedCrop(c)}
-              aspect={4/3}
-              minWidth={50}
-              minHeight={37}
+              disabled={true}
               className="w-full h-full"
             >
               <img
