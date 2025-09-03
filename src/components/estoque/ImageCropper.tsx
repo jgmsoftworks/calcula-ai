@@ -133,6 +133,7 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
                 src={imageSrc}
                 alt="Ajustar imagem"
                 onLoad={onImageLoad}
+                crossOrigin="anonymous"
                 className="w-full h-full object-contain"
                 style={{ 
                   display: 'block',
