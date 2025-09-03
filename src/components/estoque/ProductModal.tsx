@@ -273,19 +273,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-[1200px] h-[90vh] max-h-[800px] overflow-hidden p-0 bg-background border-2 border-primary/20">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95">
+        <DialogHeader className="px-6 py-4 border-b border-border bg-background/95">
           <DialogTitle className="text-xl font-bold text-primary">
             {product ? "Editar Produto" : "Novo Cadastro"}
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground h-8 w-8"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col h-full">
           {/* Dados Principais - Layout em duas colunas */}
@@ -356,7 +348,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               </div>
 
               {/* Coluna Direita - Painel de Imagem */}
-              <div className="w-80 h-[376px] border-2 border-dashed border-primary/40 rounded-xl p-6 bg-primary/5 flex flex-col">
+              <div className="w-80 h-[300px] border-2 border-dashed border-primary/40 rounded-xl p-4 bg-primary/5 flex flex-col">
                 {/* Preview da Imagem */}
                 <div className="aspect-[4/3] h-42 bg-background/50 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-background/70 transition-colors group mb-4 relative"
                      onClick={() => document.getElementById('image-upload')?.click()}>
