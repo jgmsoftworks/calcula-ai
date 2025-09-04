@@ -67,7 +67,23 @@ export const CadastroProdutoForm = () => {
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Calcular custo unitário automaticamente quando custo_total ou total_embalagem mudar
+      if (field === 'custo_total' || field === 'total_embalagem') {
+        const custoTotal = field === 'custo_total' ? value : updated.custo_total;
+        const totalEmbalagem = field === 'total_embalagem' ? value : updated.total_embalagem;
+        
+        if (custoTotal > 0 && totalEmbalagem > 0) {
+          updated.custo_unitario = custoTotal / totalEmbalagem;
+        } else {
+          updated.custo_unitario = 0;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,7 +296,7 @@ export const CadastroProdutoForm = () => {
 
               {/* Área de Imagem */}
               <div className="w-64 flex flex-col items-center">
-                <div className="w-full h-48 border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4 relative overflow-hidden cursor-pointer hover:bg-primary/10 transition-colors"
+                <div className="w-64 h-64 border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4 relative overflow-hidden cursor-pointer hover:bg-primary/10 transition-colors"
                      onClick={() => !selectedImage && document.getElementById('image-upload')?.click()}>
                   {selectedImage ? (
                     <div className="w-full h-full relative">
@@ -462,9 +478,9 @@ export const CadastroProdutoForm = () => {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={formData.custo_unitario}
-                      onChange={(e) => handleInputChange('custo_unitario', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                      value={formData.custo_unitario.toFixed(2)}
+                      readOnly
+                      className="h-12 border-2 border-muted text-base px-4 rounded-lg text-center bg-muted/50 cursor-not-allowed"
                       placeholder="R$ 0,00"
                     />
                   </div>

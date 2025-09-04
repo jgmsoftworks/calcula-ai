@@ -21,9 +21,9 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
     
-    // Dimensões fixas do crop: 256x192 pixels
+    // Dimensões fixas do crop: 256x256 pixels
     const cropWidth = 256;
-    const cropHeight = 192;
+    const cropHeight = 256;
     
     // Centraliza o crop na imagem
     const x = Math.max(0, (width - cropWidth) / 2);
@@ -112,17 +112,17 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
               crop={crop}
               onChange={(c) => {
                 // Permite mover mas mantém o tamanho fixo
-                if (c.width !== 256 || c.height !== 192) {
+                if (c.width !== 256 || c.height !== 256) {
                   c.width = 256;
-                  c.height = 192;
+                  c.height = 256;
                 }
                 setCrop(c);
               }}
               onComplete={(c) => {
                 // Garante que o tamanho seja mantido no completedCrop também
-                if (c.width !== 256 || c.height !== 192) {
+                if (c.width !== 256 || c.height !== 256) {
                   c.width = 256;
-                  c.height = 192;
+                  c.height = 256;
                 }
                 setCompletedCrop(c);
               }}
