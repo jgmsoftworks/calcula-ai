@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,8 +7,21 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
+const getPageTitle = (pathname: string) => {
+  switch (pathname) {
+    case '/':
+      return 'Dashboard';
+    case '/estoque':
+      return 'Estoque';
+    default:
+      return 'CalculaAi Dashboard';
+  }
+};
+
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  const pageTitle = getPageTitle(location.pathname);
 
   if (loading) {
     return (
@@ -38,7 +51,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
             {/* Header content can be customized per page */}
             <div className="flex-1 ml-4 lg:ml-0">
               <h2 className="text-lg font-semibold text-foreground">
-                CalculaAi Dashboard
+                {pageTitle}
               </h2>
             </div>
           </header>
