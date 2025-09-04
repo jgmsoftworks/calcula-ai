@@ -467,7 +467,23 @@ export const CadastroProdutoForm = () => {
                       type="number"
                       min="1"
                       value={formData.total_embalagem}
-                      onChange={(e) => handleInputChange('total_embalagem', parseInt(e.target.value) || 1)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                          // Permite campo vazio temporariamente durante a digitação
+                          handleInputChange('total_embalagem', '');
+                        } else {
+                          const numValue = parseInt(value);
+                          // Só força 1 se for inválido ou menor que 1 ao sair do campo
+                          handleInputChange('total_embalagem', numValue >= 1 ? numValue : 1);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Garante valor mínimo 1 quando sair do campo
+                        if (!e.target.value || parseInt(e.target.value) < 1) {
+                          handleInputChange('total_embalagem', 1);
+                        }
+                      }}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
