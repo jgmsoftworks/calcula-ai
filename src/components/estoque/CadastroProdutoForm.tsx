@@ -66,6 +66,27 @@ export const CadastroProdutoForm = () => {
     }
   };
 
+  const formatCurrency = (value: string) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '');
+    
+    // Converte para número (dividindo por 100 para ter os centavos)
+    const amount = parseFloat(numbers) / 100;
+    
+    // Formata como moeda brasileira
+    return amount.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  };
+
+  const parseCurrency = (value: string) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '');
+    // Converte para número dividindo por 100
+    return parseFloat(numbers) / 100 || 0;
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
@@ -84,6 +105,11 @@ export const CadastroProdutoForm = () => {
       
       return updated;
     });
+  };
+
+  const handleCurrencyChange = (field: string, formattedValue: string) => {
+    const numericValue = parseCurrency(formattedValue);
+    handleInputChange(field, numericValue);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,12 +243,6 @@ export const CadastroProdutoForm = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-primary">Cadastro de Produto</h2>
-        <p className="text-muted-foreground">
-          Cadastre novos produtos no estoque
-        </p>
-      </div>
 
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
         <CardHeader>
@@ -405,12 +425,9 @@ export const CadastroProdutoForm = () => {
 
             {/* Abas */}
             <Tabs defaultValue="estoque" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-primary/10">
+              <TabsList className="grid w-full grid-cols-2 bg-primary/10">
                 <TabsTrigger value="estoque" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                   Estoque e Custos
-                </TabsTrigger>
-                <TabsTrigger value="nutricional" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                  Rótulo Nutricional
                 </TabsTrigger>
                 <TabsTrigger value="historico" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                   Histórico de Entradas
@@ -459,11 +476,9 @@ export const CadastroProdutoForm = () => {
                     <Label htmlFor="custo_total" className="text-sm font-medium text-foreground">Custo Total (R$)</Label>
                     <Input
                       id="custo_total"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.custo_total}
-                      onChange={(e) => handleInputChange('custo_total', parseFloat(e.target.value) || 0)}
+                      type="text"
+                      value={formData.custo_total > 0 ? formatCurrency(formData.custo_total.toString()) : ''}
+                      onChange={(e) => handleCurrencyChange('custo_total', e.target.value)}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                       placeholder="R$ 0,00"
                     />
@@ -475,10 +490,8 @@ export const CadastroProdutoForm = () => {
                     <Label htmlFor="custo_unitario" className="text-sm font-medium text-foreground">Custo Unitário (R$)</Label>
                     <Input
                       id="custo_unitario"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.custo_unitario.toFixed(2)}
+                      type="text"
+                      value={formData.custo_unitario > 0 ? formatCurrency(formData.custo_unitario.toString()) : ''}
                       readOnly
                       className="h-12 border-2 border-muted text-base px-4 rounded-lg text-center bg-muted/50 cursor-not-allowed"
                       placeholder="R$ 0,00"
@@ -508,13 +521,6 @@ export const CadastroProdutoForm = () => {
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
-                </div>
-              </TabsContent>
-
-              {/* Aba Rótulo Nutricional */}
-              <TabsContent value="nutricional" className="space-y-4 mt-6">
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Informações nutricionais serão implementadas em breve</p>
                 </div>
               </TabsContent>
 
