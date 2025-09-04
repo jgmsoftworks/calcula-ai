@@ -30,6 +30,17 @@ export const ListaConfiguracoes = ({
   const [open, setOpen] = useState(false);
 
   const toggleVisibilidade = (key: string) => {
+    const coluna = colunas.find(col => col.key === key);
+    if (!coluna) return;
+
+    // Se está tentando ativar uma coluna, verificar se já tem 5 ativas
+    if (!coluna.visible) {
+      const colunasVisiveis = colunas.filter(col => col.visible).length;
+      if (colunasVisiveis >= 5) {
+        return; // Não permite ativar mais de 5 colunas
+      }
+    }
+
     const novasColunas = colunas.map(col =>
       col.key === key ? { ...col, visible: !col.visible } : col
     );
@@ -90,9 +101,14 @@ export const ListaConfiguracoes = ({
             </Select>
           </div>
 
-          {/* Colunas visíveis */}
+          {/* Colunas e Ordem */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Colunas e Ordem</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Colunas e Ordem</Label>
+              <Badge variant="outline" className="text-xs">
+                {colunas.filter(col => col.visible).length}/5
+              </Badge>
+            </div>
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {colunasOrdenadas.map((coluna, index) => (
                 <div key={coluna.key} className="flex items-center justify-between p-2 border border-primary/20 rounded-md">

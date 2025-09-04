@@ -60,14 +60,12 @@ export const ListaProdutos = () => {
     { key: 'marca', label: 'Marca', visible: true, order: 2 },
     { key: 'categoria', label: 'Categoria', visible: true, order: 3 },
     { key: 'codigo_interno', label: 'Código Interno', visible: true, order: 4 },
-    { key: 'codigo_barras', label: 'Código de Barras', visible: true, order: 5 },
-    { key: 'unidade', label: 'Un. Medida', visible: true, order: 6 },
-    { key: 'custo_total', label: 'Custo Total', visible: true, order: 7 },
-    { key: 'custo_unitario', label: 'Custo Unitário', visible: true, order: 8 },
-    { key: 'estoque_atual', label: 'Qtd. Estoque', visible: true, order: 9 },
-    { key: 'estoque_minimo', label: 'Estoque Mínimo', visible: true, order: 10 },
-    { key: 'status', label: 'Status', visible: true, order: 11 },
-    { key: 'acoes', label: 'Ações', visible: true, order: 12 }
+    { key: 'codigo_barras', label: 'Código de Barras', visible: false, order: 5 },
+    { key: 'unidade', label: 'Un. Medida', visible: false, order: 6 },
+    { key: 'custo_total', label: 'Custo Total', visible: false, order: 7 },
+    { key: 'custo_unitario', label: 'Custo Unitário', visible: false, order: 8 },
+    { key: 'estoque_atual', label: 'Qtd. Estoque', visible: false, order: 9 },
+    { key: 'estoque_minimo', label: 'Estoque Mínimo', visible: false, order: 10 }
   ]);
 
   useEffect(() => {
@@ -198,10 +196,12 @@ export const ListaProdutos = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProdutos = filteredProdutos.slice(startIndex, startIndex + itemsPerPage);
 
-  // Colunas visíveis ordenadas
-  const colunasVisiveis = colunas
-    .filter(col => col.visible)
-    .sort((a, b) => a.order - b.order);
+  // Colunas visíveis ordenadas + colunas fixas (ações e status)
+  const colunasVisiveis = [
+    ...colunas.filter(col => col.visible).sort((a, b) => a.order - b.order),
+    { key: 'acoes', label: 'Ações', visible: true, order: 98 },
+    { key: 'status', label: 'Status', visible: true, order: 99 }
+  ];
 
   const renderCellContent = (produto: Produto, coluna: ColunaConfig) => {
     switch (coluna.key) {
