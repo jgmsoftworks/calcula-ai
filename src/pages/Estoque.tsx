@@ -9,13 +9,6 @@ import { HistoricoLista } from '@/components/estoque/HistoricoLista';
 const Estoque = () => {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Estoque</h1>
-        <p className="text-muted-foreground">
-          Gerencie produtos, fornecedores e movimentações de estoque
-        </p>
-      </div>
-
       <Tabs defaultValue="cadastro" className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cadastro">Cadastro</TabsTrigger>

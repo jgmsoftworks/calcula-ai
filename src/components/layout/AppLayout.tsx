@@ -7,21 +7,21 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const getPageTitle = (pathname: string) => {
+const getPageInfo = (pathname: string) => {
   switch (pathname) {
     case '/':
-      return 'Dashboard';
+      return { title: 'Dashboard', description: 'Visão geral do seu negócio' };
     case '/estoque':
-      return 'Estoque';
+      return { title: 'Estoque', description: 'Gerencie produtos, fornecedores e movimentações de estoque' };
     default:
-      return 'CalculaAi Dashboard';
+      return { title: 'CalculaAi Dashboard', description: '' };
   }
 };
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const pageTitle = getPageTitle(location.pathname);
+  const pageInfo = getPageInfo(location.pathname);
 
   if (loading) {
     return (
@@ -51,8 +51,13 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
             {/* Header content can be customized per page */}
             <div className="flex-1 ml-4 lg:ml-0">
               <h2 className="text-lg font-semibold text-foreground">
-                {pageTitle}
+                {pageInfo.title}
               </h2>
+              {pageInfo.description && (
+                <p className="text-sm text-muted-foreground">
+                  {pageInfo.description}
+                </p>
+              )}
             </div>
           </header>
 
