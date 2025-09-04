@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit, Power, Search } from 'lucide-react';
+import { Edit, Power, Search, Trash2 } from 'lucide-react';
 import { ProductModal } from './ProductModal';
+import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
 
 interface Produto {
   id: string;
@@ -21,6 +23,7 @@ interface Produto {
   estoque_atual: number;
   custo_medio: number;
   custo_unitario: number;
+  custo_total: number;
   estoque_minimo: number;
   sku: string | null;
   codigo_interno: string | null;
@@ -45,9 +48,27 @@ export const ListaProdutos = () => {
   const [filterCategoria, setFilterCategoria] = useState<string>('todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const [colunas, setColunas] = useState<ColunaConfig[]>([
+    { key: 'imagem', label: 'Imagem', visible: true, order: 0 },
+    { key: 'nome', label: 'Nome', visible: true, order: 1 },
+    { key: 'marca', label: 'Marca', visible: true, order: 2 },
+    { key: 'categoria', label: 'Categoria', visible: true, order: 3 },
+    { key: 'codigo_interno', label: 'Código Interno', visible: true, order: 4 },
+    { key: 'codigo_barras', label: 'Código de Barras', visible: true, order: 5 },
+    { key: 'unidade', label: 'Un. Medida', visible: true, order: 6 },
+    { key: 'custo_total', label: 'Custo Total', visible: true, order: 7 },
+    { key: 'custo_unitario', label: 'Custo Unitário', visible: true, order: 8 },
+    { key: 'estoque_atual', label: 'Qtd. Estoque', visible: true, order: 9 },
+    { key: 'estoque_minimo', label: 'Estoque Mínimo', visible: true, order: 10 },
+    { key: 'status', label: 'Status', visible: true, order: 11 },
+    { key: 'acoes', label: 'Ações', visible: true, order: 12 }
+  ]);
 
   useEffect(() => {
     loadProdutos();
@@ -65,10 +86,12 @@ export const ListaProdutos = () => {
       const mappedData = (data || []).map(produto => ({
         ...produto,
         custo_unitario: (produto as any).custo_unitario || 0,
+        custo_total: (produto as any).custo_total || 0,
         estoque_minimo: (produto as any).estoque_minimo || 0,
         marcas: (produto as any).marcas || null,
         categorias: (produto as any).categorias || null,
         codigo_interno: (produto as any).codigo_interno || null,
+        codigo_barras: (produto as any).codigo_barras || null,
         imagem_url: (produto as any).imagem_url || null,
         rotulo_porcao: (produto as any).rotulo_porcao || null,
         rotulo_kcal: (produto as any).rotulo_kcal || null,
@@ -127,6 +150,30 @@ export const ListaProdutos = () => {
     loadProdutos();
   };
 
+  const deleteProduto = async (produto: Produto) => {
+    if (!confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', produto.id);
+
+      if (error) throw error;
+
+      await loadProdutos();
+      
+      toast({
+        title: "Produto excluído com sucesso!"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir produto",
+        variant: "destructive"
+      });
+    }
+  };
+
   const categorias = Array.from(
     new Set(
       produtos
@@ -146,18 +193,123 @@ export const ListaProdutos = () => {
     return matchesSearch && matchesCategoria;
   });
 
+  // Paginação
+  const totalPages = Math.ceil(filteredProdutos.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProdutos = filteredProdutos.slice(startIndex, startIndex + itemsPerPage);
+
+  // Colunas visíveis ordenadas
+  const colunasVisiveis = colunas
+    .filter(col => col.visible)
+    .sort((a, b) => a.order - b.order);
+
+  const renderCellContent = (produto: Produto, coluna: ColunaConfig) => {
+    switch (coluna.key) {
+      case 'imagem':
+        return (
+          <Avatar className="w-10 h-10">
+            <AvatarImage src={produto.imagem_url || ''} alt={produto.nome} />
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {produto.nome.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        );
+      case 'nome':
+        return <span className="font-medium">{produto.nome}</span>;
+      case 'marca':
+        return produto.marcas?.map((marca, idx) => (
+          <Badge key={idx} variant="outline" className="mr-1 border-primary/40 text-primary">
+            {marca}
+          </Badge>
+        )) || '-';
+      case 'categoria':
+        return produto.categorias?.map((cat, idx) => (
+          <Badge key={idx} variant="outline" className="mr-1 border-primary/40 text-primary">
+            {cat}
+          </Badge>
+        )) || '-';
+      case 'codigo_interno':
+        return produto.codigo_interno || '-';
+      case 'codigo_barras':
+        return produto.codigo_barras || '-';
+      case 'unidade':
+        return produto.unidade;
+      case 'custo_total':
+        return `R$ ${(produto.custo_total || 0).toFixed(2)}`;
+      case 'custo_unitario':
+        return `R$ ${(produto.custo_unitario || 0).toFixed(2)}`;
+      case 'estoque_atual':
+        return (
+          <span className={produto.estoque_atual <= (produto.estoque_minimo || 0) ? 'text-destructive font-semibold' : ''}>
+            {produto.estoque_atual}
+          </span>
+        );
+      case 'estoque_minimo':
+        return produto.estoque_minimo || 0;
+      case 'status':
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant={produto.ativo ? "default" : "secondary"} className={produto.ativo ? "bg-primary" : ""}>
+              {produto.ativo ? 'Ativo' : 'Inativo'}
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => toggleProdutoAtivo(produto)}
+              className={produto.ativo ? "border-destructive/40 text-destructive hover:bg-destructive/10" : "border-primary/40 text-primary hover:bg-primary/10"}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          </div>
+        );
+      case 'acoes':
+        return (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openEditProductModal(produto)}
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => deleteProduto(produto)}
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        );
+      default:
+        return '-';
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-primary">Lista de Produtos</h2>
-        <p className="text-muted-foreground">
-          Gerencie todos os produtos cadastrados
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-primary">Lista de Produtos</h2>
+          <p className="text-muted-foreground">
+            Gerencie todos os produtos cadastrados
+          </p>
+        </div>
+        <ListaConfiguracoes
+          colunas={colunas}
+          onColunasChange={setColunas}
+          itensPorPagina={itemsPerPage}
+          onItensPorPaginaChange={setItemsPerPage}
+        />
       </div>
 
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
         <CardHeader>
-          <CardTitle className="text-primary">Produtos Cadastrados</CardTitle>
+          <CardTitle className="text-primary">
+            Produtos Cadastrados ({filteredProdutos.length} produtos)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {/* Filtros */}
@@ -191,58 +343,21 @@ export const ListaProdutos = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary/10">
-                  <TableHead className="text-primary font-semibold">Nome</TableHead>
-                  <TableHead className="text-primary font-semibold">Categoria</TableHead>
-                  <TableHead className="text-primary font-semibold">Unidade</TableHead>
-                  <TableHead className="text-primary font-semibold">Estoque</TableHead>
-                  <TableHead className="text-primary font-semibold">Custo Médio</TableHead>
-                  <TableHead className="text-primary font-semibold">Status</TableHead>
-                  <TableHead className="text-primary font-semibold">Ações</TableHead>
+                  {colunasVisiveis.map((coluna) => (
+                    <TableHead key={coluna.key} className="text-primary font-semibold">
+                      {coluna.label}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProdutos.map((produto) => (
+                {paginatedProdutos.map((produto) => (
                   <TableRow key={produto.id} className="hover:bg-primary/5">
-                    <TableCell className="font-medium">{produto.nome}</TableCell>
-                    <TableCell>
-                      {produto.categorias?.map((cat, idx) => (
-                        <Badge key={idx} variant="outline" className="mr-1 border-primary/40 text-primary">
-                          {cat}
-                        </Badge>
-                      )) || '-'}
-                    </TableCell>
-                    <TableCell>{produto.unidade}</TableCell>
-                    <TableCell>
-                      <span className={produto.estoque_atual <= (produto.estoque_minimo || 0) ? 'text-destructive font-semibold' : ''}>
-                        {produto.estoque_atual}
-                      </span>
-                    </TableCell>
-                    <TableCell>R$ {produto.custo_medio.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant={produto.ativo ? "default" : "secondary"} className={produto.ativo ? "bg-primary" : ""}>
-                        {produto.ativo ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditProductModal(produto)}
-                          className="border-primary/40 text-primary hover:bg-primary/10"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => toggleProdutoAtivo(produto)}
-                          className={produto.ativo ? "border-destructive/40 text-destructive hover:bg-destructive/10" : "border-primary/40 text-primary hover:bg-primary/10"}
-                        >
-                          <Power className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {colunasVisiveis.map((coluna) => (
+                      <TableCell key={coluna.key}>
+                        {renderCellContent(produto, coluna)}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
@@ -256,6 +371,48 @@ export const ListaProdutos = () => {
               </div>
             )}
           </div>
+
+          {/* Paginação */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredProdutos.length)} de {filteredProdutos.length} produtos
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={currentPage === page ? "bg-primary" : "border-primary/40 text-primary hover:bg-primary/10"}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
