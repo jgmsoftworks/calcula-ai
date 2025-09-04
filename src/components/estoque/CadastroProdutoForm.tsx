@@ -66,9 +66,17 @@ export const CadastroProdutoForm = () => {
     }
   };
 
+  const [currencyInputs, setCurrencyInputs] = useState({
+    custo_total: '',
+    custo_unitario: ''
+  });
+
   const formatCurrency = (value: string) => {
     // Remove tudo que não é dígito
     const numbers = value.replace(/\D/g, '');
+    
+    // Se não há números, retorna vazio
+    if (!numbers) return '';
     
     // Converte para número (dividindo por 100 para ter os centavos)
     const amount = parseFloat(numbers) / 100;
@@ -98,8 +106,16 @@ export const CadastroProdutoForm = () => {
         
         if (custoTotal > 0 && totalEmbalagem > 0) {
           updated.custo_unitario = custoTotal / totalEmbalagem;
+          setCurrencyInputs(prev => ({
+            ...prev,
+            custo_unitario: formatCurrency((updated.custo_unitario * 100).toString())
+          }));
         } else {
           updated.custo_unitario = 0;
+          setCurrencyInputs(prev => ({
+            ...prev,
+            custo_unitario: ''
+          }));
         }
       }
       
@@ -108,6 +124,13 @@ export const CadastroProdutoForm = () => {
   };
 
   const handleCurrencyChange = (field: string, formattedValue: string) => {
+    // Atualiza o input formatado
+    setCurrencyInputs(prev => ({
+      ...prev,
+      [field]: formatCurrency(formattedValue)
+    }));
+    
+    // Converte e salva o valor numérico
     const numericValue = parseCurrency(formattedValue);
     handleInputChange(field, numericValue);
   };
@@ -477,7 +500,7 @@ export const CadastroProdutoForm = () => {
                     <Input
                       id="custo_total"
                       type="text"
-                      value={formData.custo_total > 0 ? formatCurrency(formData.custo_total.toString()) : ''}
+                      value={currencyInputs.custo_total}
                       onChange={(e) => handleCurrencyChange('custo_total', e.target.value)}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                       placeholder="R$ 0,00"
@@ -491,7 +514,7 @@ export const CadastroProdutoForm = () => {
                     <Input
                       id="custo_unitario"
                       type="text"
-                      value={formData.custo_unitario > 0 ? formatCurrency(formData.custo_unitario.toString()) : ''}
+                      value={currencyInputs.custo_unitario}
                       readOnly
                       className="h-12 border-2 border-muted text-base px-4 rounded-lg text-center bg-muted/50 cursor-not-allowed"
                       placeholder="R$ 0,00"
