@@ -80,7 +80,7 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="justify-between min-w-[200px] h-12 text-left border-2 border-primary/30 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="justify-between w-full h-12 text-left border-2 border-primary/30 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
               <span className="text-muted-foreground">
                 Selecione marcas...
