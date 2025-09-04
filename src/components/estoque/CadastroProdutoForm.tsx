@@ -269,9 +269,20 @@ export const CadastroProdutoForm = () => {
 
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Plus className="w-5 h-5" />
-            Novo Produto
+          <CardTitle className="flex items-center justify-between text-primary">
+            <div className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Novo Produto
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={formData.ativo}
+                onCheckedChange={(checked) => handleInputChange('ativo', checked)}
+              />
+              <span className="text-sm font-medium text-primary">
+                {formData.ativo ? 'Ativo' : 'Desativado'}
+              </span>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -435,14 +446,6 @@ export const CadastroProdutoForm = () => {
                   )}
                 </div>
 
-                {/* Switch Ativo */}
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={formData.ativo}
-                    onCheckedChange={(checked) => handleInputChange('ativo', checked)}
-                  />
-                  <span className="text-sm font-medium text-primary">Ativo</span>
-                </div>
               </div>
             </div>
 
