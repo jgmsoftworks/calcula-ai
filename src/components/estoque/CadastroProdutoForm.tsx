@@ -19,7 +19,11 @@ interface Fornecedor {
   nome: string;
 }
 
-export const CadastroProdutoForm = () => {
+interface CadastroProdutoFormProps {
+  onProductCadastrado?: () => void;
+}
+
+export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoFormProps) => {
   const [formData, setFormData] = useState({
     nome: '',
     marcas: [] as string[], // Mudança: agora é array
@@ -214,7 +218,7 @@ export const CadastroProdutoForm = () => {
     try {
       const payload = {
         nome: formData.nome,
-        marcas: formData.marcas.length > 0 ? formData.marcas : null, // Mudança: usar array de marcas
+        marcas: formData.marcas.length > 0 ? formData.marcas : null,
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigo_barras || null,
@@ -222,6 +226,7 @@ export const CadastroProdutoForm = () => {
         total_embalagem: formData.total_embalagem,
         custo_unitario: formData.custo_unitario,
         custo_total: formData.custo_total,
+        custo_medio: formData.custo_unitario, // Mapear para custo_medio que existe na tabela
         estoque_atual: formData.estoque_atual,
         estoque_minimo: formData.estoque_minimo,
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
@@ -236,6 +241,9 @@ export const CadastroProdutoForm = () => {
       if (error) throw error;
 
       toast({ title: "Produto cadastrado com sucesso!" });
+      
+      // Redirecionar para a lista
+      onProductCadastrado?.();
       
       // Reset form
       setFormData({
@@ -253,6 +261,11 @@ export const CadastroProdutoForm = () => {
         fornecedor_id: '',
         ativo: true
       });
+      setCurrencyInputs({
+        custo_total: '',
+        custo_unitario: ''
+      });
+      setSelectedImage(null);
     } catch (error: any) {
       toast({
         title: "Erro ao cadastrar produto",

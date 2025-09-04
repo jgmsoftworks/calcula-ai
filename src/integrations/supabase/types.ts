@@ -176,6 +176,8 @@ export type Database = {
           codigo_interno: string | null
           created_at: string
           custo_medio: number
+          custo_total: number | null
+          custo_unitario: number | null
           estoque_atual: number
           estoque_minimo: number | null
           fornecedor_ids: string[] | null
@@ -193,6 +195,7 @@ export type Database = {
           rotulo_prot: number | null
           rotulo_sodio: number | null
           sku: string | null
+          total_embalagem: number | null
           unidade: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
           user_id: string
@@ -205,6 +208,8 @@ export type Database = {
           codigo_interno?: string | null
           created_at?: string
           custo_medio?: number
+          custo_total?: number | null
+          custo_unitario?: number | null
           estoque_atual?: number
           estoque_minimo?: number | null
           fornecedor_ids?: string[] | null
@@ -222,6 +227,7 @@ export type Database = {
           rotulo_prot?: number | null
           rotulo_sodio?: number | null
           sku?: string | null
+          total_embalagem?: number | null
           unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id: string
@@ -234,6 +240,8 @@ export type Database = {
           codigo_interno?: string | null
           created_at?: string
           custo_medio?: number
+          custo_total?: number | null
+          custo_unitario?: number | null
           estoque_atual?: number
           estoque_minimo?: number | null
           fornecedor_ids?: string[] | null
@@ -251,6 +259,7 @@ export type Database = {
           rotulo_prot?: number | null
           rotulo_sodio?: number | null
           sku?: string | null
+          total_embalagem?: number | null
           unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string

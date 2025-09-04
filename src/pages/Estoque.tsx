@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CadastroProdutoForm } from '@/components/estoque/CadastroProdutoForm';
 import { ListaProdutos } from '@/components/estoque/ListaProdutos';
@@ -7,9 +8,15 @@ import { FornecedoresTabela } from '@/components/estoque/FornecedoresTabela';
 import { HistoricoLista } from '@/components/estoque/HistoricoLista';
 
 const Estoque = () => {
+  const [activeTab, setActiveTab] = useState("cadastro");
+
+  const handleProductCadastrado = () => {
+    setActiveTab("lista");
+  };
+
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="cadastro" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
           <TabsTrigger value="lista">Lista</TabsTrigger>
@@ -20,7 +27,7 @@ const Estoque = () => {
         </TabsList>
 
         <TabsContent value="cadastro" className="space-y-4">
-          <CadastroProdutoForm />
+          <CadastroProdutoForm onProductCadastrado={handleProductCadastrado} />
         </TabsContent>
 
         <TabsContent value="lista" className="space-y-4">
