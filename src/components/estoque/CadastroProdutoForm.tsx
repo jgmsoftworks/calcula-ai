@@ -234,22 +234,23 @@ export const CadastroProdutoForm = () => {
                   />
                 </div>
 
-                {/* Marca */}
-                <div className="space-y-2">
-                  <Label htmlFor="marcas" className="text-sm font-medium text-foreground">Marca</Label>
-                  <MarcasSelector
-                    selectedMarcas={formData.marcas}
-                    onMarcasChange={(marcas) => handleInputChange('marcas', marcas)}
-                  />
-                </div>
+                {/* Marca e Categoria lado a lado */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="marcas" className="text-sm font-medium text-foreground">Marca</Label>
+                    <MarcasSelector
+                      selectedMarcas={formData.marcas}
+                      onMarcasChange={(marcas) => handleInputChange('marcas', marcas)}
+                    />
+                  </div>
 
-                {/* Categoria */}
-                <div className="space-y-2">
-                  <Label htmlFor="categorias" className="text-sm font-medium text-foreground">Categoria</Label>
-                  <CategoriasSelector
-                    selectedCategorias={formData.categorias}
-                    onCategoriasChange={(categorias) => handleInputChange('categorias', categorias)}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="categorias" className="text-sm font-medium text-foreground">Categoria</Label>
+                    <CategoriasSelector
+                      selectedCategorias={formData.categorias}
+                      onCategoriasChange={(categorias) => handleInputChange('categorias', categorias)}
+                    />
+                  </div>
                 </div>
 
                 {/* Códigos */}
