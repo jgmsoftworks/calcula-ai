@@ -235,8 +235,8 @@ export const CadastroProdutoForm = () => {
                 </div>
 
                 {/* Marca e Categoria lado a lado */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                <div className="flex gap-4">
+                  <div className="flex-1 space-y-2">
                     <Label htmlFor="marcas" className="text-sm font-medium text-foreground">Marca</Label>
                     <MarcasSelector
                       selectedMarcas={formData.marcas}
@@ -244,7 +244,7 @@ export const CadastroProdutoForm = () => {
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="flex-1 space-y-2">
                     <Label htmlFor="categorias" className="text-sm font-medium text-foreground">Categoria</Label>
                     <CategoriasSelector
                       selectedCategorias={formData.categorias}
