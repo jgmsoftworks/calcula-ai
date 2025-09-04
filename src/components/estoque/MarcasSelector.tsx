@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, X, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, X, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarcaModal } from './MarcaModal';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 interface Marca {
   id: string;
@@ -74,54 +73,62 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="flex-1 justify-between h-12 border-2 border-primary/30 hover:border-primary text-base px-4 rounded-lg"
+              className="justify-between min-w-[200px] h-12 text-left border-2 border-primary/30 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
-              Selecionar marca...
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <span className="text-muted-foreground">
+                Selecione marcas...
+              </span>
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
+          <PopoverContent className="w-80 p-0" align="start">
             <Command>
-              <CommandInput placeholder="Buscar marca..." className="h-9" />
-              <CommandList>
-                <CommandEmpty>Nenhuma marca encontrada.</CommandEmpty>
-                <CommandGroup>
-                  {availableOptions.map((marca) => (
-                    <CommandItem
-                      key={marca.id}
-                      value={marca.nome}
-                      onSelect={() => handleSelectMarca(marca.nome)}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedMarcas.includes(marca.nome) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {marca.nome}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
+              <CommandInput
+                placeholder="Buscar marcas..."
+                className="h-12 text-base"
+              />
+              <CommandEmpty>
+                <div className="text-center py-4 space-y-2">
+                  <p>Nenhuma marca encontrada.</p>
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="text-primary hover:text-primary/80 font-medium text-sm flex items-center gap-1 mx-auto"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Criar nova marca
+                  </button>
+                </div>
+              </CommandEmpty>
+              <CommandGroup>
+                {availableOptions.map((marca) => (
+                  <CommandItem
+                    key={marca.id}
+                    onSelect={() => handleSelectMarca(marca.nome)}
+                    className="cursor-pointer py-3 text-base"
+                  >
+                    {marca.nome}
+                  </CommandItem>
+                ))}
+                {availableOptions.length > 0 && (
+                  <CommandItem
+                    onSelect={() => setShowModal(true)}
+                    className="cursor-pointer py-3 text-base border-t mt-2 pt-3 text-primary font-medium"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar nova marca
+                  </CommandItem>
+                )}
+              </CommandGroup>
             </Command>
           </PopoverContent>
         </Popover>
-        
-        <Button 
-          type="button" 
-          onClick={() => setShowModal(true)}
-          className="h-12 w-12 bg-primary hover:bg-primary/90"
-          title="Cadastrar nova marca"
-        >
-          <Plus className="w-5 h-5" />
-        </Button>
       </div>
 
       {/* Marcas selecionadas */}
