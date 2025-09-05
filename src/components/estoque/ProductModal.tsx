@@ -570,7 +570,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               </TabsContent>
 
               <TabsContent value="rotulo" className="space-y-4 p-4 bg-background/50 rounded-lg border max-h-[400px] overflow-auto">
-                <HistoricoMovimentacoes produtoId={product.id} />
+                {product && <HistoricoMovimentacoes produtoId={product.id} />}
               </TabsContent>
             </Tabs>
           </div>
