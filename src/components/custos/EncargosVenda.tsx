@@ -87,6 +87,22 @@ export const EncargosVenda = () => {
     }).format(value);
   };
 
+  const formatPercentageNumber = (value: number) => {
+    if (value === 0) return '';
+    // Se o valor for um número inteiro (sem decimais), não mostra as casas decimais
+    if (value % 1 === 0) {
+      return new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    }
+    // Se tiver decimais, mostra até 2 casas decimais
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
     if (valorFixo > 0) return valorFixo;
     if (percentual > 0) return (percentual / 100) * baseVenda;
@@ -177,14 +193,14 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`perc-${percentual}`}
-          defaultValue={formatBrazilianNumber(percentual)}
+          defaultValue={formatPercentageNumber(percentual)}
           onBlur={(e) => {
             const parsed = parseInputValue(e.target.value);
             onPercentualChange(parsed);
-            e.target.value = formatBrazilianNumber(parsed);
+            e.target.value = formatPercentageNumber(parsed);
           }}
           className="text-right h-8 text-xs pr-6"
-          placeholder="0,00"
+          placeholder="0"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
@@ -390,16 +406,16 @@ export const EncargosVenda = () => {
                   <Input
                     type="text"
                     key={`parcela-perc-${parcela.id}-${parcela.percentual}`}
-                    defaultValue={formatBrazilianNumber(parcela.percentual)}
-                    onBlur={(e) => {
-                      const parsed = parseInputValue(e.target.value);
-                      setCartaoParcelado(cartaoParcelado.map(p => 
-                        p.id === parcela.id ? {...p, percentual: parsed} : p
-                      ));
-                      e.target.value = formatBrazilianNumber(parsed);
-                    }}
+                     defaultValue={formatPercentageNumber(parcela.percentual)}
+                     onBlur={(e) => {
+                       const parsed = parseInputValue(e.target.value);
+                       setCartaoParcelado(cartaoParcelado.map(p => 
+                         p.id === parcela.id ? {...p, percentual: parsed} : p
+                       ));
+                       e.target.value = formatPercentageNumber(parsed);
+                     }}
                     className="text-right h-8 text-xs pr-6"
-                     placeholder="0,00"
+                     placeholder="0"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -505,16 +521,16 @@ export const EncargosVenda = () => {
                 <Input
                   type="text"
                   key={`outro-perc-${item.id}-${item.percentual}`}
-                  defaultValue={formatBrazilianNumber(item.percentual)}
-                  onBlur={(e) => {
-                    const parsed = parseInputValue(e.target.value);
-                    setOutrosItens(outrosItens.map(i => 
-                      i.id === item.id ? {...i, percentual: parsed} : i
-                    ));
-                    e.target.value = formatBrazilianNumber(parsed);
-                  }}
+                   defaultValue={formatPercentageNumber(item.percentual)}
+                   onBlur={(e) => {
+                     const parsed = parseInputValue(e.target.value);
+                     setOutrosItens(outrosItens.map(i => 
+                       i.id === item.id ? {...i, percentual: parsed} : i
+                     ));
+                     e.target.value = formatPercentageNumber(parsed);
+                   }}
                   className="text-right h-8 text-xs pr-6"
-                   placeholder="0,00"
+                   placeholder="0"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"
