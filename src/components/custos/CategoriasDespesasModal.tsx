@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, X, Check } from 'lucide-react';
@@ -32,6 +33,7 @@ export function CategoriasDespesasModal({
   onCategoriaUpdated 
 }: CategoriasDespesasModalProps) {
   const [novaCategoria, setNovaCategoria] = useState('');
+  const [descricaoCategoria, setDescricaoCategoria] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingNome, setEditingNome] = useState('');
@@ -159,9 +161,16 @@ export function CategoriasDespesasModal({
                 placeholder="Ex: Moradia, Transporte, Alimentação..."
                 className="mt-1"
               />
-              <p className="text-sm text-muted-foreground mt-2">
-                Organize suas despesas criando categorias personalizadas para melhor controle financeiro.
-              </p>
+            </div>
+            <div>
+              <Label htmlFor="descricao">Descrição (opcional)</Label>
+              <Textarea
+                id="descricao"
+                value={descricaoCategoria}
+                onChange={(e) => setDescricaoCategoria(e.target.value)}
+                placeholder="Descreva para que serve esta categoria..."
+                className="mt-1 min-h-[60px]"
+              />
             </div>
             <Button 
               type="submit" 
