@@ -158,37 +158,37 @@ export const EncargosVenda = () => {
   }) => (
     <div className="grid grid-cols-3 gap-2 items-center">
       <Label className="text-xs">{label}</Label>
-      <div>
+      <div className="relative">
         <Input
           type="number"
           step="0.01"
           min="0"
           value={formatPercent(percentual)}
           onChange={(e) => onPercentualChange(parseNumber(e.target.value))}
-          className="text-right h-8 text-xs"
+          className="text-right h-8 text-xs pr-6"
           placeholder="0,00"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck="false"
         />
-        <div className="text-xs text-muted-foreground text-right mt-1">%</div>
+        <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
       </div>
-      <div>
+      <div className="relative">
+        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
         <Input
           type="number"
           step="0.01"
           min="0"
           value={valorFixo.toFixed(2)}
           onChange={(e) => onValorFixoChange(parseNumber(e.target.value))}
-          className="text-right h-8 text-xs"
+          className="text-right h-8 text-xs pl-8"
           placeholder="0,00"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck="false"
         />
-        <div className="text-xs text-muted-foreground text-right mt-1">R$</div>
       </div>
     </div>
   );
@@ -365,36 +365,42 @@ export const EncargosVenda = () => {
                   autoCorrect="off"
                   spellCheck="false"
                 />
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formatPercent(parcela.percentual)}
-                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                    p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
-                  ))}
-                  className="text-right h-8 text-xs"
-                  placeholder="0,00"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                />
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={parcela.valorFixo.toFixed(2)}
-                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                    p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
-                  ))}
-                  className="text-right h-8 text-xs"
-                  placeholder="0,00"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formatPercent(parcela.percentual)}
+                    onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                      p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
+                    ))}
+                    className="text-right h-8 text-xs pr-6"
+                    placeholder="0,00"
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck="false"
+                  />
+                  <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={parcela.valorFixo.toFixed(2)}
+                    onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                      p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
+                    ))}
+                    className="text-right h-8 text-xs pl-8"
+                    placeholder="0,00"
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck="false"
+                  />
+                </div>
                 <Button
                   onClick={() => removerParcela(parcela.id)}
                   variant="outline"
@@ -468,7 +474,7 @@ export const EncargosVenda = () => {
                 autoCorrect="off"
                 spellCheck="false"
               />
-              <div>
+              <div className="relative">
                 <Input
                   type="number"
                   step="0.01"
@@ -477,16 +483,17 @@ export const EncargosVenda = () => {
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, percentual: parseNumber(e.target.value)} : i
                   ))}
-                  className="text-right h-8 text-xs"
+                  className="text-right h-8 text-xs pr-6"
                   placeholder="0,00"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck="false"
                 />
-                <div className="text-xs text-muted-foreground text-right mt-1">%</div>
+                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
               </div>
-              <div>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                 <Input
                   type="number"
                   step="0.01"
@@ -495,14 +502,13 @@ export const EncargosVenda = () => {
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, valorFixo: parseNumber(e.target.value)} : i
                   ))}
-                  className="text-right h-8 text-xs"
+                  className="text-right h-8 text-xs pl-8"
                   placeholder="0,00"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck="false"
                 />
-                <div className="text-xs text-muted-foreground text-right mt-1">R$</div>
               </div>
               <Button
                 onClick={() => removerOutroItem(item.id)}
