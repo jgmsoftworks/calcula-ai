@@ -19,6 +19,8 @@ interface Fornecedor {
   email: string | null;
   endereco: string | null;
   cnpj_cpf: string | null;
+  representante: string | null;
+  telefone_representante: string | null;
   ativo: boolean;
 }
 
@@ -31,11 +33,12 @@ export const FornecedoresTabela = () => {
   
   const [formData, setFormData] = useState({
     nome: '',
-    contato: '',
-    telefone: '',
+    cnpj_cpf: '',
     email: '',
-    endereco: '',
-    cnpj_cpf: ''
+    telefone: '',
+    representante: '',
+    telefone_representante: '',
+    endereco: ''
   });
 
   const { user } = useAuth();
@@ -90,21 +93,23 @@ export const FornecedoresTabela = () => {
       setSelectedFornecedor(fornecedor);
       setFormData({
         nome: fornecedor.nome,
-        contato: fornecedor.contato || '',
-        telefone: fornecedor.telefone || '',
+        cnpj_cpf: fornecedor.cnpj_cpf || '',
         email: fornecedor.email || '',
-        endereco: fornecedor.endereco || '',
-        cnpj_cpf: fornecedor.cnpj_cpf || ''
+        telefone: fornecedor.telefone || '',
+        representante: fornecedor.representante || '',
+        telefone_representante: fornecedor.telefone_representante || '',
+        endereco: fornecedor.endereco || ''
       });
     } else {
       setSelectedFornecedor(null);
       setFormData({
         nome: '',
-        contato: '',
-        telefone: '',
+        cnpj_cpf: '',
         email: '',
-        endereco: '',
-        cnpj_cpf: ''
+        telefone: '',
+        representante: '',
+        telefone_representante: '',
+        endereco: ''
       });
     }
     setIsModalOpen(true);
@@ -122,9 +127,34 @@ export const FornecedoresTabela = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validações dos campos obrigatórios
     if (!formData.nome.trim()) {
       toast({
-        title: "Nome é obrigatório",
+        title: "Razão Social é obrigatória",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.cnpj_cpf.trim()) {
+      toast({
+        title: "CNPJ é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.representante.trim()) {
+      toast({
+        title: "Representante Comercial é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.telefone_representante.trim()) {
+      toast({
+        title: "Telefone do Representante é obrigatório",
         variant: "destructive"
       });
       return;
@@ -135,11 +165,9 @@ export const FornecedoresTabela = () => {
       const payload = {
         ...formData,
         nome: formData.nome.trim(),
-        contato: formData.contato.trim() || null,
         telefone: formData.telefone.trim() || null,
         email: formData.email.trim() || null,
         endereco: formData.endereco.trim() || null,
-        cnpj_cpf: formData.cnpj_cpf.trim() || null,
         user_id: user?.id
       };
 
@@ -223,11 +251,10 @@ export const FornecedoresTabela = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary/10">
-                  <TableHead className="text-primary font-semibold">Nome</TableHead>
-                  <TableHead className="text-primary font-semibold">Contato</TableHead>
-                  <TableHead className="text-primary font-semibold">Telefone</TableHead>
-                  <TableHead className="text-primary font-semibold">Email</TableHead>
-                  <TableHead className="text-primary font-semibold">Endereço</TableHead>
+                  <TableHead className="text-primary font-semibold">Razão Social</TableHead>
+                  <TableHead className="text-primary font-semibold">CNPJ</TableHead>
+                  <TableHead className="text-primary font-semibold">Representante</TableHead>
+                  <TableHead className="text-primary font-semibold">Tel. Representante</TableHead>
                   <TableHead className="text-primary font-semibold">Status</TableHead>
                   <TableHead className="text-primary font-semibold">Ações</TableHead>
                 </TableRow>
@@ -236,10 +263,9 @@ export const FornecedoresTabela = () => {
                 {filteredFornecedores.map((fornecedor) => (
                   <TableRow key={fornecedor.id} className="hover:bg-primary/5">
                     <TableCell className="font-medium">{fornecedor.nome}</TableCell>
-                    <TableCell>{fornecedor.contato || '-'}</TableCell>
-                    <TableCell>{fornecedor.telefone || '-'}</TableCell>
-                    <TableCell>{fornecedor.email || '-'}</TableCell>
-                    <TableCell className="max-w-xs truncate">{fornecedor.endereco || '-'}</TableCell>
+                    <TableCell>{fornecedor.cnpj_cpf || '-'}</TableCell>
+                    <TableCell>{fornecedor.representante || '-'}</TableCell>
+                    <TableCell>{fornecedor.telefone_representante || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={fornecedor.ativo ? "default" : "secondary"} className={fornecedor.ativo ? "bg-primary" : ""}>
                         {fornecedor.ativo ? 'Ativo' : 'Inativo'}
@@ -290,59 +316,85 @@ export const FornecedoresTabela = () => {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Razão Social */}
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
+                <Label htmlFor="nome">Razão Social *</Label>
                 <Input
                   id="nome"
                   value={formData.nome}
                   onChange={(e) => handleInputChange('nome', e.target.value)}
                   required
                   className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Ex: Distribuidora ABC Ltda"
                 />
               </div>
               
+              {/* CNPJ */}
               <div className="space-y-2">
-                <Label htmlFor="contato">Contato</Label>
+                <Label htmlFor="cnpj_cpf">CNPJ *</Label>
                 <Input
-                  id="contato"
-                  value={formData.contato}
-                  onChange={(e) => handleInputChange('contato', e.target.value)}
+                  id="cnpj_cpf"
+                  value={formData.cnpj_cpf}
+                  onChange={(e) => handleInputChange('cnpj_cpf', e.target.value)}
+                  required
                   className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Ex: 12.345.678/0001-90"
                 />
               </div>
               
+              {/* Email Empresarial */}
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={formData.telefone}
-                  onChange={(e) => handleInputChange('telefone', e.target.value)}
-                  className="border-2 border-primary/30 focus:border-primary"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Empresarial</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Ex: contato@fornecedor.com"
                 />
               </div>
               
+              {/* Telefone Empresarial */}
               <div className="space-y-2">
-                <Label htmlFor="cnpj_cpf">CNPJ/CPF</Label>
+                <Label htmlFor="telefone">Telefone Empresarial</Label>
                 <Input
-                  id="cnpj_cpf"
-                  value={formData.cnpj_cpf}
-                  onChange={(e) => handleInputChange('cnpj_cpf', e.target.value)}
+                  id="telefone"
+                  value={formData.telefone}
+                  onChange={(e) => handleInputChange('telefone', e.target.value)}
                   className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Ex: (11) 3333-4444"
+                />
+              </div>
+              
+              {/* Representante Comercial */}
+              <div className="space-y-2">
+                <Label htmlFor="representante">Representante Comercial *</Label>
+                <Input
+                  id="representante"
+                  value={formData.representante}
+                  onChange={(e) => handleInputChange('representante', e.target.value)}
+                  required
+                  className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+              
+              {/* Telefone do Representante */}
+              <div className="space-y-2">
+                <Label htmlFor="telefone_representante">Telefone do Representante *</Label>
+                <Input
+                  id="telefone_representante"
+                  value={formData.telefone_representante}
+                  onChange={(e) => handleInputChange('telefone_representante', e.target.value)}
+                  required
+                  className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Ex: (11) 99999-9999"
                 />
               </div>
             </div>
             
+            {/* Endereço */}
             <div className="space-y-2">
               <Label htmlFor="endereco">Endereço</Label>
               <Input
@@ -350,6 +402,7 @@ export const FornecedoresTabela = () => {
                 value={formData.endereco}
                 onChange={(e) => handleInputChange('endereco', e.target.value)}
                 className="border-2 border-primary/30 focus:border-primary"
+                placeholder="Endereço completo do fornecedor..."
               />
             </div>
 
