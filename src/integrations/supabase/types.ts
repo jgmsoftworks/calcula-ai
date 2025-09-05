@@ -157,11 +157,15 @@ export type Database = {
           ativo: boolean
           cargo: string | null
           created_at: string
+          custo_por_hora: number | null
           desconto: number | null
+          dias_por_semana: number | null
           ferias_percent: number | null
           ferias_valor: number | null
           fgts_percent: number | null
           fgts_valor: number | null
+          horas_por_dia: number | null
+          horas_totais_mes: number | null
           id: string
           inss_percent: number | null
           inss_valor: number | null
@@ -173,6 +177,7 @@ export type Database = {
           rat_percent: number | null
           rat_valor: number | null
           salario_base: number
+          semanas_por_mes: number | null
           tipo_mao_obra: string | null
           updated_at: string
           user_id: string
@@ -188,11 +193,15 @@ export type Database = {
           ativo?: boolean
           cargo?: string | null
           created_at?: string
+          custo_por_hora?: number | null
           desconto?: number | null
+          dias_por_semana?: number | null
           ferias_percent?: number | null
           ferias_valor?: number | null
           fgts_percent?: number | null
           fgts_valor?: number | null
+          horas_por_dia?: number | null
+          horas_totais_mes?: number | null
           id?: string
           inss_percent?: number | null
           inss_valor?: number | null
@@ -204,6 +213,7 @@ export type Database = {
           rat_percent?: number | null
           rat_valor?: number | null
           salario_base?: number
+          semanas_por_mes?: number | null
           tipo_mao_obra?: string | null
           updated_at?: string
           user_id: string
@@ -219,11 +229,15 @@ export type Database = {
           ativo?: boolean
           cargo?: string | null
           created_at?: string
+          custo_por_hora?: number | null
           desconto?: number | null
+          dias_por_semana?: number | null
           ferias_percent?: number | null
           ferias_valor?: number | null
           fgts_percent?: number | null
           fgts_valor?: number | null
+          horas_por_dia?: number | null
+          horas_totais_mes?: number | null
           id?: string
           inss_percent?: number | null
           inss_valor?: number | null
@@ -235,6 +249,7 @@ export type Database = {
           rat_percent?: number | null
           rat_valor?: number | null
           salario_base?: number
+          semanas_por_mes?: number | null
           tipo_mao_obra?: string | null
           updated_at?: string
           user_id?: string

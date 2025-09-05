@@ -37,6 +37,11 @@ interface Funcionario {
   plano_saude_valor: number;
   outros_percent: number;
   outros_valor: number;
+  horas_por_dia?: number;
+  dias_por_semana?: number;
+  semanas_por_mes?: number;
+  horas_totais_mes?: number;
+  custo_por_hora?: number;
   ativo: boolean;
   created_at: string;
 }
@@ -69,7 +74,10 @@ export function FolhaPagamento() {
     plano_saude_percent: '0,00',
     plano_saude_valor: '',
     outros_percent: '0,00',
-    outros_valor: ''
+    outros_valor: '',
+    horas_por_dia: '8',
+    dias_por_semana: '5',
+    semanas_por_mes: '4,33'
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -120,24 +128,29 @@ export function FolhaPagamento() {
         salario_base: parseFloat(formData.salario_base),
         adicional: formData.adicional ? parseFloat(formData.adicional) : 0,
         desconto: formData.desconto ? parseFloat(formData.desconto) : 0,
-        fgts_percent: parseFloat(formData.fgts_percent),
-        fgts_valor: parseFloat(formData.fgts_valor),
-        inss_percent: parseFloat(formData.inss_percent),
-        inss_valor: parseFloat(formData.inss_valor),
-        rat_percent: parseFloat(formData.rat_percent),
-        rat_valor: parseFloat(formData.rat_valor),
-        ferias_percent: parseFloat(formData.ferias_percent),
-        ferias_valor: parseFloat(formData.ferias_valor),
-        vale_transporte_percent: parseFloat(formData.vale_transporte_percent),
-        vale_transporte_valor: parseFloat(formData.vale_transporte_valor),
-        vale_alimentacao_percent: parseFloat(formData.vale_alimentacao_percent),
-        vale_alimentacao_valor: parseFloat(formData.vale_alimentacao_valor),
-        vale_refeicao_percent: parseFloat(formData.vale_refeicao_percent),
-        vale_refeicao_valor: parseFloat(formData.vale_refeicao_valor),
-        plano_saude_percent: parseFloat(formData.plano_saude_percent),
-        plano_saude_valor: parseFloat(formData.plano_saude_valor),
-        outros_percent: parseFloat(formData.outros_percent),
-        outros_valor: parseFloat(formData.outros_valor),
+        fgts_percent: parsePercentValue(formData.fgts_percent),
+        fgts_valor: parseCurrencyValue(formData.fgts_valor),
+        inss_percent: parsePercentValue(formData.inss_percent),
+        inss_valor: parseCurrencyValue(formData.inss_valor),
+        rat_percent: parsePercentValue(formData.rat_percent),
+        rat_valor: parseCurrencyValue(formData.rat_valor),
+        ferias_percent: parsePercentValue(formData.ferias_percent),
+        ferias_valor: parseCurrencyValue(formData.ferias_valor),
+        vale_transporte_percent: parsePercentValue(formData.vale_transporte_percent),
+        vale_transporte_valor: parseCurrencyValue(formData.vale_transporte_valor),
+        vale_alimentacao_percent: parsePercentValue(formData.vale_alimentacao_percent),
+        vale_alimentacao_valor: parseCurrencyValue(formData.vale_alimentacao_valor),
+        vale_refeicao_percent: parsePercentValue(formData.vale_refeicao_percent),
+        vale_refeicao_valor: parseCurrencyValue(formData.vale_refeicao_valor),
+        plano_saude_percent: parsePercentValue(formData.plano_saude_percent),
+        plano_saude_valor: parseCurrencyValue(formData.plano_saude_valor),
+        outros_percent: parsePercentValue(formData.outros_percent),
+        outros_valor: parseCurrencyValue(formData.outros_valor),
+        horas_por_dia: parseFloat(formData.horas_por_dia),
+        dias_por_semana: parseFloat(formData.dias_por_semana),
+        semanas_por_mes: parsePercentValue(formData.semanas_por_mes),
+        horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parsePercentValue(formData.semanas_por_mes),
+        custo_por_hora: 0, // Será calculado após o custo total
         ativo: true
       };
 
@@ -251,6 +264,50 @@ export function FolhaPagamento() {
     setFormData({ ...formData, salario_base: formattedValue });
   };
 
+  // Calcular horas totais por mês
+  const calculateHorasTotais = () => {
+    const horasDia = parseFloat(formData.horas_por_dia || '0');
+    const diasSemana = parseFloat(formData.dias_por_semana || '0');
+    const semanasMes = parsePercentValue(formData.semanas_por_mes || '0');
+    return Math.round((horasDia * diasSemana * semanasMes) * 100) / 100;
+  };
+
+  // Calcular custo por hora
+  const calculateCustoPorHora = () => {
+    const salarioBase = parseCurrencyValue(formData.salario_base);
+    
+    const fgtsTotal = parseCurrencyValue(formData.fgts_valor);
+    const inssTotal = parseCurrencyValue(formData.inss_valor);
+    const ratTotal = parseCurrencyValue(formData.rat_valor);
+    const feriasTotal = parseCurrencyValue(formData.ferias_valor);
+    const vtTotal = parseCurrencyValue(formData.vale_transporte_valor);
+    const vaTotal = parseCurrencyValue(formData.vale_alimentacao_valor);
+    const vrTotal = parseCurrencyValue(formData.vale_refeicao_valor);
+    const planoTotal = parseCurrencyValue(formData.plano_saude_valor);
+    const outrosTotal = parseCurrencyValue(formData.outros_valor);
+    
+    const custoTotal = salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal;
+    const horasTotais = calculateHorasTotais();
+    
+    return horasTotais > 0 ? Math.round((custoTotal / horasTotais) * 100) / 100 : 0;
+  };
+
+  // Handler para campos de horas
+  const handleHorasChange = (field: string, value: string) => {
+    if (field === 'semanas_por_mes') {
+      const formattedValue = formatPercentInput(value);
+      setFormData({ ...formData, [field]: formattedValue });
+    } else {
+      const numericValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
+      const floatValue = parseFloat(numericValue);
+      if (!isNaN(floatValue) && floatValue >= 0) {
+        setFormData({ ...formData, [field]: numericValue });
+      } else if (value === '') {
+        setFormData({ ...formData, [field]: '' });
+      }
+    }
+  };
+
   // Handler para mudança em percentual
   const handlePercentChange = (key: string, value: string) => {
     const formattedPercent = formatPercentInput(value);
@@ -306,7 +363,10 @@ export function FolhaPagamento() {
       plano_saude_percent: '0,00',
       plano_saude_valor: '',
       outros_percent: '0,00',
-      outros_valor: ''
+      outros_valor: '',
+      horas_por_dia: '8',
+      dias_por_semana: '5',
+      semanas_por_mes: '4,33'
     });
   };
 
@@ -336,7 +396,10 @@ export function FolhaPagamento() {
       plano_saude_percent: funcionario.plano_saude_percent.toString().replace('.', ','),
       plano_saude_valor: formatCurrencyDisplay(funcionario.plano_saude_valor),
       outros_percent: funcionario.outros_percent.toString().replace('.', ','),
-      outros_valor: formatCurrencyDisplay(funcionario.outros_valor)
+      outros_valor: formatCurrencyDisplay(funcionario.outros_valor),
+      horas_por_dia: funcionario.horas_por_dia?.toString() || '8',
+      dias_por_semana: funcionario.dias_por_semana?.toString() || '5',
+      semanas_por_mes: funcionario.semanas_por_mes?.toString().replace('.', ',') || '4,33'
     });
     setIsModalOpen(true);
   };
@@ -523,7 +586,70 @@ export function FolhaPagamento() {
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
                       </div>
                     </div>
-                  ))}
+                ))}
+                </div>
+
+                {/* Calculadora de Horas */}
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">Calculadora de Horas</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="horas_por_dia">Horas por Dia</Label>
+                      <Input
+                        id="horas_por_dia"
+                        type="text"
+                        value={formData.horas_por_dia}
+                        onChange={(e) => handleHorasChange('horas_por_dia', e.target.value)}
+                        placeholder="8"
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck="false"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dias_por_semana">Dias por Semana</Label>
+                      <Input
+                        id="dias_por_semana"
+                        type="text"
+                        value={formData.dias_por_semana}
+                        onChange={(e) => handleHorasChange('dias_por_semana', e.target.value)}
+                        placeholder="5"
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck="false"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="semanas_por_mes">Semanas por Mês</Label>
+                      <Input
+                        id="semanas_por_mes"
+                        type="text"
+                        value={formData.semanas_por_mes}
+                        onChange={(e) => handleHorasChange('semanas_por_mes', e.target.value)}
+                        placeholder="4,33"
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck="false"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Resultado das horas */}
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total de Horas por Mês</p>
+                        <p className="text-lg font-semibold">{calculateHorasTotais()}h</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Custo por Hora</p>
+                        <p className="text-lg font-semibold text-primary">R$ {formatCurrencyDisplay(calculateCustoPorHora())}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Custo Total */}
