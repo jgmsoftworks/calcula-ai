@@ -180,6 +180,51 @@ export function FolhaPagamento() {
     }
   };
 
+  const handlePercentChange = (key: string, value: string) => {
+    const salarioBase = parseFloat(formData.salario_base || '0');
+    const percent = parseFloat(value || '0');
+    const calculatedValue = (salarioBase * percent / 100).toFixed(2);
+    
+    const valorKey = key.replace('_percent', '_valor');
+    setFormData({ 
+      ...formData, 
+      [key]: value,
+      [valorKey]: calculatedValue
+    });
+  };
+
+  const handleValueChange = (key: string, value: string) => {
+    const salarioBase = parseFloat(formData.salario_base || '0');
+    const valorNumerico = parseFloat(value || '0');
+    const calculatedPercent = salarioBase > 0 ? (valorNumerico / salarioBase * 100).toFixed(2) : '0';
+    
+    const percentKey = key.replace('_valor', '_percent');
+    setFormData({ 
+      ...formData, 
+      [key]: value,
+      [percentKey]: calculatedPercent
+    });
+  };
+
+  const formatCurrencyInput = (value: string) => {
+    // Remove tudo que não é dígito
+    const number = value.replace(/\D/g, '');
+    
+    // Converte para decimal
+    const decimal = (parseInt(number) / 100).toFixed(2);
+    
+    // Formata como moeda
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(parseFloat(decimal));
+  };
+
+  const parseCurrencyInput = (value: string) => {
+    // Remove símbolos de moeda e espaços, converte vírgula para ponto
+    return value.replace(/[R$\s.]/g, '').replace(',', '.');
+  };
+
   const resetFormData = () => {
     setFormData({
       nome: '',
@@ -394,7 +439,7 @@ export function FolhaPagamento() {
                           step="0.01"
                           min="0"
                           value={formData[encargo.percentKey as keyof typeof formData]}
-                          onChange={(e) => setFormData({ ...formData, [encargo.percentKey]: e.target.value })}
+                          onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
                           placeholder="0"
                           className="pr-6"
                         />
@@ -406,7 +451,7 @@ export function FolhaPagamento() {
                           step="0.01"
                           min="0"
                           value={formData[encargo.valorKey as keyof typeof formData]}
-                          onChange={(e) => setFormData({ ...formData, [encargo.valorKey]: e.target.value })}
+                          onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
                           placeholder="0,00"
                           className="pl-8"
                         />
