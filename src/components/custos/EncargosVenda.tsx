@@ -87,19 +87,6 @@ export const EncargosVenda = () => {
     }).format(value);
   };
 
-  const handleValueInputChange = (inputValue: string, onChange: (value: number) => void) => {
-    // Remove tudo que não é dígito
-    const numericValue = inputValue.replace(/\D/g, '');
-    
-    // Converte para número dividindo por 100 (para ter centavos)
-    const numberValue = parseInt(numericValue || '0') / 100;
-    
-    // Chama o callback para atualizar o estado
-    onChange(numberValue);
-    
-    return formatBrazilianNumber(numberValue);
-  };
-
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
     if (valorFixo > 0) return valorFixo;
     if (percentual > 0) return (percentual / 100) * baseVenda;
@@ -190,10 +177,11 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`perc-${percentual}`}
-          value={formatBrazilianNumber(percentual)}
-          onChange={(e) => {
-            const formatted = handleValueInputChange(e.target.value, onPercentualChange);
-            e.target.value = formatted;
+          defaultValue={formatBrazilianNumber(percentual)}
+          onBlur={(e) => {
+            const parsed = parseInputValue(e.target.value);
+            onPercentualChange(parsed);
+            e.target.value = formatBrazilianNumber(parsed);
           }}
           className="text-right h-8 text-xs pr-6"
           placeholder="0,00"
@@ -209,10 +197,11 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`valor-${valorFixo}`}
-          value={formatBrazilianNumber(valorFixo)}
-          onChange={(e) => {
-            const formatted = handleValueInputChange(e.target.value, onValorFixoChange);
-            e.target.value = formatted;
+          defaultValue={formatBrazilianNumber(valorFixo)}
+          onBlur={(e) => {
+            const parsed = parseInputValue(e.target.value);
+            onValorFixoChange(parsed);
+            e.target.value = formatBrazilianNumber(parsed);
           }}
           className="text-right h-8 text-xs pl-8"
           placeholder="0,00"
@@ -410,7 +399,7 @@ export const EncargosVenda = () => {
                       e.target.value = formatBrazilianNumber(parsed);
                     }}
                     className="text-right h-8 text-xs pr-6"
-                    placeholder="0"
+                     placeholder="0,00"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -432,7 +421,7 @@ export const EncargosVenda = () => {
                       e.target.value = formatBrazilianNumber(parsed);
                     }}
                     className="text-right h-8 text-xs pl-8"
-                    placeholder="0"
+                     placeholder="0,00"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -525,7 +514,7 @@ export const EncargosVenda = () => {
                     e.target.value = formatBrazilianNumber(parsed);
                   }}
                   className="text-right h-8 text-xs pr-6"
-                  placeholder="0"
+                   placeholder="0,00"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -547,7 +536,7 @@ export const EncargosVenda = () => {
                     e.target.value = formatBrazilianNumber(parsed);
                   }}
                   className="text-right h-8 text-xs pl-8"
-                  placeholder="0"
+                  placeholder="0,00"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"
