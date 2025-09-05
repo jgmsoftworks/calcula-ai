@@ -177,11 +177,9 @@ export const EncargosVenda = () => {
       <div className="relative">
         <Input
           type="number"
-          step="any"
+          step="0.01"
           value={formatInputValue(percentual)}
           onChange={(e) => onPercentualChange(parseInputValue(e.target.value))}
-          onKeyDown={handleInputKeyDown}
-          onWheel={handleInputWheel}
           className="text-right h-8 text-xs pr-6"
           placeholder="0"
           autoComplete="off"
@@ -195,11 +193,9 @@ export const EncargosVenda = () => {
         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
         <Input
           type="number"
-          step="any"
+          step="0.01"
           value={formatInputValue(valorFixo)}
           onChange={(e) => onValorFixoChange(parseInputValue(e.target.value))}
-          onKeyDown={handleInputKeyDown}
-          onWheel={handleInputWheel}
           className="text-right h-8 text-xs pl-8"
           placeholder="0"
           autoComplete="off"
@@ -386,13 +382,11 @@ export const EncargosVenda = () => {
                 <div className="relative">
                   <Input
                     type="number"
-                    step="any"
+                    step="0.01"
                     value={formatInputValue(parcela.percentual)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, percentual: parseInputValue(e.target.value)} : p
                     ))}
-                    onKeyDown={handleInputKeyDown}
-                    onWheel={handleInputWheel}
                     className="text-right h-8 text-xs pr-6"
                     placeholder="0"
                     autoComplete="off"
@@ -406,13 +400,11 @@ export const EncargosVenda = () => {
                   <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                   <Input
                     type="number"
-                    step="any"
+                    step="0.01"
                     value={formatInputValue(parcela.valorFixo)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, valorFixo: parseInputValue(e.target.value)} : p
                     ))}
-                    onKeyDown={handleInputKeyDown}
-                    onWheel={handleInputWheel}
                     className="text-right h-8 text-xs pl-8"
                     placeholder="0"
                     autoComplete="off"
@@ -497,13 +489,11 @@ export const EncargosVenda = () => {
               <div className="relative">
                 <Input
                   type="number"
-                  step="any"
+                  step="0.01"
                   value={formatInputValue(item.percentual)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, percentual: parseInputValue(e.target.value)} : i
                   ))}
-                  onKeyDown={handleInputKeyDown}
-                  onWheel={handleInputWheel}
                   className="text-right h-8 text-xs pr-6"
                   placeholder="0"
                   autoComplete="off"
@@ -517,13 +507,11 @@ export const EncargosVenda = () => {
                 <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                 <Input
                   type="number"
-                  step="any"
+                  step="0.01"
                   value={formatInputValue(item.valorFixo)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, valorFixo: parseInputValue(e.target.value)} : i
                   ))}
-                  onKeyDown={handleInputKeyDown}
-                  onWheel={handleInputWheel}
                   className="text-right h-8 text-xs pl-8"
                   placeholder="0"
                   autoComplete="off"

@@ -524,11 +524,9 @@ export function FolhaPagamento() {
                     <Input
                       id="salario_base"
                       type="number"
-                      step="any"
+                      step="0.01"
                       value={formatInputValue(formData.salario_base)}
                       onChange={(e) => handleSalarioBaseChange(e.target.value)}
-                      onKeyDown={handleInputKeyDown}
-                      onWheel={handleInputWheel}
                       placeholder="0"
                       className="pl-8"
                       autoComplete="off"
@@ -561,11 +559,9 @@ export function FolhaPagamento() {
                       <div className="relative">
                         <Input
                           type="number"
-                          step="any"
+                          step="0.01"
                           value={formatInputValue(formData[encargo.percentKey as keyof typeof formData])}
                           onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
-                          onKeyDown={handleInputKeyDown}
-                          onWheel={handleInputWheel}
                           placeholder="0"
                           className="pr-6"
                           autoComplete="off"
@@ -578,11 +574,9 @@ export function FolhaPagamento() {
                       <div className="relative">
                         <Input
                           type="number"
-                          step="any"
+                          step="0.01"
                           value={formatInputValue(formData[encargo.valorKey as keyof typeof formData])}
                           onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
-                          onKeyDown={handleInputKeyDown}
-                          onWheel={handleInputWheel}
                           placeholder="0"
                           className="pl-8"
                           autoComplete="off"
@@ -632,11 +626,9 @@ export function FolhaPagamento() {
                       <Input
                         id="horas_por_dia"
                         type="number"
-                        step="any"
+                        step="0.01"
                         value={formatInputValue(formData.horas_por_dia)}
                         onChange={(e) => handleHorasChange('horas_por_dia', e.target.value)}
-                        onKeyDown={handleInputKeyDown}
-                        onWheel={handleInputWheel}
                         placeholder="8"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -649,11 +641,9 @@ export function FolhaPagamento() {
                       <Input
                         id="dias_por_semana"
                         type="number"
-                        step="any"
+                        step="0.01"
                         value={formatInputValue(formData.dias_por_semana)}
                         onChange={(e) => handleHorasChange('dias_por_semana', e.target.value)}
-                        onKeyDown={handleInputKeyDown}
-                        onWheel={handleInputWheel}
                         placeholder="5"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -666,11 +656,9 @@ export function FolhaPagamento() {
                       <Input
                         id="semanas_por_mes"
                         type="number"
-                        step="any"
+                        step="0.01"
                         value={formatInputValue(formData.semanas_por_mes)}
                         onChange={(e) => handleHorasChange('semanas_por_mes', e.target.value)}
-                        onKeyDown={handleInputKeyDown}
-                        onWheel={handleInputWheel}
                         placeholder="4.33"
                         autoComplete="off"
                         autoCapitalize="off"
