@@ -21,6 +21,7 @@ interface Produto {
   estoque_atual: number;
   custo_medio: number;
   custo_unitario: number;
+  custo_total?: number;
   estoque_minimo: number;
   sku: string | null;
   codigo_interno: string | null;
@@ -37,6 +38,7 @@ interface Produto {
   rotulo_gord_trans: number | null;
   rotulo_fibra: number | null;
   rotulo_sodio: number | null;
+  total_embalagem?: number | null;
 }
 
 interface Fornecedor {
