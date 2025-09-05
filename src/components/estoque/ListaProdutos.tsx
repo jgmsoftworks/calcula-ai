@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit, Search, Trash2 } from 'lucide-react';
+import { Edit, Search, Trash2, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ProductModal } from './ProductModal';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
@@ -17,6 +17,7 @@ import { ImportacaoProdutos } from './ImportacaoProdutos';
 import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 import { FileSpreadsheet } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import * as XLSX from 'xlsx';
 
 interface Produto {
   id: string;
@@ -193,6 +194,70 @@ export const ListaProdutos = () => {
     setIsImportModalOpen(false);
   };
 
+  const exportToExcel = () => {
+    try {
+      // Preparar dados para exportação
+      const dadosExportacao = filteredProdutos.map(produto => ({
+        nome: produto.nome,
+        categoria: produto.categorias ? produto.categorias.join(', ') : '',
+        marca: produto.marcas ? produto.marcas.join(', ') : '',
+        codigo_interno: produto.codigo_interno || '',
+        codigo_barras: produto.codigo_barras || '',
+        unidade: produto.unidade,
+        estoque_atual: produto.estoque_atual,
+        estoque_minimo: produto.estoque_minimo,
+        custo_total: produto.custo_total || 0,
+        custo_unitario: produto.custo_unitario || 0,
+        total_embalagem: produto.total_embalagem || 1,
+        status: produto.ativo ? 'Ativo' : 'Inativo'
+      }));
+
+      // Criar workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(dadosExportacao);
+
+      // Configurar largura das colunas
+      const colWidths = [
+        { wch: 30 }, // nome
+        { wch: 20 }, // categoria
+        { wch: 15 }, // marca
+        { wch: 15 }, // codigo_interno
+        { wch: 15 }, // codigo_barras
+        { wch: 10 }, // unidade
+        { wch: 12 }, // estoque_atual
+        { wch: 12 }, // estoque_minimo
+        { wch: 12 }, // custo_total
+        { wch: 12 }, // custo_unitario
+        { wch: 15 }, // total_embalagem
+        { wch: 10 }  // status
+      ];
+      ws['!cols'] = colWidths;
+
+      // Adicionar planilha ao workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Produtos');
+
+      // Gerar nome do arquivo com data
+      const data = new Date();
+      const dataFormatada = data.toISOString().split('T')[0];
+      const nomeArquivo = `produtos_${dataFormatada}.xlsx`;
+
+      // Fazer download
+      XLSX.writeFile(wb, nomeArquivo);
+
+      toast({
+        title: "Exportação realizada com sucesso!",
+        description: `Arquivo ${nomeArquivo} foi baixado.`
+      });
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      toast({
+        title: "Erro ao exportar dados",
+        description: "Tente novamente mais tarde",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteProduto = async (produto: Produto) => {
     if (!confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) return;
     
@@ -348,6 +413,14 @@ export const ListaProdutos = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2 border-primary/40 text-primary hover:bg-primary/10"
+            onClick={exportToExcel}
+          >
+            <Download className="h-4 w-4" />
+            Exportar Excel
+          </Button>
           <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
