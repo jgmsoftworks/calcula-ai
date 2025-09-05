@@ -332,7 +332,7 @@ export function DespesasFixas() {
                 <p className="text-2xl font-bold text-primary">
                   {selectedCategory 
                     ? formatCurrency(getTotalByCategoria(selectedCategory))
-                    : formatCurrency(0)
+                    : formatCurrency(getTotalDespesas())
                   }
                 </p>
               </div>
@@ -342,10 +342,12 @@ export function DespesasFixas() {
           <CardContent>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Lista de Despesas</h3>
-              <Button onClick={handleNewDespesa} variant="outline" className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar Despesa
-              </Button>
+              {selectedCategory && (
+                <Button onClick={handleNewDespesa} variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Adicionar Despesa
+                </Button>
+              )}
             </div>
 
             {filteredDespesas.length === 0 ? (
