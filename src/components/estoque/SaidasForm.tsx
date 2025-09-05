@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { TrendingDown } from 'lucide-react';
+import { TrendingDown, Plus, Trash2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface Produto {
   id: string;
@@ -16,13 +17,26 @@ interface Produto {
   estoque_atual: number;
 }
 
+interface ItemSaida {
+  id: string;
+  produto_id: string;
+  produto_nome: string;
+  produto_unidade: string;
+  estoque_disponivel: number;
+  quantidade: number;
+  motivo: string;
+}
+
 export const SaidasForm = () => {
-  const [formData, setFormData] = useState({
+  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [observacao, setObservacao] = useState('');
+  const [itensSaida, setItensSaida] = useState<ItemSaida[]>([]);
+  
+  // Formulário para novo item
+  const [novoItem, setNovoItem] = useState({
     produto_id: '',
     quantidade: 0,
-    motivo: 'venda',
-    data: new Date().toISOString().split('T')[0],
-    observacao: ''
+    motivo: 'venda'
   });
   
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -50,27 +64,68 @@ export const SaidasForm = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.produto_id || !formData.quantidade || formData.quantidade <= 0) {
+  const adicionarItem = () => {
+    if (!novoItem.produto_id || novoItem.quantidade <= 0) {
       toast({
-        title: "Dados obrigatórios",
+        title: "Dados incompletos",
         description: "Produto e quantidade são obrigatórios",
         variant: "destructive"
       });
       return;
     }
 
-    const produto = produtos.find(p => p.id === formData.produto_id);
-    if (produto && formData.quantidade > produto.estoque_atual) {
+    const produto = produtos.find(p => p.id === novoItem.produto_id);
+    if (!produto) return;
+
+    // Verificar se produto já está na lista
+    if (itensSaida.find(item => item.produto_id === novoItem.produto_id)) {
+      toast({
+        title: "Produto já adicionado",
+        description: "Este produto já está na lista de saídas",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verificar estoque disponível
+    if (novoItem.quantidade > produto.estoque_atual) {
       toast({
         title: "Estoque insuficiente",
-        description: `Estoque atual: ${produto.estoque_atual} ${produto.unidade}`,
+        description: `Estoque disponível: ${produto.estoque_atual} ${produto.unidade}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const novoItemSaida: ItemSaida = {
+      id: Math.random().toString(36).substr(2, 9),
+      produto_id: novoItem.produto_id,
+      produto_nome: produto.nome,
+      produto_unidade: produto.unidade,
+      estoque_disponivel: produto.estoque_atual,
+      quantidade: novoItem.quantidade,
+      motivo: novoItem.motivo
+    };
+
+    setItensSaida(prev => [...prev, novoItemSaida]);
+    setNovoItem({
+      produto_id: '',
+      quantidade: 0,
+      motivo: 'venda'
+    });
+  };
+
+  const removerItem = (id: string) => {
+    setItensSaida(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (itensSaida.length === 0) {
+      toast({
+        title: "Nenhum item adicionado",
+        description: "Adicione pelo menos um produto",
         variant: "destructive"
       });
       return;
@@ -78,46 +133,56 @@ export const SaidasForm = () => {
 
     setLoading(true);
     try {
-      // Registrar movimento de saída
-      const { error: movError } = await supabase
-        .from('movimentacoes')
-        .insert([{
-          produto_id: formData.produto_id,
-          tipo: 'saida',
-          quantidade: formData.quantidade,
-          data: formData.data,
-          observacao: `${formData.motivo}${formData.observacao ? ` - ${formData.observacao}` : ''}`,
-          user_id: user?.id
-        }]);
+      // Registrar todos os movimentos de saída
+      for (const item of itensSaida) {
+        // Registrar movimento de saída
+        const { error: movError } = await supabase
+          .from('movimentacoes')
+          .insert([{
+            produto_id: item.produto_id,
+            tipo: 'saida',
+            quantidade: item.quantidade,
+            data: data,
+            observacao: `${item.motivo}${observacao ? ` - ${observacao}` : ''}`,
+            user_id: user?.id
+          }]);
 
-      if (movError) throw movError;
+        if (movError) throw movError;
 
-      // Atualizar estoque do produto
-      if (produto) {
-        const novoEstoque = produto.estoque_atual - formData.quantidade;
+        // Atualizar estoque do produto
+        const { data: produto, error: prodError } = await supabase
+          .from('produtos')
+          .select('estoque_atual')
+          .eq('id', item.produto_id)
+          .single();
+
+        if (prodError) throw prodError;
+
+        const novoEstoque = produto.estoque_atual - item.quantidade;
         
         const { error: updateError } = await supabase
           .from('produtos')
           .update({ estoque_atual: novoEstoque })
-          .eq('id', formData.produto_id);
+          .eq('id', item.produto_id);
 
         if (updateError) throw updateError;
       }
 
-      toast({ title: "Saída registrada com sucesso!" });
+      toast({ title: "Saídas registradas com sucesso!" });
       
-      // Reset form and reload products
-      setFormData({
+      // Reset form
+      setItensSaida([]);
+      setData(new Date().toISOString().split('T')[0]);
+      setObservacao('');
+      setNovoItem({
         produto_id: '',
         quantidade: 0,
-        motivo: 'venda',
-        data: new Date().toISOString().split('T')[0],
-        observacao: ''
+        motivo: 'venda'
       });
       loadProdutos(); // Reload to update stock levels
     } catch (error: any) {
       toast({
-        title: "Erro ao registrar saída",
+        title: "Erro ao registrar saídas",
         description: error.message || "Tente novamente",
         variant: "destructive"
       });
@@ -126,14 +191,12 @@ export const SaidasForm = () => {
     }
   };
 
-  const selectedProduct = produtos.find(p => p.id === formData.produto_id);
-
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-primary">Saídas de Estoque</h2>
         <p className="text-muted-foreground">
-          Registre saídas de produtos do estoque
+          Registre saídas de múltiplos produtos do estoque
         </p>
       </div>
 
@@ -146,21 +209,49 @@ export const SaidasForm = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Dados gerais da saída */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-muted/30">
+              {/* Data */}
+              <div className="space-y-2">
+                <Label htmlFor="data" className="text-sm font-medium">Data</Label>
+                <Input
+                  id="data"
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className="border-2 border-primary/30 focus:border-primary"
+                />
+              </div>
+
+              {/* Observação */}
+              <div className="space-y-2">
+                <Label htmlFor="observacao" className="text-sm font-medium">Observação</Label>
+                <Input
+                  id="observacao"
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                  className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Observações gerais sobre a saída..."
+                />
+              </div>
+            </div>
+
+            {/* Formulário para adicionar produtos */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-secondary/10">
               {/* Produto */}
               <div className="space-y-2">
                 <Label htmlFor="produto" className="text-sm font-medium">Produto *</Label>
                 <Select
-                  value={formData.produto_id}
-                  onValueChange={(value) => handleInputChange('produto_id', value)}
+                  value={novoItem.produto_id}
+                  onValueChange={(value) => setNovoItem(prev => ({ ...prev, produto_id: value }))}
                 >
                   <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
-                    <SelectValue placeholder="Selecione um produto" />
+                    <SelectValue placeholder="Produto" />
                   </SelectTrigger>
                   <SelectContent>
-                    {produtos.map((produto) => (
+                    {produtos.filter(p => !itensSaida.find(item => item.produto_id === p.id)).map((produto) => (
                       <SelectItem key={produto.id} value={produto.id}>
-                        {produto.nome} - Estoque: {produto.estoque_atual} {produto.unidade}
+                        {produto.nome} - Est: {produto.estoque_atual}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -169,33 +260,25 @@ export const SaidasForm = () => {
 
               {/* Quantidade */}
               <div className="space-y-2">
-                <Label htmlFor="quantidade" className="text-sm font-medium">
-                  Quantidade * {selectedProduct && `(${selectedProduct.unidade})`}
-                </Label>
+                <Label htmlFor="quantidade" className="text-sm font-medium">Quantidade *</Label>
                 <Input
                   id="quantidade"
                   type="number"
                   min="0.01"
                   step="0.01"
-                  max={selectedProduct?.estoque_atual || undefined}
-                  value={formData.quantidade}
-                  onChange={(e) => handleInputChange('quantidade', parseFloat(e.target.value) || 0)}
+                  value={novoItem.quantidade || ''}
+                  onChange={(e) => setNovoItem(prev => ({ ...prev, quantidade: parseFloat(e.target.value) || 0 }))}
                   className="border-2 border-primary/30 focus:border-primary"
                   placeholder="0"
                 />
-                {selectedProduct && (
-                  <p className="text-xs text-muted-foreground">
-                    Estoque disponível: {selectedProduct.estoque_atual} {selectedProduct.unidade}
-                  </p>
-                )}
               </div>
 
               {/* Motivo */}
               <div className="space-y-2">
                 <Label htmlFor="motivo" className="text-sm font-medium">Motivo *</Label>
                 <Select
-                  value={formData.motivo}
-                  onValueChange={(value) => handleInputChange('motivo', value)}
+                  value={novoItem.motivo}
+                  onValueChange={(value) => setNovoItem(prev => ({ ...prev, motivo: value }))}
                 >
                   <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
                     <SelectValue />
@@ -213,38 +296,80 @@ export const SaidasForm = () => {
                 </Select>
               </div>
 
-              {/* Data */}
+              {/* Botão Adicionar */}
               <div className="space-y-2">
-                <Label htmlFor="data" className="text-sm font-medium">Data</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={formData.data}
-                  onChange={(e) => handleInputChange('data', e.target.value)}
-                  className="border-2 border-primary/30 focus:border-primary"
-                />
+                <Label className="text-sm font-medium invisible">Adicionar</Label>
+                <Button
+                  type="button"
+                  onClick={adicionarItem}
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
             </div>
 
-            {/* Observação */}
-            <div className="space-y-2">
-              <Label htmlFor="observacao" className="text-sm font-medium">Observação</Label>
-              <Input
-                id="observacao"
-                value={formData.observacao}
-                onChange={(e) => handleInputChange('observacao', e.target.value)}
-                className="border-2 border-primary/30 focus:border-primary"
-                placeholder="Observações sobre a saída..."
-              />
-            </div>
+            {/* Lista de produtos adicionados */}
+            {itensSaida.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Produtos Adicionados</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Motivo</TableHead>
+                        <TableHead>Estoque Disponível</TableHead>
+                        <TableHead className="w-16"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {itensSaida.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{item.produto_nome}</div>
+                              <div className="text-sm text-muted-foreground">({item.produto_unidade})</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{item.quantidade.toFixed(2)}</TableCell>
+                          <TableCell>
+                            {item.motivo === 'venda' && 'Venda'}
+                            {item.motivo === 'uso_interno' && 'Uso Interno'}
+                            {item.motivo === 'perda' && 'Perda'}
+                            {item.motivo === 'vencimento' && 'Vencimento'}
+                            {item.motivo === 'devolucao' && 'Devolução'}
+                            {item.motivo === 'transferencia' && 'Transferência'}
+                            {item.motivo === 'ajuste' && 'Ajuste de Estoque'}
+                            {item.motivo === 'outro' && 'Outro'}
+                          </TableCell>
+                          <TableCell>{item.estoque_disponivel.toFixed(2)} {item.produto_unidade}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removerItem(item.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end pt-4">
               <Button 
                 type="submit" 
-                disabled={loading}
+                disabled={loading || itensSaida.length === 0}
                 className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8"
               >
-                {loading ? 'Registrando...' : 'Registrar Saída'}
+                {loading ? 'Registrando...' : `Registrar ${itensSaida.length} Saída${itensSaida.length !== 1 ? 's' : ''}`}
               </Button>
             </div>
           </form>
