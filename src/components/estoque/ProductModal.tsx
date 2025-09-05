@@ -14,6 +14,7 @@ import { Camera, X, Trash2 } from 'lucide-react';
 import { ImageCropper } from './ImageCropper';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
+import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 
 interface Produto {
   id: string;
@@ -568,125 +569,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
               </TabsContent>
 
-              <TabsContent value="rotulo" className="space-y-4 p-4 bg-background/50 rounded-lg border">
-                {/* Porção */}
-                <div className="space-y-2">
-                  <Label htmlFor="rotulo_porcao" className="text-sm font-medium">Porção</Label>
-                  <Input
-                    id="rotulo_porcao"
-                    value={formData.rotulo_porcao}
-                    onChange={(e) => handleInputChange('rotulo_porcao', e.target.value)}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    placeholder="Ex: 100g, 1 xícara, 1 fatia"
-                  />
-                </div>
-
-                {/* Valores Nutricionais */}
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_kcal" className="text-sm font-medium">Calorias (kcal)</Label>
-                    <Input
-                      id="rotulo_kcal"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_kcal}
-                      onChange={(e) => handleInputChange('rotulo_kcal', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_carb" className="text-sm font-medium">Carboidratos (g)</Label>
-                    <Input
-                      id="rotulo_carb"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_carb}
-                      onChange={(e) => handleInputChange('rotulo_carb', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_prot" className="text-sm font-medium">Proteínas (g)</Label>
-                    <Input
-                      id="rotulo_prot"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_prot}
-                      onChange={(e) => handleInputChange('rotulo_prot', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_gord_total" className="text-sm font-medium">Gorduras Totais (g)</Label>
-                    <Input
-                      id="rotulo_gord_total"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_gord_total}
-                      onChange={(e) => handleInputChange('rotulo_gord_total', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_gord_sat" className="text-sm font-medium">Gorduras Saturadas (g)</Label>
-                    <Input
-                      id="rotulo_gord_sat"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_gord_sat}
-                      onChange={(e) => handleInputChange('rotulo_gord_sat', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_gord_trans" className="text-sm font-medium">Gorduras Trans (g)</Label>
-                    <Input
-                      id="rotulo_gord_trans"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_gord_trans}
-                      onChange={(e) => handleInputChange('rotulo_gord_trans', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_fibra" className="text-sm font-medium">Fibras (g)</Label>
-                    <Input
-                      id="rotulo_fibra"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_fibra}
-                      onChange={(e) => handleInputChange('rotulo_fibra', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rotulo_sodio" className="text-sm font-medium">Sódio (mg)</Label>
-                    <Input
-                      id="rotulo_sodio"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.rotulo_sodio}
-                      onChange={(e) => handleInputChange('rotulo_sodio', parseFloat(e.target.value) || 0)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                    />
-                  </div>
-                </div>
+              <TabsContent value="rotulo" className="space-y-4 p-4 bg-background/50 rounded-lg border max-h-[400px] overflow-auto">
+                <HistoricoMovimentacoes produtoId={product.id} />
               </TabsContent>
             </Tabs>
           </div>
