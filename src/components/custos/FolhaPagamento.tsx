@@ -180,17 +180,15 @@ export function FolhaPagamento() {
     }
   };
 
-  // Função para formatar valores monetários para exibição
+  // Função para formatar valores monetários para exibição (sem símbolo R$)
   const formatCurrencyDisplay = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
   };
 
-  // Função para formatar input monetário
+  // Função para formatar input monetário (sem símbolo R$)
   const formatCurrencyInput = (value: string) => {
     // Remove tudo que não é dígito
     const digits = value.replace(/\D/g, '');
@@ -199,10 +197,8 @@ export function FolhaPagamento() {
     // Converte para número decimal
     const number = parseInt(digits) / 100;
     
-    // Formata como moeda
+    // Formata sem símbolo de moeda
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(number);
@@ -464,16 +460,20 @@ export function FolhaPagamento() {
                 </div>
                 <div>
                   <Label htmlFor="salario_base">Salário Bruto *</Label>
-                  <Input
-                    id="salario_base"
-                    value={formData.salario_base}
-                    onChange={(e) => handleSalarioBaseChange(e.target.value)}
-                    placeholder="R$ 0,00"
-                    autoComplete="off"
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    spellCheck="false"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="salario_base"
+                      value={formData.salario_base}
+                      onChange={(e) => handleSalarioBaseChange(e.target.value)}
+                      placeholder="0,00"
+                      className="pl-8"
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                    />
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                  </div>
                 </div>
               </div>
 
@@ -492,7 +492,7 @@ export function FolhaPagamento() {
                     { label: 'Plano de Saúde', percentKey: 'plano_saude_percent', valorKey: 'plano_saude_valor' },
                     { label: 'Outros', percentKey: 'outros_percent', valorKey: 'outros_valor' }
                   ].map((encargo) => (
-                    <div key={encargo.label} className="grid grid-cols-[1fr_100px_100px] gap-4 items-center">
+                    <div key={encargo.label} className="grid grid-cols-[1fr_120px_140px] gap-4 items-center">
                       <Label className="text-primary font-medium">{encargo.label}</Label>
                       <div className="relative">
                         <Input
@@ -513,7 +513,7 @@ export function FolhaPagamento() {
                           type="text"
                           value={formData[encargo.valorKey as keyof typeof formData]}
                           onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
-                          placeholder="R$ 0,00"
+                          placeholder="0,00"
                           className="pl-8"
                           autoComplete="off"
                           autoCapitalize="off"
@@ -531,7 +531,7 @@ export function FolhaPagamento() {
                   <div className="mt-4 p-4 bg-muted rounded-lg">
                     <div className="text-center">
                       <p className="text-lg font-semibold text-primary">
-                        Custo Total deste Funcionário: {(() => {
+                        Custo Total deste Funcionário: R$ {(() => {
                           const salarioBase = parseCurrencyValue(formData.salario_base);
                           
                           const fgtsTotal = parseCurrencyValue(formData.fgts_valor);
