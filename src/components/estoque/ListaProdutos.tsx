@@ -13,6 +13,7 @@ import { Edit, Search, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ProductModal } from './ProductModal';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
+import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 
 interface Produto {
   id: string;
@@ -55,6 +56,7 @@ export const ListaProdutos = () => {
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
 
   const [colunas, setColunas] = useState<ColunaConfig[]>([
     { key: 'imagem', label: 'Imagem', visible: true, order: 0 },
@@ -72,7 +74,39 @@ export const ListaProdutos = () => {
 
   useEffect(() => {
     loadProdutos();
+    loadUserConfigurations();
   }, []);
+
+  // Carregar configurações do usuário
+  const loadUserConfigurations = async () => {
+    const config = await loadConfiguration('lista_produtos');
+    if (config && typeof config === 'object' && !Array.isArray(config)) {
+      if ((config as any).colunas) {
+        setColunas((config as any).colunas);
+      }
+      if ((config as any).itensPorPagina) {
+        setItemsPerPage((config as any).itensPorPagina);
+      }
+    }
+  };
+
+  // Salvar configurações quando mudarem
+  const handleColunasChange = (novasColunas: ColunaConfig[]) => {
+    setColunas(novasColunas);
+    saveConfiguration('lista_produtos', { 
+      colunas: novasColunas, 
+      itensPorPagina: itemsPerPage 
+    });
+  };
+
+  const handleItensPorPaginaChange = (novosItens: number) => {
+    setItemsPerPage(novosItens);
+    setCurrentPage(1);
+    saveConfiguration('lista_produtos', { 
+      colunas, 
+      itensPorPagina: novosItens 
+    });
+  };
 
   const loadProdutos = async () => {
     try {
@@ -306,9 +340,9 @@ export const ListaProdutos = () => {
         </div>
         <ListaConfiguracoes
           colunas={colunas}
-          onColunasChange={setColunas}
+          onColunasChange={handleColunasChange}
           itensPorPagina={itemsPerPage}
-          onItensPorPaginaChange={setItemsPerPage}
+          onItensPorPaginaChange={handleItensPorPaginaChange}
         />
       </div>
 
