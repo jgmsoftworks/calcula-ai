@@ -230,7 +230,10 @@ export function DespesasFixas() {
   };
 
   const getTotalDespesas = () => {
-    return despesas.reduce((total, despesa) => total + despesa.valor, 0);
+    // Soma apenas as despesas que têm categoria associada
+    return despesas
+      .filter(despesa => despesa.categoria_id && categorias.some(cat => cat.id === despesa.categoria_id))
+      .reduce((total, despesa) => total + despesa.valor, 0);
   };
 
   const getTotalByCategoria = (categoriaId: string) => {
