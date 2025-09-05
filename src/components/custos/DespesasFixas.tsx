@@ -104,13 +104,19 @@ export function DespesasFixas() {
     }
 
     try {
+      const valorNumerico = parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0;
+      
       const despesaData = {
         user_id: user.id,
         nome: formData.nome,
         descricao: formData.descricao || null,
-        valor: parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0,
+        valor: valorNumerico,
+        categoria_id: selectedCategory, // Usar a categoria selecionada na sidebar
         ativo: true
       };
+
+      console.log('Dados da despesa:', despesaData);
+      console.log('Categoria selecionada:', selectedCategory);
 
       if (editingDespesa) {
         const { error } = await supabase
@@ -125,11 +131,14 @@ export function DespesasFixas() {
           description: "Despesa fixa atualizada com sucesso"
         });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('despesas_fixas')
-          .insert(despesaData);
+          .insert(despesaData)
+          .select();
 
         if (error) throw error;
+        
+        console.log('Despesa criada:', data);
 
         toast({
           title: "Despesa criada",
