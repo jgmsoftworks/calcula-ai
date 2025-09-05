@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Calculator, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info } from 'lucide-react';
 import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MarkupBlock {
   id: string;
@@ -24,6 +25,18 @@ export function Markups() {
   const [nomeTemp, setNomeTemp] = useState('');
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
+
+  // Bloco fixo para subreceita
+  const blocoSubreceita: MarkupBlock = {
+    id: 'subreceita-fixo',
+    nome: 'subreceita',
+    gastoSobreFaturamento: 0,
+    impostos: 0,
+    taxasMeiosPagamento: 0,
+    comissoesPlataformas: 0,
+    outros: 0,
+    lucroDesejado: 0
+  };
 
   useEffect(() => {
     const carregarBlocos = async () => {
@@ -147,6 +160,121 @@ export function Markups() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Bloco fixo subreceita */}
+        <Card className="relative border-blue-200 bg-blue-50/50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-primary">subreceita</h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">
+                        Atenção: Este bloco é exclusivo para subprodutos que não são vendidos 
+                        separadamente, como massas, recheios e coberturas. Ele serve apenas para 
+                        organizar ingredientes usados em receitas.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label className="text-sm">Gasto sobre faturamento</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={0}
+                    disabled
+                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                  />
+                  <span className="text-sm text-blue-600">%</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Label className="text-sm">Impostos</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={0}
+                    disabled
+                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                  />
+                  <span className="text-sm text-blue-600">%</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Label className="text-sm">Taxas de meios de pagamento</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={0}
+                    disabled
+                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                  />
+                  <span className="text-sm text-blue-600">%</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Label className="text-sm">Comissões e plataformas</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={0}
+                    disabled
+                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                  />
+                  <span className="text-sm text-blue-600">%</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Label className="text-sm">Outros</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={0}
+                    disabled
+                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                  />
+                  <span className="text-sm text-blue-600">%</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center border-t pt-3">
+                <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={0}
+                    disabled
+                    className="w-16 h-7 text-center text-sm text-green-600 bg-gray-50"
+                  />
+                  <span className="text-sm text-green-600">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg">
+                <span className="font-semibold text-blue-700">Markup ideal</span>
+                <span className="text-xl font-bold text-blue-700">1,000</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Blocos editáveis */}
         {blocos.map((bloco) => {
           const markupIdeal = calcularMarkupIdeal(bloco);
           
