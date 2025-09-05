@@ -739,9 +739,9 @@ export function FolhaPagamento() {
                       {funcionario.tipo_mao_obra === 'direta' ? 'Direta' : 'Indireta'}
                     </span>
                   </TableCell>
-                  <TableCell>{formatCurrency(funcionario.salario_base)}</TableCell>
+                  <TableCell>R$ {formatCurrencyDisplay(funcionario.salario_base)}</TableCell>
                   <TableCell className="font-semibold text-primary">
-                    {formatCurrency(calculateCustoTotal(funcionario))}
+                    R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
