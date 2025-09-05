@@ -359,7 +359,7 @@ export const EncargosVenda = () => {
                         atualizarNomeEncargo(encargo.id, e.target.value.trim());
                       }
                     }}
-                    className="text-xs h-6 w-full"
+                    className="text-xs h-8 w-full"
                     placeholder="Nome do encargo"
                   />
                 ) : (
@@ -399,7 +399,7 @@ export const EncargosVenda = () => {
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-center">
                 {categoria === 'outros' && (
                   <Button
                     onClick={() => encargo.id && removerEncargo(encargo.id)}
