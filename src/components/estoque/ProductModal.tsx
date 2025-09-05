@@ -456,7 +456,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   Estoque e Custos
                 </TabsTrigger>
                 <TabsTrigger value="rotulo" className="data-[state=active]:bg-background data-[state=active]:text-primary">
-                  Rótulo Nutricional
+                  Histórico de Movimentação
                 </TabsTrigger>
               </TabsList>
 
