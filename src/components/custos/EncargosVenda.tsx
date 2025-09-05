@@ -333,44 +333,35 @@ export const EncargosVenda = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-4 gap-2 mb-3">
             <div></div>
             <div className="text-center font-medium text-xs">Percentual (%)</div>
             <div className="text-center font-medium text-xs">Valor (R$)</div>
+            <div></div>
           </div>
 
           {encargosDaCategoria.map((encargo) => (
-            <div key={encargo.id || encargo.nome} className="grid grid-cols-3 gap-2 items-center">
+            <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-2 items-center">
               <div className="flex items-center">
                 {categoria === 'outros' ? (
-                  <div className="flex items-center w-full">
-                    <Input
-                      value={encargo.nome}
-                      onChange={(e) => {
-                        const novoNome = e.target.value;
-                        setEncargos(prev => 
-                          prev.map(item => 
-                            item.id === encargo.id ? { ...item, nome: novoNome } : item
-                          )
-                        );
-                      }}
-                      onBlur={(e) => {
-                        if (encargo.id && e.target.value.trim() && e.target.value !== encargo.nome) {
-                          atualizarNomeEncargo(encargo.id, e.target.value.trim());
-                        }
-                      }}
-                      className="text-xs h-6 flex-1"
-                      placeholder="Nome do encargo"
-                    />
-                    <Button
-                      onClick={() => encargo.id && removerEncargo(encargo.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 ml-2 flex-shrink-0"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <Input
+                    value={encargo.nome}
+                    onChange={(e) => {
+                      const novoNome = e.target.value;
+                      setEncargos(prev => 
+                        prev.map(item => 
+                          item.id === encargo.id ? { ...item, nome: novoNome } : item
+                        )
+                      );
+                    }}
+                    onBlur={(e) => {
+                      if (encargo.id && e.target.value.trim() && e.target.value !== encargo.nome) {
+                        atualizarNomeEncargo(encargo.id, e.target.value.trim());
+                      }
+                    }}
+                    className="text-xs h-6 w-full"
+                    placeholder="Nome do encargo"
+                  />
                 ) : (
                   <Label className="text-xs">{encargo.nome}</Label>
                 )}
@@ -406,6 +397,19 @@ export const EncargosVenda = () => {
                   min="0"
                   step="0.01"
                 />
+              </div>
+
+              <div className="flex justify-end">
+                {categoria === 'outros' && (
+                  <Button
+                    onClick={() => encargo.id && removerEncargo(encargo.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}
