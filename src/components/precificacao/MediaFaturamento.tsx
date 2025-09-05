@@ -286,47 +286,56 @@ export function MediaFaturamento() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Média Mensal</p>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(mediaFaturamento)}
-                </p>
-              </div>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-white" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full">
+              MÉDIA
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Média Mensal</p>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              {formatCurrency(mediaFaturamento)}
+            </p>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Total do Período</p>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(totalFaturamento)}
-                </p>
-              </div>
+        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-xl p-6 border border-green-200 dark:border-green-800/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2 bg-green-500 rounded-lg">
+              <DollarSign className="h-5 w-5 text-white" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">
+              TOTAL
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-green-700 dark:text-green-300">Total do Período</p>
+            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              {formatCurrency(totalFaturamento)}
+            </p>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <CalendarDays className="h-5 w-5 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Meses Analisados</p>
-                <p className="text-2xl font-bold text-primary">
-                  {quantidadeMeses}
-                </p>
-              </div>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-xl p-6 border border-purple-200 dark:border-purple-800/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2 bg-purple-500 rounded-lg">
+              <CalendarDays className="h-5 w-5 text-white" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full">
+              QTDE
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Meses Analisados</p>
+            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              {quantidadeMeses}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Lista de Faturamentos */}
