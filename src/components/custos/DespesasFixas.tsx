@@ -239,14 +239,6 @@ export function DespesasFixas() {
     <div className="grid grid-cols-12 gap-6">
       {/* Sidebar com categorias */}
       <div className="col-span-12 lg:col-span-3 space-y-3">
-        <Button 
-          className="w-full justify-start gap-2 h-12 bg-gradient-primary hover:bg-gradient-primary/90" 
-          onClick={handleNewDespesa}
-        >
-          <Plus className="h-4 w-4" />
-          Adicionar Despesa
-        </Button>
-        
         <div className="bg-card rounded-lg border p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium text-sm text-muted-foreground">Categorias</h3>
