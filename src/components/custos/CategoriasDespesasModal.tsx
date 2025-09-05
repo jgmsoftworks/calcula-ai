@@ -185,7 +185,7 @@ export function CategoriasDespesasModal({
 
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {filteredCategorias.map((categoria) => (
-                  <div key={categoria.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+                  <div key={categoria.id} className="flex items-center gap-2 p-3 bg-muted/30 rounded border">
                     {editingId === categoria.id ? (
                       <>
                         <Input
@@ -196,41 +196,43 @@ export function CategoriasDespesasModal({
                         />
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={handleSaveEdit}
-                          className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                          className="h-8 px-2 text-green-600 hover:text-green-700"
                         >
                           <Check className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={handleCancelEdit}
-                          className="h-8 w-8 p-0"
+                          className="h-8 px-2"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Badge variant="outline" className="flex-1 justify-start">
-                          {categoria.nome}
-                        </Badge>
+                        <div className="flex-1">
+                          <span className="font-medium">{categoria.nome}</span>
+                        </div>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => handleEdit(categoria)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 px-2 gap-1"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3 w-3" />
+                          Editar
                         </Button>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => handleDelete(categoria.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          className="h-8 px-2 gap-1 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
+                          Apagar
                         </Button>
                       </>
                     )}

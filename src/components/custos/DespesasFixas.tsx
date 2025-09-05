@@ -252,12 +252,21 @@ export function DespesasFixas() {
             <h3 className="font-medium text-sm text-muted-foreground">Categorias</h3>
             <Button
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => setIsCategoriaModalOpen(true)}
-              className="h-6 w-6 p-0"
+              className="gap-1 h-8 text-xs"
             >
-              <Settings className="h-4 w-4" />
+              <Plus className="h-3 w-3" />
+              Adicionar
             </Button>
+          </div>
+          
+          {/* Total geral */}
+          <div className="mb-4 p-2 bg-primary/5 rounded border">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Total Geral:</span>
+              <span className="text-sm font-bold text-primary">{formatCurrency(getTotalDespesas())}</span>
+            </div>
           </div>
           <div className="space-y-2">
             <button
