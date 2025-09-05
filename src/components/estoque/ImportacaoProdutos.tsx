@@ -29,7 +29,6 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         nome: 'Exemplo Produto 1',
         codigo_interno: 'PRD0001',
         codigo_barras: '7891234567890',
-        sku: 'SKU001',
         categoria: 'Categoria Exemplo',
         marcas: 'Marca Exemplo',
         unidade: 'g',
@@ -37,13 +36,12 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         estoque_minimo: 10,
         custo_unitario: 15.50,
         total_embalagem: 1,
-        ativo: true
+        status: 'Ativo'
       },
       {
         nome: 'Exemplo Produto 2',
         codigo_interno: 'PRD0002',
         codigo_barras: '7891234567891',
-        sku: 'SKU002',
         categoria: 'Outra Categoria',
         marcas: 'Outra Marca',
         unidade: 'kg',
@@ -51,7 +49,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         estoque_minimo: 5,
         custo_unitario: 25.75,
         total_embalagem: 1,
-        ativo: true
+        status: 'Ativo'
       }
     ];
 
@@ -64,7 +62,6 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
       { wch: 25 }, // nome
       { wch: 15 }, // codigo_interno
       { wch: 15 }, // codigo_barras
-      { wch: 10 }, // sku
       { wch: 20 }, // categoria
       { wch: 15 }, // marcas
       { wch: 10 }, // unidade
@@ -72,9 +69,40 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
       { wch: 12 }, // estoque_minimo
       { wch: 12 }, // custo_unitario
       { wch: 15 }, // total_embalagem
-      { wch: 8 }   // ativo
+      { wch: 10 }  // status
     ];
     ws['!cols'] = wscols;
+
+    // Adicionar validação de dados para unidade (coluna F - índice 5)
+    const unidadeValidation = {
+      type: 'list',
+      allowBlank: false,
+      formula1: '"g,kg,ml,l,un"',
+      error: 'Selecione uma unidade válida: g, kg, ml, l ou un'
+    };
+    
+    // Adicionar validação de dados para status (coluna K - índice 10) 
+    const statusValidation = {
+      type: 'list',
+      allowBlank: false,
+      formula1: '"Ativo,Inativo"',
+      error: 'Selecione: Ativo ou Inativo'
+    };
+
+    // Aplicar validações nas linhas de dados (linha 2 em diante, até linha 1000)
+    if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+    
+    // Validação para coluna unidade (F2:F1000)
+    ws['!dataValidation'].push({
+      sqref: 'F2:F1000',
+      ...unidadeValidation
+    });
+    
+    // Validação para coluna status (K2:K1000)  
+    ws['!dataValidation'].push({
+      sqref: 'K2:K1000',
+      ...statusValidation
+    });
 
     XLSX.writeFile(wb, 'modelo_produtos.xlsx');
     
@@ -123,6 +151,11 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             continue;
           }
 
+          if (row.status && !['Ativo', 'Inativo'].includes(row.status)) {
+            errors.push(`Linha ${rowNumber}: Status deve ser Ativo ou Inativo`);
+            continue;
+          }
+
           // Converter categorias para array se for string
           let categorias = null;
           if (row.categoria) {
@@ -143,7 +176,6 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             nome: row.nome,
             codigo_interno: row.codigo_interno || null,
             codigo_barras: row.codigo_barras || null,
-            sku: row.sku || null,
             categoria: row.categoria || null,
             categorias: categorias,
             marcas: marcas,
@@ -154,7 +186,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             custo_medio: Number(row.custo_unitario) || 0,
             custo_total: (Number(row.estoque_atual) || 0) * (Number(row.custo_unitario) || 0),
             total_embalagem: Number(row.total_embalagem) || 1,
-            ativo: row.ativo !== false && row.ativo !== 'false',
+            ativo: row.status === 'Ativo' || row.status !== 'Inativo',
             user_id: user.id
           };
 
@@ -317,10 +349,10 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             <h4 className="font-medium mb-2">Instruções:</h4>
             <ul className="text-sm space-y-1 text-muted-foreground">
               <li>• O campo "nome" é obrigatório</li>
-              <li>• A unidade deve ser: g, kg, ml, l ou un</li>
+              <li>• A unidade deve ser: g, kg, ml, l ou un (validação automática na planilha)</li>
+              <li>• O status deve ser: Ativo ou Inativo (validação automática na planilha)</li>
               <li>• Categorias e marcas podem ser separadas por vírgula</li>
               <li>• Valores numéricos devem usar ponto como separador decimal</li>
-              <li>• O campo "ativo" aceita true/false (padrão: true)</li>
             </ul>
           </div>
         </CardContent>
