@@ -201,17 +201,21 @@ export function FolhaPagamento() {
     }).format(value);
   };
 
-  const formatInputValue = (value: number | string) => {
-    if (value === null || value === undefined || value === '') return '';
-    return value.toString();
-  };
-
   const parseInputValue = (value: string) => {
     if (!value || value === '') return 0;
-    // Aceita tanto vírgula quanto ponto como separador decimal
-    const normalizedValue = value.replace(',', '.');
-    const parsed = parseFloat(normalizedValue);
+    // Remove formatação brasileira (pontos e transforma vírgula em ponto)
+    const cleanValue = value.replace(/\./g, '').replace(',', '.');
+    const parsed = parseFloat(cleanValue);
     return isNaN(parsed) ? 0 : Math.max(0, parsed);
+  };
+
+  const formatBrazilianNumber = (value: number | string) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue) || numValue === 0) return '';
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(numValue);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -263,8 +267,8 @@ export function FolhaPagamento() {
 
   // Handler para mudança no salário base
   const handleSalarioBaseChange = (value: string) => {
-    const formattedValue = formatInputValue(value);
-    setFormData({ ...formData, salario_base: formattedValue });
+    const parsed = parseInputValue(value);
+    setFormData({ ...formData, salario_base: parsed.toString() });
   };
 
   // Calcular horas totais por mês
@@ -285,48 +289,36 @@ export function FolhaPagamento() {
 
   // Handler para mudança em percentual
   const handlePercentChange = (key: string, value: string) => {
-    const formattedPercent = formatInputValue(value);
-    const salarioBase = parseCurrencyValue(formData.salario_base);
-    const percent = parsePercentValue(formattedPercent);
-    const calculatedValue = Math.round((salarioBase * percent / 100) * 100) / 100;
+    const parsed = parseInputValue(value);
+    const salarioBase = typeof formData.salario_base === 'string' ? parseInputValue(formData.salario_base) : formData.salario_base;
+    const calculatedValue = Math.round((salarioBase * parsed / 100) * 100) / 100;
     
     const valorKey = key.replace('_percent', '_valor');
     setFormData({ 
       ...formData, 
-      [key]: formattedPercent,
-      [valorKey]: calculatedValue > 0 ? formatCurrencyDisplay(calculatedValue) : ''
+      [key]: parsed.toString(),
+      [valorKey]: calculatedValue > 0 ? calculatedValue.toString() : ''
     });
   };
 
   // Handler para mudança em valor monetário
   const handleValueChange = (key: string, value: string) => {
-    const formattedValue = formatInputValue(value);
-    const salarioBase = parseCurrencyValue(formData.salario_base);
-    const valorNumerico = parseCurrencyValue(formattedValue);
-    const calculatedPercent = salarioBase > 0 ? Math.round((valorNumerico / salarioBase * 100) * 100) / 100 : 0;
+    const parsed = parseInputValue(value);
+    const salarioBase = typeof formData.salario_base === 'string' ? parseInputValue(formData.salario_base) : formData.salario_base;
+    const calculatedPercent = salarioBase > 0 ? Math.round((parsed / salarioBase * 100) * 100) / 100 : 0;
     
     const percentKey = key.replace('_valor', '_percent');
     setFormData({ 
       ...formData, 
-      [key]: formattedValue,
-      [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString().replace('.', ',') : '0,00'
+      [key]: parsed.toString(),
+      [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString() : '0'
     });
   };
 
   // Handler para campos de horas
   const handleHorasChange = (field: string, value: string) => {
-    if (field === 'semanas_por_mes') {
-      const formattedValue = formatInputValue(value);
-      setFormData({ ...formData, [field]: formattedValue });
-    } else {
-      const numericValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
-      const floatValue = parseFloat(numericValue);
-      if (!isNaN(floatValue) && floatValue >= 0) {
-        setFormData({ ...formData, [field]: numericValue });
-      } else if (value === '') {
-        setFormData({ ...formData, [field]: '' });
-      }
-    }
+    const parsed = parseInputValue(value);
+    setFormData({ ...formData, [field]: parsed.toString() });
   };
 
   const resetFormData = () => {
@@ -525,8 +517,12 @@ export function FolhaPagamento() {
                       id="salario_base"
                       type="text"
                       key={`salario-${formData.salario_base}`}
-                      defaultValue={formData.salario_base}
-                      onBlur={(e) => handleSalarioBaseChange(e.target.value)}
+                      defaultValue={formatBrazilianNumber(formData.salario_base)}
+                      onBlur={(e) => {
+                        const parsed = parseInputValue(e.target.value);
+                        handleSalarioBaseChange(e.target.value);
+                        e.target.value = formatBrazilianNumber(parsed);
+                      }}
                       placeholder="0"
                       className="pl-8"
                       autoComplete="off"
@@ -560,8 +556,12 @@ export function FolhaPagamento() {
                         <Input
                           type="text"
                           key={`perc-${encargo.percentKey}-${formData[encargo.percentKey as keyof typeof formData]}`}
-                          defaultValue={formData[encargo.percentKey as keyof typeof formData] as string}
-                          onBlur={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
+                          defaultValue={formatBrazilianNumber(formData[encargo.percentKey as keyof typeof formData] as string)}
+                          onBlur={(e) => {
+                            const parsed = parseInputValue(e.target.value);
+                            handlePercentChange(encargo.percentKey, e.target.value);
+                            e.target.value = formatBrazilianNumber(parsed);
+                          }}
                           placeholder="0"
                           className="pr-6"
                           autoComplete="off"
@@ -575,8 +575,12 @@ export function FolhaPagamento() {
                         <Input
                           type="text"
                           key={`valor-${encargo.valorKey}-${formData[encargo.valorKey as keyof typeof formData]}`}
-                          defaultValue={formData[encargo.valorKey as keyof typeof formData] as string}
-                          onBlur={(e) => handleValueChange(encargo.valorKey, e.target.value)}
+                          defaultValue={formatBrazilianNumber(formData[encargo.valorKey as keyof typeof formData] as string)}
+                          onBlur={(e) => {
+                            const parsed = parseInputValue(e.target.value);
+                            handleValueChange(encargo.valorKey, e.target.value);
+                            e.target.value = formatBrazilianNumber(parsed);
+                          }}
                           placeholder="0"
                           className="pl-8"
                           autoComplete="off"
@@ -627,8 +631,12 @@ export function FolhaPagamento() {
                         id="horas_por_dia"
                         type="text"
                         key={`horas-${formData.horas_por_dia}`}
-                        defaultValue={formData.horas_por_dia}
-                        onBlur={(e) => handleHorasChange('horas_por_dia', e.target.value)}
+                        defaultValue={formatBrazilianNumber(formData.horas_por_dia)}
+                        onBlur={(e) => {
+                          const parsed = parseInputValue(e.target.value);
+                          handleHorasChange('horas_por_dia', e.target.value);
+                          e.target.value = formatBrazilianNumber(parsed);
+                        }}
                         placeholder="8"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -642,8 +650,12 @@ export function FolhaPagamento() {
                         id="dias_por_semana"
                         type="text"
                         key={`dias-${formData.dias_por_semana}`}
-                        defaultValue={formData.dias_por_semana}
-                        onBlur={(e) => handleHorasChange('dias_por_semana', e.target.value)}
+                        defaultValue={formatBrazilianNumber(formData.dias_por_semana)}
+                        onBlur={(e) => {
+                          const parsed = parseInputValue(e.target.value);
+                          handleHorasChange('dias_por_semana', e.target.value);
+                          e.target.value = formatBrazilianNumber(parsed);
+                        }}
                         placeholder="5"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -657,9 +669,13 @@ export function FolhaPagamento() {
                         id="semanas_por_mes"
                         type="text"
                         key={`semanas-${formData.semanas_por_mes}`}
-                        defaultValue={formData.semanas_por_mes}
-                        onBlur={(e) => handleHorasChange('semanas_por_mes', e.target.value)}
-                        placeholder="4.33"
+                        defaultValue={formatBrazilianNumber(formData.semanas_por_mes)}
+                        onBlur={(e) => {
+                          const parsed = parseInputValue(e.target.value);
+                          handleHorasChange('semanas_por_mes', e.target.value);
+                          e.target.value = formatBrazilianNumber(parsed);
+                        }}
+                        placeholder="4,33"
                         autoComplete="off"
                         autoCapitalize="off"
                         autoCorrect="off"

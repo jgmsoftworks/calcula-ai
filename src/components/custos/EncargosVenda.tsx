@@ -65,10 +65,18 @@ export const EncargosVenda = () => {
 
   const parseInputValue = (value: string) => {
     if (!value || value === '') return 0;
-    // Aceita tanto vírgula quanto ponto como separador decimal
-    const normalizedValue = value.replace(',', '.');
-    const parsed = parseFloat(normalizedValue);
+    // Remove formatação brasileira (pontos e transforma vírgula em ponto)
+    const cleanValue = value.replace(/\./g, '').replace(',', '.');
+    const parsed = parseFloat(cleanValue);
     return isNaN(parsed) ? 0 : Math.max(0, parsed);
+  };
+
+  const formatBrazilianNumber = (value: number) => {
+    if (value === 0) return '';
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(value);
   };
 
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
@@ -161,8 +169,12 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`perc-${percentual}`}
-          defaultValue={percentual > 0 ? percentual.toString() : ''}
-          onBlur={(e) => onPercentualChange(parseInputValue(e.target.value))}
+          defaultValue={formatBrazilianNumber(percentual)}
+          onBlur={(e) => {
+            const parsed = parseInputValue(e.target.value);
+            onPercentualChange(parsed);
+            e.target.value = formatBrazilianNumber(parsed);
+          }}
           className="text-right h-8 text-xs pr-6"
           placeholder="0"
           autoComplete="off"
@@ -177,8 +189,12 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`valor-${valorFixo}`}
-          defaultValue={valorFixo > 0 ? valorFixo.toString() : ''}
-          onBlur={(e) => onValorFixoChange(parseInputValue(e.target.value))}
+          defaultValue={formatBrazilianNumber(valorFixo)}
+          onBlur={(e) => {
+            const parsed = parseInputValue(e.target.value);
+            onValorFixoChange(parsed);
+            e.target.value = formatBrazilianNumber(parsed);
+          }}
           className="text-right h-8 text-xs pl-8"
           placeholder="0"
           autoComplete="off"
@@ -366,10 +382,14 @@ export const EncargosVenda = () => {
                   <Input
                     type="text"
                     key={`parcela-perc-${parcela.id}-${parcela.percentual}`}
-                    defaultValue={parcela.percentual > 0 ? parcela.percentual.toString() : ''}
-                    onBlur={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                      p.id === parcela.id ? {...p, percentual: parseInputValue(e.target.value)} : p
-                    ))}
+                    defaultValue={formatBrazilianNumber(parcela.percentual)}
+                    onBlur={(e) => {
+                      const parsed = parseInputValue(e.target.value);
+                      setCartaoParcelado(cartaoParcelado.map(p => 
+                        p.id === parcela.id ? {...p, percentual: parsed} : p
+                      ));
+                      e.target.value = formatBrazilianNumber(parsed);
+                    }}
                     className="text-right h-8 text-xs pr-6"
                     placeholder="0"
                     autoComplete="off"
@@ -384,10 +404,14 @@ export const EncargosVenda = () => {
                   <Input
                     type="text"
                     key={`parcela-valor-${parcela.id}-${parcela.valorFixo}`}
-                    defaultValue={parcela.valorFixo > 0 ? parcela.valorFixo.toString() : ''}
-                    onBlur={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                      p.id === parcela.id ? {...p, valorFixo: parseInputValue(e.target.value)} : p
-                    ))}
+                    defaultValue={formatBrazilianNumber(parcela.valorFixo)}
+                    onBlur={(e) => {
+                      const parsed = parseInputValue(e.target.value);
+                      setCartaoParcelado(cartaoParcelado.map(p => 
+                        p.id === parcela.id ? {...p, valorFixo: parsed} : p
+                      ));
+                      e.target.value = formatBrazilianNumber(parsed);
+                    }}
                     className="text-right h-8 text-xs pl-8"
                     placeholder="0"
                     autoComplete="off"
@@ -473,10 +497,14 @@ export const EncargosVenda = () => {
                 <Input
                   type="text"
                   key={`outro-perc-${item.id}-${item.percentual}`}
-                  defaultValue={item.percentual > 0 ? item.percentual.toString() : ''}
-                  onBlur={(e) => setOutrosItens(outrosItens.map(i => 
-                    i.id === item.id ? {...i, percentual: parseInputValue(e.target.value)} : i
-                  ))}
+                  defaultValue={formatBrazilianNumber(item.percentual)}
+                  onBlur={(e) => {
+                    const parsed = parseInputValue(e.target.value);
+                    setOutrosItens(outrosItens.map(i => 
+                      i.id === item.id ? {...i, percentual: parsed} : i
+                    ));
+                    e.target.value = formatBrazilianNumber(parsed);
+                  }}
                   className="text-right h-8 text-xs pr-6"
                   placeholder="0"
                   autoComplete="off"
@@ -491,10 +519,14 @@ export const EncargosVenda = () => {
                 <Input
                   type="text"
                   key={`outro-valor-${item.id}-${item.valorFixo}`}
-                  defaultValue={item.valorFixo > 0 ? item.valorFixo.toString() : ''}
-                  onBlur={(e) => setOutrosItens(outrosItens.map(i => 
-                    i.id === item.id ? {...i, valorFixo: parseInputValue(e.target.value)} : i
-                  ))}
+                  defaultValue={formatBrazilianNumber(item.valorFixo)}
+                  onBlur={(e) => {
+                    const parsed = parseInputValue(e.target.value);
+                    setOutrosItens(outrosItens.map(i => 
+                      i.id === item.id ? {...i, valorFixo: parsed} : i
+                    ));
+                    e.target.value = formatBrazilianNumber(parsed);
+                  }}
                   className="text-right h-8 text-xs pl-8"
                   placeholder="0"
                   autoComplete="off"
