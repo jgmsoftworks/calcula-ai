@@ -63,29 +63,12 @@ export const EncargosVenda = () => {
     }).format(value);
   };
 
-  const formatInputValue = (value: number | string) => {
-    if (value === null || value === undefined || value === '') return '';
-    return value.toString();
-  };
-
   const parseInputValue = (value: string) => {
     if (!value || value === '') return 0;
     // Aceita tanto vírgula quanto ponto como separador decimal
     const normalizedValue = value.replace(',', '.');
     const parsed = parseFloat(normalizedValue);
     return isNaN(parsed) ? 0 : Math.max(0, parsed);
-  };
-
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Desabilita setas para alterar valor
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-    }
-  };
-
-  const handleInputWheel = (e: React.WheelEvent<HTMLInputElement>) => {
-    // Desabilita scroll para alterar valor
-    e.preventDefault();
   };
 
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
@@ -176,10 +159,10 @@ export const EncargosVenda = () => {
       <Label className="text-xs">{label}</Label>
       <div className="relative">
         <Input
-          type="number"
-          step="0.01"
-          value={formatInputValue(percentual)}
-          onChange={(e) => onPercentualChange(parseInputValue(e.target.value))}
+          type="text"
+          key={`perc-${percentual}`}
+          defaultValue={percentual > 0 ? percentual.toString() : ''}
+          onBlur={(e) => onPercentualChange(parseInputValue(e.target.value))}
           className="text-right h-8 text-xs pr-6"
           placeholder="0"
           autoComplete="off"
@@ -192,10 +175,10 @@ export const EncargosVenda = () => {
       <div className="relative">
         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
         <Input
-          type="number"
-          step="0.01"
-          value={formatInputValue(valorFixo)}
-          onChange={(e) => onValorFixoChange(parseInputValue(e.target.value))}
+          type="text"
+          key={`valor-${valorFixo}`}
+          defaultValue={valorFixo > 0 ? valorFixo.toString() : ''}
+          onBlur={(e) => onValorFixoChange(parseInputValue(e.target.value))}
           className="text-right h-8 text-xs pl-8"
           placeholder="0"
           autoComplete="off"
@@ -381,10 +364,10 @@ export const EncargosVenda = () => {
                 />
                 <div className="relative">
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={formatInputValue(parcela.percentual)}
-                    onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                    type="text"
+                    key={`parcela-perc-${parcela.id}-${parcela.percentual}`}
+                    defaultValue={parcela.percentual > 0 ? parcela.percentual.toString() : ''}
+                    onBlur={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, percentual: parseInputValue(e.target.value)} : p
                     ))}
                     className="text-right h-8 text-xs pr-6"
@@ -399,10 +382,10 @@ export const EncargosVenda = () => {
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={formatInputValue(parcela.valorFixo)}
-                    onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                    type="text"
+                    key={`parcela-valor-${parcela.id}-${parcela.valorFixo}`}
+                    defaultValue={parcela.valorFixo > 0 ? parcela.valorFixo.toString() : ''}
+                    onBlur={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, valorFixo: parseInputValue(e.target.value)} : p
                     ))}
                     className="text-right h-8 text-xs pl-8"
@@ -488,10 +471,10 @@ export const EncargosVenda = () => {
               />
               <div className="relative">
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={formatInputValue(item.percentual)}
-                  onChange={(e) => setOutrosItens(outrosItens.map(i => 
+                  type="text"
+                  key={`outro-perc-${item.id}-${item.percentual}`}
+                  defaultValue={item.percentual > 0 ? item.percentual.toString() : ''}
+                  onBlur={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, percentual: parseInputValue(e.target.value)} : i
                   ))}
                   className="text-right h-8 text-xs pr-6"
@@ -506,10 +489,10 @@ export const EncargosVenda = () => {
               <div className="relative">
                 <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={formatInputValue(item.valorFixo)}
-                  onChange={(e) => setOutrosItens(outrosItens.map(i => 
+                  type="text"
+                  key={`outro-valor-${item.id}-${item.valorFixo}`}
+                  defaultValue={item.valorFixo > 0 ? item.valorFixo.toString() : ''}
+                  onBlur={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, valorFixo: parseInputValue(e.target.value)} : i
                   ))}
                   className="text-right h-8 text-xs pl-8"

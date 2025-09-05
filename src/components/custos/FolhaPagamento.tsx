@@ -523,10 +523,10 @@ export function FolhaPagamento() {
                   <div className="relative">
                     <Input
                       id="salario_base"
-                      type="number"
-                      step="0.01"
-                      value={formatInputValue(formData.salario_base)}
-                      onChange={(e) => handleSalarioBaseChange(e.target.value)}
+                      type="text"
+                      key={`salario-${formData.salario_base}`}
+                      defaultValue={formData.salario_base}
+                      onBlur={(e) => handleSalarioBaseChange(e.target.value)}
                       placeholder="0"
                       className="pl-8"
                       autoComplete="off"
@@ -558,10 +558,10 @@ export function FolhaPagamento() {
                       <Label className="text-primary font-medium">{encargo.label}</Label>
                       <div className="relative">
                         <Input
-                          type="number"
-                          step="0.01"
-                          value={formatInputValue(formData[encargo.percentKey as keyof typeof formData])}
-                          onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
+                          type="text"
+                          key={`perc-${encargo.percentKey}-${formData[encargo.percentKey as keyof typeof formData]}`}
+                          defaultValue={formData[encargo.percentKey as keyof typeof formData] as string}
+                          onBlur={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
                           placeholder="0"
                           className="pr-6"
                           autoComplete="off"
@@ -573,10 +573,10 @@ export function FolhaPagamento() {
                       </div>
                       <div className="relative">
                         <Input
-                          type="number"
-                          step="0.01"
-                          value={formatInputValue(formData[encargo.valorKey as keyof typeof formData])}
-                          onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
+                          type="text"
+                          key={`valor-${encargo.valorKey}-${formData[encargo.valorKey as keyof typeof formData]}`}
+                          defaultValue={formData[encargo.valorKey as keyof typeof formData] as string}
+                          onBlur={(e) => handleValueChange(encargo.valorKey, e.target.value)}
                           placeholder="0"
                           className="pl-8"
                           autoComplete="off"
@@ -625,10 +625,10 @@ export function FolhaPagamento() {
                       <Label htmlFor="horas_por_dia">Horas por Dia</Label>
                       <Input
                         id="horas_por_dia"
-                        type="number"
-                        step="0.01"
-                        value={formatInputValue(formData.horas_por_dia)}
-                        onChange={(e) => handleHorasChange('horas_por_dia', e.target.value)}
+                        type="text"
+                        key={`horas-${formData.horas_por_dia}`}
+                        defaultValue={formData.horas_por_dia}
+                        onBlur={(e) => handleHorasChange('horas_por_dia', e.target.value)}
                         placeholder="8"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -640,10 +640,10 @@ export function FolhaPagamento() {
                       <Label htmlFor="dias_por_semana">Dias por Semana</Label>
                       <Input
                         id="dias_por_semana"
-                        type="number"
-                        step="0.01"
-                        value={formatInputValue(formData.dias_por_semana)}
-                        onChange={(e) => handleHorasChange('dias_por_semana', e.target.value)}
+                        type="text"
+                        key={`dias-${formData.dias_por_semana}`}
+                        defaultValue={formData.dias_por_semana}
+                        onBlur={(e) => handleHorasChange('dias_por_semana', e.target.value)}
                         placeholder="5"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -655,10 +655,10 @@ export function FolhaPagamento() {
                       <Label htmlFor="semanas_por_mes">Semanas por Mês</Label>
                       <Input
                         id="semanas_por_mes"
-                        type="number"
-                        step="0.01"
-                        value={formatInputValue(formData.semanas_por_mes)}
-                        onChange={(e) => handleHorasChange('semanas_por_mes', e.target.value)}
+                        type="text"
+                        key={`semanas-${formData.semanas_por_mes}`}
+                        defaultValue={formData.semanas_por_mes}
+                        onBlur={(e) => handleHorasChange('semanas_por_mes', e.target.value)}
                         placeholder="4.33"
                         autoComplete="off"
                         autoCapitalize="off"
