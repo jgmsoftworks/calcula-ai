@@ -63,31 +63,29 @@ export const EncargosVenda = () => {
     }).format(value);
   };
 
-  const formatPercent = (value: number) => {
-    console.log('formatPercent called with:', value);
-    if (isNaN(value) || value === null || value === undefined) return '';
-    return value.toString(); // Não força formatação para 2 casas
+  const formatInputValue = (value: number | string) => {
+    if (value === null || value === undefined || value === '') return '';
+    return value.toString();
   };
 
-  const formatCurrencyInput = (value: number) => {
-    console.log('formatCurrencyInput called with:', value);
-    if (isNaN(value) || value === null || value === undefined) return '';
-    return value.toString(); // Não força formatação para 2 casas
-  };
-
-  const parseNumber = (value: string) => {
-    console.log('parseNumber called with:', value);
+  const parseInputValue = (value: string) => {
     if (!value || value === '') return 0;
-    const parsed = parseFloat(value.replace(',', '.')) || 0;
-    const result = Math.max(0, parsed);
-    console.log('parseNumber result:', result);
-    return result;
+    // Aceita tanto vírgula quanto ponto como separador decimal
+    const normalizedValue = value.replace(',', '.');
+    const parsed = parseFloat(normalizedValue);
+    return isNaN(parsed) ? 0 : Math.max(0, parsed);
   };
 
-  const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
-    console.log('handleInputFocus called');
-    // Remover o select automático por enquanto para testar
-    // event.target.select();
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Desabilita setas para alterar valor
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+    }
+  };
+
+  const handleInputWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    // Desabilita scroll para alterar valor
+    e.preventDefault();
   };
 
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
@@ -179,13 +177,13 @@ export const EncargosVenda = () => {
       <div className="relative">
         <Input
           type="number"
-          step="0.01"
-          min="0"
-          value={formatPercent(percentual)}
-          onChange={(e) => onPercentualChange(parseNumber(e.target.value))}
-          onFocus={handleInputFocus}
+          step="any"
+          value={formatInputValue(percentual)}
+          onChange={(e) => onPercentualChange(parseInputValue(e.target.value))}
+          onKeyDown={handleInputKeyDown}
+          onWheel={handleInputWheel}
           className="text-right h-8 text-xs pr-6"
-          placeholder="0,00"
+          placeholder="0"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
@@ -197,13 +195,13 @@ export const EncargosVenda = () => {
         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
         <Input
           type="number"
-          step="0.01"
-          min="0"
-          value={formatCurrencyInput(valorFixo)}
-          onChange={(e) => onValorFixoChange(parseNumber(e.target.value))}
-          onFocus={handleInputFocus}
+          step="any"
+          value={formatInputValue(valorFixo)}
+          onChange={(e) => onValorFixoChange(parseInputValue(e.target.value))}
+          onKeyDown={handleInputKeyDown}
+          onWheel={handleInputWheel}
           className="text-right h-8 text-xs pl-8"
-          placeholder="0,00"
+          placeholder="0"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
@@ -378,7 +376,6 @@ export const EncargosVenda = () => {
                   onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                     p.id === parcela.id ? {...p, nome: e.target.value} : p
                   ))}
-                  onFocus={handleInputFocus}
                   placeholder="2x, 3x..."
                   className="h-8 text-xs"
                   autoComplete="off"
@@ -389,15 +386,15 @@ export const EncargosVenda = () => {
                 <div className="relative">
                   <Input
                     type="number"
-                    step="0.01"
-                    min="0"
-                    value={formatPercent(parcela.percentual)}
+                    step="any"
+                    value={formatInputValue(parcela.percentual)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                      p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
+                      p.id === parcela.id ? {...p, percentual: parseInputValue(e.target.value)} : p
                     ))}
-                    onFocus={handleInputFocus}
+                    onKeyDown={handleInputKeyDown}
+                    onWheel={handleInputWheel}
                     className="text-right h-8 text-xs pr-6"
-                    placeholder="0,00"
+                    placeholder="0"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -409,15 +406,15 @@ export const EncargosVenda = () => {
                   <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                   <Input
                     type="number"
-                    step="0.01"
-                    min="0"
-                    value={formatCurrencyInput(parcela.valorFixo)}
+                    step="any"
+                    value={formatInputValue(parcela.valorFixo)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                      p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
+                      p.id === parcela.id ? {...p, valorFixo: parseInputValue(e.target.value)} : p
                     ))}
-                    onFocus={handleInputFocus}
+                    onKeyDown={handleInputKeyDown}
+                    onWheel={handleInputWheel}
                     className="text-right h-8 text-xs pl-8"
-                    placeholder="0,00"
+                    placeholder="0"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -490,7 +487,6 @@ export const EncargosVenda = () => {
                 onChange={(e) => setOutrosItens(outrosItens.map(i => 
                   i.id === item.id ? {...i, nome: e.target.value} : i
                 ))}
-                onFocus={handleInputFocus}
                 placeholder="Nome do item"
                 className="h-8 text-xs"
                 autoComplete="off"
@@ -501,15 +497,15 @@ export const EncargosVenda = () => {
               <div className="relative">
                 <Input
                   type="number"
-                  step="0.01"
-                  min="0"
-                  value={formatPercent(item.percentual)}
+                  step="any"
+                  value={formatInputValue(item.percentual)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
-                    i.id === item.id ? {...i, percentual: parseNumber(e.target.value)} : i
+                    i.id === item.id ? {...i, percentual: parseInputValue(e.target.value)} : i
                   ))}
-                  onFocus={handleInputFocus}
+                  onKeyDown={handleInputKeyDown}
+                  onWheel={handleInputWheel}
                   className="text-right h-8 text-xs pr-6"
-                  placeholder="0,00"
+                  placeholder="0"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -521,15 +517,15 @@ export const EncargosVenda = () => {
                 <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
                 <Input
                   type="number"
-                  step="0.01"
-                  min="0"
-                  value={formatCurrencyInput(item.valorFixo)}
+                  step="any"
+                  value={formatInputValue(item.valorFixo)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
-                    i.id === item.id ? {...i, valorFixo: parseNumber(e.target.value)} : i
+                    i.id === item.id ? {...i, valorFixo: parseInputValue(e.target.value)} : i
                   ))}
-                  onFocus={handleInputFocus}
+                  onKeyDown={handleInputKeyDown}
+                  onWheel={handleInputWheel}
                   className="text-right h-8 text-xs pl-8"
-                  placeholder="0,00"
+                  placeholder="0"
                   autoComplete="off"
                   autoCapitalize="off"
                   autoCorrect="off"

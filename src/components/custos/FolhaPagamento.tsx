@@ -201,24 +201,29 @@ export function FolhaPagamento() {
     }).format(value);
   };
 
-  // Função para formatar input monetário (sem símbolo R$)
-  const formatCurrencyInput = (value: string) => {
-    // Remove tudo que não é dígito ou vírgula
-    const cleaned = value.replace(/[^\d,]/g, '');
-    
-    // Se não tem nada, retorna vazio
-    if (!cleaned) return '';
-    
-    // Se tem vírgula, trata como decimal
-    if (cleaned.includes(',')) {
-      const [inteira, decimal] = cleaned.split(',');
-      const formattedInteira = inteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      return decimal !== undefined ? `${formattedInteira},${decimal.slice(0, 2)}` : `${formattedInteira},`;
+  const formatInputValue = (value: number | string) => {
+    if (value === null || value === undefined || value === '') return '';
+    return value.toString();
+  };
+
+  const parseInputValue = (value: string) => {
+    if (!value || value === '') return 0;
+    // Aceita tanto vírgula quanto ponto como separador decimal
+    const normalizedValue = value.replace(',', '.');
+    const parsed = parseFloat(normalizedValue);
+    return isNaN(parsed) ? 0 : Math.max(0, parsed);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Desabilita setas para alterar valor
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
     }
-    
-    // Se não tem vírgula, adiciona formatação de milhares
-    const formatted = cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return formatted;
+  };
+
+  const handleInputWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    // Desabilita scroll para alterar valor
+    e.preventDefault();
   };
 
   // Função para converter valor formatado para número
@@ -229,17 +234,10 @@ export function FolhaPagamento() {
     return cleanValue ? parseFloat(cleanValue) : 0;
   };
 
-  // Função para formatar porcentagem
+  // Função para formatar porcentagem simples (sem formatação de milhares)
   const formatPercentInput = (value: string) => {
-    // Remove tudo que não é dígito, vírgula ou ponto
-    const cleaned = value.replace(/[^\d.,]/g, '');
-    // Substitui vírgula por ponto se necessário
-    const normalized = cleaned.replace(',', '.');
-    // Limita a 999.99
-    const number = parseFloat(normalized || '0');
-    if (number > 999.99) return '999,99';
-    // Retorna formatado com vírgula
-    return normalized.replace('.', ',');
+    if (!value || value === '') return '';
+    return value.toString();
   };
 
   // Função para converter porcentagem para número
@@ -265,7 +263,7 @@ export function FolhaPagamento() {
 
   // Handler para mudança no salário base
   const handleSalarioBaseChange = (value: string) => {
-    const formattedValue = formatCurrencyInput(value);
+    const formattedValue = formatInputValue(value);
     setFormData({ ...formData, salario_base: formattedValue });
   };
 
@@ -287,7 +285,7 @@ export function FolhaPagamento() {
 
   // Handler para mudança em percentual
   const handlePercentChange = (key: string, value: string) => {
-    const formattedPercent = formatPercentInput(value);
+    const formattedPercent = formatInputValue(value);
     const salarioBase = parseCurrencyValue(formData.salario_base);
     const percent = parsePercentValue(formattedPercent);
     const calculatedValue = Math.round((salarioBase * percent / 100) * 100) / 100;
@@ -302,7 +300,7 @@ export function FolhaPagamento() {
 
   // Handler para mudança em valor monetário
   const handleValueChange = (key: string, value: string) => {
-    const formattedValue = formatCurrencyInput(value);
+    const formattedValue = formatInputValue(value);
     const salarioBase = parseCurrencyValue(formData.salario_base);
     const valorNumerico = parseCurrencyValue(formattedValue);
     const calculatedPercent = salarioBase > 0 ? Math.round((valorNumerico / salarioBase * 100) * 100) / 100 : 0;
@@ -318,7 +316,7 @@ export function FolhaPagamento() {
   // Handler para campos de horas
   const handleHorasChange = (field: string, value: string) => {
     if (field === 'semanas_por_mes') {
-      const formattedValue = formatPercentInput(value);
+      const formattedValue = formatInputValue(value);
       setFormData({ ...formData, [field]: formattedValue });
     } else {
       const numericValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
@@ -525,9 +523,13 @@ export function FolhaPagamento() {
                   <div className="relative">
                     <Input
                       id="salario_base"
-                      value={formData.salario_base}
+                      type="number"
+                      step="any"
+                      value={formatInputValue(formData.salario_base)}
                       onChange={(e) => handleSalarioBaseChange(e.target.value)}
-                      placeholder="0,00"
+                      onKeyDown={handleInputKeyDown}
+                      onWheel={handleInputWheel}
+                      placeholder="0"
                       className="pl-8"
                       autoComplete="off"
                       autoCapitalize="off"
@@ -558,10 +560,13 @@ export function FolhaPagamento() {
                       <Label className="text-primary font-medium">{encargo.label}</Label>
                       <div className="relative">
                         <Input
-                          type="text"
-                          value={formData[encargo.percentKey as keyof typeof formData]}
+                          type="number"
+                          step="any"
+                          value={formatInputValue(formData[encargo.percentKey as keyof typeof formData])}
                           onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
-                          placeholder="0,00"
+                          onKeyDown={handleInputKeyDown}
+                          onWheel={handleInputWheel}
+                          placeholder="0"
                           className="pr-6"
                           autoComplete="off"
                           autoCapitalize="off"
@@ -572,10 +577,13 @@ export function FolhaPagamento() {
                       </div>
                       <div className="relative">
                         <Input
-                          type="text"
-                          value={formData[encargo.valorKey as keyof typeof formData]}
+                          type="number"
+                          step="any"
+                          value={formatInputValue(formData[encargo.valorKey as keyof typeof formData])}
                           onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
-                          placeholder="0,00"
+                          onKeyDown={handleInputKeyDown}
+                          onWheel={handleInputWheel}
+                          placeholder="0"
                           className="pl-8"
                           autoComplete="off"
                           autoCapitalize="off"
@@ -623,9 +631,12 @@ export function FolhaPagamento() {
                       <Label htmlFor="horas_por_dia">Horas por Dia</Label>
                       <Input
                         id="horas_por_dia"
-                        type="text"
-                        value={formData.horas_por_dia}
+                        type="number"
+                        step="any"
+                        value={formatInputValue(formData.horas_por_dia)}
                         onChange={(e) => handleHorasChange('horas_por_dia', e.target.value)}
+                        onKeyDown={handleInputKeyDown}
+                        onWheel={handleInputWheel}
                         placeholder="8"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -637,9 +648,12 @@ export function FolhaPagamento() {
                       <Label htmlFor="dias_por_semana">Dias por Semana</Label>
                       <Input
                         id="dias_por_semana"
-                        type="text"
-                        value={formData.dias_por_semana}
+                        type="number"
+                        step="any"
+                        value={formatInputValue(formData.dias_por_semana)}
                         onChange={(e) => handleHorasChange('dias_por_semana', e.target.value)}
+                        onKeyDown={handleInputKeyDown}
+                        onWheel={handleInputWheel}
                         placeholder="5"
                         autoComplete="off"
                         autoCapitalize="off"
@@ -651,10 +665,13 @@ export function FolhaPagamento() {
                       <Label htmlFor="semanas_por_mes">Semanas por Mês</Label>
                       <Input
                         id="semanas_por_mes"
-                        type="text"
-                        value={formData.semanas_por_mes}
+                        type="number"
+                        step="any"
+                        value={formatInputValue(formData.semanas_por_mes)}
                         onChange={(e) => handleHorasChange('semanas_por_mes', e.target.value)}
-                        placeholder="4,33"
+                        onKeyDown={handleInputKeyDown}
+                        onWheel={handleInputWheel}
+                        placeholder="4.33"
                         autoComplete="off"
                         autoCapitalize="off"
                         autoCorrect="off"
