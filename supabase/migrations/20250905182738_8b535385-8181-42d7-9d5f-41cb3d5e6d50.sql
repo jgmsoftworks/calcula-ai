@@ -1,0 +1,22 @@
+-- Adicionar novos campos à tabela folha_pagamento
+ALTER TABLE public.folha_pagamento 
+ADD COLUMN tipo_mao_obra TEXT DEFAULT 'direta',
+ADD COLUMN cargo TEXT,
+ADD COLUMN fgts_percent NUMERIC DEFAULT 8,
+ADD COLUMN fgts_valor NUMERIC DEFAULT 0,
+ADD COLUMN inss_percent NUMERIC DEFAULT 11,
+ADD COLUMN inss_valor NUMERIC DEFAULT 0,
+ADD COLUMN rat_percent NUMERIC DEFAULT 2,
+ADD COLUMN rat_valor NUMERIC DEFAULT 0,
+ADD COLUMN ferias_percent NUMERIC DEFAULT 11.11,
+ADD COLUMN ferias_valor NUMERIC DEFAULT 0,
+ADD COLUMN vale_transporte_percent NUMERIC DEFAULT 0,
+ADD COLUMN vale_transporte_valor NUMERIC DEFAULT 0,
+ADD COLUMN vale_alimentacao_percent NUMERIC DEFAULT 0,
+ADD COLUMN vale_alimentacao_valor NUMERIC DEFAULT 0,
+ADD COLUMN vale_refeicao_percent NUMERIC DEFAULT 0,
+ADD COLUMN vale_refeicao_valor NUMERIC DEFAULT 0,
+ADD COLUMN plano_saude_percent NUMERIC DEFAULT 0,
+ADD COLUMN plano_saude_valor NUMERIC DEFAULT 0,
+ADD COLUMN outros_percent NUMERIC DEFAULT 0,
+ADD COLUMN outros_valor NUMERIC DEFAULT 0;

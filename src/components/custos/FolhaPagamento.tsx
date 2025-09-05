@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,9 +14,29 @@ import { useToast } from '@/hooks/use-toast';
 interface Funcionario {
   id: string;
   nome: string;
+  cargo?: string;
+  tipo_mao_obra: string;
   salario_base: number;
   adicional: number;
   desconto: number;
+  fgts_percent: number;
+  fgts_valor: number;
+  inss_percent: number;
+  inss_valor: number;
+  rat_percent: number;
+  rat_valor: number;
+  ferias_percent: number;
+  ferias_valor: number;
+  vale_transporte_percent: number;
+  vale_transporte_valor: number;
+  vale_alimentacao_percent: number;
+  vale_alimentacao_valor: number;
+  vale_refeicao_percent: number;
+  vale_refeicao_valor: number;
+  plano_saude_percent: number;
+  plano_saude_valor: number;
+  outros_percent: number;
+  outros_valor: number;
   ativo: boolean;
   created_at: string;
 }
@@ -26,9 +47,29 @@ export function FolhaPagamento() {
   const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
+    cargo: '',
+    tipo_mao_obra: 'direta',
     salario_base: '',
     adicional: '',
-    desconto: ''
+    desconto: '',
+    fgts_percent: '8',
+    fgts_valor: '0',
+    inss_percent: '11',
+    inss_valor: '0',
+    rat_percent: '2',
+    rat_valor: '0',
+    ferias_percent: '11.11',
+    ferias_valor: '0',
+    vale_transporte_percent: '0',
+    vale_transporte_valor: '0',
+    vale_alimentacao_percent: '0',
+    vale_alimentacao_valor: '0',
+    vale_refeicao_percent: '0',
+    vale_refeicao_valor: '0',
+    plano_saude_percent: '0',
+    plano_saude_valor: '0',
+    outros_percent: '0',
+    outros_valor: '0'
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -61,10 +102,10 @@ export function FolhaPagamento() {
   }, [user]);
 
   const handleSave = async () => {
-    if (!user || !formData.nome || !formData.salario_base) {
+    if (!user || !formData.nome || !formData.cargo || !formData.salario_base) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha nome e salário base",
+        description: "Preencha nome, cargo e salário base",
         variant: "destructive"
       });
       return;
@@ -74,9 +115,29 @@ export function FolhaPagamento() {
       const funcionarioData = {
         user_id: user.id,
         nome: formData.nome,
+        cargo: formData.cargo,
+        tipo_mao_obra: formData.tipo_mao_obra,
         salario_base: parseFloat(formData.salario_base),
         adicional: formData.adicional ? parseFloat(formData.adicional) : 0,
         desconto: formData.desconto ? parseFloat(formData.desconto) : 0,
+        fgts_percent: parseFloat(formData.fgts_percent),
+        fgts_valor: parseFloat(formData.fgts_valor),
+        inss_percent: parseFloat(formData.inss_percent),
+        inss_valor: parseFloat(formData.inss_valor),
+        rat_percent: parseFloat(formData.rat_percent),
+        rat_valor: parseFloat(formData.rat_valor),
+        ferias_percent: parseFloat(formData.ferias_percent),
+        ferias_valor: parseFloat(formData.ferias_valor),
+        vale_transporte_percent: parseFloat(formData.vale_transporte_percent),
+        vale_transporte_valor: parseFloat(formData.vale_transporte_valor),
+        vale_alimentacao_percent: parseFloat(formData.vale_alimentacao_percent),
+        vale_alimentacao_valor: parseFloat(formData.vale_alimentacao_valor),
+        vale_refeicao_percent: parseFloat(formData.vale_refeicao_percent),
+        vale_refeicao_valor: parseFloat(formData.vale_refeicao_valor),
+        plano_saude_percent: parseFloat(formData.plano_saude_percent),
+        plano_saude_valor: parseFloat(formData.plano_saude_valor),
+        outros_percent: parseFloat(formData.outros_percent),
+        outros_valor: parseFloat(formData.outros_valor),
         ativo: true
       };
 
@@ -107,7 +168,7 @@ export function FolhaPagamento() {
 
       setIsModalOpen(false);
       setEditingFuncionario(null);
-      setFormData({ nome: '', salario_base: '', adicional: '', desconto: '' });
+      resetFormData();
       loadFuncionarios();
     } catch (error) {
       console.error('Erro ao salvar funcionário:', error);
@@ -119,13 +180,62 @@ export function FolhaPagamento() {
     }
   };
 
+  const resetFormData = () => {
+    setFormData({
+      nome: '',
+      cargo: '',
+      tipo_mao_obra: 'direta',
+      salario_base: '',
+      adicional: '',
+      desconto: '',
+      fgts_percent: '8',
+      fgts_valor: '0',
+      inss_percent: '11',
+      inss_valor: '0',
+      rat_percent: '2',
+      rat_valor: '0',
+      ferias_percent: '11.11',
+      ferias_valor: '0',
+      vale_transporte_percent: '0',
+      vale_transporte_valor: '0',
+      vale_alimentacao_percent: '0',
+      vale_alimentacao_valor: '0',
+      vale_refeicao_percent: '0',
+      vale_refeicao_valor: '0',
+      plano_saude_percent: '0',
+      plano_saude_valor: '0',
+      outros_percent: '0',
+      outros_valor: '0'
+    });
+  };
+
   const handleEdit = (funcionario: Funcionario) => {
     setEditingFuncionario(funcionario);
     setFormData({
       nome: funcionario.nome,
+      cargo: funcionario.cargo || '',
+      tipo_mao_obra: funcionario.tipo_mao_obra,
       salario_base: funcionario.salario_base.toString(),
       adicional: funcionario.adicional.toString(),
-      desconto: funcionario.desconto.toString()
+      desconto: funcionario.desconto.toString(),
+      fgts_percent: funcionario.fgts_percent.toString(),
+      fgts_valor: funcionario.fgts_valor.toString(),
+      inss_percent: funcionario.inss_percent.toString(),
+      inss_valor: funcionario.inss_valor.toString(),
+      rat_percent: funcionario.rat_percent.toString(),
+      rat_valor: funcionario.rat_valor.toString(),
+      ferias_percent: funcionario.ferias_percent.toString(),
+      ferias_valor: funcionario.ferias_valor.toString(),
+      vale_transporte_percent: funcionario.vale_transporte_percent.toString(),
+      vale_transporte_valor: funcionario.vale_transporte_valor.toString(),
+      vale_alimentacao_percent: funcionario.vale_alimentacao_percent.toString(),
+      vale_alimentacao_valor: funcionario.vale_alimentacao_valor.toString(),
+      vale_refeicao_percent: funcionario.vale_refeicao_percent.toString(),
+      vale_refeicao_valor: funcionario.vale_refeicao_valor.toString(),
+      plano_saude_percent: funcionario.plano_saude_percent.toString(),
+      plano_saude_valor: funcionario.plano_saude_valor.toString(),
+      outros_percent: funcionario.outros_percent.toString(),
+      outros_valor: funcionario.outros_valor.toString()
     });
     setIsModalOpen(true);
   };
@@ -157,7 +267,7 @@ export function FolhaPagamento() {
 
   const handleNewFuncionario = () => {
     setEditingFuncionario(null);
-    setFormData({ nome: '', salario_base: '', adicional: '', desconto: '' });
+    resetFormData();
     setIsModalOpen(true);
   };
 
@@ -172,8 +282,24 @@ export function FolhaPagamento() {
     return funcionario.salario_base + funcionario.adicional - funcionario.desconto;
   };
 
+  const calculateCustoTotal = (funcionario: Funcionario) => {
+    const salarioBase = funcionario.salario_base;
+    
+    const fgtsTotal = (salarioBase * funcionario.fgts_percent / 100) + funcionario.fgts_valor;
+    const inssTotal = (salarioBase * funcionario.inss_percent / 100) + funcionario.inss_valor;
+    const ratTotal = (salarioBase * funcionario.rat_percent / 100) + funcionario.rat_valor;
+    const feriasTotal = (salarioBase * funcionario.ferias_percent / 100) + funcionario.ferias_valor;
+    const vtTotal = (salarioBase * funcionario.vale_transporte_percent / 100) + funcionario.vale_transporte_valor;
+    const vaTotal = (salarioBase * funcionario.vale_alimentacao_percent / 100) + funcionario.vale_alimentacao_valor;
+    const vrTotal = (salarioBase * funcionario.vale_refeicao_percent / 100) + funcionario.vale_refeicao_valor;
+    const planoTotal = (salarioBase * funcionario.plano_saude_percent / 100) + funcionario.plano_saude_valor;
+    const outrosTotal = (salarioBase * funcionario.outros_percent / 100) + funcionario.outros_valor;
+    
+    return salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal;
+  };
+
   const getTotalFolha = () => {
-    return funcionarios.reduce((total, funcionario) => total + calculateSalarioLiquido(funcionario), 0);
+    return funcionarios.reduce((total, funcionario) => total + calculateCustoTotal(funcionario), 0);
   };
 
   return (
@@ -192,58 +318,127 @@ export function FolhaPagamento() {
               Novo Funcionário
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingFuncionario ? 'Editar Funcionário' : 'Novo Funcionário'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="nome">Nome/Cargo *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  placeholder="Ex: João Silva, Vendedor, Gerente..."
-                />
+            <div className="space-y-6">
+              {/* Dados básicos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="tipo_mao_obra">Tipo de Mão de Obra *</Label>
+                  <Select value={formData.tipo_mao_obra} onValueChange={(value) => setFormData({ ...formData, tipo_mao_obra: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direta">Direta</SelectItem>
+                      <SelectItem value="indireta">Indireta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="nome">Nome *</Label>
+                  <Input
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    placeholder="Ex: João Silva"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cargo">Cargo *</Label>
+                  <Input
+                    id="cargo"
+                    value={formData.cargo}
+                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    placeholder="Ex: Vendedor, Gerente..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="salario_base">Salário Bruto *</Label>
+                  <Input
+                    id="salario_base"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.salario_base}
+                    onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
+                    placeholder="0,00"
+                  />
+                </div>
               </div>
+
+              {/* Encargos */}
               <div>
-                <Label htmlFor="salario_base">Salário Base *</Label>
-                <Input
-                  id="salario_base"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.salario_base}
-                  onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
-                  placeholder="0,00"
-                />
+                <h4 className="text-lg font-semibold mb-4">Encargos sobre o Salário</h4>
+                <div className="space-y-3">
+                  {[
+                    { label: 'FGTS', percentKey: 'fgts_percent', valorKey: 'fgts_valor' },
+                    { label: 'INSS', percentKey: 'inss_percent', valorKey: 'inss_valor' },
+                    { label: 'RAT', percentKey: 'rat_percent', valorKey: 'rat_valor' },
+                    { label: 'Férias + 13º', percentKey: 'ferias_percent', valorKey: 'ferias_valor' },
+                    { label: 'Vale Transporte', percentKey: 'vale_transporte_percent', valorKey: 'vale_transporte_valor' },
+                    { label: 'Vale Alimentação', percentKey: 'vale_alimentacao_percent', valorKey: 'vale_alimentacao_valor' },
+                    { label: 'Vale Refeição', percentKey: 'vale_refeicao_percent', valorKey: 'vale_refeicao_valor' },
+                    { label: 'Plano de Saúde', percentKey: 'plano_saude_percent', valorKey: 'plano_saude_valor' },
+                    { label: 'Outros', percentKey: 'outros_percent', valorKey: 'outros_valor' }
+                  ].map((encargo) => (
+                    <div key={encargo.label} className="grid grid-cols-[1fr_100px_100px] gap-4 items-center">
+                      <Label className="text-primary font-medium">{encargo.label}</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData[encargo.percentKey as keyof typeof formData]}
+                          onChange={(e) => setFormData({ ...formData, [encargo.percentKey]: e.target.value })}
+                          placeholder="0"
+                          className="pr-6"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData[encargo.valorKey as keyof typeof formData]}
+                          onChange={(e) => setFormData({ ...formData, [encargo.valorKey]: e.target.value })}
+                          placeholder="0,00"
+                          className="pl-8"
+                        />
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Custo Total */}
+                {formData.salario_base && (
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
+                    <div className="text-center">
+                      <p className="text-lg font-semibold text-primary">
+                        Custo Total deste Funcionário: {formatCurrency(
+                          parseFloat(formData.salario_base || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.fgts_percent) / 100) + parseFloat(formData.fgts_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.inss_percent) / 100) + parseFloat(formData.inss_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.rat_percent) / 100) + parseFloat(formData.rat_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.ferias_percent) / 100) + parseFloat(formData.ferias_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.vale_transporte_percent) / 100) + parseFloat(formData.vale_transporte_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.vale_alimentacao_percent) / 100) + parseFloat(formData.vale_alimentacao_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.vale_refeicao_percent) / 100) + parseFloat(formData.vale_refeicao_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.plano_saude_percent) / 100) + parseFloat(formData.plano_saude_valor || '0') +
+                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.outros_percent) / 100) + parseFloat(formData.outros_valor || '0')
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <Label htmlFor="adicional">Adicional</Label>
-                <Input
-                  id="adicional"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.adicional}
-                  onChange={(e) => setFormData({ ...formData, adicional: e.target.value })}
-                  placeholder="0,00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="desconto">Desconto</Label>
-                <Input
-                  id="desconto"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.desconto}
-                  onChange={(e) => setFormData({ ...formData, desconto: e.target.value })}
-                  placeholder="0,00"
-                />
-              </div>
+
               <div className="flex gap-2">
                 <Button onClick={handleSave} className="flex-1">
                   {editingFuncionario ? 'Atualizar' : 'Salvar'}
@@ -264,11 +459,11 @@ export function FolhaPagamento() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome/Cargo</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Cargo</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Salário Base</TableHead>
-              <TableHead>Adicional</TableHead>
-              <TableHead>Desconto</TableHead>
-              <TableHead>Salário Líquido</TableHead>
+              <TableHead>Custo Total</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -288,11 +483,19 @@ export function FolhaPagamento() {
                       {funcionario.nome}
                     </div>
                   </TableCell>
+                  <TableCell>{funcionario.cargo}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      funcionario.tipo_mao_obra === 'direta' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {funcionario.tipo_mao_obra === 'direta' ? 'Direta' : 'Indireta'}
+                    </span>
+                  </TableCell>
                   <TableCell>{formatCurrency(funcionario.salario_base)}</TableCell>
-                  <TableCell>{formatCurrency(funcionario.adicional)}</TableCell>
-                  <TableCell>{formatCurrency(funcionario.desconto)}</TableCell>
-                  <TableCell className="font-semibold">
-                    {formatCurrency(calculateSalarioLiquido(funcionario))}
+                  <TableCell className="font-semibold text-primary">
+                    {formatCurrency(calculateCustoTotal(funcionario))}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

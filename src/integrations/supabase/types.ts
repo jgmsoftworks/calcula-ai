@@ -155,35 +155,95 @@ export type Database = {
         Row: {
           adicional: number | null
           ativo: boolean
+          cargo: string | null
           created_at: string
           desconto: number | null
+          ferias_percent: number | null
+          ferias_valor: number | null
+          fgts_percent: number | null
+          fgts_valor: number | null
           id: string
+          inss_percent: number | null
+          inss_valor: number | null
           nome: string
+          outros_percent: number | null
+          outros_valor: number | null
+          plano_saude_percent: number | null
+          plano_saude_valor: number | null
+          rat_percent: number | null
+          rat_valor: number | null
           salario_base: number
+          tipo_mao_obra: string | null
           updated_at: string
           user_id: string
+          vale_alimentacao_percent: number | null
+          vale_alimentacao_valor: number | null
+          vale_refeicao_percent: number | null
+          vale_refeicao_valor: number | null
+          vale_transporte_percent: number | null
+          vale_transporte_valor: number | null
         }
         Insert: {
           adicional?: number | null
           ativo?: boolean
+          cargo?: string | null
           created_at?: string
           desconto?: number | null
+          ferias_percent?: number | null
+          ferias_valor?: number | null
+          fgts_percent?: number | null
+          fgts_valor?: number | null
           id?: string
+          inss_percent?: number | null
+          inss_valor?: number | null
           nome: string
+          outros_percent?: number | null
+          outros_valor?: number | null
+          plano_saude_percent?: number | null
+          plano_saude_valor?: number | null
+          rat_percent?: number | null
+          rat_valor?: number | null
           salario_base?: number
+          tipo_mao_obra?: string | null
           updated_at?: string
           user_id: string
+          vale_alimentacao_percent?: number | null
+          vale_alimentacao_valor?: number | null
+          vale_refeicao_percent?: number | null
+          vale_refeicao_valor?: number | null
+          vale_transporte_percent?: number | null
+          vale_transporte_valor?: number | null
         }
         Update: {
           adicional?: number | null
           ativo?: boolean
+          cargo?: string | null
           created_at?: string
           desconto?: number | null
+          ferias_percent?: number | null
+          ferias_valor?: number | null
+          fgts_percent?: number | null
+          fgts_valor?: number | null
           id?: string
+          inss_percent?: number | null
+          inss_valor?: number | null
           nome?: string
+          outros_percent?: number | null
+          outros_valor?: number | null
+          plano_saude_percent?: number | null
+          plano_saude_valor?: number | null
+          rat_percent?: number | null
+          rat_valor?: number | null
           salario_base?: number
+          tipo_mao_obra?: string | null
           updated_at?: string
           user_id?: string
+          vale_alimentacao_percent?: number | null
+          vale_alimentacao_valor?: number | null
+          vale_refeicao_percent?: number | null
+          vale_refeicao_valor?: number | null
+          vale_transporte_percent?: number | null
+          vale_transporte_valor?: number | null
         }
         Relationships: []
       }
