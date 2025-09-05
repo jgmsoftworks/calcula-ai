@@ -280,10 +280,7 @@ export function DespesasFixas() {
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Total Geral:</span>
               <span className="text-sm font-bold text-primary">
-                {selectedCategory 
-                  ? formatCurrency(getTotalByCategoria(selectedCategory))
-                  : formatCurrency(0)
-                }
+                {formatCurrency(getTotalDespesas())}
               </span>
             </div>
           </div>
