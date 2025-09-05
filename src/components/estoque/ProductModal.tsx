@@ -364,10 +364,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-5xl h-[90vh] overflow-hidden p-0 bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-primary/20">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b border-primary/20 bg-background/95">
+        <DialogHeader className="px-6 py-4 border-b border-primary/20 bg-background/95 pr-16">
           <DialogTitle className="flex items-center justify-between text-xl font-bold text-primary">
             <span>Editar Produto</span>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-8 mr-8">
               <div className="flex items-center gap-3">
                 <Switch
                   checked={formData.ativo}
@@ -383,7 +383,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 variant="outline"
                 size="sm"
                 onClick={handleDelete}
-                className="border-destructive/40 text-destructive hover:bg-destructive/10 ml-4"
+                className="border-destructive/40 text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
