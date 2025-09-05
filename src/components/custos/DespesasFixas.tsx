@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -170,140 +170,199 @@ export function DespesasFixas() {
     }).format(value);
   };
 
+  const getTotalDespesas = () => {
+    return despesas.reduce((total, despesa) => total + despesa.valor, 0);
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-xl font-semibold">Despesas Fixas</CardTitle>
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleNewDespesa} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Despesa
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingDespesa ? 'Editar Despesa Fixa' : 'Nova Despesa Fixa'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
+    <div className="grid grid-cols-12 gap-6">
+      {/* Sidebar com categorias */}
+      <div className="col-span-12 lg:col-span-3 space-y-3">
+        <Button 
+          className="w-full justify-start gap-2 h-12 bg-gradient-primary hover:bg-gradient-primary/90" 
+          onClick={handleNewDespesa}
+        >
+          <Plus className="h-4 w-4" />
+          Adicionar Despesa
+        </Button>
+        
+        <div className="bg-card rounded-lg border p-4">
+          <h3 className="font-medium text-sm text-muted-foreground mb-2">Categorias</h3>
+          <div className="space-y-2">
+            <div className="bg-primary/10 text-primary px-3 py-2 rounded text-sm font-medium">
+              Despesas Fixas
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo principal */}
+      <div className="col-span-12 lg:col-span-9">
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between">
               <div>
-                <Label htmlFor="nome">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  placeholder="Ex: Aluguel, Energia, Internet..."
-                />
+                <CardTitle className="text-2xl font-bold text-primary mb-1">Despesas Fixas</CardTitle>
+                <p className="text-muted-foreground text-sm">Gerencie suas despesas mensais fixas</p>
               </div>
-              <div>
-                <Label htmlFor="descricao">Descrição</Label>
-                <Textarea
-                  id="descricao"
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  placeholder="Descrição adicional (opcional)"
-                />
-              </div>
-              <div>
-                <Label htmlFor="valor">Valor *</Label>
-                <Input
-                  id="valor"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.valor}
-                  onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                  placeholder="0,00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="vencimento">Dia do Vencimento</Label>
-                <Input
-                  id="vencimento"
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={formData.vencimento}
-                  onChange={(e) => setFormData({ ...formData, vencimento: e.target.value })}
-                  placeholder="Ex: 5, 10, 15..."
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSave} className="flex-1">
-                  {editingDespesa ? 'Atualizar' : 'Salvar'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(getTotalDespesas())}</p>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Lista de Despesas</h3>
+              <Button onClick={handleNewDespesa} variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Adicionar Despesa
+              </Button>
+            </div>
+
             {despesas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  Nenhuma despesa fixa cadastrada
-                </TableCell>
-              </TableRow>
+              <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed border-muted">
+                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Package className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-medium text-muted-foreground mb-2">Nenhuma despesa cadastrada</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Clique em <strong>Adicionar despesa</strong> para começar.
+                </p>
+              </div>
             ) : (
-              despesas.map((despesa) => (
-                <TableRow key={despesa.id}>
-                  <TableCell className="font-medium">{despesa.nome}</TableCell>
-                  <TableCell>{despesa.descricao || '-'}</TableCell>
-                  <TableCell>{formatCurrency(despesa.valor)}</TableCell>
-                  <TableCell>
-                    {despesa.vencimento ? (
-                      <Badge variant="outline" className="gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Dia {despesa.vencimento}
-                      </Badge>
-                    ) : (
-                      '-'
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEdit(despesa)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(despesa.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Valor (R$)</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {despesas.map((despesa) => (
+                    <TableRow key={despesa.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{despesa.nome}</p>
+                          {despesa.descricao && (
+                            <p className="text-sm text-muted-foreground">{despesa.descricao}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-semibold text-lg">{formatCurrency(despesa.valor)}</TableCell>
+                      <TableCell>
+                        {despesa.vencimento ? (
+                          <Badge variant="outline" className="gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Dia {despesa.vencimento}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(despesa)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(despesa.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {editingDespesa ? 'Editar Despesa' : 'Adicionar Despesa'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="nome">Nome da despesa</Label>
+              <Input
+                id="nome"
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                placeholder="Ex: Aluguel, Energia, Internet..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="valor">Valor</Label>
+              <Input
+                id="valor"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valor}
+                onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                placeholder="0,00"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="descricao">Descrição (opcional)</Label>
+              <Textarea
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                placeholder="Descrição adicional..."
+                className="mt-1 min-h-[80px]"
+              />
+            </div>
+            <div>
+              <Label htmlFor="vencimento">Dia do vencimento (opcional)</Label>
+              <Input
+                id="vencimento"
+                type="number"
+                min="1"
+                max="31"
+                value={formData.vencimento}
+                onChange={(e) => setFormData({ ...formData, vencimento: e.target.value })}
+                placeholder="Ex: 5, 10, 15..."
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button onClick={handleSave} className="flex-1 gap-2">
+                <Plus className="h-4 w-4" />
+                {editingDespesa ? 'Atualizar' : 'Salvar'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
