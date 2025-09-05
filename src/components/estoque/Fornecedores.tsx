@@ -20,6 +20,8 @@ interface Fornecedor {
   telefone: string | null;
   email: string | null;
   endereco: string | null;
+  representante: string | null;
+  telefone_representante: string | null;
   ativo: boolean;
 }
 
@@ -31,9 +33,10 @@ export const Fornecedores = () => {
   const [formData, setFormData] = useState({
     nome: '',
     cnpj_cpf: '',
-    contato: '',
-    telefone: '',
     email: '',
+    telefone: '',
+    representante: '',
+    telefone_representante: '',
     endereco: '',
     ativo: true
   });
@@ -65,9 +68,35 @@ export const Fornecedores = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validações dos campos obrigatórios
     if (!formData.nome.trim()) {
       toast({
-        title: "Nome é obrigatório",
+        title: "Razão Social é obrigatória",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.cnpj_cpf.trim()) {
+      toast({
+        title: "CNPJ é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.representante.trim()) {
+      toast({
+        title: "Representante Comercial é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.telefone_representante.trim()) {
+      toast({
+        title: "Telefone do Representante é obrigatório",
         variant: "destructive"
       });
       return;
@@ -78,8 +107,6 @@ export const Fornecedores = () => {
       const payload = {
         ...formData,
         user_id: user?.id,
-        cnpj_cpf: formData.cnpj_cpf || null,
-        contato: formData.contato || null,
         telefone: formData.telefone || null,
         email: formData.email || null,
         endereco: formData.endereco || null
@@ -105,9 +132,10 @@ export const Fornecedores = () => {
       setFormData({
         nome: '',
         cnpj_cpf: '',
-        contato: '',
-        telefone: '',
         email: '',
+        telefone: '',
+        representante: '',
+        telefone_representante: '',
         endereco: '',
         ativo: true
       });
@@ -149,9 +177,10 @@ export const Fornecedores = () => {
     setFormData({
       nome: fornecedor.nome,
       cnpj_cpf: fornecedor.cnpj_cpf || '',
-      contato: fornecedor.contato || '',
-      telefone: fornecedor.telefone || '',
       email: fornecedor.email || '',
+      telefone: fornecedor.telefone || '',
+      representante: fornecedor.representante || '',
+      telefone_representante: fornecedor.telefone_representante || '',
       endereco: fornecedor.endereco || '',
       ativo: fornecedor.ativo
     });
@@ -163,9 +192,10 @@ export const Fornecedores = () => {
     setFormData({
       nome: '',
       cnpj_cpf: '',
-      contato: '',
-      telefone: '',
       email: '',
+      telefone: '',
+      representante: '',
+      telefone_representante: '',
       endereco: '',
       ativo: true
     });
@@ -183,8 +213,9 @@ export const Fornecedores = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Razão Social */}
               <div>
-                <Label htmlFor="nome">Nome *</Label>
+                <Label htmlFor="nome">Razão Social *</Label>
                 <Input
                   id="nome"
                   value={formData.nome}
@@ -194,38 +225,21 @@ export const Fornecedores = () => {
                 />
               </div>
 
+              {/* CNPJ */}
               <div>
-                <Label htmlFor="cnpj_cpf">CNPJ/CPF</Label>
+                <Label htmlFor="cnpj_cpf">CNPJ *</Label>
                 <Input
                   id="cnpj_cpf"
                   value={formData.cnpj_cpf}
                   onChange={(e) => setFormData(prev => ({ ...prev, cnpj_cpf: e.target.value }))}
                   placeholder="Ex: 12.345.678/0001-90"
+                  required
                 />
               </div>
 
+              {/* Email Empresarial */}
               <div>
-                <Label htmlFor="contato">Pessoa de Contato</Label>
-                <Input
-                  id="contato"
-                  value={formData.contato}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contato: e.target.value }))}
-                  placeholder="Ex: João Silva"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={formData.telefone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: e.target.value }))}
-                  placeholder="Ex: (11) 99999-9999"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">Email Empresarial</Label>
                 <Input
                   id="email"
                   type="email"
@@ -234,8 +248,44 @@ export const Fornecedores = () => {
                   placeholder="Ex: contato@fornecedor.com"
                 />
               </div>
+
+              {/* Telefone Empresarial */}
+              <div>
+                <Label htmlFor="telefone">Telefone Empresarial</Label>
+                <Input
+                  id="telefone"
+                  value={formData.telefone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: e.target.value }))}
+                  placeholder="Ex: (11) 3333-4444"
+                />
+              </div>
+
+              {/* Representante Comercial */}
+              <div>
+                <Label htmlFor="representante">Representante Comercial *</Label>
+                <Input
+                  id="representante"
+                  value={formData.representante}
+                  onChange={(e) => setFormData(prev => ({ ...prev, representante: e.target.value }))}
+                  placeholder="Ex: João Silva"
+                  required
+                />
+              </div>
+
+              {/* Telefone do Representante */}
+              <div>
+                <Label htmlFor="telefone_representante">Telefone do Representante *</Label>
+                <Input
+                  id="telefone_representante"
+                  value={formData.telefone_representante}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telefone_representante: e.target.value }))}
+                  placeholder="Ex: (11) 99999-9999"
+                  required
+                />
+              </div>
             </div>
 
+            {/* Endereço */}
             <div>
               <Label htmlFor="endereco">Endereço</Label>
               <Textarea
@@ -280,10 +330,10 @@ export const Fornecedores = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Contato</TableHead>
+                  <TableHead>Razão Social</TableHead>
+                  <TableHead>CNPJ</TableHead>
+                  <TableHead>Representante</TableHead>
+                  <TableHead>Telefone Rep.</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -292,9 +342,9 @@ export const Fornecedores = () => {
                 {fornecedores.map((fornecedor) => (
                   <TableRow key={fornecedor.id}>
                     <TableCell className="font-medium">{fornecedor.nome}</TableCell>
-                    <TableCell>{fornecedor.telefone || '-'}</TableCell>
-                    <TableCell>{fornecedor.email || '-'}</TableCell>
-                    <TableCell>{fornecedor.contato || '-'}</TableCell>
+                    <TableCell>{fornecedor.cnpj_cpf || '-'}</TableCell>
+                    <TableCell>{fornecedor.representante || '-'}</TableCell>
+                    <TableCell>{fornecedor.telefone_representante || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={fornecedor.ativo ? 'default' : 'secondary'}>
                         {fornecedor.ativo ? 'Ativo' : 'Inativo'}

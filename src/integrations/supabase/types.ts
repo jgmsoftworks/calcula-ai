@@ -51,7 +51,9 @@ export type Database = {
           endereco: string | null
           id: string
           nome: string
+          representante: string | null
           telefone: string | null
+          telefone_representante: string | null
           updated_at: string
           user_id: string
         }
@@ -64,7 +66,9 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome: string
+          representante?: string | null
           telefone?: string | null
+          telefone_representante?: string | null
           updated_at?: string
           user_id: string
         }
@@ -77,7 +81,9 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome?: string
+          representante?: string | null
           telefone?: string | null
+          telefone_representante?: string | null
           updated_at?: string
           user_id?: string
         }
