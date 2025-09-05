@@ -25,6 +25,7 @@ export function Markups() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
   const [custosModalOpen, setCustosModalOpen] = useState(false);
+  const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
 
@@ -184,6 +185,17 @@ export function Markups() {
                     </TooltipContent>
                   </Tooltip>
                 </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setBlocoSelecionado(undefined);
+                    setCustosModalOpen(true);
+                  }}
+                  className="text-primary hover:text-primary"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
               </div>
             </CardHeader>
           
@@ -317,7 +329,10 @@ export function Markups() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setCustosModalOpen(true)}
+                    onClick={() => {
+                      setBlocoSelecionado(bloco);
+                      setCustosModalOpen(true);
+                    }}
                     className="text-primary hover:text-primary"
                   >
                     <Settings className="h-4 w-4" />
@@ -448,7 +463,11 @@ export function Markups() {
 
       <CustosModal 
         open={custosModalOpen} 
-        onOpenChange={setCustosModalOpen} 
+        onOpenChange={(open) => {
+          setCustosModalOpen(open);
+          if (!open) setBlocoSelecionado(undefined);
+        }}
+        markupBlock={blocoSelecionado}
       />
     </div>
   );

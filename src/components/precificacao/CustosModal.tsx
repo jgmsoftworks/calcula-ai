@@ -9,6 +9,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+interface MarkupBlock {
+  id: string;
+  nome: string;
+  gastoSobreFaturamento: number;
+  impostos: number;
+  taxasMeiosPagamento: number;
+  comissoesPlataformas: number;
+  outros: number;
+  lucroDesejado: number;
+}
+
 interface DespesaFixa {
   id: string;
   nome: string;
@@ -34,9 +45,10 @@ interface EncargoVenda {
 interface CustosModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  markupBlock?: MarkupBlock;
 }
 
-export function CustosModal({ open, onOpenChange }: CustosModalProps) {
+export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProps) {
   const [despesasFixas, setDespesasFixas] = useState<DespesaFixa[]>([]);
   const [folhaPagamento, setFolhaPagamento] = useState<FolhaPagamento[]>([]);
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
@@ -188,8 +200,49 @@ export function CustosModal({ open, onOpenChange }: CustosModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configurações de Custos</DialogTitle>
+          <DialogTitle>
+            Configurações de Custos
+            {markupBlock && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - {markupBlock.nome}
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
+
+        {markupBlock && (
+          <Card className="bg-blue-50/50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
+                <p className="text-lg font-semibold text-blue-600">{markupBlock.gastoSobreFaturamento}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Impostos</Label>
+                <p className="text-lg font-semibold text-blue-600">{markupBlock.impostos}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Taxas de pagamento</Label>
+                <p className="text-lg font-semibold text-blue-600">{markupBlock.taxasMeiosPagamento}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Comissões</Label>
+                <p className="text-lg font-semibold text-blue-600">{markupBlock.comissoesPlataformas}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Outros</Label>
+                <p className="text-lg font-semibold text-blue-600">{markupBlock.outros}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Lucro desejado</Label>
+                <p className="text-lg font-semibold text-green-600">{markupBlock.lucroDesejado}%</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="despesas-fixas" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
