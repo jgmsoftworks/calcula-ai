@@ -34,7 +34,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         unidade: 'g',
         estoque_atual: 100,
         estoque_minimo: 10,
-        custo_unitario: 15.50,
+        custo_total: 1550.00,
         total_embalagem: 1,
         status: 'Ativo'
       },
@@ -47,7 +47,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         unidade: 'kg',
         estoque_atual: 50,
         estoque_minimo: 5,
-        custo_unitario: 25.75,
+        custo_total: 1287.50,
         total_embalagem: 1,
         status: 'Ativo'
       }
@@ -67,7 +67,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
       { wch: 10 }, // unidade
       { wch: 12 }, // estoque_atual
       { wch: 12 }, // estoque_minimo
-      { wch: 12 }, // custo_unitario
+      { wch: 12 }, // custo_total
       { wch: 15 }, // total_embalagem
       { wch: 10 }  // status
     ];
@@ -182,9 +182,9 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             unidade: row.unidade,
             estoque_atual: Number(row.estoque_atual) || 0,
             estoque_minimo: Number(row.estoque_minimo) || 0,
-            custo_unitario: Number(row.custo_unitario) || 0,
-            custo_medio: Number(row.custo_unitario) || 0,
-            custo_total: (Number(row.estoque_atual) || 0) * (Number(row.custo_unitario) || 0),
+            custo_total: Number(row.custo_total) || 0,
+            custo_unitario: row.estoque_atual && row.custo_total ? (Number(row.custo_total) / Number(row.estoque_atual)) : 0,
+            custo_medio: row.estoque_atual && row.custo_total ? (Number(row.custo_total) / Number(row.estoque_atual)) : 0,
             total_embalagem: Number(row.total_embalagem) || 1,
             ativo: row.status === 'Ativo' || row.status !== 'Inativo',
             user_id: user.id
@@ -352,6 +352,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
               <li>• A unidade deve ser: g, kg, ml, l ou un (validação automática na planilha)</li>
               <li>• O status deve ser: Ativo ou Inativo (validação automática na planilha)</li>
               <li>• Categorias e marcas podem ser separadas por vírgula</li>
+              <li>• Preencha o custo_total (valor total em estoque), o custo unitário será calculado automaticamente</li>
               <li>• Valores numéricos devem usar ponto como separador decimal</li>
             </ul>
           </div>
