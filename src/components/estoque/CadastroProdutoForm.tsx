@@ -406,17 +406,17 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                       <span className="text-sm text-muted-foreground">Adicione um nome</span>
                     </div>
                   ) : loadingSuggestions ? (
-                    <div className="grid grid-cols-2 gap-2 justify-center mb-2 max-w-[256px] mx-auto">
+                    <div className="flex gap-2 justify-center mb-2">
                       {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="w-32 h-32 bg-muted animate-pulse rounded border"></div>
+                        <div key={i} className="w-10 h-10 bg-muted animate-pulse rounded border"></div>
                       ))}
                     </div>
                   ) : suggestedImages.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2 justify-center mb-2 max-w-[256px] mx-auto">
+                    <div className="flex gap-2 justify-center mb-2">
                       {suggestedImages.slice(0, 4).map((image, index) => (
                         <div
                           key={index}
-                          className="w-32 h-32 border rounded cursor-pointer hover:scale-105 transition-transform"
+                          className="w-10 h-10 border rounded cursor-pointer hover:scale-110 transition-transform"
                           onClick={() => {
                             setImageSrc(image);
                             setShowImageCropper(true);
@@ -431,17 +431,17 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2 justify-center mb-2 max-w-[256px] mx-auto">
-                      <div className="w-32 h-32 bg-muted rounded border flex items-center justify-center">
+                    <div className="flex gap-2 justify-center mb-2">
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
                         <span className="text-xs text-muted-foreground">?</span>
                       </div>
-                      <div className="w-32 h-32 bg-muted rounded border flex items-center justify-center">
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
                         <span className="text-xs text-muted-foreground">?</span>
                       </div>
-                      <div className="w-32 h-32 bg-muted rounded border flex items-center justify-center">
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
                         <span className="text-xs text-muted-foreground">?</span>
                       </div>
-                      <div className="w-32 h-32 bg-muted rounded border flex items-center justify-center">
+                      <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
                         <span className="text-xs text-muted-foreground">?</span>
                       </div>
                     </div>
