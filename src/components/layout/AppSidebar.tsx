@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 const navigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
   { title: 'Estoque', url: '/estoque', icon: Package },
+  { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Clientes', url: '/clientes', icon: Users },
@@ -39,7 +40,6 @@ const navigationItems = [
 
 const businessItems = [
   { title: 'Perfil do Negócio', url: '/perfil', icon: Building2 },
-  { title: 'Análise de Custos', url: '/custos', icon: TrendingUp },
   { title: 'Documentos', url: '/documentos', icon: FileText },
 ];
 

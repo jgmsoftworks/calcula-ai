@@ -13,6 +13,8 @@ const getPageInfo = (pathname: string) => {
       return { title: 'Dashboard', description: 'Visão geral do seu negócio' };
     case '/estoque':
       return { title: 'Estoque', description: 'Gerencie produtos, fornecedores e movimentações de estoque' };
+    case '/custos':
+      return { title: 'Gestão de Custos', description: 'Controle de despesas, folha e encargos' };
     default:
       return { title: 'CalculaAi Dashboard', description: '' };
   }

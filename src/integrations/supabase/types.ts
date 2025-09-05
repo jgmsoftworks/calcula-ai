@@ -41,6 +41,111 @@ export type Database = {
         }
         Relationships: []
       }
+      despesas_fixas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+          valor: number
+          vencimento: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+          valor?: number
+          vencimento?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+          vencimento?: number | null
+        }
+        Relationships: []
+      }
+      encargos_venda: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      folha_pagamento: {
+        Row: {
+          adicional: number | null
+          ativo: boolean
+          created_at: string
+          desconto: number | null
+          id: string
+          nome: string
+          salario_base: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adicional?: number | null
+          ativo?: boolean
+          created_at?: string
+          desconto?: number | null
+          id?: string
+          nome: string
+          salario_base?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adicional?: number | null
+          ativo?: boolean
+          created_at?: string
+          desconto?: number | null
+          id?: string
+          nome?: string
+          salario_base?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fornecedores: {
         Row: {
           ativo: boolean
