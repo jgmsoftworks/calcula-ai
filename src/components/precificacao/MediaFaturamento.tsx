@@ -135,30 +135,31 @@ export function MediaFaturamento() {
   const getFaturamentosFiltrados = () => {
     if (filtroPeriodo === 'todos') return faturamentosHistoricos;
 
-    const hoje = new Date();
-    let dataLimite: Date;
+    // Ordena por data mais recente primeiro
+    const faturamentosOrdenados = [...faturamentosHistoricos]
+      .sort((a, b) => b.mes.getTime() - a.mes.getTime());
+
+    let quantidade: number;
 
     switch (filtroPeriodo) {
       case '1':
-        dataLimite = subMonths(hoje, 1);
+        quantidade = 1;
         break;
       case '3':
-        dataLimite = subMonths(hoje, 3);
+        quantidade = 3;
         break;
       case '6':
-        dataLimite = subMonths(hoje, 6);
+        quantidade = 6;
         break;
       case '12':
-        dataLimite = subMonths(hoje, 12);
+        quantidade = 12;
         break;
       default:
         return faturamentosHistoricos;
     }
 
-    return faturamentosHistoricos.filter(f => 
-      isAfter(f.mes, startOfMonth(dataLimite)) || 
-      f.mes.getMonth() === startOfMonth(dataLimite).getMonth()
-    );
+    // Retorna apenas a quantidade especificada dos últimos lançamentos
+    return faturamentosOrdenados.slice(0, quantidade);
   };
 
   const calcularEstatisticas = () => {
