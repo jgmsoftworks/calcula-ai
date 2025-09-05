@@ -461,7 +461,8 @@ export function FolhaPagamento() {
 
   const calculateCustoPorHoraFuncionario = (funcionario: Funcionario) => {
     const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
-    return horasTotais > 0 ? funcionario.salario_base / horasTotais : 0;
+    const custoTotal = calculateCustoTotal(funcionario);
+    return horasTotais > 0 ? custoTotal / horasTotais : 0;
   };
 
   return (
