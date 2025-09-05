@@ -223,8 +223,6 @@ export function DespesasFixas() {
 
   const filteredDespesas = selectedCategory
     ? despesas.filter(despesa => despesa.categoria_id === selectedCategory)
-    : selectedCategory === 'sem-categoria'
-    ? despesas.filter(despesa => !despesa.categoria_id)
     : despesas;
 
   const handleCategoriaCreated = (categoria: CategoriasDespesas) => {
@@ -261,20 +259,6 @@ export function DespesasFixas() {
             </div>
           </div>
           <div className="space-y-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
-                selectedCategory === null
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted/50 text-muted-foreground'
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <span>Todas</span>
-                <span className="text-xs">{formatCurrency(getTotalDespesas())}</span>
-              </div>
-            </button>
-            
             {categorias.map((categoria) => (
               <button
                 key={categoria.id}
@@ -291,20 +275,6 @@ export function DespesasFixas() {
                 </div>
               </button>
             ))}
-            
-            <button
-              onClick={() => setSelectedCategory('sem-categoria')}
-              className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
-                selectedCategory === 'sem-categoria'
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted/50 text-muted-foreground'
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <span>Sem categoria</span>
-                <span className="text-xs">{formatCurrency(getTotalSemCategoria())}</span>
-              </div>
-            </button>
           </div>
         </div>
       </div>
@@ -340,7 +310,7 @@ export function DespesasFixas() {
                   <Package className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <p className="text-lg font-medium text-muted-foreground mb-2">
-                  {selectedCategory ? 'Nenhuma despesa nesta categoria' : 'Nenhuma despesa cadastrada'}
+                  Nenhuma despesa cadastrada
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   Clique em <strong>Adicionar despesa</strong> para começar.
