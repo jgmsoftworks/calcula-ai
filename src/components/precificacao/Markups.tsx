@@ -1,14 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Calculator, Percent, Target } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useToast } from '@/hooks/use-toast';
+
+interface MarkupBlock {
+  id: string;
+  nome: string;
+  gastoSobreFaturamento: number;
+  impostos: number;
+  taxasMeiosPagamento: number;
+  comissoesPlataformas: number;
+  outros: number;
+  lucroDesejado: number;
+}
 
 export function Markups() {
-  const [custosProduto, setCustosProduto] = useState('');
-  const [markupDesejado, setMarkupDesejado] = useState('');
-  const [margemDesejada, setMargemDesejada] = useState('');
+  const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [nomeTemp, setNomeTemp] = useState('');
+  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const carregarBlocos = async () => {
+      const config = await loadConfiguration('markups_blocos');
+      if (config && Array.isArray(config)) {
+        setBlocos(config as unknown as MarkupBlock[]);
+      }
+    };
+    carregarBlocos();
+  }, [loadConfiguration]);
+
+  const salvarBlocos = async (novosBlocos: MarkupBlock[]) => {
+    await saveConfiguration('markups_blocos', novosBlocos);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -17,210 +46,265 @@ export function Markups() {
     }).format(value);
   };
 
-  const formatCurrencyInput = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  };
-
-  const formatPercentageNumber = (value: number) => {
-    if (value === 0) return '';
-    if (value % 1 === 0) {
-      return new Intl.NumberFormat('pt-BR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(value);
-    }
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(value);
-  };
-
-  const parseInputValue = (value: string) => {
-    if (!value || value === '') return 0;
-    const cleanValue = value.replace(/\./g, '').replace(',', '.');
-    const parsed = parseFloat(cleanValue);
-    return isNaN(parsed) ? 0 : Math.max(0, parsed);
-  };
-
-  const handleValueChange = (field: string, inputValue: string) => {
-    const numericValue = inputValue.replace(/\D/g, '');
-    const numberValue = parseInt(numericValue || '0') / 100;
-    const formattedValue = formatCurrencyInput(numberValue);
-    
-    if (field === 'custosProduto') {
-      setCustosProduto(formattedValue);
-    }
-  };
-
-  const handlePercentageChange = (field: string, inputValue: string) => {
-    const numericValue = inputValue.replace(/\D/g, '');
-    const numberValue = parseInt(numericValue || '0') / 100;
-    const formattedValue = formatPercentageNumber(numberValue);
-    
-    if (field === 'markupDesejado') {
-      setMarkupDesejado(formattedValue);
-    } else if (field === 'margemDesejada') {
-      setMargemDesejada(formattedValue);
-    }
-  };
-
-  const calcularPrecificacao = () => {
-    const custos = parseInputValue(custosProduto);
-    const markup = parseInputValue(markupDesejado);
-    const margem = parseInputValue(margemDesejada);
-
-    // Cálculo com Markup
-    const precoVendaMarkup = custos * (1 + markup / 100);
-    const margemObtidaMarkup = markup;
-
-    // Cálculo com Margem
-    const precoVendaMargem = margem > 0 ? custos / (1 - margem / 100) : 0;
-    const markupObtidoMargem = margem > 0 ? ((precoVendaMargem - custos) / custos) * 100 : 0;
-
-    return {
-      precoVendaMarkup,
-      margemObtidaMarkup,
-      precoVendaMargem,
-      markupObtidoMargem
+  const criarNovoBloco = () => {
+    const novoBloco: MarkupBlock = {
+      id: Date.now().toString(),
+      nome: `Markup ${blocos.length + 1}`,
+      gastoSobreFaturamento: 0,
+      impostos: 0,
+      taxasMeiosPagamento: 0,
+      comissoesPlataformas: 0,
+      outros: 0,
+      lucroDesejado: 0
     };
+
+    const novosBlocos = [...blocos, novoBloco];
+    setBlocos(novosBlocos);
+    salvarBlocos(novosBlocos);
+    
+    toast({
+      title: "Bloco criado",
+      description: "Novo bloco de markup adicionado"
+    });
   };
 
-  const { precoVendaMarkup, margemObtidaMarkup, precoVendaMargem, markupObtidoMargem } = calcularPrecificacao();
+  const removerBloco = (id: string) => {
+    const novosBlocos = blocos.filter(b => b.id !== id);
+    setBlocos(novosBlocos);
+    salvarBlocos(novosBlocos);
+    
+    toast({
+      title: "Bloco removido",
+      description: "Bloco de markup removido com sucesso"
+    });
+  };
+
+  const atualizarBloco = (id: string, campo: keyof MarkupBlock, valor: any) => {
+    const novosBlocos = blocos.map(bloco => 
+      bloco.id === id ? { ...bloco, [campo]: valor } : bloco
+    );
+    setBlocos(novosBlocos);
+    salvarBlocos(novosBlocos);
+  };
+
+  const calcularMarkupIdeal = (bloco: MarkupBlock) => {
+    const totalCustos = bloco.gastoSobreFaturamento + bloco.impostos + 
+                       bloco.taxasMeiosPagamento + bloco.comissoesPlataformas + 
+                       bloco.outros;
+    const markup = (100 / (100 - totalCustos - bloco.lucroDesejado)) - 1;
+    return markup;
+  };
+
+  const iniciarEdicaoNome = (bloco: MarkupBlock) => {
+    setEditandoId(bloco.id);
+    setNomeTemp(bloco.nome);
+  };
+
+  const salvarNome = (id: string) => {
+    if (nomeTemp.trim()) {
+      atualizarBloco(id, 'nome', nomeTemp.trim());
+    }
+    setEditandoId(null);
+    setNomeTemp('');
+  };
+
+  const cancelarEdicao = () => {
+    setEditandoId(null);
+    setNomeTemp('');
+  };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary mb-1">
-            Cálculo de Markups
+          <CardTitle className="text-2xl font-bold text-primary mb-1 flex items-center justify-between">
+            Blocos de Markup
+            <Button onClick={criarNovoBloco}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Bloco
+            </Button>
           </CardTitle>
           <p className="text-muted-foreground text-sm">
-            Configure os custos e margens para calcular os preços de venda
+            Crie e gerencie seus diferentes cenários de markup
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="custos-produto">Custos do produto</Label>
-              <Input
-                id="custos-produto"
-                type="text"
-                value={custosProduto}
-                onChange={(e) => handleValueChange('custosProduto', e.target.value)}
-                placeholder="0,00"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="markup-desejado">Markup desejado (%)</Label>
-              <div className="relative">
-                <Input
-                  id="markup-desejado"
-                  type="text"
-                  value={markupDesejado}
-                  onChange={(e) => handlePercentageChange('markupDesejado', e.target.value)}
-                  placeholder="0"
-                  className="pr-8"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                  %
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="margem-desejada">Margem desejada (%)</Label>
-              <div className="relative">
-                <Input
-                  id="margem-desejada"
-                  type="text"
-                  value={margemDesejada}
-                  onChange={(e) => handlePercentageChange('margemDesejada', e.target.value)}
-                  placeholder="0"
-                  className="pr-8"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                  %
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
-      {/* Resultados */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cálculo por Markup */}
+      {blocos.length === 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Cálculo por Markup
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-              <span className="text-sm font-medium">Preço de venda:</span>
-              <span className="text-lg font-bold text-primary">
-                {formatCurrency(precoVendaMarkup)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-              <span className="text-sm font-medium">Margem obtida:</span>
-              <span className="text-lg font-bold text-green-600">
-                {formatPercentageNumber(margemObtidaMarkup)}%
-              </span>
-            </div>
+          <CardContent className="p-12 text-center">
+            <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum bloco criado</h3>
+            <p className="text-muted-foreground mb-4">
+              Crie seu primeiro bloco de markup para começar
+            </p>
+            <Button onClick={criarNovoBloco}>
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Primeiro Bloco
+            </Button>
           </CardContent>
         </Card>
+      )}
 
-        {/* Cálculo por Margem */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Cálculo por Margem
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-              <span className="text-sm font-medium">Preço de venda:</span>
-              <span className="text-lg font-bold text-primary">
-                {formatCurrency(precoVendaMargem)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-              <span className="text-sm font-medium">Markup obtido:</span>
-              <span className="text-lg font-bold text-blue-600">
-                {formatPercentageNumber(markupObtidoMargem)}%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {blocos.map((bloco) => {
+          const markupIdeal = calcularMarkupIdeal(bloco);
+          
+          return (
+            <Card key={bloco.id} className="relative">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  {editandoId === bloco.id ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        value={nomeTemp}
+                        onChange={(e) => setNomeTemp(e.target.value)}
+                        className="text-lg font-semibold"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') salvarNome(bloco.id);
+                          if (e.key === 'Escape') cancelarEdicao();
+                        }}
+                        autoFocus
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => salvarNome(bloco.id)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={cancelarEdicao}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer flex-1"
+                      onClick={() => iniciarEdicaoNome(bloco)}
+                    >
+                      <h3 className="text-lg font-semibold text-primary">{bloco.nome}</h3>
+                      <Edit2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removerBloco(bloco.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Gasto sobre faturamento</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={bloco.gastoSobreFaturamento}
+                        onChange={(e) => atualizarBloco(bloco.id, 'gastoSobreFaturamento', parseFloat(e.target.value) || 0)}
+                        className="w-16 h-7 text-center text-sm text-blue-600"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-blue-600">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Impostos</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={bloco.impostos}
+                        onChange={(e) => atualizarBloco(bloco.id, 'impostos', parseFloat(e.target.value) || 0)}
+                        className="w-16 h-7 text-center text-sm text-blue-600"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-blue-600">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Taxas de meios de pagamento</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={bloco.taxasMeiosPagamento}
+                        onChange={(e) => atualizarBloco(bloco.id, 'taxasMeiosPagamento', parseFloat(e.target.value) || 0)}
+                        className="w-16 h-7 text-center text-sm text-blue-600"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-blue-600">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Comissões e plataformas</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={bloco.comissoesPlataformas}
+                        onChange={(e) => atualizarBloco(bloco.id, 'comissoesPlataformas', parseFloat(e.target.value) || 0)}
+                        className="w-16 h-7 text-center text-sm text-blue-600"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-blue-600">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Outros</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={bloco.outros}
+                        onChange={(e) => atualizarBloco(bloco.id, 'outros', parseFloat(e.target.value) || 0)}
+                        className="w-16 h-7 text-center text-sm text-blue-600"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-blue-600">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t pt-3">
+                    <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={bloco.lucroDesejado}
+                        onChange={(e) => atualizarBloco(bloco.id, 'lucroDesejado', parseFloat(e.target.value) || 0)}
+                        className="w-16 h-7 text-center text-sm text-green-600"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-green-600">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2 border-t">
+                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                    <span className="font-semibold text-primary">Markup ideal</span>
+                    <span className="text-xl font-bold text-primary">
+                      {isFinite(markupIdeal) ? (markupIdeal * 100).toFixed(2) : '0,00'}%
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-
-      {/* Informações */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm">Diferenças entre Markup e Margem:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-              <div>
-                <p className="font-medium text-foreground mb-1">Markup:</p>
-                <p>Percentual aplicado sobre o custo do produto para formar o preço de venda.</p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground mb-1">Margem:</p>
-                <p>Percentual de lucro em relação ao preço de venda final.</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
