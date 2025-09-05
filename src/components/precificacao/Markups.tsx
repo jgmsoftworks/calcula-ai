@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Calculator, Plus, Trash2, Edit2, Check, X, Info } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
 import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CustosModal } from './CustosModal';
 
 interface MarkupBlock {
   id: string;
@@ -23,6 +24,7 @@ export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
+  const [custosModalOpen, setCustosModalOpen] = useState(false);
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
 
@@ -315,6 +317,14 @@ export function Markups() {
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => setCustosModalOpen(true)}
+                    className="text-primary hover:text-primary"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => removerBloco(bloco.id)}
                     className="text-destructive hover:text-destructive"
                   >
@@ -435,6 +445,11 @@ export function Markups() {
           );
         })}
       </div>
+
+      <CustosModal 
+        open={custosModalOpen} 
+        onOpenChange={setCustosModalOpen} 
+      />
     </div>
   );
 }
