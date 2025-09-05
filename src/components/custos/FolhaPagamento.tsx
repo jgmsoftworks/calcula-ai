@@ -439,7 +439,11 @@ export function FolhaPagamento() {
     return funcionario.salario_base + funcionario.adicional - funcionario.desconto;
   };
 
-  const calculateCustoTotal = (funcionario: Funcionario) => {
+  // Calcular custo por hora de um funcionário específico
+  const calculateCustoPorHoraFuncionario = (funcionario: Funcionario) => {
+    const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
+    return horasTotais > 0 ? Math.round((funcionario.salario_base / horasTotais) * 100) / 100 : 0;
+  };
     const salarioBase = funcionario.salario_base;
     
     const fgtsTotal = calculateItemValue(funcionario.fgts_percent.toString(), funcionario.fgts_valor.toString(), salarioBase);
@@ -727,7 +731,11 @@ export function FolhaPagamento() {
                       {funcionario.tipo_mao_obra === 'direta' ? 'Direta' : 'Indireta'}
                     </span>
                   </TableCell>
-                  <TableCell>R$ {formatCurrencyDisplay(funcionario.salario_base)}</TableCell>
+                  <TableCell>R$ {(() => {
+                    const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
+                    const custoPorHora = horasTotais > 0 ? funcionario.salario_base / horasTotais : 0;
+                    return formatCurrencyDisplay(custoPorHora);
+                  })()}</TableCell>
                   <TableCell className="font-semibold text-primary">
                     R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}
                   </TableCell>
