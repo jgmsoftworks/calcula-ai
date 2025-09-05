@@ -28,6 +28,7 @@ interface DespesaFixa {
 interface CategoriasDespesas {
   id: string;
   nome: string;
+  descricao?: string;
   ativo: boolean;
   created_at: string;
 }
@@ -285,8 +286,18 @@ export function DespesasFixas() {
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-2xl font-bold text-primary mb-1">Despesas Fixas</CardTitle>
-                <p className="text-muted-foreground text-sm">Gerencie suas despesas mensais fixas</p>
+                <CardTitle className="text-2xl font-bold text-primary mb-1">
+                  {selectedCategory 
+                    ? categorias.find(c => c.id === selectedCategory)?.nome || 'Categoria não encontrada'
+                    : 'Despesas Fixas'
+                  }
+                </CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  {selectedCategory 
+                    ? categorias.find(c => c.id === selectedCategory)?.descricao || 'Gerencie suas despesas desta categoria'
+                    : 'Gerencie suas despesas mensais fixas'
+                  }
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Total</p>
