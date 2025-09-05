@@ -64,23 +64,30 @@ export const EncargosVenda = () => {
   };
 
   const formatPercent = (value: number) => {
+    console.log('formatPercent called with:', value);
     if (isNaN(value) || value === null || value === undefined) return '';
-    return value.toFixed(2);
+    return value.toString(); // Não força formatação para 2 casas
   };
 
   const formatCurrencyInput = (value: number) => {
+    console.log('formatCurrencyInput called with:', value);
     if (isNaN(value) || value === null || value === undefined) return '';
-    return value.toFixed(2);
+    return value.toString(); // Não força formatação para 2 casas
   };
 
   const parseNumber = (value: string) => {
+    console.log('parseNumber called with:', value);
     if (!value || value === '') return 0;
     const parsed = parseFloat(value.replace(',', '.')) || 0;
-    return Math.max(0, parsed); // Remove o limite máximo
+    const result = Math.max(0, parsed);
+    console.log('parseNumber result:', result);
+    return result;
   };
 
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
-    event.target.select();
+    console.log('handleInputFocus called');
+    // Remover o select automático por enquanto para testar
+    // event.target.select();
   };
 
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
