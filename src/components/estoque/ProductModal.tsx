@@ -135,8 +135,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       
       // Formatar valores monetários
       setCurrencyInputs({
-        custo_total: formatCurrency(((product.custo_total || 0) * 100).toString()),
-        custo_unitario: formatCurrency(((product.custo_unitario || 0) * 100).toString())
+        custo_total: formatCurrency(((product.custo_total || 0)).toString()),
+        custo_unitario: formatCurrency(((product.custo_unitario || 0)).toString())
       });
     }
   }, [product]);
