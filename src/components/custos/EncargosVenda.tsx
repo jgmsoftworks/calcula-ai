@@ -212,6 +212,35 @@ export const EncargosVenda = () => {
     }
   };
 
+  const atualizarNomeEncargo = async (id: string, novoNome: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('encargos_venda')
+        .update({ nome: novoNome })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setEncargos(prev => 
+        prev.map(e => e.id === id ? { ...e, nome: novoNome } : e)
+      );
+      
+      toast({
+        title: "Nome atualizado",
+        description: "O nome do encargo foi alterado com sucesso"
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar nome do encargo:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível alterar o nome do encargo",
+        variant: "destructive"
+      });
+    }
+  };
+
   const adicionarOutroEncargo = async () => {
     if (!user) return;
 
@@ -313,13 +342,34 @@ export const EncargosVenda = () => {
           {encargosDaCategoria.map((encargo) => (
             <div key={encargo.nome} className="grid grid-cols-3 gap-2 items-center">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">{encargo.nome}</Label>
+                {categoria === 'outros' ? (
+                  <Input
+                    value={encargo.nome}
+                    onChange={(e) => {
+                      const novoNome = e.target.value;
+                      setEncargos(prev => 
+                        prev.map(item => 
+                          item.id === encargo.id ? { ...item, nome: novoNome } : item
+                        )
+                      );
+                    }}
+                    onBlur={(e) => {
+                      if (encargo.id && e.target.value !== encargo.nome) {
+                        atualizarNomeEncargo(encargo.id, e.target.value);
+                      }
+                    }}
+                    className="text-xs h-6 w-32"
+                    placeholder="Nome do encargo"
+                  />
+                ) : (
+                  <Label className="text-xs">{encargo.nome}</Label>
+                )}
                 {categoria === 'outros' && (
                   <Button
                     onClick={() => encargo.id && removerEncargo(encargo.id)}
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 ml-2"
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
