@@ -578,8 +578,22 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       id="total_embalagem"
                       type="number"
                       min="1"
-                      value={formData.total_embalagem}
-                      onChange={(e) => handleInputChange('total_embalagem', parseInt(e.target.value) || 1)}
+                      value={formData.total_embalagem === 0 ? '' : formData.total_embalagem}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                          handleInputChange('total_embalagem', 0);
+                        } else {
+                          const numValue = parseInt(value);
+                          handleInputChange('total_embalagem', numValue >= 0 ? numValue : 0);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Garante valor mínimo 1 quando sair do campo
+                        if (!e.target.value || parseInt(e.target.value) < 1) {
+                          handleInputChange('total_embalagem', 1);
+                        }
+                      }}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
