@@ -324,7 +324,6 @@ export const EncargosVenda = () => {
                     <SelectValue placeholder="Nenhuma parcela selecionada" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma parcela selecionada</SelectItem>
                     {cartaoParcelado.map((parcela) => (
                       <SelectItem key={parcela.id} value={parcela.id}>
                         {parcela.nome}
