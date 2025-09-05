@@ -13,7 +13,10 @@ import { Edit, Search, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ProductModal } from './ProductModal';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
+import { ImportacaoProdutos } from './ImportacaoProdutos';
 import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { FileSpreadsheet } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 interface Produto {
   id: string;
@@ -51,6 +54,7 @@ export const ListaProdutos = () => {
   const [filterCategoria, setFilterCategoria] = useState<string>('todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
@@ -182,6 +186,11 @@ export const ListaProdutos = () => {
 
   const handleModalSave = () => {
     loadProdutos();
+  };
+
+  const handleImportSuccess = () => {
+    loadProdutos();
+    setIsImportModalOpen(false);
   };
 
   const deleteProduto = async (produto: Produto) => {
@@ -338,12 +347,25 @@ export const ListaProdutos = () => {
             Gerencie todos os produtos cadastrados
           </p>
         </div>
-        <ListaConfiguracoes
-          colunas={colunas}
-          onColunasChange={handleColunasChange}
-          itensPorPagina={itemsPerPage}
-          onItensPorPaginaChange={handleItensPorPaginaChange}
-        />
+        <div className="flex items-center gap-2">
+          <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
+                <FileSpreadsheet className="h-4 w-4" />
+                Importar Excel
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <ImportacaoProdutos onImportSuccess={handleImportSuccess} />
+            </DialogContent>
+          </Dialog>
+          <ListaConfiguracoes
+            colunas={colunas}
+            onColunasChange={handleColunasChange}
+            itensPorPagina={itemsPerPage}
+            onItensPorPaginaChange={handleItensPorPaginaChange}
+          />
+        </div>
       </div>
 
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">

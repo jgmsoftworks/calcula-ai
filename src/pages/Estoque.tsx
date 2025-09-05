@@ -6,7 +6,6 @@ import { EntradasForm } from '@/components/estoque/EntradasForm';
 import { SaidasForm } from '@/components/estoque/SaidasForm';
 import { FornecedoresTabela } from '@/components/estoque/FornecedoresTabela';
 import { HistoricoLista } from '@/components/estoque/HistoricoLista';
-import { ImportacaoProdutos } from '@/components/estoque/ImportacaoProdutos';
 
 const Estoque = () => {
   const [activeTab, setActiveTab] = useState("cadastro");
@@ -15,17 +14,12 @@ const Estoque = () => {
     setActiveTab("lista");
   };
 
-  const handleImportSuccess = () => {
-    setActiveTab("lista");
-  };
-
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
           <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="importacao">Importação</TabsTrigger>
           <TabsTrigger value="entradas">Entradas</TabsTrigger>
           <TabsTrigger value="saidas">Saídas</TabsTrigger>
           <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
@@ -38,10 +32,6 @@ const Estoque = () => {
 
         <TabsContent value="lista" className="space-y-4">
           <ListaProdutos />
-        </TabsContent>
-
-        <TabsContent value="importacao" className="space-y-4">
-          <ImportacaoProdutos onImportSuccess={handleImportSuccess} />
         </TabsContent>
 
         <TabsContent value="entradas" className="space-y-4">
