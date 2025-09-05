@@ -367,8 +367,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         <DialogHeader className="px-6 py-4 border-b border-primary/20 bg-background/95">
           <DialogTitle className="flex items-center justify-between text-xl font-bold text-primary">
             <span>Editar Produto</span>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
                 <Switch
                   checked={formData.ativo}
                   onCheckedChange={(checked) => handleInputChange('ativo', checked)}
@@ -383,7 +383,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 variant="outline"
                 size="sm"
                 onClick={handleDelete}
-                className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                className="border-destructive/40 text-destructive hover:bg-destructive/10 ml-4"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>

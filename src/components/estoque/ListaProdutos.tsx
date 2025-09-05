@@ -271,7 +271,7 @@ export const ListaProdutos = () => {
         );
       case 'acoes':
         return (
-          <div className="flex gap-1 justify-end">
+          <div className="flex gap-3 justify-end">
             <Button
               size="sm"
               variant="outline"
