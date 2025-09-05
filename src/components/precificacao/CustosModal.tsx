@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -61,6 +61,8 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
     
     setLoading(true);
     try {
+      console.log('Carregando dados para o usuário:', user.id);
+      
       // Carregar despesas fixas
       const { data: despesas, error: despesasError } = await supabase
         .from('despesas_fixas')
@@ -68,7 +70,11 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         .eq('user_id', user.id)
         .order('nome');
 
-      if (despesasError) throw despesasError;
+      if (despesasError) {
+        console.error('Erro ao carregar despesas fixas:', despesasError);
+        throw despesasError;
+      }
+      console.log('Despesas fixas carregadas:', despesas);
       setDespesasFixas(despesas || []);
 
       // Carregar folha de pagamento
@@ -78,7 +84,11 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         .eq('user_id', user.id)
         .order('nome');
 
-      if (folhaError) throw folhaError;
+      if (folhaError) {
+        console.error('Erro ao carregar folha de pagamento:', folhaError);
+        throw folhaError;
+      }
+      console.log('Folha de pagamento carregada:', folha);
       setFolhaPagamento(folha || []);
 
       // Carregar encargos sobre venda
@@ -88,7 +98,11 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         .eq('user_id', user.id)
         .order('nome');
 
-      if (encargosError) throw encargosError;
+      if (encargosError) {
+        console.error('Erro ao carregar encargos sobre venda:', encargosError);
+        throw encargosError;
+      }
+      console.log('Encargos sobre venda carregados:', encargos);
       setEncargosVenda(encargos || []);
 
     } catch (error) {
@@ -208,6 +222,9 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
               </span>
             )}
           </DialogTitle>
+          <DialogDescription>
+            Configure quais custos devem ser considerados no cálculo do markup
+          </DialogDescription>
         </DialogHeader>
 
         {markupBlock && (
@@ -257,10 +274,19 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                 <CardTitle>Despesas Fixas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {despesasFixas.length === 0 ? (
+                {loading ? (
                   <p className="text-muted-foreground text-center py-4">
-                    Nenhuma despesa fixa cadastrada
+                    Carregando despesas...
                   </p>
+                ) : despesasFixas.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      Nenhuma despesa fixa cadastrada
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione despesas na aba "Custos" para vê-las aqui
+                    </p>
+                  </div>
                 ) : (
                   despesasFixas.map((despesa) => (
                     <div key={despesa.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -293,10 +319,19 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                 <CardTitle>Folha de Pagamento</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {folhaPagamento.length === 0 ? (
+                {loading ? (
                   <p className="text-muted-foreground text-center py-4">
-                    Nenhum funcionário cadastrado
+                    Carregando funcionários...
                   </p>
+                ) : folhaPagamento.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      Nenhum funcionário cadastrado
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione funcionários na aba "Custos" para vê-los aqui
+                    </p>
+                  </div>
                 ) : (
                   folhaPagamento.map((funcionario) => (
                     <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -329,10 +364,19 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                 <CardTitle>Encargos sobre Venda</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {encargosVenda.length === 0 ? (
+                {loading ? (
                   <p className="text-muted-foreground text-center py-4">
-                    Nenhum encargo cadastrado
+                    Carregando encargos...
                   </p>
+                ) : encargosVenda.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      Nenhum encargo cadastrado
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione encargos na aba "Custos" para vê-los aqui
+                    </p>
+                  </div>
                 ) : (
                   encargosVenda.map((encargo) => (
                     <div key={encargo.id} className="flex items-center justify-between p-3 border rounded-lg">
