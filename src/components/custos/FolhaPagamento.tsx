@@ -125,7 +125,7 @@ export function FolhaPagamento() {
         nome: formData.nome,
         cargo: formData.cargo,
         tipo_mao_obra: formData.tipo_mao_obra,
-        salario_base: parseFloat(formData.salario_base),
+        salario_base: parseCurrencyValue(formData.salario_base),
         adicional: formData.adicional ? parseFloat(formData.adicional) : 0,
         desconto: formData.desconto ? parseFloat(formData.desconto) : 0,
         fgts_percent: parsePercentValue(formData.fgts_percent),
@@ -203,25 +203,30 @@ export function FolhaPagamento() {
 
   // Função para formatar input monetário (sem símbolo R$)
   const formatCurrencyInput = (value: string) => {
-    // Remove tudo que não é dígito
-    const digits = value.replace(/\D/g, '');
-    if (!digits) return '';
+    // Remove tudo que não é dígito ou vírgula
+    const cleaned = value.replace(/[^\d,]/g, '');
     
-    // Converte para número decimal
-    const number = parseInt(digits) / 100;
+    // Se não tem nada, retorna vazio
+    if (!cleaned) return '';
     
-    // Formata sem símbolo de moeda
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(number);
+    // Se tem vírgula, trata como decimal
+    if (cleaned.includes(',')) {
+      const [inteira, decimal] = cleaned.split(',');
+      const formattedInteira = inteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return decimal !== undefined ? `${formattedInteira},${decimal.slice(0, 2)}` : `${formattedInteira},`;
+    }
+    
+    // Se não tem vírgula, adiciona formatação de milhares
+    const formatted = cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return formatted;
   };
 
   // Função para converter valor formatado para número
   const parseCurrencyValue = (value: string): number => {
     if (!value) return 0;
-    const digits = value.replace(/\D/g, '');
-    return digits ? parseInt(digits) / 100 : 0;
+    // Remove formatação e converte para número
+    const cleanValue = value.replace(/[^\d,]/g, '').replace(',', '.');
+    return cleanValue ? parseFloat(cleanValue) : 0;
   };
 
   // Função para formatar porcentagem
