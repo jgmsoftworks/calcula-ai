@@ -34,11 +34,11 @@ export const ListaConfiguracoes = ({
     const coluna = colunas.find(col => col.key === key);
     if (!coluna) return;
 
-    // Se está tentando ativar uma coluna, verificar se já tem 5 ativas
+    // Se está tentando ativar uma coluna, verificar se já tem 4 ativas
     if (!coluna.visible) {
       const colunasVisiveis = colunas.filter(col => col.visible).length;
-      if (colunasVisiveis >= 5) {
-        return; // Não permite ativar mais de 5 colunas
+      if (colunasVisiveis >= 4) {
+        return; // Não permite ativar mais de 4 colunas
       }
     }
 
@@ -107,7 +107,7 @@ export const ListaConfiguracoes = ({
             <div className="flex items-center justify-between">
               <Label className="text-base font-semibold text-primary">Colunas Visíveis</Label>
               <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30 text-primary">
-                {colunas.filter(col => col.visible).length}/5 selecionadas
+                {colunas.filter(col => col.visible).length}/4 selecionadas
               </Badge>
             </div>
             
@@ -178,7 +178,7 @@ export const ListaConfiguracoes = ({
             </div>
             
             <div className="text-xs text-muted-foreground text-center p-2 bg-muted/30 rounded-lg">
-              💡 Arraste para reordenar • Máximo de 5 colunas ativas
+              💡 Arraste para reordenar • Máximo de 4 colunas ativas
             </div>
           </div>
         </div>
