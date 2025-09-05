@@ -64,12 +64,23 @@ export const EncargosVenda = () => {
   };
 
   const formatPercent = (value: number) => {
+    if (isNaN(value) || value === null || value === undefined) return '';
+    return value.toFixed(2);
+  };
+
+  const formatCurrencyInput = (value: number) => {
+    if (isNaN(value) || value === null || value === undefined) return '';
     return value.toFixed(2);
   };
 
   const parseNumber = (value: string) => {
-    const parsed = parseFloat(value) || 0;
+    if (!value || value === '') return 0;
+    const parsed = parseFloat(value.replace(',', '.')) || 0;
     return Math.max(0, parsed);
+  };
+
+  const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    event.target.select();
   };
 
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
@@ -165,6 +176,7 @@ export const EncargosVenda = () => {
           min="0"
           value={formatPercent(percentual)}
           onChange={(e) => onPercentualChange(parseNumber(e.target.value))}
+          onFocus={handleInputFocus}
           className="text-right h-8 text-xs pr-6"
           placeholder="0,00"
           autoComplete="off"
@@ -180,8 +192,9 @@ export const EncargosVenda = () => {
           type="number"
           step="0.01"
           min="0"
-          value={valorFixo.toFixed(2)}
+          value={formatCurrencyInput(valorFixo)}
           onChange={(e) => onValorFixoChange(parseNumber(e.target.value))}
+          onFocus={handleInputFocus}
           className="text-right h-8 text-xs pl-8"
           placeholder="0,00"
           autoComplete="off"
@@ -358,6 +371,7 @@ export const EncargosVenda = () => {
                   onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                     p.id === parcela.id ? {...p, nome: e.target.value} : p
                   ))}
+                  onFocus={handleInputFocus}
                   placeholder="2x, 3x..."
                   className="h-8 text-xs"
                   autoComplete="off"
@@ -374,6 +388,7 @@ export const EncargosVenda = () => {
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
                     ))}
+                    onFocus={handleInputFocus}
                     className="text-right h-8 text-xs pr-6"
                     placeholder="0,00"
                     autoComplete="off"
@@ -389,10 +404,11 @@ export const EncargosVenda = () => {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={parcela.valorFixo.toFixed(2)}
+                    value={formatCurrencyInput(parcela.valorFixo)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
                     ))}
+                    onFocus={handleInputFocus}
                     className="text-right h-8 text-xs pl-8"
                     placeholder="0,00"
                     autoComplete="off"
@@ -467,6 +483,7 @@ export const EncargosVenda = () => {
                 onChange={(e) => setOutrosItens(outrosItens.map(i => 
                   i.id === item.id ? {...i, nome: e.target.value} : i
                 ))}
+                onFocus={handleInputFocus}
                 placeholder="Nome do item"
                 className="h-8 text-xs"
                 autoComplete="off"
@@ -483,6 +500,7 @@ export const EncargosVenda = () => {
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, percentual: parseNumber(e.target.value)} : i
                   ))}
+                  onFocus={handleInputFocus}
                   className="text-right h-8 text-xs pr-6"
                   placeholder="0,00"
                   autoComplete="off"
@@ -498,10 +516,11 @@ export const EncargosVenda = () => {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={item.valorFixo.toFixed(2)}
+                  value={formatCurrencyInput(item.valorFixo)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, valorFixo: parseNumber(e.target.value)} : i
                   ))}
+                  onFocus={handleInputFocus}
                   className="text-right h-8 text-xs pl-8"
                   placeholder="0,00"
                   autoComplete="off"
