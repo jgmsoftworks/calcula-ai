@@ -256,24 +256,15 @@ export function DespesasFixas() {
           <div className="mb-4 p-2 bg-primary/5 rounded border">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Total Geral:</span>
-              <span className="text-sm font-bold text-primary">{formatCurrency(getTotalDespesas())}</span>
+              <span className="text-sm font-bold text-primary">
+                {selectedCategory 
+                  ? formatCurrency(getTotalByCategoria(selectedCategory))
+                  : formatCurrency(0)
+                }
+              </span>
             </div>
           </div>
           <div className="space-y-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
-                selectedCategory === null
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-muted/50 text-muted-foreground'
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <span>Todas</span>
-                <span className="text-xs">{formatCurrency(getTotalDespesas())}</span>
-              </div>
-            </button>
-            
             {categorias.map((categoria) => (
               <button
                 key={categoria.id}
@@ -315,7 +306,12 @@ export function DespesasFixas() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold text-primary">{formatCurrency(getTotalDespesas())}</p>
+                <p className="text-2xl font-bold text-primary">
+                  {selectedCategory 
+                    ? formatCurrency(getTotalByCategoria(selectedCategory))
+                    : formatCurrency(0)
+                  }
+                </p>
               </div>
             </div>
           </CardHeader>
@@ -335,10 +331,10 @@ export function DespesasFixas() {
                   <Package className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <p className="text-lg font-medium text-muted-foreground mb-2">
-                  Nenhuma despesa cadastrada
+                  {selectedCategory ? 'Nenhuma despesa nesta categoria' : 'Selecione uma categoria'}
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Clique em <strong>Adicionar despesa</strong> para começar.
+                  {selectedCategory ? 'Clique em Adicionar despesa para começar.' : 'Escolha uma categoria na sidebar para ver suas despesas.'}
                 </p>
               </div>
             ) : (
