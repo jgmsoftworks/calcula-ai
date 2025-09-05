@@ -161,28 +161,29 @@ export function Markups() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Bloco fixo subreceita */}
-        <Card className="relative border-blue-200 bg-blue-50/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-primary">subreceita</h3>
-                <TooltipProvider>
+        <TooltipProvider>
+          <Card className="relative border-blue-200 bg-blue-50/50">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-primary">SubReceita</h3>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white cursor-help">
+                        <Info className="h-3 w-3" />
+                      </div>
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p className="text-sm">
-                        Atenção: Este bloco é exclusivo para subprodutos que não são vendidos 
+                    <TooltipContent className="max-w-xs p-3 bg-blue-50 border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        <strong>Atenção:</strong> Este bloco é exclusivo para subprodutos que não são vendidos 
                         separadamente, como massas, recheios e coberturas. Ele serve apenas para 
                         organizar ingredientes usados em receitas.
                       </p>
                     </TooltipContent>
                   </Tooltip>
-                </TooltipProvider>
+                </div>
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -273,6 +274,7 @@ export function Markups() {
             </div>
           </CardContent>
         </Card>
+        </TooltipProvider>
 
         {/* Blocos editáveis */}
         {blocos.map((bloco) => {
