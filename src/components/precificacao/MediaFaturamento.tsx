@@ -4,9 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2 } from 'lucide-react';
 import { format, subMonths, isAfter, isBefore, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -24,9 +22,9 @@ export function MediaFaturamento() {
   const [filtroPeriodo, setFiltroPeriodo] = useState<string>('todos');
   const [novoFaturamento, setNovoFaturamento] = useState({
     valor: '',
-    mes: undefined as Date | undefined
+    mes: new Date().getMonth() + 1,
+    ano: new Date().getFullYear()
   });
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
 
@@ -79,10 +77,10 @@ export function MediaFaturamento() {
   };
 
   const adicionarFaturamento = () => {
-    if (!novoFaturamento.valor || !novoFaturamento.mes) {
+    if (!novoFaturamento.valor || !novoFaturamento.mes || !novoFaturamento.ano) {
       toast({
         title: "Dados incompletos",
-        description: "Preencha o valor e selecione o mês",
+        description: "Preencha o valor, mês e ano",
         variant: "destructive"
       });
       return;
@@ -98,10 +96,12 @@ export function MediaFaturamento() {
       return;
     }
 
+    const dataFaturamento = new Date(novoFaturamento.ano, novoFaturamento.mes - 1, 1);
+
     const novoItem: FaturamentoHistorico = {
       id: Date.now().toString(),
       valor,
-      mes: novoFaturamento.mes
+      mes: dataFaturamento
     };
 
     const novosFaturamentos = [...faturamentosHistoricos, novoItem]
@@ -109,7 +109,11 @@ export function MediaFaturamento() {
     
     setFaturamentosHistoricos(novosFaturamentos);
     salvarFaturamentos(novosFaturamentos);
-    setNovoFaturamento({ valor: '', mes: undefined });
+    setNovoFaturamento({ 
+      valor: '', 
+      mes: new Date().getMonth() + 1, 
+      ano: new Date().getFullYear() 
+    });
     
     toast({
       title: "Faturamento adicionado",
@@ -214,37 +218,38 @@ export function MediaFaturamento() {
 
             <div className="space-y-2">
               <Label>Mês/Ano</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !novoFaturamento.mes && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {novoFaturamento.mes ? (
-                      format(novoFaturamento.mes, "MMMM 'de' yyyy", { locale: ptBR })
-                    ) : (
-                      <span>Selecione o mês</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={novoFaturamento.mes}
-                    onSelect={(date) => {
-                      setNovoFaturamento({ ...novoFaturamento, mes: date });
-                      setIsCalendarOpen(false);
-                    }}
-                    disabled={(date) => isAfter(date, new Date())}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="grid grid-cols-2 gap-2">
+                <Select 
+                  value={novoFaturamento.mes.toString()} 
+                  onValueChange={(value) => setNovoFaturamento({ ...novoFaturamento, mes: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Janeiro</SelectItem>
+                    <SelectItem value="2">Fevereiro</SelectItem>
+                    <SelectItem value="3">Março</SelectItem>
+                    <SelectItem value="4">Abril</SelectItem>
+                    <SelectItem value="5">Maio</SelectItem>
+                    <SelectItem value="6">Junho</SelectItem>
+                    <SelectItem value="7">Julho</SelectItem>
+                    <SelectItem value="8">Agosto</SelectItem>
+                    <SelectItem value="9">Setembro</SelectItem>
+                    <SelectItem value="10">Outubro</SelectItem>
+                    <SelectItem value="11">Novembro</SelectItem>
+                    <SelectItem value="12">Dezembro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={novoFaturamento.ano}
+                  onChange={(e) => setNovoFaturamento({ ...novoFaturamento, ano: parseInt(e.target.value) || new Date().getFullYear() })}
+                  placeholder="Ano"
+                  min="2020"
+                  max="2030"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
