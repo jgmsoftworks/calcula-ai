@@ -52,24 +52,24 @@ export function FolhaPagamento() {
     salario_base: '',
     adicional: '',
     desconto: '',
-    fgts_percent: '8',
-    fgts_valor: '0',
-    inss_percent: '11',
-    inss_valor: '0',
-    rat_percent: '2',
-    rat_valor: '0',
-    ferias_percent: '11.11',
-    ferias_valor: '0',
-    vale_transporte_percent: '0',
-    vale_transporte_valor: '0',
-    vale_alimentacao_percent: '0',
-    vale_alimentacao_valor: '0',
-    vale_refeicao_percent: '0',
-    vale_refeicao_valor: '0',
-    plano_saude_percent: '0',
-    plano_saude_valor: '0',
-    outros_percent: '0',
-    outros_valor: '0'
+    fgts_percent: '0,00',
+    fgts_valor: '',
+    inss_percent: '0,00',
+    inss_valor: '',
+    rat_percent: '0,00',
+    rat_valor: '',
+    ferias_percent: '0,00',
+    ferias_valor: '',
+    vale_transporte_percent: '0,00',
+    vale_transporte_valor: '',
+    vale_alimentacao_percent: '0,00',
+    vale_alimentacao_valor: '',
+    vale_refeicao_percent: '0,00',
+    vale_refeicao_valor: '',
+    plano_saude_percent: '0,00',
+    plano_saude_valor: '',
+    outros_percent: '0,00',
+    outros_valor: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -180,49 +180,90 @@ export function FolhaPagamento() {
     }
   };
 
-  const handlePercentChange = (key: string, value: string) => {
-    const salarioBase = parseFloat(formData.salario_base || '0');
-    const percent = parseFloat(value || '0');
-    const calculatedValue = (salarioBase * percent / 100).toFixed(2);
-    
-    const valorKey = key.replace('_percent', '_valor');
-    setFormData({ 
-      ...formData, 
-      [key]: value,
-      [valorKey]: calculatedValue
-    });
+  // Função para formatar valores monetários para exibição
+  const formatCurrencyDisplay = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
   };
 
-  const handleValueChange = (key: string, value: string) => {
-    const salarioBase = parseFloat(formData.salario_base || '0');
-    const valorNumerico = parseFloat(value || '0');
-    const calculatedPercent = salarioBase > 0 ? (valorNumerico / salarioBase * 100).toFixed(2) : '0';
-    
-    const percentKey = key.replace('_valor', '_percent');
-    setFormData({ 
-      ...formData, 
-      [key]: value,
-      [percentKey]: calculatedPercent
-    });
-  };
-
+  // Função para formatar input monetário
   const formatCurrencyInput = (value: string) => {
     // Remove tudo que não é dígito
-    const number = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return '';
     
-    // Converte para decimal
-    const decimal = (parseInt(number) / 100).toFixed(2);
+    // Converte para número decimal
+    const number = parseInt(digits) / 100;
     
     // Formata como moeda
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL'
-    }).format(parseFloat(decimal));
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(number);
   };
 
-  const parseCurrencyInput = (value: string) => {
-    // Remove símbolos de moeda e espaços, converte vírgula para ponto
-    return value.replace(/[R$\s.]/g, '').replace(',', '.');
+  // Função para converter valor formatado para número
+  const parseCurrencyValue = (value: string): number => {
+    if (!value) return 0;
+    const digits = value.replace(/\D/g, '');
+    return digits ? parseInt(digits) / 100 : 0;
+  };
+
+  // Função para formatar porcentagem
+  const formatPercentInput = (value: string) => {
+    // Remove tudo que não é dígito, vírgula ou ponto
+    const cleaned = value.replace(/[^\d.,]/g, '');
+    // Substitui vírgula por ponto se necessário
+    const normalized = cleaned.replace(',', '.');
+    // Limita a 999.99
+    const number = parseFloat(normalized || '0');
+    if (number > 999.99) return '999,99';
+    // Retorna formatado com vírgula
+    return normalized.replace('.', ',');
+  };
+
+  // Função para converter porcentagem para número
+  const parsePercentValue = (value: string): number => {
+    if (!value) return 0;
+    const normalized = value.replace(',', '.');
+    const number = parseFloat(normalized);
+    return isNaN(number) ? 0 : Math.max(0, Math.min(999.99, number));
+  };
+
+  // Função para calcular valor baseado em lógica: se valor > 0, usa valor; senão usa %
+  const calculateItemValue = (percentValue: string, valorValue: string, salarioBase: number): number => {
+    const valor = parseCurrencyValue(valorValue);
+    const percent = parsePercentValue(percentValue);
+    
+    if (valor > 0) {
+      return valor; // Prioriza o valor em R$
+    } else if (percent > 0) {
+      return Math.round((salarioBase * percent / 100) * 100) / 100; // Usa %
+    }
+    return 0;
+  };
+
+  // Handler para mudança no salário base
+  const handleSalarioBaseChange = (value: string) => {
+    setFormData({ ...formData, salario_base: value });
+  };
+
+  // Handler para mudança em percentual
+  const handlePercentChange = (key: string, value: string) => {
+    const formattedValue = formatPercentInput(value);
+    setFormData({ ...formData, [key]: formattedValue });
+  };
+
+  // Handler para mudança em valor monetário
+  const handleValueChange = (key: string, value: string) => {
+    const formattedValue = formatCurrencyInput(value);
+    setFormData({ ...formData, [key]: formattedValue });
   };
 
   const resetFormData = () => {
@@ -233,24 +274,24 @@ export function FolhaPagamento() {
       salario_base: '',
       adicional: '',
       desconto: '',
-      fgts_percent: '8',
-      fgts_valor: '0',
-      inss_percent: '11',
-      inss_valor: '0',
-      rat_percent: '2',
-      rat_valor: '0',
-      ferias_percent: '11.11',
-      ferias_valor: '0',
-      vale_transporte_percent: '0',
-      vale_transporte_valor: '0',
-      vale_alimentacao_percent: '0',
-      vale_alimentacao_valor: '0',
-      vale_refeicao_percent: '0',
-      vale_refeicao_valor: '0',
-      plano_saude_percent: '0',
-      plano_saude_valor: '0',
-      outros_percent: '0',
-      outros_valor: '0'
+      fgts_percent: '0,00',
+      fgts_valor: '',
+      inss_percent: '0,00',
+      inss_valor: '',
+      rat_percent: '0,00',
+      rat_valor: '',
+      ferias_percent: '0,00',
+      ferias_valor: '',
+      vale_transporte_percent: '0,00',
+      vale_transporte_valor: '',
+      vale_alimentacao_percent: '0,00',
+      vale_alimentacao_valor: '',
+      vale_refeicao_percent: '0,00',
+      vale_refeicao_valor: '',
+      plano_saude_percent: '0,00',
+      plano_saude_valor: '',
+      outros_percent: '0,00',
+      outros_valor: ''
     });
   };
 
@@ -260,27 +301,27 @@ export function FolhaPagamento() {
       nome: funcionario.nome,
       cargo: funcionario.cargo || '',
       tipo_mao_obra: funcionario.tipo_mao_obra,
-      salario_base: funcionario.salario_base.toString(),
+      salario_base: formatCurrencyDisplay(funcionario.salario_base),
       adicional: funcionario.adicional.toString(),
       desconto: funcionario.desconto.toString(),
-      fgts_percent: funcionario.fgts_percent.toString(),
-      fgts_valor: funcionario.fgts_valor.toString(),
-      inss_percent: funcionario.inss_percent.toString(),
-      inss_valor: funcionario.inss_valor.toString(),
-      rat_percent: funcionario.rat_percent.toString(),
-      rat_valor: funcionario.rat_valor.toString(),
-      ferias_percent: funcionario.ferias_percent.toString(),
-      ferias_valor: funcionario.ferias_valor.toString(),
-      vale_transporte_percent: funcionario.vale_transporte_percent.toString(),
-      vale_transporte_valor: funcionario.vale_transporte_valor.toString(),
-      vale_alimentacao_percent: funcionario.vale_alimentacao_percent.toString(),
-      vale_alimentacao_valor: funcionario.vale_alimentacao_valor.toString(),
-      vale_refeicao_percent: funcionario.vale_refeicao_percent.toString(),
-      vale_refeicao_valor: funcionario.vale_refeicao_valor.toString(),
-      plano_saude_percent: funcionario.plano_saude_percent.toString(),
-      plano_saude_valor: funcionario.plano_saude_valor.toString(),
-      outros_percent: funcionario.outros_percent.toString(),
-      outros_valor: funcionario.outros_valor.toString()
+      fgts_percent: funcionario.fgts_percent.toString().replace('.', ','),
+      fgts_valor: formatCurrencyDisplay(funcionario.fgts_valor),
+      inss_percent: funcionario.inss_percent.toString().replace('.', ','),
+      inss_valor: formatCurrencyDisplay(funcionario.inss_valor),
+      rat_percent: funcionario.rat_percent.toString().replace('.', ','),
+      rat_valor: formatCurrencyDisplay(funcionario.rat_valor),
+      ferias_percent: funcionario.ferias_percent.toString().replace('.', ','),
+      ferias_valor: formatCurrencyDisplay(funcionario.ferias_valor),
+      vale_transporte_percent: funcionario.vale_transporte_percent.toString().replace('.', ','),
+      vale_transporte_valor: formatCurrencyDisplay(funcionario.vale_transporte_valor),
+      vale_alimentacao_percent: funcionario.vale_alimentacao_percent.toString().replace('.', ','),
+      vale_alimentacao_valor: formatCurrencyDisplay(funcionario.vale_alimentacao_valor),
+      vale_refeicao_percent: funcionario.vale_refeicao_percent.toString().replace('.', ','),
+      vale_refeicao_valor: formatCurrencyDisplay(funcionario.vale_refeicao_valor),
+      plano_saude_percent: funcionario.plano_saude_percent.toString().replace('.', ','),
+      plano_saude_valor: formatCurrencyDisplay(funcionario.plano_saude_valor),
+      outros_percent: funcionario.outros_percent.toString().replace('.', ','),
+      outros_valor: formatCurrencyDisplay(funcionario.outros_valor)
     });
     setIsModalOpen(true);
   };
@@ -330,17 +371,17 @@ export function FolhaPagamento() {
   const calculateCustoTotal = (funcionario: Funcionario) => {
     const salarioBase = funcionario.salario_base;
     
-    const fgtsTotal = (salarioBase * funcionario.fgts_percent / 100) + funcionario.fgts_valor;
-    const inssTotal = (salarioBase * funcionario.inss_percent / 100) + funcionario.inss_valor;
-    const ratTotal = (salarioBase * funcionario.rat_percent / 100) + funcionario.rat_valor;
-    const feriasTotal = (salarioBase * funcionario.ferias_percent / 100) + funcionario.ferias_valor;
-    const vtTotal = (salarioBase * funcionario.vale_transporte_percent / 100) + funcionario.vale_transporte_valor;
-    const vaTotal = (salarioBase * funcionario.vale_alimentacao_percent / 100) + funcionario.vale_alimentacao_valor;
-    const vrTotal = (salarioBase * funcionario.vale_refeicao_percent / 100) + funcionario.vale_refeicao_valor;
-    const planoTotal = (salarioBase * funcionario.plano_saude_percent / 100) + funcionario.plano_saude_valor;
-    const outrosTotal = (salarioBase * funcionario.outros_percent / 100) + funcionario.outros_valor;
+    const fgtsTotal = calculateItemValue(funcionario.fgts_percent.toString(), funcionario.fgts_valor.toString(), salarioBase);
+    const inssTotal = calculateItemValue(funcionario.inss_percent.toString(), funcionario.inss_valor.toString(), salarioBase);
+    const ratTotal = calculateItemValue(funcionario.rat_percent.toString(), funcionario.rat_valor.toString(), salarioBase);
+    const feriasTotal = calculateItemValue(funcionario.ferias_percent.toString(), funcionario.ferias_valor.toString(), salarioBase);
+    const vtTotal = calculateItemValue(funcionario.vale_transporte_percent.toString(), funcionario.vale_transporte_valor.toString(), salarioBase);
+    const vaTotal = calculateItemValue(funcionario.vale_alimentacao_percent.toString(), funcionario.vale_alimentacao_valor.toString(), salarioBase);
+    const vrTotal = calculateItemValue(funcionario.vale_refeicao_percent.toString(), funcionario.vale_refeicao_valor.toString(), salarioBase);
+    const planoTotal = calculateItemValue(funcionario.plano_saude_percent.toString(), funcionario.plano_saude_valor.toString(), salarioBase);
+    const outrosTotal = calculateItemValue(funcionario.outros_percent.toString(), funcionario.outros_valor.toString(), salarioBase);
     
-    return salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal;
+    return Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
   };
 
   const getTotalFolha = () => {
@@ -406,12 +447,13 @@ export function FolhaPagamento() {
                   <Label htmlFor="salario_base">Salário Bruto *</Label>
                   <Input
                     id="salario_base"
-                    type="number"
-                    step="0.01"
-                    min="0"
                     value={formData.salario_base}
-                    onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
-                    placeholder="0,00"
+                    onChange={(e) => handleSalarioBaseChange(e.target.value)}
+                    placeholder="R$ 0,00"
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                 </div>
               </div>
@@ -435,25 +477,29 @@ export function FolhaPagamento() {
                       <Label className="text-primary font-medium">{encargo.label}</Label>
                       <div className="relative">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                          type="text"
                           value={formData[encargo.percentKey as keyof typeof formData]}
                           onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
-                          placeholder="0"
+                          placeholder="0,00"
                           className="pr-6"
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck="false"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                       </div>
                       <div className="relative">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                          type="text"
                           value={formData[encargo.valorKey as keyof typeof formData]}
                           onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
-                          placeholder="0,00"
+                          placeholder="R$ 0,00"
                           className="pl-8"
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck="false"
                         />
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
                       </div>
@@ -466,18 +512,23 @@ export function FolhaPagamento() {
                   <div className="mt-4 p-4 bg-muted rounded-lg">
                     <div className="text-center">
                       <p className="text-lg font-semibold text-primary">
-                        Custo Total deste Funcionário: {formatCurrency(
-                          parseFloat(formData.salario_base || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.fgts_percent) / 100) + parseFloat(formData.fgts_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.inss_percent) / 100) + parseFloat(formData.inss_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.rat_percent) / 100) + parseFloat(formData.rat_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.ferias_percent) / 100) + parseFloat(formData.ferias_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.vale_transporte_percent) / 100) + parseFloat(formData.vale_transporte_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.vale_alimentacao_percent) / 100) + parseFloat(formData.vale_alimentacao_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.vale_refeicao_percent) / 100) + parseFloat(formData.vale_refeicao_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.plano_saude_percent) / 100) + parseFloat(formData.plano_saude_valor || '0') +
-                          (parseFloat(formData.salario_base || '0') * parseFloat(formData.outros_percent) / 100) + parseFloat(formData.outros_valor || '0')
-                        )}
+                        Custo Total deste Funcionário: {(() => {
+                          const salarioBase = parseCurrencyValue(formData.salario_base);
+                          
+                          const fgtsTotal = calculateItemValue(formData.fgts_percent, formData.fgts_valor, salarioBase);
+                          const inssTotal = calculateItemValue(formData.inss_percent, formData.inss_valor, salarioBase);
+                          const ratTotal = calculateItemValue(formData.rat_percent, formData.rat_valor, salarioBase);
+                          const feriasTotal = calculateItemValue(formData.ferias_percent, formData.ferias_valor, salarioBase);
+                          const vtTotal = calculateItemValue(formData.vale_transporte_percent, formData.vale_transporte_valor, salarioBase);
+                          const vaTotal = calculateItemValue(formData.vale_alimentacao_percent, formData.vale_alimentacao_valor, salarioBase);
+                          const vrTotal = calculateItemValue(formData.vale_refeicao_percent, formData.vale_refeicao_valor, salarioBase);
+                          const planoTotal = calculateItemValue(formData.plano_saude_percent, formData.plano_saude_valor, salarioBase);
+                          const outrosTotal = calculateItemValue(formData.outros_percent, formData.outros_valor, salarioBase);
+                          
+                          const total = Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
+                          
+                          return formatCurrencyDisplay(total);
+                        })()}
                       </p>
                     </div>
                   </div>
