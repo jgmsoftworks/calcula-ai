@@ -257,14 +257,32 @@ export function FolhaPagamento() {
 
   // Handler para mudança em percentual
   const handlePercentChange = (key: string, value: string) => {
-    const formattedValue = formatPercentInput(value);
-    setFormData({ ...formData, [key]: formattedValue });
+    const formattedPercent = formatPercentInput(value);
+    const salarioBase = parseCurrencyValue(formData.salario_base);
+    const percent = parsePercentValue(formattedPercent);
+    const calculatedValue = Math.round((salarioBase * percent / 100) * 100) / 100;
+    
+    const valorKey = key.replace('_percent', '_valor');
+    setFormData({ 
+      ...formData, 
+      [key]: formattedPercent,
+      [valorKey]: calculatedValue > 0 ? formatCurrencyDisplay(calculatedValue) : ''
+    });
   };
 
   // Handler para mudança em valor monetário
   const handleValueChange = (key: string, value: string) => {
     const formattedValue = formatCurrencyInput(value);
-    setFormData({ ...formData, [key]: formattedValue });
+    const salarioBase = parseCurrencyValue(formData.salario_base);
+    const valorNumerico = parseCurrencyValue(formattedValue);
+    const calculatedPercent = salarioBase > 0 ? Math.round((valorNumerico / salarioBase * 100) * 100) / 100 : 0;
+    
+    const percentKey = key.replace('_valor', '_percent');
+    setFormData({ 
+      ...formData, 
+      [key]: formattedValue,
+      [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString().replace('.', ',') : '0,00'
+    });
   };
 
   const resetFormData = () => {
@@ -516,15 +534,15 @@ export function FolhaPagamento() {
                         Custo Total deste Funcionário: {(() => {
                           const salarioBase = parseCurrencyValue(formData.salario_base);
                           
-                          const fgtsTotal = calculateItemValue(formData.fgts_percent, formData.fgts_valor, salarioBase);
-                          const inssTotal = calculateItemValue(formData.inss_percent, formData.inss_valor, salarioBase);
-                          const ratTotal = calculateItemValue(formData.rat_percent, formData.rat_valor, salarioBase);
-                          const feriasTotal = calculateItemValue(formData.ferias_percent, formData.ferias_valor, salarioBase);
-                          const vtTotal = calculateItemValue(formData.vale_transporte_percent, formData.vale_transporte_valor, salarioBase);
-                          const vaTotal = calculateItemValue(formData.vale_alimentacao_percent, formData.vale_alimentacao_valor, salarioBase);
-                          const vrTotal = calculateItemValue(formData.vale_refeicao_percent, formData.vale_refeicao_valor, salarioBase);
-                          const planoTotal = calculateItemValue(formData.plano_saude_percent, formData.plano_saude_valor, salarioBase);
-                          const outrosTotal = calculateItemValue(formData.outros_percent, formData.outros_valor, salarioBase);
+                          const fgtsTotal = parseCurrencyValue(formData.fgts_valor);
+                          const inssTotal = parseCurrencyValue(formData.inss_valor);
+                          const ratTotal = parseCurrencyValue(formData.rat_valor);
+                          const feriasTotal = parseCurrencyValue(formData.ferias_valor);
+                          const vtTotal = parseCurrencyValue(formData.vale_transporte_valor);
+                          const vaTotal = parseCurrencyValue(formData.vale_alimentacao_valor);
+                          const vrTotal = parseCurrencyValue(formData.vale_refeicao_valor);
+                          const planoTotal = parseCurrencyValue(formData.plano_saude_valor);
+                          const outrosTotal = parseCurrencyValue(formData.outros_valor);
                           
                           const total = Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
                           
