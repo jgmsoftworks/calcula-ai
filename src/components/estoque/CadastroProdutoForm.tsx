@@ -318,7 +318,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                 </div>
 
                 {/* Marca e Categoria lado a lado */}
-                <div className="flex gap-4">
+                <div className="flex gap-6">
                   <div className="flex-1 space-y-2">
                     <Label htmlFor="marcas" className="text-sm font-medium text-foreground">Marca</Label>
                     <MarcasSelector
@@ -337,7 +337,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                 </div>
 
                 {/* Códigos */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
                     <Input

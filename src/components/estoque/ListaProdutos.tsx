@@ -219,17 +219,25 @@ export const ListaProdutos = () => {
       case 'nome':
         return <span className="font-medium">{produto.nome}</span>;
       case 'marca':
-        return produto.marcas?.map((marca, idx) => (
-          <Badge key={idx} variant="outline" className="mr-1 border-primary/40 text-primary">
-            {marca}
-          </Badge>
-        )) || '-';
+        return produto.marcas && produto.marcas.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {produto.marcas.map((marca, idx) => (
+              <Badge key={idx} variant="outline" className="border-primary/40 text-primary text-xs">
+                {marca}
+              </Badge>
+            ))}
+          </div>
+        ) : '-';
       case 'categoria':
-        return produto.categorias?.map((cat, idx) => (
-          <Badge key={idx} variant="outline" className="mr-1 border-primary/40 text-primary">
-            {cat}
-          </Badge>
-        )) || '-';
+        return produto.categorias && produto.categorias.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {produto.categorias.map((cat, idx) => (
+              <Badge key={idx} variant="outline" className="border-primary/40 text-primary text-xs">
+                {cat}
+              </Badge>
+            ))}
+          </div>
+        ) : '-';
       case 'codigo_interno':
         return produto.codigo_interno || '-';
       case 'codigo_barras':

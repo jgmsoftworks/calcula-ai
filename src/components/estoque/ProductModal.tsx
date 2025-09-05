@@ -411,7 +411,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Marca e Categoria lado a lado */}
-                <div className="flex gap-4">
+                <div className="flex gap-6">
                   <div className="flex-1 space-y-2">
                     <Label className="text-sm font-medium text-foreground">Marca</Label>
                     <MarcasSelector
@@ -430,16 +430,15 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Códigos */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
                     <Input
                       id="codigo_interno"
                       value={formData.codigo_interno}
                       onChange={(e) => handleInputChange('codigo_interno', e.target.value)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center bg-primary/5"
+                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                       placeholder="121212"
-                      readOnly
                     />
                   </div>
                   <div className="space-y-2">
