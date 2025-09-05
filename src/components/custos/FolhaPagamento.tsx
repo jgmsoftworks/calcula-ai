@@ -277,24 +277,12 @@ export function FolhaPagamento() {
     return Math.round((horasDia * diasSemana * semanasMes) * 100) / 100;
   };
 
-  // Calcular custo por hora
+  // Calcular custo por hora (baseado apenas no valor da mão de obra)
   const calculateCustoPorHora = () => {
     const salarioBase = parseCurrencyValue(formData.salario_base);
-    
-    const fgtsTotal = parseCurrencyValue(formData.fgts_valor);
-    const inssTotal = parseCurrencyValue(formData.inss_valor);
-    const ratTotal = parseCurrencyValue(formData.rat_valor);
-    const feriasTotal = parseCurrencyValue(formData.ferias_valor);
-    const vtTotal = parseCurrencyValue(formData.vale_transporte_valor);
-    const vaTotal = parseCurrencyValue(formData.vale_alimentacao_valor);
-    const vrTotal = parseCurrencyValue(formData.vale_refeicao_valor);
-    const planoTotal = parseCurrencyValue(formData.plano_saude_valor);
-    const outrosTotal = parseCurrencyValue(formData.outros_valor);
-    
-    const custoTotal = salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal;
     const horasTotais = calculateHorasTotais();
     
-    return horasTotais > 0 ? Math.round((custoTotal / horasTotais) * 100) / 100 : 0;
+    return horasTotais > 0 ? Math.round((salarioBase / horasTotais) * 100) / 100 : 0;
   };
 
   // Handler para campos de horas
