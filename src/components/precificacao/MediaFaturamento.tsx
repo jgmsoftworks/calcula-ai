@@ -1,16 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, TrendingUp, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { format, subMonths, isAfter, isBefore, startOfMonth, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useToast } from '@/hooks/use-toast';
+
+interface FaturamentoHistorico {
+  id: string;
+  valor: number;
+  mes: Date;
+}
 
 export function MediaFaturamento() {
-  const [faturamento, setFaturamento] = useState({
-    vendas_dia: '',
-    ticket_medio: '',
-    dias_funcionamento: '22'
+  const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
+  const [filtroPeriodo, setFiltroPeriodo] = useState<string>('todos');
+  const [novoFaturamento, setNovoFaturamento] = useState({
+    valor: '',
+    mes: undefined as Date | undefined
   });
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const carregarFaturamentos = async () => {
+      const config = await loadConfiguration('faturamentos_historicos');
+      if (config && Array.isArray(config)) {
+        const faturamentos = config.map((f: any) => ({
+          ...f,
+          mes: new Date(f.mes)
+        }));
+        setFaturamentosHistoricos(faturamentos);
+      }
+    };
+    carregarFaturamentos();
+  }, [loadConfiguration]);
+
+  const salvarFaturamentos = async (faturamentos: FaturamentoHistorico[]) => {
+    await saveConfiguration('faturamentos_historicos', faturamentos);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -34,108 +70,212 @@ export function MediaFaturamento() {
     return isNaN(parsed) ? 0 : Math.max(0, parsed);
   };
 
-  const handleValueChange = (field: string, inputValue: string) => {
+  const handleValueChange = (inputValue: string) => {
     const numericValue = inputValue.replace(/\D/g, '');
     const numberValue = parseInt(numericValue || '0') / 100;
     const formattedValue = formatCurrencyInput(numberValue);
     
-    setFaturamento({ ...faturamento, [field]: formattedValue });
+    setNovoFaturamento({ ...novoFaturamento, valor: formattedValue });
   };
 
-  const calcularMediaMensal = () => {
-    const vendasDia = parseInputValue(faturamento.vendas_dia);
-    const ticketMedio = parseInputValue(faturamento.ticket_medio);
-    const diasFuncionamento = parseFloat(faturamento.dias_funcionamento) || 0;
+  const adicionarFaturamento = () => {
+    if (!novoFaturamento.valor || !novoFaturamento.mes) {
+      toast({
+        title: "Dados incompletos",
+        description: "Preencha o valor e selecione o mês",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const valor = parseInputValue(novoFaturamento.valor);
+    if (valor <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "O valor deve ser maior que zero",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const novoItem: FaturamentoHistorico = {
+      id: Date.now().toString(),
+      valor,
+      mes: novoFaturamento.mes
+    };
+
+    const novosFaturamentos = [...faturamentosHistoricos, novoItem]
+      .sort((a, b) => b.mes.getTime() - a.mes.getTime());
     
-    const faturamentoDiario = vendasDia * ticketMedio;
-    const faturamentoMensal = faturamentoDiario * diasFuncionamento;
+    setFaturamentosHistoricos(novosFaturamentos);
+    salvarFaturamentos(novosFaturamentos);
+    setNovoFaturamento({ valor: '', mes: undefined });
     
+    toast({
+      title: "Faturamento adicionado",
+      description: "Dados salvos com sucesso"
+    });
+  };
+
+  const removerFaturamento = (id: string) => {
+    const novosFaturamentos = faturamentosHistoricos.filter(f => f.id !== id);
+    setFaturamentosHistoricos(novosFaturamentos);
+    salvarFaturamentos(novosFaturamentos);
+    
+    toast({
+      title: "Faturamento removido",
+      description: "Item removido com sucesso"
+    });
+  };
+
+  const getFaturamentosFiltrados = () => {
+    if (filtroPeriodo === 'todos') return faturamentosHistoricos;
+
+    const hoje = new Date();
+    let dataLimite: Date;
+
+    switch (filtroPeriodo) {
+      case '1':
+        dataLimite = subMonths(hoje, 1);
+        break;
+      case '3':
+        dataLimite = subMonths(hoje, 3);
+        break;
+      case '6':
+        dataLimite = subMonths(hoje, 6);
+        break;
+      case '12':
+        dataLimite = subMonths(hoje, 12);
+        break;
+      default:
+        return faturamentosHistoricos;
+    }
+
+    return faturamentosHistoricos.filter(f => 
+      isAfter(f.mes, startOfMonth(dataLimite)) || 
+      f.mes.getMonth() === startOfMonth(dataLimite).getMonth()
+    );
+  };
+
+  const calcularEstatisticas = () => {
+    const faturamentosFiltrados = getFaturamentosFiltrados();
+    
+    if (faturamentosFiltrados.length === 0) {
+      return {
+        mediaFaturamento: 0,
+        totalFaturamento: 0,
+        maiorFaturamento: 0,
+        menorFaturamento: 0,
+        quantidadeMeses: 0
+      };
+    }
+
+    const valores = faturamentosFiltrados.map(f => f.valor);
+    const totalFaturamento = valores.reduce((acc, valor) => acc + valor, 0);
+    const mediaFaturamento = totalFaturamento / valores.length;
+    const maiorFaturamento = Math.max(...valores);
+    const menorFaturamento = Math.min(...valores);
+
     return {
-      faturamentoDiario,
-      faturamentoMensal,
-      vendasMensais: vendasDia * diasFuncionamento
+      mediaFaturamento,
+      totalFaturamento,
+      maiorFaturamento,
+      menorFaturamento,
+      quantidadeMeses: valores.length
     };
   };
 
-  const { faturamentoDiario, faturamentoMensal, vendasMensais } = calcularMediaMensal();
+  const { mediaFaturamento, totalFaturamento, maiorFaturamento, menorFaturamento, quantidadeMeses } = calcularEstatisticas();
 
   return (
     <div className="space-y-6">
+      {/* Formulário para adicionar faturamento */}
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary mb-1">
-            Média de Faturamento
+            Lançar Faturamento
           </CardTitle>
           <p className="text-muted-foreground text-sm">
-            Configure os dados do seu negócio para calcular a média de faturamento mensal
+            Adicione os faturamentos mensais que já aconteceram
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="vendas-dia">Vendas por dia</Label>
-              <div className="relative">
-                <Input
-                  id="vendas-dia"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={faturamento.vendas_dia}
-                  onChange={(e) => setFaturamento({ ...faturamento, vendas_dia: e.target.value })}
-                  placeholder="0"
-                  className="pr-12"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                  vendas
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ticket-medio">Ticket médio</Label>
+              <Label htmlFor="valor-faturamento">Valor do Faturamento</Label>
               <Input
-                id="ticket-medio"
+                id="valor-faturamento"
                 type="text"
-                value={faturamento.ticket_medio}
-                onChange={(e) => handleValueChange('ticket_medio', e.target.value)}
+                value={novoFaturamento.valor}
+                onChange={(e) => handleValueChange(e.target.value)}
                 placeholder="0,00"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dias-funcionamento">Dias de funcionamento/mês</Label>
-              <div className="relative">
-                <Input
-                  id="dias-funcionamento"
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={faturamento.dias_funcionamento}
-                  onChange={(e) => setFaturamento({ ...faturamento, dias_funcionamento: e.target.value })}
-                  placeholder="22"
-                  className="pr-12"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                  dias
-                </span>
-              </div>
+              <Label>Mês/Ano</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !novoFaturamento.mes && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {novoFaturamento.mes ? (
+                      format(novoFaturamento.mes, "MMMM 'de' yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Selecione o mês</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={novoFaturamento.mes}
+                    onSelect={(date) => {
+                      setNovoFaturamento({ ...novoFaturamento, mes: date });
+                      setIsCalendarOpen(false);
+                    }}
+                    disabled={(date) => isAfter(date, new Date())}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label>&nbsp;</Label>
+              <Button onClick={adicionarFaturamento} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Resultados */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Filtros e Estatísticas */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Faturamento Diário</p>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(faturamentoDiario)}
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label>Período de Análise</Label>
+              <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Último mês</SelectItem>
+                  <SelectItem value="3">Últimos 3 meses</SelectItem>
+                  <SelectItem value="6">Últimos 6 meses</SelectItem>
+                  <SelectItem value="12">Últimos 12 meses</SelectItem>
+                  <SelectItem value="todos">Todos os lançamentos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -145,9 +285,23 @@ export function MediaFaturamento() {
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-primary" />
               <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Vendas Mensais</p>
+                <p className="text-sm font-medium leading-none">Média Mensal</p>
                 <p className="text-2xl font-bold text-primary">
-                  {vendasMensais.toLocaleString('pt-BR')} vendas
+                  {formatCurrency(mediaFaturamento)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-none">Total do Período</p>
+                <p className="text-2xl font-bold text-primary">
+                  {formatCurrency(totalFaturamento)}
                 </p>
               </div>
             </div>
@@ -159,15 +313,63 @@ export function MediaFaturamento() {
             <div className="flex items-center space-x-2">
               <CalendarDays className="h-5 w-5 text-primary" />
               <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Faturamento Mensal</p>
+                <p className="text-sm font-medium leading-none">Meses Analisados</p>
                 <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(faturamentoMensal)}
+                  {quantidadeMeses}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Lista de Faturamentos */}
+      {faturamentosHistoricos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Faturamentos Lançados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {getFaturamentosFiltrados().map((faturamento) => (
+                <div key={faturamento.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">
+                        {format(faturamento.mes, "MMMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(faturamento.valor)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removerFaturamento(faturamento.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {faturamentosHistoricos.length === 0 && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum faturamento lançado</h3>
+            <p className="text-muted-foreground">
+              Adicione seus faturamentos mensais para calcular a média histórica
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
