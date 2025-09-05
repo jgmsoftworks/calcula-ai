@@ -260,6 +260,20 @@ export function DespesasFixas() {
             </div>
           </div>
           <div className="space-y-2">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
+                selectedCategory === null
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted/50 text-muted-foreground'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>Todas</span>
+                <span className="text-xs">{formatCurrency(getTotalDespesas())}</span>
+              </div>
+            </button>
+            
             {categorias.map((categoria) => (
               <button
                 key={categoria.id}
