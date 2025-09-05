@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Calendar, Package, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -43,9 +42,7 @@ export function DespesasFixas() {
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
-    valor: '',
-    vencimento: '',
-    categoria_id: ''
+    valor: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -111,9 +108,7 @@ export function DespesasFixas() {
         user_id: user.id,
         nome: formData.nome,
         descricao: formData.descricao || null,
-        valor: parseFloat(formData.valor),
-        vencimento: formData.vencimento ? parseInt(formData.vencimento) : null,
-        categoria_id: formData.categoria_id || null,
+        valor: parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0,
         ativo: true
       };
 
@@ -144,7 +139,7 @@ export function DespesasFixas() {
 
       setIsModalOpen(false);
       setEditingDespesa(null);
-      setFormData({ nome: '', descricao: '', valor: '', vencimento: '', categoria_id: '' });
+      setFormData({ nome: '', descricao: '', valor: '' });
       loadDespesas();
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
@@ -161,9 +156,7 @@ export function DespesasFixas() {
     setFormData({
       nome: despesa.nome,
       descricao: despesa.descricao || '',
-      valor: despesa.valor.toString(),
-      vencimento: despesa.vencimento?.toString() || '',
-      categoria_id: despesa.categoria_id || ''
+      valor: formatCurrencyInput(despesa.valor)
     });
     setIsModalOpen(true);
   };
@@ -195,7 +188,7 @@ export function DespesasFixas() {
 
   const handleNewDespesa = () => {
     setEditingDespesa(null);
-    setFormData({ nome: '', descricao: '', valor: '', vencimento: '', categoria_id: '' });
+    setFormData({ nome: '', descricao: '', valor: '' });
     setIsModalOpen(true);
   };
 
@@ -204,6 +197,27 @@ export function DespesasFixas() {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
+  };
+
+  const formatCurrencyInput = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
+  const handleValueChange = (inputValue: string) => {
+    // Remove tudo que não é dígito
+    const numericValue = inputValue.replace(/\D/g, '');
+    
+    // Converte para número dividindo por 100 (para ter centavos)
+    const numberValue = parseInt(numericValue || '0') / 100;
+    
+    // Formata como moeda brasileira
+    const formattedValue = formatCurrencyInput(numberValue);
+    
+    setFormData({ ...formData, valor: formattedValue });
   };
 
   const getTotalDespesas = () => {
@@ -428,11 +442,8 @@ export function DespesasFixas() {
               <Label htmlFor="valor">Valor</Label>
               <Input
                 id="valor"
-                type="number"
-                step="0.01"
-                min="0"
                 value={formData.valor}
-                onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                onChange={(e) => handleValueChange(e.target.value)}
                 placeholder="0,00"
                 className="mt-1"
               />
@@ -445,37 +456,6 @@ export function DespesasFixas() {
                 onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                 placeholder="Descrição adicional..."
                 className="mt-1 min-h-[80px]"
-              />
-            </div>
-            <div>
-              <Label htmlFor="categoria">Categoria (opcional)</Label>
-              <Select
-                value={formData.categoria_id}
-                onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorias.map((categoria) => (
-                    <SelectItem key={categoria.id} value={categoria.id}>
-                      {categoria.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="vencimento">Dia do vencimento (opcional)</Label>
-              <Input
-                id="vencimento"
-                type="number"
-                min="1"
-                max="31"
-                value={formData.vencimento}
-                onChange={(e) => setFormData({ ...formData, vencimento: e.target.value })}
-                placeholder="Ex: 5, 10, 15..."
-                className="mt-1"
               />
             </div>
             <div className="flex gap-3 pt-2">
