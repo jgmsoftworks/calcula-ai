@@ -43,7 +43,6 @@ export const EncargosVenda = () => {
   });
 
   const [cartaoParcelado, setCartaoParcelado] = useState<CartaoParcelado[]>([]);
-  const [parcelaSelecionada, setParcelaSelecionada] = useState<string>('');
 
   // GRUPO 3 - COMISSÕES E PLATAFORMAS
   const [comissoes, setComissoes] = useState({
@@ -122,13 +121,10 @@ export const EncargosVenda = () => {
       total += calcularValor(item.percentual, item.valorFixo);
     });
 
-    // Cartão Parcelado (apenas a parcela selecionada)
-    if (parcelaSelecionada) {
-      const parcela = cartaoParcelado.find(p => p.id === parcelaSelecionada);
-      if (parcela) {
-        total += calcularValor(parcela.percentual, parcela.valorFixo);
-      }
-    }
+    // Cartão Parcelado
+    cartaoParcelado.forEach(parcela => {
+      total += calcularValor(parcela.percentual, parcela.valorFixo);
+    });
 
     // GRUPO 3 - COMISSÕES
     Object.values(comissoes).forEach(item => {
@@ -141,7 +137,7 @@ export const EncargosVenda = () => {
     });
 
     return Math.round(total * 100) / 100;
-  }, [impostos, meiosPagamento, cartaoParcelado, parcelaSelecionada, comissoes, outrosItens, calcularValor]);
+  }, [impostos, meiosPagamento, cartaoParcelado, comissoes, outrosItens, calcularValor]);
 
   const adicionarParcela = () => {
     const novaId = Date.now().toString();
@@ -155,9 +151,6 @@ export const EncargosVenda = () => {
 
   const removerParcela = (id: string) => {
     setCartaoParcelado(cartaoParcelado.filter(p => p.id !== id));
-    if (parcelaSelecionada === id) {
-      setParcelaSelecionada('');
-    }
   };
 
   const adicionarOutroItem = () => {
@@ -360,48 +353,21 @@ export const EncargosVenda = () => {
             onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoCredito: {...meiosPagamento.cartaoCredito, valorFixo: value}})}
           />
 
-          {/* Cartão de crédito parcelado */}
-          <div className="border-t pt-3">
-            <div className="flex items-center justify-between mb-3">
-              <Label className="font-medium text-xs">Cartão de crédito parcelado</Label>
-              <Button onClick={adicionarParcela} variant="outline" size="sm" className="gap-1 h-7 text-xs">
-                <Plus className="h-3 w-3" />
-                Parcela
-              </Button>
-            </div>
-
-            {cartaoParcelado.length > 0 && (
-              <div className="space-y-2 mb-3">
-                <Label className="text-xs">Selecionar parcela:</Label>
-                <Select value={parcelaSelecionada} onValueChange={setParcelaSelecionada}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Nenhuma parcela selecionada" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cartaoParcelado.map((parcela) => (
-                      <SelectItem key={parcela.id} value={parcela.id}>
-                        {parcela.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Cartão de crédito parcelado */}
+            <div className="border-t pt-3">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="font-medium text-xs">Cartão de crédito parcelado</Label>
+                <Button onClick={adicionarParcela} variant="outline" size="sm" className="gap-1 h-7 text-xs">
+                  <Plus className="h-3 w-3" />
+                  Parcela
+                </Button>
               </div>
-            )}
 
-            {cartaoParcelado.map((parcela) => (
-              <div key={parcela.id} className="grid grid-cols-4 gap-2 items-center mb-2">
-                <Input
-                  value={parcela.nome}
-                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                    p.id === parcela.id ? {...p, nome: e.target.value} : p
-                  ))}
-                  placeholder="2x, 3x..."
-                  className="h-8 text-xs"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                />
+              {cartaoParcelado.map((parcela) => (
+                <div key={parcela.id} className="grid grid-cols-4 gap-2 items-center mb-2">
+                  <div className="flex items-center h-8 px-3 bg-muted/50 rounded text-xs font-medium">
+                    {parcela.nome}
+                  </div>
                 <div className="relative">
                   <Input
                     type="text"
