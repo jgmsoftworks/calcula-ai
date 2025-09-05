@@ -708,8 +708,8 @@ export function FolhaPagamento() {
               <TableHead>Nome</TableHead>
               <TableHead>Cargo</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Salário Base</TableHead>
-              <TableHead>Custo Total</TableHead>
+              <TableHead>Valor da Mão de Obra</TableHead>
+              <TableHead>Valor Total do Funcionário</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
