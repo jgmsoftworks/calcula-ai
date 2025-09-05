@@ -352,15 +352,14 @@ export function DespesasFixas() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Valor (R$)</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Valor (R$)</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {filteredDespesas.map((despesa) => {
                     const categoria = categorias.find(c => c.id === despesa.categoria_id);
@@ -379,39 +378,30 @@ export function DespesasFixas() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="font-semibold text-lg">{formatCurrency(despesa.valor)}</TableCell>
-                      <TableCell>
-                        {despesa.vencimento ? (
-                          <Badge variant="outline" className="gap-1">
-                            <Calendar className="h-3 w-3" />
-                            Dia {despesa.vencimento}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(despesa)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(despesa.id)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )})})
+                       <TableCell className="font-semibold text-lg">{formatCurrency(despesa.valor)}</TableCell>
+                       <TableCell className="text-right">
+                         <div className="flex justify-end gap-1">
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             onClick={() => handleEdit(despesa)}
+                             className="h-8 w-8 p-0"
+                           >
+                             <Edit className="h-4 w-4" />
+                           </Button>
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             onClick={() => handleDelete(despesa.id)}
+                             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         </div>
+                       </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
