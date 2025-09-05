@@ -159,6 +159,9 @@ export function CategoriasDespesasModal({
                 placeholder="Ex: Moradia, Transporte, Alimentação..."
                 className="mt-1"
               />
+              <p className="text-sm text-muted-foreground mt-2">
+                Organize suas despesas criando categorias personalizadas para melhor controle financeiro.
+              </p>
             </div>
             <Button 
               type="submit" 
