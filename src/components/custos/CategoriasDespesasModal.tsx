@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 interface CategoriasDespesas {
   id: string;
   nome: string;
+  descricao?: string;
   ativo: boolean;
   created_at: string;
 }
@@ -37,6 +38,7 @@ export function CategoriasDespesasModal({
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingNome, setEditingNome] = useState('');
+  const [editingDescricao, setEditingDescricao] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const { user } = useAuth();
   const { toast } = useToast();
@@ -56,6 +58,7 @@ export function CategoriasDespesasModal({
         .insert({
           user_id: user.id,
           nome: novaCategoria.trim(),
+          descricao: descricaoCategoria.trim() || null,
           ativo: true
         })
         .select()
@@ -65,6 +68,7 @@ export function CategoriasDespesasModal({
 
       onCategoriaCreated(data);
       setNovaCategoria('');
+      setDescricaoCategoria('');
       toast({
         title: "Categoria criada",
         description: "Nova categoria de despesa fixa criada com sucesso"
@@ -84,6 +88,7 @@ export function CategoriasDespesasModal({
   const handleEdit = (categoria: CategoriasDespesas) => {
     setEditingId(categoria.id);
     setEditingNome(categoria.nome);
+    setEditingDescricao(categoria.descricao || '');
   };
 
   const handleSaveEdit = async () => {
@@ -92,13 +97,18 @@ export function CategoriasDespesasModal({
     try {
       const { error } = await supabase
         .from('categorias_despesas_fixas')
-        .update({ nome: editingNome.trim() })
+        .update({ 
+          nome: editingNome.trim(),
+          descricao: editingDescricao.trim() || null
+        })
         .eq('id', editingId);
 
       if (error) throw error;
 
       setEditingId(null);
       setEditingNome('');
+      setEditingDescricao('');
+      onCategoriaUpdated();
       onCategoriaUpdated();
       toast({
         title: "Categoria atualizada",
@@ -117,6 +127,7 @@ export function CategoriasDespesasModal({
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingNome('');
+    setEditingDescricao('');
   };
 
   const handleDelete = async (id: string) => {
@@ -200,33 +211,46 @@ export function CategoriasDespesasModal({
                   <div key={categoria.id} className="flex items-center gap-2 p-3 bg-muted/30 rounded border">
                     {editingId === categoria.id ? (
                       <>
-                        <Input
-                          value={editingNome}
-                          onChange={(e) => setEditingNome(e.target.value)}
-                          className="flex-1"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleSaveEdit}
-                          className="h-8 px-2 text-green-600 hover:text-green-700"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancelEdit}
-                          className="h-8 px-2"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex-1 space-y-2">
+                          <Input
+                            value={editingNome}
+                            onChange={(e) => setEditingNome(e.target.value)}
+                            placeholder="Nome da categoria"
+                            autoFocus
+                          />
+                          <Textarea
+                            value={editingDescricao}
+                            onChange={(e) => setEditingDescricao(e.target.value)}
+                            placeholder="Descrição (opcional)"
+                            className="min-h-[60px]"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleSaveEdit}
+                            className="h-8 px-2 text-green-600 hover:text-green-700"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            className="h-8 px-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </>
                     ) : (
                       <>
                         <div className="flex-1">
-                          <span className="font-medium">{categoria.nome}</span>
+                          <div className="font-medium">{categoria.nome}</div>
+                          {categoria.descricao && (
+                            <div className="text-sm text-muted-foreground mt-1">{categoria.descricao}</div>
+                          )}
                         </div>
                         <Button
                           size="sm"
