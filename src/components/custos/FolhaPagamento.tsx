@@ -251,7 +251,8 @@ export function FolhaPagamento() {
 
   // Handler para mudança no salário base
   const handleSalarioBaseChange = (value: string) => {
-    setFormData({ ...formData, salario_base: value });
+    const formattedValue = formatCurrencyInput(value);
+    setFormData({ ...formData, salario_base: formattedValue });
   };
 
   // Handler para mudança em percentual
