@@ -133,10 +133,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       
       setSelectedImage(product.imagem_url || null);
       
-      // Formatar valores monetários
+      // Formatar valores monetários - usar formatCurrencyFromDB para valores do banco
       setCurrencyInputs({
-        custo_total: formatCurrency(((product.custo_total || 0)).toString()),
-        custo_unitario: formatCurrency(((product.custo_unitario || 0)).toString())
+        custo_total: formatCurrencyFromDB(product.custo_total || 0),
+        custo_unitario: formatCurrencyFromDB(product.custo_unitario || 0)
       });
     }
   }, [product]);
@@ -161,6 +161,14 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     if (!numbers) return '';
     const amount = parseFloat(numbers) / 100;
     return amount.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  };
+
+  // Função para formatar valores que já estão em reais (vindos do banco)
+  const formatCurrencyFromDB = (value: number) => {
+    return value.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     });
