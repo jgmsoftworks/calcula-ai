@@ -63,6 +63,14 @@ export const EncargosVenda = () => {
     }).format(value);
   };
 
+  const formatCurrencyInput = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   const parseInputValue = (value: string) => {
     if (!value || value === '') return 0;
     // Remove formatação brasileira (pontos e transforma vírgula em ponto)
@@ -74,9 +82,22 @@ export const EncargosVenda = () => {
   const formatBrazilianNumber = (value: number) => {
     if (value === 0) return '';
     return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
+  };
+
+  const handleValueInputChange = (inputValue: string, onChange: (value: number) => void) => {
+    // Remove tudo que não é dígito
+    const numericValue = inputValue.replace(/\D/g, '');
+    
+    // Converte para número dividindo por 100 (para ter centavos)
+    const numberValue = parseInt(numericValue || '0') / 100;
+    
+    // Chama o callback para atualizar o estado
+    onChange(numberValue);
+    
+    return formatBrazilianNumber(numberValue);
   };
 
   const calcularValor = useCallback((percentual: number, valorFixo: number) => {
@@ -169,14 +190,13 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`perc-${percentual}`}
-          defaultValue={formatBrazilianNumber(percentual)}
-          onBlur={(e) => {
-            const parsed = parseInputValue(e.target.value);
-            onPercentualChange(parsed);
-            e.target.value = formatBrazilianNumber(parsed);
+          value={formatBrazilianNumber(percentual)}
+          onChange={(e) => {
+            const formatted = handleValueInputChange(e.target.value, onPercentualChange);
+            e.target.value = formatted;
           }}
           className="text-right h-8 text-xs pr-6"
-          placeholder="0"
+          placeholder="0,00"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
@@ -189,14 +209,13 @@ export const EncargosVenda = () => {
         <Input
           type="text"
           key={`valor-${valorFixo}`}
-          defaultValue={formatBrazilianNumber(valorFixo)}
-          onBlur={(e) => {
-            const parsed = parseInputValue(e.target.value);
-            onValorFixoChange(parsed);
-            e.target.value = formatBrazilianNumber(parsed);
+          value={formatBrazilianNumber(valorFixo)}
+          onChange={(e) => {
+            const formatted = handleValueInputChange(e.target.value, onValorFixoChange);
+            e.target.value = formatted;
           }}
           className="text-right h-8 text-xs pl-8"
-          placeholder="0"
+          placeholder="0,00"
           autoComplete="off"
           autoCapitalize="off"
           autoCorrect="off"
