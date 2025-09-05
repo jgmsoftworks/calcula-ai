@@ -230,6 +230,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         estoque_atual: formData.estoque_atual,
         estoque_minimo: formData.estoque_minimo,
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
+        imagem_url: selectedImage, // Adicionar a imagem selecionada
         user_id: user?.id,
         ativo: formData.ativo
       };
