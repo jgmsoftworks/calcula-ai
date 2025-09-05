@@ -9,7 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit, Power, Search, Trash2 } from 'lucide-react';
+import { Edit, Search, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { ProductModal } from './ProductModal';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
 
@@ -248,18 +249,15 @@ export const ListaProdutos = () => {
         return produto.estoque_minimo || 0;
       case 'status':
         return (
-          <div className="flex items-center gap-2">
-            <Badge variant={produto.ativo ? "default" : "secondary"} className={produto.ativo ? "bg-primary" : ""}>
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={produto.ativo}
+              onCheckedChange={() => toggleProdutoAtivo(produto)}
+              className="data-[state=checked]:bg-primary"
+            />
+            <span className={`text-sm font-medium ${produto.ativo ? 'text-primary' : 'text-muted-foreground'}`}>
               {produto.ativo ? 'Ativo' : 'Inativo'}
-            </Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => toggleProdutoAtivo(produto)}
-              className={produto.ativo ? "border-destructive/40 text-destructive hover:bg-destructive/10" : "border-primary/40 text-primary hover:bg-primary/10"}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
+            </span>
           </div>
         );
       case 'acoes':

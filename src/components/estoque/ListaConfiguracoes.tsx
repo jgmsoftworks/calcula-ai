@@ -4,8 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, ChevronUp, ChevronDown } from 'lucide-react';
+import { Settings, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 export interface ColunaConfig {
   key: string;
@@ -101,54 +102,83 @@ export const ListaConfiguracoes = ({
             </Select>
           </div>
 
-          {/* Colunas e Ordem */}
-          <div className="space-y-3">
+          {/* Colunas Visíveis */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Colunas e Ordem</Label>
-              <Badge variant="outline" className="text-xs">
-                {colunas.filter(col => col.visible).length}/5
+              <Label className="text-base font-semibold text-primary">Colunas Visíveis</Label>
+              <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30 text-primary">
+                {colunas.filter(col => col.visible).length}/5 selecionadas
               </Badge>
             </div>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            
+            <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
               {colunasOrdenadas.map((coluna, index) => (
-                <div key={coluna.key} className="flex items-center justify-between p-2 border border-primary/20 rounded-md">
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      id={coluna.key}
-                      checked={coluna.visible}
-                      onCheckedChange={() => toggleVisibilidade(coluna.key)}
-                    />
-                    <Label htmlFor={coluna.key} className="text-sm">
-                      {coluna.label}
-                    </Label>
-                    {coluna.visible && (
-                      <Badge variant="secondary" className="text-xs">
-                        {index + 1}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => moveColuna(coluna.key, 'up')}
-                      disabled={index === 0}
-                      className="h-6 w-6 p-0"
-                    >
-                      <ChevronUp className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => moveColuna(coluna.key, 'down')}
-                      disabled={index === colunas.length - 1}
-                      className="h-6 w-6 p-0"
-                    >
-                      <ChevronDown className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
+                <Card key={coluna.key} className={`relative overflow-hidden transition-all duration-200 ${coluna.visible ? 'ring-2 ring-primary/30 bg-primary/5' : 'bg-muted/20'}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
+                          <Switch
+                            id={coluna.key}
+                            checked={coluna.visible}
+                            onCheckedChange={() => toggleVisibilidade(coluna.key)}
+                            className="data-[state=checked]:bg-primary"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center space-x-3">
+                          {coluna.visible ? (
+                            <Eye className="w-4 h-4 text-primary" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <Label htmlFor={coluna.key} className={`text-sm font-medium cursor-pointer ${coluna.visible ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {coluna.label}
+                          </Label>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        {coluna.visible && (
+                          <Badge variant="secondary" className="text-xs px-2 py-1 bg-primary/10 text-primary border border-primary/30">
+                            #{colunas.filter(col => col.visible && col.order <= coluna.order).length}
+                          </Badge>
+                        )}
+                        
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveColuna(coluna.key, 'up')}
+                            disabled={index === 0}
+                            className="h-7 w-7 p-0 hover:bg-primary/10"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveColuna(coluna.key, 'down')}
+                            disabled={index === colunas.length - 1}
+                            className="h-7 w-7 p-0 hover:bg-primary/10"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
+            </div>
+            
+            <div className="text-xs text-muted-foreground text-center p-2 bg-muted/30 rounded-lg">
+              💡 Arraste para reordenar • Máximo de 5 colunas ativas
             </div>
           </div>
         </div>
