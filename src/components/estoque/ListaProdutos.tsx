@@ -346,7 +346,7 @@ export const ListaProdutos = () => {
                       key={coluna.key} 
                       className={`text-primary font-semibold ${
                         coluna.key === 'acoes' || coluna.key === 'status' 
-                          ? 'w-[120px] text-right' 
+                          ? 'w-[120px] text-center' 
                           : ''
                       }`}
                     >
