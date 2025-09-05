@@ -112,7 +112,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
           updated.custo_unitario = custoTotal / totalEmbalagem;
           setCurrencyInputs(prev => ({
             ...prev,
-            custo_unitario: formatCurrency((updated.custo_unitario * 100).toString())
+            custo_unitario: (updated.custo_unitario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           }));
         } else {
           updated.custo_unitario = 0;
