@@ -210,6 +210,54 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
     }).format(value);
   };
 
+  const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
+    const impostos = ['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI'];
+    const meiosPagamento = ['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento'];
+    const comissoes = ['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'];
+
+    if (impostos.includes(nome)) return 'impostos';
+    if (meiosPagamento.includes(nome)) return 'meios_pagamento';
+    if (comissoes.includes(nome)) return 'comissoes';
+    return 'outros';
+  };
+
+  const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
+    const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
+    
+    if (encargosDaCategoria.length === 0) return null;
+
+    return (
+      <div key={categoria} className="space-y-3">
+        <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+          {titulo}
+        </h4>
+        <div className="space-y-2">
+          {encargosDaCategoria.map((encargo) => (
+            <div key={encargo.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex-1">
+                <h5 className="font-medium">{encargo.nome}</h5>
+                <p className="text-sm text-muted-foreground">
+                  {encargo.tipo === 'percentual' ? `${encargo.valor}%` : formatCurrency(encargo.valor)}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor={`encargo-${encargo.id}`}>
+                  {encargo.ativo ? 'Ativo' : 'Inativo'}
+                </Label>
+                <Switch
+                  id={`encargo-${encargo.id}`}
+                  checked={encargo.ativo}
+                  onCheckedChange={(checked) => toggleEncargoVenda(encargo.id, checked)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        {categoria !== 'outros' && <Separator />}
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -363,7 +411,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
               <CardHeader>
                 <CardTitle>Encargos sobre Venda</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {loading ? (
                   <p className="text-muted-foreground text-center py-4">
                     Carregando encargos...
@@ -378,26 +426,12 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                     </p>
                   </div>
                 ) : (
-                  encargosVenda.map((encargo) => (
-                    <div key={encargo.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{encargo.nome}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {encargo.tipo === 'percentual' ? `${encargo.valor}%` : formatCurrency(encargo.valor)}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor={`encargo-${encargo.id}`}>
-                          {encargo.ativo ? 'Ativo' : 'Inativo'}
-                        </Label>
-                        <Switch
-                          id={`encargo-${encargo.id}`}
-                          checked={encargo.ativo}
-                          onCheckedChange={(checked) => toggleEncargoVenda(encargo.id, checked)}
-                        />
-                      </div>
-                    </div>
-                  ))
+                  <>
+                    {renderEncargosPorCategoria('impostos', 'Impostos')}
+                    {renderEncargosPorCategoria('meios_pagamento', 'Taxas de Meios de Pagamento')}
+                    {renderEncargosPorCategoria('comissoes', 'Comissões e Plataformas')}
+                    {renderEncargosPorCategoria('outros', 'Outros')}
+                  </>
                 )}
               </CardContent>
             </Card>
