@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Plus, Trash2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface Produto {
   id: string;
@@ -20,14 +21,27 @@ interface Fornecedor {
   nome: string;
 }
 
+interface ItemEntrada {
+  id: string;
+  produto_id: string;
+  produto_nome: string;
+  produto_unidade: string;
+  quantidade: number;
+  custo_total: number;
+  custo_unitario: number;
+}
+
 export const EntradasForm = () => {
-  const [formData, setFormData] = useState({
+  const [fornecedor_id, setFornecedorId] = useState('');
+  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [observacao, setObservacao] = useState('');
+  const [itensEntrada, setItensEntrada] = useState<ItemEntrada[]>([]);
+  
+  // Formulário para novo item
+  const [novoItem, setNovoItem] = useState({
     produto_id: '',
     quantidade: 0,
-    fornecedor_id: '',
-    data: new Date().toISOString().split('T')[0],
-    custo_unitario: 0,
-    observacao: ''
+    custo_total: 0
   });
   
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -72,17 +86,60 @@ export const EntradasForm = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const adicionarItem = () => {
+    if (!novoItem.produto_id || novoItem.quantidade <= 0 || novoItem.custo_total <= 0) {
+      toast({
+        title: "Dados incompletos",
+        description: "Produto, quantidade e custo total são obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const produto = produtos.find(p => p.id === novoItem.produto_id);
+    if (!produto) return;
+
+    // Verificar se produto já está na lista
+    if (itensEntrada.find(item => item.produto_id === novoItem.produto_id)) {
+      toast({
+        title: "Produto já adicionado",
+        description: "Este produto já está na lista de entradas",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const custo_unitario = novoItem.custo_total / novoItem.quantidade;
+    
+    const novoItemEntrada: ItemEntrada = {
+      id: Math.random().toString(36).substr(2, 9),
+      produto_id: novoItem.produto_id,
+      produto_nome: produto.nome,
+      produto_unidade: produto.unidade,
+      quantidade: novoItem.quantidade,
+      custo_total: novoItem.custo_total,
+      custo_unitario: custo_unitario
+    };
+
+    setItensEntrada(prev => [...prev, novoItemEntrada]);
+    setNovoItem({
+      produto_id: '',
+      quantidade: 0,
+      custo_total: 0
+    });
+  };
+
+  const removerItem = (id: string) => {
+    setItensEntrada(prev => prev.filter(item => item.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.produto_id || !formData.quantidade || formData.quantidade <= 0) {
+    if (itensEntrada.length === 0) {
       toast({
-        title: "Dados obrigatórios",
-        description: "Produto e quantidade são obrigatórios",
+        title: "Nenhum item adicionado",
+        description: "Adicione pelo menos um produto",
         variant: "destructive"
       });
       return;
@@ -90,65 +147,70 @@ export const EntradasForm = () => {
 
     setLoading(true);
     try {
-      // Registrar movimento de entrada
-      const { error: movError } = await supabase
-        .from('movimentacoes')
-        .insert([{
-          produto_id: formData.produto_id,
-          tipo: 'entrada',
-          quantidade: formData.quantidade,
-          custo_unitario: formData.custo_unitario || null,
-          fornecedor_id: formData.fornecedor_id || null,
-          data: formData.data,
-          observacao: formData.observacao || null,
-          user_id: user?.id
-        }]);
+      // Registrar todos os movimentos
+      for (const item of itensEntrada) {
+        // Registrar movimento de entrada
+        const { error: movError } = await supabase
+          .from('movimentacoes')
+          .insert([{
+            produto_id: item.produto_id,
+            tipo: 'entrada',
+            quantidade: item.quantidade,
+            custo_unitario: item.custo_unitario,
+            fornecedor_id: fornecedor_id || null,
+            data: data,
+            observacao: observacao || null,
+            user_id: user?.id
+          }]);
 
-      if (movError) throw movError;
+        if (movError) throw movError;
 
-      // Atualizar estoque do produto
-      const { data: produto, error: prodError } = await supabase
-        .from('produtos')
-        .select('estoque_atual, custo_medio')
-        .eq('id', formData.produto_id)
-        .single();
+        // Atualizar estoque do produto
+        const { data: produto, error: prodError } = await supabase
+          .from('produtos')
+          .select('estoque_atual, custo_medio')
+          .eq('id', item.produto_id)
+          .single();
 
-      if (prodError) throw prodError;
+        if (prodError) throw prodError;
 
-      const novoEstoque = (produto.estoque_atual || 0) + formData.quantidade;
-      
-      // Calcular novo custo médio se foi informado custo unitário
-      let novoCustoMedio = produto.custo_medio;
-      if (formData.custo_unitario > 0) {
+        const novoEstoque = (produto.estoque_atual || 0) + item.quantidade;
+        
+        // Calcular novo custo médio
         const valorEstoqueAtual = (produto.estoque_atual || 0) * (produto.custo_medio || 0);
-        const valorEntrada = formData.quantidade * formData.custo_unitario;
-        novoCustoMedio = novoEstoque > 0 ? (valorEstoqueAtual + valorEntrada) / novoEstoque : formData.custo_unitario;
+        const valorEntrada = item.quantidade * item.custo_unitario;
+        const novoCustoMedio = novoEstoque > 0 ? (valorEstoqueAtual + valorEntrada) / novoEstoque : item.custo_unitario;
+
+        // Atualizar custo total baseado no novo custo médio
+        const novoCustoTotal = novoEstoque * novoCustoMedio;
+
+        const { error: updateError } = await supabase
+          .from('produtos')
+          .update({ 
+            estoque_atual: novoEstoque,
+            custo_medio: novoCustoMedio,
+            custo_total: novoCustoTotal
+          })
+          .eq('id', item.produto_id);
+
+        if (updateError) throw updateError;
       }
 
-      const { error: updateError } = await supabase
-        .from('produtos')
-        .update({ 
-          estoque_atual: novoEstoque,
-          custo_medio: novoCustoMedio
-        })
-        .eq('id', formData.produto_id);
-
-      if (updateError) throw updateError;
-
-      toast({ title: "Entrada registrada com sucesso!" });
+      toast({ title: "Entradas registradas com sucesso!" });
       
       // Reset form
-      setFormData({
+      setItensEntrada([]);
+      setFornecedorId('');
+      setData(new Date().toISOString().split('T')[0]);
+      setObservacao('');
+      setNovoItem({
         produto_id: '',
         quantidade: 0,
-        fornecedor_id: '',
-        data: new Date().toISOString().split('T')[0],
-        custo_unitario: 0,
-        observacao: ''
+        custo_total: 0
       });
     } catch (error: any) {
       toast({
-        title: "Erro ao registrar entrada",
+        title: "Erro ao registrar entradas",
         description: error.message || "Tente novamente",
         variant: "destructive"
       });
@@ -157,14 +219,15 @@ export const EntradasForm = () => {
     }
   };
 
-  const selectedProduct = produtos.find(p => p.id === formData.produto_id);
+  const custoUnitarioCalculado = novoItem.quantidade > 0 ? novoItem.custo_total / novoItem.quantidade : 0;
+  const totalGeral = itensEntrada.reduce((sum, item) => sum + item.custo_total, 0);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-primary">Entradas de Estoque</h2>
         <p className="text-muted-foreground">
-          Registre entradas de produtos no estoque
+          Registre entradas de múltiplos produtos no estoque
         </p>
       </div>
 
@@ -177,50 +240,14 @@ export const EntradasForm = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Produto */}
-              <div className="space-y-2">
-                <Label htmlFor="produto" className="text-sm font-medium">Produto *</Label>
-                <Select
-                  value={formData.produto_id}
-                  onValueChange={(value) => handleInputChange('produto_id', value)}
-                >
-                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
-                    <SelectValue placeholder="Selecione um produto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {produtos.map((produto) => (
-                      <SelectItem key={produto.id} value={produto.id}>
-                        {produto.nome} ({produto.unidade})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Quantidade */}
-              <div className="space-y-2">
-                <Label htmlFor="quantidade" className="text-sm font-medium">
-                  Quantidade * {selectedProduct && `(${selectedProduct.unidade})`}
-                </Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={formData.quantidade}
-                  onChange={(e) => handleInputChange('quantidade', parseFloat(e.target.value) || 0)}
-                  className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="0"
-                />
-              </div>
-
+            {/* Dados gerais da entrada */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-muted/30">
               {/* Fornecedor */}
               <div className="space-y-2">
                 <Label htmlFor="fornecedor" className="text-sm font-medium">Fornecedor</Label>
                 <Select
-                  value={formData.fornecedor_id}
-                  onValueChange={(value) => handleInputChange('fornecedor_id', value)}
+                  value={fornecedor_id}
+                  onValueChange={setFornecedorId}
                 >
                   <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
                     <SelectValue placeholder="Selecione um fornecedor" />
@@ -241,47 +268,158 @@ export const EntradasForm = () => {
                 <Input
                   id="data"
                   type="date"
-                  value={formData.data}
-                  onChange={(e) => handleInputChange('data', e.target.value)}
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
                   className="border-2 border-primary/30 focus:border-primary"
                 />
               </div>
 
-              {/* Custo Unitário */}
-              <div className="space-y-2">
-                <Label htmlFor="custo" className="text-sm font-medium">Custo Unitário (R$)</Label>
+              {/* Observação */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="observacao" className="text-sm font-medium">Observação</Label>
                 <Input
-                  id="custo"
+                  id="observacao"
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                  className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="Observações gerais sobre a entrada..."
+                />
+              </div>
+            </div>
+
+            {/* Formulário para adicionar produtos */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-secondary/10">
+              {/* Produto */}
+              <div className="space-y-2">
+                <Label htmlFor="produto" className="text-sm font-medium">Produto *</Label>
+                <Select
+                  value={novoItem.produto_id}
+                  onValueChange={(value) => setNovoItem(prev => ({ ...prev, produto_id: value }))}
+                >
+                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
+                    <SelectValue placeholder="Produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {produtos.filter(p => !itensEntrada.find(item => item.produto_id === p.id)).map((produto) => (
+                      <SelectItem key={produto.id} value={produto.id}>
+                        {produto.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quantidade */}
+              <div className="space-y-2">
+                <Label htmlFor="quantidade" className="text-sm font-medium">Quantidade *</Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={novoItem.quantidade || ''}
+                  onChange={(e) => setNovoItem(prev => ({ ...prev, quantidade: parseFloat(e.target.value) || 0 }))}
+                  className="border-2 border-primary/30 focus:border-primary"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Custo Total */}
+              <div className="space-y-2">
+                <Label htmlFor="custo_total" className="text-sm font-medium">Custo Total (R$) *</Label>
+                <Input
+                  id="custo_total"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.custo_unitario}
-                  onChange={(e) => handleInputChange('custo_unitario', parseFloat(e.target.value) || 0)}
+                  value={novoItem.custo_total || ''}
+                  onChange={(e) => setNovoItem(prev => ({ ...prev, custo_total: parseFloat(e.target.value) || 0 }))}
                   className="border-2 border-primary/30 focus:border-primary"
                   placeholder="0,00"
                 />
               </div>
+
+              {/* Custo Unitário (calculado) */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Custo Unitário (R$)</Label>
+                <Input
+                  type="text"
+                  value={custoUnitarioCalculado.toFixed(2)}
+                  readOnly
+                  className="border-2 border-muted bg-muted/50"
+                />
+              </div>
+
+              {/* Botão Adicionar */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium invisible">Adicionar</Label>
+                <Button
+                  type="button"
+                  onClick={adicionarItem}
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
-            {/* Observação */}
-            <div className="space-y-2">
-              <Label htmlFor="observacao" className="text-sm font-medium">Observação</Label>
-              <Input
-                id="observacao"
-                value={formData.observacao}
-                onChange={(e) => handleInputChange('observacao', e.target.value)}
-                className="border-2 border-primary/30 focus:border-primary"
-                placeholder="Observações sobre a entrada..."
-              />
-            </div>
+            {/* Lista de produtos adicionados */}
+            {itensEntrada.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Produtos Adicionados</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Custo Total</TableHead>
+                        <TableHead>Custo Unitário</TableHead>
+                        <TableHead className="w-16"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {itensEntrada.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{item.produto_nome}</div>
+                              <div className="text-sm text-muted-foreground">({item.produto_unidade})</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{item.quantidade.toFixed(2)}</TableCell>
+                          <TableCell>R$ {item.custo_total.toFixed(2)}</TableCell>
+                          <TableCell>R$ {item.custo_unitario.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removerItem(item.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="font-medium bg-muted/50">
+                        <TableCell colSpan={2}>Total Geral:</TableCell>
+                        <TableCell>R$ {totalGeral.toFixed(2)}</TableCell>
+                        <TableCell colSpan={2}></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end pt-4">
               <Button 
                 type="submit" 
-                disabled={loading}
+                disabled={loading || itensEntrada.length === 0}
                 className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8"
               >
-                {loading ? 'Registrando...' : 'Registrar Entrada'}
+                {loading ? 'Registrando...' : `Registrar ${itensEntrada.length} Entrada${itensEntrada.length !== 1 ? 's' : ''}`}
               </Button>
             </div>
           </form>
