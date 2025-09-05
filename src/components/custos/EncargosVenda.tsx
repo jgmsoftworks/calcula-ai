@@ -156,8 +156,8 @@ export const EncargosVenda = () => {
     onPercentualChange: (value: number) => void;
     onValorFixoChange: (value: number) => void;
   }) => (
-    <div className="grid grid-cols-3 gap-4 items-center">
-      <Label className="text-sm">{label}</Label>
+    <div className="grid grid-cols-3 gap-2 items-center">
+      <Label className="text-xs">{label}</Label>
       <div>
         <Input
           type="number"
@@ -165,7 +165,7 @@ export const EncargosVenda = () => {
           min="0"
           value={formatPercent(percentual)}
           onChange={(e) => onPercentualChange(parseNumber(e.target.value))}
-          className="text-right"
+          className="text-right h-8 text-xs"
           placeholder="0,00"
           autoComplete="off"
           autoCapitalize="off"
@@ -181,7 +181,7 @@ export const EncargosVenda = () => {
           min="0"
           value={valorFixo.toFixed(2)}
           onChange={(e) => onValorFixoChange(parseNumber(e.target.value))}
-          className="text-right"
+          className="text-right h-8 text-xs"
           placeholder="0,00"
           autoComplete="off"
           autoCapitalize="off"
@@ -194,17 +194,17 @@ export const EncargosVenda = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* IMPOSTOS */}
       <Card>
         <CardHeader>
-          <CardTitle>Impostos</CardTitle>
+          <CardTitle className="text-base">Impostos</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4 mb-4">
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <div></div>
-            <div className="text-center font-medium">Percentual (%)</div>
-            <div className="text-center font-medium">Valor (R$)</div>
+            <div className="text-center font-medium text-xs">Percentual (%)</div>
+            <div className="text-center font-medium text-xs">Valor (R$)</div>
           </div>
 
           <InputField
@@ -249,152 +249,16 @@ export const EncargosVenda = () => {
         </CardContent>
       </Card>
 
-      {/* TAXAS DE MEIOS DE PAGAMENTO */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Taxas de Meios de Pagamento</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div></div>
-            <div className="text-center font-medium">Percentual (%)</div>
-            <div className="text-center font-medium">Valor (R$)</div>
-          </div>
-
-          <InputField
-            label="Cartão de débito"
-            percentual={meiosPagamento.cartaoDebito.percentual}
-            valorFixo={meiosPagamento.cartaoDebito.valorFixo}
-            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoDebito: {...meiosPagamento.cartaoDebito, percentual: value}})}
-            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoDebito: {...meiosPagamento.cartaoDebito, valorFixo: value}})}
-          />
-
-          <InputField
-            label="Cartão de crédito"
-            percentual={meiosPagamento.cartaoCredito.percentual}
-            valorFixo={meiosPagamento.cartaoCredito.valorFixo}
-            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoCredito: {...meiosPagamento.cartaoCredito, percentual: value}})}
-            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoCredito: {...meiosPagamento.cartaoCredito, valorFixo: value}})}
-          />
-
-          {/* Cartão de crédito parcelado */}
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-4">
-              <Label className="font-medium">Cartão de crédito parcelado</Label>
-              <Button onClick={adicionarParcela} variant="outline" size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar parcela
-              </Button>
-            </div>
-
-            {cartaoParcelado.length > 0 && (
-              <div className="space-y-2 mb-4">
-                <Label>Selecionar parcela:</Label>
-                <Select value={parcelaSelecionada} onValueChange={setParcelaSelecionada}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Nenhuma parcela selecionada" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cartaoParcelado.map((parcela) => (
-                      <SelectItem key={parcela.id} value={parcela.id}>
-                        {parcela.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {cartaoParcelado.map((parcela) => (
-              <div key={parcela.id} className="grid grid-cols-4 gap-4 items-center mb-2">
-                <Input
-                  value={parcela.nome}
-                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                    p.id === parcela.id ? {...p, nome: e.target.value} : p
-                  ))}
-                  placeholder="2x, 3x..."
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                />
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formatPercent(parcela.percentual)}
-                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                    p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
-                  ))}
-                  className="text-right"
-                  placeholder="0,00"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                />
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={parcela.valorFixo.toFixed(2)}
-                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
-                    p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
-                  ))}
-                  className="text-right"
-                  placeholder="0,00"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                />
-                <Button
-                  onClick={() => removerParcela(parcela.id)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <InputField
-            label="Boleto bancário"
-            percentual={meiosPagamento.boleto.percentual}
-            valorFixo={meiosPagamento.boleto.valorFixo}
-            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, boleto: {...meiosPagamento.boleto, percentual: value}})}
-            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, boleto: {...meiosPagamento.boleto, valorFixo: value}})}
-          />
-
-          <InputField
-            label="PIX"
-            percentual={meiosPagamento.pix.percentual}
-            valorFixo={meiosPagamento.pix.valorFixo}
-            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, pix: {...meiosPagamento.pix, percentual: value}})}
-            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, pix: {...meiosPagamento.pix, valorFixo: value}})}
-          />
-
-          <InputField
-            label="Gateway de pagamento"
-            percentual={meiosPagamento.gateway.percentual}
-            valorFixo={meiosPagamento.gateway.valorFixo}
-            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, gateway: {...meiosPagamento.gateway, percentual: value}})}
-            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, gateway: {...meiosPagamento.gateway, valorFixo: value}})}
-          />
-        </CardContent>
-      </Card>
-
       {/* COMISSÕES E PLATAFORMAS */}
       <Card>
         <CardHeader>
-          <CardTitle>Comissões e Plataformas</CardTitle>
+          <CardTitle className="text-base">Comissões e Plataformas</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4 mb-4">
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <div></div>
-            <div className="text-center font-medium">Percentual (%)</div>
-            <div className="text-center font-medium">Valor (R$)</div>
+            <div className="text-center font-medium text-xs">Percentual (%)</div>
+            <div className="text-center font-medium text-xs">Valor (R$)</div>
           </div>
 
           <InputField
@@ -431,82 +295,228 @@ export const EncargosVenda = () => {
         </CardContent>
       </Card>
 
+      {/* TAXAS DE MEIOS DE PAGAMENTO */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Taxas de Meios de Pagamento</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div></div>
+            <div className="text-center font-medium text-xs">Percentual (%)</div>
+            <div className="text-center font-medium text-xs">Valor (R$)</div>
+          </div>
+
+          <InputField
+            label="Cartão de débito"
+            percentual={meiosPagamento.cartaoDebito.percentual}
+            valorFixo={meiosPagamento.cartaoDebito.valorFixo}
+            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoDebito: {...meiosPagamento.cartaoDebito, percentual: value}})}
+            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoDebito: {...meiosPagamento.cartaoDebito, valorFixo: value}})}
+          />
+
+          <InputField
+            label="Cartão de crédito"
+            percentual={meiosPagamento.cartaoCredito.percentual}
+            valorFixo={meiosPagamento.cartaoCredito.valorFixo}
+            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoCredito: {...meiosPagamento.cartaoCredito, percentual: value}})}
+            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, cartaoCredito: {...meiosPagamento.cartaoCredito, valorFixo: value}})}
+          />
+
+          {/* Cartão de crédito parcelado */}
+          <div className="border-t pt-3">
+            <div className="flex items-center justify-between mb-3">
+              <Label className="font-medium text-xs">Cartão de crédito parcelado</Label>
+              <Button onClick={adicionarParcela} variant="outline" size="sm" className="gap-1 h-7 text-xs">
+                <Plus className="h-3 w-3" />
+                Parcela
+              </Button>
+            </div>
+
+            {cartaoParcelado.length > 0 && (
+              <div className="space-y-2 mb-3">
+                <Label className="text-xs">Selecionar parcela:</Label>
+                <Select value={parcelaSelecionada} onValueChange={setParcelaSelecionada}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Nenhuma parcela selecionada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cartaoParcelado.map((parcela) => (
+                      <SelectItem key={parcela.id} value={parcela.id}>
+                        {parcela.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {cartaoParcelado.map((parcela) => (
+              <div key={parcela.id} className="grid grid-cols-4 gap-2 items-center mb-2">
+                <Input
+                  value={parcela.nome}
+                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                    p.id === parcela.id ? {...p, nome: e.target.value} : p
+                  ))}
+                  placeholder="2x, 3x..."
+                  className="h-8 text-xs"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formatPercent(parcela.percentual)}
+                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                    p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
+                  ))}
+                  className="text-right h-8 text-xs"
+                  placeholder="0,00"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={parcela.valorFixo.toFixed(2)}
+                  onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
+                    p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
+                  ))}
+                  className="text-right h-8 text-xs"
+                  placeholder="0,00"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+                <Button
+                  onClick={() => removerParcela(parcela.id)}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <InputField
+            label="Boleto bancário"
+            percentual={meiosPagamento.boleto.percentual}
+            valorFixo={meiosPagamento.boleto.valorFixo}
+            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, boleto: {...meiosPagamento.boleto, percentual: value}})}
+            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, boleto: {...meiosPagamento.boleto, valorFixo: value}})}
+          />
+
+          <InputField
+            label="PIX"
+            percentual={meiosPagamento.pix.percentual}
+            valorFixo={meiosPagamento.pix.valorFixo}
+            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, pix: {...meiosPagamento.pix, percentual: value}})}
+            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, pix: {...meiosPagamento.pix, valorFixo: value}})}
+          />
+
+          <InputField
+            label="Gateway de pagamento"
+            percentual={meiosPagamento.gateway.percentual}
+            valorFixo={meiosPagamento.gateway.valorFixo}
+            onPercentualChange={(value) => setMeiosPagamento({...meiosPagamento, gateway: {...meiosPagamento.gateway, percentual: value}})}
+            onValorFixoChange={(value) => setMeiosPagamento({...meiosPagamento, gateway: {...meiosPagamento.gateway, valorFixo: value}})}
+          />
+        </CardContent>
+      </Card>
+
       {/* OUTROS */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Outros</CardTitle>
-            <Button onClick={adicionarOutroItem} variant="outline" size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar outro item
+            <CardTitle className="text-base">Outros</CardTitle>
+            <Button onClick={adicionarOutroItem} variant="outline" size="sm" className="gap-1 h-7 text-xs">
+              <Plus className="h-3 w-3" />
+              Adicionar
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {outrosItens.length > 0 && (
-            <div className="grid grid-cols-4 gap-4 mb-4">
-              <div className="font-medium">Nome</div>
-              <div className="text-center font-medium">Percentual (%)</div>
-              <div className="text-center font-medium">Valor (R$)</div>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              <div className="font-medium text-xs">Nome</div>
+              <div className="text-center font-medium text-xs">Percentual (%)</div>
+              <div className="text-center font-medium text-xs">Valor (R$)</div>
               <div></div>
             </div>
           )}
 
           {outrosItens.map((item) => (
-            <div key={item.id} className="grid grid-cols-4 gap-4 items-center">
+            <div key={item.id} className="grid grid-cols-4 gap-2 items-center">
               <Input
                 value={item.nome}
                 onChange={(e) => setOutrosItens(outrosItens.map(i => 
                   i.id === item.id ? {...i, nome: e.target.value} : i
                 ))}
                 placeholder="Nome do item"
+                className="h-8 text-xs"
                 autoComplete="off"
                 autoCapitalize="off"
                 autoCorrect="off"
                 spellCheck="false"
               />
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formatPercent(item.percentual)}
-                onChange={(e) => setOutrosItens(outrosItens.map(i => 
-                  i.id === item.id ? {...i, percentual: parseNumber(e.target.value)} : i
-                ))}
-                className="text-right"
-                placeholder="0,00"
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={item.valorFixo.toFixed(2)}
-                onChange={(e) => setOutrosItens(outrosItens.map(i => 
-                  i.id === item.id ? {...i, valorFixo: parseNumber(e.target.value)} : i
-                ))}
-                className="text-right"
-                placeholder="0,00"
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
+              <div>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formatPercent(item.percentual)}
+                  onChange={(e) => setOutrosItens(outrosItens.map(i => 
+                    i.id === item.id ? {...i, percentual: parseNumber(e.target.value)} : i
+                  ))}
+                  className="text-right h-8 text-xs"
+                  placeholder="0,00"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+                <div className="text-xs text-muted-foreground text-right mt-1">%</div>
+              </div>
+              <div>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={item.valorFixo.toFixed(2)}
+                  onChange={(e) => setOutrosItens(outrosItens.map(i => 
+                    i.id === item.id ? {...i, valorFixo: parseNumber(e.target.value)} : i
+                  ))}
+                  className="text-right h-8 text-xs"
+                  placeholder="0,00"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+                <div className="text-xs text-muted-foreground text-right mt-1">R$</div>
+              </div>
               <Button
                 onClick={() => removerOutroItem(item.id)}
                 variant="outline"
                 size="sm"
+                className="h-8 w-8 p-0"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           ))}
 
           {outrosItens.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center text-muted-foreground text-xs py-4">
               Nenhum item personalizado adicionado
             </div>
           )}
