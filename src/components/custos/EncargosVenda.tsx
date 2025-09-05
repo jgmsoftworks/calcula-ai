@@ -76,7 +76,7 @@ export const EncargosVenda = () => {
   const parseNumber = (value: string) => {
     if (!value || value === '') return 0;
     const parsed = parseFloat(value.replace(',', '.')) || 0;
-    return Math.max(0, parsed);
+    return Math.max(0, Math.min(1, parsed)); // Limita entre 0 e 1
   };
 
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -174,6 +174,7 @@ export const EncargosVenda = () => {
           type="number"
           step="0.01"
           min="0"
+          max="1"
           value={formatPercent(percentual)}
           onChange={(e) => onPercentualChange(parseNumber(e.target.value))}
           onFocus={handleInputFocus}
@@ -192,6 +193,7 @@ export const EncargosVenda = () => {
           type="number"
           step="0.01"
           min="0"
+          max="1"
           value={formatCurrencyInput(valorFixo)}
           onChange={(e) => onValorFixoChange(parseNumber(e.target.value))}
           onFocus={handleInputFocus}
@@ -384,6 +386,7 @@ export const EncargosVenda = () => {
                     type="number"
                     step="0.01"
                     min="0"
+                    max="1"
                     value={formatPercent(parcela.percentual)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, percentual: parseNumber(e.target.value)} : p
@@ -404,6 +407,7 @@ export const EncargosVenda = () => {
                     type="number"
                     step="0.01"
                     min="0"
+                    max="1"
                     value={formatCurrencyInput(parcela.valorFixo)}
                     onChange={(e) => setCartaoParcelado(cartaoParcelado.map(p => 
                       p.id === parcela.id ? {...p, valorFixo: parseNumber(e.target.value)} : p
@@ -496,6 +500,7 @@ export const EncargosVenda = () => {
                   type="number"
                   step="0.01"
                   min="0"
+                  max="1"
                   value={formatPercent(item.percentual)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, percentual: parseNumber(e.target.value)} : i
@@ -516,6 +521,7 @@ export const EncargosVenda = () => {
                   type="number"
                   step="0.01"
                   min="0"
+                  max="1"
                   value={formatCurrencyInput(item.valorFixo)}
                   onChange={(e) => setOutrosItens(outrosItens.map(i => 
                     i.id === item.id ? {...i, valorFixo: parseNumber(e.target.value)} : i
