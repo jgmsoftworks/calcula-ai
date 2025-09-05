@@ -150,7 +150,7 @@ export function FolhaPagamento() {
         dias_por_semana: parseFloat(formData.dias_por_semana),
         semanas_por_mes: parsePercentValue(formData.semanas_por_mes),
         horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parsePercentValue(formData.semanas_por_mes),
-        custo_por_hora: 0, // Será calculado após o custo total
+        custo_por_hora: 0,
         ativo: true
       };
 
@@ -285,22 +285,6 @@ export function FolhaPagamento() {
     return horasTotais > 0 ? Math.round((salarioBase / horasTotais) * 100) / 100 : 0;
   };
 
-  // Handler para campos de horas
-  const handleHorasChange = (field: string, value: string) => {
-    if (field === 'semanas_por_mes') {
-      const formattedValue = formatPercentInput(value);
-      setFormData({ ...formData, [field]: formattedValue });
-    } else {
-      const numericValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
-      const floatValue = parseFloat(numericValue);
-      if (!isNaN(floatValue) && floatValue >= 0) {
-        setFormData({ ...formData, [field]: numericValue });
-      } else if (value === '') {
-        setFormData({ ...formData, [field]: '' });
-      }
-    }
-  };
-
   // Handler para mudança em percentual
   const handlePercentChange = (key: string, value: string) => {
     const formattedPercent = formatPercentInput(value);
@@ -329,6 +313,22 @@ export function FolhaPagamento() {
       [key]: formattedValue,
       [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString().replace('.', ',') : '0,00'
     });
+  };
+
+  // Handler para campos de horas
+  const handleHorasChange = (field: string, value: string) => {
+    if (field === 'semanas_por_mes') {
+      const formattedValue = formatPercentInput(value);
+      setFormData({ ...formData, [field]: formattedValue });
+    } else {
+      const numericValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
+      const floatValue = parseFloat(numericValue);
+      if (!isNaN(floatValue) && floatValue >= 0) {
+        setFormData({ ...formData, [field]: numericValue });
+      } else if (value === '') {
+        setFormData({ ...formData, [field]: '' });
+      }
+    }
   };
 
   const resetFormData = () => {
@@ -439,11 +439,7 @@ export function FolhaPagamento() {
     return funcionario.salario_base + funcionario.adicional - funcionario.desconto;
   };
 
-  // Calcular custo por hora de um funcionário específico
-  const calculateCustoPorHoraFuncionario = (funcionario: Funcionario) => {
-    const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
-    return horasTotais > 0 ? Math.round((funcionario.salario_base / horasTotais) * 100) / 100 : 0;
-  };
+  const calculateCustoTotal = (funcionario: Funcionario) => {
     const salarioBase = funcionario.salario_base;
     
     const fgtsTotal = calculateItemValue(funcionario.fgts_percent.toString(), funcionario.fgts_valor.toString(), salarioBase);
@@ -461,6 +457,11 @@ export function FolhaPagamento() {
 
   const getTotalFolha = () => {
     return funcionarios.reduce((total, funcionario) => total + calculateCustoTotal(funcionario), 0);
+  };
+
+  const calculateCustoPorHoraFuncionario = (funcionario: Funcionario) => {
+    const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
+    return horasTotais > 0 ? funcionario.salario_base / horasTotais : 0;
   };
 
   return (
@@ -583,7 +584,7 @@ export function FolhaPagamento() {
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
                       </div>
                     </div>
-                ))}
+                  ))}
                 </div>
 
                 {/* Custo Total */}
@@ -731,11 +732,7 @@ export function FolhaPagamento() {
                       {funcionario.tipo_mao_obra === 'direta' ? 'Direta' : 'Indireta'}
                     </span>
                   </TableCell>
-                  <TableCell>R$ {(() => {
-                    const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
-                    const custoPorHora = horasTotais > 0 ? funcionario.salario_base / horasTotais : 0;
-                    return formatCurrencyDisplay(custoPorHora);
-                  })()}</TableCell>
+                  <TableCell>R$ {formatCurrencyDisplay(calculateCustoPorHoraFuncionario(funcionario))}</TableCell>
                   <TableCell className="font-semibold text-primary">
                     R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}
                   </TableCell>
