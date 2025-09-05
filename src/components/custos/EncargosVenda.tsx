@@ -195,39 +195,10 @@ export const EncargosVenda = () => {
 
   return (
     <div className="space-y-6">
-      {/* Base de Cálculo */}
+      {/* IMPOSTOS */}
       <Card>
         <CardHeader>
-          <CardTitle>Base de Cálculo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 items-center">
-            <Label htmlFor="baseVenda">Valor da Venda (sem encargos)</Label>
-            <div>
-              <Input
-                id="baseVenda"
-                type="number"
-                step="0.01"
-                min="0"
-                value={baseVenda.toFixed(2)}
-                onChange={(e) => setBaseVenda(parseNumber(e.target.value))}
-                className="text-right text-lg font-semibold"
-                placeholder="0,00"
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
-              <div className="text-xs text-muted-foreground text-right mt-1">R$</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* GRUPO 1 - IMPOSTOS */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Grupo 1 — Impostos</CardTitle>
+          <CardTitle>Impostos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4 mb-4">
@@ -278,10 +249,10 @@ export const EncargosVenda = () => {
         </CardContent>
       </Card>
 
-      {/* GRUPO 2 - TAXAS DE MEIOS DE PAGAMENTO */}
+      {/* TAXAS DE MEIOS DE PAGAMENTO */}
       <Card>
         <CardHeader>
-          <CardTitle>Grupo 2 — Taxas de Meios de Pagamento</CardTitle>
+          <CardTitle>Taxas de Meios de Pagamento</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4 mb-4">
@@ -414,10 +385,10 @@ export const EncargosVenda = () => {
         </CardContent>
       </Card>
 
-      {/* GRUPO 3 - COMISSÕES E PLATAFORMAS */}
+      {/* COMISSÕES E PLATAFORMAS */}
       <Card>
         <CardHeader>
-          <CardTitle>Grupo 3 — Comissões e Plataformas</CardTitle>
+          <CardTitle>Comissões e Plataformas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4 mb-4">
@@ -460,11 +431,11 @@ export const EncargosVenda = () => {
         </CardContent>
       </Card>
 
-      {/* GRUPO 4 - OUTROS */}
+      {/* OUTROS */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Grupo 4 — Outros</CardTitle>
+            <CardTitle>Outros</CardTitle>
             <Button onClick={adicionarOutroItem} variant="outline" size="sm" className="gap-2">
               <Plus className="h-4 w-4" />
               Adicionar outro item
@@ -537,23 +508,6 @@ export const EncargosVenda = () => {
           {outrosItens.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               Nenhum item personalizado adicionado
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* TOTAL */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Total dos Encargos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-primary text-center">
-            {formatCurrency(calcularTotalEncargos())}
-          </div>
-          {baseVenda > 0 && (
-            <div className="text-center text-muted-foreground mt-2">
-              Valor líquido recebido: {formatCurrency(baseVenda - calcularTotalEncargos())}
             </div>
           )}
         </CardContent>
