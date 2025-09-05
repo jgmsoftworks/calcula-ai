@@ -41,9 +41,37 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_despesas_fixas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       despesas_fixas: {
         Row: {
           ativo: boolean
+          categoria_id: string | null
           created_at: string
           descricao: string | null
           id: string
@@ -55,6 +83,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          categoria_id?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -66,6 +95,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          categoria_id?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -75,7 +105,15 @@ export type Database = {
           valor?: number
           vencimento?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "despesas_fixas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_despesas_fixas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       encargos_venda: {
         Row: {

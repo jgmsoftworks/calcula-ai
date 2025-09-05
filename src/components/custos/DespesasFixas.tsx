@@ -5,12 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Calendar, Package } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Edit, Trash2, Calendar, Package, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { CategoriasDespesasModal } from './CategoriasDespesasModal';
 
 interface DespesaFixa {
   id: string;
@@ -18,19 +20,31 @@ interface DespesaFixa {
   descricao?: string;
   valor: number;
   vencimento?: number;
+  categoria_id?: string;
+  ativo: boolean;
+  created_at: string;
+}
+
+interface CategoriasDespesas {
+  id: string;
+  nome: string;
   ativo: boolean;
   created_at: string;
 }
 
 export function DespesasFixas() {
   const [despesas, setDespesas] = useState<DespesaFixa[]>([]);
+  const [categorias, setCategorias] = useState<CategoriasDespesas[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCategoriaModalOpen, setIsCategoriaModalOpen] = useState(false);
   const [editingDespesa, setEditingDespesa] = useState<DespesaFixa | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
     valor: '',
-    vencimento: ''
+    vencimento: '',
+    categoria_id: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -58,8 +72,27 @@ export function DespesasFixas() {
     }
   };
 
+  const loadCategorias = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('categorias_despesas_fixas')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('ativo', true)
+        .order('nome');
+
+      if (error) throw error;
+      setCategorias(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
+
   useEffect(() => {
     loadDespesas();
+    loadCategorias();
   }, [user]);
 
   const handleSave = async () => {
@@ -79,6 +112,7 @@ export function DespesasFixas() {
         descricao: formData.descricao || null,
         valor: parseFloat(formData.valor),
         vencimento: formData.vencimento ? parseInt(formData.vencimento) : null,
+        categoria_id: formData.categoria_id || null,
         ativo: true
       };
 
@@ -109,7 +143,7 @@ export function DespesasFixas() {
 
       setIsModalOpen(false);
       setEditingDespesa(null);
-      setFormData({ nome: '', descricao: '', valor: '', vencimento: '' });
+      setFormData({ nome: '', descricao: '', valor: '', vencimento: '', categoria_id: '' });
       loadDespesas();
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
@@ -127,7 +161,8 @@ export function DespesasFixas() {
       nome: despesa.nome,
       descricao: despesa.descricao || '',
       valor: despesa.valor.toString(),
-      vencimento: despesa.vencimento?.toString() || ''
+      vencimento: despesa.vencimento?.toString() || '',
+      categoria_id: despesa.categoria_id || ''
     });
     setIsModalOpen(true);
   };
@@ -159,7 +194,7 @@ export function DespesasFixas() {
 
   const handleNewDespesa = () => {
     setEditingDespesa(null);
-    setFormData({ nome: '', descricao: '', valor: '', vencimento: '' });
+    setFormData({ nome: '', descricao: '', valor: '', vencimento: '', categoria_id: '' });
     setIsModalOpen(true);
   };
 
@@ -172,6 +207,32 @@ export function DespesasFixas() {
 
   const getTotalDespesas = () => {
     return despesas.reduce((total, despesa) => total + despesa.valor, 0);
+  };
+
+  const getTotalByCategoria = (categoriaId: string) => {
+    return despesas
+      .filter(despesa => despesa.categoria_id === categoriaId)
+      .reduce((total, despesa) => total + despesa.valor, 0);
+  };
+
+  const getTotalSemCategoria = () => {
+    return despesas
+      .filter(despesa => !despesa.categoria_id)
+      .reduce((total, despesa) => total + despesa.valor, 0);
+  };
+
+  const filteredDespesas = selectedCategory
+    ? despesas.filter(despesa => despesa.categoria_id === selectedCategory)
+    : selectedCategory === 'sem-categoria'
+    ? despesas.filter(despesa => !despesa.categoria_id)
+    : despesas;
+
+  const handleCategoriaCreated = (categoria: CategoriasDespesas) => {
+    setCategorias(prev => [...prev, categoria]);
+  };
+
+  const handleCategoriaUpdated = () => {
+    loadCategorias();
   };
 
   return (
@@ -187,11 +248,62 @@ export function DespesasFixas() {
         </Button>
         
         <div className="bg-card rounded-lg border p-4">
-          <h3 className="font-medium text-sm text-muted-foreground mb-2">Categorias</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-sm text-muted-foreground">Categorias</h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsCategoriaModalOpen(true)}
+              className="h-6 w-6 p-0"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="space-y-2">
-            <div className="bg-primary/10 text-primary px-3 py-2 rounded text-sm font-medium">
-              Despesas Fixas
-            </div>
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
+                selectedCategory === null
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted/50 text-muted-foreground'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>Todas</span>
+                <span className="text-xs">{formatCurrency(getTotalDespesas())}</span>
+              </div>
+            </button>
+            
+            {categorias.map((categoria) => (
+              <button
+                key={categoria.id}
+                onClick={() => setSelectedCategory(categoria.id)}
+                className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  selectedCategory === categoria.id
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted/50 text-muted-foreground'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span>{categoria.nome}</span>
+                  <span className="text-xs">{formatCurrency(getTotalByCategoria(categoria.id))}</span>
+                </div>
+              </button>
+            ))}
+            
+            <button
+              onClick={() => setSelectedCategory('sem-categoria')}
+              className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
+                selectedCategory === 'sem-categoria'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-muted/50 text-muted-foreground'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>Sem categoria</span>
+                <span className="text-xs">{formatCurrency(getTotalSemCategoria())}</span>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -221,12 +333,14 @@ export function DespesasFixas() {
               </Button>
             </div>
 
-            {despesas.length === 0 ? (
+            {filteredDespesas.length === 0 ? (
               <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed border-muted">
                 <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                   <Package className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="text-lg font-medium text-muted-foreground mb-2">Nenhuma despesa cadastrada</p>
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  {selectedCategory ? 'Nenhuma despesa nesta categoria' : 'Nenhuma despesa cadastrada'}
+                </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   Clique em <strong>Adicionar despesa</strong> para começar.
                 </p>
@@ -242,13 +356,20 @@ export function DespesasFixas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {despesas.map((despesa) => (
+                  {filteredDespesas.map((despesa) => {
+                    const categoria = categorias.find(c => c.id === despesa.categoria_id);
+                    return (
                     <TableRow key={despesa.id} className="hover:bg-muted/50">
                       <TableCell>
                         <div>
                           <p className="font-medium">{despesa.nome}</p>
                           {despesa.descricao && (
                             <p className="text-sm text-muted-foreground">{despesa.descricao}</p>
+                          )}
+                          {categoria && (
+                            <Badge variant="secondary" className="mt-1 text-xs">
+                              {categoria.nome}
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
@@ -284,7 +405,7 @@ export function DespesasFixas() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})})
                 </TableBody>
               </Table>
             )}
@@ -335,6 +456,24 @@ export function DespesasFixas() {
               />
             </div>
             <div>
+              <Label htmlFor="categoria">Categoria (opcional)</Label>
+              <Select
+                value={formData.categoria_id}
+                onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorias.map((categoria) => (
+                    <SelectItem key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="vencimento">Dia do vencimento (opcional)</Label>
               <Input
                 id="vencimento"
@@ -363,6 +502,14 @@ export function DespesasFixas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CategoriasDespesasModal
+        isOpen={isCategoriaModalOpen}
+        onClose={() => setIsCategoriaModalOpen(false)}
+        onCategoriaCreated={handleCategoriaCreated}
+        categorias={categorias}
+        onCategoriaUpdated={handleCategoriaUpdated}
+      />
     </div>
   );
 }
