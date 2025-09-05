@@ -551,12 +551,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   {/* Fornecedor */}
                   <div className="space-y-2">
                     <Label htmlFor="fornecedor" className="text-sm font-medium">Fornecedor</Label>
-                    <Select value={formData.fornecedor_id} onValueChange={(value) => handleInputChange('fornecedor_id', value)}>
+                    <Select value={formData.fornecedor_id || "none"} onValueChange={(value) => handleInputChange('fornecedor_id', value === "none" ? null : value)}>
                       <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary">
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {fornecedores.map((fornecedor) => (
                           <SelectItem key={fornecedor.id} value={fornecedor.id}>
                             {fornecedor.nome}

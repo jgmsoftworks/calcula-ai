@@ -184,12 +184,12 @@ export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProp
       {/* Fornecedor (linha separada) */}
       <div className="flex items-center gap-2 px-3">
         <Label className="text-xs min-w-[60px]">Fornecedor:</Label>
-        <Select value={filtros.fornecedorId} onValueChange={(value) => setFiltros(prev => ({ ...prev, fornecedorId: value }))}>
+        <Select value={filtros.fornecedorId} onValueChange={(value) => setFiltros(prev => ({ ...prev, fornecedorId: value === "all" ? "" : value }))}>
           <SelectTrigger className="h-8 text-xs max-w-[200px]">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
             {fornecedores.map((fornecedor) => (
               <SelectItem key={fornecedor.id} value={fornecedor.id}>
                 {fornecedor.nome}
