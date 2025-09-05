@@ -249,20 +249,20 @@ export const ListaProdutos = () => {
         return produto.estoque_minimo || 0;
       case 'status':
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 justify-end">
+            <span className={`text-sm font-medium whitespace-nowrap ${produto.ativo ? 'text-primary' : 'text-muted-foreground'}`}>
+              {produto.ativo ? 'Ativo' : 'Inativo'}
+            </span>
             <Switch
               checked={produto.ativo}
               onCheckedChange={() => toggleProdutoAtivo(produto)}
               className="data-[state=checked]:bg-primary"
             />
-            <span className={`text-sm font-medium ${produto.ativo ? 'text-primary' : 'text-muted-foreground'}`}>
-              {produto.ativo ? 'Ativo' : 'Inativo'}
-            </span>
           </div>
         );
       case 'acoes':
         return (
-          <div className="flex gap-2">
+          <div className="flex gap-1 justify-end">
             <Button
               size="sm"
               variant="outline"
@@ -339,20 +339,34 @@ export const ListaProdutos = () => {
           {/* Tabela */}
           <div className="rounded-lg border border-primary/20 overflow-hidden">
             <Table>
-              <TableHeader>
+               <TableHeader>
                 <TableRow className="bg-primary/10">
                   {colunasVisiveis.map((coluna) => (
-                    <TableHead key={coluna.key} className="text-primary font-semibold">
+                    <TableHead 
+                      key={coluna.key} 
+                      className={`text-primary font-semibold ${
+                        coluna.key === 'acoes' || coluna.key === 'status' 
+                          ? 'w-[120px] text-right' 
+                          : ''
+                      }`}
+                    >
                       {coluna.label}
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedProdutos.map((produto) => (
+                 {paginatedProdutos.map((produto) => (
                   <TableRow key={produto.id} className="hover:bg-primary/5">
                     {colunasVisiveis.map((coluna) => (
-                      <TableCell key={coluna.key}>
+                      <TableCell 
+                        key={coluna.key}
+                        className={
+                          coluna.key === 'acoes' || coluna.key === 'status' 
+                            ? 'w-[120px] text-right' 
+                            : ''
+                        }
+                      >
                         {renderCellContent(produto, coluna)}
                       </TableCell>
                     ))}
