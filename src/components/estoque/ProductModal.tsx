@@ -457,14 +457,14 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
               {/* Área de Imagem */}
               <div className="w-64 flex flex-col items-center">
-                <div className="w-64 h-64 border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4 relative overflow-hidden cursor-pointer hover:bg-primary/10 transition-colors"
+                <div className="w-[256px] h-[256px] border-2 border-dashed border-primary/40 rounded-xl bg-primary/5 flex flex-col items-center justify-center mb-4 relative overflow-hidden cursor-pointer hover:bg-primary/10 transition-colors"
                      onClick={() => !selectedImage && document.getElementById('image-upload')?.click()}>
                   {selectedImage ? (
                     <div className="w-full h-full relative">
                       <img 
                         src={selectedImage} 
                         alt="Produto" 
-                        className="w-full h-full object-cover rounded-lg"
+                        className="w-[256px] h-[256px] object-cover rounded-lg"
                       />
                       <button
                         type="button"
