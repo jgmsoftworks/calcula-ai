@@ -139,33 +139,34 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
   useEffect(() => {
     if (!user || !open) return;
 
-    const channels = [
-      supabase
-        .channel('despesas-fixas-changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'despesas_fixas', filter: `user_id=eq.${user.id}` },
-          () => carregarDados()
-        ),
-      
-      supabase
-        .channel('folha-pagamento-changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'folha_pagamento', filter: `user_id=eq.${user.id}` },
-          () => carregarDados()
-        ),
-      
-      supabase
-        .channel('encargos-venda-changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'encargos_venda', filter: `user_id=eq.${user.id}` },
-          () => carregarDados()
-        )
-    ];
+    let timeoutId: NodeJS.Timeout;
+    
+    const debouncedReload = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        carregarDados();
+      }, 300); // Debounce de 300ms
+    };
 
-    channels.forEach(channel => channel.subscribe());
+    const channel = supabase
+      .channel('custos-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'despesas_fixas', filter: `user_id=eq.${user.id}` },
+        debouncedReload
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'folha_pagamento', filter: `user_id=eq.${user.id}` },
+        debouncedReload
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'encargos_venda', filter: `user_id=eq.${user.id}` },
+        debouncedReload
+      )
+      .subscribe();
 
     return () => {
-      channels.forEach(channel => supabase.removeChannel(channel));
+      clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
     };
   }, [user, open]);
 
