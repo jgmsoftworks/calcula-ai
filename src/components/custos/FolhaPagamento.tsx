@@ -533,14 +533,9 @@ export function FolhaPagamento() {
                     <Input
                       id="salario_base"
                       type="text"
-                      key={`salario-${formData.salario_base}`}
-                      defaultValue={formatBrazilianNumber(formData.salario_base)}
-                      onBlur={(e) => {
-                        const parsed = parseInputValue(e.target.value);
-                        handleSalarioBaseChange(e.target.value);
-                        e.target.value = formatBrazilianNumber(parsed);
-                      }}
-                      placeholder="0"
+                      value={formData.salario_base}
+                      onChange={(e) => handleSalarioBaseChange(e.target.value)}
+                      placeholder="0,00"
                       className="pl-8"
                       autoComplete="off"
                       autoCapitalize="off"
