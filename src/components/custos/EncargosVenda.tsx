@@ -356,12 +356,10 @@ export const EncargosVenda = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-foreground">{titulo}</CardTitle>
-            {categoria === 'outros' && (
-              <Button onClick={adicionarOutroEncargo} variant="outline" size="sm" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar
-              </Button>
-            )}
+            <Button onClick={adicionarOutroEncargo} variant="outline" size="sm" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Adicionar
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-6">
