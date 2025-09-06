@@ -265,6 +265,15 @@ export function FolhaPagamento() {
     return 0;
   };
 
+  // Função para formatar valor como moeda para input
+  const formatCurrencyInput = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   // Handler para mudança no salário base com formatação
   const handleSalarioBaseChange = (inputValue: string) => {
     // Remove tudo que não é dígito
@@ -273,11 +282,8 @@ export function FolhaPagamento() {
     // Converte para número dividindo por 100 (para ter centavos)
     const numberValue = parseInt(numericValue || '0') / 100;
     
-    // Formata como moeda brasileira sem o símbolo R$
-    const formattedValue = new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(numberValue);
+    // Formata como moeda brasileira
+    const formattedValue = formatCurrencyInput(numberValue);
     
     setFormData({ ...formData, salario_base: formattedValue });
   };
