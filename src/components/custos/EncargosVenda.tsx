@@ -12,14 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 interface EncargoItem {
   id?: string;
   nome: string;
-  valor: number;
-  tipo: 'percentual' | 'fixo';
+  valor_percentual: number;
+  valor_fixo: number;
   categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros';
   ativo: boolean;
 }
 
 export const EncargosVenda = () => {
-  // Componente atualizado - modal de edição
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -32,24 +31,24 @@ export const EncargosVenda = () => {
   // Encargos padrão por categoria
   const encargosDefault = {
     impostos: [
-      { nome: 'ICMS', valor: 0, tipo: 'percentual' as const },
-      { nome: 'ISS', valor: 0, tipo: 'percentual' as const },
-      { nome: 'PIS/COFINS', valor: 0, tipo: 'percentual' as const },
-      { nome: 'IRPJ/CSLL', valor: 0, tipo: 'percentual' as const },
-      { nome: 'IPI', valor: 0, tipo: 'percentual' as const },
+      { nome: 'ICMS', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'ISS', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'PIS/COFINS', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'IRPJ/CSLL', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'IPI', valor_percentual: 0, valor_fixo: 0 },
     ],
     meios_pagamento: [
-      { nome: 'Cartão de débito', valor: 0, tipo: 'percentual' as const },
-      { nome: 'Cartão de crédito', valor: 0, tipo: 'percentual' as const },
-      { nome: 'Boleto bancário', valor: 0, tipo: 'percentual' as const },
-      { nome: 'PIX', valor: 0, tipo: 'percentual' as const },
-      { nome: 'Gateway de pagamento', valor: 0, tipo: 'percentual' as const },
+      { nome: 'Cartão de débito', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'Cartão de crédito', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'Boleto bancário', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'PIX', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'Gateway de pagamento', valor_percentual: 0, valor_fixo: 0 },
     ],
     comissoes: [
-      { nome: 'Marketing', valor: 0, tipo: 'percentual' as const },
-      { nome: 'Aplicativo de delivery', valor: 0, tipo: 'percentual' as const },
-      { nome: 'Plataforma SaaS', valor: 0, tipo: 'percentual' as const },
-      { nome: 'Colaboradores (comissão)', valor: 0, tipo: 'percentual' as const },
+      { nome: 'Marketing', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'Aplicativo de delivery', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'Plataforma SaaS', valor_percentual: 0, valor_fixo: 0 },
+      { nome: 'Colaboradores (comissão)', valor_percentual: 0, valor_fixo: 0 },
     ],
     outros: []
   };
@@ -73,14 +72,12 @@ export const EncargosVenda = () => {
 
       if (error) throw error;
 
-      console.log('Encargos carregados:', data);
-
       if (data && data.length > 0) {
         const encargosFormatados = data.map(item => ({
           id: item.id,
           nome: item.nome,
-          valor: item.valor,
-          tipo: item.tipo as 'percentual' | 'fixo',
+          valor_percentual: item.tipo === 'percentual' ? item.valor : 0,
+          valor_fixo: item.tipo === 'fixo' ? item.valor : 0,
           categoria: getCategoriaByNome(item.nome),
           ativo: item.ativo
         }));
@@ -127,8 +124,8 @@ export const EncargosVenda = () => {
           todosEncargos.map(encargo => ({
             user_id: user.id,
             nome: encargo.nome,
-            valor: encargo.valor,
-            tipo: encargo.tipo,
+            valor: 0,
+            tipo: 'percentual',
             ativo: true
           }))
         )
@@ -140,8 +137,8 @@ export const EncargosVenda = () => {
         const encargosFormatados = data.map(item => ({
           id: item.id,
           nome: item.nome,
-          valor: item.valor,
-          tipo: item.tipo as 'percentual' | 'fixo',
+          valor_percentual: 0,
+          valor_fixo: 0,
           categoria: getCategoriaByNome(item.nome),
           ativo: item.ativo
         }));
@@ -152,68 +149,43 @@ export const EncargosVenda = () => {
     }
   };
 
-  const salvarEncargo = async (encargo: EncargoItem) => {
-    if (!user) return;
+  const atualizarValorPercentual = async (nome: string, valor: number) => {
+    const encargo = encargos.find(e => e.nome === nome);
+    if (!encargo || !encargo.id) return;
 
     try {
-      if (encargo.id) {
-        // Atualizar existente
-        const { error } = await supabase
-          .from('encargos_venda')
-          .update({
-            valor: encargo.valor,
-            tipo: encargo.tipo,
-            ativo: encargo.ativo
-          })
-          .eq('id', encargo.id);
+      const { error } = await supabase
+        .from('encargos_venda')
+        .update({ valor, tipo: 'percentual' })
+        .eq('id', encargo.id);
 
-        if (error) throw error;
-      } else {
-        // Criar novo
-        const { data, error } = await supabase
-          .from('encargos_venda')
-          .insert({
-            user_id: user.id,
-            nome: encargo.nome,
-            valor: encargo.valor,
-            tipo: encargo.tipo,
-            ativo: encargo.ativo
-          })
-          .select()
-          .single();
+      if (error) throw error;
 
-        if (error) throw error;
-
-        // Atualizar o encargo com o ID retornado
-        setEncargos(prev => 
-          prev.map(e => 
-            e.nome === encargo.nome ? { ...e, id: data.id } : e
-          )
-        );
-      }
-
-      toast({
-        title: "Encargo salvo",
-        description: "As alterações foram salvas com sucesso"
-      });
+      setEncargos(prev => 
+        prev.map(e => e.nome === nome ? { ...e, valor_percentual: valor } : e)
+      );
     } catch (error) {
-      console.error('Erro ao salvar encargo:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar o encargo",
-        variant: "destructive"
-      });
+      console.error('Erro ao salvar:', error);
     }
   };
 
-  const atualizarEncargo = (nome: string, valor: number, tipo: 'percentual' | 'fixo') => {
-    const encargoAtualizado = encargos.find(e => e.nome === nome);
-    if (encargoAtualizado) {
-      const novoEncargo = { ...encargoAtualizado, valor, tipo };
+  const atualizarValorFixo = async (nome: string, valor: number) => {
+    const encargo = encargos.find(e => e.nome === nome);
+    if (!encargo || !encargo.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('encargos_venda')
+        .update({ valor, tipo: 'fixo' })
+        .eq('id', encargo.id);
+
+      if (error) throw error;
+
       setEncargos(prev => 
-        prev.map(e => e.nome === nome ? novoEncargo : e)
+        prev.map(e => e.nome === nome ? { ...e, valor_fixo: valor } : e)
       );
-      salvarEncargo(novoEncargo);
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
     }
   };
 
@@ -221,23 +193,17 @@ export const EncargosVenda = () => {
     if (!user || !novoNome.trim()) return;
 
     try {
-      console.log('Atualizando nome do encargo:', { id, novoNome });
-      
       const { error } = await supabase
         .from('encargos_venda')
         .update({ nome: novoNome.trim() })
         .eq('id', id);
 
-      if (error) {
-        console.error('Erro na query:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       setEncargos(prev => 
         prev.map(e => e.id === id ? { ...e, nome: novoNome.trim() } : e)
       );
       
-      console.log('Nome atualizado com sucesso');
       toast({
         title: "Nome atualizado",
         description: "O nome do encargo foi alterado com sucesso"
@@ -279,8 +245,8 @@ export const EncargosVenda = () => {
     const novoNome = `Novo encargo ${Date.now()}`;
     const novoEncargo: EncargoItem = {
       nome: novoNome,
-      valor: 0,
-      tipo: 'percentual',
+      valor_percentual: 0,
+      valor_fixo: 0,
       categoria: 'outros',
       ativo: true
     };
@@ -291,8 +257,8 @@ export const EncargosVenda = () => {
         .insert({
           user_id: user.id,
           nome: novoEncargo.nome,
-          valor: novoEncargo.valor,
-          tipo: novoEncargo.tipo,
+          valor: 0,
+          tipo: 'percentual',
           ativo: novoEncargo.ativo
         })
         .select()
@@ -341,13 +307,6 @@ export const EncargosVenda = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargos.filter(e => e.categoria === categoria);
 
@@ -385,16 +344,22 @@ export const EncargosVenda = () => {
                 
                 <div className="relative">
                   <Input
-                    type="number"
-                    value={encargo.tipo === 'percentual' ? encargo.valor : 0}
+                    type="text"
+                    value={encargo.valor_percentual || ''}
                     onChange={(e) => {
                       const valor = parseFloat(e.target.value) || 0;
-                      atualizarEncargo(encargo.nome, valor, 'percentual');
+                      setEncargos(prev => 
+                        prev.map(item => 
+                          item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item
+                        )
+                      );
+                    }}
+                    onBlur={(e) => {
+                      const valor = parseFloat(e.target.value) || 0;
+                      atualizarValorPercentual(encargo.nome, valor);
                     }}
                     className="text-center h-10 text-sm pr-8 border-border focus:border-primary"
                     placeholder="0"
-                    min="0"
-                    step="0.01"
                   />
                   <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
                 </div>
@@ -402,16 +367,22 @@ export const EncargosVenda = () => {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">R$</span>
                   <Input
-                    type="number"
-                    value={encargo.tipo === 'fixo' ? encargo.valor : 0}
+                    type="text"
+                    value={encargo.valor_fixo || ''}
                     onChange={(e) => {
                       const valor = parseFloat(e.target.value) || 0;
-                      atualizarEncargo(encargo.nome, valor, 'fixo');
+                      setEncargos(prev => 
+                        prev.map(item => 
+                          item.nome === encargo.nome ? { ...item, valor_fixo: valor } : item
+                        )
+                      );
+                    }}
+                    onBlur={(e) => {
+                      const valor = parseFloat(e.target.value) || 0;
+                      atualizarValorFixo(encargo.nome, valor);
                     }}
                     className="text-center h-10 text-sm pl-10 border-border focus:border-primary"
                     placeholder="0,00"
-                    min="0"
-                    step="0.01"
                   />
                 </div>
 
