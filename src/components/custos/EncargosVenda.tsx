@@ -370,34 +370,33 @@ export const EncargosVenda = () => {
             <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-2 items-center">
               <div className="flex items-center">
                 {categoria === 'outros' ? (
-                  editandoId === encargo.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <Input
-                        value={nomeTemp}
-                        onChange={(e) => setNomeTemp(e.target.value)}
-                        className="text-xs h-8"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') salvarNomeEdicao(encargo.id!);
-                          if (e.key === 'Escape') cancelarEdicao();
-                        }}
-                        autoFocus
-                      />
-                      <Button size="sm" variant="ghost" onClick={() => salvarNomeEdicao(encargo.id!)}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={cancelarEdicao}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div 
-                      className="flex items-center gap-2 cursor-pointer flex-1"
-                      onClick={() => iniciarEdicaoNome(encargo)}
-                    >
-                      <Label className="text-xs">{encargo.nome}</Label>
-                      <Edit2 className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  )
+                  <div className="flex items-center gap-1 flex-1">
+                    <Input
+                      value={encargo.nome}
+                      onChange={(e) => {
+                        const novoNome = e.target.value;
+                        setEncargos(prev => 
+                          prev.map(item => 
+                            item.id === encargo.id ? { ...item, nome: novoNome } : item
+                          )
+                        );
+                      }}
+                      onBlur={(e) => {
+                        const novoNome = e.target.value.trim();
+                        if (encargo.id && novoNome && novoNome !== encargo.nome) {
+                          atualizarNomeEncargo(encargo.id, novoNome);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      className="text-xs h-8 flex-1"
+                      placeholder="Nome do encargo"
+                    />
+                    <Edit2 className="h-3 w-3 text-muted-foreground" />
+                  </div>
                 ) : (
                   <Label className="text-xs">{encargo.nome}</Label>
                 )}
