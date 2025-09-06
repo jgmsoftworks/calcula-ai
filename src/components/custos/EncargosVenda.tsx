@@ -380,21 +380,7 @@ export const EncargosVenda = () => {
             {encargosDaCategoria.map((encargo) => (
               <div key={encargo.id || encargo.nome} className={`grid gap-4 items-center py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <div className="flex items-center min-w-0">
-                  {categoria === 'outros' ? (
-                    <div className="flex items-center gap-3 flex-1 group">
-                      <Label className="text-sm font-medium text-foreground truncate flex-1">{encargo.nome}</Label>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => iniciarEdicaoModal(encargo)}
-                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Label className="text-sm font-medium text-foreground truncate">{encargo.nome}</Label>
-                  )}
+                  <Label className="text-sm font-medium text-foreground truncate">{encargo.nome}</Label>
                 </div>
                 
                 <div className="relative">
@@ -430,7 +416,15 @@ export const EncargosVenda = () => {
                 </div>
 
                 {categoria === 'outros' && (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => iniciarEdicaoModal(encargo)}
+                      className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
                     <Button
                       onClick={() => encargo.id && removerEncargo(encargo.id)}
                       variant="ghost"
