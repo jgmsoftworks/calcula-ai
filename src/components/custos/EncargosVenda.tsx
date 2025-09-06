@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,8 @@ export const EncargosVenda = () => {
   
   const [encargos, setEncargos] = useState<EncargoItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [nomeTemp, setNomeTemp] = useState('');
 
   // Encargos padrão por categoria
   const encargosDefault = {
@@ -247,6 +249,24 @@ export const EncargosVenda = () => {
     }
   };
 
+  const iniciarEdicaoNome = (encargo: EncargoItem) => {
+    setEditandoId(encargo.id!);
+    setNomeTemp(encargo.nome);
+  };
+
+  const salvarNomeEdicao = (id: string) => {
+    if (nomeTemp.trim()) {
+      atualizarNomeEncargo(id, nomeTemp.trim());
+    }
+    setEditandoId(null);
+    setNomeTemp('');
+  };
+
+  const cancelarEdicao = () => {
+    setEditandoId(null);
+    setNomeTemp('');
+  };
+
   const adicionarOutroEncargo = async () => {
     if (!user) return;
 
@@ -350,33 +370,34 @@ export const EncargosVenda = () => {
             <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-2 items-center">
               <div className="flex items-center">
                 {categoria === 'outros' ? (
-                  <Input
-                    value={encargo.nome}
-                    onChange={(e) => {
-                      const novoNome = e.target.value;
-                      setEncargos(prev => 
-                        prev.map(item => 
-                          item.id === encargo.id ? { ...item, nome: novoNome } : item
-                        )
-                      );
-                    }}
-                    onBlur={(e) => {
-                      const novoNome = e.target.value.trim();
-                      const nomeOriginal = encargos.find(item => item.id === encargo.id)?.nome || '';
-                      console.log('onBlur triggered:', { novoNome, nomeOriginal, encargoId: encargo.id });
-                      
-                      if (encargo.id && novoNome && novoNome !== nomeOriginal) {
-                        atualizarNomeEncargo(encargo.id, novoNome);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    className="text-xs h-8 w-full"
-                    placeholder="Nome do encargo"
-                  />
+                  editandoId === encargo.id ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        value={nomeTemp}
+                        onChange={(e) => setNomeTemp(e.target.value)}
+                        className="text-xs h-8"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') salvarNomeEdicao(encargo.id!);
+                          if (e.key === 'Escape') cancelarEdicao();
+                        }}
+                        autoFocus
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => salvarNomeEdicao(encargo.id!)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={cancelarEdicao}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer flex-1"
+                      onClick={() => iniciarEdicaoNome(encargo)}
+                    >
+                      <Label className="text-xs">{encargo.nome}</Label>
+                      <Edit2 className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )
                 ) : (
                   <Label className="text-xs">{encargo.nome}</Label>
                 )}
