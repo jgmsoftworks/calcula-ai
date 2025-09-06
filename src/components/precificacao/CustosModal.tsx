@@ -80,7 +80,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
       // Carregar folha de pagamento (apenas mão de obra indireta)
       const { data: folha, error: folhaError } = await supabase
         .from('folha_pagamento')
-        .select('id, nome, custo_por_hora, ativo, tipo_mao_obra')
+        .select('id, nome, custo_por_hora, ativo, tipo_mao_obra, salario_base, horas_totais_mes')
         .eq('user_id', user.id)
         .eq('tipo_mao_obra', 'indireta')
         .order('nome');
