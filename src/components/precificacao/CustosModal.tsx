@@ -410,12 +410,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                       <div className="flex-1">
                         <h4 className="font-medium">{funcionario.nome}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {formatCurrency(
-                            funcionario.custo_por_hora || 
-                            (funcionario.salario_base && funcionario.horas_totais_mes 
-                              ? funcionario.salario_base / funcionario.horas_totais_mes 
-                              : 0)
-                          )}/hora
+                          {formatCurrency(funcionario.salario_base || 0)} total
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
