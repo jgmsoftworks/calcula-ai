@@ -202,7 +202,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
           {titulo}
         </h4>
         <div className="space-y-2">
-          {encargosDaCategoria.map((encargo) => (
+           {encargosDaCategoria.map((encargo) => (
             <div key={encargo.id} className="flex items-center justify-between p-3 border rounded-lg">
               <div className="flex-1">
                 <h5 className="font-medium">{encargo.nome}</h5>
@@ -219,10 +219,18 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                   ) : (
                     <span>0% / R$ 0,00</span>
                   )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground">Considerar</label>
+                <input 
+                  type="checkbox"
+                  defaultChecked={encargo.ativo}
+                  className="rounded"
+                />
+              </div>
+            </div>
+          ))}
                       </div>
         {categoria !== 'outros' && <Separator />}
       </div>
@@ -315,6 +323,14 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                           {formatCurrency(despesa.valor)}
                         </p>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-muted-foreground">Considerar</label>
+                        <input 
+                          type="checkbox"
+                          defaultChecked={despesa.ativo}
+                          className="rounded"
+                        />
+                      </div>
                     </div>
                   ))
                 )}
@@ -349,6 +365,14 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                         <p className="text-sm text-muted-foreground">
                           {formatCurrency(funcionario.salario_base || 0)} total
                         </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-muted-foreground">Considerar</label>
+                        <input 
+                          type="checkbox"
+                          defaultChecked={funcionario.ativo}
+                          className="rounded"
+                        />
                       </div>
                     </div>
                   ))
