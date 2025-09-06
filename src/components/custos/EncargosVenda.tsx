@@ -378,9 +378,9 @@ export const EncargosVenda = () => {
 
           <div className="space-y-4">
             {encargosDaCategoria.map((encargo) => (
-              <div key={encargo.id || encargo.nome} className={`grid gap-4 items-center py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                <div className="flex items-center min-w-0">
-                  <Label className="text-sm font-medium text-foreground truncate">{encargo.nome}</Label>
+              <div key={encargo.id || encargo.nome} className={`grid gap-4 items-start py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow min-h-[66px] ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                <div className="flex items-start pt-2 min-w-0">
+                  <Label className="text-sm font-medium text-foreground break-words leading-tight">{encargo.nome}</Label>
                 </div>
                 
                 <div className="relative">
