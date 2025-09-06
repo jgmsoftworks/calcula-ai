@@ -213,20 +213,26 @@ export const EncargosVenda = () => {
   };
 
   const atualizarNomeEncargo = async (id: string, novoNome: string) => {
-    if (!user) return;
+    if (!user || !novoNome.trim()) return;
 
     try {
+      console.log('Atualizando nome do encargo:', { id, novoNome });
+      
       const { error } = await supabase
         .from('encargos_venda')
-        .update({ nome: novoNome })
+        .update({ nome: novoNome.trim() })
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro na query:', error);
+        throw error;
+      }
 
       setEncargos(prev => 
-        prev.map(e => e.id === id ? { ...e, nome: novoNome } : e)
+        prev.map(e => e.id === id ? { ...e, nome: novoNome.trim() } : e)
       );
       
+      console.log('Nome atualizado com sucesso');
       toast({
         title: "Nome atualizado",
         description: "O nome do encargo foi alterado com sucesso"
@@ -355,8 +361,17 @@ export const EncargosVenda = () => {
                       );
                     }}
                     onBlur={(e) => {
-                      if (encargo.id && e.target.value.trim() && e.target.value !== encargo.nome) {
-                        atualizarNomeEncargo(encargo.id, e.target.value.trim());
+                      const novoNome = e.target.value.trim();
+                      const nomeOriginal = encargos.find(item => item.id === encargo.id)?.nome || '';
+                      console.log('onBlur triggered:', { novoNome, nomeOriginal, encargoId: encargo.id });
+                      
+                      if (encargo.id && novoNome && novoNome !== nomeOriginal) {
+                        atualizarNomeEncargo(encargo.id, novoNome);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
                       }
                     }}
                     className="text-xs h-8 w-full"
