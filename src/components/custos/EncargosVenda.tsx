@@ -375,74 +375,80 @@ export const EncargosVenda = () => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {encargosDaCategoria.map((encargo) => (
-              <div key={encargo.id || encargo.nome} className={`grid gap-4 items-start py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow min-h-[66px] ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                <div className="flex items-start pt-2 min-w-0">
-                  <Label className="text-sm font-medium text-foreground break-words leading-tight">{encargo.nome}</Label>
-                </div>
-                
-                <div className="relative">
-                  <Input
-                    type="text"
-                    value={encargo.valor_percentual || ''}
-                    onChange={(e) => {
-                      const valor = parseFloat(e.target.value) || 0;
-                      setEncargos(prev => 
-                        prev.map(item => 
-                          item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item
-                        )
-                      );
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    onBlur={(e) => {
-                      const valor = parseFloat(e.target.value) || 0;
-                      atualizarValorPercentual(encargo.nome, valor);
-                    }}
-                    className="text-center h-10 text-sm pr-8 border-border focus:border-primary"
-                    placeholder="0"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
-                </div>
-                
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">R$</span>
-                  <Input
-                    type="text"
-                    value={formatarMoeda(encargo.valor_fixo)}
-                    onChange={(e) => {
-                      const { formattedValue, numberValue } = handleValueChange(e.target.value, encargo.nome);
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    onBlur={(e) => {
-                      const valorLimpo = limparFormatacao(e.target.value);
-                      atualizarValorFixo(encargo.nome, valorLimpo);
-                    }}
-                    className="text-center h-10 text-sm pl-10 border-border focus:border-primary"
-                    placeholder="0,00"
-                  />
-                </div>
-
-                {categoria === 'outros' && (
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => iniciarEdicaoModal(encargo)}
-                      className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => encargo.id && removerEncargo(encargo.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+              <div key={encargo.id || encargo.nome} className="bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <Label className="text-sm font-medium text-foreground break-words">{encargo.nome}</Label>
                   </div>
-                )}
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-20">
+                        <Input
+                          type="text"
+                          value={encargo.valor_percentual || ''}
+                          onChange={(e) => {
+                            const valor = parseFloat(e.target.value) || 0;
+                            setEncargos(prev => 
+                              prev.map(item => 
+                                item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item
+                              )
+                            );
+                          }}
+                          onFocus={(e) => e.target.select()}
+                          onBlur={(e) => {
+                            const valor = parseFloat(e.target.value) || 0;
+                            atualizarValorPercentual(encargo.nome, valor);
+                          }}
+                          className="text-center h-8 text-sm pr-6 border-border focus:border-primary"
+                          placeholder="0"
+                        />
+                        <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
+                      </div>
+                      
+                      <div className="relative w-24">
+                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
+                        <Input
+                          type="text"
+                          value={formatarMoeda(encargo.valor_fixo)}
+                          onChange={(e) => {
+                            const { formattedValue, numberValue } = handleValueChange(e.target.value, encargo.nome);
+                          }}
+                          onFocus={(e) => e.target.select()}
+                          onBlur={(e) => {
+                            const valorLimpo = limparFormatacao(e.target.value);
+                            atualizarValorFixo(encargo.nome, valorLimpo);
+                          }}
+                          className="text-center h-8 text-sm pl-7 border-border focus:border-primary"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+
+                    {categoria === 'outros' && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => iniciarEdicaoModal(encargo)}
+                          className="h-7 w-7 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          onClick={() => encargo.id && removerEncargo(encargo.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
