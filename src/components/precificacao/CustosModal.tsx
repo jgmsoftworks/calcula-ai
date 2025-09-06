@@ -440,7 +440,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                     </p>
                   </div>
                 ) : (
-                  folhaPagamento.map((funcionario) => (
+                  folhaPagamento.filter(f => f.ativo).map((funcionario) => (
                     <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-medium">{funcionario.nome}</h4>
