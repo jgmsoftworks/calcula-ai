@@ -135,6 +135,40 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
     }
   }, [open, user]);
 
+  // Escutar mudanças em tempo real nas tabelas
+  useEffect(() => {
+    if (!user || !open) return;
+
+    const channels = [
+      supabase
+        .channel('despesas-fixas-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'despesas_fixas', filter: `user_id=eq.${user.id}` },
+          () => carregarDados()
+        ),
+      
+      supabase
+        .channel('folha-pagamento-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'folha_pagamento', filter: `user_id=eq.${user.id}` },
+          () => carregarDados()
+        ),
+      
+      supabase
+        .channel('encargos-venda-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'encargos_venda', filter: `user_id=eq.${user.id}` },
+          () => carregarDados()
+        )
+    ];
+
+    channels.forEach(channel => channel.subscribe());
+
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [user, open]);
+
   const toggleDespesaFixa = async (id: string, ativo: boolean) => {
     try {
       const { error } = await supabase
