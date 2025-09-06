@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,6 +71,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         .from('despesas_fixas')
         .select('id, nome, valor, ativo')
         .eq('user_id', user.id)
+        .eq('ativo', true)
         .order('nome');
 
       if (despesasError) {
@@ -87,6 +87,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         .select('id, nome, custo_por_hora, ativo, tipo_mao_obra, salario_base, horas_totais_mes')
         .eq('user_id', user.id)
         .eq('tipo_mao_obra', 'indireta')
+        .eq('ativo', true)
         .order('nome');
 
       if (folhaError) {
@@ -101,6 +102,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         .from('encargos_venda')
         .select('id, nome, valor, tipo, valor_percentual, valor_fixo, ativo')
         .eq('user_id', user.id)
+        .eq('ativo', true)
         .order('nome');
 
       if (encargosError) {
@@ -170,86 +172,6 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
     };
   }, [user, open]);
 
-  const toggleDespesaFixa = async (id: string, ativo: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('despesas_fixas')
-        .update({ ativo })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setDespesasFixas(prev => 
-        prev.map(item => item.id === id ? { ...item, ativo } : item)
-      );
-
-      toast({
-        title: ativo ? "Item ativado" : "Item desativado",
-        description: "Configuração atualizada com sucesso"
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar despesa fixa:', error);
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar o item",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const toggleFolhaPagamento = async (id: string, ativo: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('folha_pagamento')
-        .update({ ativo })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setFolhaPagamento(prev => 
-        prev.map(item => item.id === id ? { ...item, ativo } : item)
-      );
-
-      toast({
-        title: ativo ? "Item ativado" : "Item desativado",
-        description: "Configuração atualizada com sucesso"
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar folha de pagamento:', error);
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar o item",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const toggleEncargoVenda = async (id: string, ativo: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('encargos_venda')
-        .update({ ativo })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setEncargosVenda(prev => 
-        prev.map(item => item.id === id ? { ...item, ativo } : item)
-      );
-
-      toast({
-        title: ativo ? "Item ativado" : "Item desativado",
-        description: "Configuração atualizada com sucesso"
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar encargo sobre venda:', error);
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar o item",
-        variant: "destructive"
-      });
-    }
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -297,21 +219,11 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                   ) : (
                     <span>0% / R$ 0,00</span>
                   )}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Label htmlFor={`encargo-${encargo.id}`}>
-                  {encargo.ativo ? 'Ativo' : 'Inativo'}
-                </Label>
-                <Switch
-                  id={`encargo-${encargo.id}`}
-                  checked={encargo.ativo}
-                  onCheckedChange={(checked) => toggleEncargoVenda(encargo.id, checked)}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
         {categoria !== 'outros' && <Separator />}
       </div>
     );
@@ -330,7 +242,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
             )}
           </DialogTitle>
           <DialogDescription>
-            Configure quais custos devem ser considerados no cálculo do markup
+            Visualize os custos que serão considerados no cálculo do markup
           </DialogDescription>
         </DialogHeader>
 
@@ -403,16 +315,6 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                           {formatCurrency(despesa.valor)}
                         </p>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor={`despesa-${despesa.id}`}>
-                          {despesa.ativo ? 'Ativo' : 'Inativo'}
-                        </Label>
-                        <Switch
-                          id={`despesa-${despesa.id}`}
-                          checked={despesa.ativo}
-                          onCheckedChange={(checked) => toggleDespesaFixa(despesa.id, checked)}
-                        />
-                      </div>
                     </div>
                   ))
                 )}
@@ -440,23 +342,13 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                     </p>
                   </div>
                 ) : (
-                  folhaPagamento.filter(f => f.ativo).map((funcionario) => (
+                  folhaPagamento.map((funcionario) => (
                     <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-medium">{funcionario.nome}</h4>
                         <p className="text-sm text-muted-foreground">
                           {formatCurrency(funcionario.salario_base || 0)} total
                         </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor={`funcionario-${funcionario.id}`}>
-                          {funcionario.ativo ? 'Ativo' : 'Inativo'}
-                        </Label>
-                        <Switch
-                          id={`funcionario-${funcionario.id}`}
-                          checked={funcionario.ativo}
-                          onCheckedChange={(checked) => toggleFolhaPagamento(funcionario.id, checked)}
-                        />
                       </div>
                     </div>
                   ))

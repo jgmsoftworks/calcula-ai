@@ -55,7 +55,6 @@ export function DespesasFixas() {
         .from('despesas_fixas')
         .select('*')
         .eq('user_id', user.id)
-        .eq('ativo', true)
         .order('nome');
 
       if (error) throw error;
@@ -174,7 +173,7 @@ export function DespesasFixas() {
     try {
       const { error } = await supabase
         .from('despesas_fixas')
-        .update({ ativo: false })
+        .delete()
         .eq('id', id);
 
       if (error) throw error;

@@ -90,7 +90,6 @@ export function FolhaPagamento() {
         .from('folha_pagamento')
         .select('*')
         .eq('user_id', user.id)
-        .eq('ativo', true)
         .order('nome');
 
       if (error) throw error;
@@ -408,7 +407,7 @@ export function FolhaPagamento() {
     try {
       const { error } = await supabase
         .from('folha_pagamento')
-        .update({ ativo: false })
+        .delete()
         .eq('id', id);
 
       if (error) throw error;
