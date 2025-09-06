@@ -265,10 +265,21 @@ export function FolhaPagamento() {
     return 0;
   };
 
-  // Handler para mudança no salário base
-  const handleSalarioBaseChange = (value: string) => {
-    const parsed = parseInputValue(value);
-    setFormData({ ...formData, salario_base: parsed.toString() });
+  // Handler para mudança no salário base com formatação
+  const handleSalarioBaseChange = (inputValue: string) => {
+    // Remove tudo que não é dígito
+    const numericValue = inputValue.replace(/\D/g, '');
+    
+    // Converte para número dividindo por 100 (para ter centavos)
+    const numberValue = parseInt(numericValue || '0') / 100;
+    
+    // Formata como moeda brasileira sem o símbolo R$
+    const formattedValue = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numberValue);
+    
+    setFormData({ ...formData, salario_base: formattedValue });
   };
 
   // Calcular horas totais por mês
