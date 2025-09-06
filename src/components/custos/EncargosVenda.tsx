@@ -169,6 +169,18 @@ export const EncargosVenda = () => {
     }
   };
 
+  const formatarMoeda = (valor: number | string): string => {
+    if (!valor) return '';
+    const numero = typeof valor === 'string' ? parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) : valor;
+    if (isNaN(numero)) return '';
+    return numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const limparFormatacao = (valor: string): number => {
+    if (!valor) return 0;
+    return parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+  };
+
   const atualizarValorFixo = async (nome: string, valor: number) => {
     const encargo = encargos.find(e => e.nome === nome);
     if (!encargo || !encargo.id) return;
@@ -354,6 +366,7 @@ export const EncargosVenda = () => {
                         )
                       );
                     }}
+                    onFocus={(e) => e.target.select()}
                     onBlur={(e) => {
                       const valor = parseFloat(e.target.value) || 0;
                       atualizarValorPercentual(encargo.nome, valor);
@@ -368,17 +381,19 @@ export const EncargosVenda = () => {
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">R$</span>
                   <Input
                     type="text"
-                    value={encargo.valor_fixo || ''}
+                    value={formatarMoeda(encargo.valor_fixo)}
                     onChange={(e) => {
-                      const valor = parseFloat(e.target.value) || 0;
+                      const valorFormatado = e.target.value;
+                      const valorLimpo = limparFormatacao(valorFormatado);
                       setEncargos(prev => 
                         prev.map(item => 
-                          item.nome === encargo.nome ? { ...item, valor_fixo: valor } : item
+                          item.nome === encargo.nome ? { ...item, valor_fixo: valorLimpo } : item
                         )
                       );
                     }}
+                    onFocus={(e) => e.target.select()}
                     onBlur={(e) => {
-                      const valor = parseFloat(e.target.value) || 0;
+                      const valor = limparFormatacao(e.target.value);
                       atualizarValorFixo(encargo.nome, valor);
                     }}
                     className="text-center h-10 text-sm pl-10 border-border focus:border-primary"
