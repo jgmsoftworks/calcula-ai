@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -221,13 +222,17 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground">Considerar</label>
-                <input 
-                  type="checkbox"
+              <div className="flex items-center gap-3">
+                <Checkbox 
+                  id={`encargo-${encargo.id}`}
                   defaultChecked={encargo.ativo}
-                  className="rounded"
                 />
+                <Label 
+                  htmlFor={`encargo-${encargo.id}`}
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Considerar
+                </Label>
               </div>
             </div>
           ))}
@@ -323,13 +328,17 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                           {formatCurrency(despesa.valor)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-muted-foreground">Considerar</label>
-                        <input 
-                          type="checkbox"
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          id={`despesa-${despesa.id}`}
                           defaultChecked={despesa.ativo}
-                          className="rounded"
                         />
+                        <Label 
+                          htmlFor={`despesa-${despesa.id}`}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Considerar
+                        </Label>
                       </div>
                     </div>
                   ))
@@ -366,13 +375,17 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                           {formatCurrency(funcionario.salario_base || 0)} total
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-muted-foreground">Considerar</label>
-                        <input 
-                          type="checkbox"
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          id={`funcionario-${funcionario.id}`}
                           defaultChecked={funcionario.ativo}
-                          className="rounded"
                         />
+                        <Label 
+                          htmlFor={`funcionario-${funcionario.id}`}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Considerar
+                        </Label>
                       </div>
                     </div>
                   ))
