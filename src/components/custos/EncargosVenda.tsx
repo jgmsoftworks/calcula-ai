@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -23,8 +24,9 @@ export const EncargosVenda = () => {
   
   const [encargos, setEncargos] = useState<EncargoItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [nomeTemp, setNomeTemp] = useState('');
+  const [modalAberto, setModalAberto] = useState(false);
+  const [encargoEditando, setEncargoEditando] = useState<EncargoItem | null>(null);
+  const [nomeEditando, setNomeEditando] = useState('');
 
   // Encargos padrão por categoria
   const encargosDefault = {
@@ -249,22 +251,25 @@ export const EncargosVenda = () => {
     }
   };
 
-  const iniciarEdicaoNome = (encargo: EncargoItem) => {
-    setEditandoId(encargo.id!);
-    setNomeTemp(encargo.nome);
+  const iniciarEdicaoModal = (encargo: EncargoItem) => {
+    setEncargoEditando(encargo);
+    setNomeEditando(encargo.nome);
+    setModalAberto(true);
   };
 
-  const salvarNomeEdicao = (id: string) => {
-    if (nomeTemp.trim()) {
-      atualizarNomeEncargo(id, nomeTemp.trim());
-    }
-    setEditandoId(null);
-    setNomeTemp('');
+  const salvarEdicaoModal = async () => {
+    if (!encargoEditando || !nomeEditando.trim()) return;
+
+    await atualizarNomeEncargo(encargoEditando.id!, nomeEditando.trim());
+    setModalAberto(false);
+    setEncargoEditando(null);
+    setNomeEditando('');
   };
 
-  const cancelarEdicao = () => {
-    setEditandoId(null);
-    setNomeTemp('');
+  const cancelarEdicaoModal = () => {
+    setModalAberto(false);
+    setEncargoEditando(null);
+    setNomeEditando('');
   };
 
   const adicionarOutroEncargo = async () => {
@@ -370,50 +375,17 @@ export const EncargosVenda = () => {
             <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-2 items-center">
               <div className="flex items-center">
                 {categoria === 'outros' ? (
-                  editandoId === encargo.id ? (
-                    <div className="flex items-center gap-1 flex-1">
-                      <Input
-                        value={nomeTemp}
-                        onChange={(e) => setNomeTemp(e.target.value)}
-                        className="text-xs h-8 border-blue-200 focus:border-blue-400"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') salvarNomeEdicao(encargo.id!);
-                          if (e.key === 'Escape') cancelarEdicao();
-                        }}
-                        autoFocus
-                      />
-                      <div className="flex gap-1">
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => salvarNomeEdicao(encargo.id!)}
-                          className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        >
-                          <Check className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={cancelarEdicao}
-                          className="h-7 w-7 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 flex-1 group">
-                      <Label className="text-xs flex-1">{encargo.nome}</Label>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => iniciarEdicaoNome(encargo)}
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )
+                  <div className="flex items-center gap-2 flex-1 group">
+                    <Label className="text-xs flex-1">{encargo.nome}</Label>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => iniciarEdicaoModal(encargo)}
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 ) : (
                   <Label className="text-xs">{encargo.nome}</Label>
                 )}
@@ -484,6 +456,41 @@ export const EncargosVenda = () => {
       {renderEncargosPorCategoria('comissoes', 'Comissões e Plataformas')}
       {renderEncargosPorCategoria('meios_pagamento', 'Taxas de Meios de Pagamento')}
       {renderEncargosPorCategoria('outros', 'Outros')}
+
+      <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Nome do Encargo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="nome" className="text-sm font-medium">
+                Nome do encargo
+              </Label>
+              <Input
+                id="nome"
+                value={nomeEditando}
+                onChange={(e) => setNomeEditando(e.target.value)}
+                className="mt-1"
+                placeholder="Digite o nome do encargo"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') salvarEdicaoModal();
+                  if (e.key === 'Escape') cancelarEdicaoModal();
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={cancelarEdicaoModal}>
+                Cancelar
+              </Button>
+              <Button onClick={salvarEdicaoModal}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
