@@ -352,92 +352,96 @@ export const EncargosVenda = () => {
     const encargosDaCategoria = encargos.filter(e => e.categoria === categoria);
 
     return (
-      <Card key={categoria}>
+      <Card key={categoria} className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">{titulo}</CardTitle>
+            <CardTitle className="text-lg font-semibold text-foreground">{titulo}</CardTitle>
             {categoria === 'outros' && (
-              <Button onClick={adicionarOutroEncargo} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button onClick={adicionarOutroEncargo} variant="outline" size="sm" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
                 Adicionar
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            <div></div>
-            <div className="text-center font-medium text-xs">Percentual (%)</div>
-            <div className="text-center font-medium text-xs">Valor (R$)</div>
-            <div></div>
+        <CardContent className="px-6 pb-6">
+          <div className="bg-muted/30 rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="text-sm font-medium text-muted-foreground">Nome</div>
+              <div className="text-center text-sm font-medium text-muted-foreground">Percentual (%)</div>
+              <div className="text-center text-sm font-medium text-muted-foreground">Valor Fixo (R$)</div>
+              <div className="text-center text-sm font-medium text-muted-foreground">Ações</div>
+            </div>
           </div>
 
-          {encargosDaCategoria.map((encargo) => (
-            <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-2 items-center">
-              <div className="flex items-center">
-                {categoria === 'outros' ? (
-                  <div className="flex items-center gap-2 flex-1 group">
-                    <Label className="text-xs flex-1">{encargo.nome}</Label>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => iniciarEdicaoModal(encargo)}
-                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Label className="text-xs">{encargo.nome}</Label>
-                )}
-              </div>
-              
-              <div className="relative">
-                <Input
-                  type="number"
-                  value={encargo.tipo === 'percentual' ? encargo.valor : 0}
-                  onChange={(e) => {
-                    const valor = parseFloat(e.target.value) || 0;
-                    atualizarEncargo(encargo.nome, valor, 'percentual');
-                  }}
-                  className="text-right h-8 text-xs pr-6"
-                  placeholder="0"
-                  min="0"
-                  step="0.01"
-                />
-                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
-              </div>
-              
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
-                <Input
-                  type="number"
-                  value={encargo.tipo === 'fixo' ? encargo.valor : 0}
-                  onChange={(e) => {
-                    const valor = parseFloat(e.target.value) || 0;
-                    atualizarEncargo(encargo.nome, valor, 'fixo');
-                  }}
-                  className="text-right h-8 text-xs pl-8"
-                  placeholder="0,00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
+          <div className="space-y-4">
+            {encargosDaCategoria.map((encargo) => (
+              <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-4 items-center py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow">
+                <div className="flex items-center min-w-0">
+                  {categoria === 'outros' ? (
+                    <div className="flex items-center gap-3 flex-1 group">
+                      <Label className="text-sm font-medium text-foreground truncate flex-1">{encargo.nome}</Label>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => iniciarEdicaoModal(encargo)}
+                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Label className="text-sm font-medium text-foreground truncate">{encargo.nome}</Label>
+                  )}
+                </div>
+                
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={encargo.tipo === 'percentual' ? encargo.valor : 0}
+                    onChange={(e) => {
+                      const valor = parseFloat(e.target.value) || 0;
+                      atualizarEncargo(encargo.nome, valor, 'percentual');
+                    }}
+                    className="text-center h-10 text-sm pr-8 border-border focus:border-primary"
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                  />
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
+                </div>
+                
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">R$</span>
+                  <Input
+                    type="number"
+                    value={encargo.tipo === 'fixo' ? encargo.valor : 0}
+                    onChange={(e) => {
+                      const valor = parseFloat(e.target.value) || 0;
+                      atualizarEncargo(encargo.nome, valor, 'fixo');
+                    }}
+                    className="text-center h-10 text-sm pl-10 border-border focus:border-primary"
+                    placeholder="0,00"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
 
-              <div className="flex justify-center">
-                {categoria === 'outros' && (
-                  <Button
-                    onClick={() => encargo.id && removerEncargo(encargo.id)}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
+                <div className="flex justify-center">
+                  {categoria === 'outros' && (
+                    <Button
+                      onClick={() => encargo.id && removerEncargo(encargo.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
