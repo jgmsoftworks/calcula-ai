@@ -41,6 +41,8 @@ interface EncargoVenda {
   nome: string;
   valor: number;
   tipo: string;
+  valor_percentual: number;
+  valor_fixo: number;
   ativo: boolean;
 }
 
@@ -97,7 +99,7 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
       // Carregar encargos sobre venda
       const { data: encargos, error: encargosError } = await supabase
         .from('encargos_venda')
-        .select('id, nome, valor, tipo, ativo')
+        .select('id, nome, valor, tipo, valor_percentual, valor_fixo, ativo')
         .eq('user_id', user.id)
         .order('nome');
 
@@ -106,7 +108,15 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
         throw encargosError;
       }
       console.log('Encargos sobre venda carregados:', encargos);
-      setEncargosVenda(encargos || []);
+      
+      // Mapear os dados para incluir os novos campos
+      const encargosFormatados = (encargos || []).map(encargo => ({
+        ...encargo,
+        valor_percentual: encargo.valor_percentual || 0,
+        valor_fixo: encargo.valor_fixo || 0
+      }));
+      
+      setEncargosVenda(encargosFormatados);
 
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -239,9 +249,20 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
             <div key={encargo.id} className="flex items-center justify-between p-3 border rounded-lg">
               <div className="flex-1">
                 <h5 className="font-medium">{encargo.nome}</h5>
-                <p className="text-sm text-muted-foreground">
-                  {encargo.tipo === 'percentual' ? `${encargo.valor}%` : formatCurrency(encargo.valor)}
-                </p>
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  {encargo.valor_percentual > 0 && encargo.valor_fixo > 0 ? (
+                    <>
+                      <span>{encargo.valor_percentual}%</span>
+                      <span>{formatCurrency(encargo.valor_fixo)}</span>
+                    </>
+                  ) : encargo.valor_percentual > 0 ? (
+                    <span>{encargo.valor_percentual}%</span>
+                  ) : encargo.valor_fixo > 0 ? (
+                    <span>{formatCurrency(encargo.valor_fixo)}</span>
+                  ) : (
+                    <span>0% / R$ 0,00</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <Label htmlFor={`encargo-${encargo.id}`}>
