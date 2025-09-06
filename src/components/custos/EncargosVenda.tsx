@@ -19,6 +19,7 @@ interface EncargoItem {
 }
 
 export const EncargosVenda = () => {
+  // Componente atualizado - modal de edição
   const { user } = useAuth();
   const { toast } = useToast();
   
