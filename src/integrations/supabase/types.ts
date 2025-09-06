@@ -128,6 +128,8 @@ export type Database = {
           updated_at: string
           user_id: string
           valor: number
+          valor_fixo: number | null
+          valor_percentual: number | null
         }
         Insert: {
           ativo?: boolean
@@ -138,6 +140,8 @@ export type Database = {
           updated_at?: string
           user_id: string
           valor?: number
+          valor_fixo?: number | null
+          valor_percentual?: number | null
         }
         Update: {
           ativo?: boolean
@@ -148,6 +152,8 @@ export type Database = {
           updated_at?: string
           user_id?: string
           valor?: number
+          valor_fixo?: number | null
+          valor_percentual?: number | null
         }
         Relationships: []
       }

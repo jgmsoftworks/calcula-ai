@@ -76,8 +76,8 @@ export const EncargosVenda = () => {
         const encargosFormatados = data.map(item => ({
           id: item.id,
           nome: item.nome,
-          valor_percentual: item.tipo === 'percentual' ? item.valor : 0,
-          valor_fixo: item.tipo === 'fixo' ? item.valor : 0,
+          valor_percentual: item.valor_percentual || 0,
+          valor_fixo: item.valor_fixo || 0,
           categoria: getCategoriaByNome(item.nome),
           ativo: item.ativo
         }));
@@ -126,6 +126,8 @@ export const EncargosVenda = () => {
             nome: encargo.nome,
             valor: 0,
             tipo: 'percentual',
+            valor_percentual: 0,
+            valor_fixo: 0,
             ativo: true
           }))
         )
@@ -156,7 +158,7 @@ export const EncargosVenda = () => {
     try {
       const { error } = await supabase
         .from('encargos_venda')
-        .update({ valor, tipo: 'percentual' })
+        .update({ valor_percentual: valor })
         .eq('id', encargo.id);
 
       if (error) throw error;
@@ -216,7 +218,7 @@ export const EncargosVenda = () => {
     try {
       const { error } = await supabase
         .from('encargos_venda')
-        .update({ valor, tipo: 'fixo' })
+        .update({ valor_fixo: valor })
         .eq('id', encargo.id);
 
       if (error) throw error;
@@ -299,6 +301,8 @@ export const EncargosVenda = () => {
           nome: novoEncargo.nome,
           valor: 0,
           tipo: 'percentual',
+          valor_percentual: 0,
+          valor_fixo: 0,
           ativo: novoEncargo.ativo
         })
         .select()
