@@ -77,11 +77,12 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
       console.log('Despesas fixas carregadas:', despesas);
       setDespesasFixas(despesas || []);
 
-      // Carregar folha de pagamento
+      // Carregar folha de pagamento (apenas mão de obra indireta)
       const { data: folha, error: folhaError } = await supabase
         .from('folha_pagamento')
         .select('id, nome, custo_por_hora, ativo')
         .eq('user_id', user.id)
+        .eq('tipo_mao_obra', 'indireta')
         .order('nome');
 
       if (folhaError) {
