@@ -366,17 +366,19 @@ export const EncargosVenda = () => {
         </CardHeader>
         <CardContent className="px-6 pb-6">
           <div className="bg-muted/30 rounded-lg p-4 mb-6">
-            <div className="grid grid-cols-4 gap-4">
+            <div className={`grid gap-4 ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <div className="text-sm font-medium text-muted-foreground">Nome</div>
               <div className="text-center text-sm font-medium text-muted-foreground">Percentual (%)</div>
               <div className="text-center text-sm font-medium text-muted-foreground">Valor Fixo (R$)</div>
-              <div className="text-center text-sm font-medium text-muted-foreground">Ações</div>
+              {categoria === 'outros' && (
+                <div className="text-center text-sm font-medium text-muted-foreground">Ações</div>
+              )}
             </div>
           </div>
 
           <div className="space-y-4">
             {encargosDaCategoria.map((encargo) => (
-              <div key={encargo.id || encargo.nome} className="grid grid-cols-4 gap-4 items-center py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow">
+              <div key={encargo.id || encargo.nome} className={`grid gap-4 items-center py-3 px-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <div className="flex items-center min-w-0">
                   {categoria === 'outros' ? (
                     <div className="flex items-center gap-3 flex-1 group">
@@ -427,8 +429,8 @@ export const EncargosVenda = () => {
                   />
                 </div>
 
-                <div className="flex justify-center">
-                  {categoria === 'outros' && (
+                {categoria === 'outros' && (
+                  <div className="flex justify-center">
                     <Button
                       onClick={() => encargo.id && removerEncargo(encargo.id)}
                       variant="ghost"
@@ -437,8 +439,8 @@ export const EncargosVenda = () => {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
