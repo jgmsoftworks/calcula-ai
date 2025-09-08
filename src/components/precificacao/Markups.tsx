@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
-import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustosModal } from './CustosModal';
@@ -26,7 +26,7 @@ export function Markups() {
   const [nomeTemp, setNomeTemp] = useState('');
   const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
   const [modalAberto, setModalAberto] = useState(false);
-  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -44,9 +44,13 @@ export function Markups() {
 
   useEffect(() => {
     const carregarBlocos = async () => {
-      const config = await loadConfiguration('markups_blocos');
-      if (config && Array.isArray(config)) {
-        setBlocos(config as unknown as MarkupBlock[]);
+      try {
+        const config = await loadConfiguration('markups_blocos');
+        if (config && Array.isArray(config)) {
+          setBlocos(config as unknown as MarkupBlock[]);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar blocos:', error);
       }
     };
     carregarBlocos();
@@ -58,8 +62,12 @@ export function Markups() {
     }
     
     debounceRef.current = setTimeout(async () => {
-      await saveConfiguration('markups_blocos', novosBlocos);
-    }, 300);
+      try {
+        await saveConfiguration('markups_blocos', novosBlocos);
+      } catch (error) {
+        console.error('Erro ao salvar blocos:', error);
+      }
+    }, 800); // Aumentado para 800ms
   }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {

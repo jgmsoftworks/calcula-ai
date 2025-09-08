@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface MarkupBlock {
   id: string;
@@ -72,7 +73,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [filtroPerido, setFiltroPerido] = useState<string>('6');
   const { user } = useAuth();
   const { toast } = useToast();
-  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
 
   // Atualizar valores locais quando markupBlock mudar
   useEffect(() => {
@@ -110,7 +111,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     
     setLoading(true);
     try {
-      console.log('Carregando dados para o usuário:', user.id);
       
       // Carregar despesas fixas
       const { data: despesas, error: despesasError } = await supabase
@@ -121,10 +121,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         .order('nome');
 
       if (despesasError) {
-        console.error('Erro ao carregar despesas fixas:', despesasError);
         throw despesasError;
       }
-      console.log('Despesas fixas carregadas:', despesas);
       setDespesasFixas(despesas || []);
 
       // Carregar folha de pagamento (apenas mão de obra indireta)
@@ -137,10 +135,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         .order('nome');
 
       if (folhaError) {
-        console.error('Erro ao carregar folha de pagamento:', folhaError);
         throw folhaError;
       }
-      console.log('Folha de pagamento carregada:', folha);
       setFolhaPagamento(folha || []);
 
       // Carregar encargos sobre venda
@@ -152,10 +148,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         .order('nome');
 
       if (encargosError) {
-        console.error('Erro ao carregar encargos sobre venda:', encargosError);
         throw encargosError;
       }
-      console.log('Encargos sobre venda carregados:', encargos);
       
       // Mapear os dados para incluir os novos campos
       const encargosFormatados = (encargos || []).map(encargo => ({
@@ -180,7 +174,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           return parseInt(b.id) - parseInt(a.id);
         });
         setFaturamentosHistoricos(faturamentos);
-        console.log('Faturamentos carregados na modal:', faturamentos);
       }
 
       // Carregar estados dos checkboxes salvos
@@ -199,14 +192,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       }
 
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
       toast({
         title: "Erro ao carregar dados",
         description: "Não foi possível carregar os dados de custos",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -215,31 +208,49 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   }, [open, user]);
 
-  // Escutar mudanças nos faturamentos históricos em tempo real
+  // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
   useEffect(() => {
-    if (open) {
-      const intervalId = setInterval(async () => {
-        // Recarregar faturamentos históricos - usar a mesma lógica da MediaFaturamento
+    if (!open) return;
+    
+    let intervalId: NodeJS.Timeout | null = null;
+    let isStale = false;
+    
+    const atualizarFaturamentos = async () => {
+      if (isStale) return;
+      
+      try {
         const configFaturamentos = await loadConfiguration('faturamentos_historicos');
-        if (configFaturamentos && Array.isArray(configFaturamentos)) {
+        if (configFaturamentos && Array.isArray(configFaturamentos) && !isStale) {
           const faturamentos = configFaturamentos.map((f: any) => ({
             ...f,
             mes: new Date(f.mes)
           })).sort((a, b) => {
-            // Primeiro ordena por data (mês/ano) - mais recente primeiro
             const dateCompare = b.mes.getTime() - a.mes.getTime();
             if (dateCompare !== 0) return dateCompare;
-            // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
             return parseInt(b.id) - parseInt(a.id);
           });
-          setFaturamentosHistoricos(faturamentos);
-          console.log('Faturamentos atualizados em tempo real:', faturamentos);
+          
+          // Só atualiza se realmente mudou
+          setFaturamentosHistoricos(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(faturamentos)) {
+              return faturamentos;
+            }
+            return prev;
+          });
         }
-      }, 2000); // Verificar a cada 2 segundos
+      } catch (error) {
+        console.error('Erro ao atualizar faturamentos:', error);
+      }
+    };
 
-      return () => clearInterval(intervalId);
-    }
-  }, [open, loadConfiguration]);
+    // Reduzir frequência para 5 segundos
+    intervalId = setInterval(atualizarFaturamentos, 5000);
+
+    return () => {
+      isStale = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [open]);
 
   // Função para calcular média mensal baseada no período selecionado
   const calcularMediaMensal = useMemo(() => {
@@ -255,21 +266,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
     if (faturamentosSelecionados.length === 0) return 0;
 
-    console.log('Filtro período:', filtroPerido);
-    console.log('Faturamentos selecionados:', faturamentosSelecionados);
-
     // Se for apenas 1 mês (último mês), retornar o valor do mais recente
     if (filtroPerido === '1' && faturamentosSelecionados.length > 0) {
-      const valorUltimoMes = faturamentosSelecionados[0].valor;
-      console.log('Último mês - valor:', valorUltimoMes);
-      return valorUltimoMes;
+      return faturamentosSelecionados[0].valor;
     }
 
     // Para outros casos, calcular a média dos selecionados
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
-    const media = totalFaturamento / faturamentosSelecionados.length;
-    console.log('Média calculada:', media, 'de', faturamentosSelecionados.length, 'faturamentos');
-    return media;
+    return totalFaturamento / faturamentosSelecionados.length;
   }, [faturamentosHistoricos, filtroPerido]);
 
   const formatCurrency = (value: number) => {
@@ -279,21 +283,25 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }).format(value);
   };
 
-  // Escutar mudanças em tempo real nas tabelas
+  // Escutar mudanças em tempo real nas tabelas (otimizado)
   useEffect(() => {
     if (!user || !open) return;
 
     let timeoutId: NodeJS.Timeout;
+    let isStale = false;
     
     const debouncedReload = () => {
+      if (isStale) return;
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        carregarDados();
-      }, 300); // Debounce de 300ms
+        if (!isStale) {
+          carregarDados();
+        }
+      }, 1000); // Aumentado para 1 segundo
     };
 
     const channel = supabase
-      .channel('custos-changes')
+      .channel(`custos-changes-${Date.now()}`) // Canal único para evitar conflitos
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'despesas_fixas', filter: `user_id=eq.${user.id}` },
         debouncedReload
@@ -309,6 +317,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       .subscribe();
 
     return () => {
+      isStale = true;
       clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
@@ -369,14 +378,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       gastosSobreFaturamento = (totalGastos / calcularMediaMensal) * 100;
     }
 
-    console.log('Cálculo gastos sobre faturamento:', {
-      totalDespesasFixas,
-      totalFolhaPagamento,
-      totalGastos,
-      mediaMensal: calcularMediaMensal,
-      porcentagem: gastosSobreFaturamento
-    });
-
     // Calcular encargos sobre venda
     const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
     
@@ -402,7 +403,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       return acc;
     }, {
-      gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100, // Arredondar para 2 casas decimais
+      gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
       impostos: 0,
       taxasMeiosPagamento: 0,
       comissoesPlataformas: 0,
@@ -421,21 +422,21 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
 
-  // Debounced calculation to avoid excessive re-renders
+  // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {
     let timeoutId: NodeJS.Timeout;
     return (states: Record<string, boolean>) => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => calcularMarkup(states), 100);
+      timeoutId = setTimeout(() => calcularMarkup(states), 500); // Aumentado para 500ms
     };
   }, [calcularMarkup]);
 
-  // Calcular markup sempre que os estados mudarem
+  // Calcular markup sempre que os estados mudarem (otimizado)
   useEffect(() => {
     if (Object.keys(checkboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
       debouncedCalculateMarkup(checkboxStates);
     }
-  }, [checkboxStates, encargosVenda, despesasFixas, folhaPagamento, debouncedCalculateMarkup]);
+  }, [checkboxStates, debouncedCalculateMarkup]); // Removidas dependências desnecessárias
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
@@ -692,7 +693,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+         </Tabs>
       </DialogContent>
     </Dialog>
   );

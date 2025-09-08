@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 
 interface FaturamentoHistorico {
@@ -25,33 +25,41 @@ export function MediaFaturamento() {
     mes: new Date().getMonth() + 1,
     ano: new Date().getFullYear()
   });
-  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const carregarDados = async () => {
-      // Carregar faturamentos históricos
-      const configFaturamentos = await loadConfiguration('faturamentos_historicos');
-      if (configFaturamentos && Array.isArray(configFaturamentos)) {
-        const faturamentos = configFaturamentos.map((f: any) => ({
-          ...f,
-          mes: new Date(f.mes)
-        })).sort((a, b) => {
-          // Primeiro ordena por data (mês/ano)
-          const dateCompare = b.mes.getTime() - a.mes.getTime();
-          if (dateCompare !== 0) return dateCompare;
-          // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
-          return parseInt(b.id) - parseInt(a.id);
-        });
-        setFaturamentosHistoricos(faturamentos);
+      try {
+        // Carregar faturamentos históricos
+        const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+        if (configFaturamentos && Array.isArray(configFaturamentos)) {
+          const faturamentos = configFaturamentos.map((f: any) => ({
+            ...f,
+            mes: new Date(f.mes)
+          })).sort((a, b) => {
+            // Primeiro ordena por data (mês/ano)
+            const dateCompare = b.mes.getTime() - a.mes.getTime();
+            if (dateCompare !== 0) return dateCompare;
+            // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
+            return parseInt(b.id) - parseInt(a.id);
+          });
+          setFaturamentosHistoricos(faturamentos);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar faturamentos:', error);
       }
     };
     carregarDados();
   }, [loadConfiguration]);
 
   const salvarFaturamentos = useCallback(async (faturamentos: FaturamentoHistorico[]) => {
-    await saveConfiguration('faturamentos_historicos', faturamentos);
+    try {
+      await saveConfiguration('faturamentos_historicos', faturamentos);
+    } catch (error) {
+      console.error('Erro ao salvar faturamentos:', error);
+    }
   }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
@@ -113,7 +121,11 @@ export function MediaFaturamento() {
     };
 
     const novosFaturamentos = [...faturamentosHistoricos, novoItem]
-      .sort((a, b) => b.mes.getTime() - a.mes.getTime());
+      .sort((a, b) => {
+        const dateCompare = b.mes.getTime() - a.mes.getTime();
+        if (dateCompare !== 0) return dateCompare;
+        return parseInt(b.id) - parseInt(a.id);
+      });
     
     setFaturamentosHistoricos(novosFaturamentos);
     salvarFaturamentos(novosFaturamentos);
