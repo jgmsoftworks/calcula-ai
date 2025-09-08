@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,12 @@ interface MarkupBlock {
   comissoesPlataformas: number;
   outros: number;
   lucroDesejado: number;
+}
+
+interface FaturamentoHistorico {
+  id: string;
+  valor: number;
+  mes: Date;
 }
 
 interface DespesaFixa {
@@ -61,6 +68,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [loading, setLoading] = useState(false);
   const [checkboxStates, setCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
+  const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
+  const [filtroPerido, setFiltroPerido] = useState<string>('6');
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
@@ -133,6 +142,16 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       setEncargosVenda(encargosFormatados);
 
+      // Carregar faturamentos históricos
+      const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+      if (configFaturamentos && Array.isArray(configFaturamentos)) {
+        const faturamentos = configFaturamentos.map((f: any) => ({
+          ...f,
+          mes: new Date(f.mes)
+        })).sort((a, b) => b.mes.getTime() - a.mes.getTime());
+        setFaturamentosHistoricos(faturamentos);
+      }
+
       // Carregar estados dos checkboxes salvos
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
       const savedStates = await loadConfiguration(configKey);
@@ -164,6 +183,35 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       carregarDados();
     }
   }, [open, user]);
+
+  // Função para calcular média mensal baseada no período selecionado
+  const calcularMediaMensal = useMemo(() => {
+    if (faturamentosHistoricos.length === 0) return 0;
+
+    let faturamentosFiltrados = faturamentosHistoricos;
+    
+    if (filtroPerido !== 'todos') {
+      const mesesAtras = parseInt(filtroPerido);
+      const dataLimite = new Date();
+      dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+      
+      faturamentosFiltrados = faturamentosHistoricos.filter(f => 
+        f.mes >= dataLimite
+      );
+    }
+
+    if (faturamentosFiltrados.length === 0) return 0;
+
+    const totalFaturamento = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
+    return totalFaturamento / faturamentosFiltrados.length;
+  }, [faturamentosHistoricos, filtroPerido]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
 
   // Escutar mudanças em tempo real nas tabelas
   useEffect(() => {
@@ -199,14 +247,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       supabase.removeChannel(channel);
     };
   }, [user, open]);
-
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
 
   const handleCheckboxChange = async (itemId: string, checked: boolean) => {
     const newStates = { ...checkboxStates, [itemId]: checked };
@@ -368,7 +408,27 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         {markupBlock && (
           <Card className="bg-blue-50/50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
+                <div className="flex items-center gap-4">
+                  <Select value={filtroPerido} onValueChange={setFiltroPerido}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Último mês</SelectItem>
+                      <SelectItem value="3">Últimos 3 meses</SelectItem>
+                      <SelectItem value="6">Últimos 6 meses</SelectItem>
+                      <SelectItem value="12">Últimos 12 meses</SelectItem>
+                      <SelectItem value="todos">Todos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Média Mensal</p>
+                    <p className="text-lg font-semibold text-primary">{formatCurrency(calcularMediaMensal)}</p>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1">
