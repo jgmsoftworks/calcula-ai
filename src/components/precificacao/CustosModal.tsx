@@ -343,8 +343,41 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   }, [categoriasMap]);
 
   const calcularMarkup = useCallback((states: Record<string, boolean>) => {
-    if (!encargosVenda.length) return;
+    if (!encargosVenda.length && !despesasFixas.length && !folhaPagamento.length) return;
 
+    // Calcular gastos sobre faturamento (despesas fixas + folha de pagamento)
+    let gastosSobreFaturamento = 0;
+    
+    // Somar despesas fixas marcadas como "Considerar"
+    const despesasConsideradas = despesasFixas.filter(d => states[d.id] && d.ativo);
+    const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + despesa.valor, 0);
+    
+    // Somar folha de pagamento marcada como "Considerar"
+    const folhaConsiderada = folhaPagamento.filter(f => states[f.id] && f.ativo);
+    const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+      // Usar salario_base se custo_por_hora não estiver disponível
+      const custoMensal = funcionario.custo_por_hora > 0 
+        ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+        : funcionario.salario_base;
+      return acc + custoMensal;
+    }, 0);
+    
+    const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+    
+    // Calcular porcentagem sobre a média mensal
+    if (calcularMediaMensal > 0 && totalGastos > 0) {
+      gastosSobreFaturamento = (totalGastos / calcularMediaMensal) * 100;
+    }
+
+    console.log('Cálculo gastos sobre faturamento:', {
+      totalDespesasFixas,
+      totalFolhaPagamento,
+      totalGastos,
+      mediaMensal: calcularMediaMensal,
+      porcentagem: gastosSobreFaturamento
+    });
+
+    // Calcular encargos sobre venda
     const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
     
     // Calcular somas por categoria de forma otimizada
@@ -369,6 +402,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       return acc;
     }, {
+      gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100, // Arredondar para 2 casas decimais
       impostos: 0,
       taxasMeiosPagamento: 0,
       comissoesPlataformas: 0,
@@ -385,7 +419,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     if (onMarkupUpdate) {
       onMarkupUpdate(categorias);
     }
-  }, [encargosVenda, getCategoriaByNome, onMarkupUpdate]);
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
 
   // Debounced calculation to avoid excessive re-renders
   const debouncedCalculateMarkup = useMemo(() => {
@@ -398,10 +432,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Calcular markup sempre que os estados mudarem
   useEffect(() => {
-    if (Object.keys(checkboxStates).length > 0 && encargosVenda.length > 0) {
+    if (Object.keys(checkboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
       debouncedCalculateMarkup(checkboxStates);
     }
-  }, [checkboxStates, encargosVenda, debouncedCalculateMarkup]);
+  }, [checkboxStates, encargosVenda, despesasFixas, folhaPagamento, debouncedCalculateMarkup]);
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
