@@ -140,10 +140,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       if (savedStates && typeof savedStates === 'object') {
         setCheckboxStates(savedStates as Record<string, boolean>);
       } else {
-        // Inicializar com todos marcados por padrão
+        // Inicializar com todos desmarcados por padrão
         const defaultStates: Record<string, boolean> = {};
         [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
-          defaultStates[item.id] = true;
+          defaultStates[item.id] = false;
         });
         setCheckboxStates(defaultStates);
       }
@@ -328,11 +328,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 </div>
               </div>
                        <div className="flex items-center gap-3">
-                         <Checkbox 
-                           id={`encargo-${encargo.id}`}
-                           checked={checkboxStates[encargo.id] ?? true}
-                           onCheckedChange={(checked) => handleCheckboxChange(encargo.id, checked as boolean)}
-                         />
+                          <Checkbox 
+                            id={`encargo-${encargo.id}`}
+                            checked={checkboxStates[encargo.id] ?? false}
+                            onCheckedChange={(checked) => handleCheckboxChange(encargo.id, checked as boolean)}
+                          />
                          <Label 
                            htmlFor={`encargo-${encargo.id}`}
                            className="text-sm font-medium cursor-pointer"
@@ -435,11 +435,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                         </p>
                       </div>
                        <div className="flex items-center gap-3">
-                         <Checkbox 
-                           id={`despesa-${despesa.id}`}
-                           checked={checkboxStates[despesa.id] ?? true}
-                           onCheckedChange={(checked) => handleCheckboxChange(despesa.id, checked as boolean)}
-                         />
+                          <Checkbox 
+                            id={`despesa-${despesa.id}`}
+                            checked={checkboxStates[despesa.id] ?? false}
+                            onCheckedChange={(checked) => handleCheckboxChange(despesa.id, checked as boolean)}
+                          />
                          <Label 
                            htmlFor={`despesa-${despesa.id}`}
                            className="text-sm font-medium cursor-pointer"
@@ -483,11 +483,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                         </p>
                       </div>
                        <div className="flex items-center gap-3">
-                         <Checkbox 
-                           id={`funcionario-${funcionario.id}`}
-                           checked={checkboxStates[funcionario.id] ?? true}
-                           onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
-                         />
+                          <Checkbox 
+                            id={`funcionario-${funcionario.id}`}
+                            checked={checkboxStates[funcionario.id] ?? false}
+                            onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
+                          />
                          <Label 
                            htmlFor={`funcionario-${funcionario.id}`}
                            className="text-sm font-medium cursor-pointer"
