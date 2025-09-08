@@ -328,10 +328,13 @@ export function Markups() {
       valorEmReal: bloco.valorEmReal || 0
     };
     
-    const totalCustos = markupData.gastoSobreFaturamento + markupData.impostos + 
-                       markupData.taxasMeiosPagamento + markupData.comissoesPlataformas + 
-                       markupData.outros;
-    const markup = (100 / (100 - totalCustos - bloco.lucroDesejado)) - 1;
+    // Soma todos os percentuais (incluindo lucro desejado) conforme fórmula do Excel
+    const somaPercentuais = markupData.gastoSobreFaturamento + markupData.impostos + 
+                           markupData.taxasMeiosPagamento + markupData.comissoesPlataformas + 
+                           markupData.outros + bloco.lucroDesejado;
+    
+    // Fórmula do Excel: =1/(1-SOMA(percentuais/100))
+    const markup = 1 / (1 - (somaPercentuais / 100));
     return markup;
   };
 
@@ -692,7 +695,7 @@ export function Markups() {
                   <div className="flex justify-between items-center p-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
                     <span className="font-semibold text-primary">Markup ideal</span>
                     <span className="text-xl font-bold text-primary">
-                      {isNaN(markupIdeal) || !isFinite(markupIdeal) ? '∞' : (markupIdeal * 100).toFixed(2) + '%'}
+                      {isNaN(markupIdeal) || !isFinite(markupIdeal) ? '∞' : markupIdeal.toFixed(4)}
                     </span>
                   </div>
                 </div>
