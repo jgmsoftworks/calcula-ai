@@ -1,36 +1,44 @@
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const getPageInfo = (pathname: string) => {
-  switch (pathname) {
-    case '/':
-      return { title: 'Dashboard', description: 'Visão geral do seu negócio' };
-    case '/estoque':
-      return { title: 'Estoque', description: 'Gerencie produtos, fornecedores e movimentações de estoque' };
-    case '/custos':
-      return { title: 'Gestão de Custos', description: 'Controle de despesas, folha e encargos' };
-    default:
-      return { title: 'CalculaAi Dashboard', description: '' };
-  }
+const getPageInfo = (pathname: string): { title: string; description: string; } => {
+  const pageMap: Record<string, { title: string; description: string; }> = {
+    '/': { title: 'Dashboard', description: 'Visão geral do seu negócio' },
+    '/estoque': { title: 'Gestão de Estoque', description: 'Controle produtos, fornecedores e movimentações' },
+    '/custos': { title: 'Gestão de Custos', description: 'Gerencie despesas fixas, folha de pagamento e encargos' },
+    '/precificacao': { title: 'Precificação', description: 'Calcule preços com base em custos e margem desejada' },
+    '/perfil': { title: 'Perfil do Negócio', description: 'Informações e configurações da empresa' }
+  };
+  
+  return pageMap[pathname] || { title: 'CalculaAi Dashboard', description: '' };
 };
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const pageInfo = getPageInfo(location.pathname);
+  const [isReady, setIsReady] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setIsReady(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  if (loading || !isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Carregando...</p>
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Carregando aplicação...</p>
         </div>
       </div>
     );
@@ -39,6 +47,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+
+  const pageInfo = getPageInfo(location.pathname);
 
   return (
     <SidebarProvider>

@@ -1,9 +1,9 @@
-import { useState, memo } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MediaFaturamento } from '@/components/precificacao/MediaFaturamento';
 import { Markups } from '@/components/precificacao/Markups';
 
-const Precificacao = memo(() => {
+const Precificacao = () => {
   const [activeTab, setActiveTab] = useState("media-faturamento");
 
   return (
@@ -24,6 +24,6 @@ const Precificacao = memo(() => {
       </Tabs>
     </div>
   );
-});
+};
 
 export default Precificacao;
