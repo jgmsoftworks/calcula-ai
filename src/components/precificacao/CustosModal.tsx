@@ -60,9 +60,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
   const [loading, setLoading] = useState(false);
   const [checkboxStates, setCheckboxStates] = useState<Record<string, boolean>>({});
+  const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+
+  // Atualizar valores locais quando markupBlock mudar
+  useEffect(() => {
+    if (markupBlock) {
+      setCurrentMarkupValues(markupBlock);
+    }
+  }, [markupBlock]);
 
   const carregarDados = async () => {
     if (!user) return;
@@ -229,7 +237,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   }, [categoriasMap]);
 
   const calcularMarkup = useCallback((states: Record<string, boolean>) => {
-    if (!onMarkupUpdate || !encargosVenda.length) return;
+    if (!encargosVenda.length) return;
 
     const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
     
@@ -261,8 +269,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       outros: 0
     });
 
-    onMarkupUpdate(categorias);
-  }, [onMarkupUpdate, encargosVenda, getCategoriaByNome]);
+    // Atualizar valores locais para mostrar em tempo real
+    setCurrentMarkupValues(prev => ({
+      ...prev,
+      ...categorias
+    }));
+    
+    // Também chamar o callback externo se existir
+    if (onMarkupUpdate) {
+      onMarkupUpdate(categorias);
+    }
+  }, [encargosVenda, getCategoriaByNome, onMarkupUpdate]);
 
   // Debounced calculation to avoid excessive re-renders
   const debouncedCalculateMarkup = useMemo(() => {
@@ -356,27 +373,27 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
             <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
-                <p className="text-lg font-semibold text-blue-600">{markupBlock.gastoSobreFaturamento}%</p>
+                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.gastoSobreFaturamento || 0}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Impostos</Label>
-                <p className="text-lg font-semibold text-blue-600">{markupBlock.impostos}%</p>
+                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.impostos || 0}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Taxas de pagamento</Label>
-                <p className="text-lg font-semibold text-blue-600">{markupBlock.taxasMeiosPagamento}%</p>
+                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.taxasMeiosPagamento || 0}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Comissões</Label>
-                <p className="text-lg font-semibold text-blue-600">{markupBlock.comissoesPlataformas}%</p>
+                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.comissoesPlataformas || 0}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Outros</Label>
-                <p className="text-lg font-semibold text-blue-600">{markupBlock.outros}%</p>
+                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.outros || 0}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Lucro desejado</Label>
-                <p className="text-lg font-semibold text-green-600">{markupBlock.lucroDesejado}%</p>
+                <p className="text-lg font-semibold text-green-600">{currentMarkupValues.lucroDesejado || 0}%</p>
               </div>
             </CardContent>
           </Card>
