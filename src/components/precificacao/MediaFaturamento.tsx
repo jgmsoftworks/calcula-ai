@@ -29,10 +29,11 @@ export function MediaFaturamento() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const carregarFaturamentos = async () => {
-      const config = await loadConfiguration('faturamentos_historicos');
-      if (config && Array.isArray(config)) {
-        const faturamentos = config.map((f: any) => ({
+    const carregarDados = async () => {
+      // Carregar faturamentos históricos
+      const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+      if (configFaturamentos && Array.isArray(configFaturamentos)) {
+        const faturamentos = configFaturamentos.map((f: any) => ({
           ...f,
           mes: new Date(f.mes)
         })).sort((a, b) => {
@@ -44,12 +45,23 @@ export function MediaFaturamento() {
         });
         setFaturamentosHistoricos(faturamentos);
       }
+
+      // Carregar filtro do período
+      const configFiltro = await loadConfiguration('filtro_periodo_faturamento');
+      if (configFiltro && typeof configFiltro === 'string') {
+        setFiltroPeriodo(configFiltro);
+      }
     };
-    carregarFaturamentos();
+    carregarDados();
   }, [loadConfiguration]);
 
   const salvarFaturamentos = async (faturamentos: FaturamentoHistorico[]) => {
     await saveConfiguration('faturamentos_historicos', faturamentos);
+  };
+
+  const salvarFiltro = async (novoFiltro: string) => {
+    setFiltroPeriodo(novoFiltro);
+    await saveConfiguration('filtro_periodo_faturamento', novoFiltro);
   };
 
   const formatCurrency = (value: number) => {
@@ -282,7 +294,7 @@ export function MediaFaturamento() {
           <CardContent className="p-6">
             <div className="space-y-2">
               <Label>Período de Análise</Label>
-              <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+              <Select value={filtroPeriodo} onValueChange={salvarFiltro}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
