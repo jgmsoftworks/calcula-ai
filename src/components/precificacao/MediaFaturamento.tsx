@@ -144,29 +144,21 @@ export function MediaFaturamento() {
     if (faturamentosHistoricos.length === 0) {
       return {
         mediaFaturamento: 0,
-        totalFaturamento: 0,
-        maiorFaturamento: 0,
-        menorFaturamento: 0,
-        quantidadeMeses: 0
+        totalFaturamento: 0
       };
     }
 
     const valores = faturamentosHistoricos.map(f => f.valor);
     const totalFaturamento = valores.reduce((acc, valor) => acc + valor, 0);
     const mediaFaturamento = totalFaturamento / valores.length;
-    const maiorFaturamento = Math.max(...valores);
-    const menorFaturamento = Math.min(...valores);
 
     return {
       mediaFaturamento,
-      totalFaturamento,
-      maiorFaturamento,
-      menorFaturamento,
-      quantidadeMeses: valores.length
+      totalFaturamento
     };
   };
 
-  const { mediaFaturamento, totalFaturamento, maiorFaturamento, menorFaturamento, quantidadeMeses } = calcularEstatisticas();
+  const { mediaFaturamento, totalFaturamento } = calcularEstatisticas();
 
   // Preparar dados do gráfico (6 meses mais recentes)
   const dadosGrafico = faturamentosHistoricos
@@ -299,7 +291,7 @@ export function MediaFaturamento() {
         {/* Gráfico */}
         <div className="bg-card rounded-xl p-6 border">
           <div className="mb-4">
-            <h3 className="text-lg font-semibold">Evolução dos Últimos 6 Meses</h3>
+            <h3 className="text-lg font-semibold">📈 Evolução dos Últimos 6 Meses</h3>
             <p className="text-sm text-muted-foreground">Histórico de faturamento mensal</p>
           </div>
           {dadosGrafico.length > 0 ? (
