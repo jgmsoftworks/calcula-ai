@@ -5,9 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2 } from 'lucide-react';
-import { format, subMonths, isAfter, isBefore, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 
@@ -241,7 +240,6 @@ export function MediaFaturamento() {
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 bg-blue-500 rounded-lg">
