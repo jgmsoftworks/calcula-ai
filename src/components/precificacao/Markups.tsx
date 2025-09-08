@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,12 +33,6 @@ interface CalculatedMarkup {
   valorEmReal: number;
 }
 
-interface FaturamentoHistorico {
-  id: string;
-  valor: number;
-  mes: Date;
-}
-
 export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
   const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
@@ -51,7 +45,6 @@ export function Markups() {
   const { toast } = useToast();
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const calculationRef = useRef<NodeJS.Timeout | null>(null);
 
   // Bloco fixo para subreceita
   const blocoSubreceita: MarkupBlock = {
@@ -66,22 +59,23 @@ export function Markups() {
     lucroDesejado: 0
   };
 
-  // Função para categorizar encargos - DEFINIDA PRIMEIRO
-  const getCategoriaByNome = useCallback((nome: string): string => {
-    const nomeUpper = nome.toUpperCase();
-    
-    const impostos = ['ICMS', 'IPI', 'PIS', 'COFINS', 'IR', 'CSLL', 'ISS', 'ISSQN', 'IRPJ', 'SIMPLES'];
-    const taxasPagamento = ['TAXA', 'CARTÃO', 'DÉBITO', 'CRÉDITO', 'PIX', 'BOLETO', 'TRANSFERÊNCIA'];
-    const comissoes = ['COMISSÃO', 'VENDEDOR', 'REPRESENTANTE', 'AFILIADO', 'MARKETPLACE', 'PLATAFORMA'];
-    
-    if (impostos.some(termo => nomeUpper.includes(termo))) return 'Impostos';
-    if (taxasPagamento.some(termo => nomeUpper.includes(termo))) return 'Taxas de Meios de Pagamento';
-    if (comissoes.some(termo => nomeUpper.includes(termo))) return 'Comissões';
-    
-    return 'Outros';
+  // Mapeamento de categorias - MESMA LÓGICA DO MODAL
+  const categoriasMap = useMemo(() => {
+    return {
+      'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
+      'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
+      'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
+    };
   }, []);
 
-  // Função para carregar configurações salvas no início - CORRIGIDA
+  const getCategoriaByNome = useCallback((nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
+    if (categoriasMap.impostos.has(nome)) return 'impostos';
+    if (categoriasMap.meios_pagamento.has(nome)) return 'meios_pagamento';
+    if (categoriasMap.comissoes.has(nome)) return 'comissoes';
+    return 'outros';
+  }, [categoriasMap]);
+
+  // Função ÚNICA para carregar e calcular configurações salvas
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
     
@@ -96,7 +90,7 @@ export function Markups() {
       supabase.from('encargos_venda').select('*').eq('user_id', user.id)
     ]);
 
-    // Buscar média de faturamento uma só vez
+    // Buscar faturamentos históricos
     const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
     let mediaMensal = 0;
     if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
@@ -108,77 +102,101 @@ export function Markups() {
       mediaMensal = total / Math.max(1, faturamentos.length);
     }
     
-    // Processar cada bloco
+    console.log('📊 Dados para cálculo:', {
+      despesasFixas: despesasFixas?.length,
+      folhaPagamento: folhaPagamento?.length, 
+      encargosVenda: encargosVenda?.length,
+      mediaMensal
+    });
+    
+    // Processar cada bloco usando EXATAMENTE A MESMA LÓGICA DO MODAL
     for (const bloco of blocos) {
       const configKey = `checkbox-states-${bloco.id}`;
       const config = await loadConfiguration(configKey);
       
-      console.log(`📋 Configuração do bloco ${bloco.nome}:`, config);
+      console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
       
       if (config && typeof config === 'object' && Object.keys(config).length > 0) {
-        // Se tem configuração, calcular markup com ela
-        console.log(`✅ Aplicando configuração salva para ${bloco.nome}`);
+        // USAR EXATAMENTE A MESMA LÓGICA DO calcularMarkup DO MODAL
         
-        // Calcular com a configuração específica
-        let totalGastos = 0;
+        let gastosSobreFaturamento = 0;
         
-        if (despesasFixas) {
-          const gastosDespesas = despesasFixas
-            .filter(d => config[d.id] === true)
-            .reduce((acc, d) => acc + d.valor, 0);
-          totalGastos += gastosDespesas;
+        // Somar despesas fixas marcadas como "Considerar" E ATIVAS
+        const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => config[d.id] && d.ativo) : [];
+        const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
+        
+        // Somar folha de pagamento marcada como "Considerar" E ATIVA
+        const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
+        const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+          // Usar salario_base se custo_por_hora não estiver disponível (MESMA LÓGICA DO MODAL)
+          const custoMensal = funcionario.custo_por_hora > 0 
+            ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+            : funcionario.salario_base;
+          return acc + Number(custoMensal);
+        }, 0);
+        
+        const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+        
+        // Calcular porcentagem sobre a média mensal
+        if (mediaMensal > 0 && totalGastos > 0) {
+          gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
         }
+
+        console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
+          despesasConsideradas: despesasConsideradas.map(d => `${d.nome}: R$ ${d.valor}`),
+          totalDespesasFixas,
+          folhaConsiderada: folhaConsiderada.map(f => `${f.nome}: R$ ${f.custo_por_hora > 0 ? f.custo_por_hora * (f.horas_totais_mes || 173.2) : f.salario_base}`),
+          totalFolhaPagamento,
+          totalGastos,
+          mediaMensal,
+          gastosSobreFaturamento
+        });
+
+        // Calcular encargos sobre venda - MESMA LÓGICA DO MODAL
+        const encargosConsiderados = encargosVenda ? encargosVenda.filter(e => config[e.id] && e.ativo) : [];
         
-        if (folhaPagamento) {
-          const gastosRH = folhaPagamento
-            .filter(f => config[f.id] === true)
-            .reduce((acc, f) => acc + (f.salario_base || 0), 0);
-          totalGastos += gastosRH;
-        }
+        // Calcular valor em real (somar apenas os valores fixos dos encargos)
+        const valorEmReal = encargosConsiderados.reduce((acc, encargo) => {
+          return acc + Number(encargo.valor_fixo || 0);
+        }, 0);
         
-        const gastoSobreFaturamento = mediaMensal > 0 ? (totalGastos / mediaMensal) * 100 : 0;
-        
-        // Calcular encargos por categoria
-        let impostos = 0;
-        let taxasMeiosPagamento = 0; 
-        let comissoesPlataformas = 0;
-        let outros = 0;
-        
-        if (encargosVenda) {
-          encargosVenda.forEach(encargo => {
-            if (config[encargo.id] === true) {
-              const categoria = getCategoriaByNome(encargo.nome);
-              const valor = encargo.valor_percentual || 0;
-              
-              switch (categoria) {
-                case 'Impostos':
-                  impostos += valor;
-                  break;
-                case 'Taxas de Meios de Pagamento':
-                  taxasMeiosPagamento += valor;
-                  break;
-                case 'Comissões':
-                  comissoesPlataformas += valor;
-                  break;
-                default:
-                  outros += valor;
-                  break;
-              }
-            }
-          });
-        }
-        
-        const markupCalculado = {
-          gastoSobreFaturamento,
-          impostos,
-          taxasMeiosPagamento,
-          comissoesPlataformas,
-          outros,
-          valorEmReal: 100 // Valor fixo
-        };
-        
-        novosCalculatedMarkups.set(bloco.id, markupCalculado);
-        console.log(`✅ Markup calculado para ${bloco.nome}:`, markupCalculado);
+        // Calcular somas por categoria usando MESMA LÓGICA DO MODAL
+        const categorias = encargosConsiderados.reduce((acc, encargo) => {
+          const categoria = getCategoriaByNome(encargo.nome);
+          const valor = Number(encargo.valor_percentual || 0);
+          
+          switch (categoria) {
+            case 'impostos':
+              acc.impostos += valor;
+              break;
+            case 'meios_pagamento':
+              acc.taxasMeiosPagamento += valor;
+              break;
+            case 'comissoes':
+              acc.comissoesPlataformas += valor;
+              break;
+            case 'outros':
+              acc.outros += valor;
+              break;
+          }
+          
+          return acc;
+        }, {
+          gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
+          impostos: 0,
+          taxasMeiosPagamento: 0,
+          comissoesPlataformas: 0,
+          outros: 0,
+          valorEmReal: valorEmReal
+        });
+
+        console.log(`🏷️ Encargos detalhados para ${bloco.nome}:`, {
+          encargosConsiderados: encargosConsiderados.map(e => `${e.nome}: ${e.valor_percentual}% (${e.tipo})`),
+          categorias
+        });
+
+        novosCalculatedMarkups.set(bloco.id, categorias);
+        console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
       } else {
         console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
         // Se não tem configuração, usar valores zerados
@@ -199,180 +217,6 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
-  // Função para calcular markups em tempo real
-  const calcularMarkupsEmTempoReal = useCallback(async () => {
-    if (!user?.id) {
-      console.log('❌ calcularMarkupsEmTempoReal: user.id não disponível');
-      return;
-    }
-
-    console.log('🔄 Iniciando cálculo de markups para blocos:', blocos.length);
-
-    try {
-      // Buscar configurações salvas
-      const filtroConfig = await loadConfiguration('media_faturamento_filtro');
-      const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
-      
-      console.log('📊 Configurações carregadas:', {
-        filtroConfig,
-        faturamentosConfig: faturamentosConfig ? 'presente' : 'ausente'
-      });
-
-      const periodo = filtroConfig || 'ultimo_mes';
-      
-      // Calcular média mensal baseada no período
-      let mediaMensal = 0;
-      if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
-        const faturamentos = faturamentosConfig.map((f: any) => ({
-          ...f,
-          mes: new Date(f.mes)
-        }));
-
-        const hoje = new Date();
-        let dataLimite = new Date();
-        
-        switch (periodo) {
-          case 'ultimo_mes':
-            dataLimite.setMonth(hoje.getMonth() - 1);
-            break;
-          case 'ultimos_3_meses':
-            dataLimite.setMonth(hoje.getMonth() - 3);
-            break;
-          case 'ultimos_6_meses':
-            dataLimite.setMonth(hoje.getMonth() - 6);
-            break;
-          case 'ultimo_ano':
-            dataLimite.setFullYear(hoje.getFullYear() - 1);
-            break;
-        }
-
-        const faturamentoFiltrado = faturamentos.filter((f: FaturamentoHistorico) => f.mes >= dataLimite);
-        const total = faturamentoFiltrado.reduce((acc: number, f: FaturamentoHistorico) => acc + f.valor, 0);
-        const meses = Math.max(1, Math.ceil((hoje.getTime() - dataLimite.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-        mediaMensal = total / meses;
-      }
-
-      console.log('💰 Média mensal calculada:', mediaMensal);
-
-      // Buscar dados de custos
-      const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
-        supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
-        supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
-        supabase.from('encargos_venda').select('*').eq('user_id', user.id)
-      ]);
-
-      console.log('🗃️ Dados de custos:', {
-        despesasFixas: despesasFixas?.length || 0,
-        folhaPagamento: folhaPagamento?.length || 0,
-        encargosVenda: encargosVenda?.length || 0
-      });
-
-      // Calcular markups para cada bloco
-      const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
-
-      for (const bloco of blocos) {
-        console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
-        
-        // Buscar configuração específica do bloco (corrigido!)
-        const configKey = `checkbox-states-${bloco.id}`;
-        const blocoCfg = await loadConfiguration(configKey);
-        
-        if (!blocoCfg) {
-          console.log(`⚠️ Configuração não encontrada para bloco ${bloco.id} (chave: ${configKey})`);
-          // Se não há configuração, usar valores zerados mas salvar o bloco mesmo assim
-          novosCalculatedMarkups.set(bloco.id, {
-            gastoSobreFaturamento: 0,
-            impostos: 0,
-            taxasMeiosPagamento: 0,
-            comissoesPlataformas: 0,
-            outros: 0,
-            valorEmReal: 0
-          });
-          continue;
-        }
-
-        console.log('⚙️ Configuração do bloco:', bloco.nome, ':', blocoCfg);
-
-        // Calcular gasto sobre faturamento
-        let totalGastos = 0;
-        
-        // Despesas fixas
-        if (despesasFixas) {
-          const gastosDespesas = despesasFixas
-            .filter(d => blocoCfg[d.id] === true)
-            .reduce((acc, d) => acc + d.valor, 0);
-          totalGastos += gastosDespesas;
-          console.log(`💸 Despesas fixas para ${bloco.nome}:`, gastosDespesas);
-        }
-        
-        // Folha de pagamento
-        if (folhaPagamento) {
-          const gastosFolha = folhaPagamento
-            .filter(f => blocoCfg[f.id] === true)
-            .reduce((acc, f) => acc + (f.custo_por_hora || f.salario_base || 0), 0);
-          totalGastos += gastosFolha;
-          console.log(`👥 Folha pagamento para ${bloco.nome}:`, gastosFolha);
-        }
-
-        const gastoSobreFaturamento = mediaMensal > 0 ? (totalGastos / mediaMensal) * 100 : 0;
-        console.log(`📈 Gasto sobre faturamento para ${bloco.nome}:`, gastoSobreFaturamento);
-
-        // Calcular outros percentuais
-        let impostos = 0;
-        let taxasMeiosPagamento = 0;
-        let comissoesPlataformas = 0;
-        let outros = 0;
-        let valorEmReal = 0;
-
-        if (encargosVenda) {
-          encargosVenda
-            .filter(e => blocoCfg[e.id] === true)
-            .forEach(encargo => {
-              const categoria = getCategoriaByNome(encargo.nome);
-              const valor = encargo.valor || 0;
-              
-              if (encargo.tipo === 'fixo') {
-                valorEmReal += valor;
-              } else {
-                switch (categoria) {
-                  case 'Impostos':
-                    impostos += valor;
-                    break;
-                  case 'Taxas de Meios de Pagamento':
-                    taxasMeiosPagamento += valor;
-                    break;
-                  case 'Comissões':
-                    comissoesPlataformas += valor;
-                    break;
-                  default:
-                    outros += valor;
-                    break;
-                }
-              }
-            });
-        }
-
-        const markupCalculado = {
-          gastoSobreFaturamento,
-          impostos,
-          taxasMeiosPagamento,
-          comissoesPlataformas,
-          outros,
-          valorEmReal
-        };
-
-        console.log(`✅ Markup calculado para ${bloco.nome}:`, markupCalculado);
-        novosCalculatedMarkups.set(bloco.id, markupCalculado);
-      }
-
-      console.log('🎯 Total de markups calculados:', novosCalculatedMarkups.size);
-      console.log('🔄 Atualizando state calculatedMarkups:', Array.from(novosCalculatedMarkups.entries()));
-      setCalculatedMarkups(novosCalculatedMarkups);
-    } catch (error) {
-      console.error('❌ Erro ao calcular markups em tempo real:', error);
-    }
-  }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
-
   useEffect(() => {
     const carregarBlocos = async () => {
       try {
@@ -388,7 +232,7 @@ export function Markups() {
     carregarBlocos();
   }, [loadConfiguration]);
   
-  // Carregar configurações salvas após os blocos serem carregados - SEMPRE QUE HOUVER MUDANÇA
+  // Carregar configurações salvas após os blocos serem carregados
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
       console.log('🎯 Carregando configurações salvas para todos os blocos...');
@@ -396,25 +240,10 @@ export function Markups() {
     }
   }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
-  // Recalcular markups quando blocos mudarem - DESABILITADO para não sobrescrever configurações salvas
-  useEffect(() => {
-    // Este useEffect foi desabilitado para evitar sobrescrever configurações salvas
-    // O recálculo agora só acontece quando o usuário salva no modal
-    return;
-  }, [blocos, calcularMarkupsEmTempoReal]);
-
-  // Calcular markups na inicialização do componente - DESABILITADO para não sobrescrever configurações salvas
-  useEffect(() => {
-    // Este useEffect foi desabilitado para evitar sobrescrever configurações salvas
-    // O carregamento agora é feito apenas pela função carregarConfiguracoesSalvas
-    return;
-  }, [user?.id, blocos.length, calcularMarkupsEmTempoReal]);
-
   // Limpar timeouts ao desmontar
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (calculationRef.current) clearTimeout(calculationRef.current);
     };
   }, []);
 
