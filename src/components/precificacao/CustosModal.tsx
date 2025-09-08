@@ -387,15 +387,31 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const calcularMarkup = useCallback((states: Record<string, boolean>) => {
     if (!encargosVenda.length && !despesasFixas.length && !folhaPagamento.length) return;
 
+    console.log('🧮 Calculando markup com estados:', states);
+    console.log('📋 Despesas fixas disponíveis:', despesasFixas.map(d => ({ id: d.id, nome: d.nome, valor: d.valor, ativo: d.ativo })));
+    console.log('📋 Estados das despesas:', despesasFixas.map(d => ({ id: d.id, nome: d.nome, selecionada: states[d.id] })));
+
     // Calcular gastos sobre faturamento (despesas fixas + folha de pagamento)
     let gastosSobreFaturamento = 0;
     
-    // Somar despesas fixas marcadas como "Considerar"
-    const despesasConsideradas = despesasFixas.filter(d => states[d.id] && d.ativo);
-    const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + despesa.valor, 0);
+    // Somar APENAS despesas fixas marcadas como "Considerar" (true no checkbox)
+    const despesasConsideradas = despesasFixas.filter(d => {
+      const isSelected = states[d.id] === true; // Verificação explícita
+      const isActive = d.ativo === true;
+      console.log(`📋 Despesa ${d.nome}: selecionada=${isSelected}, ativa=${isActive}, será considerada=${isSelected && isActive}`);
+      return isSelected && isActive;
+    });
     
-    // Somar folha de pagamento marcada como "Considerar"
-    const folhaConsiderada = folhaPagamento.filter(f => states[f.id] && f.ativo);
+    const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + despesa.valor, 0);
+    console.log('💰 Total despesas fixas consideradas:', totalDespesasFixas, 'de', despesasConsideradas.length, 'despesas');
+    
+    // Somar APENAS folha de pagamento marcada como "Considerar" (true no checkbox)
+    const folhaConsiderada = folhaPagamento.filter(f => {
+      const isSelected = states[f.id] === true; // Verificação explícita
+      const isActive = f.ativo === true;
+      return isSelected && isActive;
+    });
+    
     const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
       // Usar salario_base se custo_por_hora não estiver disponível
       const custoMensal = funcionario.custo_por_hora > 0 
@@ -403,6 +419,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         : funcionario.salario_base;
       return acc + custoMensal;
     }, 0);
+    
+    console.log('💰 Total folha pagamento considerada:', totalFolhaPagamento, 'de', folhaConsiderada.length, 'funcionários');
     
     const totalGastos = totalDespesasFixas + totalFolhaPagamento;
     
