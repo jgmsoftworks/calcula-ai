@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,7 @@ export function Markups() {
   const [modalAberto, setModalAberto] = useState(false);
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Bloco fixo para subreceita
   const blocoSubreceita: MarkupBlock = {
@@ -51,9 +52,15 @@ export function Markups() {
     carregarBlocos();
   }, [loadConfiguration]);
 
-  const salvarBlocos = async (novosBlocos: MarkupBlock[]) => {
-    await saveConfiguration('markups_blocos', novosBlocos);
-  };
+  const salvarBlocos = useCallback(async (novosBlocos: MarkupBlock[]) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(async () => {
+      await saveConfiguration('markups_blocos', novosBlocos);
+    }, 300);
+  }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

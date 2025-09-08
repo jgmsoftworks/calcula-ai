@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,7 @@ export function MediaFaturamento() {
   });
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -55,14 +56,21 @@ export function MediaFaturamento() {
     carregarDados();
   }, [loadConfiguration]);
 
-  const salvarFaturamentos = async (faturamentos: FaturamentoHistorico[]) => {
+  const salvarFaturamentos = useCallback(async (faturamentos: FaturamentoHistorico[]) => {
     await saveConfiguration('faturamentos_historicos', faturamentos);
-  };
+  }, [saveConfiguration]);
 
-  const salvarFiltro = async (novoFiltro: string) => {
+  const salvarFiltro = useCallback(async (novoFiltro: string) => {
     setFiltroPeriodo(novoFiltro);
-    await saveConfiguration('filtro_periodo_faturamento', novoFiltro);
-  };
+    
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(async () => {
+      await saveConfiguration('filtro_periodo_faturamento', novoFiltro);
+    }, 300);
+  }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
