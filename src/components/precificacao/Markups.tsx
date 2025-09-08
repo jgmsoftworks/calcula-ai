@@ -267,6 +267,15 @@ export function Markups() {
     }).format(value);
   };
 
+  const formatPercentage = (value: number) => {
+    // Se for número inteiro, não mostrar casas decimais
+    if (value === Math.floor(value)) {
+      return value.toString();
+    }
+    // Se tiver decimais, mostrar até 2 casas decimais e remover zeros desnecessários
+    return parseFloat(value.toFixed(2)).toString();
+  };
+
   const criarNovoBloco = () => {
     const novoBloco: MarkupBlock = {
       id: Date.now().toString(),
@@ -427,10 +436,10 @@ export function Markups() {
                   <Label className="text-sm">Gasto sobre faturamento</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      type="number"
-                      value={0}
+                      type="text"
+                      value={formatPercentage(0)}
                       disabled
-                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                     />
                     <span className="text-sm text-blue-600">%</span>
                   </div>
@@ -440,10 +449,10 @@ export function Markups() {
                   <Label className="text-sm">Impostos</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      type="number"
-                      value={0}
+                      type="text"
+                      value={formatPercentage(0)}
                       disabled
-                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                     />
                     <span className="text-sm text-blue-600">%</span>
                   </div>
@@ -453,10 +462,10 @@ export function Markups() {
                   <Label className="text-sm">Taxas de meios de pagamento</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      type="number"
-                      value={0}
+                      type="text"
+                      value={formatPercentage(0)}
                       disabled
-                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                     />
                     <span className="text-sm text-blue-600">%</span>
                   </div>
@@ -466,10 +475,10 @@ export function Markups() {
                   <Label className="text-sm">Comissões e plataformas</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      type="number"
-                      value={0}
+                      type="text"
+                      value={formatPercentage(0)}
                       disabled
-                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                     />
                     <span className="text-sm text-blue-600">%</span>
                   </div>
@@ -479,10 +488,10 @@ export function Markups() {
                   <Label className="text-sm">Outros</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      type="number"
-                      value={0}
+                      type="text"
+                      value={formatPercentage(0)}
                       disabled
-                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                     />
                     <span className="text-sm text-blue-600">%</span>
                   </div>
@@ -504,10 +513,10 @@ export function Markups() {
                   <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      type="number"
-                      value={0}
+                      type="text"
+                      value={formatPercentage(0)}
                       disabled
-                      className="w-16 h-7 text-center text-sm text-green-600 bg-gray-50"
+                      className="w-20 h-7 text-center text-sm text-green-600 bg-gray-50"
                     />
                     <span className="text-sm text-green-600">%</span>
                   </div>
@@ -589,10 +598,10 @@ export function Markups() {
                     <Label className="text-sm">Gasto sobre faturamento</Label>
                     <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        value={calculated?.gastoSobreFaturamento?.toFixed(2) || '0'}
+                        type="text"
+                        value={formatPercentage(calculated?.gastoSobreFaturamento || 0)}
                         disabled
-                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -602,10 +611,10 @@ export function Markups() {
                     <Label className="text-sm">Impostos</Label>
                     <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        value={calculated?.impostos?.toFixed(2) || '0'}
+                        type="text"
+                        value={formatPercentage(calculated?.impostos || 0)}
                         disabled
-                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -615,10 +624,10 @@ export function Markups() {
                     <Label className="text-sm">Taxas de meios de pagamento</Label>
                     <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        value={calculated?.taxasMeiosPagamento?.toFixed(2) || '0'}
+                        type="text"
+                        value={formatPercentage(calculated?.taxasMeiosPagamento || 0)}
                         disabled
-                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -628,10 +637,10 @@ export function Markups() {
                     <Label className="text-sm">Comissões e plataformas</Label>
                     <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        value={calculated?.comissoesPlataformas?.toFixed(2) || '0'}
+                        type="text"
+                        value={formatPercentage(calculated?.comissoesPlataformas || 0)}
                         disabled
-                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -641,10 +650,10 @@ export function Markups() {
                     <Label className="text-sm">Outros</Label>
                     <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        value={calculated?.outros?.toFixed(2) || '0'}
+                        type="text"
+                        value={formatPercentage(calculated?.outros || 0)}
                         disabled
-                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -669,7 +678,7 @@ export function Markups() {
                         type="number"
                         value={bloco.lucroDesejado}
                         onChange={(e) => atualizarBloco(bloco.id, 'lucroDesejado', parseFloat(e.target.value) || 0)}
-                        className="w-16 h-7 text-center text-sm text-green-600"
+                        className="w-20 h-7 text-center text-sm text-green-600"
                         step="0.01"
                         min="0"
                         max="100"

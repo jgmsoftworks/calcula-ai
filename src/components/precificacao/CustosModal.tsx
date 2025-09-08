@@ -284,6 +284,15 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }).format(value);
   };
 
+  const formatPercentage = (value: number) => {
+    // Se for número inteiro, não mostrar casas decimais
+    if (value === Math.floor(value)) {
+      return value.toString();
+    }
+    // Se tiver decimais, mostrar até 2 casas decimais e remover zeros desnecessários
+    return parseFloat(value.toFixed(2)).toString();
+  };
+
   // Escutar mudanças em tempo real nas tabelas (otimizado)
   useEffect(() => {
     if (!user || !open) return;
@@ -541,23 +550,23 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
             <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
-                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.gastoSobreFaturamento || 0}%</p>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.gastoSobreFaturamento || 0)}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Impostos</Label>
-                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.impostos || 0}%</p>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.impostos || 0)}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Taxas de pagamento</Label>
-                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.taxasMeiosPagamento || 0}%</p>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.taxasMeiosPagamento || 0)}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Comissões</Label>
-                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.comissoesPlataformas || 0}%</p>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.comissoesPlataformas || 0)}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Outros</Label>
-                <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.outros || 0}%</p>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.outros || 0)}%</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Valor em real</Label>
@@ -565,7 +574,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Lucro desejado</Label>
-                <p className="text-lg font-semibold text-green-600">{currentMarkupValues.lucroDesejado || 0}%</p>
+                <p className="text-lg font-semibold text-green-600">{formatPercentage(currentMarkupValues.lucroDesejado || 0)}%</p>
               </div>
             </CardContent>
           </Card>
