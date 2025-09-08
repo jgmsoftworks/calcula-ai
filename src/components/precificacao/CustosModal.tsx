@@ -20,6 +20,7 @@ interface MarkupBlock {
   taxasMeiosPagamento: number;
   comissoesPlataformas: number;
   outros: number;
+  valorEmReal: number;
   lucroDesejado: number;
 }
 
@@ -381,6 +382,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     // Calcular encargos sobre venda
     const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
     
+    // Calcular valor em real (somar apenas os valores fixos dos encargos)
+    const valorEmReal = encargosConsiderados.reduce((acc, encargo) => {
+      return acc + (encargo.valor_fixo || 0);
+    }, 0);
+    
     // Calcular somas por categoria de forma otimizada
     const categorias = encargosConsiderados.reduce((acc, encargo) => {
       const categoria = getCategoriaByNome(encargo.nome);
@@ -407,7 +413,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       impostos: 0,
       taxasMeiosPagamento: 0,
       comissoesPlataformas: 0,
-      outros: 0
+      outros: 0,
+      valorEmReal: valorEmReal
     });
 
     // Atualizar valores locais para mostrar em tempo real
@@ -551,6 +558,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Outros</Label>
                 <p className="text-lg font-semibold text-blue-600">{currentMarkupValues.outros || 0}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Valor em real</Label>
+                <p className="text-lg font-semibold text-orange-600">{formatCurrency(currentMarkupValues.valorEmReal || 0)}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Lucro desejado</Label>
