@@ -41,6 +41,7 @@ export function Markups() {
   const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
+  const [criandoNovoBloco, setCriandoNovoBloco] = useState(false); // Novo estado para controlar criação
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -272,53 +273,57 @@ export function Markups() {
     return value.toFixed(2);
   };
 
-  const criarNovoBloco = async () => {
-    const novoBloco: MarkupBlock = {
-      id: Date.now().toString(),
-      nome: `Markup ${blocos.length + 1}`,
-      gastoSobreFaturamento: 0,
-      impostos: 0,
-      taxasMeiosPagamento: 0,
-      comissoesPlataformas: 0,
-      outros: 0,
-      valorEmReal: 0,
-      lucroDesejado: 0
-    };
+  const criarNovoBloco = () => {
+    // Ao invés de criar o bloco diretamente, abrir modal de configuração
+    console.log('🆕 Iniciando criação de novo bloco - abrindo modal de configuração');
+    setCriandoNovoBloco(true);
+    setBlocoSelecionado(undefined); // Limpar seleção anterior
+    setModalAberto(true);
+  };
 
-    // Criar configuração padrão com todos os itens marcados como true
-    if (user?.id) {
-      try {
-        const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
-          supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
-          supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
-          supabase.from('encargos_venda').select('*').eq('user_id', user.id)
-        ]);
+  // Nova função para efetivamente criar o bloco quando o modal for salvo
+  const finalizarCriacaoBloco = async (markupCalculado: CalculatedMarkup) => {
+    try {
+      const novoBloco: MarkupBlock = {
+        id: Date.now().toString(),
+        nome: `Markup ${blocos.length + 1}`,
+        gastoSobreFaturamento: markupCalculado.gastoSobreFaturamento,
+        impostos: markupCalculado.impostos,
+        taxasMeiosPagamento: markupCalculado.taxasMeiosPagamento,
+        comissoesPlataformas: markupCalculado.comissoesPlataformas,
+        outros: markupCalculado.outros,
+        valorEmReal: markupCalculado.valorEmReal,
+        lucroDesejado: 0 // Será definido pelo usuário depois
+      };
 
-        const configPadrao: Record<string, boolean> = {};
-        
-        despesasFixas?.forEach(item => {
-          configPadrao[item.id] = true;
-        });
-        
-        folhaPagamento?.forEach(item => {
-          configPadrao[item.id] = true;
-        });
-        
-        encargosVenda?.forEach(item => {
-          configPadrao[item.id] = true;
-        });
+      const novosBlocos = [...blocos, novoBloco];
+      setBlocos(novosBlocos);
+      salvarBlocos(novosBlocos);
 
-        // Salvar a configuração padrão
-        await saveConfiguration(`checkbox-states-${novoBloco.id}`, configPadrao);
-        console.log(`✅ Configuração padrão criada para bloco ${novoBloco.id}:`, configPadrao);
-      } catch (error) {
-        console.error('Erro ao criar configuração padrão:', error);
-      }
+      // Adicionar o markup calculado ao estado
+      setCalculatedMarkups(prev => {
+        const newMap = new Map(prev);
+        newMap.set(novoBloco.id, markupCalculado);
+        return newMap;
+      });
+
+      console.log('✅ Novo bloco criado com sucesso:', novoBloco);
+      
+      toast({
+        title: "Bloco criado com sucesso",
+        description: `O bloco "${novoBloco.nome}" foi criado e configurado.`
+      });
+
+      setCriandoNovoBloco(false);
+      
+    } catch (error) {
+      console.error('❌ Erro ao criar novo bloco:', error);
+      toast({
+        title: "Erro ao criar bloco",
+        description: "Não foi possível criar o novo bloco de markup",
+        variant: "destructive"
+      });
     }
-
-    const novosBlocos = [...blocos, novoBloco];
-    setBlocos(novosBlocos);
-    salvarBlocos(novosBlocos);
   };
 
   const removerBloco = (id: string) => {
@@ -361,6 +366,14 @@ export function Markups() {
   const handleMarkupUpdate = useCallback(async (blocoId: string, markupData: any) => {
     console.log('🔄 handleMarkupUpdate chamado para bloco:', blocoId, 'com dados:', markupData);
     
+    // Se estamos criando um novo bloco, finalizamos a criação
+    if (criandoNovoBloco) {
+      console.log('🆕 Finalizando criação de novo bloco com markup:', markupData);
+      await finalizarCriacaoBloco(markupData);
+      return;
+    }
+    
+    // Caso normal: atualizar bloco existente
     // Atualizar no state local IMEDIATAMENTE
     const novosCalculatedMarkups = new Map(calculatedMarkups);
     novosCalculatedMarkups.set(blocoId, markupData);
@@ -368,7 +381,7 @@ export function Markups() {
     
     console.log('💾 Estados atualizados - configurações do modal aplicadas');
     console.log('📊 Novo state calculatedMarkups:', Array.from(novosCalculatedMarkups.entries()));
-  }, [calculatedMarkups]);
+  }, [calculatedMarkups, criandoNovoBloco, finalizarCriacaoBloco, blocos.length]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
     setBlocoEditandoNome(bloco);
@@ -612,12 +625,19 @@ export function Markups() {
           open={modalAberto}
           onOpenChange={(open) => {
             setModalAberto(open);
-            if (!open) setBlocoSelecionado(undefined);
+            if (!open) {
+              setBlocoSelecionado(undefined);
+              setCriandoNovoBloco(false); // Limpar estado de criação
+            }
           }}
-          markupBlock={blocoSelecionado}
+          markupBlock={criandoNovoBloco ? undefined : blocoSelecionado} // Passar undefined se criando novo
           onMarkupUpdate={(markup) => {
-            console.log('🔄 Modal retornou markup:', markup, 'para bloco:', blocoSelecionado?.id);
-            if (blocoSelecionado) {
+            console.log('🔄 Modal retornou markup:', markup, 'para bloco:', criandoNovoBloco ? 'NOVO' : blocoSelecionado?.id);
+            if (criandoNovoBloco) {
+              // Criar novo bloco com o markup configurado
+              handleMarkupUpdate('novo', markup);
+            } else if (blocoSelecionado) {
+              // Atualizar bloco existente
               handleMarkupUpdate(blocoSelecionado.id, markup);
             }
           }}

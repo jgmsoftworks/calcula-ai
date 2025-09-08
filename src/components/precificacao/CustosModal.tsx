@@ -632,14 +632,21 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         <DialogHeader>
           <DialogTitle>
             Configurações de Custos
-            {markupBlock && (
+            {markupBlock ? (
               <span className="text-sm font-normal text-muted-foreground ml-2">
                 - {markupBlock.nome}
+              </span>
+            ) : (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - Novo Bloco
               </span>
             )}
           </DialogTitle>
           <DialogDescription>
-            Visualize os custos que serão considerados no cálculo do markup
+            {markupBlock 
+              ? "Visualize os custos que serão considerados no cálculo do markup"
+              : "Configure os custos que serão considerados no cálculo do novo bloco de markup"
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -836,20 +843,20 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           </TabsContent>
            </Tabs>
            
-           <DialogFooter className="gap-2 pt-4">
-             <Button 
-               variant="outline" 
-               onClick={handleCancelar}
-             >
-               Cancelar
-             </Button>
-             <Button 
-               onClick={handleSalvar}
-               disabled={!hasUnsavedChanges}
-             >
-               Salvar Configurações
-             </Button>
-           </DialogFooter>
+            <DialogFooter className="gap-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={handleCancelar}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSalvar}
+                disabled={!hasUnsavedChanges}
+              >
+                {markupBlock ? "Salvar Configurações" : "Criar Bloco de Markup"}
+              </Button>
+            </DialogFooter>
          </DialogContent>
        </Dialog>
   );
