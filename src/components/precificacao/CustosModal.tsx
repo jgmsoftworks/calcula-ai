@@ -490,7 +490,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       setCheckboxStates(tempCheckboxStates);
       setHasUnsavedChanges(false);
       
-      // Calcular markup final
+      // Calcular markup final COM os novos estados
       calcularMarkup(tempCheckboxStates);
       console.log('🧮 Markup calculado após salvar');
       
@@ -499,14 +499,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         description: "As configurações do markup foram salvas com sucesso"
       });
       
-      // Fechar modal
-      onOpenChange(false);
-      
-      // Emitir callback para o componente pai recalcular tudo
+      // Emitir callback para o componente pai ANTES de fechar o modal
       if (onMarkupUpdate) {
         console.log('📤 Enviando dados para componente pai');
         onMarkupUpdate(currentMarkupValues);
       }
+      
+      // Fechar modal após um pequeno delay
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
+      
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);
       toast({

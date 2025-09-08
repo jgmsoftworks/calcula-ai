@@ -81,15 +81,34 @@ export function Markups() {
     return 'Outros';
   }, []);
 
-  // Função para carregar configurações salvas no início - OTIMIZADA
+  // Função para carregar configurações salvas no início - CORRIGIDA
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
     
     console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
     
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
-    let algumCalculado = false;
     
+    // Buscar dados uma só vez para todos os blocos
+    const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+      supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+      supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+      supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+    ]);
+
+    // Buscar média de faturamento uma só vez
+    const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+    let mediaMensal = 0;
+    if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
+      const faturamentos = faturamentosConfig.map((f: any) => ({
+        ...f,
+        mes: new Date(f.mes)
+      }));
+      const total = faturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+      mediaMensal = total / Math.max(1, faturamentos.length);
+    }
+    
+    // Processar cada bloco
     for (const bloco of blocos) {
       const configKey = `checkbox-states-${bloco.id}`;
       const config = await loadConfiguration(configKey);
@@ -99,14 +118,6 @@ export function Markups() {
       if (config && typeof config === 'object' && Object.keys(config).length > 0) {
         // Se tem configuração, calcular markup com ela
         console.log(`✅ Aplicando configuração salva para ${bloco.nome}`);
-        algumCalculado = true;
-        
-        // Buscar dados apenas uma vez
-        const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
-          supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
-          supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
-          supabase.from('encargos_venda').select('*').eq('user_id', user.id)
-        ]);
         
         // Calcular com a configuração específica
         let totalGastos = 0;
@@ -123,18 +134,6 @@ export function Markups() {
             .filter(f => config[f.id] === true)
             .reduce((acc, f) => acc + (f.salario_base || 0), 0);
           totalGastos += gastosRH;
-        }
-        
-        // Buscar média de faturamento
-        const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
-        let mediaMensal = 0;
-        if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
-          const faturamentos = faturamentosConfig.map((f: any) => ({
-            ...f,
-            mes: new Date(f.mes)
-          }));
-          const total = faturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
-          mediaMensal = total / Math.max(1, faturamentos.length);
         }
         
         const gastoSobreFaturamento = mediaMensal > 0 ? (totalGastos / mediaMensal) * 100 : 0;
@@ -180,15 +179,23 @@ export function Markups() {
         
         novosCalculatedMarkups.set(bloco.id, markupCalculado);
         console.log(`✅ Markup calculado para ${bloco.nome}:`, markupCalculado);
-        
-        // Interromper o loop após calcular cada bloco para evitar re-calculos desnecessários
-        break;
+      } else {
+        console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
+        // Se não tem configuração, usar valores zerados
+        novosCalculatedMarkups.set(bloco.id, {
+          gastoSobreFaturamento: 0,
+          impostos: 0,
+          taxasMeiosPagamento: 0,
+          comissoesPlataformas: 0,
+          outros: 0,
+          valorEmReal: 0
+        });
       }
     }
     
-    if (algumCalculado && novosCalculatedMarkups.size > 0) {
+    if (novosCalculatedMarkups.size > 0) {
       setCalculatedMarkups(novosCalculatedMarkups);
-      console.log('✅ Configurações salvas aplicadas com sucesso!');
+      console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
@@ -381,13 +388,13 @@ export function Markups() {
     carregarBlocos();
   }, [loadConfiguration]);
   
-  // Carregar configurações salvas após os blocos serem carregados - APENAS UMA VEZ
+  // Carregar configurações salvas após os blocos serem carregados - SEMPRE QUE HOUVER MUDANÇA
   useEffect(() => {
-    if (blocos.length > 0 && user?.id && calculatedMarkups.size === 0) {
-      console.log('🎯 Primeira carga - carregando configurações salvas...');
+    if (blocos.length > 0 && user?.id) {
+      console.log('🎯 Carregando configurações salvas para todos os blocos...');
       carregarConfiguracoesSalvas();
     }
-  }, [blocos.length, user?.id]); // Removendo carregarConfiguracoesSalvas das dependências
+  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
   // Recalcular markups quando blocos mudarem - DESABILITADO para não sobrescrever configurações salvas
   useEffect(() => {
@@ -525,12 +532,13 @@ export function Markups() {
   const handleMarkupUpdate = useCallback(async (blocoId: string, markupData: any) => {
     console.log('🔄 handleMarkupUpdate chamado para bloco:', blocoId, 'com dados:', markupData);
     
-    // Atualizar no state local
+    // Atualizar no state local IMEDIATAMENTE
     const novosCalculatedMarkups = new Map(calculatedMarkups);
     novosCalculatedMarkups.set(blocoId, markupData);
     setCalculatedMarkups(novosCalculatedMarkups);
     
     console.log('💾 Estados atualizados - configurações do modal aplicadas');
+    console.log('📊 Novo state calculatedMarkups:', Array.from(novosCalculatedMarkups.entries()));
   }, [calculatedMarkups]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
