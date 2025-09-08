@@ -528,10 +528,10 @@ export function Markups() {
               </div>
 
               <div className="space-y-3 pt-2 border-t">
-                <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg">
-                  <span className="font-semibold text-blue-700">Markup ideal</span>
-                  <span className="text-xl font-bold text-blue-700">1,000</span>
-                </div>
+                  <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg">
+                    <span className="font-semibold text-blue-700">Markup ideal</span>
+                    <span className="text-xl font-bold text-blue-700">1,0000</span>
+                  </div>
               </div>
             </CardContent>
           </Card>
@@ -696,7 +696,7 @@ export function Markups() {
                   <div className="flex justify-between items-center p-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
                     <span className="font-semibold text-primary">Markup ideal</span>
                     <span className="text-xl font-bold text-primary">
-                      {isNaN(markupIdeal) || !isFinite(markupIdeal) ? '∞' : markupIdeal.toFixed(4)}
+                      {isNaN(markupIdeal) || !isFinite(markupIdeal) ? '∞' : markupIdeal.toFixed(4).replace('.', ',')}
                     </span>
                   </div>
                 </div>
