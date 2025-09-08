@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,7 @@ export const useUserConfigurations = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const loadConfiguration = async (type: string) => {
+  const loadConfiguration = useCallback(async (type: string) => {
     if (!user) return null;
 
     try {
@@ -30,9 +30,9 @@ export const useUserConfigurations = () => {
       console.error('Erro ao carregar configuração:', error);
       return null;
     }
-  };
+  }, [user]);
 
-  const saveConfiguration = async (type: string, configuration: any) => {
+  const saveConfiguration = useCallback(async (type: string, configuration: any) => {
     if (!user) return;
 
     try {
@@ -55,7 +55,7 @@ export const useUserConfigurations = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [user, toast]);
 
   return {
     loadConfiguration,
