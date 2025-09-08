@@ -501,34 +501,127 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bairro: string | null
           business_name: string | null
           business_type: string | null
+          celular: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj_cpf: string | null
+          complemento: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
           created_at: string
+          data_abertura: string | null
+          descricao_empresa: string | null
+          email_comercial: string | null
+          estado: string | null
           full_name: string | null
           id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          logo_empresa_url: string | null
+          logradouro: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          pais: string | null
           phone: string | null
+          porte_empresa: string | null
+          razao_social: string | null
+          regime_tributario: string | null
+          responsavel_cargo: string | null
+          responsavel_cpf: string | null
+          responsavel_email: string | null
+          responsavel_nome: string | null
+          responsavel_telefone: string | null
+          setor_atividade: string | null
+          telefone_comercial: string | null
           updated_at: string
           user_id: string
+          website: string | null
+          whatsapp: string | null
         }
         Insert: {
+          bairro?: string | null
           business_name?: string | null
           business_type?: string | null
+          celular?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          complemento?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string
+          data_abertura?: string | null
+          descricao_empresa?: string | null
+          email_comercial?: string | null
+          estado?: string | null
           full_name?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logo_empresa_url?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          pais?: string | null
           phone?: string | null
+          porte_empresa?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          responsavel_cargo?: string | null
+          responsavel_cpf?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          setor_atividade?: string | null
+          telefone_comercial?: string | null
           updated_at?: string
           user_id: string
+          website?: string | null
+          whatsapp?: string | null
         }
         Update: {
+          bairro?: string | null
           business_name?: string | null
           business_type?: string | null
+          celular?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          complemento?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string
+          data_abertura?: string | null
+          descricao_empresa?: string | null
+          email_comercial?: string | null
+          estado?: string | null
           full_name?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logo_empresa_url?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          pais?: string | null
           phone?: string | null
+          porte_empresa?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          responsavel_cargo?: string | null
+          responsavel_cpf?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          setor_atividade?: string | null
+          telefone_comercial?: string | null
           updated_at?: string
           user_id?: string
+          website?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
