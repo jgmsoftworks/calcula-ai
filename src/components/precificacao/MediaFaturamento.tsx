@@ -313,13 +313,13 @@ export function MediaFaturamento() {
                       dataKey="mes" 
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fill: "hsl(var(--purple-700))" }}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       interval={0}
                     />
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fill: "hsl(var(--purple-700))" }}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                       width={40}
                     />
@@ -327,18 +327,18 @@ export function MediaFaturamento() {
                       content={<ChartTooltipContent />}
                       formatter={(value: number) => [formatCurrency(value), "Faturamento"]}
                       contentStyle={{
-                        backgroundColor: "hsl(var(--purple-100))",
-                        border: "1px solid hsl(var(--purple-200))",
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
                         borderRadius: "8px"
                       }}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="valor" 
-                      stroke="hsl(var(--purple-600))" 
+                      stroke="hsl(var(--secondary))" 
                       strokeWidth={3}
-                      dot={{ fill: "hsl(var(--purple-600))", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "hsl(var(--purple-600))", strokeWidth: 2, fill: "hsl(var(--purple-100))" }}
+                      dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: "hsl(var(--secondary))", strokeWidth: 2, fill: "hsl(var(--card))" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
