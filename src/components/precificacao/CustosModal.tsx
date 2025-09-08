@@ -166,14 +166,21 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       setEncargosVenda(encargosFormatados);
 
-      // Carregar faturamentos históricos
+      // Carregar faturamentos históricos - usar a mesma lógica da MediaFaturamento
       const configFaturamentos = await loadConfiguration('faturamentos_historicos');
       if (configFaturamentos && Array.isArray(configFaturamentos)) {
         const faturamentos = configFaturamentos.map((f: any) => ({
           ...f,
           mes: new Date(f.mes)
-        })).sort((a, b) => b.mes.getTime() - a.mes.getTime());
+        })).sort((a, b) => {
+          // Primeiro ordena por data (mês/ano) - mais recente primeiro
+          const dateCompare = b.mes.getTime() - a.mes.getTime();
+          if (dateCompare !== 0) return dateCompare;
+          // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
+          return parseInt(b.id) - parseInt(a.id);
+        });
         setFaturamentosHistoricos(faturamentos);
+        console.log('Faturamentos carregados na modal:', faturamentos);
       }
 
       // Carregar estados dos checkboxes salvos
@@ -212,14 +219,21 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (open) {
       const intervalId = setInterval(async () => {
-        // Recarregar faturamentos históricos
+        // Recarregar faturamentos históricos - usar a mesma lógica da MediaFaturamento
         const configFaturamentos = await loadConfiguration('faturamentos_historicos');
         if (configFaturamentos && Array.isArray(configFaturamentos)) {
           const faturamentos = configFaturamentos.map((f: any) => ({
             ...f,
             mes: new Date(f.mes)
-          })).sort((a, b) => b.mes.getTime() - a.mes.getTime());
+          })).sort((a, b) => {
+            // Primeiro ordena por data (mês/ano) - mais recente primeiro
+            const dateCompare = b.mes.getTime() - a.mes.getTime();
+            if (dateCompare !== 0) return dateCompare;
+            // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
+            return parseInt(b.id) - parseInt(a.id);
+          });
           setFaturamentosHistoricos(faturamentos);
+          console.log('Faturamentos atualizados em tempo real:', faturamentos);
         }
       }, 2000); // Verificar a cada 2 segundos
 
@@ -231,30 +245,31 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const calcularMediaMensal = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
 
-    let faturamentosFiltrados = [...faturamentosHistoricos];
+    let faturamentosSelecionados = [...faturamentosHistoricos];
     
+    // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
     if (filtroPerido !== 'todos') {
-      const mesesAtras = parseInt(filtroPerido);
-      const agora = new Date();
-      
-      // Filtrar baseado na quantidade de meses selecionada
-      faturamentosFiltrados = faturamentosHistoricos.filter(f => {
-        const mesesDiferenca = (agora.getFullYear() - f.mes.getFullYear()) * 12 + 
-                               (agora.getMonth() - f.mes.getMonth());
-        return mesesDiferenca < mesesAtras;
-      });
+      const quantidade = parseInt(filtroPerido);
+      faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
     }
 
-    if (faturamentosFiltrados.length === 0) return 0;
+    if (faturamentosSelecionados.length === 0) return 0;
 
-    // Se for apenas 1 mês (último mês), retornar o valor do mês mais recente
-    if (filtroPerido === '1' && faturamentosFiltrados.length > 0) {
-      return faturamentosFiltrados[0].valor; // Já está ordenado por data decrescente
+    console.log('Filtro período:', filtroPerido);
+    console.log('Faturamentos selecionados:', faturamentosSelecionados);
+
+    // Se for apenas 1 mês (último mês), retornar o valor do mais recente
+    if (filtroPerido === '1' && faturamentosSelecionados.length > 0) {
+      const valorUltimoMes = faturamentosSelecionados[0].valor;
+      console.log('Último mês - valor:', valorUltimoMes);
+      return valorUltimoMes;
     }
 
-    // Para outros casos, calcular a média
-    const totalFaturamento = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
-    return totalFaturamento / faturamentosFiltrados.length;
+    // Para outros casos, calcular a média dos selecionados
+    const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
+    const media = totalFaturamento / faturamentosSelecionados.length;
+    console.log('Média calculada:', media, 'de', faturamentosSelecionados.length, 'faturamentos');
+    return media;
   }, [faturamentosHistoricos, filtroPerido]);
 
   const formatCurrency = (value: number) => {
