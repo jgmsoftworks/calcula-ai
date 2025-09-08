@@ -35,7 +35,13 @@ export function MediaFaturamento() {
         const faturamentos = config.map((f: any) => ({
           ...f,
           mes: new Date(f.mes)
-        })).sort((a, b) => b.mes.getTime() - a.mes.getTime()); // Ordena por data mais recente primeiro
+        })).sort((a, b) => {
+          // Primeiro ordena por data (mês/ano)
+          const dateCompare = b.mes.getTime() - a.mes.getTime();
+          if (dateCompare !== 0) return dateCompare;
+          // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
+          return parseInt(b.id) - parseInt(a.id);
+        });
         setFaturamentosHistoricos(faturamentos);
       }
     };
@@ -135,9 +141,15 @@ export function MediaFaturamento() {
   const getFaturamentosFiltrados = () => {
     if (filtroPeriodo === 'todos') return faturamentosHistoricos;
 
-    // Ordena por data mais recente primeiro
+    // Ordena por data mais recente primeiro, e por ID (timestamp) para mesmo mês
     const faturamentosOrdenados = [...faturamentosHistoricos]
-      .sort((a, b) => b.mes.getTime() - a.mes.getTime());
+      .sort((a, b) => {
+        // Primeiro ordena por data (mês/ano)
+        const dateCompare = b.mes.getTime() - a.mes.getTime();
+        if (dateCompare !== 0) return dateCompare;
+        // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
+        return parseInt(b.id) - parseInt(a.id);
+      });
 
     let quantidade: number;
 
