@@ -114,14 +114,14 @@ const Auth = () => {
           {/* Logo Section with Enhanced Animation */}
           <div className="text-center space-y-4 animate-scale-in" style={{ animationDelay: '0.2s' }}>
             <div className="relative inline-block group">
-              <div className="absolute inset-0 bg-gradient-primary rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-all duration-500 animate-pulse"></div>
-              <div className="relative bg-gradient-primary p-6 rounded-3xl shadow-glow">
-                <img 
-                  src="/lovable-uploads/057f2b59-4b46-4654-9b76-2df45b531a11.png" 
-                  alt="CalculaAi Logo" 
-                  className="h-16 w-16 mx-auto transform group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
+              <img 
+                src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png" 
+                alt="CalculaAi Logo" 
+                className="h-20 w-auto mx-auto transform group-hover:scale-110 transition-all duration-500 drop-shadow-2xl"
+                style={{
+                  filter: "drop-shadow(0 0 20px rgba(168, 85, 247, 0.4)) drop-shadow(0 0 40px rgba(168, 85, 247, 0.2))"
+                }}
+              />
             </div>
             
             <div className="space-y-3">
