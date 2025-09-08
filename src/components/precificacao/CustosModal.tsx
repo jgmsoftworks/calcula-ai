@@ -127,15 +127,21 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
       // Carregar estados dos checkboxes salvos
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      console.log('Carregando config com chave:', configKey);
       const savedStates = await loadConfiguration(configKey);
+      console.log('Estados salvos carregados:', savedStates);
+      
       if (savedStates && typeof savedStates === 'object') {
+        console.log('Usando estados salvos');
         setCheckboxStates(savedStates as Record<string, boolean>);
       } else {
         // Inicializar com todos marcados por padrão
+        console.log('Inicializando com estados padrão');
         const defaultStates: Record<string, boolean> = {};
         [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
           defaultStates[item.id] = true;
         });
+        console.log('Estados padrão criados:', defaultStates);
         setCheckboxStates(defaultStates);
       }
 
@@ -212,9 +218,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   };
 
   const calcularMarkup = (states: Record<string, boolean>) => {
-    if (!onMarkupUpdate) return;
+    if (!onMarkupUpdate) {
+      console.log('onMarkupUpdate não existe');
+      return;
+    }
 
+    console.log('Calculando markup com estados:', states);
     const encargosConsiderados = encargosVenda.filter(e => states[e.id]);
+    console.log('Encargos considerados:', encargosConsiderados);
     
     // Calcular somas por categoria
     const categorias = {
@@ -227,6 +238,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     encargosConsiderados.forEach(encargo => {
       const categoria = getCategoriaByNome(encargo.nome);
       const valor = encargo.valor_percentual || 0;
+      console.log(`${encargo.nome} -> categoria: ${categoria}, valor: ${valor}%`);
       
       switch (categoria) {
         case 'impostos':
@@ -244,6 +256,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       }
     });
 
+    console.log('Categorias calculadas:', categorias);
     onMarkupUpdate(categorias);
   };
 
@@ -260,7 +273,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Calcular markup sempre que os estados mudarem
   useEffect(() => {
-    if (Object.keys(checkboxStates).length > 0) {
+    console.log('useEffect calcularMarkup - estados:', checkboxStates, 'encargos:', encargosVenda.length);
+    if (Object.keys(checkboxStates).length > 0 && encargosVenda.length > 0) {
       calcularMarkup(checkboxStates);
     }
   }, [checkboxStates, encargosVenda]);
