@@ -250,10 +250,10 @@ export function MediaFaturamento() {
       </Card>
 
       {/* Estatísticas e Gráfico */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
         {/* Cards de Estatísticas */}
-        <div className="space-y-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50">
+        <div className="flex flex-col gap-4 h-full">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50 flex-1 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-3">
               <div className="p-2 bg-blue-500 rounded-lg">
                 <TrendingUp className="h-5 w-5 text-white" />
@@ -270,7 +270,7 @@ export function MediaFaturamento() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-xl p-6 border border-green-200 dark:border-green-800/50">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-xl p-6 border border-green-200 dark:border-green-800/50 flex-1 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-3">
               <div className="p-2 bg-green-500 rounded-lg">
                 <DollarSign className="h-5 w-5 text-white" />
@@ -289,50 +289,69 @@ export function MediaFaturamento() {
         </div>
 
         {/* Gráfico */}
-        <div className="bg-card rounded-xl p-6 border">
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-xl p-6 border border-purple-200 dark:border-purple-800/50 h-full flex flex-col">
           <div className="mb-4">
-            <h3 className="text-lg font-semibold">📈 Evolução dos Últimos 6 Meses</h3>
-            <p className="text-sm text-muted-foreground">Histórico de faturamento mensal</p>
-          </div>
-          {dadosGrafico.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dadosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                  <XAxis 
-                    dataKey="mes" 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                  />
-                  <ChartTooltip 
-                    content={<ChartTooltipContent />}
-                    formatter={(value: number) => [formatCurrency(value), "Faturamento"]}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="valor" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 6 }}
-                    activeDot={{ r: 8, stroke: "hsl(var(--primary))", strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Adicione faturamentos para ver o gráfico</p>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-purple-500 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full">
+                EVOLUÇÃO
               </div>
             </div>
-          )}
+            <h3 className="text-sm font-medium text-purple-700 dark:text-purple-300">Últimos 6 Meses</h3>
+          </div>
+          <div className="flex-1 min-h-0">
+            {dadosGrafico.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-full w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart 
+                    data={dadosGrafico} 
+                    margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  >
+                    <XAxis 
+                      dataKey="mes" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "hsl(var(--purple-700))" }}
+                      interval={0}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "hsl(var(--purple-700))" }}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                      width={40}
+                    />
+                    <ChartTooltip 
+                      content={<ChartTooltipContent />}
+                      formatter={(value: number) => [formatCurrency(value), "Faturamento"]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--purple-100))",
+                        border: "1px solid hsl(var(--purple-200))",
+                        borderRadius: "8px"
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="valor" 
+                      stroke="hsl(var(--purple-600))" 
+                      strokeWidth={3}
+                      dot={{ fill: "hsl(var(--purple-600))", strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: "hsl(var(--purple-600))", strokeWidth: 2, fill: "hsl(var(--purple-100))" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <div className="text-center">
+                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">Adicione faturamentos para ver o gráfico</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
