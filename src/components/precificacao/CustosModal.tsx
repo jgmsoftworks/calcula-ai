@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -69,9 +70,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
   const [loading, setLoading] = useState(false);
   const [checkboxStates, setCheckboxStates] = useState<Record<string, boolean>>({});
+  const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
   const [filtroPerido, setFiltroPerido] = useState<string>('6');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
@@ -183,6 +186,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       if (savedStates && typeof savedStates === 'object') {
         setCheckboxStates(savedStates as Record<string, boolean>);
+        setTempCheckboxStates(savedStates as Record<string, boolean>);
       } else {
         // Inicializar com todos desmarcados por padrão
         const defaultStates: Record<string, boolean> = {};
@@ -190,7 +194,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           defaultStates[item.id] = false;
         });
         setCheckboxStates(defaultStates);
+        setTempCheckboxStates(defaultStates);
       }
+      
+      setHasUnsavedChanges(false);
 
     } catch (error) {
       toast({
@@ -208,6 +215,13 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       carregarDados();
     }
   }, [open, user]);
+
+  // Recalcular markup quando os dados são carregados
+  useEffect(() => {
+    if (open && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      calcularMarkup(tempCheckboxStates);
+    }
+  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento]);
 
   // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
   useEffect(() => {
@@ -333,16 +347,13 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [user, open]);
 
-  const handleCheckboxChange = async (itemId: string, checked: boolean) => {
-    const newStates = { ...checkboxStates, [itemId]: checked };
-    setCheckboxStates(newStates);
+  const handleCheckboxChange = (itemId: string, checked: boolean) => {
+    const newTempStates = { ...tempCheckboxStates, [itemId]: checked };
+    setTempCheckboxStates(newTempStates);
+    setHasUnsavedChanges(true);
     
-    // Salvar estados no banco
-    const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
-    await saveConfiguration(configKey, newStates);
-    
-    // Calcular e atualizar markup
-    debouncedCalculateMarkup(newStates);
+    // Calcular markup em tempo real apenas para mostrar preview
+    debouncedCalculateMarkup(newTempStates);
   };
 
   // Mapeamento otimizado de categorias
@@ -449,10 +460,54 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Calcular markup sempre que os estados mudarem (otimizado)
   useEffect(() => {
-    if (Object.keys(checkboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
-      debouncedCalculateMarkup(checkboxStates);
+    if (Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      debouncedCalculateMarkup(tempCheckboxStates);
     }
-  }, [checkboxStates, debouncedCalculateMarkup]); // Removidas dependências desnecessárias
+  }, [tempCheckboxStates, debouncedCalculateMarkup]); // Alterado para tempCheckboxStates
+
+  const handleSalvar = async () => {
+    try {
+      // Salvar estados no banco
+      const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      await saveConfiguration(configKey, tempCheckboxStates);
+      
+      // Atualizar estados salvos
+      setCheckboxStates(tempCheckboxStates);
+      setHasUnsavedChanges(false);
+      
+      // Calcular markup final
+      calcularMarkup(tempCheckboxStates);
+      
+      toast({
+        title: "Configurações salvas",
+        description: "As configurações do markup foram salvas com sucesso"
+      });
+      
+      // Fechar modal
+      onOpenChange(false);
+      
+      // Forçar recálculo no componente pai
+      if (onMarkupUpdate) {
+        setTimeout(() => {
+          calcularMarkup(tempCheckboxStates);
+        }, 100);
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCancelar = () => {
+    // Restaurar estados originais
+    setTempCheckboxStates(checkboxStates);
+    setHasUnsavedChanges(false);
+    calcularMarkup(checkboxStates);
+    onOpenChange(false);
+  };
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
@@ -485,11 +540,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 </div>
               </div>
                        <div className="flex items-center gap-3">
-                          <Checkbox 
-                            id={`encargo-${encargo.id}`}
-                            checked={checkboxStates[encargo.id] ?? false}
-                            onCheckedChange={(checked) => handleCheckboxChange(encargo.id, checked as boolean)}
-                          />
+                           <Checkbox 
+                             id={`encargo-${encargo.id}`}
+                             checked={tempCheckboxStates[encargo.id] ?? false}
+                             onCheckedChange={(checked) => handleCheckboxChange(encargo.id, checked as boolean)}
+                           />
                          <Label 
                            htmlFor={`encargo-${encargo.id}`}
                            className="text-sm font-medium cursor-pointer"
@@ -616,11 +671,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                         </p>
                       </div>
                        <div className="flex items-center gap-3">
-                          <Checkbox 
-                            id={`despesa-${despesa.id}`}
-                            checked={checkboxStates[despesa.id] ?? false}
-                            onCheckedChange={(checked) => handleCheckboxChange(despesa.id, checked as boolean)}
-                          />
+                           <Checkbox 
+                             id={`despesa-${despesa.id}`}
+                             checked={tempCheckboxStates[despesa.id] ?? false}
+                             onCheckedChange={(checked) => handleCheckboxChange(despesa.id, checked as boolean)}
+                           />
                          <Label 
                            htmlFor={`despesa-${despesa.id}`}
                            className="text-sm font-medium cursor-pointer"
@@ -664,11 +719,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                         </p>
                       </div>
                        <div className="flex items-center gap-3">
-                          <Checkbox 
-                            id={`funcionario-${funcionario.id}`}
-                            checked={checkboxStates[funcionario.id] ?? false}
-                            onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
-                          />
+                           <Checkbox 
+                             id={`funcionario-${funcionario.id}`}
+                             checked={tempCheckboxStates[funcionario.id] ?? false}
+                             onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
+                           />
                          <Label 
                            htmlFor={`funcionario-${funcionario.id}`}
                            className="text-sm font-medium cursor-pointer"
@@ -713,8 +768,22 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               </CardContent>
             </Card>
           </TabsContent>
-         </Tabs>
-      </DialogContent>
-    </Dialog>
+          </Tabs>
+        </DialogContent>
+        <DialogFooter className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleCancelar}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSalvar}
+            disabled={!hasUnsavedChanges}
+          >
+            Salvar Configurações
+          </Button>
+        </DialogFooter>
+      </Dialog>
   );
 }
