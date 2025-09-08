@@ -19,7 +19,6 @@ interface FaturamentoHistorico {
 
 export function MediaFaturamento() {
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
-  const [filtroPeriodo, setFiltroPeriodo] = useState<string>('todos');
   const [novoFaturamento, setNovoFaturamento] = useState({
     valor: '',
     mes: new Date().getMonth() + 1,
@@ -46,30 +45,12 @@ export function MediaFaturamento() {
         });
         setFaturamentosHistoricos(faturamentos);
       }
-
-      // Carregar filtro do período
-      const configFiltro = await loadConfiguration('filtro_periodo_faturamento');
-      if (configFiltro && typeof configFiltro === 'string') {
-        setFiltroPeriodo(configFiltro);
-      }
     };
     carregarDados();
   }, [loadConfiguration]);
 
   const salvarFaturamentos = useCallback(async (faturamentos: FaturamentoHistorico[]) => {
     await saveConfiguration('faturamentos_historicos', faturamentos);
-  }, [saveConfiguration]);
-
-  const salvarFiltro = useCallback(async (novoFiltro: string) => {
-    setFiltroPeriodo(novoFiltro);
-    
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    debounceRef.current = setTimeout(async () => {
-      await saveConfiguration('filtro_periodo_faturamento', novoFiltro);
-    }, 300);
   }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
@@ -158,46 +139,8 @@ export function MediaFaturamento() {
     });
   };
 
-  const getFaturamentosFiltrados = () => {
-    if (filtroPeriodo === 'todos') return faturamentosHistoricos;
-
-    // Ordena por data mais recente primeiro, e por ID (timestamp) para mesmo mês
-    const faturamentosOrdenados = [...faturamentosHistoricos]
-      .sort((a, b) => {
-        // Primeiro ordena por data (mês/ano)
-        const dateCompare = b.mes.getTime() - a.mes.getTime();
-        if (dateCompare !== 0) return dateCompare;
-        // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
-        return parseInt(b.id) - parseInt(a.id);
-      });
-
-    let quantidade: number;
-
-    switch (filtroPeriodo) {
-      case '1':
-        quantidade = 1;
-        break;
-      case '3':
-        quantidade = 3;
-        break;
-      case '6':
-        quantidade = 6;
-        break;
-      case '12':
-        quantidade = 12;
-        break;
-      default:
-        return faturamentosHistoricos;
-    }
-
-    // Retorna apenas a quantidade especificada dos últimos lançamentos
-    return faturamentosOrdenados.slice(0, quantidade);
-  };
-
-  const calcularEstatisticas = () => {
-    const faturamentosFiltrados = getFaturamentosFiltrados();
-    
-    if (faturamentosFiltrados.length === 0) {
+  const calcularEstatisticas = () => {    
+    if (faturamentosHistoricos.length === 0) {
       return {
         mediaFaturamento: 0,
         totalFaturamento: 0,
@@ -207,7 +150,7 @@ export function MediaFaturamento() {
       };
     }
 
-    const valores = faturamentosFiltrados.map(f => f.valor);
+    const valores = faturamentosHistoricos.map(f => f.valor);
     const totalFaturamento = valores.reduce((acc, valor) => acc + valor, 0);
     const mediaFaturamento = totalFaturamento / valores.length;
     const maiorFaturamento = Math.max(...valores);
@@ -296,27 +239,8 @@ export function MediaFaturamento() {
         </CardContent>
       </Card>
 
-      {/* Filtros e Estatísticas */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-2">
-              <Label>Período de Análise</Label>
-              <Select value={filtroPeriodo} onValueChange={salvarFiltro}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Último mês</SelectItem>
-                  <SelectItem value="3">Últimos 3 meses</SelectItem>
-                  <SelectItem value="6">Últimos 6 meses</SelectItem>
-                  <SelectItem value="12">Últimos 12 meses</SelectItem>
-                  <SelectItem value="todos">Todos os lançamentos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50">
           <div className="flex items-center justify-between mb-3">
@@ -378,7 +302,7 @@ export function MediaFaturamento() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {getFaturamentosFiltrados().map((faturamento) => (
+              {faturamentosHistoricos.map((faturamento) => (
                 <div key={faturamento.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
                     <CalendarDays className="h-4 w-4 text-muted-foreground" />
