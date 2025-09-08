@@ -768,22 +768,23 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               </CardContent>
             </Card>
           </TabsContent>
-          </Tabs>
-        </DialogContent>
-        <DialogFooter className="gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleCancelar}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSalvar}
-            disabled={!hasUnsavedChanges}
-          >
-            Salvar Configurações
-          </Button>
-        </DialogFooter>
-      </Dialog>
+           </Tabs>
+           
+           <DialogFooter className="gap-2 pt-4">
+             <Button 
+               variant="outline" 
+               onClick={handleCancelar}
+             >
+               Cancelar
+             </Button>
+             <Button 
+               onClick={handleSalvar}
+               disabled={!hasUnsavedChanges}
+             >
+               Salvar Configurações
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
   );
 }
