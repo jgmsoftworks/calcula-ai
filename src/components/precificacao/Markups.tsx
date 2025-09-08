@@ -83,15 +83,22 @@ export function Markups() {
 
   // Função para calcular markups em tempo real
   const calcularMarkupsEmTempoReal = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('❌ calcularMarkupsEmTempoReal: user.id não disponível');
+      return;
+    }
+
+    console.log('🔄 Iniciando cálculo de markups para blocos:', blocos.length);
 
     try {
       // Buscar configurações salvas
       const filtroConfig = await loadConfiguration('media_faturamento_filtro');
-      const checkboxConfig = await loadConfiguration('custos_checkboxes');
       const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
       
-      if (!checkboxConfig) return;
+      console.log('📊 Configurações carregadas:', {
+        filtroConfig,
+        faturamentosConfig: faturamentosConfig ? 'presente' : 'ausente'
+      });
 
       const periodo = filtroConfig || 'ultimo_mes';
       
@@ -127,6 +134,8 @@ export function Markups() {
         mediaMensal = total / meses;
       }
 
+      console.log('💰 Média mensal calculada:', mediaMensal);
+
       // Buscar dados de custos
       const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
         supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
@@ -134,33 +143,61 @@ export function Markups() {
         supabase.from('encargos_venda').select('*').eq('user_id', user.id)
       ]);
 
+      console.log('🗃️ Dados de custos:', {
+        despesasFixas: despesasFixas?.length || 0,
+        folhaPagamento: folhaPagamento?.length || 0,
+        encargosVenda: encargosVenda?.length || 0
+      });
+
       // Calcular markups para cada bloco
       const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
       for (const bloco of blocos) {
-        const blocoCfg = checkboxConfig[bloco.id];
-        if (!blocoCfg) continue;
+        console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
+        
+        // Buscar configuração específica do bloco (corrigido!)
+        const configKey = `checkbox-states-${bloco.id}`;
+        const blocoCfg = await loadConfiguration(configKey);
+        
+        if (!blocoCfg) {
+          console.log(`⚠️ Configuração não encontrada para bloco ${bloco.id} (chave: ${configKey})`);
+          // Se não há configuração, usar valores zerados mas salvar o bloco mesmo assim
+          novosCalculatedMarkups.set(bloco.id, {
+            gastoSobreFaturamento: 0,
+            impostos: 0,
+            taxasMeiosPagamento: 0,
+            comissoesPlataformas: 0,
+            outros: 0,
+            valorEmReal: 0
+          });
+          continue;
+        }
+
+        console.log('⚙️ Configuração do bloco:', blocoCfg);
 
         // Calcular gasto sobre faturamento
         let totalGastos = 0;
         
         // Despesas fixas
-        if (despesasFixas && blocoCfg.despesasFixas) {
+        if (despesasFixas) {
           const gastosDespesas = despesasFixas
-            .filter(d => blocoCfg.despesasFixas[d.id])
+            .filter(d => blocoCfg[d.id] === true)
             .reduce((acc, d) => acc + d.valor, 0);
           totalGastos += gastosDespesas;
+          console.log(`💸 Despesas fixas para ${bloco.nome}:`, gastosDespesas);
         }
 
         // Folha de pagamento
-        if (folhaPagamento && blocoCfg.folhaPagamento) {
+        if (folhaPagamento) {
           const gastosFolha = folhaPagamento
-            .filter(f => blocoCfg.folhaPagamento[f.id])
+            .filter(f => blocoCfg[f.id] === true)
             .reduce((acc, f) => acc + (f.custo_por_hora || f.salario_base || 0), 0);
           totalGastos += gastosFolha;
+          console.log(`👥 Folha pagamento para ${bloco.nome}:`, gastosFolha);
         }
 
         const gastoSobreFaturamento = mediaMensal > 0 ? (totalGastos / mediaMensal) * 100 : 0;
+        console.log(`📈 Gasto sobre faturamento para ${bloco.nome}:`, gastoSobreFaturamento);
 
         // Calcular outros percentuais
         let impostos = 0;
@@ -169,9 +206,9 @@ export function Markups() {
         let outros = 0;
         let valorEmReal = 0;
 
-        if (encargosVenda && blocoCfg.encargosVenda) {
+        if (encargosVenda) {
           encargosVenda
-            .filter(e => blocoCfg.encargosVenda[e.id])
+            .filter(e => blocoCfg[e.id] === true)
             .forEach(encargo => {
               const categoria = getCategoriaByNome(encargo.nome);
               const valor = encargo.valor || 0;
@@ -197,19 +234,23 @@ export function Markups() {
             });
         }
 
-        novosCalculatedMarkups.set(bloco.id, {
+        const markupCalculado = {
           gastoSobreFaturamento,
           impostos,
           taxasMeiosPagamento,
           comissoesPlataformas,
           outros,
           valorEmReal
-        });
+        };
+
+        console.log(`✅ Markup calculado para ${bloco.nome}:`, markupCalculado);
+        novosCalculatedMarkups.set(bloco.id, markupCalculado);
       }
 
+      console.log('🎯 Total de markups calculados:', novosCalculatedMarkups.size);
       setCalculatedMarkups(novosCalculatedMarkups);
     } catch (error) {
-      console.error('Erro ao calcular markups em tempo real:', error);
+      console.error('❌ Erro ao calcular markups em tempo real:', error);
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
@@ -242,15 +283,22 @@ export function Markups() {
 
   // Calcular markups na inicialização do componente
   useEffect(() => {
-    if (user?.id) {
+    console.log('🚀 useEffect inicial - user.id:', user?.id, 'blocos.length:', blocos.length);
+    
+    if (user?.id && blocos.length > 0) {
+      console.log('✅ Condições atendidas, executando cálculo inicial...');
       // Delay para garantir que os blocos foram carregados
       const initialCalcTimer = setTimeout(() => {
+        console.log('⏰ Executando cálculo inicial após delay...');
         calcularMarkupsEmTempoReal();
-      }, 1000);
+      }, 2000); // Aumentei o delay para 2 segundos
       
-      return () => clearTimeout(initialCalcTimer);
+      return () => {
+        console.log('🧹 Limpando timer inicial');
+        clearTimeout(initialCalcTimer);
+      };
     }
-  }, [user?.id, calcularMarkupsEmTempoReal]);
+  }, [user?.id, blocos.length, calcularMarkupsEmTempoReal]);
 
   // Limpar timeouts ao desmontar
   useEffect(() => {
