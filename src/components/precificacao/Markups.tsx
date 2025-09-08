@@ -470,10 +470,20 @@ export function Markups() {
         markupBlock={blocoSelecionado}
         onMarkupUpdate={(dados) => {
           if (blocoSelecionado) {
-            atualizarBloco(blocoSelecionado.id, 'impostos', dados.impostos || 0);
-            atualizarBloco(blocoSelecionado.id, 'taxasMeiosPagamento', dados.taxasMeiosPagamento || 0);
-            atualizarBloco(blocoSelecionado.id, 'comissoesPlataformas', dados.comissoesPlataformas || 0);
-            atualizarBloco(blocoSelecionado.id, 'outros', dados.outros || 0);
+            // Atualizar todas as propriedades de uma só vez para evitar múltiplos re-renders
+            const novosBlocos = blocos.map(bloco => 
+              bloco.id === blocoSelecionado.id 
+                ? { 
+                    ...bloco, 
+                    impostos: dados.impostos || 0,
+                    taxasMeiosPagamento: dados.taxasMeiosPagamento || 0,
+                    comissoesPlataformas: dados.comissoesPlataformas || 0,
+                    outros: dados.outros || 0
+                  }
+                : bloco
+            );
+            setBlocos(novosBlocos);
+            salvarBlocos(novosBlocos);
           }
         }}
       />

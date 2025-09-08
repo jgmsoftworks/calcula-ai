@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -127,21 +127,16 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
       // Carregar estados dos checkboxes salvos
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
-      console.log('Carregando config com chave:', configKey);
       const savedStates = await loadConfiguration(configKey);
-      console.log('Estados salvos carregados:', savedStates);
       
       if (savedStates && typeof savedStates === 'object') {
-        console.log('Usando estados salvos');
         setCheckboxStates(savedStates as Record<string, boolean>);
       } else {
         // Inicializar com todos marcados por padrão
-        console.log('Inicializando com estados padrão');
         const defaultStates: Record<string, boolean> = {};
         [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
           defaultStates[item.id] = true;
         });
-        console.log('Estados padrão criados:', defaultStates);
         setCheckboxStates(defaultStates);
       }
 
@@ -214,70 +209,76 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     await saveConfiguration(configKey, newStates);
     
     // Calcular e atualizar markup
-    calcularMarkup(newStates);
+    debouncedCalculateMarkup(newStates);
   };
 
-  const calcularMarkup = (states: Record<string, boolean>) => {
-    if (!onMarkupUpdate) {
-      console.log('onMarkupUpdate não existe');
-      return;
-    }
+  // Mapeamento otimizado de categorias
+  const categoriasMap = useMemo(() => {
+    return {
+      'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
+      'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
+      'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
+    };
+  }, []);
 
-    console.log('Calculando markup com estados:', states);
-    const encargosConsiderados = encargosVenda.filter(e => states[e.id]);
-    console.log('Encargos considerados:', encargosConsiderados);
+  const getCategoriaByNome = useCallback((nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
+    if (categoriasMap.impostos.has(nome)) return 'impostos';
+    if (categoriasMap.meios_pagamento.has(nome)) return 'meios_pagamento';
+    if (categoriasMap.comissoes.has(nome)) return 'comissoes';
+    return 'outros';
+  }, [categoriasMap]);
+
+  const calcularMarkup = useCallback((states: Record<string, boolean>) => {
+    if (!onMarkupUpdate || !encargosVenda.length) return;
+
+    const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
     
-    // Calcular somas por categoria
-    const categorias = {
+    // Calcular somas por categoria de forma otimizada
+    const categorias = encargosConsiderados.reduce((acc, encargo) => {
+      const categoria = getCategoriaByNome(encargo.nome);
+      const valor = encargo.valor_percentual || 0;
+      
+      switch (categoria) {
+        case 'impostos':
+          acc.impostos += valor;
+          break;
+        case 'meios_pagamento':
+          acc.taxasMeiosPagamento += valor;
+          break;
+        case 'comissoes':
+          acc.comissoesPlataformas += valor;
+          break;
+        case 'outros':
+          acc.outros += valor;
+          break;
+      }
+      
+      return acc;
+    }, {
       impostos: 0,
       taxasMeiosPagamento: 0,
       comissoesPlataformas: 0,
       outros: 0
-    };
-
-    encargosConsiderados.forEach(encargo => {
-      const categoria = getCategoriaByNome(encargo.nome);
-      const valor = encargo.valor_percentual || 0;
-      console.log(`${encargo.nome} -> categoria: ${categoria}, valor: ${valor}%`);
-      
-      switch (categoria) {
-        case 'impostos':
-          categorias.impostos += valor;
-          break;
-        case 'meios_pagamento':
-          categorias.taxasMeiosPagamento += valor;
-          break;
-        case 'comissoes':
-          categorias.comissoesPlataformas += valor;
-          break;
-        case 'outros':
-          categorias.outros += valor;
-          break;
-      }
     });
 
-    console.log('Categorias calculadas:', categorias);
     onMarkupUpdate(categorias);
-  };
+  }, [onMarkupUpdate, encargosVenda, getCategoriaByNome]);
 
-  const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
-    const impostos = ['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI'];
-    const meiosPagamento = ['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento'];
-    const comissoes = ['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'];
-
-    if (impostos.includes(nome)) return 'impostos';
-    if (meiosPagamento.includes(nome)) return 'meios_pagamento';
-    if (comissoes.includes(nome)) return 'comissoes';
-    return 'outros';
-  };
+  // Debounced calculation to avoid excessive re-renders
+  const debouncedCalculateMarkup = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (states: Record<string, boolean>) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => calcularMarkup(states), 100);
+    };
+  }, [calcularMarkup]);
 
   // Calcular markup sempre que os estados mudarem
   useEffect(() => {
-    console.log('useEffect calcularMarkup - estados:', checkboxStates, 'encargos:', encargosVenda.length);
     if (Object.keys(checkboxStates).length > 0 && encargosVenda.length > 0) {
-      calcularMarkup(checkboxStates);
+      debouncedCalculateMarkup(checkboxStates);
     }
-  }, [checkboxStates, encargosVenda]);
+  }, [checkboxStates, encargosVenda, debouncedCalculateMarkup]);
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
