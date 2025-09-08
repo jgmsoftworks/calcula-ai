@@ -35,7 +35,7 @@ export function MediaFaturamento() {
         const faturamentos = config.map((f: any) => ({
           ...f,
           mes: new Date(f.mes)
-        }));
+        })).sort((a, b) => b.mes.getTime() - a.mes.getTime()); // Ordena por data mais recente primeiro
         setFaturamentosHistoricos(faturamentos);
       }
     };
