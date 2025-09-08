@@ -117,7 +117,7 @@ const Auth = () => {
               <div className="absolute inset-0 bg-gradient-primary rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-all duration-500 animate-pulse"></div>
               <div className="relative bg-gradient-primary p-6 rounded-3xl shadow-glow">
                 <img 
-                  src="/lovable-uploads/12e28c00-90b3-4c2b-87d8-5fd9e6777256.png" 
+                  src="/lovable-uploads/057f2b59-4b46-4654-9b76-2df45b531a11.png" 
                   alt="CalculaAi Logo" 
                   className="h-16 w-16 mx-auto transform group-hover:scale-110 transition-transform duration-500"
                 />
