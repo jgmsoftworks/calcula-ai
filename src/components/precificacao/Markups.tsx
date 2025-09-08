@@ -173,7 +173,7 @@ export function Markups() {
           continue;
         }
 
-        console.log('⚙️ Configuração do bloco:', blocoCfg);
+        console.log('⚙️ Configuração do bloco:', bloco.nome, ':', blocoCfg);
 
         // Calcular gasto sobre faturamento
         let totalGastos = 0;
@@ -435,11 +435,19 @@ export function Markups() {
   };
 
   // Callback para receber atualizações do modal
-  const handleMarkupUpdate = useCallback((blocoId: string, markupData: any) => {
+  const handleMarkupUpdate = useCallback(async (blocoId: string, markupData: any) => {
+    console.log('🔄 handleMarkupUpdate chamado para bloco:', blocoId, 'com dados:', markupData);
+    
     const novosCalculatedMarkups = new Map(calculatedMarkups);
     novosCalculatedMarkups.set(blocoId, markupData);
     setCalculatedMarkups(novosCalculatedMarkups);
-  }, [calculatedMarkups]);
+    
+    // Forçar recálculo completo após pequeno delay
+    console.log('♻️ Forçando recálculo completo após atualização...');
+    setTimeout(() => {
+      calcularMarkupsEmTempoReal();
+    }, 300);
+  }, [calculatedMarkups, calcularMarkupsEmTempoReal]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
     setBlocoEditandoNome(bloco);
@@ -809,6 +817,7 @@ export function Markups() {
           }}
           markupBlock={blocoSelecionado}
           onMarkupUpdate={(markup) => {
+            console.log('🔄 Modal retornou markup:', markup, 'para bloco:', blocoSelecionado?.id);
             if (blocoSelecionado) {
               handleMarkupUpdate(blocoSelecionado.id, markup);
             }

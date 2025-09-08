@@ -182,11 +182,16 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
       // Carregar estados dos checkboxes salvos
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      console.log(`🔧 Carregando configuração com chave: ${configKey}`);
+      
       const savedStates = await loadConfiguration(configKey);
+      console.log(`📋 Estados salvos carregados:`, savedStates);
       
       if (savedStates && typeof savedStates === 'object') {
-        setCheckboxStates(savedStates as Record<string, boolean>);
-        setTempCheckboxStates(savedStates as Record<string, boolean>);
+        const states = savedStates as Record<string, boolean>;
+        setCheckboxStates(states);
+        setTempCheckboxStates(states);
+        console.log(`✅ Estados aplicados:`, states);
       } else {
         // Inicializar com todos desmarcados por padrão
         const defaultStates: Record<string, boolean> = {};
@@ -195,6 +200,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         });
         setCheckboxStates(defaultStates);
         setTempCheckboxStates(defaultStates);
+        console.log(`⚠️ Usando estados padrão (desmarcados):`, defaultStates);
       }
       
       setHasUnsavedChanges(false);
@@ -214,11 +220,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     if (open) {
       carregarDados();
     }
-  }, [open, user]);
+  }, [open, user, markupBlock?.id]); // Adiciona markupBlock.id como dependência
 
   // Recalcular markup quando os dados são carregados
   useEffect(() => {
     if (open && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      console.log(`🔄 Recalculando markup com estados:`, tempCheckboxStates);
       calcularMarkup(tempCheckboxStates);
     }
   }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento]);
@@ -486,11 +493,13 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       // Fechar modal
       onOpenChange(false);
       
-      // Forçar recálculo no componente pai
+      // Forçar recálculo no componente pai após um delay
       if (onMarkupUpdate) {
         setTimeout(() => {
           calcularMarkup(tempCheckboxStates);
-        }, 100);
+          // Emitir callback para o componente pai recalcular tudo
+          onMarkupUpdate(currentMarkupValues);
+        }, 200);
       }
     } catch (error) {
       toast({
