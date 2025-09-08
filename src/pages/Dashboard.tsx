@@ -77,7 +77,7 @@ const Dashboard = () => {
       {/* Welcome Section */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground">
-          Bem-vindo de volta! 👋
+          Bem-vindo de volta
         </h1>
         <p className="text-lg text-muted-foreground">
           Olá {user?.user_metadata?.full_name || user?.email}, 
