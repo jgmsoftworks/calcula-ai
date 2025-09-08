@@ -240,6 +240,18 @@ export function Markups() {
     }
   }, [blocos, calcularMarkupsEmTempoReal]);
 
+  // Calcular markups na inicialização do componente
+  useEffect(() => {
+    if (user?.id) {
+      // Delay para garantir que os blocos foram carregados
+      const initialCalcTimer = setTimeout(() => {
+        calcularMarkupsEmTempoReal();
+      }, 1000);
+      
+      return () => clearTimeout(initialCalcTimer);
+    }
+  }, [user?.id, calcularMarkupsEmTempoReal]);
+
   // Limpar timeouts ao desmontar
   useEffect(() => {
     return () => {
