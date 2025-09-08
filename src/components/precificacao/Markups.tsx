@@ -328,13 +328,14 @@ export function Markups() {
       valorEmReal: bloco.valorEmReal || 0
     };
     
-    // Soma todos os percentuais (incluindo lucro desejado) conforme fórmula do Excel
+    // Soma todos os percentuais (incluindo lucro desejado)
     const somaPercentuais = markupData.gastoSobreFaturamento + markupData.impostos + 
                            markupData.taxasMeiosPagamento + markupData.comissoesPlataformas + 
                            markupData.outros + bloco.lucroDesejado;
     
-    // Fórmula do Excel: =1/(1-SOMA(percentuais/100))
-    const markup = 1 / (1 - (somaPercentuais / 100));
+    // Converte percentuais para decimais e aplica a fórmula: Markup = 1 / (1 - somaPercentuais)
+    const somaDecimais = somaPercentuais / 100;
+    const markup = 1 / (1 - somaDecimais);
     return markup;
   };
 
