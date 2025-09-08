@@ -1,15 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 import { 
   Calculator, 
   TrendingUp, 
   Package, 
-  Users, 
   BarChart3,
   DollarSign,
   Plus,
-  ArrowUpRight
+  ArrowUpRight,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -39,11 +40,11 @@ const Dashboard = () => {
       color: 'text-secondary',
     },
     {
-      title: 'Clientes Ativos',
-      value: '28',
-      description: '+4 novos esta semana',
-      icon: Users,
-      color: 'text-primary-glow',
+      title: 'Custos Fixos Mensais',
+      value: 'R$ 3.250',
+      description: 'Últimos 30 dias',
+      icon: BarChart3,
+      color: 'text-orange',
     },
   ];
 
@@ -63,10 +64,10 @@ const Dashboard = () => {
       variant: 'brand' as const,
     },
     {
-      title: 'Relatórios',
-      description: 'Ver performance financeira',
-      icon: ArrowUpRight,
-      href: '/relatorios',
+      title: 'Perfil',
+      description: 'Configurar sistema e dados',
+      icon: Building2,
+      href: '/perfil',
       variant: 'accent' as const,
     },
   ];
@@ -109,27 +110,29 @@ const Dashboard = () => {
         <h2 className="text-xl font-semibold text-foreground">Ações Rápidas</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {quickActions.map((action) => (
-            <Card key={action.title} className="shadow-soft hover:shadow-brand transition-bounce group cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gradient-secondary rounded-lg">
-                    <action.icon className="h-6 w-6 text-primary" />
+            <Link key={action.title} to={action.href}>
+              <Card className="shadow-soft hover:shadow-brand transition-bounce group cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gradient-secondary rounded-lg">
+                      <action.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg group-hover:text-primary transition-smooth">
+                        {action.title}
+                      </CardTitle>
+                      <CardDescription>{action.description}</CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg group-hover:text-primary transition-smooth">
-                      {action.title}
-                    </CardTitle>
-                    <CardDescription>{action.description}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Button variant={action.variant} className="w-full">
-                  Acessar
-                  <ArrowUpRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <Button variant={action.variant} className="w-full">
+                    Acessar
+                    <ArrowUpRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

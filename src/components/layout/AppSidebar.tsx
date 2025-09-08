@@ -4,13 +4,9 @@ import {
   Calculator,
   Home,
   Package,
-  BarChart3,
-  Settings,
   LogOut,
   Building2,
   TrendingUp,
-  FileText,
-  Users
 } from 'lucide-react';
 import {
   Sidebar,
@@ -34,13 +30,10 @@ const navigationItems = [
   { title: 'Estoque', url: '/estoque', icon: Package },
   { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
-  { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
-  { title: 'Clientes', url: '/clientes', icon: Users },
 ];
 
 const businessItems = [
-  { title: 'Perfil do Negócio', url: '/perfil', icon: Building2 },
-  { title: 'Documentos', url: '/documentos', icon: FileText },
+  { title: 'Perfil de Negócio', url: '/perfil', icon: Building2 },
 ];
 
 export function AppSidebar() {
@@ -152,24 +145,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Settings */}
-        <SidebarGroup className="py-4">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink 
-                    to="/configuracoes"
-                    className={getNavClassName('/configuracoes')}
-                  >
-                    <Settings className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                    {!isCollapsed && <span>Configurações</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer */}
