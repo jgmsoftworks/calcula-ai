@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { ProductModal } from './ProductModal';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
 import { ImportacaoProdutos } from './ImportacaoProdutos';
-import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { FileSpreadsheet } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import * as XLSX from 'xlsx';
@@ -61,7 +61,7 @@ export const ListaProdutos = () => {
 
   const { user } = useAuth();
   const { toast } = useToast();
-  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
+  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
 
   const [colunas, setColunas] = useState<ColunaConfig[]>([
     { key: 'imagem', label: 'Imagem', visible: true, order: 0 },

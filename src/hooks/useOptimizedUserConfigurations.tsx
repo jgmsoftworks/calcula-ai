@@ -32,12 +32,12 @@ export function useOptimizedUserConfigurations() {
 
     const request = (async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_configurations')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('type', type)
-          .single();
+      const { data, error } = await supabase
+        .from('user_configurations')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('type', type)
+        .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
           throw error;
@@ -76,7 +76,7 @@ export function useOptimizedUserConfigurations() {
         .select('id')
         .eq('user_id', user.id)
         .eq('type', type)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         await supabase

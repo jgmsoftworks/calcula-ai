@@ -26,7 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
-import { useUserConfigurations } from '@/hooks/useUserConfigurations';
+import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 
 interface BusinessProfile {
   business_name: string;
@@ -89,7 +89,7 @@ const PerfilNegocio = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const { saveConfiguration, loadConfiguration } = useUserConfigurations();
+  const { saveConfiguration, loadConfiguration } = useOptimizedUserConfigurations();
   
   const [profile, setProfile] = useState<UserProfile>({
     full_name: '',
