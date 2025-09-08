@@ -24,8 +24,8 @@ export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
-  const [custosModalOpen, setCustosModalOpen] = useState(false);
   const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
+  const [modalAberto, setModalAberto] = useState(false);
   const { loadConfiguration, saveConfiguration } = useUserConfigurations();
   const { toast } = useToast();
 
@@ -190,7 +190,7 @@ export function Markups() {
                   variant="ghost"
                   onClick={() => {
                     setBlocoSelecionado(undefined);
-                    setCustosModalOpen(true);
+                    setModalAberto(true);
                   }}
                   className="text-primary hover:text-primary"
                 >
@@ -331,7 +331,7 @@ export function Markups() {
                     variant="ghost"
                     onClick={() => {
                       setBlocoSelecionado(bloco);
-                      setCustosModalOpen(true);
+                      setModalAberto(true);
                     }}
                     className="text-primary hover:text-primary"
                   >
@@ -462,12 +462,20 @@ export function Markups() {
       </div>
 
       <CustosModal 
-        open={custosModalOpen} 
+        open={modalAberto} 
         onOpenChange={(open) => {
-          setCustosModalOpen(open);
+          setModalAberto(open);
           if (!open) setBlocoSelecionado(undefined);
         }}
         markupBlock={blocoSelecionado}
+        onMarkupUpdate={(dados) => {
+          if (blocoSelecionado) {
+            atualizarBloco(blocoSelecionado.id, 'impostos', dados.impostos || 0);
+            atualizarBloco(blocoSelecionado.id, 'taxasMeiosPagamento', dados.taxasMeiosPagamento || 0);
+            atualizarBloco(blocoSelecionado.id, 'comissoesPlataformas', dados.comissoesPlataformas || 0);
+            atualizarBloco(blocoSelecionado.id, 'outros', dados.outros || 0);
+          }
+        }}
       />
     </div>
   );

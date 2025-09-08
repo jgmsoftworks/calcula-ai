@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 
 interface MarkupBlock {
   id: string;
@@ -50,15 +51,18 @@ interface CustosModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   markupBlock?: MarkupBlock;
+  onMarkupUpdate?: (markupData: Partial<MarkupBlock>) => void;
 }
 
-export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProps) {
+export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }: CustosModalProps) {
   const [despesasFixas, setDespesasFixas] = useState<DespesaFixa[]>([]);
   const [folhaPagamento, setFolhaPagamento] = useState<FolhaPagamento[]>([]);
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
   const [loading, setLoading] = useState(false);
+  const [checkboxStates, setCheckboxStates] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
   const { toast } = useToast();
+  const { loadConfiguration, saveConfiguration } = useUserConfigurations();
 
   const carregarDados = async () => {
     if (!user) return;
@@ -121,6 +125,20 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
       
       setEncargosVenda(encargosFormatados);
 
+      // Carregar estados dos checkboxes salvos
+      const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      const savedStates = await loadConfiguration(configKey);
+      if (savedStates && typeof savedStates === 'object') {
+        setCheckboxStates(savedStates as Record<string, boolean>);
+      } else {
+        // Inicializar com todos marcados por padrão
+        const defaultStates: Record<string, boolean> = {};
+        [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
+          defaultStates[item.id] = true;
+        });
+        setCheckboxStates(defaultStates);
+      }
+
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast({
@@ -181,6 +199,54 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
     }).format(value);
   };
 
+  const handleCheckboxChange = async (itemId: string, checked: boolean) => {
+    const newStates = { ...checkboxStates, [itemId]: checked };
+    setCheckboxStates(newStates);
+    
+    // Salvar estados no banco
+    const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+    await saveConfiguration(configKey, newStates);
+    
+    // Calcular e atualizar markup
+    calcularMarkup(newStates);
+  };
+
+  const calcularMarkup = (states: Record<string, boolean>) => {
+    if (!onMarkupUpdate) return;
+
+    const encargosConsiderados = encargosVenda.filter(e => states[e.id]);
+    
+    // Calcular somas por categoria
+    const categorias = {
+      impostos: 0,
+      taxasMeiosPagamento: 0,
+      comissoesPlataformas: 0,
+      outros: 0
+    };
+
+    encargosConsiderados.forEach(encargo => {
+      const categoria = getCategoriaByNome(encargo.nome);
+      const valor = encargo.valor_percentual || 0;
+      
+      switch (categoria) {
+        case 'impostos':
+          categorias.impostos += valor;
+          break;
+        case 'meios_pagamento':
+          categorias.taxasMeiosPagamento += valor;
+          break;
+        case 'comissoes':
+          categorias.comissoesPlataformas += valor;
+          break;
+        case 'outros':
+          categorias.outros += valor;
+          break;
+      }
+    });
+
+    onMarkupUpdate(categorias);
+  };
+
   const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
     const impostos = ['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI'];
     const meiosPagamento = ['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento'];
@@ -191,6 +257,13 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
     if (comissoes.includes(nome)) return 'comissoes';
     return 'outros';
   };
+
+  // Calcular markup sempre que os estados mudarem
+  useEffect(() => {
+    if (Object.keys(checkboxStates).length > 0) {
+      calcularMarkup(checkboxStates);
+    }
+  }, [checkboxStates, encargosVenda]);
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
@@ -222,18 +295,19 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Checkbox 
-                  id={`encargo-${encargo.id}`}
-                  defaultChecked={encargo.ativo}
-                />
-                <Label 
-                  htmlFor={`encargo-${encargo.id}`}
-                  className="text-sm font-medium cursor-pointer"
-                >
-                  Considerar
-                </Label>
-              </div>
+                       <div className="flex items-center gap-3">
+                         <Checkbox 
+                           id={`encargo-${encargo.id}`}
+                           checked={checkboxStates[encargo.id] ?? true}
+                           onCheckedChange={(checked) => handleCheckboxChange(encargo.id, checked as boolean)}
+                         />
+                         <Label 
+                           htmlFor={`encargo-${encargo.id}`}
+                           className="text-sm font-medium cursor-pointer"
+                         >
+                           Considerar
+                         </Label>
+                       </div>
             </div>
           ))}
                       </div>
@@ -328,18 +402,19 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                           {formatCurrency(despesa.valor)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Checkbox 
-                          id={`despesa-${despesa.id}`}
-                          defaultChecked={despesa.ativo}
-                        />
-                        <Label 
-                          htmlFor={`despesa-${despesa.id}`}
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          Considerar
-                        </Label>
-                      </div>
+                       <div className="flex items-center gap-3">
+                         <Checkbox 
+                           id={`despesa-${despesa.id}`}
+                           checked={checkboxStates[despesa.id] ?? true}
+                           onCheckedChange={(checked) => handleCheckboxChange(despesa.id, checked as boolean)}
+                         />
+                         <Label 
+                           htmlFor={`despesa-${despesa.id}`}
+                           className="text-sm font-medium cursor-pointer"
+                         >
+                           Considerar
+                         </Label>
+                       </div>
                     </div>
                   ))
                 )}
@@ -375,18 +450,19 @@ export function CustosModal({ open, onOpenChange, markupBlock }: CustosModalProp
                           {formatCurrency(funcionario.salario_base || 0)} total
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Checkbox 
-                          id={`funcionario-${funcionario.id}`}
-                          defaultChecked={funcionario.ativo}
-                        />
-                        <Label 
-                          htmlFor={`funcionario-${funcionario.id}`}
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          Considerar
-                        </Label>
-                      </div>
+                       <div className="flex items-center gap-3">
+                         <Checkbox 
+                           id={`funcionario-${funcionario.id}`}
+                           checked={checkboxStates[funcionario.id] ?? true}
+                           onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
+                         />
+                         <Label 
+                           htmlFor={`funcionario-${funcionario.id}`}
+                           className="text-sm font-medium cursor-pointer"
+                         >
+                           Considerar
+                         </Label>
+                       </div>
                     </div>
                   ))
                 )}
