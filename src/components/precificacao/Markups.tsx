@@ -248,6 +248,7 @@ export function Markups() {
       }
 
       console.log('🎯 Total de markups calculados:', novosCalculatedMarkups.size);
+      console.log('🔄 Atualizando state calculatedMarkups:', Array.from(novosCalculatedMarkups.entries()));
       setCalculatedMarkups(novosCalculatedMarkups);
     } catch (error) {
       console.error('❌ Erro ao calcular markups em tempo real:', error);
@@ -610,6 +611,15 @@ export function Markups() {
         {blocos.map((bloco) => {
           const calculated = calculatedMarkups.get(bloco.id);
           const markupIdeal = calcularMarkupIdeal(bloco, calculated);
+          
+          // Debug log para verificar se os valores estão chegando
+          console.log(`🎯 Renderizando bloco ${bloco.nome}:`, {
+            blocoId: bloco.id,
+            calculated,
+            hasCalculated: !!calculated,
+            calculatedMapSize: calculatedMarkups.size,
+            allKeys: Array.from(calculatedMarkups.keys())
+          });
           
           return (
             <Card key={bloco.id} className="relative">
