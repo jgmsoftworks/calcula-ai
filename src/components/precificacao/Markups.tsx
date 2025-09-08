@@ -81,13 +81,14 @@ export function Markups() {
     return 'Outros';
   }, []);
 
-  // Função para carregar configurações salvas no início
+  // Função para carregar configurações salvas no início - OTIMIZADA
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
     
     console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
     
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
+    let algumCalculado = false;
     
     for (const bloco of blocos) {
       const configKey = `checkbox-states-${bloco.id}`;
@@ -95,11 +96,12 @@ export function Markups() {
       
       console.log(`📋 Configuração do bloco ${bloco.nome}:`, config);
       
-      if (config && typeof config === 'object') {
+      if (config && typeof config === 'object' && Object.keys(config).length > 0) {
         // Se tem configuração, calcular markup com ela
         console.log(`✅ Aplicando configuração salva para ${bloco.nome}`);
+        algumCalculado = true;
         
-        // Simular cálculo usando a mesma lógica do calcularMarkupsEmTempoReal
+        // Buscar dados apenas uma vez
         const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
           supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
           supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
@@ -178,10 +180,13 @@ export function Markups() {
         
         novosCalculatedMarkups.set(bloco.id, markupCalculado);
         console.log(`✅ Markup calculado para ${bloco.nome}:`, markupCalculado);
+        
+        // Interromper o loop após calcular cada bloco para evitar re-calculos desnecessários
+        break;
       }
     }
     
-    if (novosCalculatedMarkups.size > 0) {
+    if (algumCalculado && novosCalculatedMarkups.size > 0) {
       setCalculatedMarkups(novosCalculatedMarkups);
       console.log('✅ Configurações salvas aplicadas com sucesso!');
     }
@@ -376,46 +381,26 @@ export function Markups() {
     carregarBlocos();
   }, [loadConfiguration]);
   
-  // Carregar configurações salvas após os blocos serem carregados
+  // Carregar configurações salvas após os blocos serem carregados - APENAS UMA VEZ
   useEffect(() => {
-    if (blocos.length > 0 && user?.id) {
-      console.log('🎯 Blocos carregados, carregando configurações salvas...');
+    if (blocos.length > 0 && user?.id && calculatedMarkups.size === 0) {
+      console.log('🎯 Primeira carga - carregando configurações salvas...');
       carregarConfiguracoesSalvas();
     }
-  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
+  }, [blocos.length, user?.id]); // Removendo carregarConfiguracoesSalvas das dependências
 
-  // Recalcular markups quando blocos mudarem
+  // Recalcular markups quando blocos mudarem - DESABILITADO para não sobrescrever configurações salvas
   useEffect(() => {
-    if (blocos.length > 0) {
-      if (calculationRef.current) {
-        clearTimeout(calculationRef.current);
-      }
-      
-      // Delay menor para recálculos automáticos
-      calculationRef.current = setTimeout(() => {
-        console.log('🔄 Recalculando markups devido a mudança nos blocos');
-        calcularMarkupsEmTempoReal();
-      }, 200); // Reduzindo delay de 500 para 200ms
-    }
+    // Este useEffect foi desabilitado para evitar sobrescrever configurações salvas
+    // O recálculo agora só acontece quando o usuário salva no modal
+    return;
   }, [blocos, calcularMarkupsEmTempoReal]);
 
-  // Calcular markups na inicialização do componente
+  // Calcular markups na inicialização do componente - DESABILITADO para não sobrescrever configurações salvas
   useEffect(() => {
-    console.log('🚀 useEffect inicial - user.id:', user?.id, 'blocos.length:', blocos.length);
-    
-    if (user?.id && blocos.length > 0) {
-      console.log('✅ Condições atendidas, executando cálculo inicial...');
-      // Delay menor para evitar conflitos com salvamento
-      const initialCalcTimer = setTimeout(() => {
-        console.log('⏰ Executando cálculo inicial após delay...');
-        calcularMarkupsEmTempoReal();
-      }, 1000); // Reduzido de 2000 para 1000ms
-      
-      return () => {
-        console.log('🧹 Limpando timer inicial');
-        clearTimeout(initialCalcTimer);
-      };
-    }
+    // Este useEffect foi desabilitado para evitar sobrescrever configurações salvas
+    // O carregamento agora é feito apenas pela função carregarConfiguracoesSalvas
+    return;
   }, [user?.id, blocos.length, calcularMarkupsEmTempoReal]);
 
   // Limpar timeouts ao desmontar
@@ -545,7 +530,7 @@ export function Markups() {
     novosCalculatedMarkups.set(blocoId, markupData);
     setCalculatedMarkups(novosCalculatedMarkups);
     
-    console.log('💾 Estados atualizados, aguardando recálculo automático...');
+    console.log('💾 Estados atualizados - configurações do modal aplicadas');
   }, [calculatedMarkups]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
