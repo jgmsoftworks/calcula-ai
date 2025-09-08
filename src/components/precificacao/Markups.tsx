@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
@@ -40,10 +41,11 @@ interface FaturamentoHistorico {
 
 export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
-  const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [nomeTemp, setNomeTemp] = useState('');
   const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
+  const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
+  const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { toast } = useToast();
@@ -347,20 +349,27 @@ export function Markups() {
   }, [calculatedMarkups]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
-    setEditandoId(bloco.id);
+    setBlocoEditandoNome(bloco);
     setNomeTemp(bloco.nome);
+    setModalEdicaoNome(true);
   };
 
-  const salvarNome = (id: string) => {
-    if (nomeTemp.trim()) {
-      atualizarBloco(id, 'nome', nomeTemp.trim());
+  const salvarNome = () => {
+    if (nomeTemp.trim() && blocoEditandoNome) {
+      atualizarBloco(blocoEditandoNome.id, 'nome', nomeTemp.trim());
+      toast({
+        title: "Nome atualizado",
+        description: "Nome do bloco atualizado com sucesso"
+      });
     }
-    setEditandoId(null);
+    setModalEdicaoNome(false);
+    setBlocoEditandoNome(null);
     setNomeTemp('');
   };
 
   const cancelarEdicao = () => {
-    setEditandoId(null);
+    setModalEdicaoNome(false);
+    setBlocoEditandoNome(null);
     setNomeTemp('');
   };
 
@@ -546,53 +555,36 @@ export function Markups() {
             <Card key={bloco.id} className="relative">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  {editandoId === bloco.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <Input
-                        value={nomeTemp}
-                        onChange={(e) => setNomeTemp(e.target.value)}
-                        className="text-lg font-semibold"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') salvarNome(bloco.id);
-                          if (e.key === 'Escape') cancelarEdicao();
-                        }}
-                        autoFocus
-                      />
-                      <Button size="sm" variant="ghost" onClick={() => salvarNome(bloco.id)}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={cancelarEdicao}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div 
-                      className="flex items-center gap-2 cursor-pointer flex-1"
+                  <h3 className="text-lg font-semibold text-primary">{bloco.nome}</h3>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={() => iniciarEdicaoNome(bloco)}
+                      className="text-muted-foreground hover:text-primary"
                     >
-                      <h3 className="text-lg font-semibold text-primary">{bloco.nome}</h3>
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setBlocoSelecionado(bloco);
-                      setModalAberto(true);
-                    }}
-                    className="text-primary hover:text-primary"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removerBloco(bloco.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setBlocoSelecionado(bloco);
+                        setModalAberto(true);
+                      }}
+                      className="text-primary hover:text-primary"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removerBloco(bloco.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               
@@ -721,6 +713,34 @@ export function Markups() {
           }}
         />
       )}
+
+      <Dialog open={modalEdicaoNome} onOpenChange={setModalEdicaoNome}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Nome do Bloco</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={nomeTemp}
+              onChange={(e) => setNomeTemp(e.target.value)}
+              placeholder="Digite o nome do bloco"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') salvarNome();
+                if (e.key === 'Escape') cancelarEdicao();
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={cancelarEdicao}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarNome}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
