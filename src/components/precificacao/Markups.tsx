@@ -488,17 +488,17 @@ export function Markups() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Valor em real</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatCurrency(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-orange-600 bg-gray-50"
-                    />
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Valor em real</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="text"
+                        value={formatCurrency(0)}
+                        disabled
+                        className="w-24 h-7 text-center text-sm text-orange-600 bg-gray-50"
+                      />
+                    </div>
                   </div>
-                </div>
 
                 <div className="flex justify-between items-center border-t pt-3">
                   <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
@@ -657,7 +657,7 @@ export function Markups() {
                         type="text"
                         value={formatCurrency(calculated?.valorEmReal || 0)}
                         disabled
-                        className="w-20 h-7 text-center text-sm text-orange-600 bg-gray-50"
+                        className="w-24 h-7 text-center text-sm text-orange-600 bg-gray-50"
                       />
                     </div>
                   </div>
