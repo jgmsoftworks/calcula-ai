@@ -339,7 +339,7 @@ export function Markups() {
     return parseFloat(value.toFixed(2)).toString();
   };
 
-  const criarNovoBloco = () => {
+  const criarNovoBloco = async () => {
     const novoBloco: MarkupBlock = {
       id: Date.now().toString(),
       nome: `Markup ${blocos.length + 1}`,
@@ -351,6 +351,38 @@ export function Markups() {
       valorEmReal: 0,
       lucroDesejado: 0
     };
+
+    // Criar configuração padrão para o novo bloco (todos os itens selecionados por padrão)
+    if (user?.id) {
+      try {
+        const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+          supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+          supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+          supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+        ]);
+
+        // Criar configuração com todos os itens selecionados por padrão
+        const configPadrao: { [key: string]: boolean } = {};
+        
+        despesasFixas?.forEach(item => {
+          configPadrao[item.id] = true;
+        });
+        
+        folhaPagamento?.forEach(item => {
+          configPadrao[item.id] = true;
+        });
+        
+        encargosVenda?.forEach(item => {
+          configPadrao[item.id] = true;
+        });
+
+        // Salvar a configuração padrão
+        await saveConfiguration(`checkbox-states-${novoBloco.id}`, configPadrao);
+        console.log(`✅ Configuração padrão criada para bloco ${novoBloco.id}:`, configPadrao);
+      } catch (error) {
+        console.error('Erro ao criar configuração padrão:', error);
+      }
+    }
 
     const novosBlocos = [...blocos, novoBloco];
     setBlocos(novosBlocos);
