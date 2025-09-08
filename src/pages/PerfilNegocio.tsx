@@ -184,14 +184,16 @@ const PerfilNegocio = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informações Pessoais */}
-        <Card>
-          <CardHeader>
+        <Card className="card-premium">
+          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Informações Pessoais
+              <User className="h-5 w-5 text-primary" />
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Informações Pessoais
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 p-6">
             <div className="space-y-2">
               <Label htmlFor="full_name">Nome Completo</Label>
               <Input
@@ -199,6 +201,7 @@ const PerfilNegocio = () => {
                 value={profile.full_name}
                 onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
                 placeholder="Digite seu nome completo"
+                className="input-premium"
               />
             </div>
             
@@ -228,14 +231,16 @@ const PerfilNegocio = () => {
         </Card>
 
         {/* Informações do Negócio */}
-        <Card>
-          <CardHeader>
+        <Card className="card-premium">
+          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Informações do Negócio
+              <Building2 className="h-5 w-5 text-secondary" />
+              <span className="bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
+                Informações do Negócio
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 p-6">
             <div className="space-y-2">
               <Label htmlFor="business_name">Nome do Negócio</Label>
               <Input
@@ -265,7 +270,8 @@ const PerfilNegocio = () => {
             <Button 
               onClick={handleProfileUpdate}
               disabled={isLoading}
-              className="w-full"
+              className="w-full button-premium"
+              variant="gradient"
             >
               <Save className="h-4 w-4 mr-2" />
               Salvar Perfil
@@ -274,14 +280,16 @@ const PerfilNegocio = () => {
         </Card>
 
         {/* Logo do Negócio */}
-        <Card>
-          <CardHeader>
+        <Card className="card-premium">
+          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
             <CardTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              Logo do Negócio
+              <Camera className="h-5 w-5 text-accent" />
+              <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+                Logo do Negócio
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 p-6">
             <div className="flex flex-col items-center space-y-4">
               {logoPreview ? (
                 <div className="w-32 h-32 border-2 border-dashed border-border rounded-lg p-4 flex items-center justify-center bg-muted">
@@ -331,49 +339,60 @@ const PerfilNegocio = () => {
         </Card>
 
         {/* Configurações de Aparência */}
-        <Card>
-          <CardHeader>
+        <Card className="card-premium">
+          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
             <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Aparência do Sistema
+              <Palette className="h-5 w-5 text-purple" />
+              <span className="bg-gradient-to-r from-purple to-primary bg-clip-text text-transparent">
+                Aparência do Sistema
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-8 p-6">
+            <div className="flex items-center justify-between p-4 bg-gradient-glass rounded-xl border border-border/50">
               <div className="space-y-1">
-                <Label className="text-base">Modo Escuro</Label>
+                <Label className="text-base font-medium">Modo Escuro</Label>
                 <p className="text-sm text-muted-foreground">
                   Alternar entre tema claro e escuro
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Sun className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <Sun className="h-5 w-5 text-orange transition-all duration-300" />
                 <Switch
                   checked={theme === 'dark'}
                   onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                  className="data-[state=checked]:bg-gradient-primary"
                 />
-                <Moon className="h-4 w-4 text-muted-foreground" />
+                <Moon className="h-5 w-5 text-primary transition-all duration-300" />
               </div>
             </div>
 
             <Separator />
 
-            <div className="space-y-3">
-              <Label className="text-base">Tema Atual</Label>
-              <div className="flex gap-2">
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Tema Atual</Label>
+              <div className="flex gap-3">
                 <Badge 
                   variant={theme === 'light' ? 'default' : 'secondary'}
-                  className="flex items-center gap-1"
+                  className={`flex items-center gap-2 px-4 py-2 text-sm transition-all duration-300 ${
+                    theme === 'light' 
+                      ? 'bg-gradient-to-r from-orange to-orange-light text-white shadow-orange' 
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}
                 >
-                  <Sun className="h-3 w-3" />
-                  Claro
+                  <Sun className="h-4 w-4" />
+                  Tema Claro
                 </Badge>
                 <Badge 
                   variant={theme === 'dark' ? 'default' : 'secondary'}
-                  className="flex items-center gap-1"
+                  className={`flex items-center gap-2 px-4 py-2 text-sm transition-all duration-300 ${
+                    theme === 'dark' 
+                      ? 'bg-gradient-primary text-white shadow-brand' 
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}
                 >
-                  <Moon className="h-3 w-3" />
-                  Escuro
+                  <Moon className="h-4 w-4" />
+                  Tema Escuro
                 </Badge>
               </div>
             </div>

@@ -73,11 +73,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? 'w-14' : 'w-64'} border-r bg-card transition-smooth`}
+      className={`${isCollapsed ? 'w-14' : 'w-64'} sidebar-premium transition-smooth`}
       collapsible="icon"
     >
       {/* Header */}
-      <SidebarHeader className="p-4 border-b">
+      <SidebarHeader className="p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-background to-sidebar-background/80">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full'}`}>
           {isCollapsed ? (
             <img 
@@ -148,7 +148,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="p-4 border-t">
+      <SidebarFooter className="p-4 border-t border-sidebar-border bg-gradient-to-t from-sidebar-background to-sidebar-background/80">
         {!isCollapsed && (
           <div className="space-y-2 mb-3">
             <p className="text-sm font-medium text-foreground">

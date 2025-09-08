@@ -96,14 +96,16 @@ const Auth = () => {
         </div>
 
         {/* Auth Forms */}
-        <Card className="shadow-brand border-0">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl text-center">Acesse sua conta</CardTitle>
-            <CardDescription className="text-center">
+        <Card className="card-premium shadow-brand border-0 backdrop-blur-xl">
+          <CardHeader className="space-y-1 pb-6 bg-gradient-to-b from-card/50 to-card border-b border-border/30">
+            <CardTitle className="text-2xl text-center bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-bold">
+              Acesse sua conta
+            </CardTitle>
+            <CardDescription className="text-center text-muted-foreground">
               Entre ou crie sua conta para começar
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <Tabs defaultValue="login" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 bg-muted/50">
                 <TabsTrigger value="login">Entrar</TabsTrigger>

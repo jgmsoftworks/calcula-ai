@@ -106,41 +106,91 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Premium Dark Background - Deep navy with subtle blue undertones */
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    /* Elevated card surfaces with glass morphism */
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 7%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Refined primary colors for dark mode */
+    --primary: 199 89% 65%;
+    --primary-foreground: 222 47% 6%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Luxurious secondary colors */
+    --secondary: 262 83% 68%;
+    --secondary-foreground: 222 47% 6%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Premium muted tones */
+    --muted: 222 47% 12%;
+    --muted-foreground: 215 25% 75%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Elegant accent colors */
+    --accent: 322 81% 67%;
+    --accent-foreground: 222 47% 6%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 222 47% 6%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Refined borders and inputs */
+    --border: 222 47% 15%;
+    --input: 222 47% 10%;
+    --ring: 199 89% 65%;
+
+    /* Premium orange variants for dark */
+    --orange: 21 98% 60%;
+    --orange-light: 19 92% 68%;
+    --orange-foreground: 222 47% 6%;
+
+    /* Sophisticated red/pink variants */
+    --red: 2 96% 65%;
+    --red-light: 342 96% 58%;
+    --red-foreground: 222 47% 6%;
+
+    /* Elegant purple variants */
+    --purple: 282 75% 50%;
+    --purple-light: 282 75% 60%;
+    --purple-foreground: 210 40% 98%;
+
+    /* Premium blue variants */
+    --blue: 207 97% 56%;
+    --blue-light: 194 100% 60%;
+    --blue-foreground: 222 47% 6%;
+
+    /* Luxurious cyan variants */
+    --cyan: 188 95% 68%;
+    --cyan-light: 180 100% 70%;
+    --cyan-foreground: 222 47% 6%;
+    /* Premium sidebar design */
+    --sidebar-background: 222 47% 5%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 199 89% 65%;
+    --sidebar-primary-foreground: 222 47% 5%;
+    --sidebar-accent: 222 47% 10%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 12%;
+    --sidebar-ring: 199 89% 65%;
+
+    /* Premium dark gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(199 89% 65%), hsl(262 83% 68%), hsl(322 81% 67%));
+    --gradient-secondary: linear-gradient(45deg, hsl(222 47% 10%), hsl(222 47% 15%));
+    --gradient-accent: linear-gradient(90deg, hsl(322 81% 67%), hsl(262 83% 68%));
+    --gradient-sunset: linear-gradient(135deg, hsl(21 98% 60%), hsl(342 96% 58%), hsl(282 75% 50%));
+    --gradient-ocean: linear-gradient(90deg, hsl(194 100% 60%), hsl(207 97% 56%), hsl(220 78% 56%));
+    --gradient-glass: linear-gradient(135deg, hsl(222 47% 12% / 0.8), hsl(222 47% 8% / 0.6));
+    
+    /* Premium dark shadows */
+    --shadow-brand: 0 25px 50px -12px hsl(199 89% 65% / 0.6);
+    --shadow-glow: 0 0 50px hsl(199 89% 65% / 0.8);
+    --shadow-soft: 0 10px 40px -8px hsl(222 47% 4% / 0.8);
+    --shadow-orange: 0 12px 40px -8px hsl(21 98% 60% / 0.6);
+    --shadow-red: 0 12px 40px -8px hsl(2 96% 65% / 0.6);
+    --shadow-purple: 0 12px 40px -8px hsl(282 75% 50% / 0.6);
+    --shadow-glass: 0 8px 32px hsl(222 47% 4% / 0.4);
   }
 }
 
@@ -152,4 +202,112 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Utility classes for commonly used combinations */
+.bg-gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.bg-gradient-secondary {
+  background: var(--gradient-secondary);
+}
+
+.bg-gradient-accent {
+  background: var(--gradient-accent);
+}
+
+.bg-gradient-glass {
+  background: var(--gradient-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(var(--border));
+}
+
+.shadow-brand {
+  box-shadow: var(--shadow-brand);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-glass {
+  box-shadow: var(--shadow-glass);
+}
+
+.transition-smooth {
+  transition: var(--transition-smooth);
+}
+
+.transition-bounce {
+  transition: var(--transition-bounce);
+}
+
+/* Premium dark mode enhancements */
+.dark .card-premium {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px -8px hsl(222 47% 4% / 0.4),
+    inset 0 1px 0 0 hsl(222 47% 15% / 0.5);
+}
+
+.dark .sidebar-premium {
+  background: linear-gradient(180deg, hsl(222 47% 5%), hsl(222 47% 4%));
+  border-right: 1px solid hsl(var(--sidebar-border));
+  box-shadow: 4px 0 24px -8px hsl(222 47% 4% / 0.6);
+}
+
+.dark .button-premium {
+  background: var(--gradient-primary);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  box-shadow: 
+    0 4px 16px hsl(var(--primary) / 0.4),
+    inset 0 1px 0 0 hsl(var(--primary) / 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .button-premium:hover {
+  box-shadow: 
+    0 8px 32px hsl(var(--primary) / 0.6),
+    inset 0 1px 0 0 hsl(var(--primary) / 0.3);
+  transform: translateY(-2px);
+}
+
+.dark .input-premium {
+  background: hsl(var(--input));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 
+    inset 0 2px 4px hsl(222 47% 4% / 0.4),
+    0 0 0 0 hsl(var(--ring) / 0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .input-premium:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 
+    inset 0 2px 4px hsl(222 47% 4% / 0.4),
+    0 0 0 3px hsl(var(--ring) / 0.15);
+}
+
+.dark .metric-card {
+  background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--card) / 0.8));
+  border: 1px solid hsl(var(--border));
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px -8px hsl(222 47% 4% / 0.6),
+    inset 0 1px 0 0 hsl(var(--border) / 0.5);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 20px 60px -12px hsl(222 47% 4% / 0.8),
+    inset 0 1px 0 0 hsl(var(--border) / 0.8);
 }

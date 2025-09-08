@@ -86,23 +86,32 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="shadow-soft hover:shadow-brand transition-smooth">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.title} className="metric-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className={`text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent`}>
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gradient-primary rounded-2xl shadow-glow">
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Quick Actions */}
@@ -111,24 +120,24 @@ const Dashboard = () => {
         <div className="grid gap-4 md:grid-cols-3">
           {quickActions.map((action) => (
             <Link key={action.title} to={action.href}>
-              <Card className="shadow-soft hover:shadow-brand transition-bounce group cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gradient-secondary rounded-lg">
-                      <action.icon className="h-6 w-6 text-primary" />
+              <Card className="card-premium group cursor-pointer overflow-hidden">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-primary rounded-2xl shadow-glow group-hover:shadow-purple transition-all duration-500">
+                      <action.icon className="h-7 w-7 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg group-hover:text-primary transition-smooth">
+                      <CardTitle className="text-lg group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-accent group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                         {action.title}
                       </CardTitle>
-                      <CardDescription>{action.description}</CardDescription>
+                      <CardDescription className="text-muted-foreground">{action.description}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Button variant={action.variant} className="w-full">
+                  <Button variant={action.variant} className="w-full button-premium group-hover:scale-105 transition-all duration-300">
                     Acessar
-                    <ArrowUpRight className="ml-2 h-4 w-4" />
+                    <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
                   </Button>
                 </CardContent>
               </Card>
@@ -138,49 +147,51 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Activity */}
-      <Card className="shadow-soft">
-        <CardHeader>
+      <Card className="card-premium">
+        <CardHeader className="bg-gradient-to-r from-card to-card/50 border-b border-border/50">
           <CardTitle className="flex items-center space-x-2">
             <Calculator className="h-5 w-5 text-primary" />
-            <span>Atividade Recente</span>
+            <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Atividade Recente
+            </span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-muted-foreground">
             Últimas precificações e atualizações
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gradient-secondary rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gradient-glass rounded-xl border border-border/50">
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <div className="w-3 h-3 bg-gradient-to-r from-primary to-primary-glow rounded-full shadow-glow"></div>
                 <div>
-                  <p className="font-medium">Hambúrguer Artesanal - Preço atualizado</p>
+                  <p className="font-medium text-foreground">Hambúrguer Artesanal - Preço atualizado</p>
                   <p className="text-sm text-muted-foreground">Margem: 35% • Preço: R$ 18,50</p>
                 </div>
               </div>
-              <Badge variant="secondary">Hoje</Badge>
+              <Badge className="bg-gradient-primary text-white border-0 shadow-brand">Hoje</Badge>
             </div>
             
-            <div className="flex items-center justify-between p-4 bg-gradient-secondary rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gradient-glass rounded-xl border border-border/50">
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-accent rounded-full"></div>
+                <div className="w-3 h-3 bg-gradient-to-r from-orange to-orange-light rounded-full shadow-orange"></div>
                 <div>
-                  <p className="font-medium">Novo produto adicionado - Pizza Margherita</p>
+                  <p className="font-medium text-foreground">Novo produto adicionado - Pizza Margherita</p>
                   <p className="text-sm text-muted-foreground">Custo: R$ 12,30 • Preço: R$ 24,00</p>
                 </div>
               </div>
-              <Badge variant="secondary">Ontem</Badge>
+              <Badge variant="secondary" className="bg-gradient-to-r from-secondary to-purple text-white border-0 shadow-purple">Ontem</Badge>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gradient-secondary rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gradient-glass rounded-xl border border-border/50">
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                <div className="w-3 h-3 bg-gradient-to-r from-accent to-secondary rounded-full shadow-red"></div>
                 <div>
-                  <p className="font-medium">Relatório mensal gerado</p>
+                  <p className="font-medium text-foreground">Relatório mensal gerado</p>
                   <p className="text-sm text-muted-foreground">15 produtos analisados</p>
                 </div>
               </div>
-              <Badge variant="secondary">3 dias</Badge>
+              <Badge variant="outline" className="border-border/50 text-muted-foreground hover:bg-muted/50">3 dias</Badge>
             </div>
           </div>
         </CardContent>
