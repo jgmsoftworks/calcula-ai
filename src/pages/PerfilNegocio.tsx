@@ -18,7 +18,9 @@ import {
   Camera,
   MapPin,
   Mail,
-  FileText
+  FileText,
+  Search,
+  ImageIcon
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -130,6 +132,7 @@ const PerfilNegocio = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCEP, setIsLoadingCEP] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -273,6 +276,48 @@ const PerfilNegocio = () => {
     }
   };
 
+  const buscarEnderecoPorCEP = async (cep: string) => {
+    if (!cep || cep.replace(/\D/g, '').length !== 8) return;
+    
+    setIsLoadingCEP(true);
+    try {
+      const cepLimpo = cep.replace(/\D/g, '');
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await response.json();
+      
+      if (data.erro) {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP informado",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setProfile(prev => ({
+        ...prev,
+        logradouro: data.logradouro || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+        complemento: data.complemento || ''
+      }));
+      
+      toast({
+        title: "Endereço encontrado",
+        description: "Dados preenchidos automaticamente. Preencha o número."
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Tente novamente em alguns instantes",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingCEP(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -287,6 +332,71 @@ const PerfilNegocio = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        
+        {/* Upload de Logo */}
+        <Card className="card-premium lg:col-span-2 xl:col-span-1">
+          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-primary" />
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Logo da Empresa
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-32 h-32 bg-muted/30 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden hover:border-primary/50 transition-all duration-300 group relative">
+                {logoPreview ? (
+                  <img 
+                    src={logoPreview} 
+                    alt="Logo preview" 
+                    className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <Camera className="h-8 w-8 text-muted-foreground mb-2 mx-auto group-hover:text-primary transition-colors duration-300" />
+                    <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors duration-300">
+                      Adicionar Logo
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col gap-3 w-full">
+                <input
+                  type="file"
+                  id="logo-upload"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  variant="outline"
+                  className="w-full border-primary/20 hover:border-primary/50 hover:bg-primary/5"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Escolher Imagem
+                </Button>
+                
+                {logoFile && (
+                  <Button
+                    onClick={saveLogo}
+                    disabled={isLoading}
+                    className="w-full button-premium"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {isLoading ? 'Salvando...' : 'Salvar Logo'}
+                  </Button>
+                )}
+              </div>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                Formatos aceitos: JPG, PNG, GIF (máx. 2MB)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
         
         {/* Informações Pessoais */}
         <Card className="card-premium">
@@ -497,13 +607,29 @@ const PerfilNegocio = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cep">CEP</Label>
-                <Input
-                  id="cep"
-                  value={profile.cep}
-                  onChange={(e) => setProfile(prev => ({ ...prev, cep: e.target.value }))}
-                  placeholder="00000-000"
-                  className="input-premium"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="cep"
+                    value={profile.cep}
+                    onChange={(e) => setProfile(prev => ({ ...prev, cep: e.target.value }))}
+                    placeholder="00000-000"
+                    className="input-premium"
+                    maxLength={9}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => buscarEnderecoPorCEP(profile.cep)}
+                    disabled={isLoadingCEP || !profile.cep}
+                    variant="outline"
+                    size="icon"
+                    className="border-primary/20 hover:border-primary/50 hover:bg-primary/5 shrink-0"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Digite o CEP e clique na lupa para buscar automaticamente
+                </p>
               </div>
 
               <div className="space-y-2">
