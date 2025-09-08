@@ -78,8 +78,32 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (markupBlock) {
       setCurrentMarkupValues(markupBlock);
+      // Carregar filtro salvo para este bloco
+      carregarFiltroSalvo();
     }
   }, [markupBlock]);
+
+  // Carregar filtro salvo
+  const carregarFiltroSalvo = async () => {
+    if (!markupBlock) return;
+    
+    const configKey = `filtro-periodo-${markupBlock.id}`;
+    const filtroSalvo = await loadConfiguration(configKey);
+    
+    if (filtroSalvo && typeof filtroSalvo === 'string') {
+      setFiltroPerido(filtroSalvo);
+    }
+  };
+
+  // Salvar filtro quando mudado
+  const handleFiltroChange = async (novoFiltro: string) => {
+    setFiltroPerido(novoFiltro);
+    
+    if (markupBlock) {
+      const configKey = `filtro-periodo-${markupBlock.id}`;
+      await saveConfiguration(configKey, novoFiltro);
+    }
+  };
 
   const carregarDados = async () => {
     if (!user) return;
@@ -184,24 +208,51 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   }, [open, user]);
 
+  // Escutar mudanças nos faturamentos históricos em tempo real
+  useEffect(() => {
+    if (open) {
+      const intervalId = setInterval(async () => {
+        // Recarregar faturamentos históricos
+        const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+        if (configFaturamentos && Array.isArray(configFaturamentos)) {
+          const faturamentos = configFaturamentos.map((f: any) => ({
+            ...f,
+            mes: new Date(f.mes)
+          })).sort((a, b) => b.mes.getTime() - a.mes.getTime());
+          setFaturamentosHistoricos(faturamentos);
+        }
+      }, 2000); // Verificar a cada 2 segundos
+
+      return () => clearInterval(intervalId);
+    }
+  }, [open, loadConfiguration]);
+
   // Função para calcular média mensal baseada no período selecionado
   const calcularMediaMensal = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
 
-    let faturamentosFiltrados = faturamentosHistoricos;
+    let faturamentosFiltrados = [...faturamentosHistoricos];
     
     if (filtroPerido !== 'todos') {
       const mesesAtras = parseInt(filtroPerido);
-      const dataLimite = new Date();
-      dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+      const agora = new Date();
       
-      faturamentosFiltrados = faturamentosHistoricos.filter(f => 
-        f.mes >= dataLimite
-      );
+      // Filtrar baseado na quantidade de meses selecionada
+      faturamentosFiltrados = faturamentosHistoricos.filter(f => {
+        const mesesDiferenca = (agora.getFullYear() - f.mes.getFullYear()) * 12 + 
+                               (agora.getMonth() - f.mes.getMonth());
+        return mesesDiferenca < mesesAtras;
+      });
     }
 
     if (faturamentosFiltrados.length === 0) return 0;
 
+    // Se for apenas 1 mês (último mês), retornar o valor do mês mais recente
+    if (filtroPerido === '1' && faturamentosFiltrados.length > 0) {
+      return faturamentosFiltrados[0].valor; // Já está ordenado por data decrescente
+    }
+
+    // Para outros casos, calcular a média
     const totalFaturamento = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
     return totalFaturamento / faturamentosFiltrados.length;
   }, [faturamentosHistoricos, filtroPerido]);
@@ -411,7 +462,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
                 <div className="flex items-center gap-4">
-                  <Select value={filtroPerido} onValueChange={setFiltroPerido}>
+                  <Select value={filtroPerido} onValueChange={handleFiltroChange}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Período" />
                     </SelectTrigger>
