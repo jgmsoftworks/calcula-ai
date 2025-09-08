@@ -499,17 +499,45 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     try {
       console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
       
-      // Salvar estados no banco
+      // IMPORTANTE: Carregar configuração existente ANTES de salvar para preservar outras abas
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
-      await saveConfiguration(configKey, tempCheckboxStates);
-      console.log('✅ Configuração salva no banco:', configKey, tempCheckboxStates);
+      const configExistente = await loadConfiguration(configKey);
       
-      // Atualizar estados salvos
-      setCheckboxStates(tempCheckboxStates);
+      // Mesclar configuração existente com novos estados (preservar outras abas)
+      let estadosParaSalvar = { ...tempCheckboxStates };
+      
+      if (configExistente && typeof configExistente === 'object') {
+        // Preservar estados existentes que não foram modificados nesta sessão
+        const configAtual = configExistente as Record<string, boolean>;
+        
+        // Criar lista de IDs dos itens atuais (visíveis no modal)
+        const idsAtuais = new Set([
+          ...despesasFixas.map(d => d.id),
+          ...folhaPagamento.map(f => f.id), 
+          ...encargosVenda.map(e => e.id)
+        ]);
+        
+        // Para cada item na configuração salva
+        Object.keys(configAtual).forEach(id => {
+          // Se o item não está na lista atual (outra aba/contexto), preservar valor salvo
+          if (!idsAtuais.has(id)) {
+            estadosParaSalvar[id] = configAtual[id];
+          }
+        });
+        
+        console.log('🔄 Estados mesclados - preservando outras abas:', estadosParaSalvar);
+      }
+      
+      // Salvar estados mesclados no banco
+      await saveConfiguration(configKey, estadosParaSalvar);
+      console.log('✅ Configuração salva no banco:', configKey, estadosParaSalvar);
+      
+      // Atualizar estados locais
+      setCheckboxStates(estadosParaSalvar);
       setHasUnsavedChanges(false);
       
       // Calcular markup final COM os novos estados
-      calcularMarkup(tempCheckboxStates);
+      calcularMarkup(estadosParaSalvar);
       console.log('🧮 Markup calculado após salvar');
       
       toast({
