@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,8 @@ import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigur
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustosModal } from './CustosModal';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MarkupBlock {
   id: string;
@@ -17,7 +19,23 @@ interface MarkupBlock {
   taxasMeiosPagamento: number;
   comissoesPlataformas: number;
   outros: number;
+  valorEmReal: number;
   lucroDesejado: number;
+}
+
+interface CalculatedMarkup {
+  gastoSobreFaturamento: number;
+  impostos: number;
+  taxasMeiosPagamento: number;
+  comissoesPlataformas: number;
+  outros: number;
+  valorEmReal: number;
+}
+
+interface FaturamentoHistorico {
+  id: string;
+  valor: number;
+  mes: Date;
 }
 
 export function Markups() {
@@ -26,9 +44,12 @@ export function Markups() {
   const [nomeTemp, setNomeTemp] = useState('');
   const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
   const [modalAberto, setModalAberto] = useState(false);
+  const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { toast } = useToast();
+  const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const calculationRef = useRef<NodeJS.Timeout | null>(null);
 
   // Bloco fixo para subreceita
   const blocoSubreceita: MarkupBlock = {
@@ -39,8 +60,156 @@ export function Markups() {
     taxasMeiosPagamento: 0,
     comissoesPlataformas: 0,
     outros: 0,
+    valorEmReal: 0,
     lucroDesejado: 0
   };
+
+  // Função para categorizar encargos
+  const getCategoriaByNome = useCallback((nome: string): string => {
+    const nomeUpper = nome.toUpperCase();
+    
+    const impostos = ['ICMS', 'IPI', 'PIS', 'COFINS', 'IR', 'CSLL', 'ISS', 'ISSQN', 'IRPJ', 'SIMPLES'];
+    const taxasPagamento = ['TAXA', 'CARTÃO', 'DÉBITO', 'CRÉDITO', 'PIX', 'BOLETO', 'TRANSFERÊNCIA'];
+    const comissoes = ['COMISSÃO', 'VENDEDOR', 'REPRESENTANTE', 'AFILIADO', 'MARKETPLACE', 'PLATAFORMA'];
+    
+    if (impostos.some(termo => nomeUpper.includes(termo))) return 'Impostos';
+    if (taxasPagamento.some(termo => nomeUpper.includes(termo))) return 'Taxas de Meios de Pagamento';
+    if (comissoes.some(termo => nomeUpper.includes(termo))) return 'Comissões';
+    
+    return 'Outros';
+  }, []);
+
+  // Função para calcular markups em tempo real
+  const calcularMarkupsEmTempoReal = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      // Buscar configurações salvas
+      const filtroConfig = await loadConfiguration('media_faturamento_filtro');
+      const checkboxConfig = await loadConfiguration('custos_checkboxes');
+      const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+      
+      if (!checkboxConfig) return;
+
+      const periodo = filtroConfig || 'ultimo_mes';
+      
+      // Calcular média mensal baseada no período
+      let mediaMensal = 0;
+      if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
+        const faturamentos = faturamentosConfig.map((f: any) => ({
+          ...f,
+          mes: new Date(f.mes)
+        }));
+
+        const hoje = new Date();
+        let dataLimite = new Date();
+        
+        switch (periodo) {
+          case 'ultimo_mes':
+            dataLimite.setMonth(hoje.getMonth() - 1);
+            break;
+          case 'ultimos_3_meses':
+            dataLimite.setMonth(hoje.getMonth() - 3);
+            break;
+          case 'ultimos_6_meses':
+            dataLimite.setMonth(hoje.getMonth() - 6);
+            break;
+          case 'ultimo_ano':
+            dataLimite.setFullYear(hoje.getFullYear() - 1);
+            break;
+        }
+
+        const faturamentoFiltrado = faturamentos.filter((f: FaturamentoHistorico) => f.mes >= dataLimite);
+        const total = faturamentoFiltrado.reduce((acc: number, f: FaturamentoHistorico) => acc + f.valor, 0);
+        const meses = Math.max(1, Math.ceil((hoje.getTime() - dataLimite.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+        mediaMensal = total / meses;
+      }
+
+      // Buscar dados de custos
+      const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+        supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+        supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+        supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+      ]);
+
+      // Calcular markups para cada bloco
+      const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
+
+      for (const bloco of blocos) {
+        const blocoCfg = checkboxConfig[bloco.id];
+        if (!blocoCfg) continue;
+
+        // Calcular gasto sobre faturamento
+        let totalGastos = 0;
+        
+        // Despesas fixas
+        if (despesasFixas && blocoCfg.despesasFixas) {
+          const gastosDespesas = despesasFixas
+            .filter(d => blocoCfg.despesasFixas[d.id])
+            .reduce((acc, d) => acc + d.valor, 0);
+          totalGastos += gastosDespesas;
+        }
+
+        // Folha de pagamento
+        if (folhaPagamento && blocoCfg.folhaPagamento) {
+          const gastosFolha = folhaPagamento
+            .filter(f => blocoCfg.folhaPagamento[f.id])
+            .reduce((acc, f) => acc + (f.custo_por_hora || f.salario_base || 0), 0);
+          totalGastos += gastosFolha;
+        }
+
+        const gastoSobreFaturamento = mediaMensal > 0 ? (totalGastos / mediaMensal) * 100 : 0;
+
+        // Calcular outros percentuais
+        let impostos = 0;
+        let taxasMeiosPagamento = 0;
+        let comissoesPlataformas = 0;
+        let outros = 0;
+        let valorEmReal = 0;
+
+        if (encargosVenda && blocoCfg.encargosVenda) {
+          encargosVenda
+            .filter(e => blocoCfg.encargosVenda[e.id])
+            .forEach(encargo => {
+              const categoria = getCategoriaByNome(encargo.nome);
+              const valor = encargo.valor || 0;
+              
+              if (encargo.tipo === 'fixo') {
+                valorEmReal += valor;
+              } else {
+                switch (categoria) {
+                  case 'Impostos':
+                    impostos += valor;
+                    break;
+                  case 'Taxas de Meios de Pagamento':
+                    taxasMeiosPagamento += valor;
+                    break;
+                  case 'Comissões':
+                    comissoesPlataformas += valor;
+                    break;
+                  default:
+                    outros += valor;
+                    break;
+                }
+              }
+            });
+        }
+
+        novosCalculatedMarkups.set(bloco.id, {
+          gastoSobreFaturamento,
+          impostos,
+          taxasMeiosPagamento,
+          comissoesPlataformas,
+          outros,
+          valorEmReal
+        });
+      }
+
+      setCalculatedMarkups(novosCalculatedMarkups);
+    } catch (error) {
+      console.error('Erro ao calcular markups em tempo real:', error);
+    }
+  }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
   useEffect(() => {
     const carregarBlocos = async () => {
@@ -56,6 +225,27 @@ export function Markups() {
     carregarBlocos();
   }, [loadConfiguration]);
 
+  // Recalcular markups quando blocos mudarem
+  useEffect(() => {
+    if (blocos.length > 0) {
+      if (calculationRef.current) {
+        clearTimeout(calculationRef.current);
+      }
+      
+      calculationRef.current = setTimeout(() => {
+        calcularMarkupsEmTempoReal();
+      }, 500);
+    }
+  }, [blocos, calcularMarkupsEmTempoReal]);
+
+  // Limpar timeouts ao desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (calculationRef.current) clearTimeout(calculationRef.current);
+    };
+  }, []);
+
   const salvarBlocos = useCallback(async (novosBlocos: MarkupBlock[]) => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -67,7 +257,7 @@ export function Markups() {
       } catch (error) {
         console.error('Erro ao salvar blocos:', error);
       }
-    }, 800); // Aumentado para 800ms
+    }, 800);
   }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
@@ -86,6 +276,7 @@ export function Markups() {
       taxasMeiosPagamento: 0,
       comissoesPlataformas: 0,
       outros: 0,
+      valorEmReal: 0,
       lucroDesejado: 0
     };
 
@@ -118,13 +309,29 @@ export function Markups() {
     salvarBlocos(novosBlocos);
   };
 
-  const calcularMarkupIdeal = (bloco: MarkupBlock) => {
-    const totalCustos = bloco.gastoSobreFaturamento + bloco.impostos + 
-                       bloco.taxasMeiosPagamento + bloco.comissoesPlataformas + 
-                       bloco.outros;
+  const calcularMarkupIdeal = (bloco: MarkupBlock, calculated?: CalculatedMarkup) => {
+    const markupData = calculated || calculatedMarkups.get(bloco.id) || {
+      gastoSobreFaturamento: bloco.gastoSobreFaturamento,
+      impostos: bloco.impostos,
+      taxasMeiosPagamento: bloco.taxasMeiosPagamento,
+      comissoesPlataformas: bloco.comissoesPlataformas,
+      outros: bloco.outros,
+      valorEmReal: bloco.valorEmReal || 0
+    };
+    
+    const totalCustos = markupData.gastoSobreFaturamento + markupData.impostos + 
+                       markupData.taxasMeiosPagamento + markupData.comissoesPlataformas + 
+                       markupData.outros;
     const markup = (100 / (100 - totalCustos - bloco.lucroDesejado)) - 1;
     return markup;
   };
+
+  // Callback para receber atualizações do modal
+  const handleMarkupUpdate = useCallback((blocoId: string, markupData: any) => {
+    const novosCalculatedMarkups = new Map(calculatedMarkups);
+    novosCalculatedMarkups.set(blocoId, markupData);
+    setCalculatedMarkups(novosCalculatedMarkups);
+  }, [calculatedMarkups]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
     setEditandoId(bloco.id);
@@ -214,100 +421,113 @@ export function Markups() {
               </div>
             </CardHeader>
           
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="text-sm">Gasto sobre faturamento</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={0}
-                    disabled
-                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                  />
-                  <span className="text-sm text-blue-600">%</span>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm">Gasto sobre faturamento</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={0}
+                      disabled
+                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                    />
+                    <span className="text-sm text-blue-600">%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm">Impostos</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={0}
+                      disabled
+                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                    />
+                    <span className="text-sm text-blue-600">%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm">Taxas de meios de pagamento</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={0}
+                      disabled
+                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                    />
+                    <span className="text-sm text-blue-600">%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm">Comissões e plataformas</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={0}
+                      disabled
+                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                    />
+                    <span className="text-sm text-blue-600">%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm">Outros</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={0}
+                      disabled
+                      className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
+                    />
+                    <span className="text-sm text-blue-600">%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <Label className="text-sm">Valor em real</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="text"
+                      value={formatCurrency(0)}
+                      disabled
+                      className="w-20 h-7 text-center text-sm text-orange-600 bg-gray-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center border-t pt-3">
+                  <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={0}
+                      disabled
+                      className="w-16 h-7 text-center text-sm text-green-600 bg-gray-50"
+                    />
+                    <span className="text-sm text-green-600">%</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center">
-                <Label className="text-sm">Impostos</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={0}
-                    disabled
-                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                  />
-                  <span className="text-sm text-blue-600">%</span>
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg">
+                  <span className="font-semibold text-blue-700">Markup ideal</span>
+                  <span className="text-xl font-bold text-blue-700">1,000</span>
                 </div>
               </div>
-
-              <div className="flex justify-between items-center">
-                <Label className="text-sm">Taxas de meios de pagamento</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={0}
-                    disabled
-                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                  />
-                  <span className="text-sm text-blue-600">%</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <Label className="text-sm">Comissões e plataformas</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={0}
-                    disabled
-                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                  />
-                  <span className="text-sm text-blue-600">%</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <Label className="text-sm">Outros</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={0}
-                    disabled
-                    className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                  />
-                  <span className="text-sm text-blue-600">%</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center border-t pt-3">
-                <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={0}
-                    disabled
-                    className="w-16 h-7 text-center text-sm text-green-600 bg-gray-50"
-                  />
-                  <span className="text-sm text-green-600">%</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg">
-                <span className="font-semibold text-blue-700">Markup ideal</span>
-                <span className="text-xl font-bold text-blue-700">1,000</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </TooltipProvider>
 
         {/* Blocos editáveis */}
         {blocos.map((bloco) => {
-          const markupIdeal = calcularMarkupIdeal(bloco);
+          const calculated = calculatedMarkups.get(bloco.id);
+          const markupIdeal = calcularMarkupIdeal(bloco, calculated);
           
           return (
             <Card key={bloco.id} className="relative">
@@ -370,12 +590,9 @@ export function Markups() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={bloco.gastoSobreFaturamento}
-                        onChange={(e) => atualizarBloco(bloco.id, 'gastoSobreFaturamento', parseFloat(e.target.value) || 0)}
-                        className="w-16 h-7 text-center text-sm text-blue-600"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        value={calculated?.gastoSobreFaturamento?.toFixed(2) || '0'}
+                        disabled
+                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -386,12 +603,9 @@ export function Markups() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={bloco.impostos}
-                        onChange={(e) => atualizarBloco(bloco.id, 'impostos', parseFloat(e.target.value) || 0)}
-                        className="w-16 h-7 text-center text-sm text-blue-600"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        value={calculated?.impostos?.toFixed(2) || '0'}
+                        disabled
+                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -402,12 +616,9 @@ export function Markups() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={bloco.taxasMeiosPagamento}
-                        onChange={(e) => atualizarBloco(bloco.id, 'taxasMeiosPagamento', parseFloat(e.target.value) || 0)}
-                        className="w-16 h-7 text-center text-sm text-blue-600"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        value={calculated?.taxasMeiosPagamento?.toFixed(2) || '0'}
+                        disabled
+                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -418,12 +629,9 @@ export function Markups() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={bloco.comissoesPlataformas}
-                        onChange={(e) => atualizarBloco(bloco.id, 'comissoesPlataformas', parseFloat(e.target.value) || 0)}
-                        className="w-16 h-7 text-center text-sm text-blue-600"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        value={calculated?.comissoesPlataformas?.toFixed(2) || '0'}
+                        disabled
+                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
                     </div>
@@ -434,14 +642,23 @@ export function Markups() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={bloco.outros}
-                        onChange={(e) => atualizarBloco(bloco.id, 'outros', parseFloat(e.target.value) || 0)}
-                        className="w-16 h-7 text-center text-sm text-blue-600"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        value={calculated?.outros?.toFixed(2) || '0'}
+                        disabled
+                        className="w-16 h-7 text-center text-sm text-blue-600 bg-gray-50"
                       />
                       <span className="text-sm text-blue-600">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Valor em real</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="text"
+                        value={formatCurrency(calculated?.valorEmReal || 0)}
+                        disabled
+                        className="w-20 h-7 text-center text-sm text-orange-600 bg-gray-50"
+                      />
                     </div>
                   </div>
 
@@ -463,10 +680,10 @@ export function Markups() {
                 </div>
 
                 <div className="space-y-3 pt-2 border-t">
-                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
                     <span className="font-semibold text-primary">Markup ideal</span>
                     <span className="text-xl font-bold text-primary">
-                      {isFinite(markupIdeal) ? (markupIdeal * 100).toFixed(2) : '0,00'}%
+                      {isNaN(markupIdeal) || !isFinite(markupIdeal) ? '∞' : (markupIdeal * 100).toFixed(2) + '%'}
                     </span>
                   </div>
                 </div>
@@ -476,32 +693,21 @@ export function Markups() {
         })}
       </div>
 
-      <CustosModal 
-        open={modalAberto} 
-        onOpenChange={(open) => {
-          setModalAberto(open);
-          if (!open) setBlocoSelecionado(undefined);
-        }}
-        markupBlock={blocoSelecionado}
-        onMarkupUpdate={(dados) => {
-          if (blocoSelecionado) {
-            // Atualizar todas as propriedades de uma só vez para evitar múltiplos re-renders
-            const novosBlocos = blocos.map(bloco => 
-              bloco.id === blocoSelecionado.id 
-                ? { 
-                    ...bloco, 
-                    impostos: dados.impostos || 0,
-                    taxasMeiosPagamento: dados.taxasMeiosPagamento || 0,
-                    comissoesPlataformas: dados.comissoesPlataformas || 0,
-                    outros: dados.outros || 0
-                  }
-                : bloco
-            );
-            setBlocos(novosBlocos);
-            salvarBlocos(novosBlocos);
-          }
-        }}
-      />
+      {modalAberto && (
+        <CustosModal
+          open={modalAberto}
+          onOpenChange={(open) => {
+            setModalAberto(open);
+            if (!open) setBlocoSelecionado(undefined);
+          }}
+          markupBlock={blocoSelecionado}
+          onMarkupUpdate={(markup) => {
+            if (blocoSelecionado) {
+              handleMarkupUpdate(blocoSelecionado.id, markup);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
