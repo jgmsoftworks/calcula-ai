@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,7 +66,7 @@ export function Markups() {
     lucroDesejado: 0
   };
 
-  // Função para categorizar encargos
+  // Função para categorizar encargos - DEFINIDA PRIMEIRO
   const getCategoriaByNome = useCallback((nome: string): string => {
     const nomeUpper = nome.toUpperCase();
     
@@ -80,6 +80,112 @@ export function Markups() {
     
     return 'Outros';
   }, []);
+
+  // Função para carregar configurações salvas no início
+  const carregarConfiguracoesSalvas = useCallback(async () => {
+    if (!user?.id || blocos.length === 0) return;
+    
+    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
+    
+    const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
+    
+    for (const bloco of blocos) {
+      const configKey = `checkbox-states-${bloco.id}`;
+      const config = await loadConfiguration(configKey);
+      
+      console.log(`📋 Configuração do bloco ${bloco.nome}:`, config);
+      
+      if (config && typeof config === 'object') {
+        // Se tem configuração, calcular markup com ela
+        console.log(`✅ Aplicando configuração salva para ${bloco.nome}`);
+        
+        // Simular cálculo usando a mesma lógica do calcularMarkupsEmTempoReal
+        const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+          supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+          supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+          supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+        ]);
+        
+        // Calcular com a configuração específica
+        let totalGastos = 0;
+        
+        if (despesasFixas) {
+          const gastosDespesas = despesasFixas
+            .filter(d => config[d.id] === true)
+            .reduce((acc, d) => acc + d.valor, 0);
+          totalGastos += gastosDespesas;
+        }
+        
+        if (folhaPagamento) {
+          const gastosRH = folhaPagamento
+            .filter(f => config[f.id] === true)
+            .reduce((acc, f) => acc + (f.salario_base || 0), 0);
+          totalGastos += gastosRH;
+        }
+        
+        // Buscar média de faturamento
+        const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+        let mediaMensal = 0;
+        if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
+          const faturamentos = faturamentosConfig.map((f: any) => ({
+            ...f,
+            mes: new Date(f.mes)
+          }));
+          const total = faturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+          mediaMensal = total / Math.max(1, faturamentos.length);
+        }
+        
+        const gastoSobreFaturamento = mediaMensal > 0 ? (totalGastos / mediaMensal) * 100 : 0;
+        
+        // Calcular encargos por categoria
+        let impostos = 0;
+        let taxasMeiosPagamento = 0; 
+        let comissoesPlataformas = 0;
+        let outros = 0;
+        
+        if (encargosVenda) {
+          encargosVenda.forEach(encargo => {
+            if (config[encargo.id] === true) {
+              const categoria = getCategoriaByNome(encargo.nome);
+              const valor = encargo.valor_percentual || 0;
+              
+              switch (categoria) {
+                case 'Impostos':
+                  impostos += valor;
+                  break;
+                case 'Taxas de Meios de Pagamento':
+                  taxasMeiosPagamento += valor;
+                  break;
+                case 'Comissões':
+                  comissoesPlataformas += valor;
+                  break;
+                default:
+                  outros += valor;
+                  break;
+              }
+            }
+          });
+        }
+        
+        const markupCalculado = {
+          gastoSobreFaturamento,
+          impostos,
+          taxasMeiosPagamento,
+          comissoesPlataformas,
+          outros,
+          valorEmReal: 100 // Valor fixo
+        };
+        
+        novosCalculatedMarkups.set(bloco.id, markupCalculado);
+        console.log(`✅ Markup calculado para ${bloco.nome}:`, markupCalculado);
+      }
+    }
+    
+    if (novosCalculatedMarkups.size > 0) {
+      setCalculatedMarkups(novosCalculatedMarkups);
+      console.log('✅ Configurações salvas aplicadas com sucesso!');
+    }
+  }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
   // Função para calcular markups em tempo real
   const calcularMarkupsEmTempoReal = useCallback(async () => {
@@ -186,7 +292,7 @@ export function Markups() {
           totalGastos += gastosDespesas;
           console.log(`💸 Despesas fixas para ${bloco.nome}:`, gastosDespesas);
         }
-
+        
         // Folha de pagamento
         if (folhaPagamento) {
           const gastosFolha = folhaPagamento
@@ -261,6 +367,7 @@ export function Markups() {
         const config = await loadConfiguration('markups_blocos');
         if (config && Array.isArray(config)) {
           setBlocos(config as unknown as MarkupBlock[]);
+          console.log('📦 Blocos carregados:', config.length);
         }
       } catch (error) {
         console.error('Erro ao carregar blocos:', error);
@@ -268,6 +375,14 @@ export function Markups() {
     };
     carregarBlocos();
   }, [loadConfiguration]);
+  
+  // Carregar configurações salvas após os blocos serem carregados
+  useEffect(() => {
+    if (blocos.length > 0 && user?.id) {
+      console.log('🎯 Blocos carregados, carregando configurações salvas...');
+      carregarConfiguracoesSalvas();
+    }
+  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
   // Recalcular markups quando blocos mudarem
   useEffect(() => {
@@ -290,11 +405,11 @@ export function Markups() {
     
     if (user?.id && blocos.length > 0) {
       console.log('✅ Condições atendidas, executando cálculo inicial...');
-      // Delay para garantir que os blocos foram carregados
+      // Delay menor para evitar conflitos com salvamento
       const initialCalcTimer = setTimeout(() => {
         console.log('⏰ Executando cálculo inicial após delay...');
         calcularMarkupsEmTempoReal();
-      }, 2000); // Aumentei o delay para 2 segundos
+      }, 1000); // Reduzido de 2000 para 1000ms
       
       return () => {
         console.log('🧹 Limpando timer inicial');
@@ -333,12 +448,7 @@ export function Markups() {
   };
 
   const formatPercentage = (value: number) => {
-    // Se for número inteiro, não mostrar casas decimais
-    if (value === Math.floor(value)) {
-      return value.toString();
-    }
-    // Se tiver decimais, mostrar até 2 casas decimais e remover zeros desnecessários
-    return parseFloat(value.toFixed(2)).toString();
+    return value.toFixed(2);
   };
 
   const criarNovoBloco = async () => {
@@ -354,7 +464,7 @@ export function Markups() {
       lucroDesejado: 0
     };
 
-    // Criar configuração padrão para o novo bloco (todos os itens selecionados por padrão)
+    // Criar configuração padrão com todos os itens marcados como true
     if (user?.id) {
       try {
         const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
@@ -363,8 +473,7 @@ export function Markups() {
           supabase.from('encargos_venda').select('*').eq('user_id', user.id)
         ]);
 
-        // Criar configuração com todos os itens selecionados por padrão
-        const configPadrao: { [key: string]: boolean } = {};
+        const configPadrao: Record<string, boolean> = {};
         
         despesasFixas?.forEach(item => {
           configPadrao[item.id] = true;
@@ -389,51 +498,42 @@ export function Markups() {
     const novosBlocos = [...blocos, novoBloco];
     setBlocos(novosBlocos);
     salvarBlocos(novosBlocos);
-    
-    toast({
-      title: "Bloco criado",
-      description: "Novo bloco de markup adicionado"
-    });
   };
 
   const removerBloco = (id: string) => {
-    const novosBlocos = blocos.filter(b => b.id !== id);
+    const novosBlocos = blocos.filter(bloco => bloco.id !== id);
     setBlocos(novosBlocos);
     salvarBlocos(novosBlocos);
     
-    toast({
-      title: "Bloco removido",
-      description: "Bloco de markup removido com sucesso"
-    });
+    // Remover também dos markups calculados
+    const novosCalculatedMarkups = new Map(calculatedMarkups);
+    novosCalculatedMarkups.delete(id);
+    setCalculatedMarkups(novosCalculatedMarkups);
   };
 
-  const atualizarBloco = (id: string, campo: keyof MarkupBlock, valor: any) => {
-    const novosBlocos = blocos.map(bloco => 
+  const atualizarBloco = (id: string, campo: keyof MarkupBlock, valor: number) => {
+    const novosUsuario = blocos.map(bloco => 
       bloco.id === id ? { ...bloco, [campo]: valor } : bloco
     );
-    setBlocos(novosBlocos);
-    salvarBlocos(novosBlocos);
+    setBlocos(novosUsuario);
+    salvarBlocos(novosUsuario);
   };
 
-  const calcularMarkupIdeal = (bloco: MarkupBlock, calculated?: CalculatedMarkup) => {
-    const markupData = calculated || calculatedMarkups.get(bloco.id) || {
-      gastoSobreFaturamento: bloco.gastoSobreFaturamento,
-      impostos: bloco.impostos,
-      taxasMeiosPagamento: bloco.taxasMeiosPagamento,
-      comissoesPlataformas: bloco.comissoesPlataformas,
-      outros: bloco.outros,
-      valorEmReal: bloco.valorEmReal || 0
-    };
+  const calcularMarkupIdeal = (bloco: MarkupBlock, markupData?: CalculatedMarkup): number => {
+    const markupValues = markupData || calculatedMarkups.get(bloco.id);
     
-    // Soma todos os percentuais (incluindo lucro desejado)
-    const somaPercentuais = markupData.gastoSobreFaturamento + markupData.impostos + 
-                           markupData.taxasMeiosPagamento + markupData.comissoesPlataformas + 
-                           markupData.outros + bloco.lucroDesejado;
+    if (!markupValues) return 1;
+    
+    const somaPercentuais = markupValues.gastoSobreFaturamento + 
+                            markupValues.impostos + 
+                            markupValues.taxasMeiosPagamento + 
+                            markupValues.comissoesPlataformas + 
+                            markupValues.outros + bloco.lucroDesejado;
     
     // Converte percentuais para decimais e aplica a fórmula: Markup = 1 / (1 - somaPercentuais)
     const somaDecimais = somaPercentuais / 100;
-    const markup = 1 / (1 - somaDecimais);
-    return markup;
+    const markupFinal = 1 / (1 - somaDecimais);
+    return markupFinal;
   };
 
   // Callback para receber atualizações do modal
@@ -455,16 +555,15 @@ export function Markups() {
   };
 
   const salvarNome = () => {
-    if (nomeTemp.trim() && blocoEditandoNome) {
-      atualizarBloco(blocoEditandoNome.id, 'nome', nomeTemp.trim());
-      toast({
-        title: "Nome atualizado",
-        description: "Nome do bloco atualizado com sucesso"
-      });
+    if (blocoEditandoNome && nomeTemp.trim()) {
+      const novosUsuario = blocos.map(bloco => 
+        bloco.id === blocoEditandoNome.id ? { ...bloco, nome: nomeTemp.trim() } : bloco
+      );
+      setBlocos(novosUsuario);
+      salvarBlocos(novosUsuario);
+      setModalEdicaoNome(false);
+      setBlocoEditandoNome(null);
     }
-    setModalEdicaoNome(false);
-    setBlocoEditandoNome(null);
-    setNomeTemp('');
   };
 
   const cancelarEdicao = () => {
@@ -473,332 +572,211 @@ export function Markups() {
     setNomeTemp('');
   };
 
+  const abrirModal = (bloco: MarkupBlock) => {
+    setBlocoSelecionado(bloco);
+    setModalAberto(true);
+  };
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary mb-1 flex items-center justify-between">
-            Blocos de Markup
-            <Button onClick={criarNovoBloco}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Bloco
-            </Button>
-          </CardTitle>
-          <p className="text-muted-foreground text-sm">
-            Crie e gerencie seus diferentes cenários de markup
-          </p>
-        </CardHeader>
-      </Card>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Markups</h1>
+          <p className="text-muted-foreground">Calcule preços com base em custos e margem desejada</p>
+        </div>
+        <Button onClick={criarNovoBloco} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Bloco de Markup
+        </Button>
+      </div>
 
-      {blocos.length === 0 && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhum bloco criado</h3>
-            <p className="text-muted-foreground mb-4">
-              Crie seu primeiro bloco de markup para começar
-            </p>
-            <Button onClick={criarNovoBloco}>
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Primeiro Bloco
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Bloco fixo subreceita */}
-        <TooltipProvider>
-          <Card className="relative border-blue-200 bg-blue-50/50">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-primary">SubReceita</h3>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white cursor-help">
-                        <Info className="h-3 w-3" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs p-3 bg-blue-50 border border-blue-200">
-                      <p className="text-sm text-blue-800">
-                        <strong>Atenção:</strong> Este bloco é exclusivo para subprodutos que não são vendidos 
-                        separadamente, como massas, recheios e coberturas. Ele serve apenas para 
-                        organizar ingredientes usados em receitas.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setBlocoSelecionado(undefined);
-                    setModalAberto(true);
-                  }}
-                  className="text-primary hover:text-primary"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-          
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Gasto sobre faturamento</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatPercentage(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                    />
-                    <span className="text-sm text-blue-600">%</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Impostos</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatPercentage(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                    />
-                    <span className="text-sm text-blue-600">%</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Taxas de meios de pagamento</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatPercentage(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                    />
-                    <span className="text-sm text-blue-600">%</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Comissões e plataformas</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatPercentage(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                    />
-                    <span className="text-sm text-blue-600">%</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Outros</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatPercentage(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                    />
-                    <span className="text-sm text-blue-600">%</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm">Valor em real</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatCurrency(0)}
-                      disabled
-                      className="w-24 h-7 text-center text-sm text-orange-600 bg-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center border-t pt-3">
-                  <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={formatPercentage(0)}
-                      disabled
-                      className="w-20 h-7 text-center text-sm text-green-600 bg-gray-50"
-                    />
-                    <span className="text-sm text-green-600">%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2 border-t">
-                  <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg">
-                    <span className="font-semibold text-blue-700">Markup ideal</span>
-                    <span className="text-xl font-bold text-blue-700">1,0000</span>
-                  </div>
-              </div>
+      <div className="grid gap-6">
+        {blocos.length === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Calculator className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Nenhum bloco criado</h3>
+              <p className="text-muted-foreground mb-4 text-center">
+                Crie seu primeiro bloco de markup para calcular preços
+              </p>
+              <Button onClick={criarNovoBloco} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Criar Primeiro Bloco
+              </Button>
             </CardContent>
           </Card>
-        </TooltipProvider>
+        )}
 
-        {/* Blocos editáveis */}
+        {/* Bloco fixo subreceita */}
+        <Card className="border-border shadow-lg">
+          <CardHeader className="bg-muted/50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-blue-600 capitalize font-bold text-xl flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Este é um bloco informativo que mostra os percentuais máximos recomendados para cada categoria baseado nas melhores práticas do mercado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                {blocoSubreceita.nome}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                <div className="text-2xl font-bold text-blue-600">15%</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                <div className="text-2xl font-bold text-blue-600">25%</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                <div className="text-2xl font-bold text-blue-600">5%</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                <div className="text-2xl font-bold text-blue-600">10%</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                <div className="text-2xl font-bold text-blue-600">5%</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                <div className="text-2xl font-bold text-orange-600">{formatCurrency(200)}</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
+                <div className="text-2xl font-bold text-green-600">20%</div>
+              </div>
+            </div>
+            
+            <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
+              <div className="flex items-center justify-between">
+                <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
+                <div className="text-3xl font-bold text-blue-700">2,50</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Blocos do usuário */}
         {blocos.map((bloco) => {
           const calculated = calculatedMarkups.get(bloco.id);
-          const markupIdeal = calcularMarkupIdeal(bloco, calculated);
+          const hasCalculated = calculated !== undefined;
           
-          // Debug log para verificar se os valores estão chegando
-          console.log(`🎯 Renderizando bloco ${bloco.nome}:`, {
+          console.log('🎯 Renderizando bloco', bloco.nome + ':', {
             blocoId: bloco.id,
             calculated,
-            hasCalculated: !!calculated,
+            hasCalculated,
             calculatedMapSize: calculatedMarkups.size,
             allKeys: Array.from(calculatedMarkups.keys())
           });
           
+          const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
+          
           return (
-            <Card key={bloco.id} className="relative">
-              <CardHeader className="pb-4">
+            <Card key={bloco.id} className="border-border">
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-primary">{bloco.nome}</h3>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                  <CardTitle className="text-blue-600 capitalize font-bold text-xl">
+                    {bloco.nome}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
                       onClick={() => iniciarEdicaoNome(bloco)}
-                      className="text-muted-foreground hover:text-primary"
+                      className="h-8 w-8 p-0"
                     >
-                      <Edit2 className="h-4 w-4" />
+                      <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setBlocoSelecionado(bloco);
-                        setModalAberto(true);
-                      }}
-                      className="text-primary hover:text-primary"
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => abrirModal(bloco)}
+                      className="h-8 w-8 p-0"
                     >
-                      <Settings className="h-4 w-4" />
+                      <Settings className="h-3 w-3" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
                       onClick={() => removerBloco(bloco.id)}
-                      className="text-destructive hover:text-destructive"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Gasto sobre faturamento</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={formatPercentage(calculated?.gastoSobreFaturamento || 0)}
-                        disabled
-                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                      />
-                      <span className="text-sm text-blue-600">%</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {hasCalculated ? formatPercentage(calculated.gastoSobreFaturamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Impostos</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={formatPercentage(calculated?.impostos || 0)}
-                        disabled
-                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                      />
-                      <span className="text-sm text-blue-600">%</span>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {hasCalculated ? formatPercentage(calculated.impostos) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Taxas de meios de pagamento</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={formatPercentage(calculated?.taxasMeiosPagamento || 0)}
-                        disabled
-                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                      />
-                      <span className="text-sm text-blue-600">%</span>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {hasCalculated ? formatPercentage(calculated.taxasMeiosPagamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Comissões e plataformas</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={formatPercentage(calculated?.comissoesPlataformas || 0)}
-                        disabled
-                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                      />
-                      <span className="text-sm text-blue-600">%</span>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {hasCalculated ? formatPercentage(calculated.comissoesPlataformas) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Outros</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={formatPercentage(calculated?.outros || 0)}
-                        disabled
-                        className="w-20 h-7 text-center text-sm text-blue-600 bg-gray-50"
-                      />
-                      <span className="text-sm text-blue-600">%</span>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {hasCalculated ? formatPercentage(calculated.outros) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Valor em real</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={formatCurrency(calculated?.valorEmReal || 0)}
-                        disabled
-                        className="w-24 h-7 text-center text-sm text-orange-600 bg-gray-50"
-                      />
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {hasCalculated ? formatCurrency(calculated.valorEmReal) : formatCurrency(0)}
                     </div>
                   </div>
-
-                  <div className="flex justify-between items-center border-t pt-3">
-                    <Label className="text-sm font-medium">Lucro desejado sobre venda</Label>
-                    <div className="flex items-center gap-1">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
+                    <div className="flex items-center gap-2">
                       <Input
                         type="number"
+                        min="0"
+                        step="0.01"
                         value={bloco.lucroDesejado}
                         onChange={(e) => atualizarBloco(bloco.id, 'lucroDesejado', parseFloat(e.target.value) || 0)}
-                        className="w-20 h-7 text-center text-sm text-green-600"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        className="text-green-600 font-bold"
                       />
-                      <span className="text-sm text-green-600">%</span>
+                      <span className="text-green-600 font-bold">%</span>
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-3 pt-2 border-t">
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
-                    <span className="font-semibold text-primary">Markup ideal</span>
-                    <span className="text-xl font-bold text-primary">
-                      {isNaN(markupIdeal) || !isFinite(markupIdeal) ? '∞' : markupIdeal.toFixed(4).replace('.', ',')}
-                    </span>
+                
+                <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
+                    <div className="text-3xl font-bold text-blue-700">
+                      {markupIdeal.toFixed(4)}
+                    </div>
                   </div>
                 </div>
               </CardContent>

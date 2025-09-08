@@ -180,28 +180,33 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         setFaturamentosHistoricos(faturamentos);
       }
 
-      // Carregar estados dos checkboxes salvos
+      // Carregar estados dos checkboxes salvos ANTES de calcular
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
       console.log(`🔧 Carregando configuração com chave: ${configKey}`);
       
       const savedStates = await loadConfiguration(configKey);
       console.log(`📋 Estados salvos carregados:`, savedStates);
       
+      let statesParaUsar: Record<string, boolean> = {};
+      
       if (savedStates && typeof savedStates === 'object') {
-        const states = savedStates as Record<string, boolean>;
-        setCheckboxStates(states);
-        setTempCheckboxStates(states);
-        console.log(`✅ Estados aplicados:`, states);
+        statesParaUsar = savedStates as Record<string, boolean>;
+        setCheckboxStates(statesParaUsar);
+        setTempCheckboxStates(statesParaUsar);
+        console.log(`✅ Estados aplicados:`, statesParaUsar);
       } else {
         // Inicializar com todos desmarcados por padrão
-        const defaultStates: Record<string, boolean> = {};
         [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
-          defaultStates[item.id] = false;
+          statesParaUsar[item.id] = false;
         });
-        setCheckboxStates(defaultStates);
-        setTempCheckboxStates(defaultStates);
-        console.log(`⚠️ Usando estados padrão (desmarcados):`, defaultStates);
+        setCheckboxStates(statesParaUsar);
+        setTempCheckboxStates(statesParaUsar);
+        console.log(`⚠️ Usando estados padrão (desmarcados):`, statesParaUsar);
       }
+      
+      // Calcular markup COM os estados carregados
+      console.log(`🧮 Calculando markup inicial com estados:`, statesParaUsar);
+      calcularMarkup(statesParaUsar);
       
       setHasUnsavedChanges(false);
 
