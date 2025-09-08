@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useUserConfigurations } from '@/hooks/useUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 
@@ -166,6 +168,23 @@ export function MediaFaturamento() {
 
   const { mediaFaturamento, totalFaturamento, maiorFaturamento, menorFaturamento, quantidadeMeses } = calcularEstatisticas();
 
+  // Preparar dados do gráfico (6 meses mais recentes)
+  const dadosGrafico = faturamentosHistoricos
+    .slice(0, 6)
+    .reverse()
+    .map(f => ({
+      mes: format(f.mes, "MMM/yy", { locale: ptBR }),
+      valor: f.valor,
+      valorFormatado: formatCurrency(f.valor)
+    }));
+
+  const chartConfig = {
+    valor: {
+      label: "Faturamento",
+      color: "hsl(var(--primary))",
+    },
+  };
+
   return (
     <div className="space-y-6">
       {/* Formulário para adicionar faturamento */}
@@ -238,57 +257,90 @@ export function MediaFaturamento() {
         </CardContent>
       </Card>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-blue-500 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-white" />
+      {/* Estatísticas e Gráfico */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Cards de Estatísticas */}
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-blue-500 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full">
+                MÉDIA
+              </div>
             </div>
-            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full">
-              MÉDIA
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Média Mensal</p>
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                {formatCurrency(mediaFaturamento)}
+              </p>
             </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Média Mensal</p>
-            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {formatCurrency(mediaFaturamento)}
-            </p>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-xl p-6 border border-green-200 dark:border-green-800/50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-green-500 rounded-lg">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">
+                TOTAL
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-green-700 dark:text-green-300">Total do Período</p>
+              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                {formatCurrency(totalFaturamento)}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-xl p-6 border border-green-200 dark:border-green-800/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-green-500 rounded-lg">
-              <DollarSign className="h-5 w-5 text-white" />
-            </div>
-            <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">
-              TOTAL
-            </div>
+        {/* Gráfico */}
+        <div className="bg-card rounded-xl p-6 border">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Evolução dos Últimos 6 Meses</h3>
+            <p className="text-sm text-muted-foreground">Histórico de faturamento mensal</p>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-green-700 dark:text-green-300">Total do Período</p>
-            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {formatCurrency(totalFaturamento)}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-xl p-6 border border-purple-200 dark:border-purple-800/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-purple-500 rounded-lg">
-              <CalendarDays className="h-5 w-5 text-white" />
+          {dadosGrafico.length > 0 ? (
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dadosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <XAxis 
+                    dataKey="mes" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    formatter={(value: number) => [formatCurrency(value), "Faturamento"]}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="valor" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 6 }}
+                    activeDot={{ r: 8, stroke: "hsl(var(--primary))", strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Adicione faturamentos para ver o gráfico</p>
+              </div>
             </div>
-            <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full">
-              QTDE
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Meses Analisados</p>
-            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-              {quantidadeMeses}
-            </p>
-          </div>
+          )}
         </div>
       </div>
 
