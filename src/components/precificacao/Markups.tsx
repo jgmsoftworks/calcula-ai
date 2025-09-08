@@ -276,9 +276,11 @@ export function Markups() {
         clearTimeout(calculationRef.current);
       }
       
+      // Delay menor para recálculos automáticos
       calculationRef.current = setTimeout(() => {
+        console.log('🔄 Recalculando markups devido a mudança nos blocos');
         calcularMarkupsEmTempoReal();
-      }, 500);
+      }, 200); // Reduzindo delay de 500 para 200ms
     }
   }, [blocos, calcularMarkupsEmTempoReal]);
 
@@ -438,16 +440,13 @@ export function Markups() {
   const handleMarkupUpdate = useCallback(async (blocoId: string, markupData: any) => {
     console.log('🔄 handleMarkupUpdate chamado para bloco:', blocoId, 'com dados:', markupData);
     
+    // Atualizar no state local
     const novosCalculatedMarkups = new Map(calculatedMarkups);
     novosCalculatedMarkups.set(blocoId, markupData);
     setCalculatedMarkups(novosCalculatedMarkups);
     
-    // Forçar recálculo completo após pequeno delay
-    console.log('♻️ Forçando recálculo completo após atualização...');
-    setTimeout(() => {
-      calcularMarkupsEmTempoReal();
-    }, 300);
-  }, [calculatedMarkups, calcularMarkupsEmTempoReal]);
+    console.log('💾 Estados atualizados, aguardando recálculo automático...');
+  }, [calculatedMarkups]);
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
     setBlocoEditandoNome(bloco);

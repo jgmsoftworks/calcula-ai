@@ -474,9 +474,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   const handleSalvar = async () => {
     try {
+      console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
+      
       // Salvar estados no banco
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
       await saveConfiguration(configKey, tempCheckboxStates);
+      console.log('✅ Configuração salva no banco:', configKey, tempCheckboxStates);
       
       // Atualizar estados salvos
       setCheckboxStates(tempCheckboxStates);
@@ -484,6 +487,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       // Calcular markup final
       calcularMarkup(tempCheckboxStates);
+      console.log('🧮 Markup calculado após salvar');
       
       toast({
         title: "Configurações salvas",
@@ -493,15 +497,13 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       // Fechar modal
       onOpenChange(false);
       
-      // Forçar recálculo no componente pai após um delay
+      // Emitir callback para o componente pai recalcular tudo
       if (onMarkupUpdate) {
-        setTimeout(() => {
-          calcularMarkup(tempCheckboxStates);
-          // Emitir callback para o componente pai recalcular tudo
-          onMarkupUpdate(currentMarkupValues);
-        }, 200);
+        console.log('📤 Enviando dados para componente pai');
+        onMarkupUpdate(currentMarkupValues);
       }
     } catch (error) {
+      console.error('❌ Erro ao salvar:', error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível salvar as configurações",
@@ -511,6 +513,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   };
 
   const handleCancelar = () => {
+    console.log('🚫 Cancelando alterações, restaurando estados originais');
     // Restaurar estados originais
     setTempCheckboxStates(checkboxStates);
     setHasUnsavedChanges(false);
