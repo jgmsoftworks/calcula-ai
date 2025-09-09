@@ -163,7 +163,7 @@ export function GeralStep() {
                         onChange={(e) => handleTemperaturaChange(item.id, e.target.value)}
                         onBlur={(e) => handleTemperaturaBlur(item.id, e.target.value)}
                         onFocus={(e) => e.target.select()}
-                        className="w-20 h-6 text-xs"
+                        className="w-14 h-6 text-xs"
                       />
                     </TableCell>
                     <TableCell>
