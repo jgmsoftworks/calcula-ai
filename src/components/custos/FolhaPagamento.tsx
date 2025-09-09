@@ -149,7 +149,7 @@ export function FolhaPagamento() {
         dias_por_semana: parseFloat(formData.dias_por_semana),
         semanas_por_mes: parsePercentValue(formData.semanas_por_mes),
         horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parsePercentValue(formData.semanas_por_mes),
-        custo_por_hora: 0,
+        custo_por_hora: calculateCustoPorHora(),
         ativo: true
       };
 

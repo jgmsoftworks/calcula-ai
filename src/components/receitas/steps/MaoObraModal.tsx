@@ -21,6 +21,7 @@ interface MaoObraItem {
   funcionario: Funcionario;
   tempo: number;
   valorTotal: number;
+  unidadeTempo?: string;
 }
 
 interface MaoObraModalProps {
@@ -35,6 +36,7 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
   const [maoObra, setMaoObra] = useState<MaoObraItem[]>(existingMaoObra);
   const [funcionarioSelecionado, setFuncionarioSelecionado] = useState('');
   const [tempo, setTempo] = useState('');
+  const [unidadeTempo, setUnidadeTempo] = useState('horas');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -78,13 +80,21 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
       return;
     }
 
-    const valorTotal = funcionarioAtual.custo_por_hora * tempoNum;
+    // Converter tempo para horas baseado na unidade
+    let tempoEmHoras = tempoNum;
+    if (unidadeTempo === 'minutos') {
+      tempoEmHoras = tempoNum / 60;
+    } else if (unidadeTempo === 'dias') {
+      tempoEmHoras = tempoNum * 8; // Assumindo 8 horas por dia
+    }
+    
+    const valorTotal = funcionarioAtual.custo_por_hora * tempoEmHoras;
 
     if (editandoId) {
       // Editando item existente
       const novosMaoObra = maoObra.map(item =>
         item.id === editandoId
-          ? { ...item, funcionario: funcionarioAtual, tempo: tempoNum, valorTotal }
+          ? { ...item, funcionario: funcionarioAtual, tempo: tempoNum, valorTotal, unidadeTempo }
           : item
       );
       setMaoObra(novosMaoObra);
@@ -101,7 +111,8 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
         id: Date.now().toString(),
         funcionario: funcionarioAtual,
         tempo: tempoNum,
-        valorTotal
+        valorTotal,
+        unidadeTempo
       };
       setMaoObra([...maoObra, novoItem]);
     }
@@ -109,11 +120,13 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
     // Limpar formulário
     setFuncionarioSelecionado('');
     setTempo('');
+    setUnidadeTempo('horas');
   };
 
   const editarMaoObra = (item: MaoObraItem) => {
     setFuncionarioSelecionado(item.funcionario.id);
     setTempo(item.tempo.toString());
+    setUnidadeTempo(item.unidadeTempo || 'horas');
     setEditandoId(item.id);
   };
 
@@ -124,6 +137,7 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
   const cancelarEdicao = () => {
     setFuncionarioSelecionado('');
     setTempo('');
+    setUnidadeTempo('horas');
     setEditandoId(null);
   };
 
@@ -148,7 +162,7 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
           {/* Formulário de Adição/Edição */}
           <Card>
             <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                 <div className="md:col-span-2">
                   <Label>Funcionário</Label>
                   <Select value={funcionarioSelecionado} onValueChange={setFuncionarioSelecionado}>
@@ -166,7 +180,7 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
                 </div>
 
                 <div>
-                  <Label>Tempo (horas)</Label>
+                  <Label>Tempo</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -178,9 +192,31 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
                 </div>
 
                 <div>
+                  <Label>Unidade</Label>
+                  <Select value={unidadeTempo} onValueChange={setUnidadeTempo}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutos">Minutos</SelectItem>
+                      <SelectItem value="horas">Horas</SelectItem>
+                      <SelectItem value="dias">Dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
                   <Label>Valor Total</Label>
                   <div className="h-10 flex items-center px-3 border rounded-md bg-muted">
-                    {funcionarioAtual && tempo ? `R$ ${(funcionarioAtual.custo_por_hora * parseFloat(tempo || '0')).toFixed(2)}` : 'R$ 0,00'}
+                    {funcionarioAtual && tempo ? (() => {
+                      let tempoEmHoras = parseFloat(tempo || '0');
+                      if (unidadeTempo === 'minutos') {
+                        tempoEmHoras = tempoEmHoras / 60;
+                      } else if (unidadeTempo === 'dias') {
+                        tempoEmHoras = tempoEmHoras * 8;
+                      }
+                      return `R$ ${(funcionarioAtual.custo_por_hora * tempoEmHoras).toFixed(2)}`;
+                    })() : 'R$ 0,00'}
                   </div>
                 </div>
 
@@ -214,7 +250,7 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
                     <div className="flex-1">
                       <div className="font-medium">{item.funcionario.nome}</div>
                       <div className="text-sm text-muted-foreground">
-                        {item.funcionario.cargo} • {item.tempo}h • R$ {item.funcionario.custo_por_hora.toFixed(2)}/h
+                        {item.funcionario.cargo} • {item.tempo} {item.unidadeTempo || 'horas'} • R$ {item.funcionario.custo_por_hora.toFixed(2)}/h
                       </div>
                     </div>
                     <div className="text-right mr-4">
