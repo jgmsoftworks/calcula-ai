@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Package, TrendingUp, Plus } from 'lucide-react';
+import { Clock, Package, TrendingUp, Plus, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +8,30 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TipoProdutoModal } from './TipoProdutoModal';
+import { MaoObraModal } from './MaoObraModal';
+
+interface MaoObraItem {
+  id: string;
+  funcionario: {
+    id: string;
+    nome: string;
+    cargo: string;
+    custo_por_hora: number;
+  };
+  tempo: number;
+  valorTotal: number;
+}
 
 export function ProjecaoStep() {
   const [tipoProduto, setTipoProduto] = useState('');
   const [rendimentoValor, setRendimentoValor] = useState('');
   const [rendimentoUnidade, setRendimentoUnidade] = useState('unidade');
   const [tempoPreparoTotal, setTempoPreparoTotal] = useState(0);
-  const [tempoPreparoMaoObra, setTempoPreparoMaoObra] = useState(0);
+  const [tempoPreparoUnidade, setTempoPreparoUnidade] = useState('minutos');
+  const [maoObra, setMaoObra] = useState<MaoObraItem[]>([]);
   const [tiposProduto, setTiposProduto] = useState<{ id: string; nome: string }[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalMaoObraAberto, setModalMaoObraAberto] = useState(false);
 
   // Mock data para cálculos
   const custoIngredientes = 45.20;
@@ -32,6 +47,12 @@ export function ProjecaoStep() {
     { value: 'mililitro', label: 'Mililitro (ML)' },
   ];
 
+  const unidadesTempo = [
+    { value: 'minutos', label: 'Minutos' },
+    { value: 'horas', label: 'Horas' },
+    { value: 'dias', label: 'Dias' },
+  ];
+
   const adicionarTipoProduto = (novoTipo: { id: string; nome: string }) => {
     setTiposProduto([...tiposProduto, novoTipo]);
   };
@@ -39,6 +60,13 @@ export function ProjecaoStep() {
   const atualizarTiposProduto = (novostipos: { id: string; nome: string }[]) => {
     setTiposProduto(novostipos);
   };
+
+  const atualizarMaoObra = (novaMaoObra: MaoObraItem[]) => {
+    setMaoObra(novaMaoObra);
+  };
+
+  const tempoTotalMaoObra = maoObra.reduce((total, item) => total + item.tempo, 0);
+  const valorTotalMaoObra = maoObra.reduce((total, item) => total + item.valorTotal, 0);
 
   return (
     <div className="space-y-6">
@@ -129,30 +157,67 @@ export function ProjecaoStep() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="tempo-total" className="text-sm">Tempo Total (minutos)</Label>
-                <Input
-                  id="tempo-total"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={tempoPreparoTotal || ''}
-                  onChange={(e) => setTempoPreparoTotal(parseInt(e.target.value) || 0)}
-                />
+                <Label className="text-sm">Tempo de Preparo Total</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={tempoPreparoTotal || ''}
+                    onChange={(e) => setTempoPreparoTotal(parseInt(e.target.value) || 0)}
+                    className="flex-1"
+                  />
+                  <Select value={tempoPreparoUnidade} onValueChange={setTempoPreparoUnidade}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unidadesTempo.map((unidade) => (
+                        <SelectItem key={unidade.value} value={unidade.value}>
+                          {unidade.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <div>
-                <Label htmlFor="tempo-mao-obra" className="text-sm">Tempo de Mão de Obra (minutos)</Label>
-                <Input
-                  id="tempo-mao-obra"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={tempoPreparoMaoObra || ''}
-                  onChange={(e) => setTempoPreparoMaoObra(parseInt(e.target.value) || 0)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Tempo efetivo de trabalho manual
-                </p>
+                <Label className="text-sm">Tempo de Mão de Obra Direta</Label>
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setModalMaoObraAberto(true)}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Mão de Obra
+                  </Button>
+                  
+                  {maoObra.length > 0 && (
+                    <div className="space-y-2">
+                      {maoObra.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded-lg text-sm">
+                          <div>
+                            <span className="font-medium">{item.funcionario.nome}</span>
+                            <span className="text-muted-foreground ml-2">({item.funcionario.cargo})</span>
+                          </div>
+                          <div className="text-right">
+                            <div>{item.tempo}h</div>
+                            <div className="text-muted-foreground">R$ {item.valorTotal.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span className="text-sm font-medium">Total:</span>
+                        <div className="text-right">
+                          <div className="text-sm">{tempoTotalMaoObra}h</div>
+                          <div className="text-sm font-medium">R$ {valorTotalMaoObra.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -205,20 +270,20 @@ export function ProjecaoStep() {
               </div>
             )}
 
-            {(tempoPreparoTotal > 0 || tempoPreparoMaoObra > 0) && (
+            {(tempoPreparoTotal > 0 || maoObra.length > 0) && (
               <div className="pt-4 border-t">
                 <Label className="text-sm font-medium mb-2 block">Tempos Configurados</Label>
                 <div className="space-y-1">
                   {tempoPreparoTotal > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Tempo Total:</span>
-                      <span>{tempoPreparoTotal} min</span>
+                      <span>{tempoPreparoTotal} {unidadesTempo.find(u => u.value === tempoPreparoUnidade)?.label}</span>
                     </div>
                   )}
-                  {tempoPreparoMaoObra > 0 && (
+                  {maoObra.length > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Mão de Obra:</span>
-                      <span>{tempoPreparoMaoObra} min</span>
+                      <span>{tempoTotalMaoObra}h (R$ {valorTotalMaoObra.toFixed(2)})</span>
                     </div>
                   )}
                 </div>
@@ -235,6 +300,14 @@ export function ProjecaoStep() {
         onTipoProdutoCreated={adicionarTipoProduto}
         onTipoProdutoUpdated={atualizarTiposProduto}
         existingTipos={tiposProduto}
+      />
+
+      {/* Modal de Mão de Obra */}
+      <MaoObraModal
+        isOpen={modalMaoObraAberto}
+        onClose={() => setModalMaoObraAberto(false)}
+        onMaoObraUpdated={atualizarMaoObra}
+        existingMaoObra={maoObra}
       />
     </div>
   );
