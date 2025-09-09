@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
-  const [filtroPerido, setFiltroPerido] = useState<string>('6');
+  const [filtroPerido, setFiltroPerido] = useState<string>('12'); // Padrão 12 meses
+  
+  // Debug do estado do filtro
+  useEffect(() => {
+    console.log('🔍 Estado do filtro mudou para:', filtroPerido);
+  }, [filtroPerido]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
     despesasFixas: false,
@@ -82,88 +87,70 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   });
   const { user } = useAuth();
   const { toast } = useToast();
-  const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
-  
-  // Anti-reentrada para salvamentos
-  const salvandoRef = useRef(false);
-  const carregandoRef = useRef(false);
+  const { loadConfiguration, saveConfiguration, deleteMultipleConfigurations } = useOptimizedUserConfigurations();
 
-  // Chave única baseada no bloco (sempre usa ID se disponível, senão usa timestamp fixo para novos)
-  const getConfigKey = useCallback((tipo: string) => {
-    const blocoId = markupBlock?.id || 'new-block';
-    return `${tipo}-${blocoId}`;
-  }, [markupBlock?.id]);
-
-  // Carregar filtro salvo com verificação rigorosa e logs detalhados
-  const carregarFiltroSalvo = useCallback(async () => {
-    if (carregandoRef.current) return;
-    carregandoRef.current = true;
-    
-    try {
-      const configKey = getConfigKey('filtro-periodo');
-      console.log(`🔍 [MODAL] Carregando filtro para bloco ${markupBlock?.id} com chave: ${configKey}`);
-      
-      const filtroSalvo = await loadConfiguration(configKey, { fresh: true });
-      console.log(`📋 [MODAL] Filtro carregado do banco:`, { 
-        blocoId: markupBlock?.id,
-        configKey, 
-        valorCarregado: filtroSalvo, 
-        tipo: typeof filtroSalvo,
-        filtroAtual: filtroPerido 
-      });
-      
-      if (filtroSalvo !== null && filtroSalvo !== undefined) {
-        const filtroStr = String(filtroSalvo);
-        if (['1', '3', '6', '12', 'todos'].includes(filtroStr)) {
-          console.log(`✅ [MODAL] Aplicando filtro salvo: ${filtroStr} (era: ${filtroPerido})`);
-          setFiltroPerido(filtroStr);
-        } else {
-          console.log(`⚠️ [MODAL] Filtro inválido (${filtroStr}), mantendo atual: ${filtroPerido}`);
-        }
-      } else {
-        console.log(`ℹ️ [MODAL] Nenhum filtro salvo encontrado para bloco ${markupBlock?.id}, mantendo atual: ${filtroPerido}`);
-      }
-      
-    } catch (error) {
-      console.error('❌ [MODAL] Erro ao carregar filtro:', error);
-    } finally {
-      carregandoRef.current = false;
-    }
-  }, [getConfigKey, loadConfiguration, filtroPerido, markupBlock?.id]);
-
-  // Atualizar valores locais quando markupBlock mudar E carregar filtro
+  // Atualizar valores locais quando markupBlock mudar
   useEffect(() => {
     if (markupBlock) {
       setCurrentMarkupValues(markupBlock);
-      // Carregar filtro específico do bloco
+      // Carregar filtro salvo para este bloco
       carregarFiltroSalvo();
-    } else {
-      // Para novo bloco, usar valor padrão sem carregar
-      setFiltroPerido('6'); // Padrão apenas para novos blocos
     }
-  }, [markupBlock?.id, carregarFiltroSalvo]);
+  }, [markupBlock]);
 
-  // Salvar filtro com proteção anti-reentrada e trigger para recálculo
-  const handleFiltroChange = useCallback(async (novoFiltro: string) => {
-    if (salvandoRef.current) return;
+  // Carregar filtro salvo
+  const carregarFiltroSalvo = async () => {
+    try {
+      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      console.log('🔍 Tentando carregar filtro com chave:', configKey);
+      
+      const filtroSalvo = await loadConfiguration(configKey);
+      console.log('🔍 Resultado do carregamento:', { configKey, filtroSalvo, tipo: typeof filtroSalvo });
+      
+      if (filtroSalvo && typeof filtroSalvo === 'string') {
+        console.log('✅ Aplicando filtro salvo:', filtroSalvo);
+        setFiltroPerido(filtroSalvo);
+      } else {
+        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão 12 meses');
+        setFiltroPerido('12'); // Forçar padrão
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar filtro:', error);
+      setFiltroPerido('12'); // Fallback
+    }
+  };
+
+  // Salvar filtro quando mudado
+  const handleFiltroChange = async (novoFiltro: string) => {
+    console.log('🔄 handleFiltroChange chamado - Mudando filtro de', filtroPerido, 'para:', novoFiltro);
+    console.log('🔄 markupBlock existe?', !!markupBlock, markupBlock?.id);
     
     setFiltroPerido(novoFiltro);
     
-    salvandoRef.current = true;
+    // Salvar filtro SEMPRE, mesmo para novos blocos
     try {
-      const configKey = getConfigKey('filtro-periodo');
-      await saveConfiguration(configKey, novoFiltro);
-      invalidateCache(configKey);
+      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      console.log('💾 Salvando filtro com chave:', configKey, 'valor:', novoFiltro);
       
-      // Marcar que houve mudanças para disparar recálculo
-      setHasUnsavedChanges(true);
+      await saveConfiguration(configKey, novoFiltro);
+      console.log('✅ Filtro salvo com sucesso:', configKey, novoFiltro);
+      
+      // Verificar se foi realmente salvo
+      const verificacao = await loadConfiguration(configKey);
+      console.log('🔍 Verificação do salvamento:', verificacao);
+      
+      // IMPORTANTE: Recalcular markup com o novo filtro
+      setTimeout(() => {
+        if (Object.keys(tempCheckboxStates).length > 0) {
+          console.log('🔄 Recalculando markup com novo filtro:', novoFiltro);
+          calcularMarkup(tempCheckboxStates);
+        }
+      }, 100); // Pequeno delay para garantir que o estado foi atualizado
       
     } catch (error) {
       console.error('❌ Erro ao salvar filtro:', error);
-    } finally {
-      salvandoRef.current = false;
     }
-  }, [getConfigKey, saveConfiguration, invalidateCache]);
+  };
 
   const carregarDados = async () => {
     if (!user) return;
@@ -235,26 +222,32 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         setFaturamentosHistoricos(faturamentos);
       }
 
-      // Carregar estados dos checkboxes com chave única
-      const configKey = getConfigKey('checkbox-states');
+      // Carregar estados dos checkboxes salvos ANTES de calcular
+      const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      console.log(`🔧 Carregando configuração com chave: ${configKey}`);
+      
       const savedStates = await loadConfiguration(configKey);
+      console.log(`📋 Estados salvos carregados:`, savedStates);
       
       let statesParaUsar: Record<string, boolean> = {};
       
       if (savedStates && typeof savedStates === 'object') {
         statesParaUsar = savedStates as Record<string, boolean>;
+        setCheckboxStates(statesParaUsar);
+        setTempCheckboxStates(statesParaUsar);
+        console.log(`✅ Estados aplicados:`, statesParaUsar);
       } else {
         // Inicializar com todos desmarcados por padrão
         [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
           statesParaUsar[item.id] = false;
         });
+        setCheckboxStates(statesParaUsar);
+        setTempCheckboxStates(statesParaUsar);
+        console.log(`⚠️ Usando estados padrão (desmarcados):`, statesParaUsar);
       }
       
-      // Aplicar estados de uma vez só (sem disparar recálculos)
-      setCheckboxStates(statesParaUsar);
-      setTempCheckboxStates(statesParaUsar);
-      
-      // Calcular markup uma única vez com os estados carregados
+      // Calcular markup COM os estados carregados
+      console.log(`🧮 Calculando markup inicial com estados:`, statesParaUsar);
       calcularMarkup(statesParaUsar);
       
       setHasUnsavedChanges(false);
@@ -271,21 +264,23 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   };
 
   useEffect(() => {
+    console.log('🔄 Modal aberto:', open, 'markupBlock:', markupBlock?.id || 'NOVO');
     if (open) {
       carregarDados();
-      // Só carregar filtro se for um bloco existente
-      if (markupBlock) {
-        carregarFiltroSalvo();
-      }
+      carregarFiltroSalvo(); // Carregar filtro salvo sempre que abrir
     }
-  }, [open, user?.id, markupBlock?.id, carregarFiltroSalvo]); // Adicionar carregarFiltroSalvo como dependência
+  }, [open, user, markupBlock?.id]); // Adiciona markupBlock.id como dependência
 
-  // Recalcular markup quando dados carregarem ou filtro mudar
+  // Recalcular markup quando os dados são carregados
   useEffect(() => {
-    if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0) {
-      debouncedCalculateMarkup(tempCheckboxStates);
+    // APENAS recalcular se não estiver criando um novo bloco E se tiver um markupBlock definido
+    if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      console.log(`🔄 Recalculando markup com estados:`, tempCheckboxStates);
+      calcularMarkup(tempCheckboxStates);
+    } else if (open && !markupBlock) {
+      console.log(`🆕 Modal aberto para novo bloco - não calculando automaticamente`);
     }
-  }, [open, markupBlock?.id, tempCheckboxStates, filtroPerido]); // Adicionar filtroPerido como dependência
+  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento, markupBlock]);
 
   // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
   useEffect(() => {
@@ -331,40 +326,137 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [open]);
 
-  // Função para calcular média mensal baseada no período selecionado
-  const calcularMediaMensal = useMemo(() => {
+  // Função helper para calcular média mensal para diferentes períodos
+  const calcularMediaPorPeriodo = useCallback((periodo: string) => {
     if (faturamentosHistoricos.length === 0) return 0;
-
-    console.log('📊 Calculando média mensal:', {
-      filtroPerido,
-      totalFaturamentos: faturamentosHistoricos.length,
-      faturamentos: faturamentosHistoricos.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor }))
-    });
 
     let faturamentosSelecionados = [...faturamentosHistoricos];
     
     // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
-    if (filtroPerido !== 'todos') {
-      const quantidade = parseInt(filtroPerido);
+    if (periodo !== 'todos') {
+      const quantidade = parseInt(periodo);
       faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
-      console.log(`📊 Selecionados ${quantidade} meses mais recentes:`, faturamentosSelecionados.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor })));
     }
 
     if (faturamentosSelecionados.length === 0) return 0;
 
     // Se for apenas 1 mês (último mês), retornar o valor do mais recente
-    if (filtroPerido === '1' && faturamentosSelecionados.length > 0) {
-      const valorUltimoMes = faturamentosSelecionados[0].valor;
-      console.log(`📊 Último mês: R$ ${valorUltimoMes}`);
-      return valorUltimoMes;
+    if (periodo === '1' && faturamentosSelecionados.length > 0) {
+      return faturamentosSelecionados[0].valor;
     }
 
     // Para outros casos, calcular a média dos selecionados
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
     const media = totalFaturamento / faturamentosSelecionados.length;
-    console.log(`📊 Média calculada: R$ ${media} (total: R$ ${totalFaturamento} / ${faturamentosSelecionados.length} meses)`);
     return media;
-  }, [faturamentosHistoricos, filtroPerido]);
+  }, [faturamentosHistoricos]);
+
+  // Função para aplicar período selecionado e resetar configurações anteriores
+  const handleAplicarPeriodo = useCallback(async () => {
+    console.log(`🔄 Aplicando período: ${filtroPerido}`);
+    
+    try {
+      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos usando limpeza em lote
+      const configKeysToReset = [
+        markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
+        `filtro-periodo-forcado-${markupBlock?.id || 'default'}`,
+        'ultimo-filtro-aplicado',
+        'filtro-periodo-1',
+        'filtro-periodo-3', 
+        'filtro-periodo-6',
+        'filtro-periodo-12',
+        'filtro-periodo-todos'
+      ];
+      
+      console.log('🧹 Limpando configurações anteriores com nova estratégia...');
+      await deleteMultipleConfigurations(configKeysToReset);
+      
+      // 2. Aguardar um pouco para garantir que a limpeza foi processada
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // 3. AGORA: Salvar APENAS o período selecionado com retry
+      const mainConfigKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      
+      // Implementar retry inteligente
+      let retryCount = 0;
+      const maxRetries = 3;
+      let saved = false;
+      
+      while (!saved && retryCount < maxRetries) {
+        try {
+          await saveConfiguration(mainConfigKey, filtroPerido);
+          console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
+          saved = true;
+        } catch (error) {
+          retryCount++;
+          console.warn(`⚠️ Tentativa ${retryCount}/${maxRetries} falhou:`, error);
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500 * retryCount)); // Backoff exponencial
+          } else {
+            throw error; // Falha após todas as tentativas
+          }
+        }
+      }
+      
+      // 4. Reforçar o estado local
+      setFiltroPerido(filtroPerido);
+      
+      // 5. Recalcular com o novo período
+      setTimeout(() => {
+        if (Object.keys(tempCheckboxStates).length > 0) {
+          console.log('🔄 Recalculando com novo período:', filtroPerido);
+          handleFiltroChange(filtroPerido);
+        }
+      }, 300);
+      
+      // 6. Mostrar toast amigável e validar se foi salvo
+      const savedValue = await loadConfiguration(mainConfigKey);
+      const isCorrectlyApplied = savedValue === filtroPerido;
+      
+      toast({
+        title: isCorrectlyApplied ? "Período aplicado com sucesso!" : "Período aplicado (verificando...)",
+        description: `Cálculos atualizados para ${
+          filtroPerido === '1' ? 'último mês' :
+          filtroPerido === '3' ? 'últimos 3 meses' :
+          filtroPerido === '6' ? 'últimos 6 meses' :
+          filtroPerido === '12' ? 'últimos 12 meses' :
+          'todos os períodos'
+        }${isCorrectlyApplied ? '' : ' - Validando aplicação...'}`,
+        duration: isCorrectlyApplied ? 3000 : 5000,
+        variant: isCorrectlyApplied ? "default" : "default"
+      });
+      
+      // Se não foi aplicado corretamente, tentar uma última vez
+      if (!isCorrectlyApplied) {
+        console.warn(`⚠️ Validação falhou: esperado=${filtroPerido}, atual=${savedValue}`);
+        setTimeout(async () => {
+          try {
+            await saveConfiguration(mainConfigKey, filtroPerido);
+            toast({
+              title: "Período corrigido!",
+              description: "Aplicação do filtro foi validada e corrigida.",
+              duration: 3000
+            });
+          } catch (error) {
+            console.error('❌ Falha na correção final:', error);
+          }
+        }, 1000);
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro ao aplicar período:', error);
+      toast({
+        title: "Erro ao aplicar período",
+        description: "Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+    }
+  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
+
+  // Função para calcular média mensal baseada no período selecionado
+  const calcularMediaMensal = useMemo(() => {
+    return calcularMediaPorPeriodo(filtroPerido);
+  }, [faturamentosHistoricos, filtroPerido, calcularMediaPorPeriodo]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -581,55 +673,66 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [calcularMarkup]);
 
-  // Calcular markup sempre que os estados ou filtro mudarem
+  // Calcular markup sempre que os estados mudarem (otimizado)
   useEffect(() => {
-    if (markupBlock && Object.keys(tempCheckboxStates).length > 0) {
+    // APENAS calcular se não estiver criando um novo bloco E tiver um markupBlock
+    if (markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
       debouncedCalculateMarkup(tempCheckboxStates);
     }
-  }, [tempCheckboxStates, markupBlock?.id, filtroPerido]); // Adicionar filtroPerido
+  }, [tempCheckboxStates, debouncedCalculateMarkup, markupBlock]); // Adiciona markupBlock como dependência
 
-  const handleSalvar = useCallback(async () => {
-    if (salvandoRef.current) return; // Proteção anti-reentrada
-    salvandoRef.current = true;
-
+  const handleSalvar = async () => {
     try {
-      // Calcular markup final com estados atuais
-      const markupCalculado = { ...currentMarkupValues };
-      calcularMarkup(tempCheckboxStates);
+      console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
       
-      // Aguardar atualização do estado
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // CRÍTICO: Invalidar cache do filtro específico para forçar releitura
-      const filtroKey = getConfigKey('filtro-periodo');
-      invalidateCache(filtroKey);
-      
-      // Salvar configurações com chave única  
-      const configKey = getConfigKey('checkbox-states');
-      
-      console.log(`💾 Tentando salvar configurações:`, {
-        filtroKey,
-        configKey,
-        filtro: filtroPerido,
-        checkboxes: tempCheckboxStates
+      // IMPORTANTE: Calcular markup ANTES de salvar para garantir valores corretos
+      const markupCalculado = await new Promise<any>((resolve) => {
+        // Calcular markup com os estados temporários
+        calcularMarkup(tempCheckboxStates);
+        
+        // Aguardar um pequeno delay para garantir que o cálculo seja concluído
+        setTimeout(() => {
+          resolve(currentMarkupValues);
+        }, 100);
       });
-
-      // Salvar configurações com tratamento de erro
-      try {
-        await saveConfiguration(configKey, tempCheckboxStates);
-        await saveConfiguration(filtroKey, filtroPerido); // Salvar filtro também
-        console.log(`✅ Configurações salvas com sucesso`);
-      } catch (error) {
-        console.error(`❌ Erro ao salvar configurações:`, error);
-        throw error;
+      
+      console.log('🧮 Markup calculado para salvamento:', markupCalculado);
+      
+      // IMPORTANTE: Carregar configuração existente ANTES de salvar para preservar outras abas
+      const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      const configExistente = await loadConfiguration(configKey);
+      
+      // Mesclar configuração existente com novos estados (preservar outras abas)
+      let estadosParaSalvar = { ...tempCheckboxStates };
+      
+      if (configExistente && typeof configExistente === 'object') {
+        // Preservar estados existentes que não foram modificados nesta sessão
+        const configAtual = configExistente as Record<string, boolean>;
+        
+        // Criar lista de IDs dos itens atuais (visíveis no modal)
+        const idsAtuais = new Set([
+          ...despesasFixas.map(d => d.id),
+          ...folhaPagamento.map(f => f.id), 
+          ...encargosVenda.map(e => e.id)
+        ]);
+        
+        // Para cada item na configuração salva
+        Object.keys(configAtual).forEach(id => {
+          // Se o item não está na lista atual (outra aba/contexto), preservar valor salvo
+          if (!idsAtuais.has(id)) {
+            estadosParaSalvar[id] = configAtual[id];
+          }
+        });
+        
+        console.log('🔄 Estados mesclados - preservando outras abas:', estadosParaSalvar);
       }
       
-      // Invalidar cache para garantir leitura fresh na próxima vez
-      invalidateCache(configKey);
-      invalidateCache(filtroKey);
+      // Salvar estados mesclados no banco
+      await saveConfiguration(configKey, estadosParaSalvar);
+      console.log('✅ Configuração salva no banco:', configKey, estadosParaSalvar);
       
       // Atualizar estados locais
-      setCheckboxStates({ ...tempCheckboxStates });
+      setCheckboxStates(estadosParaSalvar);
       setHasUnsavedChanges(false);
       
       toast({
@@ -639,16 +742,16 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           : "O novo bloco de markup foi criado e configurado"
       });
       
-      // Emitir callback para o componente pai COM os valores atuais
+      // Emitir callback para o componente pai COM os valores calculados
       if (onMarkupUpdate) {
-        // Aguardar um frame para garantir que todos os cálculos foram concluídos
-        setTimeout(() => {
-          onMarkupUpdate({ ...currentMarkupValues });
-        }, 50);
+        console.log('📤 Enviando dados calculados para componente pai:', markupCalculado);
+        onMarkupUpdate(markupCalculado);
       }
       
-      // Fechar modal
-      onOpenChange(false);
+      // Fechar modal após um pequeno delay
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
       
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);
@@ -657,29 +760,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         description: "Não foi possível salvar as configurações",
         variant: "destructive"
       });
-    } finally {
-      salvandoRef.current = false;
     }
-  }, [tempCheckboxStates, currentMarkupValues, getConfigKey, saveConfiguration, invalidateCache, onMarkupUpdate, onOpenChange, markupBlock, toast]);
+  };
 
   const handleCancelar = () => {
+    console.log('🚫 Cancelando alterações, restaurando estados originais');
     // Restaurar estados originais
     setTempCheckboxStates(checkboxStates);
     setHasUnsavedChanges(false);
+    calcularMarkup(checkboxStates);
     onOpenChange(false);
   };
-
-  // Trigger para atualizar tela principal quando modal fechar
-  useEffect(() => {
-    if (!open && markupBlock && onMarkupUpdate) {
-      // Quando fechar o modal, garantir que a tela principal tenha os valores atualizados
-      const timer = setTimeout(() => {
-        onMarkupUpdate({ ...currentMarkupValues });
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [open, markupBlock, onMarkupUpdate, currentMarkupValues]);
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
@@ -756,31 +847,82 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           </DialogDescription>
         </DialogHeader>
 
-        {markupBlock && (
-          <Card className="bg-blue-50/50 border-blue-200">
-            <CardHeader>
+        <Card className="bg-blue-50/50 border-blue-200">
+          <CardHeader>
+            <div className="flex flex-col space-y-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
-                <div className="flex items-center gap-4">
-                  <Select value={filtroPerido} onValueChange={handleFiltroChange}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Período" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Último mês</SelectItem>
-                      <SelectItem value="3">Últimos 3 meses</SelectItem>
-                      <SelectItem value="6">Últimos 6 meses</SelectItem>
-                      <SelectItem value="12">Últimos 12 meses</SelectItem>
-                      <SelectItem value="todos">Todos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Média Mensal</p>
-                    <p className="text-lg font-semibold text-primary">{formatCurrency(calcularMediaMensal)}</p>
-                  </div>
+                <CardTitle className="text-lg">
+                  {markupBlock ? 'Valores do Bloco de Markup' : 'Configuração do Novo Bloco'}
+                </CardTitle>
+              </div>
+              
+              {/* Tabs para Períodos */}
+              <div className="border rounded-lg p-4 bg-background">
+                <h4 className="text-sm font-medium mb-3">Selecione o Período de Análise:</h4>
+                <Tabs value={filtroPerido} onValueChange={setFiltroPerido} className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="1">Último mês</TabsTrigger>
+                    <TabsTrigger value="3">Últimos 3 meses</TabsTrigger>
+                    <TabsTrigger value="6">Últimos 6 meses</TabsTrigger>
+                    <TabsTrigger value="12">Últimos 12 meses</TabsTrigger>
+                    <TabsTrigger value="todos">Todos</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="1" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Último mês)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('1'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="3" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 3 meses)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('3'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="6" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 6 meses)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('6'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="12" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 12 meses)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('12'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="todos" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Todos os períodos)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('todos'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                <div className="flex justify-center mt-4">
+                  <Button onClick={handleAplicarPeriodo} variant="outline" size="sm">
+                    Aplicar Período Selecionado
+                  </Button>
                 </div>
               </div>
-            </CardHeader>
+            </div>
+          </CardHeader>
+          {markupBlock && (
             <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
@@ -791,7 +933,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.impostos || 0)}%</p>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Taxas de pagamento</Label>
+                <Label className="text-sm font-medium">Taxas da pagamento</Label>
                 <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.taxasMeiosPagamento || 0)}%</p>
               </div>
               <div className="space-y-1">
@@ -811,8 +953,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 <p className="text-lg font-semibold text-green-600">{formatPercentage(currentMarkupValues.lucroDesejado || 0)}%</p>
               </div>
             </CardContent>
-          </Card>
-        )}
+          )}
+        </Card>
 
         <Tabs defaultValue="despesas-fixas" className="w-full">
           <TabsList className="grid w-full grid-cols-3">

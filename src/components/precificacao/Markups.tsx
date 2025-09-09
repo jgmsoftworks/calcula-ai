@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calculator, Plus, Trash2, Edit2, Info, Settings } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,7 +22,6 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
-  periodo?: string; // '1' | '3' | '6' | '12' | 'todos'
 }
 
 interface CalculatedMarkup {
@@ -34,28 +33,28 @@ interface CalculatedMarkup {
   valorEmReal: number;
 }
 
-const PERIODOS_VALIDOS = new Set(['1', '3', '6', '12', 'todos']);
-
 export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
-  const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
-  const [modalAberto, setModalAberto] = useState(false);
   const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
   const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
-  const [criandoNovoBloco, setCriandoNovoBloco] = useState(false);
-
+  
+  // 🎯 NOVO: Estados para o submenu de períodos e configuração
+  const [submenusAbertos, setSubmenusAbertos] = useState<Set<string>>(new Set());
+  const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, string>>(new Map());
+  const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
+  const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
+  
+  // 🚪 PORTÃO: Estado para controlar se os períodos foram carregados
+  const [isLoadingPeriodos, setIsLoadingPeriodos] = useState(true);
+  
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // trava anti-reentrada de cálculo e salvamento
-  const recalculandoRef = useRef(false);
-  const salvandoRef = useRef(false);
-
-  // Bloco informativo
+  // Bloco fixo para subreceita
   const blocoSubreceita: MarkupBlock = {
     id: 'subreceita-fixo',
     nome: 'subreceita',
@@ -68,304 +67,460 @@ export function Markups() {
     lucroDesejado: 0
   };
 
+  // Mapeamento de categorias - MESMA LÓGICA DO MODAL
   const categoriasMap = useMemo(() => {
     return {
-      impostos: new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
-      meios_pagamento: new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
-      comissoes: new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
+      'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
+      'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
+      'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
     };
   }, []);
 
-  const getCategoriaByNome = useCallback(
-    (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
-      if (categoriasMap.impostos.has(nome)) return 'impostos';
-      if (categoriasMap.meios_pagamento.has(nome)) return 'meios_pagamento';
-      if (categoriasMap.comissoes.has(nome)) return 'comissoes';
-      return 'outros';
-    },
-    [categoriasMap]
-  );
+  const getCategoriaByNome = useCallback((nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
+    if (categoriasMap.impostos.has(nome)) return 'impostos';
+    if (categoriasMap.meios_pagamento.has(nome)) return 'meios_pagamento';
+    if (categoriasMap.comissoes.has(nome)) return 'comissoes';
+    return 'outros';
+  }, [categoriasMap]);
 
-  // wrapper que garante que só um cálculo rode por vez
-  const recalcOnce = useCallback(async (fn: () => Promise<void>) => {
-    if (recalculandoRef.current) return;
-    recalculandoRef.current = true;
-    try {
-      await fn();
-    } finally {
-      recalculandoRef.current = false;
+  // Função ÚNICA para carregar e calcular configurações salvas
+  const carregarConfiguracoesSalvas = useCallback(async () => {
+    if (!user?.id || blocos.length === 0 || isLoadingPeriodos) {
+      console.log('⏳ Aguardando carregamento dos períodos...');
+      return;
     }
-  }, []);
 
-  // Função auxiliar que recebe os blocos diretamente (evita dependência do estado)
-  const carregarConfiguracoesSalvasComBlocos = useCallback(async (blocosParaCalcular: MarkupBlock[]) => {
-    if (!user?.id || blocosParaCalcular.length === 0) return;
+    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
 
-    console.log('🧮 Iniciando recálculo para', blocosParaCalcular.length, 'blocos');
-    
-    try {
-      const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
+    const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
-      const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+    // Buscar dados uma só vez para todos os blocos (Isso está ótimo para performance)
+    const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
         supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
         supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
         supabase.from('encargos_venda').select('*').eq('user_id', user.id)
-      ]);
+    ]);
 
-      // faturamentos sempre fresh para cálculos atualizados
-      const faturamentosConfig = await loadConfiguration('faturamentos_historicos', { fresh: true });
-      const todosFaturamentos: Array<{ mes: Date; valor: number }> =
-        faturamentosConfig && Array.isArray(faturamentosConfig)
-          ? faturamentosConfig.map((f: any) => ({ mes: new Date(f.mes), valor: Number(f.valor) || 0 }))
-          : [];
+    // <<-- CORREÇÃO: Carrega todos os faturamentos aqui, mas o cálculo será feito dentro do loop.
+    const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+    const todosFaturamentos = (faturamentosConfig && Array.isArray(faturamentosConfig))
+        ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
+        : [];
 
-      console.log('📊 Dados carregados:', {
-        despesasFixas: despesasFixas?.length || 0,
-        folhaPagamento: folhaPagamento?.length || 0,
-        encargosVenda: encargosVenda?.length || 0,
-        faturamentos: todosFaturamentos.length
-      });
+    console.log('📊 Dados base para cálculo:', {
+        despesasFixas: despesasFixas?.length,
+        folhaPagamento: folhaPagamento?.length,
+        encargosVenda: encargosVenda?.length,
+        totalFaturamentos: todosFaturamentos.length
+    });
 
-      let blocosAtualizados: MarkupBlock[] | null = null;
-
-      for (const bloco of blocosParaCalcular) {
-        console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
+    // Processar cada bloco individualmente
+    for (const bloco of blocos) {
+        const configKey = `checkbox-states-${bloco.id}`;
+        const config = await loadConfiguration(configKey);
         
-        // SEMPRE carregar período fresh do storage - logs detalhados
-        const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
-        let periodo: string;
-        
-        console.log(`🔍 [TELA] Carregando filtro para bloco ${bloco.nome} (${bloco.id}):`, { 
-          valorSalvo: salvo, 
-          tipoSalvo: typeof salvo,
-          periodoBloco: bloco.periodo 
-        });
-        
-        if (salvo !== null && salvo !== undefined && PERIODOS_VALIDOS.has(String(salvo))) {
-          periodo = String(salvo);
-          console.log(`✅ [TELA] Período salvo encontrado para ${bloco.nome}: ${periodo}`);
-        } else if (bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo))) {
-          periodo = String(bloco.periodo);
-          console.log(`📋 [TELA] Usando período do bloco para ${bloco.nome}: ${periodo}`);
-        } else {
-          periodo = 'todos';
-          console.log(`⚠️ [TELA] Usando fallback 'todos' para ${bloco.nome} (salvo: ${salvo})`);
-        }
-        
-        console.log(`📅 Período salvo carregado para ${bloco.nome}: ${periodo} (valor bruto: ${salvo})`);
-        
-        // Atualizar bloco com período carregado se for diferente
-        if (periodo !== bloco.periodo) {
-          if (!blocosAtualizados) blocosAtualizados = [...blocosParaCalcular];
-          blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));
-        }
+        console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
-        // filtra faturamentos pelo período
-        let faturamentosFiltrados = todosFaturamentos;
-        if (periodo !== 'todos') {
-          const meses = parseInt(periodo, 10);
-          const limite = new Date();
-          limite.setMonth(limite.getMonth() - meses);
-          faturamentosFiltrados = todosFaturamentos.filter(f => f.mes >= limite);
-        }
-
+        // <<-- CORREÇÃO: Lógica de cálculo da média de faturamento movida para DENTRO do loop
         let mediaMensal = 0;
+        const periodoSelecionado = periodosAplicados.get(bloco.id) || 'todos'; // Default para 'todos'
+        
+        let faturamentosFiltrados = todosFaturamentos;
+
+        if (periodoSelecionado !== 'todos') {
+            const mesesAtras = parseInt(periodoSelecionado, 10);
+            const dataLimite = new Date();
+            dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+
+            faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+        }
+
         if (faturamentosFiltrados.length > 0) {
-          const total = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
-          mediaMensal = total / faturamentosFiltrados.length;
+            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+            mediaMensal = total / faturamentosFiltrados.length;
         }
+        
+        console.log(`📅 Para o bloco "${bloco.nome}" com período "${periodoSelecionado}", a média mensal é: ${mediaMensal}`);
 
-        console.log(`💰 Média mensal para ${bloco.nome}: R$ ${mediaMensal.toFixed(2)} (${faturamentosFiltrados.length} meses)`);
-
-        // checkbox-states sempre fresh para pegar mudanças do modal
-        const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`, { fresh: true });
-
-        console.log(`🗂️ Config checkboxes para ${bloco.nome}:`, configCheckbox);
-
-        if (configCheckbox && typeof configCheckbox === 'object' && Object.keys(configCheckbox).length > 0) {
-          const despesasConsideradas = (despesasFixas || []).filter(d => configCheckbox[d.id] && d.ativo);
-          const totalDespesasFixas = despesasConsideradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
-
-          const folhaConsiderada = (folhaPagamento || []).filter(f => configCheckbox[f.id] && f.ativo);
-          const totalFolhaPagamento = folhaConsiderada.reduce((acc, f) => {
-            const custoMensal =
-              f.custo_por_hora > 0
-                ? Number(f.custo_por_hora) * (Number(f.horas_totais_mes) || 173.2)
-                : Number(f.salario_base || 0);
-            return acc + custoMensal;
-          }, 0);
-
-          const totalGastos = totalDespesasFixas + totalFolhaPagamento;
-          const gastoSobreFaturamentoPct =
-            mediaMensal > 0 && totalGastos > 0 ? Math.round(((totalGastos / mediaMensal) * 100) * 100) / 100 : 0;
-
-          const encargosConsiderados = (encargosVenda || []).filter(e => configCheckbox[e.id] && e.ativo);
-          const valorEmReal = encargosConsiderados.reduce((acc, e) => acc + Number(e.valor_fixo || 0), 0);
-
-          const categorias = encargosConsiderados.reduce(
-            (acc, e) => {
-              const cat = getCategoriaByNome(e.nome);
-              const v = Number(e.valor_percentual || 0);
-              if (cat === 'impostos') acc.impostos += v;
-              else if (cat === 'meios_pagamento') acc.taxasMeiosPagamento += v;
-              else if (cat === 'comissoes') acc.comissoesPlataformas += v;
-              else acc.outros += v;
-              return acc;
-            },
-            {
-              gastoSobreFaturamento: gastoSobreFaturamentoPct,
-              impostos: 0,
-              taxasMeiosPagamento: 0,
-              comissoesPlataformas: 0,
-              outros: 0,
-              valorEmReal
+        if (config && typeof config === 'object' && Object.keys(config).length > 0) {
+            
+            let gastosSobreFaturamento = 0;
+            
+            // Somar despesas fixas marcadas como "Considerar" E ATIVAS
+            const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => config[d.id] && d.ativo) : [];
+            const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
+            
+            // Somar folha de pagamento marcada como "Considerar" E ATIVA
+            const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
+            const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+                const custoMensal = funcionario.custo_por_hora > 0 
+                    ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+                    : funcionario.salario_base;
+                return acc + Number(custoMensal);
+            }, 0);
+            
+            const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+            
+            // Calcular porcentagem sobre a média mensal ESPECÍFICA deste bloco
+            if (mediaMensal > 0 && totalGastos > 0) {
+                gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
             }
-          );
 
-          novosCalculatedMarkups.set(bloco.id, categorias);
-          console.log(`✅ Cálculo para ${bloco.nome}:`, categorias);
+            console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
+                totalGastos,
+                mediaMensal,
+                gastosSobreFaturamento
+            });
+
+            // O restante da lógica permanece o mesmo...
+            const encargosConsiderados = encargosVenda ? encargosVenda.filter(e => config[e.id] && e.ativo) : [];
+            const valorEmReal = encargosConsiderados.reduce((acc, encargo) => acc + Number(encargo.valor_fixo || 0), 0);
+            
+            const categorias = encargosConsiderados.reduce((acc, encargo) => {
+                const categoria = getCategoriaByNome(encargo.nome);
+                const valor = Number(encargo.valor_percentual || 0);
+                
+                switch (categoria) {
+                    case 'impostos': acc.impostos += valor; break;
+                    case 'meios_pagamento': acc.taxasMeiosPagamento += valor; break;
+                    case 'comissoes': acc.comissoesPlataformas += valor; break;
+                    case 'outros': acc.outros += valor; break;
+                }
+                return acc;
+            }, {
+                gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
+                impostos: 0,
+                taxasMeiosPagamento: 0,
+                comissoesPlataformas: 0,
+                outros: 0,
+                valorEmReal: valorEmReal
+            });
+
+            novosCalculatedMarkups.set(bloco.id, categorias);
+            console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
+
         } else {
-          novosCalculatedMarkups.set(bloco.id, {
-            gastoSobreFaturamento: 0,
-            impostos: 0,
-            taxasMeiosPagamento: 0,
-            comissoesPlataformas: 0,
-            outros: 0,
-            valorEmReal: 0
-          });
-          console.log(`⚠️ ${bloco.nome} sem configurações - usando zeros`);
+            console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
+            novosCalculatedMarkups.set(bloco.id, {
+                gastoSobreFaturamento: 0,
+                impostos: 0,
+                taxasMeiosPagamento: 0,
+                comissoesPlataformas: 0,
+                outros: 0,
+                valorEmReal: 0
+            });
         }
-      }
-
-      if (novosCalculatedMarkups.size > 0) {
-        console.log(`📊 Atualizando ${novosCalculatedMarkups.size} markups calculados`);
+    }
+    
+    if (novosCalculatedMarkups.size > 0) {
         setCalculatedMarkups(novosCalculatedMarkups);
-      }
-
-      if (blocosAtualizados) {
-        setBlocos(blocosAtualizados);
-        try {
-          await saveConfiguration('markups_blocos', blocosAtualizados);
-          invalidateCache('markups_blocos');
-        } catch (e) {
-          console.warn('⚠️ Falha ao persistir markups_blocos com período:', e);
-        }
-      }
-      
-      console.log('✅ Recálculo concluído');
-    } catch (error) {
-      console.error('❌ Erro durante o recálculo:', error);
+        console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
-  }, [user?.id, loadConfiguration, saveConfiguration, invalidateCache, getCategoriaByNome]);
+}, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados, isLoadingPeriodos]);
 
-  // carregar blocos e AGUARDAR antes de fazer qualquer recálculo
-  useEffect(() => {
-    const carregar = async () => {
-      if (!user?.id) return;
-      
-      try {
-        console.log('🚀 Iniciando carregamento de blocos...');
-        
-        // Carregar blocos
-        const cfg = await loadConfiguration('markups_blocos');
-        if (cfg && Array.isArray(cfg)) {
-          const normalizados: MarkupBlock[] = (cfg as MarkupBlock[]).map(b => ({
-            ...b,
-            periodo: PERIODOS_VALIDOS.has(String(b.periodo)) ? String(b.periodo) : 'todos'
-          }));
-          
-          console.log(`📋 ${normalizados.length} blocos carregados:`, normalizados);
-          setBlocos(normalizados);
-          
-          // CRÍTICO: Aguardar os blocos serem setados no estado antes de recalcular
-          setTimeout(async () => {
-            console.log('🧮 Iniciando recálculo após carregar blocos...');
-            if (!recalculandoRef.current) {
-              recalculandoRef.current = true;
-              try {
-                // Usar os blocos normalizados diretamente
-                await carregarConfiguracoesSalvasComBlocos(normalizados);
-              } finally {
-                recalculandoRef.current = false;
-              }
-            }
-          }, 500); // Delay maior para garantir que o estado foi atualizado
-        } else {
-          console.log('⚠️ Nenhum bloco encontrado');
-        }
-        
-      } catch (e) {
-        console.error('❌ Erro ao carregar blocos:', e);
+  // 🎯 NOVO: Funções para gerenciar submenu de períodos
+  const toggleSubmenu = useCallback((blocoId: string) => {
+    setSubmenusAbertos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(blocoId)) {
+        newSet.delete(blocoId);
+      } else {
+        newSet.add(blocoId);
       }
-    };
-    carregar();
-  }, [user?.id, loadConfiguration]);
+      return newSet;
+    });
+  }, []);
 
-  // -------- CARREGAMENTO / CÁLCULO BASEADO NO ESTADO ATUAL ----------
-  const carregarConfiguracoesSalvas = useCallback(async () => {
-    if (!user?.id || blocos.length === 0 || recalculandoRef.current) return;
-
-    recalculandoRef.current = true;
+  const aplicarConfiguracaoPadrao = useCallback(async (blocoId: string) => {
+    console.log(`🎯 Aplicando configuração padrão para bloco ${blocoId}`);
+    
     try {
-      await carregarConfiguracoesSalvasComBlocos(blocos);
-    } finally {
-      recalculandoRef.current = false;
-    }
-  }, [user?.id, blocos, carregarConfiguracoesSalvasComBlocos]);
+      // Buscar todos os dados ativos
+      const { data: despesasFixas } = await supabase
+        .from('despesas_fixas')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('ativo', true);
+        
+      const { data: folhaPagamento } = await supabase
+        .from('folha_pagamento')  
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('ativo', true);
+        
+      const { data: encargosVenda } = await supabase
+        .from('encargos_venda')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('ativo', true);
 
-  // Monitorar mudanças nos faturamentos para recalcular automaticamente
+      // Criar configuração padrão (todos selecionados)
+      const configuracaoPadrao = {
+        despesasFixas: Object.fromEntries((despesasFixas || []).map(d => [d.id, true])),
+        folhaPagamento: Object.fromEntries((folhaPagamento || []).map(f => [f.id, true])),
+        encargosVenda: Object.fromEntries((encargosVenda || []).map(e => [e.id, true]))
+      };
+      
+      // Salvar configuração
+      await saveConfiguration(`configuracao-itens-${blocoId}`, configuracaoPadrao);
+      
+      // Fechar submenu e recalcular
+      setSubmenusAbertos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(blocoId);
+        return newSet;
+      });
+      
+      await carregarConfiguracoesSalvas();
+      
+      toast({
+        title: "Configuração padrão aplicada!",
+        description: "Todos os itens ativos foram selecionados para o cálculo.",
+        duration: 3000
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao aplicar configuração padrão:', error);
+      toast({
+        title: "Erro ao aplicar configuração",
+        description: "Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+    }
+  }, [user?.id, saveConfiguration, carregarConfiguracoesSalvas, toast]);
+
+  const abrirConfiguracaoCompleta = useCallback((blocoId: string) => {
+    setBlocoConfigurandoId(blocoId);
+    setModalConfiguracaoAberto(true);
+    setSubmenusAbertos(new Set()); // Fechar submenu
+  }, []);
+
+  const aplicarPeriodo = useCallback(async (blocoId: string, periodo: string) => {
+    try {
+      // Salvar período selecionado
+      await saveConfiguration(`filtro-periodo-${blocoId}`, periodo);
+      
+      // Atualizar estado local
+      setPeriodosAplicados(prev => new Map(prev).set(blocoId, periodo));
+      
+      // Fechar submenu
+      setSubmenusAbertos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(blocoId);
+        return newSet;
+      });
+      
+      // 🎯 RECÁLCULO IMEDIATO
+      await carregarConfiguracoesSalvas();
+      
+      toast({
+        title: "Período aplicado!",
+        description: `Cálculos atualizados para ${
+          periodo === '1' ? 'último mês' :
+          periodo === '3' ? 'últimos 3 meses' :
+          periodo === '6' ? 'últimos 6 meses' :
+          periodo === '12' ? 'últimos 12 meses' :
+          'todos os períodos'
+        }`,
+        duration: 3000
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao aplicar período:', error);
+      toast({
+        title: "Erro ao aplicar período",
+        description: "Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+    }
+  }, [saveConfiguration, carregarConfiguracoesSalvas, toast]);
+
+  // Carregar períodos aplicados ao inicializar
   useEffect(() => {
-    if (blocos.length > 0 && user?.id) {
-      const intervalId = setInterval(async () => {
+    const carregarPeriodos = async () => {
+      if (!user?.id || blocos.length === 0) return;
+      
+      console.log('🔑 Iniciando carregamento dos períodos salvos...');
+      setIsLoadingPeriodos(true);
+      
+      const periodosMap = new Map<string, string>();
+      
+      for (const bloco of blocos) {
         try {
-          const configAtual = await loadConfiguration('faturamentos_historicos', { fresh: true });
-          if (configAtual) {
-            // Disparar recálculo se não estiver em andamento
-            if (!recalculandoRef.current) {
-              recalcOnce(carregarConfiguracoesSalvas);
-            }
+          const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
+          if (periodo) {
+            periodosMap.set(bloco.id, periodo);
+            console.log(`📅 Período carregado para ${bloco.nome}: ${periodo}`);
           }
         } catch (error) {
-          console.error('Erro ao verificar faturamentos:', error);
+          console.warn(`⚠️ Erro ao carregar período para bloco ${bloco.id}:`, error);
         }
-      }, 10000); // Verificar a cada 10 segundos
-
-      return () => clearInterval(intervalId);
-    }
-  }, [blocos.length, user?.id, loadConfiguration, recalcOnce]);
-
-  const salvarBlocos = useCallback(
-    async (novosBlocos: MarkupBlock[]) => {
-      if (salvandoRef.current) return; // Proteção anti-reentrada
+      }
       
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(async () => {
-        if (salvandoRef.current) return;
-        salvandoRef.current = true;
-        
-        try {
-          await saveConfiguration('markups_blocos', novosBlocos);
-          invalidateCache('markups_blocos');
-        } catch (e) {
-          console.error('Erro ao salvar blocos:', e);
-        } finally {
-          salvandoRef.current = false;
+      setPeriodosAplicados(periodosMap);
+      setIsLoadingPeriodos(false); // 🚪 LIBERA O PORTÃO
+      console.log('✅ Períodos carregados, liberando cálculo dos markups');
+    };
+    
+    carregarPeriodos();
+  }, [user?.id, blocos, loadConfiguration]);
+
+  // 🎯 NOVO: Fechar submenu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (submenusAbertos.size > 0) {
+        const target = event.target as Element;
+        if (!target.closest('.relative')) {
+          setSubmenusAbertos(new Set());
         }
-      }, 800);
-    },
-    [saveConfiguration, invalidateCache]
-  );
+      }
+    };
 
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-  const formatPercentage = (v: number) => v.toFixed(2);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [submenusAbertos.size]);
 
-  const criarNovoBloco = () => {
-    setCriandoNovoBloco(true);
-    setBlocoSelecionado(undefined);
-    setModalAberto(true);
+  useEffect(() => {
+    const carregarBlocos = async () => {
+      try {
+        const config = await loadConfiguration('markups_blocos');
+        if (config && Array.isArray(config)) {
+          setBlocos(config as unknown as MarkupBlock[]);
+          console.log('📦 Blocos carregados:', config.length);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar blocos:', error);
+      }
+    };
+    carregarBlocos();
+  }, [loadConfiguration]);
+  
+  // Carregar configurações salvas APÓS os períodos serem carregados
+  useEffect(() => {
+    if (blocos.length > 0 && user?.id && !isLoadingPeriodos) {
+      console.log('🎯 Períodos carregados! Executando cálculo dos markups...');
+      carregarConfiguracoesSalvas();
+    }
+  }, [blocos.length, user?.id, isLoadingPeriodos, carregarConfiguracoesSalvas]);
+
+  // Real-time updates: escutar mudanças na tabela user_configurations
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('🔄 Configurando real-time updates para configurações de markup');
+    
+    const channel = supabase
+      .channel('markup-config-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_configurations',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('📡 Configuração alterada:', payload);
+          
+          // Verificar se é uma alteração relacionada a markup
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          const configType = newRecord?.type || oldRecord?.type;
+          
+          if (configType && 
+              (configType.includes('markup_') || 
+               configType === 'faturamentos_historicos' ||
+               configType === 'despesas_fixas' ||
+               configType === 'folha_pagamento' ||
+               configType === 'encargos_venda')) {
+            
+            console.log('🔃 Recarregando configurações devido à mudança em tempo real');
+            
+            // Invalidar cache para forçar recarregamento
+            invalidateCache();
+            
+            // Pequeno delay para garantir que todas as alterações foram salvas
+            setTimeout(() => {
+              carregarConfiguracoesSalvas();
+            }, 300);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Desconectando real-time updates');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, carregarConfiguracoesSalvas, invalidateCache]);
+
+  // Limpar timeouts ao desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const salvarBlocos = useCallback(async (novosBlocos: MarkupBlock[]) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await saveConfiguration('markups_blocos', novosBlocos);
+      } catch (error) {
+        console.error('Erro ao salvar blocos:', error);
+      }
+    }, 800);
+  }, [saveConfiguration]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
+  const formatPercentage = (value: number) => {
+    return value.toFixed(2);
+  };
+
+  const criarNovoBloco = () => {
+    // 🎯 NOVO: Criação direta sem modal complexo
+    const novoBloco: MarkupBlock = {
+      id: Date.now().toString(),
+      nome: `Markup ${blocos.length + 1}`,
+      gastoSobreFaturamento: 0,
+      impostos: 0,
+      taxasMeiosPagamento: 0,
+      comissoesPlataformas: 0,
+      outros: 0,
+      valorEmReal: 0,
+      lucroDesejado: 20
+    };
+    
+    const novosBlocos = [...blocos, novoBloco];
+    setBlocos(novosBlocos);
+    
+    // Salvar nova lista
+    saveConfiguration('markups_blocos', novosBlocos).then(() => {
+      console.log('✅ Novo bloco criado com sucesso:', novoBloco);
+      toast({
+        title: "Bloco criado!",
+        description: `O bloco "${novoBloco.nome}" foi criado. Use o submenu para configurar o período.`
+      });
+    }).catch(error => {
+      console.error('❌ Erro ao criar novo bloco:', error);
+      toast({
+        title: "Erro ao criar bloco",
+        description: "Não foi possível criar o novo bloco de markup",
+        variant: "destructive"
+      });
+    });
+  };
+
+  // Nova função para efetivamente criar o bloco quando o modal for salvo
   const finalizarCriacaoBloco = async (markupCalculado: CalculatedMarkup) => {
     try {
       const novoBloco: MarkupBlock = {
@@ -377,85 +532,86 @@ export function Markups() {
         comissoesPlataformas: markupCalculado.comissoesPlataformas,
         outros: markupCalculado.outros,
         valorEmReal: markupCalculado.valorEmReal,
-        lucroDesejado: 0,
-        periodo: 'todos'
+        lucroDesejado: 0 // Será definido pelo usuário depois
       };
-      const novos = [...blocos, novoBloco];
-      setBlocos(novos);
-      salvarBlocos(novos);
 
+      const novosBlocos = [...blocos, novoBloco];
+      setBlocos(novosBlocos);
+      salvarBlocos(novosBlocos);
+
+      // Adicionar o markup calculado ao estado
       setCalculatedMarkups(prev => {
-        const m = new Map(prev);
-        m.set(novoBloco.id, markupCalculado);
-        return m;
+        const newMap = new Map(prev);
+        newMap.set(novoBloco.id, markupCalculado);
+        return newMap;
       });
 
-      toast({ title: 'Bloco criado', description: `O bloco "${novoBloco.nome}" foi criado.` });
-      setCriandoNovoBloco(false);
-    } catch (e) {
-      console.error('❌ Erro ao criar bloco:', e);
-      toast({ title: 'Erro ao criar bloco', description: 'Tente novamente.', variant: 'destructive' });
+      console.log('✅ Novo bloco criado com sucesso:', novoBloco);
+      
+      toast({
+        title: "Bloco criado com sucesso",
+        description: `O bloco "${novoBloco.nome}" foi criado e configurado.`
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao criar novo bloco:', error);
+      toast({
+        title: "Erro ao criar bloco",
+        description: "Não foi possível criar o novo bloco de markup",
+        variant: "destructive"
+      });
     }
   };
 
   const removerBloco = (id: string) => {
-    const novos = blocos.filter(b => b.id !== id);
-    setBlocos(novos);
-    salvarBlocos(novos);
-    const calc = new Map(calculatedMarkups);
-    calc.delete(id);
-    setCalculatedMarkups(calc);
+    const novosBlocos = blocos.filter(bloco => bloco.id !== id);
+    setBlocos(novosBlocos);
+    salvarBlocos(novosBlocos);
+    
+    // Remover também dos markups calculados
+    const novosCalculatedMarkups = new Map(calculatedMarkups);
+    novosCalculatedMarkups.delete(id);
+    setCalculatedMarkups(novosCalculatedMarkups);
   };
 
   const atualizarBloco = (id: string, campo: keyof MarkupBlock, valor: number) => {
-    const novos = blocos.map(b => (b.id === id ? { ...b, [campo]: valor } : b));
-    setBlocos(novos);
-    salvarBlocos(novos);
+    const novosUsuario = blocos.map(bloco => 
+      bloco.id === id ? { ...bloco, [campo]: valor } : bloco
+    );
+    setBlocos(novosUsuario);
+    salvarBlocos(novosUsuario);
   };
 
-  const calcularMarkupIdeal = (bloco: MarkupBlock, m?: CalculatedMarkup): number => {
-    const v = m || calculatedMarkups.get(bloco.id);
-    if (!v) return 1;
-    const soma =
-      v.gastoSobreFaturamento +
-      v.impostos +
-      v.taxasMeiosPagamento +
-      v.comissoesPlataformas +
-      v.outros +
-      bloco.lucroDesejado;
-    const frac = soma / 100;
-    if (frac >= 1) return 1;
-    return 1 / (1 - frac);
+  const calcularMarkupIdeal = (bloco: MarkupBlock, markupData?: CalculatedMarkup): number => {
+    const markupValues = markupData || calculatedMarkups.get(bloco.id);
+    
+    if (!markupValues) return 1;
+    
+    const somaPercentuais = markupValues.gastoSobreFaturamento + 
+                            markupValues.impostos + 
+                            markupValues.taxasMeiosPagamento + 
+                            markupValues.comissoesPlataformas + 
+                            markupValues.outros + bloco.lucroDesejado;
+    
+    // Converte percentuais para decimais e aplica a fórmula: Markup = 1 / (1 - somaPercentuais)
+    const somaDecimais = somaPercentuais / 100;
+    
+    // Evita divisão por zero e valores inválidos
+    if (somaDecimais >= 1) {
+      console.warn('⚠️ Soma dos percentuais é >= 100%, retornando markup padrão');
+      return 1;
+    }
+    
+    const markupFinal = 1 / (1 - somaDecimais);
+    
+    // Verifica se o resultado é um número válido
+    if (!isFinite(markupFinal) || isNaN(markupFinal)) {
+      console.warn('⚠️ Markup calculado é inválido:', markupFinal, 'retornando 1');
+      return 1;
+    }
+    
+    return markupFinal;
   };
-
-  const handleMarkupUpdate = useCallback(
-    async (blocoId: string, markupData: any) => {
-      if (criandoNovoBloco) {
-        await finalizarCriacaoBloco(markupData);
-        return;
-      }
-      
-      // aplica valores imediatos no UI
-      setCalculatedMarkups(prev => {
-        const m = new Map(prev);
-        m.set(blocoId, markupData);
-        return m;
-      });
-
-      // CRÍTICO: Invalidar todos os caches relacionados ao bloco
-      invalidateCache(`filtro-periodo-${blocoId}`);
-      invalidateCache(`checkbox-states-${blocoId}`);
-      invalidateCache('faturamentos_historicos'); // Também invalidar faturamentos
-      
-      // Recálculo imediato e protegido
-      setTimeout(() => {
-        if (!recalculandoRef.current) {
-          recalcOnce(carregarConfiguracoesSalvas);
-        }
-      }, 200); // Delay para garantir que as mudanças foram persistidas
-    },
-    [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas, invalidateCache, recalcOnce]
-  );
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
     setBlocoEditandoNome(bloco);
@@ -465,9 +621,11 @@ export function Markups() {
 
   const salvarNome = () => {
     if (blocoEditandoNome && nomeTemp.trim()) {
-      const novos = blocos.map(b => (b.id === blocoEditandoNome.id ? { ...b, nome: nomeTemp.trim() } : b));
-      setBlocos(novos);
-      salvarBlocos(novos);
+      const novosUsuario = blocos.map(bloco => 
+        bloco.id === blocoEditandoNome.id ? { ...bloco, nome: nomeTemp.trim() } : bloco
+      );
+      setBlocos(novosUsuario);
+      salvarBlocos(novosUsuario);
       setModalEdicaoNome(false);
       setBlocoEditandoNome(null);
     }
@@ -477,11 +635,6 @@ export function Markups() {
     setModalEdicaoNome(false);
     setBlocoEditandoNome(null);
     setNomeTemp('');
-  };
-
-  const abrirModal = (bloco: MarkupBlock) => {
-    setBlocoSelecionado(bloco);
-    setModalAberto(true);
   };
 
   return (
@@ -514,18 +667,18 @@ export function Markups() {
           </Card>
         )}
 
-        {/* Subreceita */}
+        {/* Bloco fixo subreceita */}
         <Card className="border-border shadow-lg">
           <CardHeader className="bg-muted/50">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-blue-600 capitalize font-bold text-xl flex items-center gap-2">
+              <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                      <Info className="h-4 w-4 text-primary/70 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Percentuais máximos recomendados por categoria, para referência.</p>
+                      <p>Este é um bloco informativo que mostra os percentuais máximos recomendados para cada categoria baseado nas melhores práticas do mercado</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -536,65 +689,86 @@ export function Markups() {
           <CardContent className="space-y-4 pt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
-                <Label>Gasto sobre faturamento</Label>
-                <div className="text-2xl font-bold text-blue-600">15%</div>
+                <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                <div className="text-2xl font-bold text-primary">15%</div>
               </div>
               <div className="space-y-1">
-                <Label>Impostos</Label>
-                <div className="text-2xl font-bold text-blue-600">25%</div>
+                <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                <div className="text-2xl font-bold text-primary">25%</div>
               </div>
               <div className="space-y-1">
-                <Label>Taxas de meios de pagamento</Label>
-                <div className="text-2xl font-bold text-blue-600">5%</div>
+                <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                <div className="text-2xl font-bold text-primary">5%</div>
               </div>
               <div className="space-y-1">
-                <Label>Comissões e plataformas</Label>
-                <div className="text-2xl font-bold text-blue-600">10%</div>
+                <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                <div className="text-2xl font-bold text-primary">10%</div>
               </div>
               <div className="space-y-1">
-                <Label>Outros</Label>
-                <div className="text-2xl font-bold text-blue-600">5%</div>
+                <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                <div className="text-2xl font-bold text-primary">5%</div>
               </div>
               <div className="space-y-1">
-                <Label>Valor em real</Label>
-                <div className="text-2xl font-bold text-orange-600">{formatCurrency(200)}</div>
+                <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>{formatCurrency(200)}</div>
               </div>
               <div className="space-y-1">
-                <Label>Lucro desejado sobre venda</Label>
-                <div className="text-2xl font-bold text-green-600">20%</div>
+                <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
+                <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>20%</div>
               </div>
             </div>
-
-            <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
+            
+            <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
               <div className="flex items-center justify-between">
-                <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
-                <div className="text-3xl font-bold text-blue-700">2,50</div>
+                <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
+                <div className="text-3xl font-bold text-primary">2,50</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Blocos */}
+        {/* Blocos do usuário */}
         {blocos.map((bloco) => {
           const calculated = calculatedMarkups.get(bloco.id);
           const hasCalculated = calculated !== undefined;
           const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
-
+          const configExpansionKey = `expansion-${bloco.id}`;
+          const showExpansion = submenusAbertos.has(bloco.id);
+          
           return (
             <Card key={bloco.id} className="border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600 capitalize font-bold text-xl">{bloco.nome}</CardTitle>
+                  <CardTitle className="text-primary capitalize font-bold text-xl">
+                    {bloco.nome}
+                  </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => iniciarEdicaoNome(bloco)} className="h-8 w-8 p-0">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => iniciarEdicaoNome(bloco)}
+                      className="h-8 w-8 p-0"
+                    >
                       <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => abrirModal(bloco)} className="h-8 w-8 p-0">
+                    
+                    {/* Botão de configuração que expande o card */}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => toggleSubmenu(bloco.id)}
+                      className="h-8 px-3 flex items-center gap-1"
+                    >
                       <Settings className="h-3 w-3" />
+                      {showExpansion ? 
+                        <ChevronUp className="h-3 w-3" /> : 
+                        <ChevronDown className="h-3 w-3" />
+                      }
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
                       onClick={() => removerBloco(bloco.id)}
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                     >
@@ -606,43 +780,43 @@ export function Markups() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
-                    <Label>Gasto sobre faturamento</Label>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {hasCalculated ? formatPercentage(calculated!.gastoSobreFaturamento) : '0'} <span className="text-sm">%</span>
+                    <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                    <div className="text-2xl font-bold text-primary">
+                      {hasCalculated ? formatPercentage(calculated.gastoSobreFaturamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Impostos</Label>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {hasCalculated ? formatPercentage(calculated!.impostos) : '0'} <span className="text-sm">%</span>
+                    <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                    <div className="text-2xl font-bold text-primary">
+                      {hasCalculated ? formatPercentage(calculated.impostos) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Taxas de meios de pagamento</Label>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {hasCalculated ? formatPercentage(calculated!.taxasMeiosPagamento) : '0'} <span className="text-sm">%</span>
+                    <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                    <div className="text-2xl font-bold text-primary">
+                      {hasCalculated ? formatPercentage(calculated.taxasMeiosPagamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Comissões e plataformas</Label>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {hasCalculated ? formatPercentage(calculated!.comissoesPlataformas) : '0'} <span className="text-sm">%</span>
+                    <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                    <div className="text-2xl font-bold text-primary">
+                      {hasCalculated ? formatPercentage(calculated.comissoesPlataformas) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Outros</Label>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {hasCalculated ? formatPercentage(calculated!.outros) : '0'} <span className="text-sm">%</span>
+                    <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                    <div className="text-2xl font-bold text-primary">
+                      {hasCalculated ? formatPercentage(calculated.outros) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Valor em real</Label>
-                    <div className="text-2xl font-bold text-orange-600">
-                      {hasCalculated ? formatCurrency(calculated!.valorEmReal) : formatCurrency(0)}
+                    <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                    <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>
+                      {hasCalculated ? formatCurrency(calculated.valorEmReal) : formatCurrency(0)}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Lucro desejado sobre venda</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -650,18 +824,132 @@ export function Markups() {
                         step="0.01"
                         value={bloco.lucroDesejado}
                         onChange={(e) => atualizarBloco(bloco.id, 'lucroDesejado', parseFloat(e.target.value) || 0)}
-                        className="text-green-600 font-bold"
+                        className="font-bold"
+                        style={{ color: 'hsl(var(--accent))' }}
                       />
-                      <span className="text-green-600 font-bold">%</span>
+                      <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>%</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
+                {/* Expansão de Configuração */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showExpansion 
+                    ? 'max-h-[600px] opacity-100' 
+                    : 'max-h-0 opacity-0'
+                }`}>
+                  {showExpansion && (
+                    <div className="border-t pt-4 mt-4 space-y-4 animate-fade-in">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Configurações de Custos - {bloco.nome}
+                      </div>
+
+                      {/* Seção de Período */}
+                      <div className="bg-muted/20 rounded-lg p-4">
+                        <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                          📅 Período de Análise:
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {[
+                            { value: '1', label: '1 mês' },
+                            { value: '3', label: '3 meses' },
+                            { value: '6', label: '6 meses' },
+                            { value: '12', label: '12 meses' }
+                          ].map((periodo) => (
+                            <Button
+                              key={periodo.value}
+                              variant={periodosAplicados.get(bloco.id) === periodo.value ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
+                              className="text-xs"
+                            >
+                              {periodo.label}
+                              {periodosAplicados.get(bloco.id) === periodo.value && (
+                                <span className="ml-1 text-xs">✓</span>
+                              )}
+                            </Button>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          variant={periodosAplicados.get(bloco.id) === 'todos' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => aplicarPeriodo(bloco.id, 'todos')}
+                          className="w-full text-xs mb-4"
+                        >
+                          Todos os períodos
+                          {periodosAplicados.get(bloco.id) === 'todos' && (
+                            <span className="ml-1 text-xs">✓</span>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Configurações Rápidas */}
+                      <div className="bg-muted/20 rounded-lg p-4">
+                        <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                          ⚙️ Configurações:
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <Button
+                            onClick={() => abrirConfiguracaoCompleta(bloco.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            🔧 Configurar Itens
+                          </Button>
+                          
+                          <Button
+                            onClick={() => aplicarConfiguracaoPadrao(bloco.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            ⚡ Aplicar Padrão
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      {periodosAplicados.has(bloco.id) && (
+                        <div className="bg-card border rounded-lg p-3 text-xs">
+                          <div className="flex justify-between items-center">
+                            <div className="text-primary font-medium">
+                              ✓ Período aplicado: {
+                                periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
+                                periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
+                                periodosAplicados.get(bloco.id) === '6' ? 'Últimos 6 meses' :
+                                periodosAplicados.get(bloco.id) === '12' ? 'Últimos 12 meses' :
+                                'Todos os períodos'
+                              }
+                            </div>
+                            <div className="text-primary font-bold">
+                              Markup: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Botão Fechar */}
+                      <div className="text-center pt-2">
+                        <Button
+                          onClick={() => toggleSubmenu(bloco.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          Fechar Configurações
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
                   <div className="flex items-center justify-between">
-                    <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
-                    <div className="text-3xl font-bold text-blue-700">
-                      {Number.isFinite(markupIdeal) ? markupIdeal.toFixed(4) : '1.0000'}
+                    <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
+                    <div className="text-3xl font-bold text-primary">
+                      {isFinite(markupIdeal) && !isNaN(markupIdeal) ? markupIdeal.toFixed(4) : '1.0000'}
                     </div>
                   </div>
                 </div>
@@ -671,22 +959,41 @@ export function Markups() {
         })}
       </div>
 
-      {modalAberto && (
+      {/* Modal de Configuração de Itens */}
+      {modalConfiguracaoAberto && blocoConfigurandoId && (
         <CustosModal
-          open={modalAberto}
+          open={modalConfiguracaoAberto}
           onOpenChange={(open) => {
-            setModalAberto(open);
+            setModalConfiguracaoAberto(open);
             if (!open) {
-              setBlocoSelecionado(undefined);
-              setCriandoNovoBloco(false);
+              setBlocoConfigurandoId(null);
             }
           }}
-          markupBlock={criandoNovoBloco ? undefined : blocoSelecionado}
+          markupBlock={blocos.find(b => b.id === blocoConfigurandoId)}
           onMarkupUpdate={(markup) => {
-            if (criandoNovoBloco) {
-              handleMarkupUpdate('novo', markup);
-            } else if (blocoSelecionado) {
-              handleMarkupUpdate(blocoSelecionado.id, markup);
+            if (blocoConfigurandoId) {
+              // Converter MarkupBlock para CalculatedMarkup se necessário
+              const calculatedMarkup: CalculatedMarkup = {
+                gastoSobreFaturamento: markup.gastoSobreFaturamento || 0,
+                impostos: markup.impostos || 0,
+                taxasMeiosPagamento: markup.taxasMeiosPagamento || 0,
+                comissoesPlataformas: markup.comissoesPlataformas || 0,
+                outros: markup.outros || 0,
+                valorEmReal: markup.valorEmReal || 0
+              };
+              
+              // Atualizar no state local IMEDIATAMENTE
+              const novosCalculatedMarkups = new Map(calculatedMarkups);
+              novosCalculatedMarkups.set(blocoConfigurandoId, calculatedMarkup);
+              setCalculatedMarkups(novosCalculatedMarkups);
+              
+              toast({
+                title: "Configuração aplicada!",
+                description: "Os cálculos foram atualizados com os itens selecionados.",
+                duration: 3000
+              });
+              
+              console.log('💾 Estados atualizados - configurações do modal aplicadas para bloco:', blocoConfigurandoId);
             }
           }}
         />

@@ -147,9 +147,9 @@ export function FolhaPagamento() {
         outros_valor: parseCurrencyValue(formData.outros_valor),
         horas_por_dia: parseFloat(formData.horas_por_dia),
         dias_por_semana: parseFloat(formData.dias_por_semana),
-        semanas_por_mes: parsePercentValue(formData.semanas_por_mes),
-        horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parsePercentValue(formData.semanas_por_mes),
-        custo_por_hora: 0,
+        semanas_por_mes: parseFloat(formData.semanas_por_mes),
+        horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parseFloat(formData.semanas_por_mes),
+        custo_por_hora: calculateCustoPorHora(),
         ativo: true
       };
 
@@ -215,6 +215,14 @@ export function FolhaPagamento() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     }).format(numValue);
+  };
+
+  // Função para formatar números decimais preservando casas decimais
+  const formatDecimalNumber = (value: number | string) => {
+    if (!value && value !== 0) return '';
+    const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
+    if (isNaN(numValue)) return '';
+    return numValue.toString().replace('.', ',');
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -289,18 +297,35 @@ export function FolhaPagamento() {
 
   // Calcular horas totais por mês
   const calculateHorasTotais = () => {
-    const horasDia = parseFloat(formData.horas_por_dia || '0');
-    const diasSemana = parseFloat(formData.dias_por_semana || '0');
-    const semanasMes = parsePercentValue(formData.semanas_por_mes || '0');
+    const horasDia = parseFloat((formData.horas_por_dia || '0').replace(',', '.'));
+    const diasSemana = parseFloat((formData.dias_por_semana || '0').replace(',', '.'));
+    const semanasMes = parseFloat((formData.semanas_por_mes || '0').replace(',', '.'));
     return Math.round((horasDia * diasSemana * semanasMes) * 100) / 100;
   };
 
-  // Calcular custo por hora (baseado apenas no valor da mão de obra)
-  const calculateCustoPorHora = () => {
+  // Calcular custo total do funcionário com base no formulário atual
+  const calculateCustoTotalFormulario = () => {
     const salarioBase = parseCurrencyValue(formData.salario_base);
+    
+    const fgtsTotal = calculateItemValue(formData.fgts_percent, formData.fgts_valor, salarioBase);
+    const inssTotal = calculateItemValue(formData.inss_percent, formData.inss_valor, salarioBase);
+    const ratTotal = calculateItemValue(formData.rat_percent, formData.rat_valor, salarioBase);
+    const feriasTotal = calculateItemValue(formData.ferias_percent, formData.ferias_valor, salarioBase);
+    const vtTotal = calculateItemValue(formData.vale_transporte_percent, formData.vale_transporte_valor, salarioBase);
+    const vaTotal = calculateItemValue(formData.vale_alimentacao_percent, formData.vale_alimentacao_valor, salarioBase);
+    const vrTotal = calculateItemValue(formData.vale_refeicao_percent, formData.vale_refeicao_valor, salarioBase);
+    const planoTotal = calculateItemValue(formData.plano_saude_percent, formData.plano_saude_valor, salarioBase);
+    const outrosTotal = calculateItemValue(formData.outros_percent, formData.outros_valor, salarioBase);
+    
+    return Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
+  };
+
+  // Calcular custo por hora (baseado no custo total do funcionário)
+  const calculateCustoPorHora = () => {
+    const custoTotal = calculateCustoTotalFormulario();
     const horasTotais = calculateHorasTotais();
     
-    return horasTotais > 0 ? Math.round((salarioBase / horasTotais) * 100) / 100 : 0;
+    return horasTotais > 0 ? Math.round((custoTotal / horasTotais) * 100) / 100 : 0;
   };
 
   // Handler para mudança em percentual
@@ -396,9 +421,9 @@ export function FolhaPagamento() {
       plano_saude_valor: formatCurrencyDisplay(funcionario.plano_saude_valor),
       outros_percent: funcionario.outros_percent.toString().replace('.', ','),
       outros_valor: formatCurrencyDisplay(funcionario.outros_valor),
-      horas_por_dia: funcionario.horas_por_dia?.toString() || '8',
-      dias_por_semana: funcionario.dias_por_semana?.toString() || '5',
-      semanas_por_mes: funcionario.semanas_por_mes?.toString().replace('.', ',') || '4,33'
+      horas_por_dia: formatDecimalNumber(funcionario.horas_por_dia) || '8',
+      dias_por_semana: formatDecimalNumber(funcionario.dias_por_semana) || '5',
+      semanas_por_mes: formatDecimalNumber(funcionario.semanas_por_mes) || '4,33'
     });
     setIsModalOpen(true);
   };
@@ -466,9 +491,15 @@ export function FolhaPagamento() {
   };
 
   const calculateCustoPorHoraFuncionario = (funcionario: Funcionario) => {
-    const horasTotais = (funcionario.horas_por_dia || 8) * (funcionario.dias_por_semana || 5) * (funcionario.semanas_por_mes || 4.33);
+    const horasTotais = (funcionario.horas_por_dia || 0) * (funcionario.dias_por_semana || 0) * (funcionario.semanas_por_mes || 0);
     const custoTotal = calculateCustoTotal(funcionario);
-    return horasTotais > 0 ? custoTotal / horasTotais : 0;
+    return horasTotais > 0 ? Math.round((custoTotal / horasTotais) * 100) / 100 : 0;
+  };
+
+  // Formatar custo por hora para exibição
+  const formatCustoPorHora = (valor: number) => {
+    if (calculateHorasTotais() <= 0) return "—";
+    return formatCurrencyDisplay(valor);
   };
 
   return (
@@ -605,33 +636,6 @@ export function FolhaPagamento() {
                   ))}
                 </div>
 
-                {/* Custo Total */}
-                {formData.salario_base && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-primary">
-                        Custo Total deste Funcionário: R$ {(() => {
-                          const salarioBase = parseCurrencyValue(formData.salario_base);
-                          
-                          const fgtsTotal = parseCurrencyValue(formData.fgts_valor);
-                          const inssTotal = parseCurrencyValue(formData.inss_valor);
-                          const ratTotal = parseCurrencyValue(formData.rat_valor);
-                          const feriasTotal = parseCurrencyValue(formData.ferias_valor);
-                          const vtTotal = parseCurrencyValue(formData.vale_transporte_valor);
-                          const vaTotal = parseCurrencyValue(formData.vale_alimentacao_valor);
-                          const vrTotal = parseCurrencyValue(formData.vale_refeicao_valor);
-                          const planoTotal = parseCurrencyValue(formData.plano_saude_valor);
-                          const outrosTotal = parseCurrencyValue(formData.outros_valor);
-                          
-                          const total = Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
-                          
-                          return formatCurrencyDisplay(total);
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {/* Calculadora de Horas */}
                 <div>
                   <h4 className="text-lg font-semibold mb-4">Calculadora de Horas</h4>
@@ -642,11 +646,11 @@ export function FolhaPagamento() {
                         id="horas_por_dia"
                         type="text"
                         key={`horas-${formData.horas_por_dia}`}
-                        defaultValue={formatBrazilianNumber(formData.horas_por_dia)}
+                        defaultValue={formatDecimalNumber(formData.horas_por_dia)}
                         onBlur={(e) => {
                           const parsed = parseInputValue(e.target.value);
                           handleHorasChange('horas_por_dia', e.target.value);
-                          e.target.value = formatBrazilianNumber(parsed);
+                          e.target.value = formatDecimalNumber(parsed);
                         }}
                         placeholder="8"
                         autoComplete="off"
@@ -661,11 +665,11 @@ export function FolhaPagamento() {
                         id="dias_por_semana"
                         type="text"
                         key={`dias-${formData.dias_por_semana}`}
-                        defaultValue={formatBrazilianNumber(formData.dias_por_semana)}
+                        defaultValue={formatDecimalNumber(formData.dias_por_semana)}
                         onBlur={(e) => {
                           const parsed = parseInputValue(e.target.value);
                           handleHorasChange('dias_por_semana', e.target.value);
-                          e.target.value = formatBrazilianNumber(parsed);
+                          e.target.value = formatDecimalNumber(parsed);
                         }}
                         placeholder="5"
                         autoComplete="off"
@@ -680,11 +684,11 @@ export function FolhaPagamento() {
                         id="semanas_por_mes"
                         type="text"
                         key={`semanas-${formData.semanas_por_mes}`}
-                        defaultValue={formatBrazilianNumber(formData.semanas_por_mes)}
+                        defaultValue={formatDecimalNumber(formData.semanas_por_mes)}
                         onBlur={(e) => {
                           const parsed = parseInputValue(e.target.value);
                           handleHorasChange('semanas_por_mes', e.target.value);
-                          e.target.value = formatBrazilianNumber(parsed);
+                          e.target.value = formatDecimalNumber(parsed);
                         }}
                         placeholder="4,33"
                         autoComplete="off"
@@ -695,8 +699,11 @@ export function FolhaPagamento() {
                     </div>
                   </div>
                   
-                  {/* Resultado das horas */}
                   <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="text-center mb-4">
+                      <p className="text-sm text-muted-foreground">Custo Total deste Funcionário</p>
+                      <p className="text-xl font-bold text-primary">R$ {formatCurrencyDisplay(calculateCustoTotalFormulario())}</p>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
                       <div>
                         <p className="text-sm text-muted-foreground">Total de Horas por Mês</p>
@@ -704,7 +711,9 @@ export function FolhaPagamento() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Custo por Hora</p>
-                        <p className="text-lg font-semibold text-primary">R$ {formatCurrencyDisplay(calculateCustoPorHora())}</p>
+                        <p className="text-lg font-semibold text-primary">
+                          {calculateHorasTotais() > 0 ? `R$ ${formatCustoPorHora(calculateCustoPorHora())}` : "—"}
+                        </p>
                       </div>
                     </div>
                   </div>
