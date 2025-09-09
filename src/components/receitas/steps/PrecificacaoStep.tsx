@@ -209,17 +209,10 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
               Preço por KG
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             <div className="text-center">
               <p className="text-2xl font-bold text-primary">
                 R$ {precoKg}
-              </p>
-            </div>
-            <hr />
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Custo Unitário</Label>
-              <p className="text-lg font-medium">
-                R$ {custoUnitario.toFixed(2)}
               </p>
             </div>
           </CardContent>
