@@ -15,6 +15,17 @@ export function useOptimizedUserConfigurations() {
   
   const CACHE_DURATION = 30000; // 30 segundos de cache
 
+  // Função para invalidar cache (usar em real-time updates)
+  const invalidateCache = useCallback((type?: string) => {
+    if (type) {
+      cacheRef.current.delete(type);
+      console.log(`🗑️ Cache invalidado para tipo: ${type}`);
+    } else {
+      cacheRef.current.clear();
+      console.log('🗑️ Todo o cache foi invalidado');
+    }
+  }, []);
+
   const loadConfiguration = useCallback(async (type: string): Promise<any | null> => {
     if (!user) return null;
 
@@ -106,6 +117,7 @@ export function useOptimizedUserConfigurations() {
 
   return {
     loadConfiguration,
-    saveConfiguration
+    saveConfiguration,
+    invalidateCache
   };
 }

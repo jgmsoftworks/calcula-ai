@@ -42,7 +42,7 @@ export function Markups() {
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   const [criandoNovoBloco, setCriandoNovoBloco] = useState(false); // Novo estado para controlar criação
-  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
+  const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -240,6 +240,57 @@ export function Markups() {
       carregarConfiguracoesSalvas();
     }
   }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
+
+  // Real-time updates: escutar mudanças na tabela user_configurations
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('🔄 Configurando real-time updates para configurações de markup');
+    
+    const channel = supabase
+      .channel('markup-config-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_configurations',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('📡 Configuração alterada:', payload);
+          
+          // Verificar se é uma alteração relacionada a markup
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          const configType = newRecord?.type || oldRecord?.type;
+          
+          if (configType && 
+              (configType.includes('markup_') || 
+               configType === 'faturamentos_historicos' ||
+               configType === 'despesas_fixas' ||
+               configType === 'folha_pagamento' ||
+               configType === 'encargos_venda')) {
+            
+            console.log('🔃 Recarregando configurações devido à mudança em tempo real');
+            
+            // Invalidar cache para forçar recarregamento
+            invalidateCache();
+            
+            // Pequeno delay para garantir que todas as alterações foram salvas
+            setTimeout(() => {
+              carregarConfiguracoesSalvas();
+            }, 300);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Desconectando real-time updates');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, carregarConfiguracoesSalvas, invalidateCache]);
 
   // Limpar timeouts ao desmontar
   useEffect(() => {
