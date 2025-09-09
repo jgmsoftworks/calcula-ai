@@ -40,11 +40,12 @@ export function Markups() {
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
 
-  // Submenus / períodos
-  const [submenusAbertos, setSubmenusAbertos] = useState<Set<string>>(new Set());
+  // Períodos e modais
   const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, string>>(new Map());
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
   const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
+  const [modalConfiguracaoPeriodo, setModalConfiguracaoPeriodo] = useState(false);
+  const [periodoTemporario, setPeriodoTemporario] = useState<string>('todos');
 
   // Controle de carregamento de períodos
   const [isLoadingPeriodos, setIsLoadingPeriodos] = useState(true);
@@ -213,14 +214,12 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados, isLoadingPeriodos]);
 
-  // Submenu
-  const toggleSubmenu = useCallback((blocoId: string) => {
-    setSubmenusAbertos((prev) => {
-      const s = new Set(prev);
-      s.has(blocoId) ? s.delete(blocoId) : s.add(blocoId);
-      return s;
-    });
-  }, []);
+  // Modal de configuração de período
+  const abrirModalPeriodo = useCallback((blocoId: string) => {
+    setBlocoConfigurandoId(blocoId);
+    setPeriodoTemporario(periodosAplicados.get(blocoId) || 'todos');
+    setModalConfiguracaoPeriodo(true);
+  }, [periodosAplicados]);
 
   // Aplicar configuração padrão (tudo ativo) — salva na MESMA chave lida
   const aplicarConfiguracaoPadrao = useCallback(
@@ -253,12 +252,6 @@ export function Markups() {
         await saveConfiguration(`checkbox-states-${blocoId}`, configuracaoPadrao);
         setTimeout(() => (selfWriteRef.current = false), 500);
 
-        setSubmenusAbertos((prev) => {
-          const s = new Set(prev);
-          s.delete(blocoId);
-          return s;
-        });
-
         await carregarConfiguracoesSalvas();
 
         toast({
@@ -280,9 +273,9 @@ export function Markups() {
 
   const abrirConfiguracaoCompleta = useCallback((blocoId: string) => {
     setBlocoConfigurandoId(blocoId);
-    setModalConfiguracaoAberto(true);
-    setSubmenusAbertos(new Set());
-  }, []);
+    setPeriodoTemporario(periodosAplicados.get(blocoId) || 'todos');
+    setModalConfiguracaoPeriodo(true);
+  }, [periodosAplicados]);
 
   const aplicarPeriodo = useCallback(
     async (blocoId: string, periodo: string) => {
@@ -294,12 +287,6 @@ export function Markups() {
         setTimeout(() => (selfWriteRef.current = false), 500);
 
         setPeriodosAplicados((prev) => new Map(prev).set(blocoId, periodoNormalizado));
-
-        setSubmenusAbertos((prev) => {
-          const s = new Set(prev);
-          s.delete(blocoId);
-          return s;
-        });
 
         await carregarConfiguracoesSalvas();
 
@@ -364,17 +351,6 @@ export function Markups() {
     carregarPeriodos();
   }, [user?.id, blocos, loadConfiguration]);
 
-  // Fechar submenu ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (submenusAbertos.size > 0) {
-        const target = event.target as Element;
-        if (!target.closest('.relative')) setSubmenusAbertos(new Set());
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [submenusAbertos.size]);
 
   // Carregar blocos
   useEffect(() => {
@@ -735,7 +711,6 @@ export function Markups() {
           const calculated = calculatedMarkups.get(bloco.id);
           const hasCalculated = calculated !== undefined;
           const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
-          const showExpansion = submenusAbertos.has(bloco.id);
 
           return (
             <Card key={bloco.id} className="border-border">
@@ -750,11 +725,10 @@ export function Markups() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => toggleSubmenu(bloco.id)}
+                      onClick={() => abrirConfiguracaoCompleta(bloco.id)}
                       className="h-8 px-3 flex items-center gap-1"
                     >
                       <Settings className="h-3 w-3" />
-                      {showExpansion ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                     </Button>
 
                     <Button
@@ -823,89 +797,6 @@ export function Markups() {
                   </div>
                 </div>
 
-                {/* Expansão de Configuração */}
-                {showExpansion && (
-                  <div className="border-t pt-4 mt-4 space-y-4 bg-muted/10 rounded-lg p-4 animate-in slide-in-from-top-2 duration-200">
-                    <div className="text-sm font-medium text-muted-foreground">Configurações de Custos - {bloco.nome}</div>
-
-                    {/* Período */}
-                    <div className="bg-muted/20 rounded-lg p-4">
-                      <h4 className="font-medium mb-3 text-sm flex items-center gap-2">📅 Período de Análise:</h4>
-                      <div className="grid grid-cols-2 gap-2 mb-4">
-                        {[
-                          { value: '1', label: '1 mês' },
-                          { value: '3', label: '3 meses' },
-                          { value: '6', label: '6 meses' },
-                          { value: '12', label: '12 meses' }
-                        ].map((p) => (
-                          <Button
-                            key={p.value}
-                            variant={periodosAplicados.get(bloco.id) === p.value ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => aplicarPeriodo(bloco.id, p.value)}
-                            className="text-xs"
-                          >
-                            {p.label}
-                            {periodosAplicados.get(bloco.id) === p.value && <span className="ml-1 text-xs">✓</span>}
-                          </Button>
-                        ))}
-                      </div>
-
-                      <Button
-                        variant={periodosAplicados.get(bloco.id) === 'todos' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => aplicarPeriodo(bloco.id, 'todos')}
-                        className="w-full text-xs mb-4"
-                      >
-                        Todos os períodos
-                        {periodosAplicados.get(bloco.id) === 'todos' && <span className="ml-1 text-xs">✓</span>}
-                      </Button>
-                    </div>
-
-                    {/* Ações rápidas */}
-                    <div className="bg-muted/20 rounded-lg p-4">
-                      <h4 className="font-medium mb-3 text-sm flex items-center gap-2">⚙️ Configurações:</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <Button onClick={() => abrirConfiguracaoCompleta(bloco.id)} variant="outline" size="sm" className="text-xs">
-                          🔧 Configurar Itens
-                        </Button>
-
-                        <Button onClick={() => aplicarConfiguracaoPadrao(bloco.id)} variant="outline" size="sm" className="text-xs">
-                          ⚡ Aplicar Padrão
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Status */}
-                    {periodosAplicados.has(bloco.id) && (
-                      <div className="bg-card border rounded-lg p-3 text-xs">
-                        <div className="flex justify-between items-center">
-                          <div className="text-primary font-medium">
-                            ✓ Período aplicado:{' '}
-                            {periodosAplicados.get(bloco.id) === '1'
-                              ? 'Último mês'
-                              : periodosAplicados.get(bloco.id) === '3'
-                              ? 'Últimos 3 meses'
-                              : periodosAplicados.get(bloco.id) === '6'
-                              ? 'Últimos 6 meses'
-                              : periodosAplicados.get(bloco.id) === '12'
-                              ? 'Últimos 12 meses'
-                              : 'Todos os períodos'}
-                          </div>
-                          <div className="text-primary font-bold">
-                            Markup: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="text-center pt-2">
-                      <Button onClick={() => toggleSubmenu(bloco.id)} variant="ghost" size="sm" className="text-xs">
-                        Fechar Configurações
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
                   <div className="flex items-center justify-between">
@@ -920,6 +811,98 @@ export function Markups() {
           );
         })}
       </div>
+
+      {/* Modal de Configuração de Período e Itens */}
+      <Dialog open={modalConfiguracaoPeriodo} onOpenChange={setModalConfiguracaoPeriodo}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Configurações do Markup</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Seleção de Período */}
+            <div>
+              <h4 className="font-medium mb-3 text-sm">📅 Período de Análise:</h4>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {[
+                  { value: '1', label: '1 mês' },
+                  { value: '3', label: '3 meses' },
+                  { value: '6', label: '6 meses' },
+                  { value: '12', label: '12 meses' }
+                ].map((p) => (
+                  <Button
+                    key={p.value}
+                    variant={periodoTemporario === p.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPeriodoTemporario(p.value)}
+                    className="text-xs"
+                  >
+                    {p.label}
+                    {periodoTemporario === p.value && <span className="ml-1 text-xs">✓</span>}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant={periodoTemporario === 'todos' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriodoTemporario('todos')}
+                className="w-full text-xs"
+              >
+                Todos os períodos
+                {periodoTemporario === 'todos' && <span className="ml-1 text-xs">✓</span>}
+              </Button>
+            </div>
+
+            {/* Ações */}
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-3 text-sm">⚙️ Configurações de Custos:</h4>
+              <div className="space-y-2">
+                <Button 
+                  onClick={() => {
+                    setModalConfiguracaoPeriodo(false);
+                    setModalConfiguracaoAberto(true);
+                  }} 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs"
+                >
+                  🔧 Configurar Itens de Custo
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (blocoConfigurandoId) {
+                      aplicarConfiguracaoPadrao(blocoConfigurandoId);
+                      setModalConfiguracaoPeriodo(false);
+                    }
+                  }} 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs"
+                >
+                  ⚡ Aplicar Configuração Padrão
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setModalConfiguracaoPeriodo(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (blocoConfigurandoId) {
+                  await aplicarPeriodo(blocoConfigurandoId, periodoTemporario);
+                  setModalConfiguracaoPeriodo(false);
+                }
+              }}
+            >
+              Aplicar Período
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Configuração de Itens */}
       {modalConfiguracaoAberto && blocoConfigurandoId && (
