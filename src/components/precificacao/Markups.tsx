@@ -671,11 +671,11 @@ export function Markups() {
         <Card className="border-border shadow-lg">
           <CardHeader className="bg-muted/50">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-blue-600 capitalize font-bold text-xl flex items-center gap-2">
+              <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                      <Info className="h-4 w-4 text-primary/70 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Este é um bloco informativo que mostra os percentuais máximos recomendados para cada categoria baseado nas melhores práticas do mercado</p>
@@ -690,38 +690,38 @@ export function Markups() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
-                <div className="text-2xl font-bold text-blue-600">15%</div>
+                <div className="text-2xl font-bold text-primary">15%</div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
-                <div className="text-2xl font-bold text-blue-600">25%</div>
+                <div className="text-2xl font-bold text-primary">25%</div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
-                <div className="text-2xl font-bold text-blue-600">5%</div>
+                <div className="text-2xl font-bold text-primary">5%</div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
-                <div className="text-2xl font-bold text-blue-600">10%</div>
+                <div className="text-2xl font-bold text-primary">10%</div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
-                <div className="text-2xl font-bold text-blue-600">5%</div>
+                <div className="text-2xl font-bold text-primary">5%</div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
-                <div className="text-2xl font-bold text-orange-600">{formatCurrency(200)}</div>
+                <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>{formatCurrency(200)}</div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
-                <div className="text-2xl font-bold text-green-600">20%</div>
+                <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>20%</div>
               </div>
             </div>
             
-            <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
+            <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
               <div className="flex items-center justify-between">
-                <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
-                <div className="text-3xl font-bold text-blue-700">2,50</div>
+                <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
+                <div className="text-3xl font-bold text-primary">2,50</div>
               </div>
             </div>
           </CardContent>
@@ -737,7 +737,7 @@ export function Markups() {
             <Card key={bloco.id} className="border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600 capitalize font-bold text-xl">
+                  <CardTitle className="text-primary capitalize font-bold text-xl">
                     {bloco.nome}
                   </CardTitle>
                   <div className="flex items-center gap-2">
@@ -766,8 +766,8 @@ export function Markups() {
                       </Button>
                       
                       {submenusAbertos.has(bloco.id) && (
-                        <div className="absolute right-0 top-full mt-1 z-[100] bg-white border border-border rounded-md shadow-lg min-w-80 max-h-96 overflow-y-auto">
-                          <div className="p-3 bg-white">
+                        <div className="absolute right-0 top-full mt-1 z-[100] bg-popover border border-border rounded-md shadow-lg min-w-80 max-h-96 overflow-y-auto">
+                          <div className="p-3 bg-popover">
                             {/* Seção de Período */}
                             <div className="mb-4">
                               <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
@@ -786,8 +786,8 @@ export function Markups() {
                                     onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
                                     className={`text-left px-2 py-1 text-xs rounded hover:bg-accent transition-colors ${
                                       periodosAplicados.get(bloco.id) === periodo.value 
-                                        ? 'bg-blue-50 text-blue-600 font-medium border border-blue-200' 
-                                        : 'hover:bg-gray-50 border border-transparent'
+                                        ? 'bg-primary/10 text-primary font-medium border border-primary/20' 
+                                        : 'hover:bg-muted border border-transparent'
                                     }`}
                                   >
                                     {periodo.label}
@@ -810,7 +810,7 @@ export function Markups() {
                               <div className="space-y-2">
                                 <button
                                   onClick={() => abrirConfiguracaoCompleta(bloco.id)}
-                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-white"
+                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-card"
                                 >
                                   <div className="font-medium">🔧 Configurar Itens</div>
                                   <div className="text-xs text-muted-foreground">
@@ -820,7 +820,7 @@ export function Markups() {
                                 
                                 <button
                                   onClick={() => aplicarConfiguracaoPadrao(bloco.id)}
-                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-white"
+                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-card"
                                 >
                                   <div className="font-medium">⚡ Aplicar Padrão</div>
                                   <div className="text-xs text-muted-foreground">
@@ -832,8 +832,8 @@ export function Markups() {
                             
                             {/* Status */}
                             {periodosAplicados.has(bloco.id) && (
-                              <div className="mt-3 pt-3 border-t text-xs bg-white">
-                                <div className="text-green-600 font-medium">
+                              <div className="mt-3 pt-3 border-t text-xs bg-card">
+                                <div className="text-primary font-medium">
                                   ✓ Período: {
                                     periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
                                     periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
@@ -867,37 +867,37 @@ export function Markups() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {hasCalculated ? formatPercentage(calculated.gastoSobreFaturamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {hasCalculated ? formatPercentage(calculated.impostos) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {hasCalculated ? formatPercentage(calculated.taxasMeiosPagamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {hasCalculated ? formatPercentage(calculated.comissoesPlataformas) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-primary">
                       {hasCalculated ? formatPercentage(calculated.outros) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>
                       {hasCalculated ? formatCurrency(calculated.valorEmReal) : formatCurrency(0)}
                     </div>
                   </div>
@@ -910,21 +910,22 @@ export function Markups() {
                         step="0.01"
                         value={bloco.lucroDesejado}
                         onChange={(e) => atualizarBloco(bloco.id, 'lucroDesejado', parseFloat(e.target.value) || 0)}
-                        className="text-green-600 font-bold"
+                        className="font-bold"
+                        style={{ color: 'hsl(var(--accent))' }}
                       />
-                      <span className="text-green-600 font-bold">%</span>
+                      <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>%</span>
                     </div>
                   </div>
                 </div>
                 
-                 <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
-                   <div className="flex items-center justify-between">
-                     <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
-                     <div className="text-3xl font-bold text-blue-700">
-                       {isFinite(markupIdeal) && !isNaN(markupIdeal) ? markupIdeal.toFixed(4) : '1.0000'}
-                     </div>
-                   </div>
-                 </div>
+                <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
+                    <div className="text-3xl font-bold text-primary">
+                      {isFinite(markupIdeal) && !isNaN(markupIdeal) ? markupIdeal.toFixed(4) : '1.0000'}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           );
