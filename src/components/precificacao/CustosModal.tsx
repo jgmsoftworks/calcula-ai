@@ -74,6 +74,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
   const [filtroPerido, setFiltroPerido] = useState<string>('6');
+  
+  // Debug do estado do filtro
+  useEffect(() => {
+    console.log('🔍 Estado do filtro mudou para:', filtroPerido);
+  }, [filtroPerido]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
     despesasFixas: false,
@@ -97,33 +102,43 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const carregarFiltroSalvo = async () => {
     try {
       const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      const filtroSalvo = await loadConfiguration(configKey);
+      console.log('🔍 Tentando carregar filtro com chave:', configKey);
       
-      console.log('🔍 Carregando filtro salvo:', configKey, filtroSalvo);
+      const filtroSalvo = await loadConfiguration(configKey);
+      console.log('🔍 Resultado do carregamento:', { configKey, filtroSalvo, tipo: typeof filtroSalvo });
       
       if (filtroSalvo && typeof filtroSalvo === 'string') {
         console.log('✅ Aplicando filtro salvo:', filtroSalvo);
         setFiltroPerido(filtroSalvo);
       } else {
-        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão: 6');
-        setFiltroPerido('6'); // Valor padrão
+        console.log('⚠️ Nenhum filtro salvo encontrado, mantendo atual:', filtroPerido);
+        // NÃO sobrescrever o valor atual se não houver filtro salvo
       }
     } catch (error) {
       console.error('❌ Erro ao carregar filtro:', error);
-      setFiltroPerido('6'); // Fallback para valor padrão
+      // NÃO alterar o valor em caso de erro
     }
   };
 
   // Salvar filtro quando mudado
   const handleFiltroChange = async (novoFiltro: string) => {
-    console.log('🔄 Mudando filtro para:', novoFiltro);
+    console.log('🔄 handleFiltroChange chamado - Mudando filtro de', filtroPerido, 'para:', novoFiltro);
+    console.log('🔄 markupBlock existe?', !!markupBlock, markupBlock?.id);
+    
     setFiltroPerido(novoFiltro);
     
     // Salvar filtro SEMPRE, mesmo para novos blocos
     try {
       const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      console.log('💾 Salvando filtro com chave:', configKey, 'valor:', novoFiltro);
+      
       await saveConfiguration(configKey, novoFiltro);
-      console.log('✅ Filtro salvo:', configKey, novoFiltro);
+      console.log('✅ Filtro salvo com sucesso:', configKey, novoFiltro);
+      
+      // Verificar se foi realmente salvo
+      const verificacao = await loadConfiguration(configKey);
+      console.log('🔍 Verificação do salvamento:', verificacao);
+      
     } catch (error) {
       console.error('❌ Erro ao salvar filtro:', error);
     }
@@ -241,6 +256,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   };
 
   useEffect(() => {
+    console.log('🔄 Modal aberto:', open, 'markupBlock:', markupBlock?.id || 'NOVO');
     if (open) {
       carregarDados();
       carregarFiltroSalvo(); // Carregar filtro salvo sempre que abrir
