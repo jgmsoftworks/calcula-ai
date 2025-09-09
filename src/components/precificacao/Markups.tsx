@@ -732,6 +732,8 @@ export function Markups() {
           const calculated = calculatedMarkups.get(bloco.id);
           const hasCalculated = calculated !== undefined;
           const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
+          const configExpansionKey = `expansion-${bloco.id}`;
+          const showExpansion = submenusAbertos.has(bloco.id);
           
           return (
             <Card key={bloco.id} className="border-border">
@@ -750,107 +752,19 @@ export function Markups() {
                       <Edit2 className="h-3 w-3" />
                     </Button>
                     
-                    {/* 🎯 NOVO: Submenu de períodos em vez do modal */}
-                    <div className="relative">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => toggleSubmenu(bloco.id)}
-                        className="h-8 px-3 flex items-center gap-1"
-                      >
-                        <Settings className="h-3 w-3" />
-                        {submenusAbertos.has(bloco.id) ? 
-                          <ChevronUp className="h-3 w-3" /> : 
-                          <ChevronDown className="h-3 w-3" />
-                        }
-                      </Button>
-                      
-                      {submenusAbertos.has(bloco.id) && (
-                        <div className="absolute right-0 top-full mt-1 z-[100] bg-popover border border-border rounded-md shadow-lg min-w-80 max-h-96 overflow-y-auto">
-                          <div className="p-3 bg-popover">
-                            {/* Seção de Período */}
-                            <div className="mb-4">
-                              <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                                📅 Período de Análise:
-                              </div>
-                              <div className="grid grid-cols-2 gap-1">
-                                {[
-                                  { value: '1', label: '1 mês' },
-                                  { value: '3', label: '3 meses' },
-                                  { value: '6', label: '6 meses' },
-                                  { value: '12', label: '12 meses' },
-                                  { value: 'todos', label: 'Todos' }
-                                ].map((periodo) => (
-                                  <button
-                                    key={periodo.value}
-                                    onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
-                                    className={`text-left px-2 py-1 text-xs rounded hover:bg-accent transition-colors ${
-                                      periodosAplicados.get(bloco.id) === periodo.value 
-                                        ? 'bg-primary/10 text-primary font-medium border border-primary/20' 
-                                        : 'hover:bg-muted border border-transparent'
-                                    }`}
-                                  >
-                                    {periodo.label}
-                                    {periodosAplicados.get(bloco.id) === periodo.value && (
-                                      <span className="ml-1 text-xs">✓</span>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {/* Divider */}
-                            <div className="border-t my-3"></div>
-                            
-                            {/* Seção de Configurações Rápidas */}
-                            <div>
-                              <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                                ⚙️ Configurações:
-                              </div>
-                              <div className="space-y-2">
-                                <button
-                                  onClick={() => abrirConfiguracaoCompleta(bloco.id)}
-                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-card"
-                                >
-                                  <div className="font-medium">🔧 Configurar Itens</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Selecionar despesas, folha e encargos
-                                  </div>
-                                </button>
-                                
-                                <button
-                                  onClick={() => aplicarConfiguracaoPadrao(bloco.id)}
-                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-card"
-                                >
-                                  <div className="font-medium">⚡ Aplicar Padrão</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Usar todos os itens ativos
-                                  </div>
-                                </button>
-                              </div>
-                            </div>
-                            
-                            {/* Status */}
-                            {periodosAplicados.has(bloco.id) && (
-                              <div className="mt-3 pt-3 border-t text-xs bg-card">
-                                <div className="text-primary font-medium">
-                                  ✓ Período: {
-                                    periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
-                                    periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
-                                    periodosAplicados.get(bloco.id) === '6' ? 'Últimos 6 meses' :
-                                    periodosAplicados.get(bloco.id) === '12' ? 'Últimos 12 meses' :
-                                    'Todos os períodos'
-                                  }
-                                </div>
-                                <div className="text-muted-foreground mt-1">
-                                  💰 Markup calculado: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    {/* Botão de configuração que expande o card */}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => toggleSubmenu(bloco.id)}
+                      className="h-8 px-3 flex items-center gap-1"
+                    >
+                      <Settings className="h-3 w-3" />
+                      {showExpansion ? 
+                        <ChevronUp className="h-3 w-3" /> : 
+                        <ChevronDown className="h-3 w-3" />
+                      }
+                    </Button>
                     
                     <Button 
                       size="sm" 
@@ -916,6 +830,119 @@ export function Markups() {
                       <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>%</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Expansão de Configuração */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showExpansion 
+                    ? 'max-h-[600px] opacity-100' 
+                    : 'max-h-0 opacity-0'
+                }`}>
+                  {showExpansion && (
+                    <div className="border-t pt-4 mt-4 space-y-4 animate-fade-in">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Configurações de Custos - {bloco.nome}
+                      </div>
+
+                      {/* Seção de Período */}
+                      <div className="bg-muted/20 rounded-lg p-4">
+                        <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                          📅 Período de Análise:
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {[
+                            { value: '1', label: '1 mês' },
+                            { value: '3', label: '3 meses' },
+                            { value: '6', label: '6 meses' },
+                            { value: '12', label: '12 meses' }
+                          ].map((periodo) => (
+                            <Button
+                              key={periodo.value}
+                              variant={periodosAplicados.get(bloco.id) === periodo.value ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
+                              className="text-xs"
+                            >
+                              {periodo.label}
+                              {periodosAplicados.get(bloco.id) === periodo.value && (
+                                <span className="ml-1 text-xs">✓</span>
+                              )}
+                            </Button>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          variant={periodosAplicados.get(bloco.id) === 'todos' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => aplicarPeriodo(bloco.id, 'todos')}
+                          className="w-full text-xs mb-4"
+                        >
+                          Todos os períodos
+                          {periodosAplicados.get(bloco.id) === 'todos' && (
+                            <span className="ml-1 text-xs">✓</span>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Configurações Rápidas */}
+                      <div className="bg-muted/20 rounded-lg p-4">
+                        <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                          ⚙️ Configurações:
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <Button
+                            onClick={() => abrirConfiguracaoCompleta(bloco.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            🔧 Configurar Itens
+                          </Button>
+                          
+                          <Button
+                            onClick={() => aplicarConfiguracaoPadrao(bloco.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            ⚡ Aplicar Padrão
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      {periodosAplicados.has(bloco.id) && (
+                        <div className="bg-card border rounded-lg p-3 text-xs">
+                          <div className="flex justify-between items-center">
+                            <div className="text-primary font-medium">
+                              ✓ Período aplicado: {
+                                periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
+                                periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
+                                periodosAplicados.get(bloco.id) === '6' ? 'Últimos 6 meses' :
+                                periodosAplicados.get(bloco.id) === '12' ? 'Últimos 12 meses' :
+                                'Todos os períodos'
+                              }
+                            </div>
+                            <div className="text-primary font-bold">
+                              Markup: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Botão Fechar */}
+                      <div className="text-center pt-2">
+                        <Button
+                          onClick={() => toggleSubmenu(bloco.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          Fechar Configurações
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
