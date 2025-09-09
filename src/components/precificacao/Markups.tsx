@@ -51,8 +51,9 @@ export function Markups() {
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // trava anti-reentrada de cálculo
+  // trava anti-reentrada de cálculo e salvamento
   const recalculandoRef = useRef(false);
+  const salvandoRef = useRef(false);
 
   // Bloco informativo
   const blocoSubreceita: MarkupBlock = {
@@ -96,133 +97,136 @@ export function Markups() {
     }
   }, []);
 
-  // -------- CARREGAMENTO / CÁLCULO ----------
+  // -------- CARREGAMENTO / CÁLCULO COM PROTEÇÃO ANTI-REENTRADA ----------
   const carregarConfiguracoesSalvas = useCallback(async () => {
-    if (!user?.id || blocos.length === 0) return;
+    if (!user?.id || blocos.length === 0 || recalculandoRef.current) return;
 
-    const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
+    recalculandoRef.current = true;
+    try {
+      const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
-    const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
-      supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
-      supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
-      supabase.from('encargos_venda').select('*').eq('user_id', user.id)
-    ]);
+      const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+        supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+        supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+        supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+      ]);
 
-    // faturamentos (uma vez)
-    const faturamentosConfig = await loadConfiguration('faturamentos_historicos', { fresh: true });
-    const todosFaturamentos: Array<{ mes: Date; valor: number }> =
-      faturamentosConfig && Array.isArray(faturamentosConfig)
-        ? faturamentosConfig.map((f: any) => ({ mes: new Date(f.mes), valor: Number(f.valor) || 0 }))
-        : [];
+      // faturamentos (uma vez)
+      const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+      const todosFaturamentos: Array<{ mes: Date; valor: number }> =
+        faturamentosConfig && Array.isArray(faturamentosConfig)
+          ? faturamentosConfig.map((f: any) => ({ mes: new Date(f.mes), valor: Number(f.valor) || 0 }))
+          : [];
 
-    let blocosAtualizados: MarkupBlock[] | null = null;
+      let blocosAtualizados: MarkupBlock[] | null = null;
 
-    for (const bloco of blocos) {
-      // período vindo do bloco OU do user_configurations (fresh)
-      let periodo =
-        bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo)) ? String(bloco.periodo) : undefined;
+      for (const bloco of blocos) {
+        // período vindo do bloco OU do user_configurations
+        let periodo = bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo)) ? String(bloco.periodo) : undefined;
 
-      if (!periodo) {
-        const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
-        const norm = salvo == null ? 'todos' : String(salvo);
-        periodo = PERIODOS_VALIDOS.has(norm) ? norm : 'todos';
+        if (!periodo) {
+          const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
+          const norm = salvo == null ? 'todos' : String(salvo);
+          periodo = PERIODOS_VALIDOS.has(norm) ? norm : 'todos';
 
-        if (!blocosAtualizados) blocosAtualizados = [...blocos];
-        blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));
-      }
+          if (!blocosAtualizados) blocosAtualizados = [...blocos];
+          blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));
+        }
 
-      // filtra faturamentos pelo período
-      let faturamentosFiltrados = todosFaturamentos;
-      if (periodo !== 'todos') {
-        const meses = parseInt(periodo, 10);
-        const limite = new Date();
-        limite.setMonth(limite.getMonth() - meses);
-        faturamentosFiltrados = todosFaturamentos.filter(f => f.mes >= limite);
-      }
+        // filtra faturamentos pelo período
+        let faturamentosFiltrados = todosFaturamentos;
+        if (periodo !== 'todos') {
+          const meses = parseInt(periodo, 10);
+          const limite = new Date();
+          limite.setMonth(limite.getMonth() - meses);
+          faturamentosFiltrados = todosFaturamentos.filter(f => f.mes >= limite);
+        }
 
-      let mediaMensal = 0;
-      if (faturamentosFiltrados.length > 0) {
-        const total = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
-        mediaMensal = total / faturamentosFiltrados.length;
-      }
+        let mediaMensal = 0;
+        if (faturamentosFiltrados.length > 0) {
+          const total = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
+          mediaMensal = total / faturamentosFiltrados.length;
+        }
 
-      // checkbox-states também fresh (o modal pode ter acabado de mudar)
-      const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`, { fresh: true });
+        // checkbox-states sem fresh excessivo
+        const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`);
 
-      if (configCheckbox && typeof configCheckbox === 'object' && Object.keys(configCheckbox).length > 0) {
-        const despesasConsideradas = (despesasFixas || []).filter(d => configCheckbox[d.id] && d.ativo);
-        const totalDespesasFixas = despesasConsideradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
+        if (configCheckbox && typeof configCheckbox === 'object' && Object.keys(configCheckbox).length > 0) {
+          const despesasConsideradas = (despesasFixas || []).filter(d => configCheckbox[d.id] && d.ativo);
+          const totalDespesasFixas = despesasConsideradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
 
-        const folhaConsiderada = (folhaPagamento || []).filter(f => configCheckbox[f.id] && f.ativo);
-        const totalFolhaPagamento = folhaConsiderada.reduce((acc, f) => {
-          const custoMensal =
-            f.custo_por_hora > 0
-              ? Number(f.custo_por_hora) * (Number(f.horas_totais_mes) || 173.2)
-              : Number(f.salario_base || 0);
-          return acc + custoMensal;
-        }, 0);
+          const folhaConsiderada = (folhaPagamento || []).filter(f => configCheckbox[f.id] && f.ativo);
+          const totalFolhaPagamento = folhaConsiderada.reduce((acc, f) => {
+            const custoMensal =
+              f.custo_por_hora > 0
+                ? Number(f.custo_por_hora) * (Number(f.horas_totais_mes) || 173.2)
+                : Number(f.salario_base || 0);
+            return acc + custoMensal;
+          }, 0);
 
-        const totalGastos = totalDespesasFixas + totalFolhaPagamento;
-        const gastoSobreFaturamentoPct =
-          mediaMensal > 0 && totalGastos > 0 ? Math.round(((totalGastos / mediaMensal) * 100) * 100) / 100 : 0;
+          const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+          const gastoSobreFaturamentoPct =
+            mediaMensal > 0 && totalGastos > 0 ? Math.round(((totalGastos / mediaMensal) * 100) * 100) / 100 : 0;
 
-        const encargosConsiderados = (encargosVenda || []).filter(e => configCheckbox[e.id] && e.ativo);
-        const valorEmReal = encargosConsiderados.reduce((acc, e) => acc + Number(e.valor_fixo || 0), 0);
+          const encargosConsiderados = (encargosVenda || []).filter(e => configCheckbox[e.id] && e.ativo);
+          const valorEmReal = encargosConsiderados.reduce((acc, e) => acc + Number(e.valor_fixo || 0), 0);
 
-        const categorias = encargosConsiderados.reduce(
-          (acc, e) => {
-            const cat = getCategoriaByNome(e.nome);
-            const v = Number(e.valor_percentual || 0);
-            if (cat === 'impostos') acc.impostos += v;
-            else if (cat === 'meios_pagamento') acc.taxasMeiosPagamento += v;
-            else if (cat === 'comissoes') acc.comissoesPlataformas += v;
-            else acc.outros += v;
-            return acc;
-          },
-          {
-            gastoSobreFaturamento: gastoSobreFaturamentoPct,
+          const categorias = encargosConsiderados.reduce(
+            (acc, e) => {
+              const cat = getCategoriaByNome(e.nome);
+              const v = Number(e.valor_percentual || 0);
+              if (cat === 'impostos') acc.impostos += v;
+              else if (cat === 'meios_pagamento') acc.taxasMeiosPagamento += v;
+              else if (cat === 'comissoes') acc.comissoesPlataformas += v;
+              else acc.outros += v;
+              return acc;
+            },
+            {
+              gastoSobreFaturamento: gastoSobreFaturamentoPct,
+              impostos: 0,
+              taxasMeiosPagamento: 0,
+              comissoesPlataformas: 0,
+              outros: 0,
+              valorEmReal
+            }
+          );
+
+          novosCalculatedMarkups.set(bloco.id, categorias);
+        } else {
+          novosCalculatedMarkups.set(bloco.id, {
+            gastoSobreFaturamento: 0,
             impostos: 0,
             taxasMeiosPagamento: 0,
             comissoesPlataformas: 0,
             outros: 0,
-            valorEmReal
-          }
-        );
-
-        novosCalculatedMarkups.set(bloco.id, categorias);
-        console.log(`✅ [${bloco.nome}] período="${periodo}" médiaMensal=${mediaMensal.toFixed(2)} =>`, categorias);
-      } else {
-        novosCalculatedMarkups.set(bloco.id, {
-          gastoSobreFaturamento: 0,
-          impostos: 0,
-          taxasMeiosPagamento: 0,
-          comissoesPlataformas: 0,
-          outros: 0,
-          valorEmReal: 0
-        });
-        console.log(`⚠️ [${bloco.nome}] sem config; período definido="${periodo}" -> zerado`);
+            valorEmReal: 0
+          });
+        }
       }
-    }
 
-    if (novosCalculatedMarkups.size > 0) {
-      setCalculatedMarkups(novosCalculatedMarkups);
-    }
-
-    if (blocosAtualizados) {
-      setBlocos(blocosAtualizados);
-      try {
-        await saveConfiguration('markups_blocos', blocosAtualizados);
-      } catch (e) {
-        console.warn('⚠️ Falha ao persistir markups_blocos com período:', e);
+      if (novosCalculatedMarkups.size > 0) {
+        setCalculatedMarkups(novosCalculatedMarkups);
       }
-    }
-  }, [user?.id, blocos, loadConfiguration, saveConfiguration, getCategoriaByNome]);
 
-  // carregar blocos com fresh
+      if (blocosAtualizados) {
+        setBlocos(blocosAtualizados);
+        try {
+          await saveConfiguration('markups_blocos', blocosAtualizados);
+          invalidateCache('markups_blocos');
+        } catch (e) {
+          console.warn('⚠️ Falha ao persistir markups_blocos com período:', e);
+        }
+      }
+    } finally {
+      recalculandoRef.current = false;
+    }
+  }, [user?.id, blocos, loadConfiguration, saveConfiguration, invalidateCache, getCategoriaByNome]);
+
+  // carregar blocos sem fresh excessivo
   useEffect(() => {
     const carregar = async () => {
       try {
-        const cfg = await loadConfiguration('markups_blocos', { fresh: true });
+        const cfg = await loadConfiguration('markups_blocos');
         if (cfg && Array.isArray(cfg)) {
           const normalizados: MarkupBlock[] = (cfg as MarkupBlock[]).map(b => ({
             ...b,
@@ -237,12 +241,12 @@ export function Markups() {
     carregar();
   }, [loadConfiguration]);
 
-  // recálculo inicial (protegido)
+  // recálculo inicial (protegido) - só quando trocar de usuário ou carregar blocos pela primeira vez
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
       recalcOnce(carregarConfiguracoesSalvas);
     }
-  }, [blocos.length, user?.id, carregarConfiguracoesSalvas, recalcOnce]);
+  }, [blocos.length, user?.id, recalcOnce]);
 
   useEffect(() => {
     return () => {
@@ -252,13 +256,20 @@ export function Markups() {
 
   const salvarBlocos = useCallback(
     async (novosBlocos: MarkupBlock[]) => {
+      if (salvandoRef.current) return; // Proteção anti-reentrada
+      
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(async () => {
+        if (salvandoRef.current) return;
+        salvandoRef.current = true;
+        
         try {
           await saveConfiguration('markups_blocos', novosBlocos);
           invalidateCache('markups_blocos');
         } catch (e) {
           console.error('Erro ao salvar blocos:', e);
+        } finally {
+          salvandoRef.current = false;
         }
       }, 800);
     },
@@ -343,6 +354,7 @@ export function Markups() {
         await finalizarCriacaoBloco(markupData);
         return;
       }
+      
       // aplica valores imediatos no UI
       setCalculatedMarkups(prev => {
         const m = new Map(prev);
@@ -350,10 +362,15 @@ export function Markups() {
         return m;
       });
 
-      // invalida caches e recalc protegido
+      // invalida caches apenas do bloco específico e recalc protegido
       invalidateCache(`filtro-periodo-${blocoId}`);
       invalidateCache(`checkbox-states-${blocoId}`);
-      await recalcOnce(carregarConfiguracoesSalvas);
+      
+      // Debounce o recálculo para evitar chamadas excessivas
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        recalcOnce(carregarConfiguracoesSalvas);
+      }, 300);
     },
     [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas, invalidateCache, recalcOnce]
   );
