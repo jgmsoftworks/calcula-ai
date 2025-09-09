@@ -23,13 +23,24 @@ interface MaoObraItem {
   unidadeTempo?: string;
 }
 
-export function ProjecaoStep() {
+interface ProjecaoStepProps {
+  maoObra: MaoObraItem[];
+  rendimentoValor: string;
+  rendimentoUnidade: string;
+  onMaoObraChange: (maoObra: MaoObraItem[]) => void;
+  onRendimentoChange: (rendimentoValor: string, rendimentoUnidade: string) => void;
+}
+
+export function ProjecaoStep({ 
+  maoObra, 
+  rendimentoValor, 
+  rendimentoUnidade, 
+  onMaoObraChange, 
+  onRendimentoChange 
+}: ProjecaoStepProps) {
   const [tipoProduto, setTipoProduto] = useState('');
-  const [rendimentoValor, setRendimentoValor] = useState('');
-  const [rendimentoUnidade, setRendimentoUnidade] = useState('unidade');
   const [tempoPreparoTotal, setTempoPreparoTotal] = useState(0);
   const [tempoPreparoUnidade, setTempoPreparoUnidade] = useState('minutos');
-  const [maoObra, setMaoObra] = useState<MaoObraItem[]>([]);
   const [tiposProduto, setTiposProduto] = useState<{ id: string; nome: string }[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [modalMaoObraAberto, setModalMaoObraAberto] = useState(false);
@@ -63,7 +74,7 @@ export function ProjecaoStep() {
   };
 
   const atualizarMaoObra = (novaMaoObra: MaoObraItem[]) => {
-    setMaoObra(novaMaoObra);
+    onMaoObraChange(novaMaoObra);
   };
 
   const tempoTotalMaoObra = maoObra.reduce((total, item) => total + item.tempo, 0);
@@ -137,10 +148,10 @@ export function ProjecaoStep() {
                     id="rendimento-valor"
                     placeholder="Ex: 8, 500, 12"
                     value={rendimentoValor}
-                    onChange={(e) => setRendimentoValor(e.target.value)}
+                    onChange={(e) => onRendimentoChange(e.target.value, rendimentoUnidade)}
                     className="flex-1"
                   />
-                  <Select value={rendimentoUnidade} onValueChange={setRendimentoUnidade}>
+                  <Select value={rendimentoUnidade} onValueChange={(value) => onRendimentoChange(rendimentoValor, value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>

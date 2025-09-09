@@ -17,8 +17,12 @@ interface Embalagem {
   custo_total: number;
 }
 
-export function EmbalagensStep() {
-  const [embalagens, setEmbalagens] = useState<Embalagem[]>([]);
+interface EmbalagensStepProps {
+  embalagens: Embalagem[];
+  onEmbalagensChange: (embalagens: Embalagem[]) => void;
+}
+
+export function EmbalagensStep({ embalagens, onEmbalagensChange }: EmbalagensStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [produtos, setProdutos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,20 +60,21 @@ export function EmbalagensStep() {
       custo_total: produto.custo_medio || 0,
     };
     
-    setEmbalagens([...embalagens, novaEmbalagem]);
+    onEmbalagensChange([...embalagens, novaEmbalagem]);
     setSearchTerm(''); // Limpa a busca após adicionar
   };
 
   const removerEmbalagem = (id: string) => {
-    setEmbalagens(embalagens.filter(item => item.id !== id));
+    onEmbalagensChange(embalagens.filter(item => item.id !== id));
   };
 
   const atualizarQuantidade = (id: string, quantidade: number) => {
-    setEmbalagens(embalagens.map(item => 
+    const updatedEmbalagens = embalagens.map(item => 
       item.id === id 
         ? { ...item, quantidade, custo_total: quantidade * item.custo_unitario }
         : item
-    ));
+    );
+    onEmbalagensChange(updatedEmbalagens);
   };
 
   const custoTotalEmbalagens = embalagens.reduce((total, item) => total + item.custo_total, 0);

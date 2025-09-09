@@ -14,17 +14,85 @@ interface CriarReceitaModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Interfaces for shared state
+interface Ingrediente {
+  id: string;
+  produto_id: string;
+  nome: string;
+  quantidade: number;
+  unidade: string;
+  custo_unitario: number;
+  custo_total: number;
+  marcas?: string[];
+}
+
+interface SubReceita {
+  id: string;
+  receita_id: string;
+  nome: string;
+  quantidade: number;
+  unidade: string;
+  custo_unitario: number;
+  custo_total: number;
+}
+
+interface Embalagem {
+  id: string;
+  produto_id: string;
+  nome: string;
+  quantidade: number;
+  unidade: string;
+  custo_unitario: number;
+  custo_total: number;
+}
+
+interface MaoObraItem {
+  id: string;
+  funcionario: {
+    id: string;
+    nome: string;
+    cargo: string;
+    custo_por_hora: number;
+  };
+  tempo: number;
+  valorTotal: number;
+  unidadeTempo?: string;
+}
+
+interface ReceitaData {
+  ingredientes: Ingrediente[];
+  subReceitas: SubReceita[];
+  embalagens: Embalagem[];
+  maoObra: MaoObraItem[];
+  rendimentoValor: string;
+  rendimentoUnidade: string;
+}
+
 const steps = [
-  { id: 'ingredientes', title: 'Ingredientes', component: IngredientesStep },
-  { id: 'sub-receitas', title: 'Sub-receitas', component: SubReceitasStep },
-  { id: 'embalagens', title: 'Embalagens', component: EmbalagensStep },
-  { id: 'geral', title: 'Geral', component: GeralStep },
-  { id: 'projecao', title: 'Projeção', component: ProjecaoStep },
-  { id: 'precificacao', title: 'Precificação', component: PrecificacaoStep },
+  { id: 'ingredientes', title: 'Ingredientes' },
+  { id: 'sub-receitas', title: 'Sub-receitas' },
+  { id: 'embalagens', title: 'Embalagens' },
+  { id: 'geral', title: 'Geral' },
+  { id: 'projecao', title: 'Projeção' },
+  { id: 'precificacao', title: 'Precificação' },
 ];
 
 export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  
+  // Shared state for all recipe data
+  const [receitaData, setReceitaData] = useState<ReceitaData>({
+    ingredientes: [],
+    subReceitas: [],
+    embalagens: [],
+    maoObra: [],
+    rendimentoValor: '',
+    rendimentoUnidade: 'unidade',
+  });
+
+  const updateReceitaData = (updates: Partial<ReceitaData>) => {
+    setReceitaData(prev => ({ ...prev, ...updates }));
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -40,10 +108,60 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
 
   const handleClose = () => {
     setCurrentStep(0);
+    setReceitaData({
+      ingredientes: [],
+      subReceitas: [],
+      embalagens: [],
+      maoObra: [],
+      rendimentoValor: '',
+      rendimentoUnidade: 'unidade',
+    });
     onOpenChange(false);
   };
 
-  const CurrentStepComponent = steps[currentStep].component;
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <IngredientesStep 
+            ingredientes={receitaData.ingredientes}
+            onIngredientesChange={(ingredientes) => updateReceitaData({ ingredientes })}
+          />
+        );
+      case 1:
+        return (
+          <SubReceitasStep 
+            subReceitas={receitaData.subReceitas}
+            onSubReceitasChange={(subReceitas) => updateReceitaData({ subReceitas })}
+          />
+        );
+      case 2:
+        return (
+          <EmbalagensStep 
+            embalagens={receitaData.embalagens}
+            onEmbalagensChange={(embalagens) => updateReceitaData({ embalagens })}
+          />
+        );
+      case 3:
+        return <GeralStep />;
+      case 4:
+        return (
+          <ProjecaoStep 
+            maoObra={receitaData.maoObra}
+            rendimentoValor={receitaData.rendimentoValor}
+            rendimentoUnidade={receitaData.rendimentoUnidade}
+            onMaoObraChange={(maoObra) => updateReceitaData({ maoObra })}
+            onRendimentoChange={(rendimentoValor, rendimentoUnidade) => 
+              updateReceitaData({ rendimentoValor, rendimentoUnidade })
+            }
+          />
+        );
+      case 5:
+        return <PrecificacaoStep receitaData={receitaData} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,7 +206,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
 
         {/* Step Content */}
         <div className="min-h-[400px]">
-          <CurrentStepComponent />
+          {renderCurrentStep()}
         </div>
 
         {/* Navigation Buttons */}
