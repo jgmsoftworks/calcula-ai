@@ -72,6 +72,7 @@ export function IngredientesStep() {
     };
     
     setIngredientes([...ingredientes, novoIngrediente]);
+    setSearchTerm(''); // Limpa a busca após adicionar
   };
 
   const removerIngrediente = (id: string) => {
