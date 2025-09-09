@@ -4,11 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -35,13 +34,15 @@ interface CalculatedMarkup {
 
 export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
-  const [blocoSelecionado, setBlocoSelecionado] = useState<MarkupBlock | undefined>(undefined);
-  const [modalAberto, setModalAberto] = useState(false);
   const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
   const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
-  const [criandoNovoBloco, setCriandoNovoBloco] = useState(false); // Novo estado para controlar criação
+  
+  // 🎯 NOVO: Estados para o submenu de períodos
+  const [submenusAbertos, setSubmenusAbertos] = useState<Set<string>>(new Set());
+  const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, string>>(new Map());
+  
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -218,6 +219,100 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
+  // 🎯 NOVO: Funções para gerenciar submenu de períodos
+  const toggleSubmenu = useCallback((blocoId: string) => {
+    setSubmenusAbertos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(blocoId)) {
+        newSet.delete(blocoId);
+      } else {
+        newSet.add(blocoId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const aplicarPeriodo = useCallback(async (blocoId: string, periodo: string) => {
+    console.log(`🔄 Aplicando período ${periodo} para bloco ${blocoId}`);
+    
+    try {
+      // Salvar período selecionado
+      await saveConfiguration(`filtro-periodo-${blocoId}`, periodo);
+      
+      // Atualizar estado local
+      setPeriodosAplicados(prev => new Map(prev).set(blocoId, periodo));
+      
+      // Fechar submenu
+      setSubmenusAbertos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(blocoId);
+        return newSet;
+      });
+      
+      // Disparar recálculo para este bloco específico
+      await carregarConfiguracoesSalvas();
+      
+      toast({
+        title: "Período aplicado!",
+        description: `Cálculos atualizados para ${
+          periodo === '1' ? 'último mês' :
+          periodo === '3' ? 'últimos 3 meses' :
+          periodo === '6' ? 'últimos 6 meses' :
+          periodo === '12' ? 'últimos 12 meses' :
+          'todos os períodos'
+        }`,
+        duration: 3000
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao aplicar período:', error);
+      toast({
+        title: "Erro ao aplicar período",
+        description: "Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+    }
+  }, [saveConfiguration, carregarConfiguracoesSalvas, toast]);
+
+  // Carregar períodos aplicados ao inicializar
+  useEffect(() => {
+    const carregarPeriodos = async () => {
+      if (!user?.id || blocos.length === 0) return;
+      
+      const periodosMap = new Map<string, string>();
+      
+      for (const bloco of blocos) {
+        try {
+          const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
+          if (periodo) {
+            periodosMap.set(bloco.id, periodo);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Erro ao carregar período para bloco ${bloco.id}:`, error);
+        }
+      }
+      
+      setPeriodosAplicados(periodosMap);
+    };
+    
+    carregarPeriodos();
+  }, [user?.id, blocos, loadConfiguration]);
+
+  // 🎯 NOVO: Fechar submenu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (submenusAbertos.size > 0) {
+        const target = event.target as Element;
+        if (!target.closest('.relative')) {
+          setSubmenusAbertos(new Set());
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [submenusAbertos.size]);
+
   useEffect(() => {
     const carregarBlocos = async () => {
       try {
@@ -325,11 +420,37 @@ export function Markups() {
   };
 
   const criarNovoBloco = () => {
-    // Ao invés de criar o bloco diretamente, abrir modal de configuração
-    console.log('🆕 Iniciando criação de novo bloco - abrindo modal de configuração');
-    setCriandoNovoBloco(true);
-    setBlocoSelecionado(undefined); // Limpar seleção anterior
-    setModalAberto(true);
+    // 🎯 NOVO: Criação direta sem modal complexo
+    const novoBloco: MarkupBlock = {
+      id: Date.now().toString(),
+      nome: `Markup ${blocos.length + 1}`,
+      gastoSobreFaturamento: 0,
+      impostos: 0,
+      taxasMeiosPagamento: 0,
+      comissoesPlataformas: 0,
+      outros: 0,
+      valorEmReal: 0,
+      lucroDesejado: 20
+    };
+    
+    const novosBlocos = [...blocos, novoBloco];
+    setBlocos(novosBlocos);
+    
+    // Salvar nova lista
+    saveConfiguration('markups_blocos', novosBlocos).then(() => {
+      console.log('✅ Novo bloco criado com sucesso:', novoBloco);
+      toast({
+        title: "Bloco criado!",
+        description: `O bloco "${novoBloco.nome}" foi criado. Use o submenu para configurar o período.`
+      });
+    }).catch(error => {
+      console.error('❌ Erro ao criar novo bloco:', error);
+      toast({
+        title: "Erro ao criar bloco",
+        description: "Não foi possível criar o novo bloco de markup",
+        variant: "destructive"
+      });
+    });
   };
 
   // Nova função para efetivamente criar o bloco quando o modal for salvo
@@ -364,8 +485,6 @@ export function Markups() {
         title: "Bloco criado com sucesso",
         description: `O bloco "${novoBloco.nome}" foi criado e configurado.`
       });
-
-      setCriandoNovoBloco(false);
       
     } catch (error) {
       console.error('❌ Erro ao criar novo bloco:', error);
@@ -427,27 +546,6 @@ export function Markups() {
     return markupFinal;
   };
 
-  // Callback para receber atualizações do modal
-  const handleMarkupUpdate = useCallback(async (blocoId: string, markupData: any) => {
-    console.log('🔄 handleMarkupUpdate chamado para bloco:', blocoId, 'com dados:', markupData);
-    
-    // Se estamos criando um novo bloco, finalizamos a criação
-    if (criandoNovoBloco) {
-      console.log('🆕 Finalizando criação de novo bloco com markup:', markupData);
-      await finalizarCriacaoBloco(markupData);
-      return;
-    }
-    
-    // Caso normal: atualizar bloco existente
-    // Atualizar no state local IMEDIATAMENTE
-    const novosCalculatedMarkups = new Map(calculatedMarkups);
-    novosCalculatedMarkups.set(blocoId, markupData);
-    setCalculatedMarkups(novosCalculatedMarkups);
-    
-    console.log('💾 Estados atualizados - configurações do modal aplicadas');
-    console.log('📊 Novo state calculatedMarkups:', Array.from(novosCalculatedMarkups.entries()));
-  }, [calculatedMarkups, criandoNovoBloco, finalizarCriacaoBloco, blocos.length]);
-
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
     setBlocoEditandoNome(bloco);
     setNomeTemp(bloco.nome);
@@ -470,11 +568,6 @@ export function Markups() {
     setModalEdicaoNome(false);
     setBlocoEditandoNome(null);
     setNomeTemp('');
-  };
-
-  const abrirModal = (bloco: MarkupBlock) => {
-    setBlocoSelecionado(bloco);
-    setModalAberto(true);
   };
 
   return (
@@ -598,14 +691,68 @@ export function Markups() {
                     >
                       <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => abrirModal(bloco)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Settings className="h-3 w-3" />
-                    </Button>
+                    
+                    {/* 🎯 NOVO: Submenu de períodos em vez do modal */}
+                    <div className="relative">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => toggleSubmenu(bloco.id)}
+                        className="h-8 px-3 flex items-center gap-1"
+                      >
+                        <Settings className="h-3 w-3" />
+                        {submenusAbertos.has(bloco.id) ? 
+                          <ChevronUp className="h-3 w-3" /> : 
+                          <ChevronDown className="h-3 w-3" />
+                        }
+                      </Button>
+                      
+                      {submenusAbertos.has(bloco.id) && (
+                        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-border rounded-md shadow-lg min-w-48">
+                          <div className="p-2">
+                            <div className="text-xs font-medium text-muted-foreground mb-2">
+                              Período de Análise:
+                            </div>
+                            <div className="space-y-1">
+                              {[
+                                { value: '1', label: 'Último mês' },
+                                { value: '3', label: 'Últimos 3 meses' },
+                                { value: '6', label: 'Últimos 6 meses' },
+                                { value: '12', label: 'Últimos 12 meses' },
+                                { value: 'todos', label: 'Todos os períodos' }
+                              ].map((periodo) => (
+                                <button
+                                  key={periodo.value}
+                                  onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
+                                  className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors ${
+                                    periodosAplicados.get(bloco.id) === periodo.value 
+                                      ? 'bg-blue-50 text-blue-600 font-medium' 
+                                      : ''
+                                  }`}
+                                >
+                                  {periodo.label}
+                                  {periodosAplicados.get(bloco.id) === periodo.value && (
+                                    <span className="ml-2 text-xs">✓</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                            {periodosAplicados.has(bloco.id) && (
+                              <div className="mt-2 pt-2 border-t text-xs text-green-600">
+                                ✓ Aplicado: {
+                                  periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
+                                  periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
+                                  periodosAplicados.get(bloco.id) === '6' ? 'Últimos 6 meses' :
+                                  periodosAplicados.get(bloco.id) === '12' ? 'Últimos 12 meses' :
+                                  'Todos os períodos'
+                                }
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -684,30 +831,6 @@ export function Markups() {
           );
         })}
       </div>
-
-      {modalAberto && (
-        <CustosModal
-          open={modalAberto}
-          onOpenChange={(open) => {
-            setModalAberto(open);
-            if (!open) {
-              setBlocoSelecionado(undefined);
-              setCriandoNovoBloco(false); // Limpar estado de criação
-            }
-          }}
-          markupBlock={criandoNovoBloco ? undefined : blocoSelecionado} // Passar undefined se criando novo
-          onMarkupUpdate={(markup) => {
-            console.log('🔄 Modal retornou markup:', markup, 'para bloco:', criandoNovoBloco ? 'NOVO' : blocoSelecionado?.id);
-            if (criandoNovoBloco) {
-              // Criar novo bloco com o markup configurado
-              handleMarkupUpdate('novo', markup);
-            } else if (blocoSelecionado) {
-              // Atualizar bloco existente
-              handleMarkupUpdate(blocoSelecionado.id, markup);
-            }
-          }}
-        />
-      )}
 
       <Dialog open={modalEdicaoNome} onOpenChange={setModalEdicaoNome}>
         <DialogContent className="sm:max-w-md">
