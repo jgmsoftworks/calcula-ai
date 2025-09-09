@@ -139,6 +139,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       const verificacao = await loadConfiguration(configKey);
       console.log('🔍 Verificação do salvamento:', verificacao);
       
+      // IMPORTANTE: Recalcular markup com o novo filtro
+      setTimeout(() => {
+        if (Object.keys(tempCheckboxStates).length > 0) {
+          console.log('🔄 Recalculando markup com novo filtro:', novoFiltro);
+          calcularMarkup(tempCheckboxStates);
+        }
+      }, 100); // Pequeno delay para garantir que o estado foi atualizado
+      
     } catch (error) {
       console.error('❌ Erro ao salvar filtro:', error);
     }
