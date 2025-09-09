@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Package, TrendingUp, Plus, Users } from 'lucide-react';
+import { Clock, Package, TrendingUp, Plus, Users, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +63,10 @@ export function ProjecaoStep() {
 
   const atualizarMaoObra = (novaMaoObra: MaoObraItem[]) => {
     setMaoObra(novaMaoObra);
+  };
+
+  const removerMaoObra = (id: string) => {
+    setMaoObra(maoObra.filter(item => item.id !== id));
   };
 
   const tempoTotalMaoObra = maoObra.reduce((total, item) => total + item.tempo, 0);
@@ -202,9 +206,19 @@ export function ProjecaoStep() {
                             <span className="font-medium">{item.funcionario.nome}</span>
                             <span className="text-muted-foreground ml-2">({item.funcionario.cargo})</span>
                           </div>
-                          <div className="text-right">
-                            <div>{item.tempo}h</div>
-                            <div className="text-muted-foreground">R$ {item.valorTotal.toFixed(2)}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right">
+                              <div>{item.tempo}h</div>
+                              <div className="text-muted-foreground">R$ {item.valorTotal.toFixed(2)}</div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removerMaoObra(item.id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))}
