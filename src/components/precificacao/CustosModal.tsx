@@ -549,6 +549,19 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     try {
       console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
       
+      // IMPORTANTE: Calcular markup ANTES de salvar para garantir valores corretos
+      const markupCalculado = await new Promise<any>((resolve) => {
+        // Calcular markup com os estados temporários
+        calcularMarkup(tempCheckboxStates);
+        
+        // Aguardar um pequeno delay para garantir que o cálculo seja concluído
+        setTimeout(() => {
+          resolve(currentMarkupValues);
+        }, 100);
+      });
+      
+      console.log('🧮 Markup calculado para salvamento:', markupCalculado);
+      
       // IMPORTANTE: Carregar configuração existente ANTES de salvar para preservar outras abas
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
       const configExistente = await loadConfiguration(configKey);
@@ -586,19 +599,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       setCheckboxStates(estadosParaSalvar);
       setHasUnsavedChanges(false);
       
-      // Calcular markup final COM os novos estados
-      calcularMarkup(estadosParaSalvar);
-      console.log('🧮 Markup calculado após salvar');
-      
       toast({
-        title: "Configurações salvas",
-        description: "As configurações do markup foram salvas com sucesso"
+        title: markupBlock ? "Configurações salvas" : "Bloco criado com sucesso",
+        description: markupBlock 
+          ? "As configurações do markup foram salvas com sucesso"
+          : "O novo bloco de markup foi criado e configurado"
       });
       
-      // Emitir callback para o componente pai ANTES de fechar o modal
+      // Emitir callback para o componente pai COM os valores calculados
       if (onMarkupUpdate) {
-        console.log('📤 Enviando dados para componente pai');
-        onMarkupUpdate(currentMarkupValues);
+        console.log('📤 Enviando dados calculados para componente pai:', markupCalculado);
+        onMarkupUpdate(markupCalculado);
       }
       
       // Fechar modal após um pequeno delay
