@@ -46,6 +46,9 @@ export function Markups() {
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
   const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
   
+  // 🚪 PORTÃO: Estado para controlar se os períodos foram carregados
+  const [isLoadingPeriodos, setIsLoadingPeriodos] = useState(true);
+  
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -82,7 +85,10 @@ export function Markups() {
 
   // Função ÚNICA para carregar e calcular configurações salvas
   const carregarConfiguracoesSalvas = useCallback(async () => {
-    if (!user?.id || blocos.length === 0) return;
+    if (!user?.id || blocos.length === 0 || isLoadingPeriodos) {
+      console.log('⏳ Aguardando carregamento dos períodos...');
+      return;
+    }
 
     console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
 
@@ -210,7 +216,7 @@ export function Markups() {
         setCalculatedMarkups(novosCalculatedMarkups);
         console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
-}, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados]); // <<-- CORREÇÃO: Adicionar periodosAplicados como dependência
+}, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados, isLoadingPeriodos]);
 
   // 🎯 NOVO: Funções para gerenciar submenu de períodos
   const toggleSubmenu = useCallback((blocoId: string) => {
@@ -334,6 +340,9 @@ export function Markups() {
     const carregarPeriodos = async () => {
       if (!user?.id || blocos.length === 0) return;
       
+      console.log('🔑 Iniciando carregamento dos períodos salvos...');
+      setIsLoadingPeriodos(true);
+      
       const periodosMap = new Map<string, string>();
       
       for (const bloco of blocos) {
@@ -341,6 +350,7 @@ export function Markups() {
           const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
           if (periodo) {
             periodosMap.set(bloco.id, periodo);
+            console.log(`📅 Período carregado para ${bloco.nome}: ${periodo}`);
           }
         } catch (error) {
           console.warn(`⚠️ Erro ao carregar período para bloco ${bloco.id}:`, error);
@@ -348,6 +358,8 @@ export function Markups() {
       }
       
       setPeriodosAplicados(periodosMap);
+      setIsLoadingPeriodos(false); // 🚪 LIBERA O PORTÃO
+      console.log('✅ Períodos carregados, liberando cálculo dos markups');
     };
     
     carregarPeriodos();
@@ -383,13 +395,13 @@ export function Markups() {
     carregarBlocos();
   }, [loadConfiguration]);
   
-  // Carregar configurações salvas após os blocos serem carregados
+  // Carregar configurações salvas APÓS os períodos serem carregados
   useEffect(() => {
-    if (blocos.length > 0 && user?.id) {
-      console.log('🎯 Carregando configurações salvas para todos os blocos...');
+    if (blocos.length > 0 && user?.id && !isLoadingPeriodos) {
+      console.log('🎯 Períodos carregados! Executando cálculo dos markups...');
       carregarConfiguracoesSalvas();
     }
-  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
+  }, [blocos.length, user?.id, isLoadingPeriodos, carregarConfiguracoesSalvas]);
 
   // Real-time updates: escutar mudanças na tabela user_configurations
   useEffect(() => {
