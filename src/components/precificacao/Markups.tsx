@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calculator, Plus, Trash2, Edit2, Info, Settings } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
+import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustosModal } from './CustosModal';
@@ -47,6 +48,7 @@ export function Markups() {
   const [criandoNovoBloco, setCriandoNovoBloco] = useState(false);
 
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
+  const { currentFilter: globalFilter, setFilter: setGlobalFilter } = useFilterPersistence('markup_filter');
   const { toast } = useToast();
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -131,25 +133,17 @@ export function Markups() {
       for (const bloco of blocosParaCalcular) {
         console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
         
-        // SEMPRE carregar período fresh do storage - logs detalhados
-        const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
+        // SEMPRE carregar período fresh do storage - usar filtro global
         let periodo: string;
         
-        console.log(`🔍 [TELA] Carregando filtro para bloco ${bloco.nome} (${bloco.id}):`, { 
-          valorSalvo: salvo, 
-          tipoSalvo: typeof salvo,
-          periodoBloco: bloco.periodo 
-        });
+        console.log(`🔍 [TELA] Usando filtro global para bloco ${bloco.nome}: ${globalFilter}`);
         
-        if (salvo !== null && salvo !== undefined && PERIODOS_VALIDOS.has(String(salvo))) {
-          periodo = String(salvo);
-          console.log(`✅ [TELA] Período salvo encontrado para ${bloco.nome}: ${periodo}`);
-        } else if (bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo))) {
-          periodo = String(bloco.periodo);
-          console.log(`📋 [TELA] Usando período do bloco para ${bloco.nome}: ${periodo}`);
+        if (globalFilter && PERIODOS_VALIDOS.has(String(globalFilter))) {
+          periodo = String(globalFilter);
+          console.log(`✅ [TELA] Período global encontrado para ${bloco.nome}: ${periodo}`);
         } else {
-          periodo = 'todos';
-          console.log(`⚠️ [TELA] Usando fallback 'todos' para ${bloco.nome} (salvo: ${salvo})`);
+          periodo = 'last_month';
+          console.log(`⚠️ [TELA] Usando fallback 'last_month' para ${bloco.nome}`);
         }
         
         console.log(`📅 Período salvo carregado para ${bloco.nome}: ${periodo} (valor bruto: ${salvo})`);

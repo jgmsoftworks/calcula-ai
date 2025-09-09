@@ -661,6 +661,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
+      initialize_user_filters: {
+        Args: { user_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       tipo_movimentacao: "entrada" | "saida"

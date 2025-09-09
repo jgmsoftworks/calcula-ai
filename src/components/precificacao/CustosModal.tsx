@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
+import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface MarkupBlock {
@@ -73,7 +74,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
-  const [filtroPerido, setFiltroPerido] = useState<string>('6');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
     despesasFixas: false,
@@ -84,86 +84,24 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   
+  // Usar o novo sistema de persistência de filtros
+  const { currentFilter: filtroPerido, setFilter: setFiltroPerido, isLoading: filterLoading } = useFilterPersistence('custos_filter');
+  
   // Anti-reentrada para salvamentos
   const salvandoRef = useRef(false);
-  const carregandoRef = useRef(false);
 
-  // Chave única baseada no bloco (sempre usa ID se disponível, senão usa timestamp fixo para novos)
-  const getConfigKey = useCallback((tipo: string) => {
-    const blocoId = markupBlock?.id || 'new-block';
-    return `${tipo}-${blocoId}`;
-  }, [markupBlock?.id]);
-
-  // Carregar filtro salvo com verificação rigorosa e logs detalhados
-  const carregarFiltroSalvo = useCallback(async () => {
-    if (carregandoRef.current) return;
-    carregandoRef.current = true;
-    
-    try {
-      const configKey = getConfigKey('filtro-periodo');
-      console.log(`🔍 [MODAL] Carregando filtro para bloco ${markupBlock?.id} com chave: ${configKey}`);
-      
-      const filtroSalvo = await loadConfiguration(configKey, { fresh: true });
-      console.log(`📋 [MODAL] Filtro carregado do banco:`, { 
-        blocoId: markupBlock?.id,
-        configKey, 
-        valorCarregado: filtroSalvo, 
-        tipo: typeof filtroSalvo,
-        filtroAtual: filtroPerido 
-      });
-      
-      if (filtroSalvo !== null && filtroSalvo !== undefined) {
-        const filtroStr = String(filtroSalvo);
-        if (['1', '3', '6', '12', 'todos'].includes(filtroStr)) {
-          console.log(`✅ [MODAL] Aplicando filtro salvo: ${filtroStr} (era: ${filtroPerido})`);
-          setFiltroPerido(filtroStr);
-        } else {
-          console.log(`⚠️ [MODAL] Filtro inválido (${filtroStr}), mantendo atual: ${filtroPerido}`);
-        }
-      } else {
-        console.log(`ℹ️ [MODAL] Nenhum filtro salvo encontrado para bloco ${markupBlock?.id}, mantendo atual: ${filtroPerido}`);
-      }
-      
-    } catch (error) {
-      console.error('❌ [MODAL] Erro ao carregar filtro:', error);
-    } finally {
-      carregandoRef.current = false;
-    }
-  }, [getConfigKey, loadConfiguration, filtroPerido, markupBlock?.id]);
-
-  // Atualizar valores locais quando markupBlock mudar E carregar filtro
+  // Atualizar valores locais quando markupBlock mudar
   useEffect(() => {
     if (markupBlock) {
       setCurrentMarkupValues(markupBlock);
-      // Carregar filtro específico do bloco
-      carregarFiltroSalvo();
-    } else {
-      // Para novo bloco, usar valor padrão sem carregar
-      setFiltroPerido('6'); // Padrão apenas para novos blocos
     }
-  }, [markupBlock?.id, carregarFiltroSalvo]);
+  }, [markupBlock]);
 
-  // Salvar filtro com proteção anti-reentrada e trigger para recálculo
+  // Usar o novo sistema de filtros
   const handleFiltroChange = useCallback(async (novoFiltro: string) => {
-    if (salvandoRef.current) return;
-    
-    setFiltroPerido(novoFiltro);
-    
-    salvandoRef.current = true;
-    try {
-      const configKey = getConfigKey('filtro-periodo');
-      await saveConfiguration(configKey, novoFiltro);
-      invalidateCache(configKey);
-      
-      // Marcar que houve mudanças para disparar recálculo
-      setHasUnsavedChanges(true);
-      
-    } catch (error) {
-      console.error('❌ Erro ao salvar filtro:', error);
-    } finally {
-      salvandoRef.current = false;
-    }
-  }, [getConfigKey, saveConfiguration, invalidateCache]);
+    await setFiltroPerido(novoFiltro);
+    setHasUnsavedChanges(true);
+  }, [setFiltroPerido]);
 
   const carregarDados = async () => {
     if (!user) return;
@@ -235,8 +173,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         setFaturamentosHistoricos(faturamentos);
       }
 
-      // Carregar estados dos checkboxes com chave única
-      const configKey = getConfigKey('checkbox-states');
+      // Carregar estados dos checkboxes usando ID do bloco diretamente
+      const configKey = `checkbox-states-${markupBlock?.id || 'new-block'}`;
       const savedStates = await loadConfiguration(configKey);
       
       let statesParaUsar: Record<string, boolean> = {};
@@ -273,12 +211,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (open) {
       carregarDados();
-      // Só carregar filtro se for um bloco existente
-      if (markupBlock) {
-        carregarFiltroSalvo();
-      }
     }
-  }, [open, user?.id, markupBlock?.id, carregarFiltroSalvo]); // Adicionar carregarFiltroSalvo como dependência
+  }, [open, user?.id, markupBlock?.id]);
 
   // Recalcular markup quando dados carregarem ou filtro mudar
   useEffect(() => {
@@ -600,24 +534,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       // Aguardar atualização do estado
       await new Promise(resolve => setTimeout(resolve, 50));
       
-      // CRÍTICO: Invalidar cache do filtro específico para forçar releitura
-      const filtroKey = getConfigKey('filtro-periodo');
-      invalidateCache(filtroKey);
+      // Salvar configurações dos checkboxes
+      const configKey = `checkbox-states-${markupBlock?.id || 'new-block'}`;
       
-      // Salvar configurações com chave única  
-      const configKey = getConfigKey('checkbox-states');
-      
-      console.log(`💾 Tentando salvar configurações:`, {
-        filtroKey,
+      console.log(`💾 Salvando configurações dos checkboxes:`, {
         configKey,
-        filtro: filtroPerido,
         checkboxes: tempCheckboxStates
       });
 
       // Salvar configurações com tratamento de erro
       try {
         await saveConfiguration(configKey, tempCheckboxStates);
-        await saveConfiguration(filtroKey, filtroPerido); // Salvar filtro também
         console.log(`✅ Configurações salvas com sucesso`);
       } catch (error) {
         console.error(`❌ Erro ao salvar configurações:`, error);
@@ -626,7 +553,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       // Invalidar cache para garantir leitura fresh na próxima vez
       invalidateCache(configKey);
-      invalidateCache(filtroKey);
       
       // Atualizar estados locais
       setCheckboxStates({ ...tempCheckboxStates });
@@ -660,7 +586,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     } finally {
       salvandoRef.current = false;
     }
-  }, [tempCheckboxStates, currentMarkupValues, getConfigKey, saveConfiguration, invalidateCache, onMarkupUpdate, onOpenChange, markupBlock, toast]);
+  }, [tempCheckboxStates, currentMarkupValues, saveConfiguration, invalidateCache, onMarkupUpdate, onOpenChange, markupBlock, toast]);
 
   const handleCancelar = () => {
     // Restaurar estados originais
