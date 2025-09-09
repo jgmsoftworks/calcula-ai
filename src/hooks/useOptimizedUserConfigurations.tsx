@@ -2,168 +2,161 @@ import { useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-interface UserConfiguration {
-  id?: string;
-  type: string;
-  configuration: any;
-}
+interface CacheEntry { data: any; timestamp: number }
+interface LoadOpts { fresh?: boolean }
 
 export function useOptimizedUserConfigurations() {
   const { user } = useAuth();
-  const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
-  const pendingRequests = useRef<Map<string, Promise<any>>>(new Map());
-  
-  const CACHE_DURATION = 30000; // 30 segundos de cache
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  const pendingRef = useRef<Map<string, Promise<any>>>(new Map());
 
-  // Função para invalidar cache (usar em real-time updates)
+  const CACHE_DURATION = 30_000; // 30s
+
   const invalidateCache = useCallback((type?: string) => {
-    if (type) {
-      cacheRef.current.delete(type);
-      console.log(`🗑️ Cache invalidado para tipo: ${type}`);
-    } else {
+    if (!type) {
       cacheRef.current.clear();
-      console.log('🗑️ Todo o cache foi invalidado');
+      return;
     }
+    cacheRef.current.delete(type);
   }, []);
 
-  const loadConfiguration = useCallback(async (type: string): Promise<any | null> => {
-    if (!user) return null;
-
-    // Verificar cache
-    const cached = cacheRef.current.get(type);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data;
-    }
-
-    // Verificar se já existe uma requisição pendente
-    const pendingKey = `${user.id}-${type}`;
-    if (pendingRequests.current.has(pendingKey)) {
-      return pendingRequests.current.get(pendingKey);
-    }
-
-    const request = (async () => {
-      try {
-      const { data, error } = await supabase
-        .from('user_configurations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('type', type)
-        .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
-        const result = data?.configuration || null;
-        
-        // Armazenar no cache
-        cacheRef.current.set(type, {
-          data: result,
-          timestamp: Date.now()
-        });
-
-        return result;
-      } catch (error) {
-        console.error('Erro ao carregar configuração:', error);
+  const loadConfiguration = useCallback(
+    async (type: string, opts?: LoadOpts): Promise<any | null> => {
+      if (!user) {
+        console.log(`⚠️ loadConfiguration: Usuário não logado para ${type}`);
         return null;
-      } finally {
-        pendingRequests.current.delete(pendingKey);
       }
-    })();
 
-    pendingRequests.current.set(pendingKey, request);
-    return request;
-  }, [user]);
+      const fresh = !!opts?.fresh;
+      const cacheKey = `${user.id}:${type}`;
 
-  const saveConfiguration = useCallback(async (type: string, configuration: any): Promise<void> => {
-    if (!user) return;
+      console.log(`🔍 Carregando configuração: ${type} (fresh: ${fresh})`);
 
-    try {
-      // Invalidar cache
-      cacheRef.current.delete(type);
-
-      // 🔥 CORREÇÃO DO BUG: Se configuration é null, DELETAR a entrada
-      if (configuration === null || configuration === undefined) {
-        const { error } = await supabase
-          .from('user_configurations')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('type', type);
-        
-        if (error) {
-          console.error(`Erro ao deletar configuração ${type}:`, error);
-        } else {
-          console.log(`✅ Configuração ${type} deletada com sucesso`);
+      if (!fresh) {
+        const cached = cacheRef.current.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          console.log(`💾 Cache hit para ${type}:`, cached.data);
+          return cached.data;
         }
-        
-        // Remover do cache também
-        cacheRef.current.delete(type);
+      }
+
+      if (pendingRef.current.has(cacheKey)) {
+        console.log(`⏳ Aguardando request pendente para ${type}`);
+        return pendingRef.current.get(cacheKey);
+      }
+
+      const p = (async () => {
+        try {
+          console.log(`📡 Buscando ${type} no banco de dados...`);
+          const { data, error } = await supabase
+            .from('user_configurations')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('type', type)
+            .maybeSingle();
+
+          if (error && (error as any).code !== 'PGRST116') {
+            console.error(`❌ Erro ao carregar ${type}:`, error);
+            throw error;
+          }
+
+          const result = data?.configuration ?? null;
+          console.log(`📋 Resultado carregado para ${type}:`, result);
+
+          // sempre atualiza cache (mesmo fresh, para futuras leituras)
+          cacheRef.current.set(cacheKey, { data: result, timestamp: Date.now() });
+          return result;
+        } finally {
+          pendingRef.current.delete(cacheKey);
+        }
+      })();
+
+      pendingRef.current.set(cacheKey, p);
+      return p;
+    },
+    [user]
+  );
+
+  const saveConfiguration = useCallback(
+    async (type: string, configuration: any): Promise<void> => {
+      if (!user) {
+        console.error('❌ saveConfiguration: Usuário não logado');
         return;
       }
 
-      const { data: existing } = await supabase
-        .from('user_configurations')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('type', type)
-        .maybeSingle();
+      console.log(`💾 Salvando configuração: ${type}`, configuration);
+      const cacheKey = `${user.id}:${type}`;
 
-      if (existing) {
-        await supabase
-          .from('user_configurations')
-          .update({ configuration })
-          .eq('id', existing.id);
-      } else {
-        await supabase
-          .from('user_configurations')
-          .insert({
-            user_id: user.id,
-            type,
-            configuration
-          });
-      }
-
-      // Atualizar cache com novos dados
-      cacheRef.current.set(type, {
-        data: configuration,
-        timestamp: Date.now()
-      });
-    } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
-      throw error;
-    }
-  }, [user]);
-
-  return {
-    loadConfiguration,
-    saveConfiguration,
-    invalidateCache,
-    // Nova função para limpeza inteligente de configurações
-    deleteConfiguration: useCallback(async (type: string): Promise<void> => {
-      if (!user) return;
-      
       try {
-        await saveConfiguration(type, null); // Usa a nova lógica de delete
-        console.log(`🗑️ Configuração ${type} removida com sucesso`);
+        // Verificar se já existe
+        const { data: existing, error: selectError } = await supabase
+          .from('user_configurations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('type', type)
+          .maybeSingle();
+
+        if (selectError && selectError.code !== 'PGRST116') {
+          console.error('❌ Erro ao buscar configuração existente:', selectError);
+          throw selectError;
+        }
+
+        console.log(`🔍 Configuração existente para ${type}:`, existing);
+
+        if (existing) {
+          // Atualizar
+          const { error: updateError } = await supabase
+            .from('user_configurations')
+            .update({ 
+              configuration,
+              updated_at: new Date().toISOString() 
+            })
+            .eq('id', existing.id);
+
+          if (updateError) {
+            console.error('❌ Erro ao atualizar configuração:', updateError);
+            throw updateError;
+          }
+          console.log(`✅ Configuração ${type} atualizada com sucesso`);
+        } else {
+          // Inserir
+          const { error: insertError } = await supabase
+            .from('user_configurations')
+            .insert({ 
+              user_id: user.id, 
+              type, 
+              configuration 
+            });
+
+          if (insertError) {
+            console.error('❌ Erro ao inserir configuração:', insertError);
+            throw insertError;
+          }
+          console.log(`✅ Configuração ${type} criada com sucesso`);
+        }
+
+        // Atualizar cache APENAS após sucesso
+        cacheRef.current.set(cacheKey, { data: configuration, timestamp: Date.now() });
+
+        // Verificar se foi realmente salvo
+        const { data: verificacao } = await supabase
+          .from('user_configurations')
+          .select('configuration')
+          .eq('user_id', user.id)
+          .eq('type', type)
+          .maybeSingle();
+
+        console.log(`🔍 Verificação pós-salvamento para ${type}:`, verificacao?.configuration);
+
       } catch (error) {
-        console.error(`❌ Erro ao remover configuração ${type}:`, error);
-        throw error;
+        console.error(`❌ Falha crítica ao salvar ${type}:`, error);
+        // Remover do cache se houve erro
+        cacheRef.current.delete(cacheKey);
+        throw error; // Re-throw para que o componente saiba que houve erro
       }
-    }, [user, saveConfiguration]),
-    
-    // Função para limpeza em lote
-    deleteMultipleConfigurations: useCallback(async (types: string[]): Promise<void> => {
-      if (!user) return;
-      
-      console.log(`🧹 Removendo ${types.length} configurações em lote...`);
-      const results = await Promise.allSettled(
-        types.map(type => saveConfiguration(type, null))
-      );
-      
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
-      
-      console.log(`✅ Limpeza concluída: ${successful} sucessos, ${failed} falhas`);
-    }, [user, saveConfiguration])
-  };
+    },
+    [user]
+  );
+
+  return { loadConfiguration, saveConfiguration, invalidateCache };
 }
