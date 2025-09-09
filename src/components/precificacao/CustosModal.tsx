@@ -95,23 +95,37 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Carregar filtro salvo
   const carregarFiltroSalvo = async () => {
-    if (!markupBlock) return;
-    
-    const configKey = `filtro-periodo-${markupBlock.id}`;
-    const filtroSalvo = await loadConfiguration(configKey);
-    
-    if (filtroSalvo && typeof filtroSalvo === 'string') {
-      setFiltroPerido(filtroSalvo);
+    try {
+      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      const filtroSalvo = await loadConfiguration(configKey);
+      
+      console.log('🔍 Carregando filtro salvo:', configKey, filtroSalvo);
+      
+      if (filtroSalvo && typeof filtroSalvo === 'string') {
+        console.log('✅ Aplicando filtro salvo:', filtroSalvo);
+        setFiltroPerido(filtroSalvo);
+      } else {
+        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão: 6');
+        setFiltroPerido('6'); // Valor padrão
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar filtro:', error);
+      setFiltroPerido('6'); // Fallback para valor padrão
     }
   };
 
   // Salvar filtro quando mudado
   const handleFiltroChange = async (novoFiltro: string) => {
+    console.log('🔄 Mudando filtro para:', novoFiltro);
     setFiltroPerido(novoFiltro);
     
-    if (markupBlock) {
-      const configKey = `filtro-periodo-${markupBlock.id}`;
+    // Salvar filtro SEMPRE, mesmo para novos blocos
+    try {
+      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
       await saveConfiguration(configKey, novoFiltro);
+      console.log('✅ Filtro salvo:', configKey, novoFiltro);
+    } catch (error) {
+      console.error('❌ Erro ao salvar filtro:', error);
     }
   };
 
@@ -229,6 +243,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (open) {
       carregarDados();
+      carregarFiltroSalvo(); // Carregar filtro salvo sempre que abrir
     }
   }, [open, user, markupBlock?.id]); // Adiciona markupBlock.id como dependência
 
