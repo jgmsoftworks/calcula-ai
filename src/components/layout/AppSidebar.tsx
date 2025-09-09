@@ -7,6 +7,7 @@ import {
   LogOut,
   Building2,
   TrendingUp,
+  ChefHat,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -30,6 +31,7 @@ const navigationItems = [
   { title: 'Estoque', url: '/estoque', icon: Package },
   { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
+  { title: 'Receitas', url: '/receitas', icon: ChefHat },
 ];
 
 const businessItems = [

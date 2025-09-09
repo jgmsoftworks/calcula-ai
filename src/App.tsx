@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Estoque from "./pages/Estoque";
 import Custos from "./pages/Custos";
 import Precificacao from "./pages/Precificacao";
+import Receitas from "./pages/Receitas";
 import PerfilNegocio from "./pages/PerfilNegocio";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
               <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />
               <Route path="/precificacao" element={<AppLayout><Precificacao /></AppLayout>} />
+              <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
               <Route path="/perfil" element={<AppLayout><PerfilNegocio /></AppLayout>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
