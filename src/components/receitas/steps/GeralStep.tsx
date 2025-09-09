@@ -156,7 +156,7 @@ export function GeralStep() {
           <CardContent className="pt-0 pb-4 px-4">
             <Table>
               <TableHeader>
-                <TableRow className="h-12">
+                <TableRow className="h-10">
                   <TableHead className="text-sm py-2">Descrição</TableHead>
                   <TableHead className="text-sm py-2">Temp. °C</TableHead>
                   <TableHead className="text-sm py-2">Tempo</TableHead>
@@ -164,9 +164,9 @@ export function GeralStep() {
               </TableHeader>
               <TableBody>
                 {conservacao.map((item) => (
-                  <TableRow key={item.id} className="h-16">
-                    <TableCell className="font-medium text-sm py-3">{item.descricao}</TableCell>
-                    <TableCell className="py-3">
+                  <TableRow key={item.id} className="h-14">
+                    <TableCell className="font-medium text-sm py-2">{item.descricao}</TableCell>
+                    <TableCell className="py-2">
                       <Input
                         value={item.temperatura}
                         onChange={(e) => handleTemperaturaChange(item.id, e.target.value)}
@@ -175,7 +175,7 @@ export function GeralStep() {
                         className="w-12 h-8 text-xs px-1"
                       />
                     </TableCell>
-                    <TableCell className="py-3">
+                    <TableCell className="py-2">
                       <div className="flex items-center gap-1">
                         <Input
                           type="number"
