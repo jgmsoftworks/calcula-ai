@@ -351,24 +351,58 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     return media;
   }, [faturamentosHistoricos]);
 
-  // Função para aplicar período selecionado
+  // Função para aplicar período selecionado (FORÇAR persistência)
   const handleAplicarPeriodo = useCallback(async () => {
-    console.log(`🔄 Aplicando período: ${filtroPerido}`);
+    console.log(`🔄 FORÇANDO aplicação do período: ${filtroPerido}`);
     
-    // Salvar o filtro usando a função existente
-    await handleFiltroChange(filtroPerido);
-    
-    toast({
-      title: "Período aplicado",
-      description: `Cálculos atualizados para ${
-        filtroPerido === '1' ? 'último mês' :
-        filtroPerido === '3' ? 'últimos 3 meses' :
-        filtroPerido === '6' ? 'últimos 6 meses' :
-        filtroPerido === '12' ? 'últimos 12 meses' :
-        'todos os períodos'
-      }`
-    });
-  }, [filtroPerido, handleFiltroChange, toast]);
+    // 1. Salvar o filtro MÚLTIPLAS VEZES para garantir persistência
+    try {
+      const configKeys = [
+        markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
+        `filtro-periodo-forcado-${markupBlock?.id || 'default'}`, // Chave adicional para forçar
+        'ultimo-filtro-aplicado' // Chave global
+      ];
+      
+      // Salvar em múltiplas chaves para garantir
+      for (const key of configKeys) {
+        await saveConfiguration(key, filtroPerido);
+        console.log(`✅ Filtro salvo na chave: ${key} = ${filtroPerido}`);
+      }
+      
+      // 2. Reforçar o estado local
+      setFiltroPerido(filtroPerido);
+      
+      // 3. Forçar recálculo via timeout para garantir que seja executado
+      setTimeout(() => {
+        if (Object.keys(tempCheckboxStates).length > 0) {
+          console.log('🔄 FORÇANDO recálculo com período aplicado:', filtroPerido);
+          // Usar a função handleFiltroChange que já tem a lógica de recálculo
+          handleFiltroChange(filtroPerido);
+        }
+      }, 100);
+      
+      // 4. Mostrar toast de sucesso
+      toast({
+        title: "✅ Período APLICADO com sucesso",
+        description: `Cálculos FORÇADOS para ${
+          filtroPerido === '1' ? 'último mês' :
+          filtroPerido === '3' ? 'últimos 3 meses' :
+          filtroPerido === '6' ? 'últimos 6 meses' :
+          filtroPerido === '12' ? 'últimos 12 meses' :
+          'todos os períodos'
+        }. Período fixado!`,
+        duration: 5000
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao forçar aplicação do filtro:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao aplicar período. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
 
   // Função para calcular média mensal baseada no período selecionado
   const calcularMediaMensal = useMemo(() => {
