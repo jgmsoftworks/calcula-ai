@@ -149,7 +149,7 @@ export function GeralStep() {
         </div>
 
         {/* Conservação */}
-        <Card>
+        <Card className="h-[280px]">
           <CardHeader>
             <CardTitle className="text-base">Conservação:</CardTitle>
           </CardHeader>
