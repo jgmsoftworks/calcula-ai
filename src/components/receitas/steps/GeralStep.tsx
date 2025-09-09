@@ -150,46 +150,46 @@ export function GeralStep() {
 
         {/* Conservação */}
         <Card className="h-[280px]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Conservação:</CardTitle>
+          <CardHeader className="pb-1 pt-3">
+            <CardTitle className="text-sm">Conservação:</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 pb-6">
+          <CardContent className="pt-0 pb-2 px-4">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Descrição</TableHead>
-                  <TableHead className="text-xs">Temp. °C</TableHead>
-                  <TableHead className="text-xs">Tempo</TableHead>
+                <TableRow className="h-8">
+                  <TableHead className="text-xs py-1">Descrição</TableHead>
+                  <TableHead className="text-xs py-1">Temp. °C</TableHead>
+                  <TableHead className="text-xs py-1">Tempo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {conservacao.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium text-sm">{item.descricao}</TableCell>
-                    <TableCell>
+                  <TableRow key={item.id} className="h-10">
+                    <TableCell className="font-medium text-xs py-2">{item.descricao}</TableCell>
+                    <TableCell className="py-2">
                       <Input
                         value={item.temperatura}
                         onChange={(e) => handleTemperaturaChange(item.id, e.target.value)}
                         onBlur={(e) => handleTemperaturaBlur(item.id, e.target.value)}
                         onFocus={(e) => e.target.select()}
-                        className="w-14 h-6 text-xs"
+                        className="w-12 h-5 text-xs px-1"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2">
                       <div className="flex items-center gap-1">
                         <Input
                           type="number"
                           value={item.tempo}
                           onChange={(e) => atualizarConservacao(item.id, 'tempo', parseInt(e.target.value) || 0)}
                           onFocus={(e) => e.target.select()}
-                          className="w-12 h-6 text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-10 h-5 text-xs px-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           style={{ MozAppearance: 'textfield' }}
                         />
                         <Select 
                           value={item.unidade_tempo} 
                           onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
                         >
-                          <SelectTrigger className="w-20 h-6 text-xs">
+                          <SelectTrigger className="w-16 h-5 text-xs px-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
