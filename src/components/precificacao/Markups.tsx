@@ -84,8 +84,6 @@ export function Markups() {
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
     
-    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
-    
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
     
     // Buscar dados uma só vez para todos os blocos
@@ -97,29 +95,35 @@ export function Markups() {
 
     // Buscar faturamentos históricos
     const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
-    let mediaMensal = 0;
-    if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
-      const faturamentos = faturamentosConfig.map((f: any) => ({
-        ...f,
-        mes: new Date(f.mes)
-      }));
-      const total = faturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
-      mediaMensal = total / Math.max(1, faturamentos.length);
-    }
-    
-    console.log('📊 Dados para cálculo:', {
-      despesasFixas: despesasFixas?.length,
-      folhaPagamento: folhaPagamento?.length, 
-      encargosVenda: encargosVenda?.length,
-      mediaMensal
-    });
     
     // Processar cada bloco usando EXATAMENTE A MESMA LÓGICA DO MODAL
     for (const bloco of blocos) {
       const configKey = `checkbox-states-${bloco.id}`;
       const config = await loadConfiguration(configKey);
       
-      console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
+      // 🎯 NOVO: Carregar período específico para este bloco
+      const periodoSelecionado = await loadConfiguration(`filtro-periodo-${bloco.id}`) || 'todos';
+      
+      // 🎯 NOVO: Calcular média mensal com base no período selecionado
+      let mediaMensal = 0;
+      if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
+        let faturamentos = faturamentosConfig.map((f: any) => ({
+          ...f,
+          mes: new Date(f.mes)
+        }));
+        
+        // Filtrar por período se não for 'todos'
+        if (periodoSelecionado !== 'todos') {
+          const mesesAtras = parseInt(periodoSelecionado);
+          const dataLimite = new Date();
+          dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+          
+          faturamentos = faturamentos.filter((f: any) => f.mes >= dataLimite);
+        }
+        
+        const total = faturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+        mediaMensal = total / Math.max(1, faturamentos.length);
+      }
       
       if (config && typeof config === 'object' && Object.keys(config).length > 0) {
         // USAR EXATAMENTE A MESMA LÓGICA DO calcularMarkup DO MODAL
@@ -148,12 +152,11 @@ export function Markups() {
         }
 
         console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
-          despesasConsideradas: despesasConsideradas.map(d => `${d.nome}: R$ ${d.valor}`),
           totalDespesasFixas,
-          folhaConsiderada: folhaConsiderada.map(f => `${f.nome}: R$ ${f.custo_por_hora > 0 ? f.custo_por_hora * (f.horas_totais_mes || 173.2) : f.salario_base}`),
           totalFolhaPagamento,
           totalGastos,
           mediaMensal,
+          periodoSelecionado,
           gastosSobreFaturamento
         });
 
@@ -195,15 +198,9 @@ export function Markups() {
           valorEmReal: valorEmReal
         });
 
-        console.log(`🏷️ Encargos detalhados para ${bloco.nome}:`, {
-          encargosConsiderados: encargosConsiderados.map(e => `${e.nome}: ${e.valor_percentual}% (${e.tipo})`),
-          categorias
-        });
-
-        novosCalculatedMarkups.set(bloco.id, categorias);
         console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
+        novosCalculatedMarkups.set(bloco.id, categorias);
       } else {
-        console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
         // Se não tem configuração, usar valores zerados
         novosCalculatedMarkups.set(bloco.id, {
           gastoSobreFaturamento: 0,
@@ -218,7 +215,6 @@ export function Markups() {
     
     if (novosCalculatedMarkups.size > 0) {
       setCalculatedMarkups(novosCalculatedMarkups);
-      console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
 
@@ -300,8 +296,6 @@ export function Markups() {
   }, []);
 
   const aplicarPeriodo = useCallback(async (blocoId: string, periodo: string) => {
-    console.log(`🔄 Aplicando período ${periodo} para bloco ${blocoId}`);
-    
     try {
       // Salvar período selecionado
       await saveConfiguration(`filtro-periodo-${blocoId}`, periodo);
@@ -316,20 +310,11 @@ export function Markups() {
         return newSet;
       });
       
-      // 🎯 CORREÇÃO: Disparar RECÁLCULO REAL para este bloco específico
-      console.log('🔄 Forçando recálculo após mudança de período...');
+      // 🎯 RECÁLCULO IMEDIATO
       await carregarConfiguracoesSalvas();
       
-      // Aguardar um pouco e forçar update do state
-      setTimeout(() => {
-        const novosCalculatedMarkups = new Map(calculatedMarkups);
-        // Force update to trigger re-render
-        setCalculatedMarkups(new Map(novosCalculatedMarkups));
-        console.log('✅ Markup recalculado para período:', periodo);
-      }, 500);
-      
       toast({
-        title: "Período aplicado e recalculado!",
+        title: "Período aplicado!",
         description: `Cálculos atualizados para ${
           periodo === '1' ? 'último mês' :
           periodo === '3' ? 'últimos 3 meses' :
@@ -348,7 +333,7 @@ export function Markups() {
         variant: "destructive"
       });
     }
-  }, [saveConfiguration, carregarConfiguracoesSalvas, toast, calculatedMarkups]);
+  }, [saveConfiguration, carregarConfiguracoesSalvas, toast]);
 
   // Carregar períodos aplicados ao inicializar
   useEffect(() => {
@@ -740,15 +725,6 @@ export function Markups() {
         {blocos.map((bloco) => {
           const calculated = calculatedMarkups.get(bloco.id);
           const hasCalculated = calculated !== undefined;
-          
-          console.log('🎯 Renderizando bloco', bloco.nome + ':', {
-            blocoId: bloco.id,
-            calculated,
-            hasCalculated,
-            calculatedMapSize: calculatedMarkups.size,
-            allKeys: Array.from(calculatedMarkups.keys())
-          });
-          
           const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
           
           return (
