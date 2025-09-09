@@ -150,10 +150,10 @@ export function GeralStep() {
 
         {/* Conservação */}
         <Card className="h-[280px]">
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Conservação:</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-6">
             <Table>
               <TableHeader>
                 <TableRow>
