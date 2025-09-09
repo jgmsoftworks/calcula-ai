@@ -73,6 +73,20 @@ export function GeralStep() {
     ));
   };
 
+  const handleTemperaturaChange = (id: string, valor: string) => {
+    // Remove qualquer °C existente para permitir edição
+    const numeroLimpo = valor.replace('°C', '');
+    atualizarConservacao(id, 'temperatura', numeroLimpo);
+  };
+
+  const handleTemperaturaBlur = (id: string, valor: string) => {
+    // Adiciona °C automaticamente se não estiver presente
+    const numeroLimpo = valor.replace('°C', '').trim();
+    if (numeroLimpo && !isNaN(Number(numeroLimpo))) {
+      atualizarConservacao(id, 'temperatura', `${numeroLimpo}°C`);
+    }
+  };
+
   const handleImageUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -117,10 +131,10 @@ export function GeralStep() {
                 </p>
               </div>
             ) : (
-              <>
+              <div className="flex flex-col items-center justify-center text-center">
                 <Upload className="h-12 w-12 text-primary mb-4" />
-                <p className="text-center font-medium">Clique para adicionar uma imagem</p>
-              </>
+                <p className="font-medium">Clique para adicionar uma imagem</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -146,8 +160,10 @@ export function GeralStep() {
                     <TableCell>
                       <Input
                         value={item.temperatura}
-                        onChange={(e) => atualizarConservacao(item.id, 'temperatura', e.target.value)}
-                        className="w-16 h-6 text-xs"
+                        onChange={(e) => handleTemperaturaChange(item.id, e.target.value)}
+                        onBlur={(e) => handleTemperaturaBlur(item.id, e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        className="w-20 h-6 text-xs"
                       />
                     </TableCell>
                     <TableCell>
@@ -156,13 +172,15 @@ export function GeralStep() {
                           type="number"
                           value={item.tempo}
                           onChange={(e) => atualizarConservacao(item.id, 'tempo', parseInt(e.target.value) || 0)}
-                          className="w-12 h-6 text-xs"
+                          onFocus={(e) => e.target.select()}
+                          className="w-12 h-6 text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          style={{ MozAppearance: 'textfield' }}
                         />
                         <Select 
                           value={item.unidade_tempo} 
                           onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
                         >
-                          <SelectTrigger className="w-16 h-6 text-xs">
+                          <SelectTrigger className="w-20 h-6 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
