@@ -22,6 +22,7 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
+  periodo?: string;
 }
 
 interface CalculatedMarkup {
