@@ -7,12 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -29,12 +23,6 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
-}
-
-interface PeriodoFiltro {
-  tipo: 'mes_atual' | 'periodo_personalizado';
-  dataInicio?: Date;
-  dataFim?: Date;
 }
 
 interface FaturamentoHistorico {
@@ -85,20 +73,18 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
+  const [filtroPerido, setFiltroPerido] = useState<string>('6');
   
-  // Estados do filtro personalizado
-  const [filtroPersonalizado, setFiltroPersonalizado] = useState<PeriodoFiltro>({ tipo: 'mes_atual' });
-  const [tipoFiltro, setTipoFiltro] = useState<'mes_atual' | 'periodo_personalizado'>('mes_atual');
-  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
-  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
-  
+  // Debug do estado do filtro
+  useEffect(() => {
+    console.log('🔍 Estado do filtro mudou para:', filtroPerido);
+  }, [filtroPerido]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [selectAllStates, setSelectAllStates] = useState({
+  const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
     despesasFixas: false,
     folhaPagamento: false,
     encargosVenda: false
   });
-  
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
@@ -107,6 +93,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (markupBlock) {
       setCurrentMarkupValues(markupBlock);
+      // Carregar filtro salvo para este bloco
       carregarFiltroSalvo();
     }
   }, [markupBlock]);
@@ -115,26 +102,45 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const carregarFiltroSalvo = async () => {
     try {
       const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      const filtroSalvo = await loadConfiguration(configKey);
+      console.log('🔍 Tentando carregar filtro com chave:', configKey);
       
-      if (filtroSalvo && typeof filtroSalvo === 'object' && 'tipo' in filtroSalvo) {
-        const periodo = filtroSalvo as PeriodoFiltro;
-        setFiltroPersonalizado(periodo);
-        setTipoFiltro(periodo.tipo);
-        if (periodo.tipo === 'periodo_personalizado') {
-          setDataInicio(periodo.dataInicio);
-          setDataFim(periodo.dataFim);
-        }
+      const filtroSalvo = await loadConfiguration(configKey);
+      console.log('🔍 Resultado do carregamento:', { configKey, filtroSalvo, tipo: typeof filtroSalvo });
+      
+      if (filtroSalvo && typeof filtroSalvo === 'string') {
+        console.log('✅ Aplicando filtro salvo:', filtroSalvo);
+        setFiltroPerido(filtroSalvo);
       } else {
-        const padraoFiltro: PeriodoFiltro = { tipo: 'mes_atual' };
-        setFiltroPersonalizado(padraoFiltro);
-        setTipoFiltro('mes_atual');
+        console.log('⚠️ Nenhum filtro salvo encontrado, mantendo atual:', filtroPerido);
+        // NÃO sobrescrever o valor atual se não houver filtro salvo
       }
     } catch (error) {
-      console.error('Erro ao carregar filtro:', error);
-      const padraoFiltro: PeriodoFiltro = { tipo: 'mes_atual' };
-      setFiltroPersonalizado(padraoFiltro);
-      setTipoFiltro('mes_atual');
+      console.error('❌ Erro ao carregar filtro:', error);
+      // NÃO alterar o valor em caso de erro
+    }
+  };
+
+  // Salvar filtro quando mudado
+  const handleFiltroChange = async (novoFiltro: string) => {
+    console.log('🔄 handleFiltroChange chamado - Mudando filtro de', filtroPerido, 'para:', novoFiltro);
+    console.log('🔄 markupBlock existe?', !!markupBlock, markupBlock?.id);
+    
+    setFiltroPerido(novoFiltro);
+    
+    // Salvar filtro SEMPRE, mesmo para novos blocos
+    try {
+      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      console.log('💾 Salvando filtro com chave:', configKey, 'valor:', novoFiltro);
+      
+      await saveConfiguration(configKey, novoFiltro);
+      console.log('✅ Filtro salvo com sucesso:', configKey, novoFiltro);
+      
+      // Verificar se foi realmente salvo
+      const verificacao = await loadConfiguration(configKey);
+      console.log('🔍 Verificação do salvamento:', verificacao);
+      
+    } catch (error) {
+      console.error('❌ Erro ao salvar filtro:', error);
     }
   };
 
@@ -143,6 +149,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     
     setLoading(true);
     try {
+      
       // Carregar despesas fixas
       const { data: despesas, error: despesasError } = await supabase
         .from('despesas_fixas')
@@ -151,10 +158,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         .eq('ativo', true)
         .order('nome');
 
-      if (despesasError) throw despesasError;
+      if (despesasError) {
+        throw despesasError;
+      }
       setDespesasFixas(despesas || []);
 
-      // Carregar folha de pagamento
+      // Carregar folha de pagamento (apenas mão de obra indireta)
       const { data: folha, error: folhaError } = await supabase
         .from('folha_pagamento')
         .select('id, nome, custo_por_hora, ativo, tipo_mao_obra, salario_base, horas_totais_mes')
@@ -163,7 +172,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         .eq('ativo', true)
         .order('nome');
 
-      if (folhaError) throw folhaError;
+      if (folhaError) {
+        throw folhaError;
+      }
       setFolhaPagamento(folha || []);
 
       // Carregar encargos sobre venda
@@ -174,41 +185,63 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         .eq('ativo', true)
         .order('nome');
 
-      if (encargosError) throw encargosError;
+      if (encargosError) {
+        throw encargosError;
+      }
+      
+      // Mapear os dados para incluir os novos campos
       const encargosFormatados = (encargos || []).map(encargo => ({
         ...encargo,
         valor_percentual: encargo.valor_percentual || 0,
         valor_fixo: encargo.valor_fixo || 0
       }));
+      
       setEncargosVenda(encargosFormatados);
 
-      // Carregar faturamentos históricos
+      // Carregar faturamentos históricos - usar a mesma lógica da MediaFaturamento
       const configFaturamentos = await loadConfiguration('faturamentos_historicos');
       if (configFaturamentos && Array.isArray(configFaturamentos)) {
         const faturamentos = configFaturamentos.map((f: any) => ({
           ...f,
           mes: new Date(f.mes)
-        })).sort((a, b) => b.mes.getTime() - a.mes.getTime());
+        })).sort((a, b) => {
+          // Primeiro ordena por data (mês/ano) - mais recente primeiro
+          const dateCompare = b.mes.getTime() - a.mes.getTime();
+          if (dateCompare !== 0) return dateCompare;
+          // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
+          return parseInt(b.id) - parseInt(a.id);
+        });
         setFaturamentosHistoricos(faturamentos);
       }
 
-      // Carregar estados dos checkboxes salvos
+      // Carregar estados dos checkboxes salvos ANTES de calcular
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      console.log(`🔧 Carregando configuração com chave: ${configKey}`);
+      
       const savedStates = await loadConfiguration(configKey);
+      console.log(`📋 Estados salvos carregados:`, savedStates);
       
       let statesParaUsar: Record<string, boolean> = {};
       
       if (savedStates && typeof savedStates === 'object') {
         statesParaUsar = savedStates as Record<string, boolean>;
+        setCheckboxStates(statesParaUsar);
+        setTempCheckboxStates(statesParaUsar);
+        console.log(`✅ Estados aplicados:`, statesParaUsar);
       } else {
+        // Inicializar com todos desmarcados por padrão
         [...(despesas || []), ...(folha || []), ...encargosFormatados].forEach(item => {
           statesParaUsar[item.id] = false;
         });
+        setCheckboxStates(statesParaUsar);
+        setTempCheckboxStates(statesParaUsar);
+        console.log(`⚠️ Usando estados padrão (desmarcados):`, statesParaUsar);
       }
       
-      setCheckboxStates(statesParaUsar);
-      setTempCheckboxStates(statesParaUsar);
+      // Calcular markup COM os estados carregados
+      console.log(`🧮 Calculando markup inicial com estados:`, statesParaUsar);
       calcularMarkup(statesParaUsar);
+      
       setHasUnsavedChanges(false);
 
     } catch (error) {
@@ -223,41 +256,102 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   };
 
   useEffect(() => {
+    console.log('🔄 Modal aberto:', open, 'markupBlock:', markupBlock?.id || 'NOVO');
     if (open) {
       carregarDados();
-      carregarFiltroSalvo();
+      carregarFiltroSalvo(); // Carregar filtro salvo sempre que abrir
     }
-  }, [open, user, markupBlock?.id]);
+  }, [open, user, markupBlock?.id]); // Adiciona markupBlock.id como dependência
 
-  // Função para calcular média mensal baseada no filtro personalizado
-  const calcularMediaPorPeriodo = useCallback((periodo: PeriodoFiltro) => {
+  // Recalcular markup quando os dados são carregados
+  useEffect(() => {
+    // APENAS recalcular se não estiver criando um novo bloco E se tiver um markupBlock definido
+    if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      console.log(`🔄 Recalculando markup com estados:`, tempCheckboxStates);
+      calcularMarkup(tempCheckboxStates);
+    } else if (open && !markupBlock) {
+      console.log(`🆕 Modal aberto para novo bloco - não calculando automaticamente`);
+    }
+  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento, markupBlock]);
+
+  // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
+  useEffect(() => {
+    if (!open) return;
+    
+    let intervalId: NodeJS.Timeout | null = null;
+    let isStale = false;
+    
+    const atualizarFaturamentos = async () => {
+      if (isStale) return;
+      
+      try {
+        const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+        if (configFaturamentos && Array.isArray(configFaturamentos) && !isStale) {
+          const faturamentos = configFaturamentos.map((f: any) => ({
+            ...f,
+            mes: new Date(f.mes)
+          })).sort((a, b) => {
+            const dateCompare = b.mes.getTime() - a.mes.getTime();
+            if (dateCompare !== 0) return dateCompare;
+            return parseInt(b.id) - parseInt(a.id);
+          });
+          
+          // Só atualiza se realmente mudou
+          setFaturamentosHistoricos(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(faturamentos)) {
+              return faturamentos;
+            }
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar faturamentos:', error);
+      }
+    };
+
+    // Reduzir frequência para 5 segundos
+    intervalId = setInterval(atualizarFaturamentos, 5000);
+
+    return () => {
+      isStale = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [open]);
+
+  // Função para calcular média mensal baseada no período selecionado
+  const calcularMediaMensal = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
+
+    console.log('📊 Calculando média mensal:', {
+      filtroPerido,
+      totalFaturamentos: faturamentosHistoricos.length,
+      faturamentos: faturamentosHistoricos.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor }))
+    });
 
     let faturamentosSelecionados = [...faturamentosHistoricos];
     
-    if (periodo.tipo === 'mes_atual') {
-      const agora = new Date();
-      const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
-      const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
-      
-      faturamentosSelecionados = faturamentosHistoricos.filter(f => 
-        f.mes >= inicioMes && f.mes <= fimMes
-      );
-    } else if (periodo.tipo === 'periodo_personalizado' && periodo.dataInicio && periodo.dataFim) {
-      faturamentosSelecionados = faturamentosHistoricos.filter(f => 
-        f.mes >= periodo.dataInicio! && f.mes <= periodo.dataFim!
-      );
+    // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
+    if (filtroPerido !== 'todos') {
+      const quantidade = parseInt(filtroPerido);
+      faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
+      console.log(`📊 Selecionados ${quantidade} meses mais recentes:`, faturamentosSelecionados.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor })));
     }
 
     if (faturamentosSelecionados.length === 0) return 0;
 
-    const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
-    return totalFaturamento / faturamentosSelecionados.length;
-  }, [faturamentosHistoricos]);
+    // Se for apenas 1 mês (último mês), retornar o valor do mais recente
+    if (filtroPerido === '1' && faturamentosSelecionados.length > 0) {
+      const valorUltimoMes = faturamentosSelecionados[0].valor;
+      console.log(`📊 Último mês: R$ ${valorUltimoMes}`);
+      return valorUltimoMes;
+    }
 
-  const calcularMediaMensal = useMemo(() => {
-    return calcularMediaPorPeriodo(filtroPersonalizado);
-  }, [faturamentosHistoricos, filtroPersonalizado, calcularMediaPorPeriodo]);
+    // Para outros casos, calcular a média dos selecionados
+    const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
+    const media = totalFaturamento / faturamentosSelecionados.length;
+    console.log(`📊 Média calculada: R$ ${media} (total: R$ ${totalFaturamento} / ${faturamentosSelecionados.length} meses)`);
+    return media;
+  }, [faturamentosHistoricos, filtroPerido]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -266,14 +360,102 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }).format(value);
   };
 
-  const formatPercentage = (value: number) => value.toFixed(2);
+  const formatPercentage = (value: number) => {
+    // Se for número inteiro, não mostrar casas decimais
+    if (value === Math.floor(value)) {
+      return value.toString();
+    }
+    // Se tiver decimais, mostrar até 2 casas decimais e remover zeros desnecessários
+    return parseFloat(value.toFixed(2)).toString();
+  };
 
-  // Mapear categorias
-  const categoriasMap = useMemo(() => ({
-    impostos: new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
-    meios_pagamento: new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
-    comissoes: new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
-  }), []);
+  // Escutar mudanças em tempo real nas tabelas (otimizado)
+  useEffect(() => {
+    if (!user || !open) return;
+
+    let timeoutId: NodeJS.Timeout;
+    let isStale = false;
+    
+    const debouncedReload = () => {
+      if (isStale) return;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (!isStale) {
+          carregarDados();
+        }
+      }, 1000); // Aumentado para 1 segundo
+    };
+
+    const channel = supabase
+      .channel(`custos-changes-${Date.now()}`) // Canal único para evitar conflitos
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'despesas_fixas', filter: `user_id=eq.${user.id}` },
+        debouncedReload
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'folha_pagamento', filter: `user_id=eq.${user.id}` },
+        debouncedReload
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'encargos_venda', filter: `user_id=eq.${user.id}` },
+        debouncedReload
+      )
+      .subscribe();
+
+    return () => {
+      isStale = true;
+      clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
+    };
+  }, [user, open]);
+
+  const handleCheckboxChange = (itemId: string, checked: boolean) => {
+    const newTempStates = { ...tempCheckboxStates, [itemId]: checked };
+    setTempCheckboxStates(newTempStates);
+    setHasUnsavedChanges(true);
+    
+    // Calcular markup em tempo real apenas para mostrar preview
+    debouncedCalculateMarkup(newTempStates);
+  };
+
+  // Nova função para selecionar/desmarcar todos de uma categoria
+  const handleSelectAll = (categoria: 'despesasFixas' | 'folhaPagamento' | 'encargosVenda', selectAll: boolean) => {
+    const newTempStates = { ...tempCheckboxStates };
+    let items: any[] = [];
+    
+    switch (categoria) {
+      case 'despesasFixas':
+        items = despesasFixas;
+        break;
+      case 'folhaPagamento':
+        items = folhaPagamento;
+        break;
+      case 'encargosVenda':
+        items = encargosVenda;
+        break;
+    }
+    
+    // Aplicar seleção apenas aos itens ativos
+    items.filter(item => item.ativo).forEach(item => {
+      newTempStates[item.id] = selectAll;
+    });
+    
+    setTempCheckboxStates(newTempStates);
+    setSelectAllStates(prev => ({ ...prev, [categoria]: selectAll }));
+    setHasUnsavedChanges(true);
+    
+    // Calcular markup em tempo real
+    debouncedCalculateMarkup(newTempStates);
+  };
+
+  // Mapeamento otimizado de categorias
+  const categoriasMap = useMemo(() => {
+    return {
+      'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
+      'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
+      'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
+    };
+  }, []);
 
   const getCategoriaByNome = useCallback((nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
     if (categoriasMap.impostos.has(nome)) return 'impostos';
@@ -283,34 +465,62 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   }, [categoriasMap]);
 
   const calcularMarkup = useCallback((states: Record<string, boolean>) => {
-    const mediaMensal = calcularMediaMensal;
-    
-    // Calcular gastos sobre faturamento
-    const despesasConsideradas = despesasFixas.filter(d => states[d.id]);
-    const totalDespesasFixas = despesasConsideradas.reduce((acc, d) => acc + Number(d.valor), 0);
-    
-    const folhaConsiderada = folhaPagamento.filter(f => states[f.id]);
-    const totalFolhaPagamento = folhaConsiderada.reduce((acc, func) => {
-      const custoMensal = func.custo_por_hora > 0 
-        ? func.custo_por_hora * (func.horas_totais_mes || 173.2) 
-        : func.salario_base;
-      return acc + Number(custoMensal);
-    }, 0);
+    if (!encargosVenda.length && !despesasFixas.length && !folhaPagamento.length) return;
 
-    const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+    console.log('🧮 Calculando markup com estados:', states);
+    console.log('📋 Despesas fixas disponíveis:', despesasFixas.map(d => ({ id: d.id, nome: d.nome, valor: d.valor, ativo: d.ativo })));
+    console.log('📋 Estados das despesas:', despesasFixas.map(d => ({ id: d.id, nome: d.nome, selecionada: states[d.id] })));
+
+    // Calcular gastos sobre faturamento (despesas fixas + folha de pagamento)
     let gastosSobreFaturamento = 0;
     
-    if (mediaMensal > 0 && totalGastos > 0) {
-      gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
+    // Somar APENAS despesas fixas marcadas como "Considerar" (true no checkbox)
+    const despesasConsideradas = despesasFixas.filter(d => {
+      const isSelected = states[d.id] === true; // Verificação explícita
+      const isActive = d.ativo === true;
+      console.log(`📋 Despesa ${d.nome}: selecionada=${isSelected}, ativa=${isActive}, será considerada=${isSelected && isActive}`);
+      return isSelected && isActive;
+    });
+    
+    const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + despesa.valor, 0);
+    console.log('💰 Total despesas fixas consideradas:', totalDespesasFixas, 'de', despesasConsideradas.length, 'despesas');
+    
+    // Somar APENAS folha de pagamento marcada como "Considerar" (true no checkbox)
+    const folhaConsiderada = folhaPagamento.filter(f => {
+      const isSelected = states[f.id] === true; // Verificação explícita
+      const isActive = f.ativo === true;
+      return isSelected && isActive;
+    });
+    
+    const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+      // Usar salario_base se custo_por_hora não estiver disponível
+      const custoMensal = funcionario.custo_por_hora > 0 
+        ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+        : funcionario.salario_base;
+      return acc + custoMensal;
+    }, 0);
+    
+    console.log('💰 Total folha pagamento considerada:', totalFolhaPagamento, 'de', folhaConsiderada.length, 'funcionários');
+    
+    const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+    
+    // Calcular porcentagem sobre a média mensal
+    if (calcularMediaMensal > 0 && totalGastos > 0) {
+      gastosSobreFaturamento = (totalGastos / calcularMediaMensal) * 100;
     }
 
-    // Calcular encargos
-    const encargosConsiderados = encargosVenda.filter(e => states[e.id]);
-    const valorEmReal = encargosConsiderados.reduce((acc, enc) => acc + Number(enc.valor_fixo || 0), 0);
-
+    // Calcular encargos sobre venda
+    const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
+    
+    // Calcular valor em real (somar apenas os valores fixos dos encargos)
+    const valorEmReal = encargosConsiderados.reduce((acc, encargo) => {
+      return acc + (encargo.valor_fixo || 0);
+    }, 0);
+    
+    // Calcular somas por categoria de forma otimizada
     const categorias = encargosConsiderados.reduce((acc, encargo) => {
       const categoria = getCategoriaByNome(encargo.nome);
-      const valor = Number(encargo.valor_percentual || 0);
+      const valor = encargo.valor_percentual || 0;
       
       switch (categoria) {
         case 'impostos':
@@ -326,6 +536,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           acc.outros += valor;
           break;
       }
+      
       return acc;
     }, {
       gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
@@ -333,347 +544,448 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       taxasMeiosPagamento: 0,
       comissoesPlataformas: 0,
       outros: 0,
-      valorEmReal,
-      lucroDesejado: markupBlock?.lucroDesejado || 0
+      valorEmReal: valorEmReal
     });
 
-    setCurrentMarkupValues(categorias);
-  }, [despesasFixas, folhaPagamento, encargosVenda, calcularMediaMensal, getCategoriaByNome, markupBlock?.lucroDesejado]);
+    // Atualizar valores locais para mostrar em tempo real
+    setCurrentMarkupValues(prev => ({
+      ...prev,
+      ...categorias
+    }));
+    
+    // Também chamar o callback externo se existir
+    if (onMarkupUpdate) {
+      onMarkupUpdate(categorias);
+    }
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
 
-  // Aplicar período selecionado
-  const handleAplicarPeriodo = async () => {
-    const periodo: PeriodoFiltro = {
-      tipo: tipoFiltro,
-      ...(tipoFiltro === 'periodo_personalizado' && { dataInicio, dataFim })
+  // Debounced calculation to avoid excessive re-renders (aumentado o delay)
+  const debouncedCalculateMarkup = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (states: Record<string, boolean>) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => calcularMarkup(states), 500); // Aumentado para 500ms
     };
-    
-    if (tipoFiltro === 'periodo_personalizado' && (!dataInicio || !dataFim)) {
-      toast({
-        title: 'Erro',
-        description: 'Selecione as datas de início e fim para o período personalizado.',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    try {
-      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      await saveConfiguration(configKey, periodo);
-      
-      setFiltroPersonalizado(periodo);
-      
-      const descricao = periodo.tipo === 'mes_atual' 
-        ? 'mês atual'
-        : `período de ${format(periodo.dataInicio!, 'MMM/yyyy', { locale: ptBR })} a ${format(periodo.dataFim!, 'MMM/yyyy', { locale: ptBR })}`;
-      
-      toast({
-        title: "Período aplicado!",
-        description: `Cálculos atualizados para ${descricao}`,
-        duration: 3000
-      });
-      
-      // Recalcular markup
-      calcularMarkup(tempCheckboxStates);
-      
-    } catch (error) {
-      console.error('Erro ao aplicar período:', error);
-      toast({
-        title: "Erro ao aplicar período",
-        description: "Tente novamente em alguns segundos.",
-        variant: "destructive"
-      });
-    }
-  };
+  }, [calcularMarkup]);
 
-  const handleCheckboxChange = (itemId: string, checked: boolean) => {
-    const newStates = { ...tempCheckboxStates, [itemId]: checked };
-    setTempCheckboxStates(newStates);
-    setHasUnsavedChanges(true);
-    calcularMarkup(newStates);
-  };
+  // Calcular markup sempre que os estados mudarem (otimizado)
+  useEffect(() => {
+    // APENAS calcular se não estiver criando um novo bloco E tiver um markupBlock
+    if (markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      debouncedCalculateMarkup(tempCheckboxStates);
+    }
+  }, [tempCheckboxStates, debouncedCalculateMarkup, markupBlock]); // Adiciona markupBlock como dependência
 
-  const handleSalvarConfiguracao = async () => {
+  const handleSalvar = async () => {
     try {
+      console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
+      
+      // IMPORTANTE: Calcular markup ANTES de salvar para garantir valores corretos
+      const markupCalculado = await new Promise<any>((resolve) => {
+        // Calcular markup com os estados temporários
+        calcularMarkup(tempCheckboxStates);
+        
+        // Aguardar um pequeno delay para garantir que o cálculo seja concluído
+        setTimeout(() => {
+          resolve(currentMarkupValues);
+        }, 100);
+      });
+      
+      console.log('🧮 Markup calculado para salvamento:', markupCalculado);
+      
+      // IMPORTANTE: Carregar configuração existente ANTES de salvar para preservar outras abas
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
-      await saveConfiguration(configKey, tempCheckboxStates);
+      const configExistente = await loadConfiguration(configKey);
       
-      setCheckboxStates(tempCheckboxStates);
-      setHasUnsavedChanges(false);
+      // Mesclar configuração existente com novos estados (preservar outras abas)
+      let estadosParaSalvar = { ...tempCheckboxStates };
       
-      if (onMarkupUpdate) {
-        onMarkupUpdate(currentMarkupValues);
+      if (configExistente && typeof configExistente === 'object') {
+        // Preservar estados existentes que não foram modificados nesta sessão
+        const configAtual = configExistente as Record<string, boolean>;
+        
+        // Criar lista de IDs dos itens atuais (visíveis no modal)
+        const idsAtuais = new Set([
+          ...despesasFixas.map(d => d.id),
+          ...folhaPagamento.map(f => f.id), 
+          ...encargosVenda.map(e => e.id)
+        ]);
+        
+        // Para cada item na configuração salva
+        Object.keys(configAtual).forEach(id => {
+          // Se o item não está na lista atual (outra aba/contexto), preservar valor salvo
+          if (!idsAtuais.has(id)) {
+            estadosParaSalvar[id] = configAtual[id];
+          }
+        });
+        
+        console.log('🔄 Estados mesclados - preservando outras abas:', estadosParaSalvar);
       }
       
+      // Salvar estados mesclados no banco
+      await saveConfiguration(configKey, estadosParaSalvar);
+      console.log('✅ Configuração salva no banco:', configKey, estadosParaSalvar);
+      
+      // Atualizar estados locais
+      setCheckboxStates(estadosParaSalvar);
+      setHasUnsavedChanges(false);
+      
       toast({
-        title: "Configuração salva!",
-        description: "Os custos selecionados foram salvos com sucesso.",
-        duration: 3000
+        title: markupBlock ? "Configurações salvas" : "Bloco criado com sucesso",
+        description: markupBlock 
+          ? "As configurações do markup foram salvas com sucesso"
+          : "O novo bloco de markup foi criado e configurado"
       });
       
-      onOpenChange(false);
+      // Emitir callback para o componente pai COM os valores calculados
+      if (onMarkupUpdate) {
+        console.log('📤 Enviando dados calculados para componente pai:', markupCalculado);
+        onMarkupUpdate(markupCalculado);
+      }
+      
+      // Fechar modal após um pequeno delay
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
+      
     } catch (error) {
+      console.error('❌ Erro ao salvar:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar a configuração.",
+        description: "Não foi possível salvar as configurações",
         variant: "destructive"
       });
     }
   };
 
-  if (loading) {
+  const handleCancelar = () => {
+    console.log('🚫 Cancelando alterações, restaurando estados originais');
+    // Restaurar estados originais
+    setTempCheckboxStates(checkboxStates);
+    setHasUnsavedChanges(false);
+    calcularMarkup(checkboxStates);
+    onOpenChange(false);
+  };
+
+  const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
+    const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
+    
+    if (encargosDaCategoria.length === 0) return null;
+
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-4xl">
-          <div className="flex items-center justify-center py-8">
-            <LoadingSpinner className="h-8 w-8" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div key={categoria} className="space-y-3">
+        <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+          {titulo}
+        </h4>
+        <div className="space-y-2">
+           {encargosDaCategoria.map((encargo) => (
+            <div key={encargo.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex-1">
+                <h5 className="font-medium">{encargo.nome}</h5>
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  {encargo.valor_percentual > 0 && encargo.valor_fixo > 0 ? (
+                    <>
+                      <span>{encargo.valor_percentual}%</span>
+                      <span>{formatCurrency(encargo.valor_fixo)}</span>
+                    </>
+                  ) : encargo.valor_percentual > 0 ? (
+                    <span>{encargo.valor_percentual}%</span>
+                  ) : encargo.valor_fixo > 0 ? (
+                    <span>{formatCurrency(encargo.valor_fixo)}</span>
+                  ) : (
+                    <span>0% / R$ 0,00</span>
+                  )}
+                </div>
+              </div>
+                       <div className="flex items-center gap-3">
+                           <Checkbox 
+                             id={`encargo-${encargo.id}`}
+                             checked={tempCheckboxStates[encargo.id] ?? false}
+                             onCheckedChange={(checked) => handleCheckboxChange(encargo.id, checked as boolean)}
+                           />
+                         <Label 
+                           htmlFor={`encargo-${encargo.id}`}
+                           className="text-sm font-medium cursor-pointer"
+                         >
+                           Considerar
+                         </Label>
+                       </div>
+            </div>
+          ))}
+                      </div>
+        {categoria !== 'outros' && <Separator />}
+      </div>
     );
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configurações de Custos - {markupBlock?.nome || 'Novo Markup'}</DialogTitle>
+          <DialogTitle>
+            Configurações de Custos
+            {markupBlock ? (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - {markupBlock.nome}
+              </span>
+            ) : (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - Novo Bloco
+              </span>
+            )}
+          </DialogTitle>
           <DialogDescription>
-            Visualize os custos que serão considerados no cálculo do markup
+            {markupBlock 
+              ? "Visualize os custos que serão considerados no cálculo do markup"
+              : "Configure os custos que serão considerados no cálculo do novo bloco de markup"
+            }
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Seção de Filtro de Período */}
-          <Card>
+
+        {markupBlock && (
+          <Card className="bg-blue-50/50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg">Período de Análise</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
+                <div className="flex items-center gap-4">
+                  <Select value={filtroPerido} onValueChange={handleFiltroChange}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Último mês</SelectItem>
+                      <SelectItem value="3">Últimos 3 meses</SelectItem>
+                      <SelectItem value="6">Últimos 6 meses</SelectItem>
+                      <SelectItem value="12">Últimos 12 meses</SelectItem>
+                      <SelectItem value="todos">Todos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Média Mensal</p>
+                    <p className="text-lg font-semibold text-primary">{formatCurrency(calcularMediaMensal)}</p>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Select 
-                value={tipoFiltro} 
-                onValueChange={(value: 'mes_atual' | 'periodo_personalizado') => {
-                  setTipoFiltro(value);
-                  if (value === 'mes_atual') {
-                    setDataInicio(undefined);
-                    setDataFim(undefined);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione o tipo de filtro" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mes_atual">Mês Atual</SelectItem>
-                  <SelectItem value="periodo_personalizado">Período Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {tipoFiltro === 'periodo_personalizado' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Data de Início</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !dataInicio && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dataInicio}
-                          onSelect={setDataInicio}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Data de Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !dataFim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dataFim}
-                          onSelect={setDataFim}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              )}
-
-              <Button 
-                onClick={handleAplicarPeriodo}
-                className="w-full"
-              >
-                Aplicar Período Selecionado
-              </Button>
-
-              {/* Exibir média mensal */}
-              <div className="p-3 bg-muted/20 rounded-md">
-                <Label className="text-sm font-medium">
-                  Média Mensal ({
-                    filtroPersonalizado.tipo === 'mes_atual' 
-                      ? 'Mês Atual'
-                      : filtroPersonalizado.tipo === 'periodo_personalizado' && filtroPersonalizado.dataInicio && filtroPersonalizado.dataFim
-                      ? `${format(filtroPersonalizado.dataInicio, 'MMM/yyyy', { locale: ptBR })} a ${format(filtroPersonalizado.dataFim, 'MMM/yyyy', { locale: ptBR })}`
-                      : 'Período Personalizado'
-                  }):
-                </Label>
-                <div className="text-2xl font-bold text-primary mt-2">
-                  {formatCurrency(calcularMediaMensal)}
-                </div>
+            <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.gastoSobreFaturamento || 0)}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Impostos</Label>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.impostos || 0)}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Taxas de pagamento</Label>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.taxasMeiosPagamento || 0)}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Comissões</Label>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.comissoesPlataformas || 0)}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Outros</Label>
+                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.outros || 0)}%</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Valor em real</Label>
+                <p className="text-lg font-semibold text-orange-600">{formatCurrency(currentMarkupValues.valorEmReal || 0)}</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Lucro desejado</Label>
+                <p className="text-lg font-semibold text-green-600">{formatPercentage(currentMarkupValues.lucroDesejado || 0)}%</p>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Valores calculados */}
-          {markupBlock && (
+        <Tabs defaultValue="despesas-fixas" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="despesas-fixas">Despesas Fixas</TabsTrigger>
+            <TabsTrigger value="folha-pagamento">Folha de Pagamento</TabsTrigger>
+            <TabsTrigger value="encargos-venda">Encargos sobre Venda</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="despesas-fixas" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Despesas Fixas</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all-despesas"
+                      checked={selectAllStates.despesasFixas}
+                      onCheckedChange={(checked) => handleSelectAll('despesasFixas', checked as boolean)}
+                    />
+                    <Label htmlFor="select-all-despesas" className="text-sm font-medium cursor-pointer">
+                      Selecionar Todos
+                    </Label>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
-                  <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.gastoSobreFaturamento || 0)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Impostos</Label>
-                  <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.impostos || 0)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Taxas da pagamento</Label>
-                  <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.taxasMeiosPagamento || 0)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Comissões</Label>
-                  <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.comissoesPlataformas || 0)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Outros</Label>
-                  <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.outros || 0)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">Valor em real</Label>
-                  <p className="text-lg font-semibold text-orange-600">{formatCurrency(currentMarkupValues.valorEmReal || 0)}</p>
-                </div>
+              <CardContent className="space-y-4">
+                {loading ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    Carregando despesas...
+                  </p>
+                ) : despesasFixas.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      Nenhuma despesa fixa cadastrada
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione despesas na aba "Custos" para vê-las aqui
+                    </p>
+                  </div>
+                ) : (
+                  despesasFixas.map((despesa) => (
+                    <div key={despesa.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{despesa.nome}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCurrency(despesa.valor)}
+                        </p>
+                      </div>
+                       <div className="flex items-center gap-3">
+                           <Checkbox 
+                             id={`despesa-${despesa.id}`}
+                             checked={tempCheckboxStates[despesa.id] ?? false}
+                             onCheckedChange={(checked) => handleCheckboxChange(despesa.id, checked as boolean)}
+                           />
+                         <Label 
+                           htmlFor={`despesa-${despesa.id}`}
+                           className="text-sm font-medium cursor-pointer"
+                         >
+                           Considerar
+                         </Label>
+                       </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
-          {/* Seleção de custos */}
-          <Tabs defaultValue="despesas" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="despesas">Despesas Fixas</TabsTrigger>
-              <TabsTrigger value="folha">Folha de Pagamento</TabsTrigger>
-              <TabsTrigger value="encargos">Encargos sobre Venda</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="despesas" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Despesas Fixas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {despesasFixas.map((despesa) => (
-                    <div key={despesa.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={despesa.id}
-                        checked={tempCheckboxStates[despesa.id] || false}
-                        onCheckedChange={(checked) => handleCheckboxChange(despesa.id, !!checked)}
-                      />
-                      <Label htmlFor={despesa.id} className="flex-1 text-sm">
-                        {despesa.nome} - {formatCurrency(despesa.valor)}
-                      </Label>
+          <TabsContent value="folha-pagamento" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Folha de Pagamento</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all-folha"
+                      checked={selectAllStates.folhaPagamento}
+                      onCheckedChange={(checked) => handleSelectAll('folhaPagamento', checked as boolean)}
+                    />
+                    <Label htmlFor="select-all-folha" className="text-sm font-medium cursor-pointer">
+                      Selecionar Todos
+                    </Label>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loading ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    Carregando funcionários...
+                  </p>
+                ) : folhaPagamento.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      Nenhum funcionário cadastrado
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione funcionários na aba "Custos" para vê-los aqui
+                    </p>
+                  </div>
+                ) : (
+                  folhaPagamento.map((funcionario) => (
+                    <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{funcionario.nome}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCurrency(funcionario.salario_base || 0)} total
+                        </p>
+                      </div>
+                       <div className="flex items-center gap-3">
+                           <Checkbox 
+                             id={`funcionario-${funcionario.id}`}
+                             checked={tempCheckboxStates[funcionario.id] ?? false}
+                             onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
+                           />
+                         <Label 
+                           htmlFor={`funcionario-${funcionario.id}`}
+                           className="text-sm font-medium cursor-pointer"
+                         >
+                           Considerar
+                         </Label>
+                       </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <TabsContent value="folha" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Folha de Pagamento (Mão de Obra Indireta)</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {folhaPagamento.map((funcionario) => (
-                    <div key={funcionario.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={funcionario.id}
-                        checked={tempCheckboxStates[funcionario.id] || false}
-                        onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, !!checked)}
-                      />
-                      <Label htmlFor={funcionario.id} className="flex-1 text-sm">
-                        {funcionario.nome} - {formatCurrency(funcionario.custo_por_hora > 0 
-                          ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
-                          : funcionario.salario_base
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="encargos" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Encargos sobre Venda</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {encargosVenda.map((encargo) => (
-                    <div key={encargo.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={encargo.id}
-                        checked={tempCheckboxStates[encargo.id] || false}
-                        onCheckedChange={(checked) => handleCheckboxChange(encargo.id, !!checked)}
-                      />
-                      <Label htmlFor={encargo.id} className="flex-1 text-sm">
-                        {encargo.nome} - {encargo.valor_percentual > 0 ? `${formatPercentage(encargo.valor_percentual)}%` : formatCurrency(encargo.valor_fixo)}
-                      </Label>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSalvarConfiguracao} disabled={!hasUnsavedChanges}>
-            Salvar Configuração
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <TabsContent value="encargos-venda" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Encargos sobre Venda</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all-encargos"
+                      checked={selectAllStates.encargosVenda}
+                      onCheckedChange={(checked) => handleSelectAll('encargosVenda', checked as boolean)}
+                    />
+                    <Label htmlFor="select-all-encargos" className="text-sm font-medium cursor-pointer">
+                      Selecionar Todos
+                    </Label>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {loading ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    Carregando encargos...
+                  </p>
+                ) : encargosVenda.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">
+                      Nenhum encargo cadastrado
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Adicione encargos na aba "Custos" para vê-los aqui
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {renderEncargosPorCategoria('impostos', 'Impostos')}
+                    {renderEncargosPorCategoria('meios_pagamento', 'Taxas de Meios de Pagamento')}
+                    {renderEncargosPorCategoria('comissoes', 'Comissões e Plataformas')}
+                    {renderEncargosPorCategoria('outros', 'Outros')}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+           </Tabs>
+           
+            <DialogFooter className="gap-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={handleCancelar}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSalvar}
+                disabled={!hasUnsavedChanges}
+              >
+                {markupBlock ? "Salvar Configurações" : "Criar Bloco de Markup"}
+              </Button>
+            </DialogFooter>
+         </DialogContent>
+       </Dialog>
   );
 }
