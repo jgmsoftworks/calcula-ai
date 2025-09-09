@@ -22,7 +22,7 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
-  periodo?: string;
+  periodo?: string; // '1' | '3' | '6' | '12' | 'todos'
 }
 
 interface CalculatedMarkup {
