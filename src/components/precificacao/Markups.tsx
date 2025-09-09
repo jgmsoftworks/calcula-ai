@@ -35,9 +35,6 @@ interface CalculatedMarkup {
 
 export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
-  const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
-  const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
-  const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
 
   // Períodos e modais
@@ -596,27 +593,6 @@ export function Markups() {
     return mk;
   };
 
-  const iniciarEdicaoNome = (bloco: MarkupBlock) => {
-    setBlocoEditandoNome(bloco);
-    setNomeTemp(bloco.nome);
-    setModalEdicaoNome(true);
-  };
-
-  const salvarNome = () => {
-    if (blocoEditandoNome && nomeTemp.trim()) {
-      const novos = blocos.map((b) => (b.id === blocoEditandoNome.id ? { ...b, nome: nomeTemp.trim() } : b));
-      setBlocos(novos);
-      salvarBlocos(novos);
-      setModalEdicaoNome(false);
-      setBlocoEditandoNome(null);
-    }
-  };
-
-  const cancelarEdicao = () => {
-    setModalEdicaoNome(false);
-    setBlocoEditandoNome(null);
-    setNomeTemp('');
-  };
 
   return (
     <div className="space-y-6">
@@ -718,10 +694,6 @@ export function Markups() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-primary capitalize font-bold text-xl">{bloco.nome}</CardTitle>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => iniciarEdicaoNome(bloco)} className="h-8 w-8 p-0">
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-
                     <Button
                       size="sm"
                       variant="outline"
@@ -730,13 +702,7 @@ export function Markups() {
                     >
                       <Settings className="h-3 w-3" />
                     </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => removerBloco(bloco.id)}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    >
+                    <Button size="sm" variant="outline" onClick={() => removerBloco(bloco.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -935,31 +901,6 @@ export function Markups() {
         />
       )}
 
-      <Dialog open={modalEdicaoNome} onOpenChange={setModalEdicaoNome}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar Nome do Bloco</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-        <div className="py-4">
-          <Input
-            value={nomeTemp}
-            onChange={(e) => setNomeTemp(e.target.value)}
-            placeholder="Digite o nome do bloco"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') salvarNome();
-              if (e.key === 'Escape') cancelarEdicao();
-            }}
-            autoFocus
-          />
-        </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={cancelarEdicao}>
-            Cancelar
-          </Button>
-          <Button onClick={salvarNome}>Salvar</Button>
-        </DialogFooter>
-      </Dialog>
     </div>
   );
 }
