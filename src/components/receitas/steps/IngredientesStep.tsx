@@ -99,61 +99,66 @@ export function IngredientesStep() {
         <p className="text-muted-foreground">Selecione os produtos que fazem parte desta receita</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Lista de Produtos Disponíveis */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Produtos Disponíveis</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Buscar produtos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardHeader>
-           <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-             {loading ? (
-               <div className="flex items-center justify-center py-8">
-                 <p className="text-muted-foreground">Carregando produtos...</p>
-               </div>
-             ) : produtosFiltrados.length === 0 ? (
-               <div className="text-center py-8 text-muted-foreground">
-                 <p>Nenhum produto encontrado</p>
-                 <p className="text-sm">Cadastre produtos no estoque primeiro</p>
-               </div>
-             ) : (
+      <div className="space-y-6">
+        {/* Buscar Produtos */}
+        <div>
+          <Label htmlFor="search" className="text-sm font-medium">
+            Buscar Produtos
+          </Label>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="search"
+              placeholder="Digite o nome do produto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Resultados da Busca */}
+          {searchTerm && (
+            <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-muted-foreground">Carregando produtos...</p>
+                </div>
+              ) : produtosFiltrados.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhum produto encontrado</p>
+                  <p className="text-sm">Cadastre produtos no estoque primeiro</p>
+                </div>
+              ) : (
                 produtosFiltrados.map((produto) => (
-               <div key={produto.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                 <div>
-                   <p className="font-medium">{produto.nome}</p>
-                    <p className="text-sm text-muted-foreground">
-                      R$ {produto.custo_medio.toFixed(2)} / {produto.unidade}
-                    </p>
-                    {produto.marcas && produto.marcas.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {produto.marcas.map((marca, index) => (
-                          <Badge key={index} variant="outline" className="text-xs py-0">
-                            {marca}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                 </div>
-                 <Button
-                   size="sm"
-                   onClick={() => adicionarIngrediente(produto)}
-                   disabled={ingredientes.some(item => item.produto_id === produto.id)}
-                 >
-                   <Plus className="h-4 w-4" />
-                 </Button>
-               </div>
-             ))
-             )}
-          </CardContent>
-        </Card>
+                  <div key={produto.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                    <div>
+                      <p className="font-medium">{produto.nome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        R$ {produto.custo_medio.toFixed(2)} / {produto.unidade}
+                      </p>
+                      {produto.marcas && produto.marcas.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {produto.marcas.map((marca, index) => (
+                            <Badge key={index} variant="outline" className="text-xs py-0">
+                              {marca}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => adicionarIngrediente(produto)}
+                      disabled={ingredientes.some(item => item.produto_id === produto.id)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Ingredientes Selecionados */}
         <Card>
