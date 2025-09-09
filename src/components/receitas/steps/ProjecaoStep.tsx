@@ -20,6 +20,7 @@ interface MaoObraItem {
   };
   tempo: number;
   valorTotal: number;
+  unidadeTempo?: string;
 }
 
 export function ProjecaoStep() {
@@ -67,6 +68,15 @@ export function ProjecaoStep() {
 
   const tempoTotalMaoObra = maoObra.reduce((total, item) => total + item.tempo, 0);
   const valorTotalMaoObra = maoObra.reduce((total, item) => total + item.valorTotal, 0);
+
+  const getUnidadeAbreviacao = (unidade: string = 'horas') => {
+    switch (unidade) {
+      case 'minutos': return 'm';
+      case 'horas': return 'h';
+      case 'dias': return 'd';
+      default: return 'h';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -203,7 +213,7 @@ export function ProjecaoStep() {
                             <span className="text-muted-foreground ml-2">({item.funcionario.cargo})</span>
                           </div>
                           <div className="text-right">
-                            <div>{item.tempo}h</div>
+                            <div>{item.tempo}{getUnidadeAbreviacao(item.unidadeTempo)}</div>
                             <div className="text-muted-foreground">R$ {item.valorTotal.toFixed(2)}</div>
                           </div>
                         </div>
@@ -211,7 +221,14 @@ export function ProjecaoStep() {
                       <div className="flex justify-between items-center pt-2 border-t">
                         <span className="text-sm font-medium">Total:</span>
                         <div className="text-right">
-                          <div className="text-sm">{tempoTotalMaoObra}h</div>
+                          <div className="text-sm">
+                            {maoObra.map((item, index) => (
+                              <span key={item.id}>
+                                {item.tempo}{getUnidadeAbreviacao(item.unidadeTempo)}
+                                {index < maoObra.length - 1 ? ', ' : ''}
+                              </span>
+                            ))}
+                          </div>
                           <div className="text-sm font-medium">R$ {valorTotalMaoObra.toFixed(2)}</div>
                         </div>
                       </div>
@@ -283,7 +300,14 @@ export function ProjecaoStep() {
                   {maoObra.length > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Mão de Obra:</span>
-                      <span>{tempoTotalMaoObra}h (R$ {valorTotalMaoObra.toFixed(2)})</span>
+                      <span>
+                        {maoObra.map((item, index) => (
+                          <span key={item.id}>
+                            {item.tempo}{getUnidadeAbreviacao(item.unidadeTempo)}
+                            {index < maoObra.length - 1 ? ', ' : ''}
+                          </span>
+                        ))} (R$ {valorTotalMaoObra.toFixed(2)})
+                      </span>
                     </div>
                   )}
                 </div>
