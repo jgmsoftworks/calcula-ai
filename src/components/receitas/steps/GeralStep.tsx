@@ -153,9 +153,8 @@ export function GeralStep() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Conservação:</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 pb-6 overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
+          <CardContent className="pt-0 pb-6">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">Descrição</TableHead>
@@ -205,7 +204,6 @@ export function GeralStep() {
                 ))}
               </TableBody>
               </Table>
-            </div>
           </CardContent>
         </Card>
       </div>
