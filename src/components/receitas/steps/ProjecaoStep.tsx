@@ -62,7 +62,7 @@ export function ProjecaoStep() {
                 <div className="flex gap-2">
                   <Select value={tipoProduto} onValueChange={setTipoProduto}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
+                      <SelectValue placeholder={tiposProduto.length === 0 ? "Nenhum tipo cadastrado - adicione um tipo" : "Selecione o tipo"} />
                     </SelectTrigger>
                     <SelectContent>
                       {tiposProduto.map((tipo) => (
@@ -70,11 +70,6 @@ export function ProjecaoStep() {
                           {tipo}
                         </SelectItem>
                       ))}
-                      {tiposProduto.length === 0 && (
-                        <SelectItem value="" disabled>
-                          Nenhum tipo cadastrado
-                        </SelectItem>
-                      )}
                     </SelectContent>
                   </Select>
                   <Dialog open={modalAberto} onOpenChange={setModalAberto}>
