@@ -101,7 +101,7 @@ export function MarkupBlock({
     <Card className="border-l-4 border-l-primary">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          {isEditingName ? (
+          {isEditingName && block.id !== 'subreceita-fixo' ? (
             <div className="flex items-center gap-2 flex-1">
               <Input
                 value={tempName}
@@ -124,13 +124,15 @@ export function MarkupBlock({
             <CardTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" />
               {block.nome}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsEditingName(true)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
+              {block.id !== 'subreceita-fixo' && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsEditingName(true)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
             </CardTitle>
           )}
           
@@ -162,22 +164,24 @@ export function MarkupBlock({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onOpenConfig(block.id)}
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Configurar custos
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {block.id !== 'subreceita-fixo' && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onOpenConfig(block.id)}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Configurar custos
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
 
             {block.id !== 'subreceita-fixo' && (
               <Button
@@ -224,20 +228,27 @@ export function MarkupBlock({
         </div>
 
         {/* Lucro Desejado */}
-        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-          <span className="text-sm font-medium">Lucro Desejado:</span>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              value={tempProfit}
-              onChange={(e) => handleProfitChange(e.target.value)}
-              className="w-20 text-center"
-              min="0"
-              step="0.1"
-            />
-            <span className="text-sm">%</span>
+        {block.id !== 'subreceita-fixo' ? (
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <span className="text-sm font-medium">Lucro Desejado:</span>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={tempProfit}
+                onChange={(e) => handleProfitChange(e.target.value)}
+                className="w-20 text-center"
+                min="0"
+                step="0.1"
+              />
+              <span className="text-sm">%</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <span className="text-sm font-medium">Lucro Desejado:</span>
+            <Badge variant="outline">0.00%</Badge>
+          </div>
+        )}
 
         {/* Markup Total */}
         <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
