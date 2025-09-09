@@ -7,14 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { TipoProdutoModal } from './TipoProdutoModal';
 
 export function ProjecaoStep() {
   const [tipoProduto, setTipoProduto] = useState('');
-  const [rendimento, setRendimento] = useState('');
+  const [rendimentoValor, setRendimentoValor] = useState('');
+  const [rendimentoUnidade, setRendimentoUnidade] = useState('unidade');
   const [tempoPreparoTotal, setTempoPreparoTotal] = useState(0);
   const [tempoPreparoMaoObra, setTempoPreparoMaoObra] = useState(0);
-  const [tiposProduto, setTiposProduto] = useState<string[]>([]);
-  const [novoTipo, setNovoTipo] = useState('');
+  const [tiposProduto, setTiposProduto] = useState<{ id: string; nome: string }[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
 
   // Mock data para cálculos
@@ -23,12 +24,20 @@ export function ProjecaoStep() {
   const custoEmbalagens = 3.80;
   const custoTotal = custoIngredientes + custoSubReceitas + custoEmbalagens;
 
-  const adicionarTipoProduto = () => {
-    if (novoTipo.trim() && !tiposProduto.includes(novoTipo.trim())) {
-      setTiposProduto([...tiposProduto, novoTipo.trim()]);
-      setNovoTipo('');
-      setModalAberto(false);
-    }
+  const unidadesRendimento = [
+    { value: 'unidade', label: 'Unidade (UN)' },
+    { value: 'grama', label: 'Grama (G)' },
+    { value: 'quilo', label: 'Quilo (KG)' },
+    { value: 'litro', label: 'Litro (L)' },
+    { value: 'mililitro', label: 'Mililitro (ML)' },
+  ];
+
+  const adicionarTipoProduto = (novoTipo: { id: string; nome: string }) => {
+    setTiposProduto([...tiposProduto, novoTipo]);
+  };
+
+  const atualizarTiposProduto = (novostipos: { id: string; nome: string }[]) => {
+    setTiposProduto(novostipos);
   };
 
   return (
@@ -66,55 +75,46 @@ export function ProjecaoStep() {
                     </SelectTrigger>
                     <SelectContent>
                       {tiposProduto.map((tipo) => (
-                        <SelectItem key={tipo} value={tipo}>
-                          {tipo}
+                        <SelectItem key={tipo.id} value={tipo.nome}>
+                          {tipo.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="px-2">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Adicionar Tipo de Produto</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="novo-tipo">Nome do Tipo</Label>
-                          <Input
-                            id="novo-tipo"
-                            placeholder="Ex: Doce, Salgado, Bebida..."
-                            value={novoTipo}
-                            onChange={(e) => setNovoTipo(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && adicionarTipoProduto()}
-                          />
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="outline" onClick={() => setModalAberto(false)}>
-                            Cancelar
-                          </Button>
-                          <Button onClick={adicionarTipoProduto} disabled={!novoTipo.trim()}>
-                            Adicionar
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2"
+                    onClick={() => setModalAberto(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="rendimento">Rendimento *</Label>
-                <Input
-                  id="rendimento"
-                  placeholder="Ex: 8 fatias, 500ml, 12 unidades"
-                  value={rendimento}
-                  onChange={(e) => setRendimento(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="rendimento-valor"
+                    placeholder="Ex: 8, 500, 12"
+                    value={rendimentoValor}
+                    onChange={(e) => setRendimentoValor(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Select value={rendimentoUnidade} onValueChange={setRendimentoUnidade}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unidadesRendimento.map((unidade) => (
+                        <SelectItem key={unidade.value} value={unidade.value}>
+                          {unidade.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -191,15 +191,15 @@ export function ProjecaoStep() {
               </div>
             </div>
 
-            {rendimento && (
+            {rendimentoValor && (
               <div className="pt-4 border-t">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Custo por Unidade</Label>
                   <p className="text-lg font-bold text-primary">
-                    R$ {(custoTotal / (parseInt(rendimento.match(/\d+/)?.[0] || '1'))).toFixed(2)}
+                    R$ {(custoTotal / (parseFloat(rendimentoValor) || 1)).toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Baseado no rendimento: {rendimento}
+                    Baseado no rendimento: {rendimentoValor} {unidadesRendimento.find(u => u.value === rendimentoUnidade)?.label}
                   </p>
                 </div>
               </div>
@@ -227,6 +227,15 @@ export function ProjecaoStep() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Tipos de Produto */}
+      <TipoProdutoModal
+        isOpen={modalAberto}
+        onClose={() => setModalAberto(false)}
+        onTipoProdutoCreated={adicionarTipoProduto}
+        onTipoProdutoUpdated={atualizarTiposProduto}
+        existingTipos={tiposProduto}
+      />
     </div>
   );
 }
