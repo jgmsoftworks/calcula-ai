@@ -407,9 +407,39 @@ export function Markups() {
     const channel = supabase
       .channel('markup-config-changes')
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
-          event: 'INSERT,UPDATE',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_configurations',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (selfWriteRef.current) return; // evita loop
+          const rec: any = payload.new ?? payload.old;
+          const t = rec?.type as string | undefined;
+
+          if (
+            t &&
+            (t.startsWith('filtro-periodo-') ||
+              t.startsWith('checkbox-states-') ||
+              t === 'markups_blocos' ||
+              t === 'faturamentos_historicos' ||
+              t === 'despesas_fixas' ||
+              t === 'folha_pagamento' ||
+              t === 'encargos_venda')
+          ) {
+            invalidateCache();
+            setTimeout(() => {
+              carregarConfiguracoesSalvas();
+            }, 300);
+          }
+        }
+      )
+      .on(
+        'postgres_changes' as any,
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'user_configurations',
           filter: `user_id=eq.${user.id}`
@@ -794,94 +824,88 @@ export function Markups() {
                 </div>
 
                 {/* Expansão de Configuração */}
-                <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    showExpansion ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-                  }`}
-                >
-                  {showExpansion && (
-                    <div className="border-t pt-4 mt-4 space-y-4 animate-fade-in">
-                      <div className="text-sm font-medium text-muted-foreground">Configurações de Custos - {bloco.nome}</div>
+                {showExpansion && (
+                  <div className="border-t pt-4 mt-4 space-y-4 bg-muted/10 rounded-lg p-4 animate-in slide-in-from-top-2 duration-200">
+                    <div className="text-sm font-medium text-muted-foreground">Configurações de Custos - {bloco.nome}</div>
 
-                      {/* Período */}
-                      <div className="bg-muted/20 rounded-lg p-4">
-                        <h4 className="font-medium mb-3 text-sm flex items-center gap-2">📅 Período de Análise:</h4>
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                          {[
-                            { value: '1', label: '1 mês' },
-                            { value: '3', label: '3 meses' },
-                            { value: '6', label: '6 meses' },
-                            { value: '12', label: '12 meses' }
-                          ].map((p) => (
-                            <Button
-                              key={p.value}
-                              variant={periodosAplicados.get(bloco.id) === p.value ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => aplicarPeriodo(bloco.id, p.value)}
-                              className="text-xs"
-                            >
-                              {p.label}
-                              {periodosAplicados.get(bloco.id) === p.value && <span className="ml-1 text-xs">✓</span>}
-                            </Button>
-                          ))}
-                        </div>
+                    {/* Período */}
+                    <div className="bg-muted/20 rounded-lg p-4">
+                      <h4 className="font-medium mb-3 text-sm flex items-center gap-2">📅 Período de Análise:</h4>
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        {[
+                          { value: '1', label: '1 mês' },
+                          { value: '3', label: '3 meses' },
+                          { value: '6', label: '6 meses' },
+                          { value: '12', label: '12 meses' }
+                        ].map((p) => (
+                          <Button
+                            key={p.value}
+                            variant={periodosAplicados.get(bloco.id) === p.value ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => aplicarPeriodo(bloco.id, p.value)}
+                            className="text-xs"
+                          >
+                            {p.label}
+                            {periodosAplicados.get(bloco.id) === p.value && <span className="ml-1 text-xs">✓</span>}
+                          </Button>
+                        ))}
+                      </div>
 
-                        <Button
-                          variant={periodosAplicados.get(bloco.id) === 'todos' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => aplicarPeriodo(bloco.id, 'todos')}
-                          className="w-full text-xs mb-4"
-                        >
-                          Todos os períodos
-                          {periodosAplicados.get(bloco.id) === 'todos' && <span className="ml-1 text-xs">✓</span>}
+                      <Button
+                        variant={periodosAplicados.get(bloco.id) === 'todos' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => aplicarPeriodo(bloco.id, 'todos')}
+                        className="w-full text-xs mb-4"
+                      >
+                        Todos os períodos
+                        {periodosAplicados.get(bloco.id) === 'todos' && <span className="ml-1 text-xs">✓</span>}
+                      </Button>
+                    </div>
+
+                    {/* Ações rápidas */}
+                    <div className="bg-muted/20 rounded-lg p-4">
+                      <h4 className="font-medium mb-3 text-sm flex items-center gap-2">⚙️ Configurações:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <Button onClick={() => abrirConfiguracaoCompleta(bloco.id)} variant="outline" size="sm" className="text-xs">
+                          🔧 Configurar Itens
                         </Button>
-                      </div>
 
-                      {/* Ações rápidas */}
-                      <div className="bg-muted/20 rounded-lg p-4">
-                        <h4 className="font-medium mb-3 text-sm flex items-center gap-2">⚙️ Configurações:</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <Button onClick={() => abrirConfiguracaoCompleta(bloco.id)} variant="outline" size="sm" className="text-xs">
-                            🔧 Configurar Itens
-                          </Button>
-
-                          <Button onClick={() => aplicarConfiguracaoPadrao(bloco.id)} variant="outline" size="sm" className="text-xs">
-                            ⚡ Aplicar Padrão
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Status */}
-                      {periodosAplicados.has(bloco.id) && (
-                        <div className="bg-card border rounded-lg p-3 text-xs">
-                          <div className="flex justify-between items-center">
-                            <div className="text-primary font-medium">
-                              ✓ Período aplicado:{' '}
-                              {periodosAplicados.get(bloco.id) === '1'
-                                ? 'Último mês'
-                                : periodosAplicados.get(bloco.id) === '3'
-                                ? 'Últimos 3 meses'
-                                : periodosAplicados.get(bloco.id) === '6'
-                                ? 'Últimos 6 meses'
-                                : periodosAplicados.get(bloco.id) === '12'
-                                ? 'Últimos 12 meses'
-                                : 'Todos os períodos'}
-                            </div>
-                            <div className="text-primary font-bold">
-                              Markup: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="text-center pt-2">
-                        <Button onClick={() => toggleSubmenu(bloco.id)} variant="ghost" size="sm" className="text-xs">
-                          Fechar Configurações
+                        <Button onClick={() => aplicarConfiguracaoPadrao(bloco.id)} variant="outline" size="sm" className="text-xs">
+                          ⚡ Aplicar Padrão
                         </Button>
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Status */}
+                    {periodosAplicados.has(bloco.id) && (
+                      <div className="bg-card border rounded-lg p-3 text-xs">
+                        <div className="flex justify-between items-center">
+                          <div className="text-primary font-medium">
+                            ✓ Período aplicado:{' '}
+                            {periodosAplicados.get(bloco.id) === '1'
+                              ? 'Último mês'
+                              : periodosAplicados.get(bloco.id) === '3'
+                              ? 'Últimos 3 meses'
+                              : periodosAplicados.get(bloco.id) === '6'
+                              ? 'Últimos 6 meses'
+                              : periodosAplicados.get(bloco.id) === '12'
+                              ? 'Últimos 12 meses'
+                              : 'Todos os períodos'}
+                          </div>
+                          <div className="text-primary font-bold">
+                            Markup: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-center pt-2">
+                      <Button onClick={() => toggleSubmenu(bloco.id)} variant="ghost" size="sm" className="text-xs">
+                        Fechar Configurações
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
                   <div className="flex items-center justify-between">
