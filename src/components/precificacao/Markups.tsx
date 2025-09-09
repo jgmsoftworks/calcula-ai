@@ -101,7 +101,9 @@ export function Markups() {
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0 || recalculandoRef.current) return;
 
+    console.log('🧮 Iniciando recálculo para', blocos.length, 'blocos');
     recalculandoRef.current = true;
+    
     try {
       const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
@@ -118,12 +120,23 @@ export function Markups() {
           ? faturamentosConfig.map((f: any) => ({ mes: new Date(f.mes), valor: Number(f.valor) || 0 }))
           : [];
 
+      console.log('📊 Dados carregados:', {
+        despesasFixas: despesasFixas?.length || 0,
+        folhaPagamento: folhaPagamento?.length || 0,
+        encargosVenda: encargosVenda?.length || 0,
+        faturamentos: todosFaturamentos.length
+      });
+
       let blocosAtualizados: MarkupBlock[] | null = null;
 
       for (const bloco of blocos) {
+        console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
+        
         // SEMPRE carregar período fresh do storage para pegar mudanças do modal
         const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
         let periodo = salvo && PERIODOS_VALIDOS.has(String(salvo)) ? String(salvo) : 'todos';
+        
+        console.log(`📅 Período para ${bloco.nome}: ${periodo} (salvo: ${salvo})`);
         
         // Atualizar bloco com período carregado
         if (periodo !== bloco.periodo) {
@@ -146,8 +159,12 @@ export function Markups() {
           mediaMensal = total / faturamentosFiltrados.length;
         }
 
+        console.log(`💰 Média mensal para ${bloco.nome}: R$ ${mediaMensal.toFixed(2)} (${faturamentosFiltrados.length} meses)`);
+
         // checkbox-states sempre fresh para pegar mudanças do modal
         const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`, { fresh: true });
+
+        console.log(`🗂️ Config checkboxes para ${bloco.nome}:`, configCheckbox);
 
         if (configCheckbox && typeof configCheckbox === 'object' && Object.keys(configCheckbox).length > 0) {
           const despesasConsideradas = (despesasFixas || []).filter(d => configCheckbox[d.id] && d.ativo);
@@ -190,6 +207,7 @@ export function Markups() {
           );
 
           novosCalculatedMarkups.set(bloco.id, categorias);
+          console.log(`✅ Cálculo para ${bloco.nome}:`, categorias);
         } else {
           novosCalculatedMarkups.set(bloco.id, {
             gastoSobreFaturamento: 0,
@@ -199,10 +217,12 @@ export function Markups() {
             outros: 0,
             valorEmReal: 0
           });
+          console.log(`⚠️ ${bloco.nome} sem configurações - usando zeros`);
         }
       }
 
       if (novosCalculatedMarkups.size > 0) {
+        console.log(`📊 Atualizando ${novosCalculatedMarkups.size} markups calculados`);
         setCalculatedMarkups(novosCalculatedMarkups);
       }
 
@@ -217,12 +237,15 @@ export function Markups() {
       }
     } finally {
       recalculandoRef.current = false;
+      console.log('✅ Recálculo concluído');
     }
   }, [user?.id, blocos, loadConfiguration, saveConfiguration, invalidateCache, getCategoriaByNome]);
 
-  // carregar blocos e faturamentos na inicialização
+  // carregar blocos e garantir recálculo inicial
   useEffect(() => {
     const carregar = async () => {
+      if (!user?.id) return;
+      
       try {
         // Carregar blocos
         const cfg = await loadConfiguration('markups_blocos');
@@ -232,35 +255,59 @@ export function Markups() {
             periodo: PERIODOS_VALIDOS.has(String(b.periodo)) ? String(b.periodo) : 'todos'
           }));
           setBlocos(normalizados);
+          
+          // CRÍTICO: Forçar recálculo após carregar blocos
+          if (normalizados.length > 0) {
+            setTimeout(() => {
+              if (!recalculandoRef.current) {
+                recalculandoRef.current = true;
+                carregarConfiguracoesSalvas().finally(() => {
+                  recalculandoRef.current = false;
+                });
+              }
+            }, 200);
+          }
         }
-        
-        // Carregar faturamentos para inicializar cálculos
-        await loadConfiguration('faturamentos_historicos', { fresh: true });
         
       } catch (e) {
         console.error('Erro ao carregar blocos:', e);
       }
     };
     carregar();
-  }, [loadConfiguration]);
+  }, [user?.id, loadConfiguration]);
 
-  // recálculo inicial e quando trocar bloco - sempre com fresh para pegar mudanças do modal
+  // recálculo automático quando componente monta ou user muda
   useEffect(() => {
-    if (blocos.length > 0 && user?.id) {
-      // Delay para permitir que o componente se estabilize
+    if (blocos.length > 0 && user?.id && !recalculandoRef.current) {
       const timer = setTimeout(() => {
+        console.log('🔄 Disparando recálculo inicial com', blocos.length, 'blocos');
         recalcOnce(carregarConfiguracoesSalvas);
-      }, 100);
+      }, 300);
       
       return () => clearTimeout(timer);
     }
-  }, [blocos.length, user?.id, recalcOnce]);
+  }, [user?.id, recalcOnce]);
 
+  // Monitorar mudanças nos faturamentos para recalcular automaticamente
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
+    if (blocos.length > 0 && user?.id) {
+      const intervalId = setInterval(async () => {
+        try {
+          const configAtual = await loadConfiguration('faturamentos_historicos', { fresh: true });
+          if (configAtual) {
+            // Disparar recálculo se não estiver em andamento
+            if (!recalculandoRef.current) {
+              recalcOnce(carregarConfiguracoesSalvas);
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao verificar faturamentos:', error);
+        }
+      }, 10000); // Verificar a cada 10 segundos
+
+      return () => clearInterval(intervalId);
+    }
+  }, [blocos.length, user?.id, loadConfiguration, recalcOnce]);
 
   const salvarBlocos = useCallback(
     async (novosBlocos: MarkupBlock[]) => {
