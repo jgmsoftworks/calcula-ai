@@ -8,7 +8,7 @@ import { Calculator, Plus, Trash2, Edit2, Info, Settings, ChevronDown, ChevronUp
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CustosModal } from './CustosModalSimple';
+import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Calendar } from '@/components/ui/calendar';
