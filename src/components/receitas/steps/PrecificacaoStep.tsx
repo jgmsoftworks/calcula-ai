@@ -66,6 +66,36 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
   const [precoVenda, setPrecoVenda] = useState('');
   const [pesoUnitario, setPesoUnitario] = useState('');
   
+  // Function to format currency
+  const formatCurrency = (value: string) => {
+    // Remove all non-digits
+    const numericValue = value.replace(/\D/g, '');
+    
+    if (!numericValue) return '';
+    
+    // Convert to number and divide by 100 to get decimal places
+    const number = parseInt(numericValue) / 100;
+    
+    // Format as Brazilian currency
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(number);
+  };
+  
+  // Function to get numeric value from formatted currency
+  const getNumericValue = (formattedValue: string) => {
+    const numericValue = formattedValue.replace(/\D/g, '');
+    if (!numericValue) return 0;
+    return parseInt(numericValue) / 100;
+  };
+  
+  const handlePrecoVendaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrency(e.target.value);
+    setPrecoVenda(formatted);
+  };
+  
   // Calculate real costs from the recipe data
   const custoIngredientes = receitaData.ingredientes.reduce((total, item) => total + item.custo_total, 0);
   const custoSubReceitas = receitaData.subReceitas.reduce((total, item) => total + item.custo_total, 0);
@@ -77,9 +107,15 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
 
   // Calculate price per KG and unit cost
   const custoUnitario = custoTotal / (parseFloat(rendimentoValor) || 1);
-  const precoKg = (parseFloat(precoVenda) && parseFloat(pesoUnitario)) 
-    ? (parseFloat(precoVenda) / (parseFloat(pesoUnitario) / 1000)).toFixed(2)
-    : '0,00';
+  const precoNumerico = getNumericValue(precoVenda);
+  const pesoNumerico = parseFloat(pesoUnitario) || 0;
+  const precoKg = (precoNumerico && pesoNumerico) 
+    ? new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+      }).format(precoNumerico / (pesoNumerico / 1000))
+    : 'R$ 0,00';
 
   const unidadesRendimento = [
     { value: 'unidade', label: 'Unidade (UN)' },
@@ -169,12 +205,10 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
           </CardHeader>
           <CardContent>
             <Input
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
               placeholder="R$ 0,00"
               value={precoVenda}
-              onChange={(e) => setPrecoVenda(e.target.value)}
+              onChange={handlePrecoVendaChange}
               className="text-lg font-medium"
             />
           </CardContent>
@@ -212,7 +246,7 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
           <CardContent>
             <div className="text-center">
               <p className="text-2xl font-bold text-primary">
-                R$ {precoKg}
+                {precoKg}
               </p>
             </div>
           </CardContent>
