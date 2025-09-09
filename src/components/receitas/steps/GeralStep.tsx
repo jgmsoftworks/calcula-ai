@@ -117,14 +117,13 @@ export function GeralStep() {
       {/* Layout Principal: Imagem e Conservação/Observações */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Área de Upload de Imagem */}
-        <Card className="cursor-pointer hover:bg-muted/50 transition-colors relative overflow-hidden" onClick={handleImageUpload}>
-          <CardContent className="p-0 h-full flex flex-col items-center justify-center relative">
+        <div className="cursor-pointer hover:bg-muted/50 transition-colors relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm h-[280px] flex flex-col items-center justify-center" onClick={handleImageUpload}>
             {imagemReceita ? (
               <>
                 <img 
                   src={imagemReceita} 
                   alt="Receita" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-lg"
                 />
                 <Button
                   variant="ghost"
@@ -137,7 +136,7 @@ export function GeralStep() {
                 >
                   <Plus className="h-3 w-3 rotate-45" />
                 </Button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1 rounded-b-lg">
                   Clique para alterar a imagem
                 </div>
               </>
@@ -147,8 +146,7 @@ export function GeralStep() {
                 <p className="font-medium">Clique para adicionar uma imagem</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </div>
 
         {/* Conservação */}
         <Card>
