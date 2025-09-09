@@ -117,8 +117,8 @@ export function GeralStep() {
       {/* Layout Principal: Imagem e Conservação/Observações */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Área de Upload de Imagem */}
-        <Card className="cursor-pointer hover:bg-muted/50 transition-colors relative overflow-hidden" onClick={handleImageUpload}>
-          <CardContent className="p-0 flex flex-col items-center justify-center h-[280px] relative">
+        <Card className="cursor-pointer hover:bg-muted/50 transition-colors relative overflow-hidden border-0 p-0" onClick={handleImageUpload}>
+          <CardContent className="p-0 m-0 flex flex-col items-center justify-center h-[280px] relative border-0 rounded-lg overflow-hidden">
             {imagemReceita ? (
               <>
                 <img 
