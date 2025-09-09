@@ -25,8 +25,8 @@ export function PrecificacaoStep() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Precificação</h3>
           <p className="text-muted-foreground">Analise os custos e defina o preço final do produto</p>
@@ -39,7 +39,7 @@ export function PrecificacaoStep() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Resumo de Custos */}
         <Card>
           <CardHeader>
@@ -48,8 +48,8 @@ export function PrecificacaoStep() {
               Resumo de Custos
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Ingredientes</span>
                 <Badge variant="outline">R$ {custoIngredientes.toFixed(2)}</Badge>
@@ -79,8 +79,8 @@ export function PrecificacaoStep() {
             </div>
 
             {rendimentoValor && (
-              <div className="pt-4 border-t">
-                <div className="space-y-2">
+              <div className="pt-3 border-t">
+                <div className="space-y-1">
                   <Label className="text-sm font-medium">Custo por Unidade</Label>
                   <p className="text-lg font-bold text-primary">
                     R$ {(custoTotal / (parseFloat(rendimentoValor) || 1)).toFixed(2)}
@@ -102,11 +102,11 @@ export function PrecificacaoStep() {
               Análise de Precificação
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
               <div>
                 <Label className="text-sm font-medium">Margem de Lucro Sugerida</Label>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-1 mt-2">
                   <div className="flex justify-between items-center p-2 bg-muted rounded-lg">
                     <span className="text-sm">30% (Conservadora)</span>
                     <Badge variant="secondary">R$ {((custoTotal / (parseFloat(rendimentoValor) || 1)) * 1.3).toFixed(2)}</Badge>
@@ -134,7 +134,7 @@ export function PrecificacaoStep() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-6 bg-muted rounded-lg">
+          <div className="text-center p-4 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground mb-2">Preço Sugerido (margem 50%)</p>
             <p className="text-3xl font-bold text-primary">
               R$ {((custoTotal / (parseFloat(rendimentoValor) || 1)) * 1.5).toFixed(2)}

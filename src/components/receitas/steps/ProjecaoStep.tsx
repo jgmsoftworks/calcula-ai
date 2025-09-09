@@ -79,8 +79,8 @@ export function ProjecaoStep() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Projeção da Receita</h3>
           <p className="text-muted-foreground">Configure os dados finais e veja o resumo dos custos</p>
@@ -93,8 +93,8 @@ export function ProjecaoStep() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4 lg:col-span-2">
           {/* Dados do Produto */}
           <Card>
             <CardHeader>
@@ -103,7 +103,7 @@ export function ProjecaoStep() {
                 Dados do Produto
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div>
                 <Label htmlFor="tipo-produto">Tipo de Produto *</Label>
                 <div className="flex gap-2">
@@ -165,7 +165,7 @@ export function ProjecaoStep() {
                 Tempos de Preparo
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div>
                 <Label className="text-sm">Tempo de Preparo Total</Label>
                 <div className="flex gap-2">

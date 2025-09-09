@@ -47,7 +47,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Nova Receita - {steps[currentStep].title}</span>
@@ -58,11 +58,11 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
         </DialogHeader>
 
         {/* Progress Bar */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-wrap justify-center lg:justify-between items-center mb-4 gap-1">
           {steps.map((step, index) => (
             <div key={step.id} className="flex items-center">
               <div 
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                   index === currentStep
                     ? 'bg-primary text-primary-foreground'
                     : index < currentStep
@@ -72,13 +72,13 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
               >
                 {index + 1}
               </div>
-              <span className={`ml-2 text-sm ${
+              <span className={`ml-1 text-xs hidden sm:inline ${
                 index === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'
               }`}>
                 {step.title}
               </span>
               {index < steps.length - 1 && (
-                <div className={`w-8 h-px mx-4 ${
+                <div className={`w-6 h-px mx-2 hidden lg:block ${
                   index < currentStep ? 'bg-primary' : 'bg-muted'
                 }`} />
               )}
