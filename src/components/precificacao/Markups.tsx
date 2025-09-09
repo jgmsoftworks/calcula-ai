@@ -97,12 +97,11 @@ export function Markups() {
     }
   }, []);
 
-  // -------- CARREGAMENTO / CÁLCULO COM PROTEÇÃO ANTI-REENTRADA ----------
-  const carregarConfiguracoesSalvas = useCallback(async () => {
-    if (!user?.id || blocos.length === 0 || recalculandoRef.current) return;
+  // Função auxiliar que recebe os blocos diretamente (evita dependência do estado)
+  const carregarConfiguracoesSalvasComBlocos = useCallback(async (blocosParaCalcular: MarkupBlock[]) => {
+    if (!user?.id || blocosParaCalcular.length === 0) return;
 
-    console.log('🧮 Iniciando recálculo para', blocos.length, 'blocos');
-    recalculandoRef.current = true;
+    console.log('🧮 Iniciando recálculo para', blocosParaCalcular.length, 'blocos');
     
     try {
       const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
@@ -129,7 +128,7 @@ export function Markups() {
 
       let blocosAtualizados: MarkupBlock[] | null = null;
 
-      for (const bloco of blocos) {
+      for (const bloco of blocosParaCalcular) {
         console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
         
         // SEMPRE carregar período fresh do storage para pegar mudanças do modal
@@ -140,7 +139,7 @@ export function Markups() {
         
         // Atualizar bloco com período carregado
         if (periodo !== bloco.periodo) {
-          if (!blocosAtualizados) blocosAtualizados = [...blocos];
+          if (!blocosAtualizados) blocosAtualizados = [...blocosParaCalcular];
           blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));
         }
 
@@ -235,18 +234,21 @@ export function Markups() {
           console.warn('⚠️ Falha ao persistir markups_blocos com período:', e);
         }
       }
-    } finally {
-      recalculandoRef.current = false;
+      
       console.log('✅ Recálculo concluído');
+    } catch (error) {
+      console.error('❌ Erro durante o recálculo:', error);
     }
-  }, [user?.id, blocos, loadConfiguration, saveConfiguration, invalidateCache, getCategoriaByNome]);
+  }, [user?.id, loadConfiguration, saveConfiguration, invalidateCache, getCategoriaByNome]);
 
-  // carregar blocos e garantir recálculo inicial
+  // carregar blocos e AGUARDAR antes de fazer qualquer recálculo
   useEffect(() => {
     const carregar = async () => {
       if (!user?.id) return;
       
       try {
+        console.log('🚀 Iniciando carregamento de blocos...');
+        
         // Carregar blocos
         const cfg = await loadConfiguration('markups_blocos');
         if (cfg && Array.isArray(cfg)) {
@@ -254,39 +256,45 @@ export function Markups() {
             ...b,
             periodo: PERIODOS_VALIDOS.has(String(b.periodo)) ? String(b.periodo) : 'todos'
           }));
+          
+          console.log(`📋 ${normalizados.length} blocos carregados:`, normalizados);
           setBlocos(normalizados);
           
-          // CRÍTICO: Forçar recálculo após carregar blocos
-          if (normalizados.length > 0) {
-            setTimeout(() => {
-              if (!recalculandoRef.current) {
-                recalculandoRef.current = true;
-                carregarConfiguracoesSalvas().finally(() => {
-                  recalculandoRef.current = false;
-                });
+          // CRÍTICO: Aguardar os blocos serem setados no estado antes de recalcular
+          setTimeout(async () => {
+            console.log('🧮 Iniciando recálculo após carregar blocos...');
+            if (!recalculandoRef.current) {
+              recalculandoRef.current = true;
+              try {
+                // Usar os blocos normalizados diretamente
+                await carregarConfiguracoesSalvasComBlocos(normalizados);
+              } finally {
+                recalculandoRef.current = false;
               }
-            }, 200);
-          }
+            }
+          }, 500); // Delay maior para garantir que o estado foi atualizado
+        } else {
+          console.log('⚠️ Nenhum bloco encontrado');
         }
         
       } catch (e) {
-        console.error('Erro ao carregar blocos:', e);
+        console.error('❌ Erro ao carregar blocos:', e);
       }
     };
     carregar();
   }, [user?.id, loadConfiguration]);
 
-  // recálculo automático quando componente monta ou user muda
-  useEffect(() => {
-    if (blocos.length > 0 && user?.id && !recalculandoRef.current) {
-      const timer = setTimeout(() => {
-        console.log('🔄 Disparando recálculo inicial com', blocos.length, 'blocos');
-        recalcOnce(carregarConfiguracoesSalvas);
-      }, 300);
-      
-      return () => clearTimeout(timer);
+  // -------- CARREGAMENTO / CÁLCULO BASEADO NO ESTADO ATUAL ----------
+  const carregarConfiguracoesSalvas = useCallback(async () => {
+    if (!user?.id || blocos.length === 0 || recalculandoRef.current) return;
+
+    recalculandoRef.current = true;
+    try {
+      await carregarConfiguracoesSalvasComBlocos(blocos);
+    } finally {
+      recalculandoRef.current = false;
     }
-  }, [user?.id, recalcOnce]);
+  }, [user?.id, blocos, carregarConfiguracoesSalvasComBlocos]);
 
   // Monitorar mudanças nos faturamentos para recalcular automaticamente
   useEffect(() => {

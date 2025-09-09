@@ -22,24 +22,32 @@ export function useOptimizedUserConfigurations() {
 
   const loadConfiguration = useCallback(
     async (type: string, opts?: LoadOpts): Promise<any | null> => {
-      if (!user) return null;
+      if (!user) {
+        console.log(`⚠️ loadConfiguration: Usuário não logado para ${type}`);
+        return null;
+      }
 
       const fresh = !!opts?.fresh;
       const cacheKey = `${user.id}:${type}`;
 
+      console.log(`🔍 Carregando configuração: ${type} (fresh: ${fresh})`);
+
       if (!fresh) {
         const cached = cacheRef.current.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          console.log(`💾 Cache hit para ${type}:`, cached.data);
           return cached.data;
         }
       }
 
       if (pendingRef.current.has(cacheKey)) {
+        console.log(`⏳ Aguardando request pendente para ${type}`);
         return pendingRef.current.get(cacheKey);
       }
 
       const p = (async () => {
         try {
+          console.log(`📡 Buscando ${type} no banco de dados...`);
           const { data, error } = await supabase
             .from('user_configurations')
             .select('*')
@@ -47,11 +55,13 @@ export function useOptimizedUserConfigurations() {
             .eq('type', type)
             .maybeSingle();
 
-          // PGRST116 = no rows
           if (error && (error as any).code !== 'PGRST116') {
+            console.error(`❌ Erro ao carregar ${type}:`, error);
             throw error;
           }
+
           const result = data?.configuration ?? null;
+          console.log(`📋 Resultado carregado para ${type}:`, result);
 
           // sempre atualiza cache (mesmo fresh, para futuras leituras)
           cacheRef.current.set(cacheKey, { data: result, timestamp: Date.now() });
@@ -69,25 +79,81 @@ export function useOptimizedUserConfigurations() {
 
   const saveConfiguration = useCallback(
     async (type: string, configuration: any): Promise<void> => {
-      if (!user) return;
-
-      const cacheKey = `${user.id}:${type}`;
-      cacheRef.current.delete(cacheKey);
-
-      const { data: existing } = await supabase
-        .from('user_configurations')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('type', type)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase.from('user_configurations').update({ configuration }).eq('id', existing.id);
-      } else {
-        await supabase.from('user_configurations').insert({ user_id: user.id, type, configuration });
+      if (!user) {
+        console.error('❌ saveConfiguration: Usuário não logado');
+        return;
       }
 
-      cacheRef.current.set(cacheKey, { data: configuration, timestamp: Date.now() });
+      console.log(`💾 Salvando configuração: ${type}`, configuration);
+      const cacheKey = `${user.id}:${type}`;
+
+      try {
+        // Verificar se já existe
+        const { data: existing, error: selectError } = await supabase
+          .from('user_configurations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('type', type)
+          .maybeSingle();
+
+        if (selectError && selectError.code !== 'PGRST116') {
+          console.error('❌ Erro ao buscar configuração existente:', selectError);
+          throw selectError;
+        }
+
+        console.log(`🔍 Configuração existente para ${type}:`, existing);
+
+        if (existing) {
+          // Atualizar
+          const { error: updateError } = await supabase
+            .from('user_configurations')
+            .update({ 
+              configuration,
+              updated_at: new Date().toISOString() 
+            })
+            .eq('id', existing.id);
+
+          if (updateError) {
+            console.error('❌ Erro ao atualizar configuração:', updateError);
+            throw updateError;
+          }
+          console.log(`✅ Configuração ${type} atualizada com sucesso`);
+        } else {
+          // Inserir
+          const { error: insertError } = await supabase
+            .from('user_configurations')
+            .insert({ 
+              user_id: user.id, 
+              type, 
+              configuration 
+            });
+
+          if (insertError) {
+            console.error('❌ Erro ao inserir configuração:', insertError);
+            throw insertError;
+          }
+          console.log(`✅ Configuração ${type} criada com sucesso`);
+        }
+
+        // Atualizar cache APENAS após sucesso
+        cacheRef.current.set(cacheKey, { data: configuration, timestamp: Date.now() });
+
+        // Verificar se foi realmente salvo
+        const { data: verificacao } = await supabase
+          .from('user_configurations')
+          .select('configuration')
+          .eq('user_id', user.id)
+          .eq('type', type)
+          .maybeSingle();
+
+        console.log(`🔍 Verificação pós-salvamento para ${type}:`, verificacao?.configuration);
+
+      } catch (error) {
+        console.error(`❌ Falha crítica ao salvar ${type}:`, error);
+        // Remover do cache se houve erro
+        cacheRef.current.delete(cacheKey);
+        throw error; // Re-throw para que o componente saiba que houve erro
+      }
     },
     [user]
   );

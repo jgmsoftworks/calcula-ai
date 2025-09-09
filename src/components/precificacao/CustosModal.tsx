@@ -584,14 +584,29 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       const filtroKey = getConfigKey('filtro-periodo');
       invalidateCache(filtroKey);
       
-      // Salvar configurações com chave única
+      // Salvar configurações com chave única  
       const configKey = getConfigKey('checkbox-states');
       
-      // Salvar apenas os estados atuais (não mesclar - simplificar)
-      await saveConfiguration(configKey, tempCheckboxStates);
+      console.log(`💾 Tentando salvar configurações:`, {
+        filtroKey,
+        configKey,
+        filtro: filtroPerido,
+        checkboxes: tempCheckboxStates
+      });
+
+      // Salvar configurações com tratamento de erro
+      try {
+        await saveConfiguration(configKey, tempCheckboxStates);
+        await saveConfiguration(filtroKey, filtroPerido); // Salvar filtro também
+        console.log(`✅ Configurações salvas com sucesso`);
+      } catch (error) {
+        console.error(`❌ Erro ao salvar configurações:`, error);
+        throw error;
+      }
       
       // Invalidar cache para garantir leitura fresh na próxima vez
       invalidateCache(configKey);
+      invalidateCache(filtroKey);
       
       // Atualizar estados locais
       setCheckboxStates({ ...tempCheckboxStates });
