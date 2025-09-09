@@ -351,54 +351,69 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     return media;
   }, [faturamentosHistoricos]);
 
-  // Função para aplicar período selecionado (FORÇAR persistência)
+  // Função para aplicar período selecionado e resetar configurações anteriores
   const handleAplicarPeriodo = useCallback(async () => {
-    console.log(`🔄 FORÇANDO aplicação do período: ${filtroPerido}`);
+    console.log(`🔄 Aplicando período: ${filtroPerido}`);
     
-    // 1. Salvar o filtro MÚLTIPLAS VEZES para garantir persistência
     try {
-      const configKeys = [
+      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos
+      const configKeysToReset = [
         markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
-        `filtro-periodo-forcado-${markupBlock?.id || 'default'}`, // Chave adicional para forçar
-        'ultimo-filtro-aplicado' // Chave global
+        `filtro-periodo-forcado-${markupBlock?.id || 'default'}`,
+        'ultimo-filtro-aplicado',
+        'filtro-periodo-1',
+        'filtro-periodo-3', 
+        'filtro-periodo-6',
+        'filtro-periodo-12',
+        'filtro-periodo-todos'
       ];
       
-      // Salvar em múltiplas chaves para garantir
-      for (const key of configKeys) {
-        await saveConfiguration(key, filtroPerido);
-        console.log(`✅ Filtro salvo na chave: ${key} = ${filtroPerido}`);
+      console.log('🧹 Limpando configurações anteriores...');
+      for (const key of configKeysToReset) {
+        try {
+          await saveConfiguration(key, null); // Limpar valor anterior
+        } catch (error) {
+          // Ignorar erros de limpeza
+        }
       }
       
-      // 2. Reforçar o estado local
+      // 2. Aguardar um pouco para garantir que a limpeza foi processada
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // 3. AGORA: Salvar APENAS o período selecionado
+      const mainConfigKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
+      await saveConfiguration(mainConfigKey, filtroPerido);
+      console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
+      
+      // 4. Reforçar o estado local
       setFiltroPerido(filtroPerido);
       
-      // 3. Forçar recálculo via timeout para garantir que seja executado
+      // 5. Recalcular com o novo período
       setTimeout(() => {
         if (Object.keys(tempCheckboxStates).length > 0) {
-          console.log('🔄 FORÇANDO recálculo com período aplicado:', filtroPerido);
-          // Usar a função handleFiltroChange que já tem a lógica de recálculo
+          console.log('🔄 Recalculando com novo período:', filtroPerido);
           handleFiltroChange(filtroPerido);
         }
-      }, 100);
+      }, 300);
       
-      // 4. Mostrar toast de sucesso
+      // 6. Mostrar toast amigável
       toast({
-        title: "✅ Período APLICADO com sucesso",
-        description: `Cálculos FORÇADOS para ${
+        title: "Período atualizado com sucesso!",
+        description: `Cálculos ajustados para ${
           filtroPerido === '1' ? 'último mês' :
           filtroPerido === '3' ? 'últimos 3 meses' :
           filtroPerido === '6' ? 'últimos 6 meses' :
           filtroPerido === '12' ? 'últimos 12 meses' :
           'todos os períodos'
-        }. Período fixado!`,
-        duration: 5000
+        }`,
+        duration: 3000
       });
       
     } catch (error) {
-      console.error('❌ Erro ao forçar aplicação do filtro:', error);
+      console.error('❌ Erro ao aplicar período:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao aplicar período. Tente novamente.",
+        title: "Erro ao aplicar período",
+        description: "Tente novamente em alguns segundos.",
         variant: "destructive"
       });
     }
