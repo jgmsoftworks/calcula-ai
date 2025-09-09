@@ -4,13 +4,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calculator, Plus, Trash2, Edit2, Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Info, Settings, ChevronDown, ChevronUp, Calendar as CalendarIcon } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface MarkupBlock {
   id: string;
@@ -22,6 +28,12 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
+}
+
+interface PeriodoFiltro {
+  tipo: 'mes_atual' | 'periodo_personalizado';
+  dataInicio?: Date;
+  dataFim?: Date;
 }
 
 interface CalculatedMarkup {
@@ -38,9 +50,17 @@ export function Markups() {
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
 
   // Controle de modais e períodos
-  const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, string>>(new Map());
+  const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, PeriodoFiltro>>(new Map());
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
   const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
+  const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
+  const [nomeTemp, setNomeTemp] = useState('');
+  const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
+
+  // Estados do filtro de período
+  const [tipoFiltro, setTipoFiltro] = useState<'mes_atual' | 'periodo_personalizado'>('mes_atual');
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
 
   // Controle de carregamento de períodos
   const [isLoadingPeriodos, setIsLoadingPeriodos] = useState(true);
@@ -120,14 +140,23 @@ export function Markups() {
       console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
       // média por período selecionado do bloco
-      const periodoSelecionado = periodosAplicados.get(bloco.id) || 'todos';
+      const periodoSelecionado = periodosAplicados.get(bloco.id);
       let faturamentosFiltrados = todosFaturamentos;
 
-      if (periodoSelecionado !== 'todos') {
-        const mesesAtras = parseInt(String(periodoSelecionado), 10);
-        const dataLimite = new Date();
-        dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
-        faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+      if (periodoSelecionado) {
+        if (periodoSelecionado.tipo === 'mes_atual') {
+          const agora = new Date();
+          const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+          const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
+          faturamentosFiltrados = todosFaturamentos.filter((f: any) => 
+            f.mes >= inicioMes && f.mes <= fimMes
+          );
+        } else if (periodoSelecionado.tipo === 'periodo_personalizado' && 
+                   periodoSelecionado.dataInicio && periodoSelecionado.dataFim) {
+          faturamentosFiltrados = todosFaturamentos.filter((f: any) => 
+            f.mes >= periodoSelecionado.dataInicio && f.mes <= periodoSelecionado.dataFim
+          );
+        }
       }
 
       let mediaMensal = 0;
@@ -136,7 +165,7 @@ export function Markups() {
         mediaMensal = total / faturamentosFiltrados.length;
       }
 
-      console.log(`📅 "${bloco.nome}" período "${periodoSelecionado}" → média: ${mediaMensal}`);
+      console.log(`📅 "${bloco.nome}" período "${periodoSelecionado?.tipo || 'todos'}" → média: ${mediaMensal}`);
 
       if (config && typeof config === 'object' && Object.keys(config).length > 0) {
         let gastosSobreFaturamento = 0;
@@ -266,31 +295,23 @@ export function Markups() {
   }, []);
 
   const aplicarPeriodo = useCallback(
-    async (blocoId: string, periodo: string) => {
+    async (blocoId: string, periodo: PeriodoFiltro) => {
       try {
-        const periodoNormalizado = String(periodo);
-
         selfWriteRef.current = true;
-        await saveConfiguration(`filtro-periodo-${blocoId}`, periodoNormalizado);
+        await saveConfiguration(`filtro-periodo-${blocoId}`, periodo);
         setTimeout(() => (selfWriteRef.current = false), 500);
 
-        setPeriodosAplicados((prev) => new Map(prev).set(blocoId, periodoNormalizado));
+        setPeriodosAplicados((prev) => new Map(prev).set(blocoId, periodo));
 
         await carregarConfiguracoesSalvas();
 
+        const descricao = periodo.tipo === 'mes_atual' 
+          ? 'mês atual'
+          : `período personalizado de ${format(periodo.dataInicio!, 'MMM/yyyy', { locale: ptBR })} a ${format(periodo.dataFim!, 'MMM/yyyy', { locale: ptBR })}`;
+
         toast({
           title: 'Período aplicado!',
-          description: `Cálculos atualizados para ${
-            periodo === '1'
-              ? 'último mês'
-              : periodo === '3'
-              ? 'últimos 3 meses'
-              : periodo === '6'
-              ? 'últimos 6 meses'
-              : periodo === '12'
-              ? 'últimos 12 meses'
-              : 'todos os períodos'
-          }`,
+          description: `Cálculos atualizados para ${descricao}`,
           duration: 3000
         });
       } catch (error) {
@@ -313,21 +334,19 @@ export function Markups() {
       console.log('🔑 Carregando períodos salvos...');
       setIsLoadingPeriodos(true);
 
-      const map = new Map<string, string>();
-      const validos = new Set(['1', '3', '6', '12', 'todos']);
+      const map = new Map<string, PeriodoFiltro>();
 
       for (const bloco of blocos) {
         try {
           const raw = await loadConfiguration(`filtro-periodo-${bloco.id}`);
-          if (raw !== undefined && raw !== null) {
-            let str = String(raw);
-            if (!validos.has(str)) str = 'todos';
-            map.set(bloco.id, str);
+          if (raw && typeof raw === 'object' && 'tipo' in raw) {
+            map.set(bloco.id, raw as PeriodoFiltro);
           } else {
-            map.set(bloco.id, 'todos');
+            // Valor padrão
+            map.set(bloco.id, { tipo: 'mes_atual' });
           }
         } catch {
-          map.set(bloco.id, 'todos');
+          map.set(bloco.id, { tipo: 'mes_atual' });
         }
       }
 
@@ -484,12 +503,12 @@ export function Markups() {
     // período padrão
     setPeriodosAplicados((prev) => {
       const m = new Map(prev);
-      m.set(novoBloco.id, 'todos');
+      m.set(novoBloco.id, { tipo: 'mes_atual' });
       return m;
     });
 
     selfWriteRef.current = true;
-    saveConfiguration(`filtro-periodo-${novoBloco.id}`, 'todos')
+    saveConfiguration(`filtro-periodo-${novoBloco.id}`, { tipo: 'mes_atual' })
       .catch((e) => console.warn('⚠️ Erro ao salvar período padrão:', e))
       .finally(() => setTimeout(() => (selfWriteRef.current = false), 500));
 
@@ -498,7 +517,7 @@ export function Markups() {
       .then(() => {
         toast({
           title: 'Bloco criado!',
-          description: `O bloco "${novoBloco.nome}" foi criado com período padrão "todos".`
+          description: `O bloco "${novoBloco.nome}" foi criado com período padrão "mês atual".`
         });
       })
       .catch(() =>
@@ -770,36 +789,222 @@ export function Markups() {
       </div>
 
 
-      {/* Modal de Configuração de Itens */}
-      {modalConfiguracaoAberto && blocoConfigurandoId && (
-        <CustosModal
-          open={modalConfiguracaoAberto}
-          onOpenChange={(open) => {
-            setModalConfiguracaoAberto(open);
-            if (!open) setBlocoConfigurandoId(null);
-          }}
-          markupBlock={blocos.find((b) => b.id === blocoConfigurandoId)}
-          onMarkupUpdate={(markup) => {
-            if (!blocoConfigurandoId) return;
-            const calculatedMarkup: CalculatedMarkup = {
-              gastoSobreFaturamento: markup.gastoSobreFaturamento || 0,
-              impostos: markup.impostos || 0,
-              taxasMeiosPagamento: markup.taxasMeiosPagamento || 0,
-              comissoesPlataformas: markup.comissoesPlataformas || 0,
-              outros: markup.outros || 0,
-              valorEmReal: markup.valorEmReal || 0
-            };
-            const m = new Map(calculatedMarkups);
-            m.set(blocoConfigurandoId, calculatedMarkup);
-            setCalculatedMarkups(m);
-            toast({
-              title: 'Configuração aplicada!',
-              description: 'Os cálculos foram atualizados com os itens selecionados.',
-              duration: 3000
-            });
-          }}
-        />
-      )}
+      {/* Modal de Configuração de Custos com Filtro Personalizado */}
+      <Dialog open={modalConfiguracaoAberto} onOpenChange={setModalConfiguracaoAberto}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configurações de Custos - {blocos.find(b => b.id === blocoConfigurandoId)?.nome}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Seção de Filtro de Período */}
+            <div className="bg-muted/10 rounded-lg p-4 border">
+              <h3 className="font-medium mb-4 text-lg">Período de Análise</h3>
+              
+              <div className="space-y-4">
+                <Select 
+                  value={tipoFiltro} 
+                  onValueChange={(value: 'mes_atual' | 'periodo_personalizado') => {
+                    setTipoFiltro(value);
+                    if (value === 'mes_atual') {
+                      setDataInicio(undefined);
+                      setDataFim(undefined);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o tipo de filtro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mes_atual">Mês Atual</SelectItem>
+                    <SelectItem value="periodo_personalizado">Período Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {tipoFiltro === 'periodo_personalizado' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Data de Início</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !dataInicio && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dataInicio}
+                            onSelect={setDataInicio}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Data de Fim</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !dataFim && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dataFim}
+                            onSelect={setDataFim}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={async () => {
+                    if (blocoConfigurandoId) {
+                      const periodo: PeriodoFiltro = {
+                        tipo: tipoFiltro,
+                        ...(tipoFiltro === 'periodo_personalizado' && { 
+                          dataInicio, 
+                          dataFim 
+                        })
+                      };
+                      
+                      if (tipoFiltro === 'periodo_personalizado' && (!dataInicio || !dataFim)) {
+                        toast({
+                          title: 'Erro',
+                          description: 'Selecione as datas de início e fim para o período personalizado.',
+                          variant: 'destructive'
+                        });
+                        return;
+                      }
+                      
+                      await aplicarPeriodo(blocoConfigurandoId, periodo);
+                    }
+                  }}
+                  className="w-full"
+                >
+                  Aplicar Período Selecionado
+                </Button>
+              </div>
+            </div>
+
+            {/* Seção de Configuração de Custos */}
+            <div>
+              <h3 className="font-medium mb-4 text-lg">Selecionar Custos</h3>
+                {blocoConfigurandoId && (
+                  <div className="border rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Configure quais custos serão considerados no cálculo do markup
+                    </div>
+                    <Button 
+                      onClick={() => aplicarConfiguracaoPadrao(blocoConfigurandoId)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                    >
+                      ⚡ Aplicar Configuração Padrão (Todos os Itens Ativos)
+                    </Button>
+                  </div>
+                )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setModalConfiguracaoAberto(false);
+                setBlocoConfigurandoId(null);
+                setTipoFiltro('mes_atual');
+                setDataInicio(undefined);
+                setDataFim(undefined);
+              }}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição de Nome */}
+      <Dialog open={modalEdicaoNome} onOpenChange={setModalEdicaoNome}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Nome do Markup</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={nomeTemp}
+              onChange={(e) => setNomeTemp(e.target.value)}
+              placeholder="Digite o novo nome"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (blocoEditandoNome && nomeTemp.trim()) {
+                    const novos = blocos.map((b) => (b.id === blocoEditandoNome.id ? { ...b, nome: nomeTemp.trim() } : b));
+                    setBlocos(novos);
+                    salvarBlocos(novos);
+                    setModalEdicaoNome(false);
+                    setBlocoEditandoNome(null);
+                    toast({
+                      title: 'Nome atualizado!',
+                      description: `O markup foi renomeado para "${nomeTemp.trim()}"`
+                    });
+                  }
+                }
+                if (e.key === 'Escape') {
+                  setModalEdicaoNome(false);
+                  setBlocoEditandoNome(null);
+                  setNomeTemp('');
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setModalEdicaoNome(false);
+              setBlocoEditandoNome(null);
+              setNomeTemp('');
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={() => {
+              if (blocoEditandoNome && nomeTemp.trim()) {
+                const novos = blocos.map((b) => (b.id === blocoEditandoNome.id ? { ...b, nome: nomeTemp.trim() } : b));
+                setBlocos(novos);
+                salvarBlocos(novos);
+                setModalEdicaoNome(false);
+                setBlocoEditandoNome(null);
+                toast({
+                  title: 'Nome atualizado!',
+                  description: `O markup foi renomeado para "${nomeTemp.trim()}"`
+                });
+              }
+            }}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
