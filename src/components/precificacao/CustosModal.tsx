@@ -75,6 +75,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
   const [filtroPerido, setFiltroPerido] = useState<string>('6');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
+    despesasFixas: false,
+    folhaPagamento: false,
+    encargosVenda: false
+  });
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
@@ -229,11 +234,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Recalcular markup quando os dados são carregados
   useEffect(() => {
-    if (open && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+    // APENAS recalcular se não estiver criando um novo bloco E se tiver um markupBlock definido
+    if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
       console.log(`🔄 Recalculando markup com estados:`, tempCheckboxStates);
       calcularMarkup(tempCheckboxStates);
+    } else if (open && !markupBlock) {
+      console.log(`🆕 Modal aberto para novo bloco - não calculando automaticamente`);
     }
-  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento]);
+  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento, markupBlock]);
 
   // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
   useEffect(() => {
@@ -283,24 +291,35 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const calcularMediaMensal = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
 
+    console.log('📊 Calculando média mensal:', {
+      filtroPerido,
+      totalFaturamentos: faturamentosHistoricos.length,
+      faturamentos: faturamentosHistoricos.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor }))
+    });
+
     let faturamentosSelecionados = [...faturamentosHistoricos];
     
     // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
     if (filtroPerido !== 'todos') {
       const quantidade = parseInt(filtroPerido);
       faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
+      console.log(`📊 Selecionados ${quantidade} meses mais recentes:`, faturamentosSelecionados.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor })));
     }
 
     if (faturamentosSelecionados.length === 0) return 0;
 
     // Se for apenas 1 mês (último mês), retornar o valor do mais recente
     if (filtroPerido === '1' && faturamentosSelecionados.length > 0) {
-      return faturamentosSelecionados[0].valor;
+      const valorUltimoMes = faturamentosSelecionados[0].valor;
+      console.log(`📊 Último mês: R$ ${valorUltimoMes}`);
+      return valorUltimoMes;
     }
 
     // Para outros casos, calcular a média dos selecionados
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
-    return totalFaturamento / faturamentosSelecionados.length;
+    const media = totalFaturamento / faturamentosSelecionados.length;
+    console.log(`📊 Média calculada: R$ ${media} (total: R$ ${totalFaturamento} / ${faturamentosSelecionados.length} meses)`);
+    return media;
   }, [faturamentosHistoricos, filtroPerido]);
 
   const formatCurrency = (value: number) => {
@@ -365,6 +384,36 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     setHasUnsavedChanges(true);
     
     // Calcular markup em tempo real apenas para mostrar preview
+    debouncedCalculateMarkup(newTempStates);
+  };
+
+  // Nova função para selecionar/desmarcar todos de uma categoria
+  const handleSelectAll = (categoria: 'despesasFixas' | 'folhaPagamento' | 'encargosVenda', selectAll: boolean) => {
+    const newTempStates = { ...tempCheckboxStates };
+    let items: any[] = [];
+    
+    switch (categoria) {
+      case 'despesasFixas':
+        items = despesasFixas;
+        break;
+      case 'folhaPagamento':
+        items = folhaPagamento;
+        break;
+      case 'encargosVenda':
+        items = encargosVenda;
+        break;
+    }
+    
+    // Aplicar seleção apenas aos itens ativos
+    items.filter(item => item.ativo).forEach(item => {
+      newTempStates[item.id] = selectAll;
+    });
+    
+    setTempCheckboxStates(newTempStates);
+    setSelectAllStates(prev => ({ ...prev, [categoria]: selectAll }));
+    setHasUnsavedChanges(true);
+    
+    // Calcular markup em tempo real
     debouncedCalculateMarkup(newTempStates);
   };
 
@@ -490,10 +539,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Calcular markup sempre que os estados mudarem (otimizado)
   useEffect(() => {
-    if (Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+    // APENAS calcular se não estiver criando um novo bloco E tiver um markupBlock
+    if (markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
       debouncedCalculateMarkup(tempCheckboxStates);
     }
-  }, [tempCheckboxStates, debouncedCalculateMarkup]); // Alterado para tempCheckboxStates
+  }, [tempCheckboxStates, debouncedCalculateMarkup, markupBlock]); // Adiciona markupBlock como dependência
 
   const handleSalvar = async () => {
     try {
@@ -718,7 +768,19 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           <TabsContent value="despesas-fixas" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Despesas Fixas</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Despesas Fixas</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all-despesas"
+                      checked={selectAllStates.despesasFixas}
+                      onCheckedChange={(checked) => handleSelectAll('despesasFixas', checked as boolean)}
+                    />
+                    <Label htmlFor="select-all-despesas" className="text-sm font-medium cursor-pointer">
+                      Selecionar Todos
+                    </Label>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading ? (
@@ -766,7 +828,19 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           <TabsContent value="folha-pagamento" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Folha de Pagamento</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Folha de Pagamento</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all-folha"
+                      checked={selectAllStates.folhaPagamento}
+                      onCheckedChange={(checked) => handleSelectAll('folhaPagamento', checked as boolean)}
+                    />
+                    <Label htmlFor="select-all-folha" className="text-sm font-medium cursor-pointer">
+                      Selecionar Todos
+                    </Label>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading ? (
@@ -814,7 +888,19 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           <TabsContent value="encargos-venda" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Encargos sobre Venda</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Encargos sobre Venda</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all-encargos"
+                      checked={selectAllStates.encargosVenda}
+                      onCheckedChange={(checked) => handleSelectAll('encargosVenda', checked as boolean)}
+                    />
+                    <Label htmlFor="select-all-encargos" className="text-sm font-medium cursor-pointer">
+                      Selecionar Todos
+                    </Label>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {loading ? (
