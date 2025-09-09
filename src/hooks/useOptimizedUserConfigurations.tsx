@@ -82,6 +82,25 @@ export function useOptimizedUserConfigurations() {
       // Invalidar cache
       cacheRef.current.delete(type);
 
+      // 🔥 CORREÇÃO DO BUG: Se configuration é null, DELETAR a entrada
+      if (configuration === null || configuration === undefined) {
+        const { error } = await supabase
+          .from('user_configurations')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('type', type);
+        
+        if (error) {
+          console.error(`Erro ao deletar configuração ${type}:`, error);
+        } else {
+          console.log(`✅ Configuração ${type} deletada com sucesso`);
+        }
+        
+        // Remover do cache também
+        cacheRef.current.delete(type);
+        return;
+      }
+
       const { data: existing } = await supabase
         .from('user_configurations')
         .select('id')
@@ -118,6 +137,33 @@ export function useOptimizedUserConfigurations() {
   return {
     loadConfiguration,
     saveConfiguration,
-    invalidateCache
+    invalidateCache,
+    // Nova função para limpeza inteligente de configurações
+    deleteConfiguration: useCallback(async (type: string): Promise<void> => {
+      if (!user) return;
+      
+      try {
+        await saveConfiguration(type, null); // Usa a nova lógica de delete
+        console.log(`🗑️ Configuração ${type} removida com sucesso`);
+      } catch (error) {
+        console.error(`❌ Erro ao remover configuração ${type}:`, error);
+        throw error;
+      }
+    }, [user, saveConfiguration]),
+    
+    // Função para limpeza em lote
+    deleteMultipleConfigurations: useCallback(async (types: string[]): Promise<void> => {
+      if (!user) return;
+      
+      console.log(`🧹 Removendo ${types.length} configurações em lote...`);
+      const results = await Promise.allSettled(
+        types.map(type => saveConfiguration(type, null))
+      );
+      
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      
+      console.log(`✅ Limpeza concluída: ${successful} sucessos, ${failed} falhas`);
+    }, [user, saveConfiguration])
   };
 }

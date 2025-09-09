@@ -87,7 +87,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   });
   const { user } = useAuth();
   const { toast } = useToast();
-  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
+  const { loadConfiguration, saveConfiguration, deleteMultipleConfigurations } = useOptimizedUserConfigurations();
 
   // Atualizar valores locais quando markupBlock mudar
   useEffect(() => {
@@ -356,7 +356,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     console.log(`🔄 Aplicando período: ${filtroPerido}`);
     
     try {
-      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos
+      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos usando limpeza em lote
       const configKeysToReset = [
         markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
         `filtro-periodo-forcado-${markupBlock?.id || 'default'}`,
@@ -368,22 +368,35 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         'filtro-periodo-todos'
       ];
       
-      console.log('🧹 Limpando configurações anteriores...');
-      for (const key of configKeysToReset) {
-        try {
-          await saveConfiguration(key, null); // Limpar valor anterior
-        } catch (error) {
-          // Ignorar erros de limpeza
-        }
-      }
+      console.log('🧹 Limpando configurações anteriores com nova estratégia...');
+      await deleteMultipleConfigurations(configKeysToReset);
       
       // 2. Aguardar um pouco para garantir que a limpeza foi processada
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // 3. AGORA: Salvar APENAS o período selecionado
+      // 3. AGORA: Salvar APENAS o período selecionado com retry
       const mainConfigKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      await saveConfiguration(mainConfigKey, filtroPerido);
-      console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
+      
+      // Implementar retry inteligente
+      let retryCount = 0;
+      const maxRetries = 3;
+      let saved = false;
+      
+      while (!saved && retryCount < maxRetries) {
+        try {
+          await saveConfiguration(mainConfigKey, filtroPerido);
+          console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
+          saved = true;
+        } catch (error) {
+          retryCount++;
+          console.warn(`⚠️ Tentativa ${retryCount}/${maxRetries} falhou:`, error);
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500 * retryCount)); // Backoff exponencial
+          } else {
+            throw error; // Falha após todas as tentativas
+          }
+        }
+      }
       
       // 4. Reforçar o estado local
       setFiltroPerido(filtroPerido);
@@ -396,18 +409,39 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         }
       }, 300);
       
-      // 6. Mostrar toast amigável
+      // 6. Mostrar toast amigável e validar se foi salvo
+      const savedValue = await loadConfiguration(mainConfigKey);
+      const isCorrectlyApplied = savedValue === filtroPerido;
+      
       toast({
-        title: "Período atualizado com sucesso!",
-        description: `Cálculos ajustados para ${
+        title: isCorrectlyApplied ? "Período aplicado com sucesso!" : "Período aplicado (verificando...)",
+        description: `Cálculos atualizados para ${
           filtroPerido === '1' ? 'último mês' :
           filtroPerido === '3' ? 'últimos 3 meses' :
           filtroPerido === '6' ? 'últimos 6 meses' :
           filtroPerido === '12' ? 'últimos 12 meses' :
           'todos os períodos'
-        }`,
-        duration: 3000
+        }${isCorrectlyApplied ? '' : ' - Validando aplicação...'}`,
+        duration: isCorrectlyApplied ? 3000 : 5000,
+        variant: isCorrectlyApplied ? "default" : "default"
       });
+      
+      // Se não foi aplicado corretamente, tentar uma última vez
+      if (!isCorrectlyApplied) {
+        console.warn(`⚠️ Validação falhou: esperado=${filtroPerido}, atual=${savedValue}`);
+        setTimeout(async () => {
+          try {
+            await saveConfiguration(mainConfigKey, filtroPerido);
+            toast({
+              title: "Período corrigido!",
+              description: "Aplicação do filtro foi validada e corrigida.",
+              duration: 3000
+            });
+          } catch (error) {
+            console.error('❌ Falha na correção final:', error);
+          }
+        }, 1000);
+      }
       
     } catch (error) {
       console.error('❌ Erro ao aplicar período:', error);
