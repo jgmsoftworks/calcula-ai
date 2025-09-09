@@ -326,40 +326,54 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [open]);
 
-  // Função para calcular média mensal baseada no período selecionado
-  const calcularMediaMensal = useMemo(() => {
+  // Função helper para calcular média mensal para diferentes períodos
+  const calcularMediaPorPeriodo = useCallback((periodo: string) => {
     if (faturamentosHistoricos.length === 0) return 0;
-
-    console.log('📊 Calculando média mensal:', {
-      filtroPerido,
-      totalFaturamentos: faturamentosHistoricos.length,
-      faturamentos: faturamentosHistoricos.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor }))
-    });
 
     let faturamentosSelecionados = [...faturamentosHistoricos];
     
     // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
-    if (filtroPerido !== 'todos') {
-      const quantidade = parseInt(filtroPerido);
+    if (periodo !== 'todos') {
+      const quantidade = parseInt(periodo);
       faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
-      console.log(`📊 Selecionados ${quantidade} meses mais recentes:`, faturamentosSelecionados.map(f => ({ mes: f.mes.toISOString().substring(0, 7), valor: f.valor })));
     }
 
     if (faturamentosSelecionados.length === 0) return 0;
 
     // Se for apenas 1 mês (último mês), retornar o valor do mais recente
-    if (filtroPerido === '1' && faturamentosSelecionados.length > 0) {
-      const valorUltimoMes = faturamentosSelecionados[0].valor;
-      console.log(`📊 Último mês: R$ ${valorUltimoMes}`);
-      return valorUltimoMes;
+    if (periodo === '1' && faturamentosSelecionados.length > 0) {
+      return faturamentosSelecionados[0].valor;
     }
 
     // Para outros casos, calcular a média dos selecionados
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
     const media = totalFaturamento / faturamentosSelecionados.length;
-    console.log(`📊 Média calculada: R$ ${media} (total: R$ ${totalFaturamento} / ${faturamentosSelecionados.length} meses)`);
     return media;
-  }, [faturamentosHistoricos, filtroPerido]);
+  }, [faturamentosHistoricos]);
+
+  // Função para aplicar período selecionado
+  const handleAplicarPeriodo = useCallback(async () => {
+    console.log(`🔄 Aplicando período: ${filtroPerido}`);
+    
+    // Salvar o filtro usando a função existente
+    await handleFiltroChange(filtroPerido);
+    
+    toast({
+      title: "Período aplicado",
+      description: `Cálculos atualizados para ${
+        filtroPerido === '1' ? 'último mês' :
+        filtroPerido === '3' ? 'últimos 3 meses' :
+        filtroPerido === '6' ? 'últimos 6 meses' :
+        filtroPerido === '12' ? 'últimos 12 meses' :
+        'todos os períodos'
+      }`
+    });
+  }, [filtroPerido, handleFiltroChange, toast]);
+
+  // Função para calcular média mensal baseada no período selecionado
+  const calcularMediaMensal = useMemo(() => {
+    return calcularMediaPorPeriodo(filtroPerido);
+  }, [faturamentosHistoricos, filtroPerido, calcularMediaPorPeriodo]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -752,26 +766,75 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
         <Card className="bg-blue-50/50 border-blue-200">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {markupBlock ? 'Valores do Bloco de Markup' : 'Configuração do Novo Bloco'}
-              </CardTitle>
-              <div className="flex items-center gap-4">
-                <Select value={filtroPerido} onValueChange={handleFiltroChange}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Último mês</SelectItem>
-                    <SelectItem value="3">Últimos 3 meses</SelectItem>
-                    <SelectItem value="6">Últimos 6 meses</SelectItem>
-                    <SelectItem value="12">Últimos 12 meses</SelectItem>
-                    <SelectItem value="todos">Todos</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Média Mensal</p>
-                  <p className="text-lg font-semibold text-primary">{formatCurrency(calcularMediaMensal)}</p>
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">
+                  {markupBlock ? 'Valores do Bloco de Markup' : 'Configuração do Novo Bloco'}
+                </CardTitle>
+              </div>
+              
+              {/* Tabs para Períodos */}
+              <div className="border rounded-lg p-4 bg-background">
+                <h4 className="text-sm font-medium mb-3">Selecione o Período de Análise:</h4>
+                <Tabs value={filtroPerido} onValueChange={setFiltroPerido} className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="1">Último mês</TabsTrigger>
+                    <TabsTrigger value="3">Últimos 3 meses</TabsTrigger>
+                    <TabsTrigger value="6">Últimos 6 meses</TabsTrigger>
+                    <TabsTrigger value="12">Últimos 12 meses</TabsTrigger>
+                    <TabsTrigger value="todos">Todos</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="1" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Último mês)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('1'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="3" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 3 meses)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('3'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="6" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 6 meses)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('6'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="12" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 12 meses)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('12'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="todos" className="mt-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Média Mensal (Todos os períodos)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(calcularMediaPorPeriodo('todos'))}
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                <div className="flex justify-center mt-4">
+                  <Button onClick={handleAplicarPeriodo} variant="outline" size="sm">
+                    Aplicar Período Selecionado
+                  </Button>
                 </div>
               </div>
             </div>
