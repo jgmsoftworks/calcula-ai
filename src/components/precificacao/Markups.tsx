@@ -358,7 +358,21 @@ export function Markups() {
     
     // Converte percentuais para decimais e aplica a fórmula: Markup = 1 / (1 - somaPercentuais)
     const somaDecimais = somaPercentuais / 100;
+    
+    // Evita divisão por zero e valores inválidos
+    if (somaDecimais >= 1) {
+      console.warn('⚠️ Soma dos percentuais é >= 100%, retornando markup padrão');
+      return 1;
+    }
+    
     const markupFinal = 1 / (1 - somaDecimais);
+    
+    // Verifica se o resultado é um número válido
+    if (!isFinite(markupFinal) || isNaN(markupFinal)) {
+      console.warn('⚠️ Markup calculado é inválido:', markupFinal, 'retornando 1');
+      return 1;
+    }
+    
     return markupFinal;
   };
 
@@ -606,14 +620,14 @@ export function Markups() {
                   </div>
                 </div>
                 
-                <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
-                    <div className="text-3xl font-bold text-blue-700">
-                      {markupIdeal.toFixed(4)}
-                    </div>
-                  </div>
-                </div>
+                 <div className="mt-6 pt-4 border-t bg-blue-50/50 -mx-6 px-6 pb-6">
+                   <div className="flex items-center justify-between">
+                     <Label className="text-lg font-semibold text-blue-700">Markup ideal</Label>
+                     <div className="text-3xl font-bold text-blue-700">
+                       {isFinite(markupIdeal) && !isNaN(markupIdeal) ? markupIdeal.toFixed(4) : '1.0000'}
+                     </div>
+                   </div>
+                 </div>
               </CardContent>
             </Card>
           );
