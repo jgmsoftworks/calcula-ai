@@ -22,7 +22,6 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
-  // NOVO: período redundante salvo junto do bloco
   periodo?: string; // '1' | '3' | '6' | '12' | 'todos'
 }
 
@@ -47,12 +46,12 @@ export function Markups() {
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   const [criandoNovoBloco, setCriandoNovoBloco] = useState(false);
 
-  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
+  const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Bloco fixo para subreceita (informativo)
+  // Bloco informativo
   const blocoSubreceita: MarkupBlock = {
     id: 'subreceita-fixo',
     nome: 'subreceita',
@@ -65,7 +64,6 @@ export function Markups() {
     lucroDesejado: 0
   };
 
-  // Mapa de categorias (mesma lógica usada no modal)
   const categoriasMap = useMemo(() => {
     return {
       impostos: new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
@@ -84,46 +82,42 @@ export function Markups() {
     [categoriasMap]
   );
 
-  // ---- Carregar e calcular markups respeitando o PERÍODO por bloco ----
+  // -------- CARREGAMENTO / CÁLCULO (com PERÍODO fresh) ----------
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
 
-    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
-    // Busca única dos datasets base
     const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
       supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
       supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
       supabase.from('encargos_venda').select('*').eq('user_id', user.id)
     ]);
 
-    // Carrega todos faturamentos (uma vez)
-    const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+    // faturamentos (uma vez)
+    const faturamentosConfig = await loadConfiguration('faturamentos_historicos', { fresh: true });
     const todosFaturamentos: Array<{ mes: Date; valor: number }> =
       faturamentosConfig && Array.isArray(faturamentosConfig)
         ? faturamentosConfig.map((f: any) => ({ mes: new Date(f.mes), valor: Number(f.valor) || 0 }))
         : [];
 
-    // Vamos também atualizar os blocos com o período efetivamente usado (redundância saudável)
     let blocosAtualizados: MarkupBlock[] | null = null;
 
     for (const bloco of blocos) {
-      // 1) período pode vir do próprio bloco
+      // período vindo do bloco OU do user_configurations (fresh)
       let periodo = bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo)) ? String(bloco.periodo) : undefined;
 
-      // 2) se não existir no bloco, tenta user_configurations
       if (!periodo) {
-        const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
-        const normalizado = salvo == null ? 'todos' : String(salvo);
-        periodo = PERIODOS_VALIDOS.has(normalizado) ? normalizado : 'todos';
+        // força fresh para evitar cache antigo
+        const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
+        const norm = salvo == null ? 'todos' : String(salvo);
+        periodo = PERIODOS_VALIDOS.has(norm) ? norm : 'todos';
 
-        // grava no bloco em memória e persiste em markups_blocos (redundância)
         if (!blocosAtualizados) blocosAtualizados = [...blocos];
         blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));
       }
 
-      // 3) filtra faturamentos conforme período
+      // filtra faturamentos pelo período
       let faturamentosFiltrados = todosFaturamentos;
       if (periodo !== 'todos') {
         const meses = parseInt(periodo, 10);
@@ -138,15 +132,13 @@ export function Markups() {
         mediaMensal = total / faturamentosFiltrados.length;
       }
 
-      // 4) aplica mesma lógica do modal para percentuais e valor fixo
-      const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`);
+      // checkbox-states também fresh (o modal pode ter acabado de mudar)
+      const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`, { fresh: true });
 
       if (configCheckbox && typeof configCheckbox === 'object' && Object.keys(configCheckbox).length > 0) {
-        // despesas fixas consideradas (ativas + marcadas)
         const despesasConsideradas = (despesasFixas || []).filter(d => configCheckbox[d.id] && d.ativo);
         const totalDespesasFixas = despesasConsideradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
 
-        // folha de pagamento considerada (ativa + marcada)
         const folhaConsiderada = (folhaPagamento || []).filter(f => configCheckbox[f.id] && f.ativo);
         const totalFolhaPagamento = folhaConsiderada.reduce((acc, f) => {
           const custoMensal =
@@ -160,9 +152,7 @@ export function Markups() {
         const gastoSobreFaturamentoPct =
           mediaMensal > 0 && totalGastos > 0 ? Math.round(((totalGastos / mediaMensal) * 100) * 100) / 100 : 0;
 
-        // encargos sobre venda
         const encargosConsiderados = (encargosVenda || []).filter(e => configCheckbox[e.id] && e.ativo);
-
         const valorEmReal = encargosConsiderados.reduce((acc, e) => acc + Number(e.valor_fixo || 0), 0);
 
         const categorias = encargosConsiderados.reduce(
@@ -196,7 +186,7 @@ export function Markups() {
           outros: 0,
           valorEmReal: 0
         });
-        console.log(`⚠️ [${bloco.nome}] sem config; período="${periodo}" médiaMensal=${mediaMensal.toFixed(2)} -> zerado`);
+        console.log(`⚠️ [${bloco.nome}] sem config; período="${periodo}" -> zerado`);
       }
     }
 
@@ -204,7 +194,6 @@ export function Markups() {
       setCalculatedMarkups(novosCalculatedMarkups);
     }
 
-    // se atualizamos períodos nos blocos em memória, persiste no markups_blocos
     if (blocosAtualizados) {
       setBlocos(blocosAtualizados);
       try {
@@ -215,35 +204,31 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, saveConfiguration, getCategoriaByNome]);
 
-  // Carrega lista de blocos
+  // carregar blocos
   useEffect(() => {
-    const carregarBlocos = async () => {
+    const carregar = async () => {
       try {
-        const config = await loadConfiguration('markups_blocos');
-        if (config && Array.isArray(config)) {
-          // normaliza período salvo
-          const normalizados: MarkupBlock[] = (config as MarkupBlock[]).map(b => ({
+        const cfg = await loadConfiguration('markups_blocos', { fresh: true });
+        if (cfg && Array.isArray(cfg)) {
+          const normalizados: MarkupBlock[] = (cfg as MarkupBlock[]).map(b => ({
             ...b,
             periodo: PERIODOS_VALIDOS.has(String(b.periodo)) ? String(b.periodo) : 'todos'
           }));
           setBlocos(normalizados);
-          console.log('📦 Blocos carregados:', normalizados.length);
         }
-      } catch (error) {
-        console.error('Erro ao carregar blocos:', error);
+      } catch (e) {
+        console.error('Erro ao carregar blocos:', e);
       }
     };
-    carregarBlocos();
+    carregar();
   }, [loadConfiguration]);
 
-  // Recalcula quando blocos carregarem
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
       carregarConfiguracoesSalvas();
     }
   }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
-  // Limpa debounce on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -256,27 +241,24 @@ export function Markups() {
       debounceRef.current = setTimeout(async () => {
         try {
           await saveConfiguration('markups_blocos', novosBlocos);
-        } catch (error) {
-          console.error('Erro ao salvar blocos:', error);
+          invalidateCache('markups_blocos');
+        } catch (e) {
+          console.error('Erro ao salvar blocos:', e);
         }
       }, 800);
     },
-    [saveConfiguration]
+    [saveConfiguration, invalidateCache]
   );
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  const formatPercentage = (value: number) => value.toFixed(2);
+  const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const formatPercentage = (v: number) => v.toFixed(2);
 
   const criarNovoBloco = () => {
-    // abre modal para configurar antes de criar
     setCriandoNovoBloco(true);
     setBlocoSelecionado(undefined);
     setModalAberto(true);
   };
 
-  // Finaliza criação do bloco a partir do modal
   const finalizarCriacaoBloco = async (markupCalculado: CalculatedMarkup) => {
     try {
       const novoBloco: MarkupBlock = {
@@ -289,9 +271,8 @@ export function Markups() {
         outros: markupCalculado.outros,
         valorEmReal: markupCalculado.valorEmReal,
         lucroDesejado: 0,
-        periodo: 'todos' // padrão
+        periodo: 'todos'
       };
-
       const novos = [...blocos, novoBloco];
       setBlocos(novos);
       salvarBlocos(novos);
@@ -304,8 +285,8 @@ export function Markups() {
 
       toast({ title: 'Bloco criado', description: `O bloco "${novoBloco.nome}" foi criado.` });
       setCriandoNovoBloco(false);
-    } catch (error) {
-      console.error('❌ Erro ao criar novo bloco:', error);
+    } catch (e) {
+      console.error('❌ Erro ao criar bloco:', e);
       toast({ title: 'Erro ao criar bloco', description: 'Tente novamente.', variant: 'destructive' });
     }
   };
@@ -314,7 +295,6 @@ export function Markups() {
     const novos = blocos.filter(b => b.id !== id);
     setBlocos(novos);
     salvarBlocos(novos);
-
     const calc = new Map(calculatedMarkups);
     calc.delete(id);
     setCalculatedMarkups(calc);
@@ -326,42 +306,34 @@ export function Markups() {
     salvarBlocos(novos);
   };
 
-  const calcularMarkupIdeal = (bloco: MarkupBlock, markupData?: CalculatedMarkup): number => {
-    const v = markupData || calculatedMarkups.get(bloco.id);
+  const calcularMarkupIdeal = (bloco: MarkupBlock, m?: CalculatedMarkup): number => {
+    const v = m || calculatedMarkups.get(bloco.id);
     if (!v) return 1;
-    const soma =
-      v.gastoSobreFaturamento +
-      v.impostos +
-      v.taxasMeiosPagamento +
-      v.comissoesPlataformas +
-      v.outros +
-      bloco.lucroDesejado;
+    const soma = v.gastoSobreFaturamento + v.impostos + v.taxasMeiosPagamento + v.comissoesPlataformas + v.outros + bloco.lucroDesejado;
     const frac = soma / 100;
-    if (frac >= 1) return 1; // evita divisão por 0 / infinito
+    if (frac >= 1) return 1;
     return 1 / (1 - frac);
   };
 
-  // Atualizações vindas do modal
   const handleMarkupUpdate = useCallback(
     async (blocoId: string, markupData: any) => {
-      console.log('🔄 handleMarkupUpdate', blocoId, markupData);
-
       if (criandoNovoBloco) {
         await finalizarCriacaoBloco(markupData);
         return;
       }
-
-      // atualiza cálculo no estado
+      // aplica valores imediatos no UI
       setCalculatedMarkups(prev => {
         const m = new Map(prev);
         m.set(blocoId, markupData);
         return m;
       });
 
-      // recarrega cálculos completos (garante período aplicado)
+      // invalida e recarrega configs FRESH (evita cache de 30s)
+      invalidateCache(`filtro-periodo-${blocoId}`);
+      invalidateCache(`checkbox-states-${blocoId}`);
       await carregarConfiguracoesSalvas();
     },
-    [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas]
+    [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas, invalidateCache]
   );
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
@@ -419,7 +391,7 @@ export function Markups() {
           </Card>
         )}
 
-        {/* Bloco fixo subreceita */}
+        {/* Subreceita */}
         <Card className="border-border shadow-lg">
           <CardHeader className="bg-muted/50">
             <div className="flex items-center justify-between">
@@ -430,10 +402,7 @@ export function Markups() {
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>
-                        Este é um bloco informativo que mostra os percentuais máximos recomendados para cada categoria
-                        baseado nas melhores práticas do mercado
-                      </p>
+                      <p>Percentuais máximos recomendados por categoria, para referência.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -444,31 +413,31 @@ export function Markups() {
           <CardContent className="space-y-4 pt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                <Label>Gasto sobre faturamento</Label>
                 <div className="text-2xl font-bold text-blue-600">15%</div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                <Label>Impostos</Label>
                 <div className="text-2xl font-bold text-blue-600">25%</div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                <Label>Taxas de meios de pagamento</Label>
                 <div className="text-2xl font-bold text-blue-600">5%</div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                <Label>Comissões e plataformas</Label>
                 <div className="text-2xl font-bold text-blue-600">10%</div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                <Label>Outros</Label>
                 <div className="text-2xl font-bold text-blue-600">5%</div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                <Label>Valor em real</Label>
                 <div className="text-2xl font-bold text-orange-600">{formatCurrency(200)}</div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
+                <Label>Lucro desejado sobre venda</Label>
                 <div className="text-2xl font-bold text-green-600">20%</div>
               </div>
             </div>
@@ -482,7 +451,7 @@ export function Markups() {
           </CardContent>
         </Card>
 
-        {/* Blocos do usuário */}
+        {/* Blocos */}
         {blocos.map((bloco) => {
           const calculated = calculatedMarkups.get(bloco.id);
           const hasCalculated = calculated !== undefined;
@@ -492,24 +461,12 @@ export function Markups() {
             <Card key={bloco.id} className="border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600 capitalize font-bold text-xl">
-                    {bloco.nome}
-                  </CardTitle>
+                  <CardTitle className="text-blue-600 capitalize font-bold text-xl">{bloco.nome}</CardTitle>
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => iniciarEdicaoNome(bloco)}
-                      className="h-8 w-8 p-0"
-                    >
+                    <Button size="sm" variant="outline" onClick={() => iniciarEdicaoNome(bloco)} className="h-8 w-8 p-0">
                       <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => abrirModal(bloco)}
-                      className="h-8 w-8 p-0"
-                    >
+                    <Button size="sm" variant="outline" onClick={() => abrirModal(bloco)} className="h-8 w-8 p-0">
                       <Settings className="h-3 w-3" />
                     </Button>
                     <Button
@@ -526,43 +483,43 @@ export function Markups() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                    <Label>Gasto sobre faturamento</Label>
                     <div className="text-2xl font-bold text-blue-600">
                       {hasCalculated ? formatPercentage(calculated!.gastoSobreFaturamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                    <Label>Impostos</Label>
                     <div className="text-2xl font-bold text-blue-600">
                       {hasCalculated ? formatPercentage(calculated!.impostos) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                    <Label>Taxas de meios de pagamento</Label>
                     <div className="text-2xl font-bold text-blue-600">
                       {hasCalculated ? formatPercentage(calculated!.taxasMeiosPagamento) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                    <Label>Comissões e plataformas</Label>
                     <div className="text-2xl font-bold text-blue-600">
                       {hasCalculated ? formatPercentage(calculated!.comissoesPlataformas) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                    <Label>Outros</Label>
                     <div className="text-2xl font-bold text-blue-600">
                       {hasCalculated ? formatPercentage(calculated!.outros) : '0'} <span className="text-sm">%</span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                    <Label>Valor em real</Label>
                     <div className="text-2xl font-bold text-orange-600">
                       {hasCalculated ? formatCurrency(calculated!.valorEmReal) : formatCurrency(0)}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
+                    <Label>Lucro desejado sobre venda</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -603,7 +560,6 @@ export function Markups() {
           }}
           markupBlock={criandoNovoBloco ? undefined : blocoSelecionado}
           onMarkupUpdate={(markup) => {
-            console.log('🔄 Modal retornou markup:', markup, 'para bloco:', criandoNovoBloco ? 'NOVO' : blocoSelecionado?.id);
             if (criandoNovoBloco) {
               handleMarkupUpdate('novo', markup);
             } else if (blocoSelecionado) {
@@ -618,7 +574,7 @@ export function Markups() {
           <DialogHeader>
             <DialogTitle>Editar Nome do Bloco</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+        <div className="py-4">
             <Input
               value={nomeTemp}
               onChange={(e) => setNomeTemp(e.target.value)}
@@ -631,12 +587,8 @@ export function Markups() {
             />
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={cancelarEdicao}>
-              Cancelar
-            </Button>
-            <Button onClick={salvarNome}>
-              Salvar
-            </Button>
+            <Button variant="outline" onClick={cancelarEdicao}>Cancelar</Button>
+            <Button onClick={salvarNome}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
