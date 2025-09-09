@@ -117,21 +117,32 @@ export function GeralStep() {
       {/* Layout Principal: Imagem e Conservação/Observações */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Área de Upload de Imagem */}
-        <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={handleImageUpload}>
-          <CardContent className="p-6 flex flex-col items-center justify-center min-h-[200px]">
+        <Card className="cursor-pointer hover:bg-muted/50 transition-colors relative" onClick={handleImageUpload}>
+          <CardContent className="p-0 flex flex-col items-center justify-center min-h-[200px] relative">
             {imagemReceita ? (
-              <div className="w-full">
+              <>
                 <img 
                   src={imagemReceita} 
                   alt="Receita" 
-                  className="w-full h-48 object-cover rounded"
+                  className="w-full h-full object-cover rounded-lg"
                 />
-                <p className="text-center text-sm text-muted-foreground mt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImagemReceita('');
+                  }}
+                  className="absolute top-2 right-2 p-1 h-6 w-6 bg-background/80 hover:bg-background"
+                >
+                  <Plus className="h-3 w-3 rotate-45" />
+                </Button>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1 rounded-b-lg">
                   Clique para alterar a imagem
-                </p>
-              </div>
+                </div>
+              </>
             ) : (
-              <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex flex-col items-center justify-center text-center p-6">
                 <Upload className="h-12 w-12 text-primary mb-4" />
                 <p className="font-medium">Clique para adicionar uma imagem</p>
               </div>
