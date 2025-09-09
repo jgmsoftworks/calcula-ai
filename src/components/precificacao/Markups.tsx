@@ -221,13 +221,17 @@ export function Markups() {
 
   // 🎯 NOVO: Funções para gerenciar submenu de períodos
   const toggleSubmenu = useCallback((blocoId: string) => {
+    console.log(`🔧 Toggle submenu para bloco: ${blocoId}`);
     setSubmenusAbertos(prev => {
       const newSet = new Set(prev);
       if (newSet.has(blocoId)) {
         newSet.delete(blocoId);
+        console.log(`🔽 Fechando submenu para: ${blocoId}`);
       } else {
         newSet.add(blocoId);
+        console.log(`🔼 Abrindo submenu para: ${blocoId}`);
       }
+      console.log('📋 Submenus abertos:', Array.from(newSet));
       return newSet;
     });
   }, []);
@@ -765,6 +769,8 @@ export function Markups() {
           const configExpansionKey = `expansion-${bloco.id}`;
           const showExpansion = submenusAbertos.has(bloco.id);
           
+          console.log(`🔍 Bloco ${bloco.nome} (${bloco.id}): showExpansion = ${showExpansion}, submenusAbertos =`, Array.from(submenusAbertos));
+          
           return (
             <Card key={bloco.id} className="border-border">
               <CardHeader>
@@ -863,13 +869,13 @@ export function Markups() {
                 </div>
 
                 {/* Expansão de Configuração */}
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out bg-background border-t relative z-50 ${
                   showExpansion 
-                    ? 'max-h-[600px] opacity-100' 
-                    : 'max-h-0 opacity-0'
+                    ? 'max-h-[800px] opacity-100 pt-4 mt-4' 
+                    : 'max-h-0 opacity-0 pt-0 mt-0'
                 }`}>
                   {showExpansion && (
-                    <div className="border-t pt-4 mt-4 space-y-4 animate-fade-in">
+                    <div className="space-y-4 animate-fade-in bg-background p-4 rounded-lg border shadow-lg">
                       <div className="text-sm font-medium text-muted-foreground">
                         Configurações de Custos - {bloco.nome}
                       </div>
