@@ -297,9 +297,9 @@ export function FolhaPagamento() {
 
   // Calcular horas totais por mês
   const calculateHorasTotais = () => {
-    const horasDia = parseFloat(formData.horas_por_dia || '0');
-    const diasSemana = parseFloat(formData.dias_por_semana || '0');
-    const semanasMes = parseFloat(formData.semanas_por_mes || '0');
+    const horasDia = parseFloat((formData.horas_por_dia || '0').replace(',', '.'));
+    const diasSemana = parseFloat((formData.dias_por_semana || '0').replace(',', '.'));
+    const semanasMes = parseFloat((formData.semanas_por_mes || '0').replace(',', '.'));
     return Math.round((horasDia * diasSemana * semanasMes) * 100) / 100;
   };
 
@@ -635,33 +635,6 @@ export function FolhaPagamento() {
                     </div>
                   ))}
                 </div>
-
-                {/* Custo Total */}
-                {formData.salario_base && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-primary">
-                        Custo Total deste Funcionário: R$ {(() => {
-                          const salarioBase = parseCurrencyValue(formData.salario_base);
-                          
-                          const fgtsTotal = parseCurrencyValue(formData.fgts_valor);
-                          const inssTotal = parseCurrencyValue(formData.inss_valor);
-                          const ratTotal = parseCurrencyValue(formData.rat_valor);
-                          const feriasTotal = parseCurrencyValue(formData.ferias_valor);
-                          const vtTotal = parseCurrencyValue(formData.vale_transporte_valor);
-                          const vaTotal = parseCurrencyValue(formData.vale_alimentacao_valor);
-                          const vrTotal = parseCurrencyValue(formData.vale_refeicao_valor);
-                          const planoTotal = parseCurrencyValue(formData.plano_saude_valor);
-                          const outrosTotal = parseCurrencyValue(formData.outros_valor);
-                          
-                          const total = Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
-                          
-                          return formatCurrencyDisplay(total);
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 {/* Calculadora de Horas */}
                 <div>
