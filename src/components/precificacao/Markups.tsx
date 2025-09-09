@@ -221,17 +221,13 @@ export function Markups() {
 
   // 🎯 NOVO: Funções para gerenciar submenu de períodos
   const toggleSubmenu = useCallback((blocoId: string) => {
-    console.log(`🔧 Toggle submenu para bloco: ${blocoId}`);
     setSubmenusAbertos(prev => {
       const newSet = new Set(prev);
       if (newSet.has(blocoId)) {
         newSet.delete(blocoId);
-        console.log(`🔽 Fechando submenu para: ${blocoId}`);
       } else {
         newSet.add(blocoId);
-        console.log(`🔼 Abrindo submenu para: ${blocoId}`);
       }
-      console.log('📋 Submenus abertos:', Array.from(newSet));
       return newSet;
     });
   }, []);
@@ -389,19 +385,20 @@ export function Markups() {
     carregarPeriodos();
   }, [user?.id, blocos, loadConfiguration]);
 
-  // 🎯 NOVO: Fechar submenu ao clicar fora
+  // 🎯 NOVO: Fechar submenu ao clicar fora - MELHORADO
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (submenusAbertos.size > 0) {
-        const target = event.target as Element;
-        if (!target.closest('.relative')) {
-          setSubmenusAbertos(new Set());
-        }
+      const target = event.target as Element;
+      // Verificar se o clique foi fora de qualquer card de markup
+      if (!target.closest('[data-markup-card]')) {
+        setSubmenusAbertos(new Set());
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    if (submenusAbertos.size > 0) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
   }, [submenusAbertos.size]);
 
   useEffect(() => {
@@ -769,10 +766,8 @@ export function Markups() {
           const configExpansionKey = `expansion-${bloco.id}`;
           const showExpansion = submenusAbertos.has(bloco.id);
           
-          console.log(`🔍 Bloco ${bloco.nome} (${bloco.id}): showExpansion = ${showExpansion}, submenusAbertos =`, Array.from(submenusAbertos));
-          
           return (
-            <Card key={bloco.id} className="border-border">
+            <Card key={bloco.id} className="border-border" data-markup-card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-primary capitalize font-bold text-xl">
