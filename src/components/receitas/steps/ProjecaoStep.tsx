@@ -94,7 +94,7 @@ export function ProjecaoStep() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Dados do Produto */}
           <Card>
             <CardHeader>
@@ -239,82 +239,6 @@ export function ProjecaoStep() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Resumo de Custos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Resumo de Custos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Ingredientes</span>
-                <Badge variant="outline">R$ {custoIngredientes.toFixed(2)}</Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Sub-receitas</span>
-                <Badge variant="outline">R$ {custoSubReceitas.toFixed(2)}</Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Embalagens</span>
-                <Badge variant="outline">R$ {custoEmbalagens.toFixed(2)}</Badge>
-              </div>
-              
-              <hr className="my-3" />
-              
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Custo Total</span>
-                <Badge className="text-base font-bold">R$ {custoTotal.toFixed(2)}</Badge>
-              </div>
-            </div>
-
-            {rendimentoValor && (
-              <div className="pt-4 border-t">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Custo por Unidade</Label>
-                  <p className="text-lg font-bold text-primary">
-                    R$ {(custoTotal / (parseFloat(rendimentoValor) || 1)).toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Baseado no rendimento: {rendimentoValor} {unidadesRendimento.find(u => u.value === rendimentoUnidade)?.label}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {(tempoPreparoTotal > 0 || maoObra.length > 0) && (
-              <div className="pt-4 border-t">
-                <Label className="text-sm font-medium mb-2 block">Tempos Configurados</Label>
-                <div className="space-y-1">
-                  {tempoPreparoTotal > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Tempo Total:</span>
-                      <span>{tempoPreparoTotal} {unidadesTempo.find(u => u.value === tempoPreparoUnidade)?.label}</span>
-                    </div>
-                  )}
-                  {maoObra.length > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Mão de Obra:</span>
-                      <span>
-                        {maoObra.map((item, index) => (
-                          <span key={item.id}>
-                            {item.tempo}{getUnidadeAbreviacao(item.unidadeTempo)}
-                            {index < maoObra.length - 1 ? ', ' : ''}
-                          </span>
-                        ))} (R$ {valorTotalMaoObra.toFixed(2)})
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Modal de Tipos de Produto */}

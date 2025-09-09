@@ -7,6 +7,7 @@ import { SubReceitasStep } from './steps/SubReceitasStep';
 import { EmbalagensStep } from './steps/EmbalagensStep';
 import { GeralStep } from './steps/GeralStep';
 import { ProjecaoStep } from './steps/ProjecaoStep';
+import { PrecificacaoStep } from './steps/PrecificacaoStep';
 
 interface CriarReceitaModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ const steps = [
   { id: 'embalagens', title: 'Embalagens', component: EmbalagensStep },
   { id: 'geral', title: 'Geral', component: GeralStep },
   { id: 'projecao', title: 'Projeção', component: ProjecaoStep },
+  { id: 'precificacao', title: 'Precificação', component: PrecificacaoStep },
 ];
 
 export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps) {
