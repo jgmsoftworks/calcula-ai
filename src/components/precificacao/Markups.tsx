@@ -128,7 +128,8 @@ export function Markups() {
         let faturamentosFiltrados = todosFaturamentos;
 
         if (periodoSelecionado !== 'todos') {
-            const mesesAtras = parseInt(periodoSelecionado, 10);
+            // 🔥 CORREÇÃO: Garantir que o período é string antes de parseInt
+            const mesesAtras = parseInt(String(periodoSelecionado), 10);
             const dataLimite = new Date();
             dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
 
@@ -297,11 +298,14 @@ export function Markups() {
 
   const aplicarPeriodo = useCallback(async (blocoId: string, periodo: string) => {
     try {
+      // 🔥 CORREÇÃO: Normalizar período para string
+      const periodoNormalizado = String(periodo);
+      
       // Salvar período selecionado
-      await saveConfiguration(`filtro-periodo-${blocoId}`, periodo);
+      await saveConfiguration(`filtro-periodo-${blocoId}`, periodoNormalizado);
       
       // Atualizar estado local
-      setPeriodosAplicados(prev => new Map(prev).set(blocoId, periodo));
+      setPeriodosAplicados(prev => new Map(prev).set(blocoId, periodoNormalizado));
       
       // Fechar submenu
       setSubmenusAbertos(prev => {
@@ -349,11 +353,27 @@ export function Markups() {
         try {
           const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
           if (periodo) {
-            periodosMap.set(bloco.id, periodo);
-            console.log(`📅 Período carregado para ${bloco.nome}: ${periodo}`);
+            // 🔥 CORREÇÃO: Normalizar período carregado para string e validar
+            let periodoNormalizado = String(periodo);
+            
+            // Validar se é um período aceito
+            const periodosValidos = ["1", "3", "6", "12", "todos"];
+            if (!periodosValidos.includes(periodoNormalizado)) {
+              console.log(`⚠️ Período inválido "${periodoNormalizado}" para ${bloco.nome}, usando "todos"`);
+              periodoNormalizado = "todos";
+            }
+            
+            periodosMap.set(bloco.id, periodoNormalizado);
+            console.log(`📅 Período carregado para ${bloco.nome}: ${periodoNormalizado}`);
+          } else {
+            // 🔥 CORREÇÃO: Se não há período salvo, usar "todos" como padrão
+            periodosMap.set(bloco.id, "todos");
+            console.log(`📅 Período padrão definido para ${bloco.nome}: todos`);
           }
         } catch (error) {
           console.warn(`⚠️ Erro ao carregar período para bloco ${bloco.id}:`, error);
+          // 🔥 CORREÇÃO: Em caso de erro, usar "todos" como fallback
+          periodosMap.set(bloco.id, "todos");
         }
       }
       
@@ -503,12 +523,22 @@ export function Markups() {
     const novosBlocos = [...blocos, novoBloco];
     setBlocos(novosBlocos);
     
+    // 🔥 CORREÇÃO: Definir período padrão para novos blocos
+    const periodosPadrao = new Map(periodosAplicados);
+    periodosPadrao.set(novoBloco.id, "todos");
+    setPeriodosAplicados(periodosPadrao);
+    
+    // Salvar período padrão
+    saveConfiguration(`filtro-periodo-${novoBloco.id}`, "todos").catch(error => {
+      console.warn('⚠️ Erro ao salvar período padrão:', error);
+    });
+    
     // Salvar nova lista
     saveConfiguration('markups_blocos', novosBlocos).then(() => {
       console.log('✅ Novo bloco criado com sucesso:', novoBloco);
       toast({
         title: "Bloco criado!",
-        description: `O bloco "${novoBloco.nome}" foi criado. Use o submenu para configurar o período.`
+        description: `O bloco "${novoBloco.nome}" foi criado com período padrão "todos".`
       });
     }).catch(error => {
       console.error('❌ Erro ao criar novo bloco:', error);
