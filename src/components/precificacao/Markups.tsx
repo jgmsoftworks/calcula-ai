@@ -37,12 +37,10 @@ export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
 
-  // Períodos e modais
+  // Controle de modais e períodos
   const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, string>>(new Map());
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
   const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
-  const [modalConfiguracaoPeriodo, setModalConfiguracaoPeriodo] = useState(false);
-  const [periodoTemporario, setPeriodoTemporario] = useState<string>('todos');
 
   // Controle de carregamento de períodos
   const [isLoadingPeriodos, setIsLoadingPeriodos] = useState(true);
@@ -211,12 +209,6 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados, isLoadingPeriodos]);
 
-  // Modal de configuração de período
-  const abrirModalPeriodo = useCallback((blocoId: string) => {
-    setBlocoConfigurandoId(blocoId);
-    setPeriodoTemporario(periodosAplicados.get(blocoId) || 'todos');
-    setModalConfiguracaoPeriodo(true);
-  }, [periodosAplicados]);
 
   // Aplicar configuração padrão (tudo ativo) — salva na MESMA chave lida
   const aplicarConfiguracaoPadrao = useCallback(
@@ -270,9 +262,8 @@ export function Markups() {
 
   const abrirConfiguracaoCompleta = useCallback((blocoId: string) => {
     setBlocoConfigurandoId(blocoId);
-    setPeriodoTemporario(periodosAplicados.get(blocoId) || 'todos');
-    setModalConfiguracaoPeriodo(true);
-  }, [periodosAplicados]);
+    setModalConfiguracaoAberto(true);
+  }, []);
 
   const aplicarPeriodo = useCallback(
     async (blocoId: string, periodo: string) => {
@@ -778,97 +769,6 @@ export function Markups() {
         })}
       </div>
 
-      {/* Modal de Configuração de Período e Itens */}
-      <Dialog open={modalConfiguracaoPeriodo} onOpenChange={setModalConfiguracaoPeriodo}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Configurações do Markup</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* Seleção de Período */}
-            <div>
-              <h4 className="font-medium mb-3 text-sm">📅 Período de Análise:</h4>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {[
-                  { value: '1', label: '1 mês' },
-                  { value: '3', label: '3 meses' },
-                  { value: '6', label: '6 meses' },
-                  { value: '12', label: '12 meses' }
-                ].map((p) => (
-                  <Button
-                    key={p.value}
-                    variant={periodoTemporario === p.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPeriodoTemporario(p.value)}
-                    className="text-xs"
-                  >
-                    {p.label}
-                    {periodoTemporario === p.value && <span className="ml-1 text-xs">✓</span>}
-                  </Button>
-                ))}
-              </div>
-              <Button
-                variant={periodoTemporario === 'todos' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setPeriodoTemporario('todos')}
-                className="w-full text-xs"
-              >
-                Todos os períodos
-                {periodoTemporario === 'todos' && <span className="ml-1 text-xs">✓</span>}
-              </Button>
-            </div>
-
-            {/* Ações */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3 text-sm">⚙️ Configurações de Custos:</h4>
-              <div className="space-y-2">
-                <Button 
-                  onClick={() => {
-                    setModalConfiguracaoPeriodo(false);
-                    setModalConfiguracaoAberto(true);
-                  }} 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-xs"
-                >
-                  🔧 Configurar Itens de Custo
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (blocoConfigurandoId) {
-                      aplicarConfiguracaoPadrao(blocoConfigurandoId);
-                      setModalConfiguracaoPeriodo(false);
-                    }
-                  }} 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-xs"
-                >
-                  ⚡ Aplicar Configuração Padrão
-                </Button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setModalConfiguracaoPeriodo(false)}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={async () => {
-                if (blocoConfigurandoId) {
-                  await aplicarPeriodo(blocoConfigurandoId, periodoTemporario);
-                  setModalConfiguracaoPeriodo(false);
-                }
-              }}
-            >
-              Aplicar Período
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Modal de Configuração de Itens */}
       {modalConfiguracaoAberto && blocoConfigurandoId && (
