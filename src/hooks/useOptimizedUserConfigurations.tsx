@@ -1,126 +1,96 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-type ConfigValue = any;
-
-interface CachedItem {
-  data: ConfigValue;
-  timestamp: number;
-}
+interface CacheEntry { data: any; timestamp: number }
+interface LoadOpts { fresh?: boolean }
 
 export function useOptimizedUserConfigurations() {
   const { user } = useAuth();
-
-  const cacheRef = useRef<Map<string, CachedItem>>(new Map());
-  const pendingRequests = useRef<Map<string, Promise<ConfigValue | null>>>(new Map());
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  const pendingRef = useRef<Map<string, Promise<any>>>(new Map());
 
   const CACHE_DURATION = 30_000; // 30s
 
-  const keyFor = (type: string) => `${user?.id ?? 'anon'}:${type}`;
-
   const invalidateCache = useCallback((type?: string) => {
-    if (type) {
-      cacheRef.current.delete(keyFor(type));
-    } else {
+    if (!type) {
       cacheRef.current.clear();
+      return;
     }
-  }, [user?.id]);
-
-  // Limpa cache quando trocar o usuário
-  useEffect(() => {
-    cacheRef.current.clear();
-    pendingRequests.current.clear();
-  }, [user?.id]);
+    cacheRef.current.delete(type);
+  }, []);
 
   const loadConfiguration = useCallback(
-    async (type: string): Promise<ConfigValue | null> => {
-      if (!user?.id) return null;
+    async (type: string, opts?: LoadOpts): Promise<any | null> => {
+      if (!user) return null;
 
-      const cacheK = keyFor(type);
+      const fresh = !!opts?.fresh;
+      const cacheKey = `${user.id}:${type}`;
 
-      // cache válido?
-      const cached = cacheRef.current.get(cacheK);
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        return cached.data;
+      if (!fresh) {
+        const cached = cacheRef.current.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          return cached.data;
+        }
       }
 
-      // requisição já em andamento?
-      if (pendingRequests.current.has(cacheK)) {
-        return pendingRequests.current.get(cacheK)!;
+      if (pendingRef.current.has(cacheKey)) {
+        return pendingRef.current.get(cacheKey);
       }
 
-      const req = (async () => {
+      const p = (async () => {
         try {
-          // ⚠️ Sempre ler a versão mais recente
           const { data, error } = await supabase
             .from('user_configurations')
-            .select('configuration, updated_at, id')
+            .select('*')
             .eq('user_id', user.id)
             .eq('type', type)
-            .order('updated_at', { ascending: false })
-            .order('id', { ascending: false })
-            .limit(1)
             .maybeSingle();
 
-          // Ignora erro "no rows" do PostgREST; qualquer outro, propaga
-          // (em algumas versões, no rows pode vir como null sem erro)
-          // @ts-ignore
-          if (error && error.code !== 'PGRST116') {
+          // PGRST116 = no rows
+          if (error && (error as any).code !== 'PGRST116') {
             throw error;
           }
+          const result = data?.configuration ?? null;
 
-          const value = data?.configuration ?? null;
-
-          cacheRef.current.set(cacheK, { data: value, timestamp: Date.now() });
-          return value;
-        } catch (err) {
-          console.error('[useOptimizedUserConfigurations] loadConfiguration error:', err);
-          return null;
+          // sempre atualiza cache (mesmo fresh, para futuras leituras)
+          cacheRef.current.set(cacheKey, { data: result, timestamp: Date.now() });
+          return result;
         } finally {
-          pendingRequests.current.delete(cacheK);
+          pendingRef.current.delete(cacheKey);
         }
       })();
 
-      pendingRequests.current.set(cacheK, req);
-      return req;
+      pendingRef.current.set(cacheKey, p);
+      return p;
     },
-    [user?.id]
+    [user]
   );
 
   const saveConfiguration = useCallback(
-    async (type: string, configuration: ConfigValue): Promise<void> => {
-      if (!user?.id) return;
+    async (type: string, configuration: any): Promise<void> => {
+      if (!user) return;
 
-      // invalida cache antes de gravar
-      invalidateCache(type);
+      const cacheKey = `${user.id}:${type}`;
+      cacheRef.current.delete(cacheKey);
 
-      const payload = {
-        user_id: user.id,
-        type,
-        configuration,
-        updated_at: new Date().toISOString()
-      };
-
-      // 🔐 Upsert com conflito em (user_id, type) → evita duplicatas
-      const { error } = await supabase
+      const { data: existing } = await supabase
         .from('user_configurations')
-        .upsert(payload, { onConflict: 'user_id,type' });
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', type)
+        .maybeSingle();
 
-      if (error) {
-        console.error('[useOptimizedUserConfigurations] saveConfiguration error:', error);
-        throw error;
+      if (existing) {
+        await supabase.from('user_configurations').update({ configuration }).eq('id', existing.id);
+      } else {
+        await supabase.from('user_configurations').insert({ user_id: user.id, type, configuration });
       }
 
-      // atualiza cache local imediatamente
-      cacheRef.current.set(keyFor(type), { data: configuration, timestamp: Date.now() });
+      cacheRef.current.set(cacheKey, { data: configuration, timestamp: Date.now() });
     },
-    [user?.id, invalidateCache]
+    [user]
   );
 
-  return {
-    loadConfiguration,
-    saveConfiguration,
-    invalidateCache,
-  };
+  return { loadConfiguration, saveConfiguration, invalidateCache };
 }
