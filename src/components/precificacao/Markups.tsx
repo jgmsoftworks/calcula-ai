@@ -8,6 +8,7 @@ import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, ChevronDown,
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -39,9 +40,11 @@ export function Markups() {
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   
-  // 🎯 NOVO: Estados para o submenu de períodos
+  // 🎯 NOVO: Estados para o submenu de períodos e configuração
   const [submenusAbertos, setSubmenusAbertos] = useState<Set<string>>(new Set());
   const [periodosAplicados, setPeriodosAplicados] = useState<Map<string, string>>(new Map());
+  const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
+  const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
   
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
@@ -232,6 +235,70 @@ export function Markups() {
     });
   }, []);
 
+  const aplicarConfiguracaoPadrao = useCallback(async (blocoId: string) => {
+    console.log(`🎯 Aplicando configuração padrão para bloco ${blocoId}`);
+    
+    try {
+      // Buscar todos os dados ativos
+      const { data: despesasFixas } = await supabase
+        .from('despesas_fixas')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('ativo', true);
+        
+      const { data: folhaPagamento } = await supabase
+        .from('folha_pagamento')  
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('ativo', true);
+        
+      const { data: encargosVenda } = await supabase
+        .from('encargos_venda')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('ativo', true);
+
+      // Criar configuração padrão (todos selecionados)
+      const configuracaoPadrao = {
+        despesasFixas: Object.fromEntries((despesasFixas || []).map(d => [d.id, true])),
+        folhaPagamento: Object.fromEntries((folhaPagamento || []).map(f => [f.id, true])),
+        encargosVenda: Object.fromEntries((encargosVenda || []).map(e => [e.id, true]))
+      };
+      
+      // Salvar configuração
+      await saveConfiguration(`configuracao-itens-${blocoId}`, configuracaoPadrao);
+      
+      // Fechar submenu e recalcular
+      setSubmenusAbertos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(blocoId);
+        return newSet;
+      });
+      
+      await carregarConfiguracoesSalvas();
+      
+      toast({
+        title: "Configuração padrão aplicada!",
+        description: "Todos os itens ativos foram selecionados para o cálculo.",
+        duration: 3000
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao aplicar configuração padrão:', error);
+      toast({
+        title: "Erro ao aplicar configuração",
+        description: "Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+    }
+  }, [user?.id, saveConfiguration, carregarConfiguracoesSalvas, toast]);
+
+  const abrirConfiguracaoCompleta = useCallback((blocoId: string) => {
+    setBlocoConfigurandoId(blocoId);
+    setModalConfiguracaoAberto(true);
+    setSubmenusAbertos(new Set()); // Fechar submenu
+  }, []);
+
   const aplicarPeriodo = useCallback(async (blocoId: string, periodo: string) => {
     console.log(`🔄 Aplicando período ${periodo} para bloco ${blocoId}`);
     
@@ -249,11 +316,20 @@ export function Markups() {
         return newSet;
       });
       
-      // Disparar recálculo para este bloco específico
+      // 🎯 CORREÇÃO: Disparar RECÁLCULO REAL para este bloco específico
+      console.log('🔄 Forçando recálculo após mudança de período...');
       await carregarConfiguracoesSalvas();
       
+      // Aguardar um pouco e forçar update do state
+      setTimeout(() => {
+        const novosCalculatedMarkups = new Map(calculatedMarkups);
+        // Force update to trigger re-render
+        setCalculatedMarkups(new Map(novosCalculatedMarkups));
+        console.log('✅ Markup recalculado para período:', periodo);
+      }, 500);
+      
       toast({
-        title: "Período aplicado!",
+        title: "Período aplicado e recalculado!",
         description: `Cálculos atualizados para ${
           periodo === '1' ? 'último mês' :
           periodo === '3' ? 'últimos 3 meses' :
@@ -272,7 +348,7 @@ export function Markups() {
         variant: "destructive"
       });
     }
-  }, [saveConfiguration, carregarConfiguracoesSalvas, toast]);
+  }, [saveConfiguration, carregarConfiguracoesSalvas, toast, calculatedMarkups]);
 
   // Carregar períodos aplicados ao inicializar
   useEffect(() => {
@@ -708,44 +784,85 @@ export function Markups() {
                       </Button>
                       
                       {submenusAbertos.has(bloco.id) && (
-                        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-border rounded-md shadow-lg min-w-48">
-                          <div className="p-2">
-                            <div className="text-xs font-medium text-muted-foreground mb-2">
-                              Período de Análise:
+                        <div className="absolute right-0 top-full mt-1 z-[100] bg-white border border-border rounded-md shadow-lg min-w-80 max-h-96 overflow-y-auto">
+                          <div className="p-3 bg-white">
+                            {/* Seção de Período */}
+                            <div className="mb-4">
+                              <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                                📅 Período de Análise:
+                              </div>
+                              <div className="grid grid-cols-2 gap-1">
+                                {[
+                                  { value: '1', label: '1 mês' },
+                                  { value: '3', label: '3 meses' },
+                                  { value: '6', label: '6 meses' },
+                                  { value: '12', label: '12 meses' },
+                                  { value: 'todos', label: 'Todos' }
+                                ].map((periodo) => (
+                                  <button
+                                    key={periodo.value}
+                                    onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
+                                    className={`text-left px-2 py-1 text-xs rounded hover:bg-accent transition-colors ${
+                                      periodosAplicados.get(bloco.id) === periodo.value 
+                                        ? 'bg-blue-50 text-blue-600 font-medium border border-blue-200' 
+                                        : 'hover:bg-gray-50 border border-transparent'
+                                    }`}
+                                  >
+                                    {periodo.label}
+                                    {periodosAplicados.get(bloco.id) === periodo.value && (
+                                      <span className="ml-1 text-xs">✓</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              {[
-                                { value: '1', label: 'Último mês' },
-                                { value: '3', label: 'Últimos 3 meses' },
-                                { value: '6', label: 'Últimos 6 meses' },
-                                { value: '12', label: 'Últimos 12 meses' },
-                                { value: 'todos', label: 'Todos os períodos' }
-                              ].map((periodo) => (
+                            
+                            {/* Divider */}
+                            <div className="border-t my-3"></div>
+                            
+                            {/* Seção de Configurações Rápidas */}
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                                ⚙️ Configurações:
+                              </div>
+                              <div className="space-y-2">
                                 <button
-                                  key={periodo.value}
-                                  onClick={() => aplicarPeriodo(bloco.id, periodo.value)}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-accent hover:text-accent-foreground transition-colors ${
-                                    periodosAplicados.get(bloco.id) === periodo.value 
-                                      ? 'bg-blue-50 text-blue-600 font-medium' 
-                                      : ''
-                                  }`}
+                                  onClick={() => abrirConfiguracaoCompleta(bloco.id)}
+                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-white"
                                 >
-                                  {periodo.label}
-                                  {periodosAplicados.get(bloco.id) === periodo.value && (
-                                    <span className="ml-2 text-xs">✓</span>
-                                  )}
+                                  <div className="font-medium">🔧 Configurar Itens</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Selecionar despesas, folha e encargos
+                                  </div>
                                 </button>
-                              ))}
+                                
+                                <button
+                                  onClick={() => aplicarConfiguracaoPadrao(bloco.id)}
+                                  className="w-full text-left px-3 py-2 text-sm rounded border border-border hover:bg-accent hover:text-accent-foreground transition-colors bg-white"
+                                >
+                                  <div className="font-medium">⚡ Aplicar Padrão</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Usar todos os itens ativos
+                                  </div>
+                                </button>
+                              </div>
                             </div>
+                            
+                            {/* Status */}
                             {periodosAplicados.has(bloco.id) && (
-                              <div className="mt-2 pt-2 border-t text-xs text-green-600">
-                                ✓ Aplicado: {
-                                  periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
-                                  periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
-                                  periodosAplicados.get(bloco.id) === '6' ? 'Últimos 6 meses' :
-                                  periodosAplicados.get(bloco.id) === '12' ? 'Últimos 12 meses' :
-                                  'Todos os períodos'
-                                }
+                              <div className="mt-3 pt-3 border-t text-xs bg-white">
+                                <div className="text-green-600 font-medium">
+                                  ✓ Período: {
+                                    periodosAplicados.get(bloco.id) === '1' ? 'Último mês' :
+                                    periodosAplicados.get(bloco.id) === '3' ? 'Últimos 3 meses' :
+                                    periodosAplicados.get(bloco.id) === '6' ? 'Últimos 6 meses' :
+                                    periodosAplicados.get(bloco.id) === '12' ? 'Últimos 12 meses' :
+                                    'Todos os períodos'
+                                  }
+                                </div>
+                                <div className="text-muted-foreground mt-1">
+                                  💰 Markup calculado: {hasCalculated ? markupIdeal.toFixed(4) : '1.0000'}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -831,6 +948,46 @@ export function Markups() {
           );
         })}
       </div>
+
+      {/* Modal de Configuração de Itens */}
+      {modalConfiguracaoAberto && blocoConfigurandoId && (
+        <CustosModal
+          open={modalConfiguracaoAberto}
+          onOpenChange={(open) => {
+            setModalConfiguracaoAberto(open);
+            if (!open) {
+              setBlocoConfigurandoId(null);
+            }
+          }}
+          markupBlock={blocos.find(b => b.id === blocoConfigurandoId)}
+          onMarkupUpdate={(markup) => {
+            if (blocoConfigurandoId) {
+              // Converter MarkupBlock para CalculatedMarkup se necessário
+              const calculatedMarkup: CalculatedMarkup = {
+                gastoSobreFaturamento: markup.gastoSobreFaturamento || 0,
+                impostos: markup.impostos || 0,
+                taxasMeiosPagamento: markup.taxasMeiosPagamento || 0,
+                comissoesPlataformas: markup.comissoesPlataformas || 0,
+                outros: markup.outros || 0,
+                valorEmReal: markup.valorEmReal || 0
+              };
+              
+              // Atualizar no state local IMEDIATAMENTE
+              const novosCalculatedMarkups = new Map(calculatedMarkups);
+              novosCalculatedMarkups.set(blocoConfigurandoId, calculatedMarkup);
+              setCalculatedMarkups(novosCalculatedMarkups);
+              
+              toast({
+                title: "Configuração aplicada!",
+                description: "Os cálculos foram atualizados com os itens selecionados.",
+                duration: 3000
+              });
+              
+              console.log('💾 Estados atualizados - configurações do modal aplicadas para bloco:', blocoConfigurandoId);
+            }
+          }}
+        />
+      )}
 
       <Dialog open={modalEdicaoNome} onOpenChange={setModalEdicaoNome}>
         <DialogContent className="sm:max-w-md">
