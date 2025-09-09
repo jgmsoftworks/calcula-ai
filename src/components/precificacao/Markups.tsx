@@ -51,6 +51,9 @@ export function Markups() {
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // trava anti-reentrada de cálculo
+  const recalculandoRef = useRef(false);
+
   // Bloco informativo
   const blocoSubreceita: MarkupBlock = {
     id: 'subreceita-fixo',
@@ -82,7 +85,18 @@ export function Markups() {
     [categoriasMap]
   );
 
-  // -------- CARREGAMENTO / CÁLCULO (com PERÍODO fresh) ----------
+  // wrapper que garante que só um cálculo rode por vez
+  const recalcOnce = useCallback(async (fn: () => Promise<void>) => {
+    if (recalculandoRef.current) return;
+    recalculandoRef.current = true;
+    try {
+      await fn();
+    } finally {
+      recalculandoRef.current = false;
+    }
+  }, []);
+
+  // -------- CARREGAMENTO / CÁLCULO ----------
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
 
@@ -105,10 +119,10 @@ export function Markups() {
 
     for (const bloco of blocos) {
       // período vindo do bloco OU do user_configurations (fresh)
-      let periodo = bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo)) ? String(bloco.periodo) : undefined;
+      let periodo =
+        bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo)) ? String(bloco.periodo) : undefined;
 
       if (!periodo) {
-        // força fresh para evitar cache antigo
         const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
         const norm = salvo == null ? 'todos' : String(salvo);
         periodo = PERIODOS_VALIDOS.has(norm) ? norm : 'todos';
@@ -186,7 +200,7 @@ export function Markups() {
           outros: 0,
           valorEmReal: 0
         });
-        console.log(`⚠️ [${bloco.nome}] sem config; período="${periodo}" -> zerado`);
+        console.log(`⚠️ [${bloco.nome}] sem config; período definido="${periodo}" -> zerado`);
       }
     }
 
@@ -204,7 +218,7 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, saveConfiguration, getCategoriaByNome]);
 
-  // carregar blocos
+  // carregar blocos com fresh
   useEffect(() => {
     const carregar = async () => {
       try {
@@ -223,11 +237,12 @@ export function Markups() {
     carregar();
   }, [loadConfiguration]);
 
+  // recálculo inicial (protegido)
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
-      carregarConfiguracoesSalvas();
+      recalcOnce(carregarConfiguracoesSalvas);
     }
-  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
+  }, [blocos.length, user?.id, carregarConfiguracoesSalvas, recalcOnce]);
 
   useEffect(() => {
     return () => {
@@ -250,7 +265,8 @@ export function Markups() {
     [saveConfiguration, invalidateCache]
   );
 
-  const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const formatCurrency = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
   const formatPercentage = (v: number) => v.toFixed(2);
 
   const criarNovoBloco = () => {
@@ -309,7 +325,13 @@ export function Markups() {
   const calcularMarkupIdeal = (bloco: MarkupBlock, m?: CalculatedMarkup): number => {
     const v = m || calculatedMarkups.get(bloco.id);
     if (!v) return 1;
-    const soma = v.gastoSobreFaturamento + v.impostos + v.taxasMeiosPagamento + v.comissoesPlataformas + v.outros + bloco.lucroDesejado;
+    const soma =
+      v.gastoSobreFaturamento +
+      v.impostos +
+      v.taxasMeiosPagamento +
+      v.comissoesPlataformas +
+      v.outros +
+      bloco.lucroDesejado;
     const frac = soma / 100;
     if (frac >= 1) return 1;
     return 1 / (1 - frac);
@@ -328,12 +350,12 @@ export function Markups() {
         return m;
       });
 
-      // invalida e recarrega configs FRESH (evita cache de 30s)
+      // invalida caches e recalc protegido
       invalidateCache(`filtro-periodo-${blocoId}`);
       invalidateCache(`checkbox-states-${blocoId}`);
-      await carregarConfiguracoesSalvas();
+      await recalcOnce(carregarConfiguracoesSalvas);
     },
-    [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas, invalidateCache]
+    [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas, invalidateCache, recalcOnce]
   );
 
   const iniciarEdicaoNome = (bloco: MarkupBlock) => {
@@ -382,7 +404,9 @@ export function Markups() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calculator className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum bloco criado</h3>
-              <p className="text-muted-foreground mb-4 text-center">Crie seu primeiro bloco de markup para calcular preços</p>
+              <p className="text-muted-foreground mb-4 text-center">
+                Crie seu primeiro bloco de markup para calcular preços
+              </p>
               <Button onClick={criarNovoBloco} className="gap-2">
                 <Plus className="h-4 w-4" />
                 Criar Primeiro Bloco
@@ -574,7 +598,7 @@ export function Markups() {
           <DialogHeader>
             <DialogTitle>Editar Nome do Bloco</DialogTitle>
           </DialogHeader>
-        <div className="py-4">
+          <div className="py-4">
             <Input
               value={nomeTemp}
               onChange={(e) => setNomeTemp(e.target.value)}
@@ -587,8 +611,12 @@ export function Markups() {
             />
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={cancelarEdicao}>Cancelar</Button>
-            <Button onClick={salvarNome}>Salvar</Button>
+            <Button variant="outline" onClick={cancelarEdicao}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarNome}>
+              Salvar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
