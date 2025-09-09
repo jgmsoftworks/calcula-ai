@@ -217,6 +217,14 @@ export function FolhaPagamento() {
     }).format(numValue);
   };
 
+  // Função para formatar números decimais preservando casas decimais
+  const formatDecimalNumber = (value: number | string) => {
+    if (!value && value !== 0) return '';
+    const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
+    if (isNaN(numValue)) return '';
+    return numValue.toString().replace('.', ',');
+  };
+
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Desabilita setas para alterar valor
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -413,9 +421,9 @@ export function FolhaPagamento() {
       plano_saude_valor: formatCurrencyDisplay(funcionario.plano_saude_valor),
       outros_percent: funcionario.outros_percent.toString().replace('.', ','),
       outros_valor: formatCurrencyDisplay(funcionario.outros_valor),
-      horas_por_dia: funcionario.horas_por_dia?.toString() || '8',
-      dias_por_semana: funcionario.dias_por_semana?.toString() || '5',
-      semanas_por_mes: funcionario.semanas_por_mes?.toString().replace('.', ',') || '4,33'
+      horas_por_dia: formatDecimalNumber(funcionario.horas_por_dia) || '8',
+      dias_por_semana: formatDecimalNumber(funcionario.dias_por_semana) || '5',
+      semanas_por_mes: formatDecimalNumber(funcionario.semanas_por_mes) || '4,33'
     });
     setIsModalOpen(true);
   };
@@ -665,11 +673,11 @@ export function FolhaPagamento() {
                         id="horas_por_dia"
                         type="text"
                         key={`horas-${formData.horas_por_dia}`}
-                        defaultValue={formatBrazilianNumber(formData.horas_por_dia)}
+                        defaultValue={formatDecimalNumber(formData.horas_por_dia)}
                         onBlur={(e) => {
                           const parsed = parseInputValue(e.target.value);
                           handleHorasChange('horas_por_dia', e.target.value);
-                          e.target.value = formatBrazilianNumber(parsed);
+                          e.target.value = formatDecimalNumber(parsed);
                         }}
                         placeholder="8"
                         autoComplete="off"
@@ -684,11 +692,11 @@ export function FolhaPagamento() {
                         id="dias_por_semana"
                         type="text"
                         key={`dias-${formData.dias_por_semana}`}
-                        defaultValue={formatBrazilianNumber(formData.dias_por_semana)}
+                        defaultValue={formatDecimalNumber(formData.dias_por_semana)}
                         onBlur={(e) => {
                           const parsed = parseInputValue(e.target.value);
                           handleHorasChange('dias_por_semana', e.target.value);
-                          e.target.value = formatBrazilianNumber(parsed);
+                          e.target.value = formatDecimalNumber(parsed);
                         }}
                         placeholder="5"
                         autoComplete="off"
@@ -703,11 +711,11 @@ export function FolhaPagamento() {
                         id="semanas_por_mes"
                         type="text"
                         key={`semanas-${formData.semanas_por_mes}`}
-                        defaultValue={formatBrazilianNumber(formData.semanas_por_mes)}
+                        defaultValue={formatDecimalNumber(formData.semanas_por_mes)}
                         onBlur={(e) => {
                           const parsed = parseInputValue(e.target.value);
                           handleHorasChange('semanas_por_mes', e.target.value);
-                          e.target.value = formatBrazilianNumber(parsed);
+                          e.target.value = formatDecimalNumber(parsed);
                         }}
                         placeholder="4,33"
                         autoComplete="off"
