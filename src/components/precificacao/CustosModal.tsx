@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -73,12 +79,15 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
-  const [filtroPerido, setFiltroPerido] = useState<string>('12'); // Padrão 12 meses
+  const [filtroPersonalizado, setFiltroPersonalizado] = useState<PeriodoFiltro>({ tipo: 'mes_atual' });
+  const [tipoFiltro, setTipoFiltro] = useState<'mes_atual' | 'periodo_personalizado'>('mes_atual');
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
   
   // Debug do estado do filtro
   useEffect(() => {
-    console.log('🔍 Estado do filtro mudou para:', filtroPerido);
-  }, [filtroPerido]);
+    console.log('🔍 Estado do filtro mudou para:', filtroPersonalizado);
+  }, [filtroPersonalizado]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
     despesasFixas: false,
@@ -107,25 +116,40 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       const filtroSalvo = await loadConfiguration(configKey);
       console.log('🔍 Resultado do carregamento:', { configKey, filtroSalvo, tipo: typeof filtroSalvo });
       
-      if (filtroSalvo && typeof filtroSalvo === 'string') {
-        console.log('✅ Aplicando filtro salvo:', filtroSalvo);
-        setFiltroPerido(filtroSalvo);
+      if (filtroSalvo && typeof filtroSalvo === 'object' && 'tipo' in filtroSalvo) {
+        const periodo = filtroSalvo as PeriodoFiltro;
+        console.log('✅ Aplicando filtro personalizado salvo:', periodo);
+        setFiltroPersonalizado(periodo);
+        setTipoFiltro(periodo.tipo);
+        if (periodo.tipo === 'periodo_personalizado') {
+          setDataInicio(periodo.dataInicio);
+          setDataFim(periodo.dataFim);
+        }
       } else {
-        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão 12 meses');
-        setFiltroPerido('12'); // Forçar padrão
+        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão mês atual');
+        const padraoFiltro: PeriodoFiltro = { tipo: 'mes_atual' };
+        setFiltroPersonalizado(padraoFiltro);
+        setTipoFiltro('mes_atual');
       }
     } catch (error) {
       console.error('❌ Erro ao carregar filtro:', error);
-      setFiltroPerido('12'); // Fallback
+      const padraoFiltro: PeriodoFiltro = { tipo: 'mes_atual' };
+      setFiltroPersonalizado(padraoFiltro);
+      setTipoFiltro('mes_atual');
     }
   };
 
   // Salvar filtro quando mudado
-  const handleFiltroChange = async (novoFiltro: string) => {
-    console.log('🔄 handleFiltroChange chamado - Mudando filtro de', filtroPerido, 'para:', novoFiltro);
+  const handleFiltroChange = async (novoFiltro: PeriodoFiltro) => {
+    console.log('🔄 handleFiltroChange chamado - Mudando filtro para:', novoFiltro);
     console.log('🔄 markupBlock existe?', !!markupBlock, markupBlock?.id);
     
-    setFiltroPerido(novoFiltro);
+    setFiltroPersonalizado(novoFiltro);
+    setTipoFiltro(novoFiltro.tipo);
+    if (novoFiltro.tipo === 'periodo_personalizado') {
+      setDataInicio(novoFiltro.dataInicio);
+      setDataFim(novoFiltro.dataFim);
+    }
     
     // Salvar filtro SEMPRE, mesmo para novos blocos
     try {
@@ -327,25 +351,30 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   }, [open]);
 
   // Função helper para calcular média mensal para diferentes períodos
-  const calcularMediaPorPeriodo = useCallback((periodo: string) => {
+  const calcularMediaPorPeriodo = useCallback((periodo: PeriodoFiltro) => {
     if (faturamentosHistoricos.length === 0) return 0;
 
     let faturamentosSelecionados = [...faturamentosHistoricos];
     
-    // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
-    if (periodo !== 'todos') {
-      const quantidade = parseInt(periodo);
-      faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
+    if (periodo.tipo === 'mes_atual') {
+      // Filtrar para o mês atual
+      const agora = new Date();
+      const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+      const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
+      
+      faturamentosSelecionados = faturamentosHistoricos.filter(f => 
+        f.mes >= inicioMes && f.mes <= fimMes
+      );
+    } else if (periodo.tipo === 'periodo_personalizado' && periodo.dataInicio && periodo.dataFim) {
+      // Filtrar para o período personalizado
+      faturamentosSelecionados = faturamentosHistoricos.filter(f => 
+        f.mes >= periodo.dataInicio! && f.mes <= periodo.dataFim!
+      );
     }
 
     if (faturamentosSelecionados.length === 0) return 0;
 
-    // Se for apenas 1 mês (último mês), retornar o valor do mais recente
-    if (periodo === '1' && faturamentosSelecionados.length > 0) {
-      return faturamentosSelecionados[0].valor;
-    }
-
-    // Para outros casos, calcular a média dos selecionados
+    // Calcular a média dos selecionados
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
     const media = totalFaturamento / faturamentosSelecionados.length;
     return media;
@@ -353,95 +382,53 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
 
   // Função para aplicar período selecionado e resetar configurações anteriores
   const handleAplicarPeriodo = useCallback(async () => {
-    console.log(`🔄 Aplicando período: ${filtroPerido}`);
+    const periodo: PeriodoFiltro = {
+      tipo: tipoFiltro,
+      ...(tipoFiltro === 'periodo_personalizado' && { 
+        dataInicio, 
+        dataFim 
+      })
+    };
+    
+    if (tipoFiltro === 'periodo_personalizado' && (!dataInicio || !dataFim)) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione as datas de início e fim para o período personalizado.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    console.log(`🔄 Aplicando período: ${JSON.stringify(periodo)}`);
     
     try {
-      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos usando limpeza em lote
-      const configKeysToReset = [
-        markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
-        `filtro-periodo-forcado-${markupBlock?.id || 'default'}`,
-        'ultimo-filtro-aplicado',
-        'filtro-periodo-1',
-        'filtro-periodo-3', 
-        'filtro-periodo-6',
-        'filtro-periodo-12',
-        'filtro-periodo-todos'
-      ];
-      
-      console.log('🧹 Limpando configurações anteriores com nova estratégia...');
-      await deleteMultipleConfigurations(configKeysToReset);
-      
-      // 2. Aguardar um pouco para garantir que a limpeza foi processada
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // 3. AGORA: Salvar APENAS o período selecionado com retry
+      // Salvar o período
       const mainConfigKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
       
-      // Implementar retry inteligente
-      let retryCount = 0;
-      const maxRetries = 3;
-      let saved = false;
+      await saveConfiguration(mainConfigKey, periodo);
+      console.log(`✅ Novo período salvo: ${mainConfigKey}`);
       
-      while (!saved && retryCount < maxRetries) {
-        try {
-          await saveConfiguration(mainConfigKey, filtroPerido);
-          console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
-          saved = true;
-        } catch (error) {
-          retryCount++;
-          console.warn(`⚠️ Tentativa ${retryCount}/${maxRetries} falhou:`, error);
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 500 * retryCount)); // Backoff exponencial
-          } else {
-            throw error; // Falha após todas as tentativas
-          }
-        }
-      }
+      // Atualizar estado local
+      setFiltroPersonalizado(periodo);
       
-      // 4. Reforçar o estado local
-      setFiltroPerido(filtroPerido);
-      
-      // 5. Recalcular com o novo período
+      // Recalcular com o novo período
       setTimeout(() => {
         if (Object.keys(tempCheckboxStates).length > 0) {
-          console.log('🔄 Recalculando com novo período:', filtroPerido);
-          handleFiltroChange(filtroPerido);
+          console.log('🔄 Recalculando com novo período:', periodo);
+          handleFiltroChange(periodo);
         }
       }, 300);
       
-      // 6. Mostrar toast amigável e validar se foi salvo
-      const savedValue = await loadConfiguration(mainConfigKey);
-      const isCorrectlyApplied = savedValue === filtroPerido;
+      // Mostrar toast
+      const descricao = periodo.tipo === 'mes_atual' 
+        ? 'mês atual'
+        : `período de ${format(periodo.dataInicio!, 'MMM/yyyy', { locale: ptBR })} a ${format(periodo.dataFim!, 'MMM/yyyy', { locale: ptBR })}`;
       
       toast({
-        title: isCorrectlyApplied ? "Período aplicado com sucesso!" : "Período aplicado (verificando...)",
-        description: `Cálculos atualizados para ${
-          filtroPerido === '1' ? 'último mês' :
-          filtroPerido === '3' ? 'últimos 3 meses' :
-          filtroPerido === '6' ? 'últimos 6 meses' :
-          filtroPerido === '12' ? 'últimos 12 meses' :
-          'todos os períodos'
-        }${isCorrectlyApplied ? '' : ' - Validando aplicação...'}`,
-        duration: isCorrectlyApplied ? 3000 : 5000,
-        variant: isCorrectlyApplied ? "default" : "default"
+        title: "Período aplicado com sucesso!",
+        description: `Cálculos atualizados para ${descricao}`,
+        duration: 3000
       });
-      
-      // Se não foi aplicado corretamente, tentar uma última vez
-      if (!isCorrectlyApplied) {
-        console.warn(`⚠️ Validação falhou: esperado=${filtroPerido}, atual=${savedValue}`);
-        setTimeout(async () => {
-          try {
-            await saveConfiguration(mainConfigKey, filtroPerido);
-            toast({
-              title: "Período corrigido!",
-              description: "Aplicação do filtro foi validada e corrigida.",
-              duration: 3000
-            });
-          } catch (error) {
-            console.error('❌ Falha na correção final:', error);
-          }
-        }, 1000);
-      }
       
     } catch (error) {
       console.error('❌ Erro ao aplicar período:', error);
@@ -451,12 +438,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         variant: "destructive"
       });
     }
-  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
+  }, [tipoFiltro, dataInicio, dataFim, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
 
   // Função para calcular média mensal baseada no período selecionado
   const calcularMediaMensal = useMemo(() => {
-    return calcularMediaPorPeriodo(filtroPerido);
-  }, [faturamentosHistoricos, filtroPerido, calcularMediaPorPeriodo]);
+    return calcularMediaPorPeriodo(filtroPersonalizado);
+  }, [faturamentosHistoricos, filtroPersonalizado, calcularMediaPorPeriodo]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -856,17 +843,112 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 </CardTitle>
               </div>
               
-              {/* Tabs para Períodos */}
+              {/* Seção de Filtro de Período Personalizado */}
               <div className="border rounded-lg p-4 bg-background">
                 <h4 className="text-sm font-medium mb-3">Selecione o Período de Análise:</h4>
-                <Tabs value={filtroPerido} onValueChange={setFiltroPerido} className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="1">Último mês</TabsTrigger>
-                    <TabsTrigger value="3">Últimos 3 meses</TabsTrigger>
-                    <TabsTrigger value="6">Últimos 6 meses</TabsTrigger>
-                    <TabsTrigger value="12">Últimos 12 meses</TabsTrigger>
-                    <TabsTrigger value="todos">Todos</TabsTrigger>
-                  </TabsList>
+                
+                <div className="space-y-4">
+                  <Select 
+                    value={tipoFiltro} 
+                    onValueChange={(value: 'mes_atual' | 'periodo_personalizado') => {
+                      setTipoFiltro(value);
+                      if (value === 'mes_atual') {
+                        setDataInicio(undefined);
+                        setDataFim(undefined);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o tipo de filtro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mes_atual">Mês Atual</SelectItem>
+                      <SelectItem value="periodo_personalizado">Período Personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {tipoFiltro === 'periodo_personalizado' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Data de Início</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !dataInicio && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={dataInicio}
+                              onSelect={setDataInicio}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Data de Fim</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !dataFim && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={dataFim}
+                              onSelect={setDataFim}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleAplicarPeriodo}
+                    className="w-full"
+                  >
+                    Aplicar Período Selecionado
+                  </Button>
+                </div>
+
+                {/* Exibir média mensal */}
+                <div className="mt-4 p-3 bg-muted/20 rounded-md">
+                  <Label className="text-sm font-medium">
+                    Média Mensal ({
+                      filtroPersonalizado.tipo === 'mes_atual' 
+                        ? 'Mês Atual'
+                        : filtroPersonalizado.tipo === 'periodo_personalizado' && filtroPersonalizado.dataInicio && filtroPersonalizado.dataFim
+                        ? `${format(filtroPersonalizado.dataInicio, 'MMM/yyyy', { locale: ptBR })} a ${format(filtroPersonalizado.dataFim, 'MMM/yyyy', { locale: ptBR })}`
+                        : 'Período Personalizado'
+                    }):
+                  </Label>
+                  <div className="text-2xl font-bold text-primary mt-2">
+                    {formatCurrency(calcularMediaMensal)}
+                  </div>
+                </div>
+              </div>
 
                   <TabsContent value="1" className="mt-4">
                     <div className="text-center p-4 bg-muted/50 rounded-lg">

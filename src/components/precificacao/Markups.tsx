@@ -8,7 +8,7 @@ import { Calculator, Plus, Trash2, Edit2, Info, Settings, ChevronDown, ChevronUp
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CustosModal } from './CustosModal';
+import { CustosModal } from './CustosModalSimple';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Calendar } from '@/components/ui/calendar';
@@ -789,163 +789,36 @@ export function Markups() {
       </div>
 
 
-      {/* Modal de Configuração de Custos com Filtro Personalizado */}
-      <Dialog open={modalConfiguracaoAberto} onOpenChange={setModalConfiguracaoAberto}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Configurações de Custos - {blocos.find(b => b.id === blocoConfigurandoId)?.nome}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-            {/* Seção de Filtro de Período */}
-            <div className="bg-muted/10 rounded-lg p-4 border">
-              <h3 className="font-medium mb-4 text-lg">Período de Análise</h3>
-              
-              <div className="space-y-4">
-                <Select 
-                  value={tipoFiltro} 
-                  onValueChange={(value: 'mes_atual' | 'periodo_personalizado') => {
-                    setTipoFiltro(value);
-                    if (value === 'mes_atual') {
-                      setDataInicio(undefined);
-                      setDataFim(undefined);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione o tipo de filtro" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mes_atual">Mês Atual</SelectItem>
-                    <SelectItem value="periodo_personalizado">Período Personalizado</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {tipoFiltro === 'periodo_personalizado' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Data de Início</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !dataInicio && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={dataInicio}
-                            onSelect={setDataInicio}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Data de Fim</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !dataFim && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Selecionar mês"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={dataFim}
-                            onSelect={setDataFim}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                )}
-
-                <Button 
-                  onClick={async () => {
-                    if (blocoConfigurandoId) {
-                      const periodo: PeriodoFiltro = {
-                        tipo: tipoFiltro,
-                        ...(tipoFiltro === 'periodo_personalizado' && { 
-                          dataInicio, 
-                          dataFim 
-                        })
-                      };
-                      
-                      if (tipoFiltro === 'periodo_personalizado' && (!dataInicio || !dataFim)) {
-                        toast({
-                          title: 'Erro',
-                          description: 'Selecione as datas de início e fim para o período personalizado.',
-                          variant: 'destructive'
-                        });
-                        return;
-                      }
-                      
-                      await aplicarPeriodo(blocoConfigurandoId, periodo);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  Aplicar Período Selecionado
-                </Button>
-              </div>
-            </div>
-
-            {/* Seção de Configuração de Custos */}
-            <div>
-              <h3 className="font-medium mb-4 text-lg">Selecionar Custos</h3>
-                {blocoConfigurandoId && (
-                  <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Configure quais custos serão considerados no cálculo do markup
-                    </div>
-                    <Button 
-                      onClick={() => aplicarConfiguracaoPadrao(blocoConfigurandoId)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                    >
-                      ⚡ Aplicar Configuração Padrão (Todos os Itens Ativos)
-                    </Button>
-                  </div>
-                )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setModalConfiguracaoAberto(false);
-                setBlocoConfigurandoId(null);
-                setTipoFiltro('mes_atual');
-                setDataInicio(undefined);
-                setDataFim(undefined);
-              }}
-            >
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de Configuração de Itens */}
+      {modalConfiguracaoAberto && blocoConfigurandoId && (
+        <CustosModal
+          open={modalConfiguracaoAberto}
+          onOpenChange={(open) => {
+            setModalConfiguracaoAberto(open);
+            if (!open) setBlocoConfigurandoId(null);
+          }}
+          markupBlock={blocos.find((b) => b.id === blocoConfigurandoId)}
+          onMarkupUpdate={(markup) => {
+            if (!blocoConfigurandoId) return;
+            const calculatedMarkup: CalculatedMarkup = {
+              gastoSobreFaturamento: markup.gastoSobreFaturamento || 0,
+              impostos: markup.impostos || 0,
+              taxasMeiosPagamento: markup.taxasMeiosPagamento || 0,
+              comissoesPlataformas: markup.comissoesPlataformas || 0,
+              outros: markup.outros || 0,
+              valorEmReal: markup.valorEmReal || 0
+            };
+            const m = new Map(calculatedMarkups);
+            m.set(blocoConfigurandoId, calculatedMarkup);
+            setCalculatedMarkups(m);
+            toast({
+              title: 'Configuração aplicada!',
+              description: 'Os cálculos foram atualizados com os itens selecionados.',
+              duration: 3000
+            });
+          }}
+        />
+      )}
 
       {/* Modal de Edição de Nome */}
       <Dialog open={modalEdicaoNome} onOpenChange={setModalEdicaoNome}>
