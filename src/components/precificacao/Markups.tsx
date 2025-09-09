@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -94,140 +94,132 @@ export function Markups() {
 
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
-    // Buscar dados uma só vez para todos os blocos (Isso está ótimo para performance)
+    // Buscar dados base
     const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
-        supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
-        supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
-        supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+      supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+      supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+      supabase.from('encargos_venda').select('*').eq('user_id', user.id)
     ]);
 
-    // <<-- CORREÇÃO: Carrega todos os faturamentos aqui, mas o cálculo será feito dentro do loop.
+    // Faturamentos históricos
     const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
     const todosFaturamentos = (faturamentosConfig && Array.isArray(faturamentosConfig))
-        ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
-        : [];
+      ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
+      : [];
 
     console.log('📊 Dados base para cálculo:', {
-        despesasFixas: despesasFixas?.length,
-        folhaPagamento: folhaPagamento?.length,
-        encargosVenda: encargosVenda?.length,
-        totalFaturamentos: todosFaturamentos.length
+      despesasFixas: despesasFixas?.length,
+      folhaPagamento: folhaPagamento?.length,
+      encargosVenda: encargosVenda?.length,
+      totalFaturamentos: todosFaturamentos.length
     });
 
     // Processar cada bloco individualmente
     for (const bloco of blocos) {
-        const configKey = `checkbox-states-${bloco.id}`;
-        const config = await loadConfiguration(configKey);
-        
-        console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
+      // 🔎 Atenção: a chave de items configurados deve bater com a usada no modal
+      const configKey = `checkbox-states-${bloco.id}`;
+      const config = await loadConfiguration(configKey);
+      console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
-        // <<-- CORREÇÃO: Lógica de cálculo da média de faturamento movida para DENTRO do loop
-        let mediaMensal = 0;
-        const periodoSelecionado = periodosAplicados.get(bloco.id) || 'todos'; // Default para 'todos'
-        
-        let faturamentosFiltrados = todosFaturamentos;
+      // Média por período selecionado do BLOCO
+      let mediaMensal = 0;
+      const periodoSelecionado = periodosAplicados.get(bloco.id) || 'todos';
 
-        if (periodoSelecionado !== 'todos') {
-            // 🔥 CORREÇÃO: Garantir que o período é string antes de parseInt
-            const mesesAtras = parseInt(String(periodoSelecionado), 10);
-            const dataLimite = new Date();
-            dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+      let faturamentosFiltrados = todosFaturamentos;
+      if (periodoSelecionado !== 'todos') {
+        const mesesAtras = parseInt(String(periodoSelecionado), 10);
+        const dataLimite = new Date();
+        dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+        faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+      }
 
-            faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+      if (faturamentosFiltrados.length > 0) {
+        const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+        mediaMensal = total / faturamentosFiltrados.length;
+      }
+
+      console.log(`📅 Para o bloco "${bloco.nome}" com período "${periodoSelecionado}", a média mensal é: ${mediaMensal}`);
+
+      if (config && typeof config === 'object' && Object.keys(config).length > 0) {
+        let gastosSobreFaturamento = 0;
+
+        // Despesas fixas ativas e marcadas
+        const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => config[d.id] && d.ativo) : [];
+        const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
+
+        // Folha de pagamento ativa e marcada
+        const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
+        const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+          const custoMensal = funcionario.custo_por_hora > 0
+            ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+            : funcionario.salario_base;
+          return acc + Number(custoMensal);
+        }, 0);
+
+        const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+
+        // % sobre média do período
+        if (mediaMensal > 0 && totalGastos > 0) {
+          gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
         }
 
-        if (faturamentosFiltrados.length > 0) {
-            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
-            mediaMensal = total / faturamentosFiltrados.length;
-        }
-        
-        console.log(`📅 Para o bloco "${bloco.nome}" com período "${periodoSelecionado}", a média mensal é: ${mediaMensal}`);
+        console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
+          totalGastos,
+          mediaMensal,
+          gastosSobreFaturamento
+        });
 
-        if (config && typeof config === 'object' && Object.keys(config).length > 0) {
-            
-            let gastosSobreFaturamento = 0;
-            
-            // Somar despesas fixas marcadas como "Considerar" E ATIVAS
-            const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => config[d.id] && d.ativo) : [];
-            const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
-            
-            // Somar folha de pagamento marcada como "Considerar" E ATIVA
-            const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
-            const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
-                const custoMensal = funcionario.custo_por_hora > 0 
-                    ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
-                    : funcionario.salario_base;
-                return acc + Number(custoMensal);
-            }, 0);
-            
-            const totalGastos = totalDespesasFixas + totalFolhaPagamento;
-            
-            // Calcular porcentagem sobre a média mensal ESPECÍFICA deste bloco
-            if (mediaMensal > 0 && totalGastos > 0) {
-                gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
-            }
+        // Encargos por categoria
+        const encargosConsiderados = encargosVenda ? encargosVenda.filter(e => config[e.id] && e.ativo) : [];
+        const valorEmReal = encargosConsiderados.reduce((acc, encargo) => acc + Number(encargo.valor_fixo || 0), 0);
 
-            console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
-                totalGastos,
-                mediaMensal,
-                gastosSobreFaturamento
-            });
+        const categorias = encargosConsiderados.reduce((acc, encargo) => {
+          const categoria = getCategoriaByNome(encargo.nome);
+          const valor = Number(encargo.valor_percentual || 0);
+          switch (categoria) {
+            case 'impostos': acc.impostos += valor; break;
+            case 'meios_pagamento': acc.taxasMeiosPagamento += valor; break;
+            case 'comissoes': acc.comissoesPlataformas += valor; break;
+            case 'outros': acc.outros += valor; break;
+          }
+          return acc;
+        }, {
+          gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
+          impostos: 0,
+          taxasMeiosPagamento: 0,
+          comissoesPlataformas: 0,
+          outros: 0,
+          valorEmReal: valorEmReal
+        } as CalculatedMarkup);
 
-            // O restante da lógica permanece o mesmo...
-            const encargosConsiderados = encargosVenda ? encargosVenda.filter(e => config[e.id] && e.ativo) : [];
-            const valorEmReal = encargosConsiderados.reduce((acc, encargo) => acc + Number(encargo.valor_fixo || 0), 0);
-            
-            const categorias = encargosConsiderados.reduce((acc, encargo) => {
-                const categoria = getCategoriaByNome(encargo.nome);
-                const valor = Number(encargo.valor_percentual || 0);
-                
-                switch (categoria) {
-                    case 'impostos': acc.impostos += valor; break;
-                    case 'meios_pagamento': acc.taxasMeiosPagamento += valor; break;
-                    case 'comissoes': acc.comissoesPlataformas += valor; break;
-                    case 'outros': acc.outros += valor; break;
-                }
-                return acc;
-            }, {
-                gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
-                impostos: 0,
-                taxasMeiosPagamento: 0,
-                comissoesPlataformas: 0,
-                outros: 0,
-                valorEmReal: valorEmReal
-            });
+        novosCalculatedMarkups.set(bloco.id, categorias);
+        console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
 
-            novosCalculatedMarkups.set(bloco.id, categorias);
-            console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
-
-        } else {
-            console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
-            novosCalculatedMarkups.set(bloco.id, {
-                gastoSobreFaturamento: 0,
-                impostos: 0,
-                taxasMeiosPagamento: 0,
-                comissoesPlataformas: 0,
-                outros: 0,
-                valorEmReal: 0
-            });
-        }
+      } else {
+        console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
+        novosCalculatedMarkups.set(bloco.id, {
+          gastoSobreFaturamento: 0,
+          impostos: 0,
+          taxasMeiosPagamento: 0,
+          comissoesPlataformas: 0,
+          outros: 0,
+          valorEmReal: 0
+        });
+      }
     }
-    
+
     if (novosCalculatedMarkups.size > 0) {
-        setCalculatedMarkups(novosCalculatedMarkups);
-        console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
+      setCalculatedMarkups(novosCalculatedMarkups);
+      console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
-}, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados, isLoadingPeriodos]);
+  }, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados, isLoadingPeriodos]);
 
   // 🎯 NOVO: Funções para gerenciar submenu de períodos
   const toggleSubmenu = useCallback((blocoId: string) => {
     setSubmenusAbertos(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(blocoId)) {
-        newSet.delete(blocoId);
-      } else {
-        newSet.add(blocoId);
-      }
+      if (newSet.has(blocoId)) newSet.delete(blocoId);
+      else newSet.add(blocoId);
       return newSet;
     });
   }, []);
@@ -262,7 +254,6 @@ export function Markups() {
         encargosVenda: Object.fromEntries((encargosVenda || []).map(e => [e.id, true]))
       };
       
-      // Salvar configuração
       await saveConfiguration(`configuracao-itens-${blocoId}`, configuracaoPadrao);
       
       // Fechar submenu e recalcular
@@ -348,32 +339,26 @@ export function Markups() {
       setIsLoadingPeriodos(true);
       
       const periodosMap = new Map<string, string>();
+      const periodosValidos = new Set(['1','3','6','12','todos']);
       
       for (const bloco of blocos) {
         try {
           const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
-          if (periodo) {
-            // 🔥 CORREÇÃO: Normalizar período carregado para string e validar
+          if (periodo !== undefined && periodo !== null) {
             let periodoNormalizado = String(periodo);
-            
-            // Validar se é um período aceito
-            const periodosValidos = ["1", "3", "6", "12", "todos"];
-            if (!periodosValidos.includes(periodoNormalizado)) {
+            if (!periodosValidos.has(periodoNormalizado)) {
               console.log(`⚠️ Período inválido "${periodoNormalizado}" para ${bloco.nome}, usando "todos"`);
-              periodoNormalizado = "todos";
+              periodoNormalizado = 'todos';
             }
-            
             periodosMap.set(bloco.id, periodoNormalizado);
             console.log(`📅 Período carregado para ${bloco.nome}: ${periodoNormalizado}`);
           } else {
-            // 🔥 CORREÇÃO: Se não há período salvo, usar "todos" como padrão
-            periodosMap.set(bloco.id, "todos");
+            periodosMap.set(bloco.id, 'todos');
             console.log(`📅 Período padrão definido para ${bloco.nome}: todos`);
           }
         } catch (error) {
           console.warn(`⚠️ Erro ao carregar período para bloco ${bloco.id}:`, error);
-          // 🔥 CORREÇÃO: Em caso de erro, usar "todos" como fallback
-          periodosMap.set(bloco.id, "todos");
+          periodosMap.set(bloco.id, 'todos');
         }
       }
       
@@ -385,20 +370,19 @@ export function Markups() {
     carregarPeriodos();
   }, [user?.id, blocos, loadConfiguration]);
 
-  // 🎯 NOVO: Fechar submenu ao clicar fora - MELHORADO
+  // 🎯 NOVO: Fechar submenu ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      // Verificar se o clique foi fora de qualquer card de markup
-      if (!target.closest('[data-markup-card]')) {
-        setSubmenusAbertos(new Set());
+      if (submenusAbertos.size > 0) {
+        const target = event.target as Element;
+        if (!target.closest('.relative')) {
+          setSubmenusAbertos(new Set());
+        }
       }
     };
 
-    if (submenusAbertos.size > 0) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [submenusAbertos.size]);
 
   useEffect(() => {
@@ -443,7 +427,6 @@ export function Markups() {
         (payload) => {
           console.log('📡 Configuração alterada:', payload);
           
-          // Verificar se é uma alteração relacionada a markup
           const newRecord = payload.new as any;
           const oldRecord = payload.old as any;
           const configType = newRecord?.type || oldRecord?.type;
@@ -453,14 +436,13 @@ export function Markups() {
                configType === 'faturamentos_historicos' ||
                configType === 'despesas_fixas' ||
                configType === 'folha_pagamento' ||
-               configType === 'encargos_venda')) {
+               configType === 'encargos_venda' ||
+               configType.startsWith('filtro-periodo-') ||
+               configType.startsWith('checkbox-states-') ||
+               configType === 'markups_blocos')) {
             
             console.log('🔃 Recarregando configurações devido à mudança em tempo real');
-            
-            // Invalidar cache para forçar recarregamento
             invalidateCache();
-            
-            // Pequeno delay para garantir que todas as alterações foram salvas
             setTimeout(() => {
               carregarConfiguracoesSalvas();
             }, 300);
@@ -483,10 +465,7 @@ export function Markups() {
   }, []);
 
   const salvarBlocos = useCallback(async (novosBlocos: MarkupBlock[]) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
         await saveConfiguration('markups_blocos', novosBlocos);
@@ -526,11 +505,11 @@ export function Markups() {
     
     // 🔥 CORREÇÃO: Definir período padrão para novos blocos
     const periodosPadrao = new Map(periodosAplicados);
-    periodosPadrao.set(novoBloco.id, "todos");
+    periodosPadrao.set(novoBloco.id, 'todos');
     setPeriodosAplicados(periodosPadrao);
     
     // Salvar período padrão
-    saveConfiguration(`filtro-periodo-${novoBloco.id}`, "todos").catch(error => {
+    saveConfiguration(`filtro-periodo-${novoBloco.id}`, 'todos').catch(error => {
       console.warn('⚠️ Erro ao salvar período padrão:', error);
     });
     
@@ -538,15 +517,15 @@ export function Markups() {
     saveConfiguration('markups_blocos', novosBlocos).then(() => {
       console.log('✅ Novo bloco criado com sucesso:', novoBloco);
       toast({
-        title: "Bloco criado!",
+        title: 'Bloco criado!',
         description: `O bloco "${novoBloco.nome}" foi criado com período padrão "todos".`
       });
     }).catch(error => {
       console.error('❌ Erro ao criar novo bloco:', error);
       toast({
-        title: "Erro ao criar bloco",
-        description: "Não foi possível criar o novo bloco de markup",
-        variant: "destructive"
+        title: 'Erro ao criar bloco',
+        description: 'Não foi possível criar o novo bloco de markup',
+        variant: 'destructive'
       });
     });
   };
@@ -580,16 +559,16 @@ export function Markups() {
       console.log('✅ Novo bloco criado com sucesso:', novoBloco);
       
       toast({
-        title: "Bloco criado com sucesso",
+        title: 'Bloco criado com sucesso',
         description: `O bloco "${novoBloco.nome}" foi criado e configurado.`
       });
       
     } catch (error) {
       console.error('❌ Erro ao criar novo bloco:', error);
       toast({
-        title: "Erro ao criar bloco",
-        description: "Não foi possível criar o novo bloco de markup",
-        variant: "destructive"
+        title: 'Erro ao criar bloco',
+        description: 'Não foi possível criar o novo bloco de markup',
+        variant: 'destructive'
       });
     }
   };
@@ -615,7 +594,6 @@ export function Markups() {
 
   const calcularMarkupIdeal = (bloco: MarkupBlock, markupData?: CalculatedMarkup): number => {
     const markupValues = markupData || calculatedMarkups.get(bloco.id);
-    
     if (!markupValues) return 1;
     
     const somaPercentuais = markupValues.gastoSobreFaturamento + 
@@ -624,23 +602,16 @@ export function Markups() {
                             markupValues.comissoesPlataformas + 
                             markupValues.outros + bloco.lucroDesejado;
     
-    // Converte percentuais para decimais e aplica a fórmula: Markup = 1 / (1 - somaPercentuais)
     const somaDecimais = somaPercentuais / 100;
-    
-    // Evita divisão por zero e valores inválidos
     if (somaDecimais >= 1) {
       console.warn('⚠️ Soma dos percentuais é >= 100%, retornando markup padrão');
       return 1;
     }
-    
     const markupFinal = 1 / (1 - somaDecimais);
-    
-    // Verifica se o resultado é um número válido
     if (!isFinite(markupFinal) || isNaN(markupFinal)) {
       console.warn('⚠️ Markup calculado é inválido:', markupFinal, 'retornando 1');
       return 1;
     }
-    
     return markupFinal;
   };
 
@@ -763,11 +734,10 @@ export function Markups() {
           const calculated = calculatedMarkups.get(bloco.id);
           const hasCalculated = calculated !== undefined;
           const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
-          const configExpansionKey = `expansion-${bloco.id}`;
           const showExpansion = submenusAbertos.has(bloco.id);
           
           return (
-            <Card key={bloco.id} className="border-border" data-markup-card>
+            <Card key={bloco.id} className="border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-primary capitalize font-bold text-xl">
@@ -864,13 +834,13 @@ export function Markups() {
                 </div>
 
                 {/* Expansão de Configuração */}
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out bg-background border-t relative z-50 ${
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
                   showExpansion 
-                    ? 'max-h-[800px] opacity-100 pt-4 mt-4' 
-                    : 'max-h-0 opacity-0 pt-0 mt-0'
+                    ? 'max-h-[600px] opacity-100' 
+                    : 'max-h-0 opacity-0'
                 }`}>
                   {showExpansion && (
-                    <div className="space-y-4 animate-fade-in bg-background p-4 rounded-lg border shadow-lg">
+                    <div className="border-t pt-4 mt-4 space-y-4 animate-fade-in">
                       <div className="text-sm font-medium text-muted-foreground">
                         Configurações de Custos - {bloco.nome}
                       </div>
