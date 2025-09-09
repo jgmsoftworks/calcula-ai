@@ -73,7 +73,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
-  const [filtroPerido, setFiltroPerido] = useState<string>('6');
+  const [filtroPerido, setFiltroPerido] = useState<string>('12'); // Padrão 12 meses
   
   // Debug do estado do filtro
   useEffect(() => {
@@ -111,12 +111,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         console.log('✅ Aplicando filtro salvo:', filtroSalvo);
         setFiltroPerido(filtroSalvo);
       } else {
-        console.log('⚠️ Nenhum filtro salvo encontrado, mantendo atual:', filtroPerido);
-        // NÃO sobrescrever o valor atual se não houver filtro salvo
+        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão 12 meses');
+        setFiltroPerido('12'); // Forçar padrão
       }
     } catch (error) {
       console.error('❌ Erro ao carregar filtro:', error);
-      // NÃO alterar o valor em caso de erro
+      setFiltroPerido('12'); // Fallback
     }
   };
 
@@ -742,31 +742,33 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           </DialogDescription>
         </DialogHeader>
 
-        {markupBlock && (
-          <Card className="bg-blue-50/50 border-blue-200">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Valores do Bloco de Markup</CardTitle>
-                <div className="flex items-center gap-4">
-                  <Select value={filtroPerido} onValueChange={handleFiltroChange}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Período" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Último mês</SelectItem>
-                      <SelectItem value="3">Últimos 3 meses</SelectItem>
-                      <SelectItem value="6">Últimos 6 meses</SelectItem>
-                      <SelectItem value="12">Últimos 12 meses</SelectItem>
-                      <SelectItem value="todos">Todos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Média Mensal</p>
-                    <p className="text-lg font-semibold text-primary">{formatCurrency(calcularMediaMensal)}</p>
-                  </div>
+        <Card className="bg-blue-50/50 border-blue-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">
+                {markupBlock ? 'Valores do Bloco de Markup' : 'Configuração do Novo Bloco'}
+              </CardTitle>
+              <div className="flex items-center gap-4">
+                <Select value={filtroPerido} onValueChange={handleFiltroChange}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Último mês</SelectItem>
+                    <SelectItem value="3">Últimos 3 meses</SelectItem>
+                    <SelectItem value="6">Últimos 6 meses</SelectItem>
+                    <SelectItem value="12">Últimos 12 meses</SelectItem>
+                    <SelectItem value="todos">Todos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Média Mensal</p>
+                  <p className="text-lg font-semibold text-primary">{formatCurrency(calcularMediaMensal)}</p>
                 </div>
               </div>
-            </CardHeader>
+            </div>
+          </CardHeader>
+          {markupBlock && (
             <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
@@ -777,7 +779,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.impostos || 0)}%</p>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Taxas de pagamento</Label>
+                <Label className="text-sm font-medium">Taxas da pagamento</Label>
                 <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.taxasMeiosPagamento || 0)}%</p>
               </div>
               <div className="space-y-1">
@@ -797,8 +799,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 <p className="text-lg font-semibold text-green-600">{formatPercentage(currentMarkupValues.lucroDesejado || 0)}%</p>
               </div>
             </CardContent>
-          </Card>
-        )}
+          )}
+        </Card>
 
         <Tabs defaultValue="despesas-fixas" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
