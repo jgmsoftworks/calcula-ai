@@ -125,79 +125,60 @@ export function GeralStep() {
           </CardContent>
         </Card>
 
-        {/* Coluna da direita: Conservação e Observações */}
-        <div className="space-y-6">
-          {/* Conservação */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Conservação:</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Descrição</TableHead>
-                    <TableHead className="text-xs">Temp. °C</TableHead>
-                    <TableHead className="text-xs">Tempo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {conservacao.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium text-sm">{item.descricao}</TableCell>
-                      <TableCell>
+        {/* Conservação */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Conservação:</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Descrição</TableHead>
+                  <TableHead className="text-xs">Temp. °C</TableHead>
+                  <TableHead className="text-xs">Tempo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {conservacao.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium text-sm">{item.descricao}</TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.temperatura}
+                        onChange={(e) => atualizarConservacao(item.id, 'temperatura', e.target.value)}
+                        className="w-16 h-6 text-xs"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
                         <Input
-                          value={item.temperatura}
-                          onChange={(e) => atualizarConservacao(item.id, 'temperatura', e.target.value)}
-                          className="w-16 h-6 text-xs"
+                          type="number"
+                          value={item.tempo}
+                          onChange={(e) => atualizarConservacao(item.id, 'tempo', parseInt(e.target.value) || 0)}
+                          className="w-12 h-6 text-xs"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            value={item.tempo}
-                            onChange={(e) => atualizarConservacao(item.id, 'tempo', parseInt(e.target.value) || 0)}
-                            className="w-12 h-6 text-xs"
-                          />
-                          <Select 
-                            value={item.unidade_tempo} 
-                            onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
-                          >
-                            <SelectTrigger className="w-16 h-6 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="horas">horas</SelectItem>
-                              <SelectItem value="dias">dias</SelectItem>
-                              <SelectItem value="meses">meses</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Observações */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Observações:</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Adicione observações importantes sobre a receita..."
-                value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-                rows={6}
-                className="resize-none"
-              />
-            </CardContent>
-          </Card>
-        </div>
+                        <Select 
+                          value={item.unidade_tempo} 
+                          onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
+                        >
+                          <SelectTrigger className="w-16 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="horas">horas</SelectItem>
+                            <SelectItem value="dias">dias</SelectItem>
+                            <SelectItem value="meses">meses</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modo de Preparo */}
@@ -268,6 +249,22 @@ export function GeralStep() {
               {index < passosPreparo.length - 1 && <Separator />}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Observações */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Observações:</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Adicione observações importantes sobre a receita..."
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            rows={6}
+            className="resize-none"
+          />
         </CardContent>
       </Card>
     </div>
