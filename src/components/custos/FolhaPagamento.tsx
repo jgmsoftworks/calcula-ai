@@ -147,8 +147,8 @@ export function FolhaPagamento() {
         outros_valor: parseCurrencyValue(formData.outros_valor),
         horas_por_dia: parseFloat(formData.horas_por_dia),
         dias_por_semana: parseFloat(formData.dias_por_semana),
-        semanas_por_mes: parsePercentValue(formData.semanas_por_mes),
-        horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parsePercentValue(formData.semanas_por_mes),
+        semanas_por_mes: parseFloat(formData.semanas_por_mes),
+        horas_totais_mes: parseFloat(formData.horas_por_dia) * parseFloat(formData.dias_por_semana) * parseFloat(formData.semanas_por_mes),
         custo_por_hora: calculateCustoPorHora(),
         ativo: true
       };
@@ -291,7 +291,7 @@ export function FolhaPagamento() {
   const calculateHorasTotais = () => {
     const horasDia = parseFloat(formData.horas_por_dia || '0');
     const diasSemana = parseFloat(formData.dias_por_semana || '0');
-    const semanasMes = parsePercentValue(formData.semanas_por_mes || '0');
+    const semanasMes = parseFloat(formData.semanas_por_mes || '0');
     return Math.round((horasDia * diasSemana * semanasMes) * 100) / 100;
   };
 
