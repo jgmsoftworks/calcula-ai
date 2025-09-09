@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Ingrediente {
   id: string;
@@ -15,30 +16,59 @@ interface Ingrediente {
   unidade: string;
   custo_unitario: number;
   custo_total: number;
+  marcas?: string[];
+}
+
+interface Produto {
+  id: string;
+  nome: string;
+  unidade: string;
+  custo_medio: number;
+  marcas?: string[];
 }
 
 export function IngredientesStep() {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Mock data de produtos disponíveis
-  const produtosDisponiveis = [
-    { id: '1', nome: 'Farinha de Trigo', unidade: 'kg', custo_unitario: 4.50 },
-    { id: '2', nome: 'Açúcar Cristal', unidade: 'kg', custo_unitario: 3.20 },
-    { id: '3', nome: 'Ovos', unidade: 'un', custo_unitario: 0.80 },
-    { id: '4', nome: 'Chocolate em Pó', unidade: 'kg', custo_unitario: 12.00 },
-    { id: '5', nome: 'Leite Integral', unidade: 'L', custo_unitario: 5.50 },
-  ];
+  const [produtosDisponiveis, setProdutosDisponiveis] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const adicionarIngrediente = (produto: any) => {
+  useEffect(() => {
+    loadProdutos();
+  }, []);
+
+  const loadProdutos = async () => {
+    try {
+      setLoading(true);
+      const { data: produtos, error } = await supabase
+        .from('produtos')
+        .select('id, nome, unidade, custo_medio, marcas')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (error) {
+        console.error('Erro ao carregar produtos:', error);
+        return;
+      }
+
+      setProdutosDisponiveis(produtos || []);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const adicionarIngrediente = (produto: Produto) => {
     const novoIngrediente: Ingrediente = {
       id: Date.now().toString(),
       produto_id: produto.id,
       nome: produto.nome,
       quantidade: 1,
       unidade: produto.unidade,
-      custo_unitario: produto.custo_unitario,
-      custo_total: produto.custo_unitario,
+      custo_unitario: produto.custo_medio,
+      custo_total: produto.custo_medio,
+      marcas: produto.marcas,
     };
     
     setIngredientes([...ingredientes, novoIngrediente]);
@@ -84,24 +114,44 @@ export function IngredientesStep() {
               />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            {produtosFiltrados.map((produto) => (
-              <div key={produto.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                <div>
-                  <p className="font-medium">{produto.nome}</p>
-                  <p className="text-sm text-muted-foreground">
-                    R$ {produto.custo_unitario.toFixed(2)} / {produto.unidade}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => adicionarIngrediente(produto)}
-                  disabled={ingredientes.some(item => item.produto_id === produto.id)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+           <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+             {loading ? (
+               <div className="flex items-center justify-center py-8">
+                 <p className="text-muted-foreground">Carregando produtos...</p>
+               </div>
+             ) : produtosFiltrados.length === 0 ? (
+               <div className="text-center py-8 text-muted-foreground">
+                 <p>Nenhum produto encontrado</p>
+                 <p className="text-sm">Cadastre produtos no estoque primeiro</p>
+               </div>
+             ) : (
+                produtosFiltrados.map((produto) => (
+               <div key={produto.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                 <div>
+                   <p className="font-medium">{produto.nome}</p>
+                    <p className="text-sm text-muted-foreground">
+                      R$ {produto.custo_medio.toFixed(2)} / {produto.unidade}
+                    </p>
+                    {produto.marcas && produto.marcas.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {produto.marcas.map((marca, index) => (
+                          <Badge key={index} variant="outline" className="text-xs py-0">
+                            {marca}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                 </div>
+                 <Button
+                   size="sm"
+                   onClick={() => adicionarIngrediente(produto)}
+                   disabled={ingredientes.some(item => item.produto_id === produto.id)}
+                 >
+                   <Plus className="h-4 w-4" />
+                 </Button>
+               </div>
+             ))
+             )}
           </CardContent>
         </Card>
 
@@ -134,14 +184,23 @@ export function IngredientesStep() {
                 <TableBody>
                   {ingredientes.map((ingrediente) => (
                     <TableRow key={ingrediente.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-sm">{ingrediente.nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            R$ {ingrediente.custo_unitario.toFixed(2)} / {ingrediente.unidade}
-                          </p>
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div>
+                           <p className="font-medium text-sm">{ingrediente.nome}</p>
+                           <p className="text-xs text-muted-foreground">
+                             R$ {ingrediente.custo_unitario.toFixed(2)} / {ingrediente.unidade}
+                           </p>
+                           {ingrediente.marcas && ingrediente.marcas.length > 0 && (
+                             <div className="flex flex-wrap gap-1 mt-1">
+                               {ingrediente.marcas.map((marca, index) => (
+                                 <Badge key={index} variant="outline" className="text-xs py-0">
+                                   {marca}
+                                 </Badge>
+                               ))}
+                             </div>
+                           )}
+                         </div>
+                       </TableCell>
                       <TableCell>
                         <Input
                           type="number"
