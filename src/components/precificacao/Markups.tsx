@@ -111,8 +111,8 @@ export function Markups() {
         supabase.from('encargos_venda').select('*').eq('user_id', user.id)
       ]);
 
-      // faturamentos (uma vez)
-      const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+      // faturamentos sempre fresh para cálculos atualizados
+      const faturamentosConfig = await loadConfiguration('faturamentos_historicos', { fresh: true });
       const todosFaturamentos: Array<{ mes: Date; valor: number }> =
         faturamentosConfig && Array.isArray(faturamentosConfig)
           ? faturamentosConfig.map((f: any) => ({ mes: new Date(f.mes), valor: Number(f.valor) || 0 }))
@@ -121,14 +121,12 @@ export function Markups() {
       let blocosAtualizados: MarkupBlock[] | null = null;
 
       for (const bloco of blocos) {
-        // período vindo do bloco OU do user_configurations
-        let periodo = bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo)) ? String(bloco.periodo) : undefined;
-
-        if (!periodo) {
-          const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
-          const norm = salvo == null ? 'todos' : String(salvo);
-          periodo = PERIODOS_VALIDOS.has(norm) ? norm : 'todos';
-
+        // SEMPRE carregar período fresh do storage para pegar mudanças do modal
+        const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
+        let periodo = salvo && PERIODOS_VALIDOS.has(String(salvo)) ? String(salvo) : 'todos';
+        
+        // Atualizar bloco com período carregado
+        if (periodo !== bloco.periodo) {
           if (!blocosAtualizados) blocosAtualizados = [...blocos];
           blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));
         }
@@ -148,8 +146,8 @@ export function Markups() {
           mediaMensal = total / faturamentosFiltrados.length;
         }
 
-        // checkbox-states sem fresh excessivo
-        const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`);
+        // checkbox-states sempre fresh para pegar mudanças do modal
+        const configCheckbox = await loadConfiguration(`checkbox-states-${bloco.id}`, { fresh: true });
 
         if (configCheckbox && typeof configCheckbox === 'object' && Object.keys(configCheckbox).length > 0) {
           const despesasConsideradas = (despesasFixas || []).filter(d => configCheckbox[d.id] && d.ativo);
@@ -222,10 +220,11 @@ export function Markups() {
     }
   }, [user?.id, blocos, loadConfiguration, saveConfiguration, invalidateCache, getCategoriaByNome]);
 
-  // carregar blocos sem fresh excessivo
+  // carregar blocos e faturamentos na inicialização
   useEffect(() => {
     const carregar = async () => {
       try {
+        // Carregar blocos
         const cfg = await loadConfiguration('markups_blocos');
         if (cfg && Array.isArray(cfg)) {
           const normalizados: MarkupBlock[] = (cfg as MarkupBlock[]).map(b => ({
@@ -234,6 +233,10 @@ export function Markups() {
           }));
           setBlocos(normalizados);
         }
+        
+        // Carregar faturamentos para inicializar cálculos
+        await loadConfiguration('faturamentos_historicos', { fresh: true });
+        
       } catch (e) {
         console.error('Erro ao carregar blocos:', e);
       }
@@ -241,10 +244,15 @@ export function Markups() {
     carregar();
   }, [loadConfiguration]);
 
-  // recálculo inicial (protegido) - só quando trocar de usuário ou carregar blocos pela primeira vez
+  // recálculo inicial e quando trocar bloco - sempre com fresh para pegar mudanças do modal
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
-      recalcOnce(carregarConfiguracoesSalvas);
+      // Delay para permitir que o componente se estabilize
+      const timer = setTimeout(() => {
+        recalcOnce(carregarConfiguracoesSalvas);
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [blocos.length, user?.id, recalcOnce]);
 
@@ -362,15 +370,17 @@ export function Markups() {
         return m;
       });
 
-      // invalida caches apenas do bloco específico e recalc protegido
+      // CRÍTICO: Invalidar todos os caches relacionados ao bloco
       invalidateCache(`filtro-periodo-${blocoId}`);
       invalidateCache(`checkbox-states-${blocoId}`);
+      invalidateCache('faturamentos_historicos'); // Também invalidar faturamentos
       
-      // Debounce o recálculo para evitar chamadas excessivas
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        recalcOnce(carregarConfiguracoesSalvas);
-      }, 300);
+      // Recálculo imediato e protegido
+      setTimeout(() => {
+        if (!recalculandoRef.current) {
+          recalcOnce(carregarConfiguracoesSalvas);
+        }
+      }, 200); // Delay para garantir que as mudanças foram persistidas
     },
     [criandoNovoBloco, finalizarCriacaoBloco, carregarConfiguracoesSalvas, invalidateCache, recalcOnce]
   );

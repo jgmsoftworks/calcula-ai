@@ -97,9 +97,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   }, [markupBlock]);
 
-  // Chave única baseada no bloco (sempre usa ID se disponível, senão usa timestamp)
+  // Chave única baseada no bloco (sempre usa ID se disponível, senão usa timestamp fixo para novos)
   const getConfigKey = useCallback((tipo: string) => {
-    const blocoId = markupBlock?.id || 'temp-' + Date.now();
+    const blocoId = markupBlock?.id || 'new-block';
     return `${tipo}-${blocoId}`;
   }, [markupBlock?.id]);
 
@@ -126,7 +126,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   }, [getConfigKey, loadConfiguration]);
 
-  // Salvar filtro com proteção anti-reentrada
+  // Salvar filtro com proteção anti-reentrada e trigger para recálculo
   const handleFiltroChange = useCallback(async (novoFiltro: string) => {
     if (salvandoRef.current) return;
     
@@ -137,6 +137,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       const configKey = getConfigKey('filtro-periodo');
       await saveConfiguration(configKey, novoFiltro);
       invalidateCache(configKey);
+      
+      // Marcar que houve mudanças para disparar recálculo
+      setHasUnsavedChanges(true);
+      
     } catch (error) {
       console.error('❌ Erro ao salvar filtro:', error);
     } finally {
@@ -256,12 +260,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   }, [open, user?.id]); // Remove markupBlock?.id para evitar recarregamentos
 
-  // Recalcular markup quando dados carregarem (simplificado)
+  // Recalcular markup quando dados carregarem ou filtro mudar
   useEffect(() => {
     if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0) {
-      calcularMarkup(tempCheckboxStates);
+      debouncedCalculateMarkup(tempCheckboxStates);
     }
-  }, [open, markupBlock?.id, tempCheckboxStates]); // Simplificado para evitar loops
+  }, [open, markupBlock?.id, tempCheckboxStates, filtroPerido]); // Adicionar filtroPerido como dependência
 
   // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
   useEffect(() => {
@@ -557,12 +561,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [calcularMarkup]);
 
-  // Calcular markup sempre que os estados mudarem (simplificado)
+  // Calcular markup sempre que os estados ou filtro mudarem
   useEffect(() => {
     if (markupBlock && Object.keys(tempCheckboxStates).length > 0) {
       debouncedCalculateMarkup(tempCheckboxStates);
     }
-  }, [tempCheckboxStates, markupBlock?.id]); // Simplificado
+  }, [tempCheckboxStates, markupBlock?.id, filtroPerido]); // Adicionar filtroPerido
 
   const handleSalvar = useCallback(async () => {
     if (salvandoRef.current) return; // Proteção anti-reentrada
@@ -575,6 +579,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       
       // Aguardar atualização do estado
       await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // CRÍTICO: Invalidar cache do filtro específico para forçar releitura
+      const filtroKey = getConfigKey('filtro-periodo');
+      invalidateCache(filtroKey);
       
       // Salvar configurações com chave única
       const configKey = getConfigKey('checkbox-states');
@@ -596,9 +604,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           : "O novo bloco de markup foi criado e configurado"
       });
       
-      // Emitir callback para o componente pai
+      // Emitir callback para o componente pai COM os valores atuais
       if (onMarkupUpdate) {
-        onMarkupUpdate({ ...currentMarkupValues });
+        // Aguardar um frame para garantir que todos os cálculos foram concluídos
+        setTimeout(() => {
+          onMarkupUpdate({ ...currentMarkupValues });
+        }, 50);
       }
       
       // Fechar modal
@@ -617,13 +628,23 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   }, [tempCheckboxStates, currentMarkupValues, getConfigKey, saveConfiguration, invalidateCache, onMarkupUpdate, onOpenChange, markupBlock, toast]);
 
   const handleCancelar = () => {
-    console.log('🚫 Cancelando alterações, restaurando estados originais');
     // Restaurar estados originais
     setTempCheckboxStates(checkboxStates);
     setHasUnsavedChanges(false);
-    calcularMarkup(checkboxStates);
     onOpenChange(false);
   };
+
+  // Trigger para atualizar tela principal quando modal fechar
+  useEffect(() => {
+    if (!open && markupBlock && onMarkupUpdate) {
+      // Quando fechar o modal, garantir que a tela principal tenha os valores atualizados
+      const timer = setTimeout(() => {
+        onMarkupUpdate({ ...currentMarkupValues });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [open, markupBlock, onMarkupUpdate, currentMarkupValues]);
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
