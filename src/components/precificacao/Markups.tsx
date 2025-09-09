@@ -131,13 +131,30 @@ export function Markups() {
       for (const bloco of blocosParaCalcular) {
         console.log(`🔍 Processando bloco: ${bloco.nome} (${bloco.id})`);
         
-        // SEMPRE carregar período fresh do storage para pegar mudanças do modal
+        // SEMPRE carregar período fresh do storage - logs detalhados
         const salvo = await loadConfiguration(`filtro-periodo-${bloco.id}`, { fresh: true });
-        let periodo = salvo && PERIODOS_VALIDOS.has(String(salvo)) ? String(salvo) : 'todos';
+        let periodo: string;
         
-        console.log(`📅 Período para ${bloco.nome}: ${periodo} (salvo: ${salvo})`);
+        console.log(`🔍 [TELA] Carregando filtro para bloco ${bloco.nome} (${bloco.id}):`, { 
+          valorSalvo: salvo, 
+          tipoSalvo: typeof salvo,
+          periodoBloco: bloco.periodo 
+        });
         
-        // Atualizar bloco com período carregado
+        if (salvo !== null && salvo !== undefined && PERIODOS_VALIDOS.has(String(salvo))) {
+          periodo = String(salvo);
+          console.log(`✅ [TELA] Período salvo encontrado para ${bloco.nome}: ${periodo}`);
+        } else if (bloco.periodo && PERIODOS_VALIDOS.has(String(bloco.periodo))) {
+          periodo = String(bloco.periodo);
+          console.log(`📋 [TELA] Usando período do bloco para ${bloco.nome}: ${periodo}`);
+        } else {
+          periodo = 'todos';
+          console.log(`⚠️ [TELA] Usando fallback 'todos' para ${bloco.nome} (salvo: ${salvo})`);
+        }
+        
+        console.log(`📅 Período salvo carregado para ${bloco.nome}: ${periodo} (valor bruto: ${salvo})`);
+        
+        // Atualizar bloco com período carregado se for diferente
         if (periodo !== bloco.periodo) {
           if (!blocosAtualizados) blocosAtualizados = [...blocosParaCalcular];
           blocosAtualizados = blocosAtualizados.map(b => (b.id === bloco.id ? { ...b, periodo } : b));

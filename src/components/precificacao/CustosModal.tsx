@@ -88,43 +88,60 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const salvandoRef = useRef(false);
   const carregandoRef = useRef(false);
 
-  // Atualizar valores locais quando markupBlock mudar
-  useEffect(() => {
-    if (markupBlock) {
-      setCurrentMarkupValues(markupBlock);
-      // Carregar filtro salvo para este bloco
-      carregarFiltroSalvo();
-    }
-  }, [markupBlock]);
-
   // Chave única baseada no bloco (sempre usa ID se disponível, senão usa timestamp fixo para novos)
   const getConfigKey = useCallback((tipo: string) => {
     const blocoId = markupBlock?.id || 'new-block';
     return `${tipo}-${blocoId}`;
   }, [markupBlock?.id]);
 
-  // Carregar filtro salvo com proteção anti-reentrada
+  // Carregar filtro salvo com verificação rigorosa e logs detalhados
   const carregarFiltroSalvo = useCallback(async () => {
     if (carregandoRef.current) return;
     carregandoRef.current = true;
     
     try {
       const configKey = getConfigKey('filtro-periodo');
-      const filtroSalvo = await loadConfiguration(configKey);
+      console.log(`🔍 [MODAL] Carregando filtro para bloco ${markupBlock?.id} com chave: ${configKey}`);
       
-      // Validar e normalizar valor
-      const filtroNormalizado = filtroSalvo && ['1', '3', '6', '12', 'todos'].includes(String(filtroSalvo)) 
-        ? String(filtroSalvo) 
-        : 'todos';
+      const filtroSalvo = await loadConfiguration(configKey, { fresh: true });
+      console.log(`📋 [MODAL] Filtro carregado do banco:`, { 
+        blocoId: markupBlock?.id,
+        configKey, 
+        valorCarregado: filtroSalvo, 
+        tipo: typeof filtroSalvo,
+        filtroAtual: filtroPerido 
+      });
       
-      setFiltroPerido(filtroNormalizado);
+      if (filtroSalvo !== null && filtroSalvo !== undefined) {
+        const filtroStr = String(filtroSalvo);
+        if (['1', '3', '6', '12', 'todos'].includes(filtroStr)) {
+          console.log(`✅ [MODAL] Aplicando filtro salvo: ${filtroStr} (era: ${filtroPerido})`);
+          setFiltroPerido(filtroStr);
+        } else {
+          console.log(`⚠️ [MODAL] Filtro inválido (${filtroStr}), mantendo atual: ${filtroPerido}`);
+        }
+      } else {
+        console.log(`ℹ️ [MODAL] Nenhum filtro salvo encontrado para bloco ${markupBlock?.id}, mantendo atual: ${filtroPerido}`);
+      }
+      
     } catch (error) {
-      console.error('❌ Erro ao carregar filtro:', error);
-      setFiltroPerido('todos'); // Fallback seguro
+      console.error('❌ [MODAL] Erro ao carregar filtro:', error);
     } finally {
       carregandoRef.current = false;
     }
-  }, [getConfigKey, loadConfiguration]);
+  }, [getConfigKey, loadConfiguration, filtroPerido, markupBlock?.id]);
+
+  // Atualizar valores locais quando markupBlock mudar E carregar filtro
+  useEffect(() => {
+    if (markupBlock) {
+      setCurrentMarkupValues(markupBlock);
+      // Carregar filtro específico do bloco
+      carregarFiltroSalvo();
+    } else {
+      // Para novo bloco, usar valor padrão sem carregar
+      setFiltroPerido('6'); // Padrão apenas para novos blocos
+    }
+  }, [markupBlock?.id, carregarFiltroSalvo]);
 
   // Salvar filtro com proteção anti-reentrada e trigger para recálculo
   const handleFiltroChange = useCallback(async (novoFiltro: string) => {
@@ -256,9 +273,12 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (open) {
       carregarDados();
-      carregarFiltroSalvo();
+      // Só carregar filtro se for um bloco existente
+      if (markupBlock) {
+        carregarFiltroSalvo();
+      }
     }
-  }, [open, user?.id]); // Remove markupBlock?.id para evitar recarregamentos
+  }, [open, user?.id, markupBlock?.id, carregarFiltroSalvo]); // Adicionar carregarFiltroSalvo como dependência
 
   // Recalcular markup quando dados carregarem ou filtro mudar
   useEffect(() => {
