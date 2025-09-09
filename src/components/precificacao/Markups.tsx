@@ -83,140 +83,134 @@ export function Markups() {
   // Função ÚNICA para carregar e calcular configurações salvas
   const carregarConfiguracoesSalvas = useCallback(async () => {
     if (!user?.id || blocos.length === 0) return;
-    
+
+    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
+
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
-    
-    // Buscar dados uma só vez para todos os blocos
+
+    // Buscar dados uma só vez para todos os blocos (Isso está ótimo para performance)
     const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
-      supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
-      supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
-      supabase.from('encargos_venda').select('*').eq('user_id', user.id)
+        supabase.from('despesas_fixas').select('*').eq('user_id', user.id),
+        supabase.from('folha_pagamento').select('*').eq('user_id', user.id),
+        supabase.from('encargos_venda').select('*').eq('user_id', user.id)
     ]);
 
-    // Buscar faturamentos históricos
+    // <<-- CORREÇÃO: Carrega todos os faturamentos aqui, mas o cálculo será feito dentro do loop.
     const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
-    
-    // Processar cada bloco usando EXATAMENTE A MESMA LÓGICA DO MODAL
+    const todosFaturamentos = (faturamentosConfig && Array.isArray(faturamentosConfig))
+        ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
+        : [];
+
+    console.log('📊 Dados base para cálculo:', {
+        despesasFixas: despesasFixas?.length,
+        folhaPagamento: folhaPagamento?.length,
+        encargosVenda: encargosVenda?.length,
+        totalFaturamentos: todosFaturamentos.length
+    });
+
+    // Processar cada bloco individualmente
     for (const bloco of blocos) {
-      const configKey = `checkbox-states-${bloco.id}`;
-      const config = await loadConfiguration(configKey);
-      
-      // 🎯 NOVO: Carregar período específico para este bloco
-      const periodoSelecionado = await loadConfiguration(`filtro-periodo-${bloco.id}`) || 'todos';
-      
-      // 🎯 NOVO: Calcular média mensal com base no período selecionado
-      let mediaMensal = 0;
-      if (faturamentosConfig && Array.isArray(faturamentosConfig)) {
-        let faturamentos = faturamentosConfig.map((f: any) => ({
-          ...f,
-          mes: new Date(f.mes)
-        }));
+        const configKey = `checkbox-states-${bloco.id}`;
+        const config = await loadConfiguration(configKey);
         
-        // Filtrar por período se não for 'todos'
+        console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
+
+        // <<-- CORREÇÃO: Lógica de cálculo da média de faturamento movida para DENTRO do loop
+        let mediaMensal = 0;
+        const periodoSelecionado = periodosAplicados.get(bloco.id) || 'todos'; // Default para 'todos'
+        
+        let faturamentosFiltrados = todosFaturamentos;
+
         if (periodoSelecionado !== 'todos') {
-          const mesesAtras = parseInt(periodoSelecionado);
-          const dataLimite = new Date();
-          dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
-          
-          faturamentos = faturamentos.filter((f: any) => f.mes >= dataLimite);
-        }
-        
-        const total = faturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
-        mediaMensal = total / Math.max(1, faturamentos.length);
-      }
-      
-      if (config && typeof config === 'object' && Object.keys(config).length > 0) {
-        // USAR EXATAMENTE A MESMA LÓGICA DO calcularMarkup DO MODAL
-        
-        let gastosSobreFaturamento = 0;
-        
-        // Somar despesas fixas marcadas como "Considerar" E ATIVAS
-        const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => config[d.id] && d.ativo) : [];
-        const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
-        
-        // Somar folha de pagamento marcada como "Considerar" E ATIVA
-        const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
-        const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
-          // Usar salario_base se custo_por_hora não estiver disponível (MESMA LÓGICA DO MODAL)
-          const custoMensal = funcionario.custo_por_hora > 0 
-            ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
-            : funcionario.salario_base;
-          return acc + Number(custoMensal);
-        }, 0);
-        
-        const totalGastos = totalDespesasFixas + totalFolhaPagamento;
-        
-        // Calcular porcentagem sobre a média mensal
-        if (mediaMensal > 0 && totalGastos > 0) {
-          gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
+            const mesesAtras = parseInt(periodoSelecionado, 10);
+            const dataLimite = new Date();
+            dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+
+            faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
         }
 
-        console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
-          totalDespesasFixas,
-          totalFolhaPagamento,
-          totalGastos,
-          mediaMensal,
-          periodoSelecionado,
-          gastosSobreFaturamento
-        });
-
-        // Calcular encargos sobre venda - MESMA LÓGICA DO MODAL
-        const encargosConsiderados = encargosVenda ? encargosVenda.filter(e => config[e.id] && e.ativo) : [];
+        if (faturamentosFiltrados.length > 0) {
+            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+            mediaMensal = total / faturamentosFiltrados.length;
+        }
         
-        // Calcular valor em real (somar apenas os valores fixos dos encargos)
-        const valorEmReal = encargosConsiderados.reduce((acc, encargo) => {
-          return acc + Number(encargo.valor_fixo || 0);
-        }, 0);
-        
-        // Calcular somas por categoria usando MESMA LÓGICA DO MODAL
-        const categorias = encargosConsiderados.reduce((acc, encargo) => {
-          const categoria = getCategoriaByNome(encargo.nome);
-          const valor = Number(encargo.valor_percentual || 0);
-          
-          switch (categoria) {
-            case 'impostos':
-              acc.impostos += valor;
-              break;
-            case 'meios_pagamento':
-              acc.taxasMeiosPagamento += valor;
-              break;
-            case 'comissoes':
-              acc.comissoesPlataformas += valor;
-              break;
-            case 'outros':
-              acc.outros += valor;
-              break;
-          }
-          
-          return acc;
-        }, {
-          gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
-          impostos: 0,
-          taxasMeiosPagamento: 0,
-          comissoesPlataformas: 0,
-          outros: 0,
-          valorEmReal: valorEmReal
-        });
+        console.log(`📅 Para o bloco "${bloco.nome}" com período "${periodoSelecionado}", a média mensal é: ${mediaMensal}`);
 
-        console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
-        novosCalculatedMarkups.set(bloco.id, categorias);
-      } else {
-        // Se não tem configuração, usar valores zerados
-        novosCalculatedMarkups.set(bloco.id, {
-          gastoSobreFaturamento: 0,
-          impostos: 0,
-          taxasMeiosPagamento: 0,
-          comissoesPlataformas: 0,
-          outros: 0,
-          valorEmReal: 0
-        });
-      }
+        if (config && typeof config === 'object' && Object.keys(config).length > 0) {
+            
+            let gastosSobreFaturamento = 0;
+            
+            // Somar despesas fixas marcadas como "Considerar" E ATIVAS
+            const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => config[d.id] && d.ativo) : [];
+            const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
+            
+            // Somar folha de pagamento marcada como "Considerar" E ATIVA
+            const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
+            const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+                const custoMensal = funcionario.custo_por_hora > 0 
+                    ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+                    : funcionario.salario_base;
+                return acc + Number(custoMensal);
+            }, 0);
+            
+            const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+            
+            // Calcular porcentagem sobre a média mensal ESPECÍFICA deste bloco
+            if (mediaMensal > 0 && totalGastos > 0) {
+                gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
+            }
+
+            console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
+                totalGastos,
+                mediaMensal,
+                gastosSobreFaturamento
+            });
+
+            // O restante da lógica permanece o mesmo...
+            const encargosConsiderados = encargosVenda ? encargosVenda.filter(e => config[e.id] && e.ativo) : [];
+            const valorEmReal = encargosConsiderados.reduce((acc, encargo) => acc + Number(encargo.valor_fixo || 0), 0);
+            
+            const categorias = encargosConsiderados.reduce((acc, encargo) => {
+                const categoria = getCategoriaByNome(encargo.nome);
+                const valor = Number(encargo.valor_percentual || 0);
+                
+                switch (categoria) {
+                    case 'impostos': acc.impostos += valor; break;
+                    case 'meios_pagamento': acc.taxasMeiosPagamento += valor; break;
+                    case 'comissoes': acc.comissoesPlataformas += valor; break;
+                    case 'outros': acc.outros += valor; break;
+                }
+                return acc;
+            }, {
+                gastoSobreFaturamento: Math.round(gastosSobreFaturamento * 100) / 100,
+                impostos: 0,
+                taxasMeiosPagamento: 0,
+                comissoesPlataformas: 0,
+                outros: 0,
+                valorEmReal: valorEmReal
+            });
+
+            novosCalculatedMarkups.set(bloco.id, categorias);
+            console.log(`✅ Markup final calculado para ${bloco.nome}:`, categorias);
+
+        } else {
+            console.log(`⚠️ Sem configuração válida para ${bloco.nome}, usando valores zerados`);
+            novosCalculatedMarkups.set(bloco.id, {
+                gastoSobreFaturamento: 0,
+                impostos: 0,
+                taxasMeiosPagamento: 0,
+                comissoesPlataformas: 0,
+                outros: 0,
+                valorEmReal: 0
+            });
+        }
     }
     
     if (novosCalculatedMarkups.size > 0) {
-      setCalculatedMarkups(novosCalculatedMarkups);
+        setCalculatedMarkups(novosCalculatedMarkups);
+        console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
-  }, [user?.id, blocos, loadConfiguration, getCategoriaByNome]);
+}, [user?.id, blocos, loadConfiguration, getCategoriaByNome, periodosAplicados]); // <<-- CORREÇÃO: Adicionar periodosAplicados como dependência
 
   // 🎯 NOVO: Funções para gerenciar submenu de períodos
   const toggleSubmenu = useCallback((blocoId: string) => {
