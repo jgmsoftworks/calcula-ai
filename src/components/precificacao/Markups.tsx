@@ -8,27 +8,30 @@ import { MarkupBlock } from './MarkupBlock';
 import { SubreceitaBlock } from './SubreceitaBlock';
 import { CustosModal } from './CustosModal';
 
+type MarkupPeriod = 'THREE_MONTHS' | 'SIX_MONTHS' | 'TWELVE_MONTHS' | 'ALL';
+
 interface MarkupBlockData {
   id: string;
   nome: string;
   lucroDesejado: number;
+  period: MarkupPeriod;
 }
 
 export function Markups() {
   const [blocos, setBlocos] = useState<MarkupBlockData[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [blocoEditando, setBlocoEditando] = useState<MarkupBlockData | null>(null);
-  const [periodos, setPeriodos] = useState<Map<string, string>>(new Map());
   
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { calculations, loading, recalculateAllMarkups } = useMarkupCalculations();
   const { toast } = useToast();
 
-  // Bloco fixo para subreceita
+  // Bloco fixo para subreceita com lucro desejado padrão
   const blocoSubreceita: MarkupBlockData = {
     id: 'subreceita-fixo',
     nome: 'subreceita',
-    lucroDesejado: 0
+    lucroDesejado: 20,
+    period: 'ALL'
   };
 
   // Carregar blocos salvos
@@ -36,28 +39,19 @@ export function Markups() {
     try {
       const config = await loadConfiguration('markups_blocos');
       if (config && Array.isArray(config)) {
-        const blocosCarregados = config as MarkupBlockData[];
+        const blocosCarregados = (config as MarkupBlockData[]).map(b => ({
+          ...b,
+          period: b.period || 'TWELVE_MONTHS'
+        }));
         setBlocos([blocoSubreceita, ...blocosCarregados]);
-        
-        // Carregar períodos para todos os blocos
-        const novosperiodos = new Map<string, string>();
-        for (const bloco of [blocoSubreceita, ...blocosCarregados]) {
-          const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
-          novosperiodos.set(bloco.id, periodo || '12');
-        }
-        setPeriodos(novosperiodos);
-        
-        // Recalcular markups
         await recalculateAllMarkups([blocoSubreceita, ...blocosCarregados]);
       } else {
         setBlocos([blocoSubreceita]);
-        setPeriodos(new Map([['subreceita-fixo', '12']]));
         await recalculateAllMarkups([blocoSubreceita]);
       }
     } catch (error) {
       console.error('Erro ao carregar blocos:', error);
       setBlocos([blocoSubreceita]);
-      setPeriodos(new Map([['subreceita-fixo', '12']]));
     }
   }, [loadConfiguration, recalculateAllMarkups]);
 
@@ -83,7 +77,8 @@ export function Markups() {
     const novoBloco: MarkupBlockData = {
       id: Date.now().toString(),
       nome: `Markup ${blocos.length}`,
-      lucroDesejado: 20
+      lucroDesejado: 20,
+      period: 'TWELVE_MONTHS'
     };
     
     setBlocoEditando(novoBloco);
@@ -118,12 +113,7 @@ export function Markups() {
       const novosBlocos = blocos.filter(bloco => bloco.id !== id);
       setBlocos(novosBlocos);
       await salvarBlocos(novosBlocos);
-      
-      // Remover período salvo
-      const novosperiodos = new Map(periodos);
-      novosperiodos.delete(id);
-      setPeriodos(novosperiodos);
-      
+
       // Recalcular markups restantes
       await recalculateAllMarkups(novosBlocos);
       
@@ -163,30 +153,26 @@ export function Markups() {
   };
 
   // Alterar período
-  const alterarPeriodo = async (id: string, periodo: string) => {
+  const alterarPeriodo = async (id: string, periodo: MarkupPeriod) => {
     try {
-      // Salvar período
-      await saveConfiguration(`filtro-periodo-${id}`, periodo);
-      
-      // Atualizar estado local
-      const novosperiodos = new Map(periodos);
-      novosperiodos.set(id, periodo);
-      setPeriodos(novosperiodos);
-      
-      // Recalcular apenas o bloco afetado
-      const bloco = blocos.find(b => b.id === id);
+      const novosBlocos = blocos.map(bloco =>
+        bloco.id === id ? { ...bloco, period: periodo } : bloco
+      );
+      setBlocos(novosBlocos);
+      await salvarBlocos(novosBlocos);
+
+      const bloco = novosBlocos.find(b => b.id === id);
       if (bloco) {
         await recalculateAllMarkups([bloco]);
       }
-      
+
       toast({
         title: "Período alterado",
         description: `Cálculos atualizados para ${
-          periodo === '1' ? 'último mês' :
-          periodo === '3' ? 'últimos 3 meses' :
-          periodo === '6' ? 'últimos 6 meses' :
-          periodo === '12' ? 'últimos 12 meses' :
-          'todos os períodos'
+          periodo === 'THREE_MONTHS' ? 'últimos 3 meses' :
+          periodo === 'SIX_MONTHS' ? 'últimos 6 meses' :
+          periodo === 'TWELVE_MONTHS' ? 'últimos 12 meses' :
+          'todo o período'
         }`,
       });
     } catch (error) {
@@ -216,12 +202,8 @@ export function Markups() {
       setBlocos(novosBlocos);
       await salvarBlocos(novosBlocos);
       
-      // Garantir que o período seja salvo para novos blocos
-      if (!periodos.has(blocoAtualizado.id)) {
-        await saveConfiguration(`filtro-periodo-${blocoAtualizado.id}`, '12');
-        const novosperiodos = new Map(periodos);
-        novosperiodos.set(blocoAtualizado.id, '12');
-        setPeriodos(novosperiodos);
+      if (!blocoAtualizado.period) {
+        blocoAtualizado.period = 'TWELVE_MONTHS';
       }
       
       // Recalcular markups
@@ -293,7 +275,7 @@ export function Markups() {
               key={bloco.id}
               block={bloco}
               calculation={calculation}
-              currentPeriod={periodos.get(bloco.id)}
+              currentPeriod={bloco.period}
               onEditName={editarNomeBloco}
               onDelete={deletarBloco}
               onUpdateProfit={atualizarLucro}

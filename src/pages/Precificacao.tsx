@@ -9,9 +9,13 @@ const Precificacao = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="media-faturamento">Média de Faturamento</TabsTrigger>
-          <TabsTrigger value="markups">Markups</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-2 bg-muted p-1 rounded-md">
+          <TabsTrigger className="rounded-sm" value="media-faturamento">
+            Média de Faturamento
+          </TabsTrigger>
+          <TabsTrigger className="rounded-sm" value="markups">
+            Markups
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="media-faturamento" className="space-y-4">

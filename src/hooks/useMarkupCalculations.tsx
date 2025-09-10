@@ -12,10 +12,13 @@ interface MarkupCalculation {
   valorEmReal: number;
 }
 
+type MarkupPeriod = 'THREE_MONTHS' | 'SIX_MONTHS' | 'TWELVE_MONTHS' | 'ALL';
+
 interface MarkupBlock {
   id: string;
   nome: string;
   lucroDesejado: number;
+  period: MarkupPeriod;
 }
 
 export function useMarkupCalculations() {
@@ -50,11 +53,20 @@ export function useMarkupCalculations() {
       };
     }
 
+    // Para a subreceita, retornar valores de exemplo/demonstração
+    if (block.id === 'subreceita-fixo') {
+      return {
+        gastoSobreFaturamento: 15,
+        impostos: 25,
+        taxasMeiosPagamento: 5,
+        comissoesPlataformas: 10,
+        outros: 5,
+        valorEmReal: 200
+      };
+    }
+
     try {
-      // 1. Carregar período selecionado para este bloco (subreceita sempre usa 12 meses)
-      const periodoSelecionado = block.id === 'subreceita-fixo' ? '12' : (await loadConfiguration(`filtro-periodo-${block.id}`) || '12');
-      
-      // 2. Carregar configurações de itens selecionados (subreceita seleciona todos por padrão)
+      // 1. Carregar configurações de itens selecionados
       let checkboxStates = await loadConfiguration(`checkbox-states-${block.id}`) || {};
       
       // 3. Carregar dados necessários
@@ -84,8 +96,14 @@ export function useMarkupCalculations() {
         : [];
 
       let faturamentosFiltrados = todosFaturamentos;
-      if (periodoSelecionado !== 'todos') {
-        const mesesAtras = parseInt(periodoSelecionado, 10);
+      if (block.period !== 'ALL') {
+        const monthsMap: Record<MarkupPeriod, number> = {
+          THREE_MONTHS: 3,
+          SIX_MONTHS: 6,
+          TWELVE_MONTHS: 12,
+          ALL: 0,
+        };
+        const mesesAtras = monthsMap[block.period];
         const dataLimite = new Date();
         dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
         faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
