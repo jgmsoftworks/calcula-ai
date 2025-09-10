@@ -5,6 +5,7 @@ import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigur
 import { useMarkupCalculations } from '@/hooks/useMarkupCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { MarkupBlock } from './MarkupBlock';
+import { SubreceitaBlock } from './SubreceitaBlock';
 import { CustosModal } from './CustosModal';
 
 interface MarkupBlockData {
@@ -265,26 +266,42 @@ export function Markups() {
       )}
 
       <div className="grid gap-6">
-        {blocos.map((bloco) => (
-          <MarkupBlock
-            key={bloco.id}
-            block={bloco}
-            calculation={calculations.get(bloco.id) || {
-              gastoSobreFaturamento: 0,
-              impostos: 0,
-              taxasMeiosPagamento: 0,
-              comissoesPlataformas: 0,
-              outros: 0,
-              valorEmReal: 0
-            }}
-            currentPeriod={periodos.get(bloco.id)}
-            onEditName={editarNomeBloco}
-            onDelete={deletarBloco}
-            onUpdateProfit={atualizarLucro}
-            onOpenConfig={abrirConfiguracao}
-            onChangePeriod={alterarPeriodo}
-          />
-        ))}
+        {blocos.map((bloco) => {
+          const calculation = calculations.get(bloco.id) || {
+            gastoSobreFaturamento: 0,
+            impostos: 0,
+            taxasMeiosPagamento: 0,
+            comissoesPlataformas: 0,
+            outros: 0,
+            valorEmReal: 0
+          };
+
+          // Usar componente específico para subreceita
+          if (bloco.id === 'subreceita-fixo') {
+            return (
+              <SubreceitaBlock
+                key={bloco.id}
+                calculation={calculation}
+                lucroDesejado={bloco.lucroDesejado}
+              />
+            );
+          }
+
+          // Usar MarkupBlock para outros blocos
+          return (
+            <MarkupBlock
+              key={bloco.id}
+              block={bloco}
+              calculation={calculation}
+              currentPeriod={periodos.get(bloco.id)}
+              onEditName={editarNomeBloco}
+              onDelete={deletarBloco}
+              onUpdateProfit={atualizarLucro}
+              onOpenConfig={abrirConfiguracao}
+              onChangePeriod={alterarPeriodo}
+            />
+          );
+        })}
       </div>
 
       <CustosModal
