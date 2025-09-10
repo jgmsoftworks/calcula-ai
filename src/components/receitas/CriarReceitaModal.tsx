@@ -14,85 +14,17 @@ interface CriarReceitaModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Interfaces for shared state
-interface Ingrediente {
-  id: string;
-  produto_id: string;
-  nome: string;
-  quantidade: number;
-  unidade: string;
-  custo_unitario: number;
-  custo_total: number;
-  marcas?: string[];
-}
-
-interface SubReceita {
-  id: string;
-  receita_id: string;
-  nome: string;
-  quantidade: number;
-  unidade: string;
-  custo_unitario: number;
-  custo_total: number;
-}
-
-interface Embalagem {
-  id: string;
-  produto_id: string;
-  nome: string;
-  quantidade: number;
-  unidade: string;
-  custo_unitario: number;
-  custo_total: number;
-}
-
-interface MaoObraItem {
-  id: string;
-  funcionario: {
-    id: string;
-    nome: string;
-    cargo: string;
-    custo_por_hora: number;
-  };
-  tempo: number;
-  valorTotal: number;
-  unidadeTempo?: string;
-}
-
-interface ReceitaData {
-  ingredientes: Ingrediente[];
-  subReceitas: SubReceita[];
-  embalagens: Embalagem[];
-  maoObra: MaoObraItem[];
-  rendimentoValor: string;
-  rendimentoUnidade: string;
-}
-
 const steps = [
-  { id: 'ingredientes', title: 'Ingredientes' },
-  { id: 'sub-receitas', title: 'Sub-receitas' },
-  { id: 'embalagens', title: 'Embalagens' },
-  { id: 'geral', title: 'Geral' },
-  { id: 'projecao', title: 'Projeção' },
-  { id: 'precificacao', title: 'Precificação' },
+  { id: 'ingredientes', title: 'Ingredientes', component: IngredientesStep },
+  { id: 'sub-receitas', title: 'Sub-receitas', component: SubReceitasStep },
+  { id: 'embalagens', title: 'Embalagens', component: EmbalagensStep },
+  { id: 'geral', title: 'Geral', component: GeralStep },
+  { id: 'projecao', title: 'Projeção', component: ProjecaoStep },
+  { id: 'precificacao', title: 'Precificação', component: PrecificacaoStep },
 ];
 
 export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  
-  // Shared state for all recipe data
-  const [receitaData, setReceitaData] = useState<ReceitaData>({
-    ingredientes: [],
-    subReceitas: [],
-    embalagens: [],
-    maoObra: [],
-    rendimentoValor: '',
-    rendimentoUnidade: 'unidade',
-  });
-
-  const updateReceitaData = (updates: Partial<ReceitaData>) => {
-    setReceitaData(prev => ({ ...prev, ...updates }));
-  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -108,64 +40,14 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
 
   const handleClose = () => {
     setCurrentStep(0);
-    setReceitaData({
-      ingredientes: [],
-      subReceitas: [],
-      embalagens: [],
-      maoObra: [],
-      rendimentoValor: '',
-      rendimentoUnidade: 'unidade',
-    });
     onOpenChange(false);
   };
 
-  const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <IngredientesStep 
-            ingredientes={receitaData.ingredientes}
-            onIngredientesChange={(ingredientes) => updateReceitaData({ ingredientes })}
-          />
-        );
-      case 1:
-        return (
-          <SubReceitasStep 
-            subReceitas={receitaData.subReceitas}
-            onSubReceitasChange={(subReceitas) => updateReceitaData({ subReceitas })}
-          />
-        );
-      case 2:
-        return (
-          <EmbalagensStep 
-            embalagens={receitaData.embalagens}
-            onEmbalagensChange={(embalagens) => updateReceitaData({ embalagens })}
-          />
-        );
-      case 3:
-        return <GeralStep />;
-      case 4:
-        return (
-          <ProjecaoStep 
-            maoObra={receitaData.maoObra}
-            rendimentoValor={receitaData.rendimentoValor}
-            rendimentoUnidade={receitaData.rendimentoUnidade}
-            onMaoObraChange={(maoObra) => updateReceitaData({ maoObra })}
-            onRendimentoChange={(rendimentoValor, rendimentoUnidade) => 
-              updateReceitaData({ rendimentoValor, rendimentoUnidade })
-            }
-          />
-        );
-      case 5:
-        return <PrecificacaoStep receitaData={receitaData} />;
-      default:
-        return null;
-    }
-  };
+  const CurrentStepComponent = steps[currentStep].component;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[95vw]">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Nova Receita - {steps[currentStep].title}</span>
@@ -176,11 +58,11 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
         </DialogHeader>
 
         {/* Progress Bar */}
-        <div className="flex flex-wrap justify-center lg:justify-between items-center mb-4 gap-1">
+        <div className="flex justify-between items-center mb-6">
           {steps.map((step, index) => (
             <div key={step.id} className="flex items-center">
               <div 
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                   index === currentStep
                     ? 'bg-primary text-primary-foreground'
                     : index < currentStep
@@ -190,13 +72,13 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
               >
                 {index + 1}
               </div>
-              <span className={`ml-1 text-xs hidden sm:inline ${
+              <span className={`ml-2 text-sm ${
                 index === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'
               }`}>
                 {step.title}
               </span>
               {index < steps.length - 1 && (
-                <div className={`w-6 h-px mx-2 hidden lg:block ${
+                <div className={`w-8 h-px mx-4 ${
                   index < currentStep ? 'bg-primary' : 'bg-muted'
                 }`} />
               )}
@@ -206,7 +88,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
 
         {/* Step Content */}
         <div className="min-h-[400px]">
-          {renderCurrentStep()}
+          <CurrentStepComponent />
         </div>
 
         {/* Navigation Buttons */}

@@ -27,12 +27,8 @@ interface Produto {
   marcas?: string[];
 }
 
-interface IngredientesStepProps {
-  ingredientes: Ingrediente[];
-  onIngredientesChange: (ingredientes: Ingrediente[]) => void;
-}
-
-export function IngredientesStep({ ingredientes, onIngredientesChange }: IngredientesStepProps) {
+export function IngredientesStep() {
+  const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [produtosDisponiveis, setProdutosDisponiveis] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,21 +71,20 @@ export function IngredientesStep({ ingredientes, onIngredientesChange }: Ingredi
       marcas: produto.marcas,
     };
     
-    onIngredientesChange([...ingredientes, novoIngrediente]);
+    setIngredientes([...ingredientes, novoIngrediente]);
     setSearchTerm(''); // Limpa a busca após adicionar
   };
 
   const removerIngrediente = (id: string) => {
-    onIngredientesChange(ingredientes.filter(item => item.id !== id));
+    setIngredientes(ingredientes.filter(item => item.id !== id));
   };
 
   const atualizarQuantidade = (id: string, quantidade: number) => {
-    const updatedIngredientes = ingredientes.map(item => 
+    setIngredientes(ingredientes.map(item => 
       item.id === id 
         ? { ...item, quantidade, custo_total: quantidade * item.custo_unitario }
         : item
-    );
-    onIngredientesChange(updatedIngredientes);
+    ));
   };
 
   const custoTotalIngredientes = ingredientes.reduce((total, item) => total + item.custo_total, 0);

@@ -16,12 +16,8 @@ interface SubReceita {
   custo_total: number;
 }
 
-interface SubReceitasStepProps {
-  subReceitas: SubReceita[];
-  onSubReceitasChange: (subReceitas: SubReceita[]) => void;
-}
-
-export function SubReceitasStep({ subReceitas, onSubReceitasChange }: SubReceitasStepProps) {
+export function SubReceitasStep() {
+  const [subReceitas, setSubReceitas] = useState<SubReceita[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Mock data de receitas disponíveis
@@ -43,20 +39,19 @@ export function SubReceitasStep({ subReceitas, onSubReceitasChange }: SubReceita
       custo_total: receita.custo_unitario,
     };
     
-    onSubReceitasChange([...subReceitas, novaSubReceita]);
+    setSubReceitas([...subReceitas, novaSubReceita]);
   };
 
   const removerSubReceita = (id: string) => {
-    onSubReceitasChange(subReceitas.filter(item => item.id !== id));
+    setSubReceitas(subReceitas.filter(item => item.id !== id));
   };
 
   const atualizarQuantidade = (id: string, quantidade: number) => {
-    const updatedSubReceitas = subReceitas.map(item => 
+    setSubReceitas(subReceitas.map(item => 
       item.id === id 
         ? { ...item, quantidade, custo_total: quantidade * item.custo_unitario }
         : item
-    );
-    onSubReceitasChange(updatedSubReceitas);
+    ));
   };
 
   const custoTotalSubReceitas = subReceitas.reduce((total, item) => total + item.custo_total, 0);
