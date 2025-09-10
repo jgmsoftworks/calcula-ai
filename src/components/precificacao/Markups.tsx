@@ -1019,12 +1019,6 @@ export function Markups() {
               novosCalculatedMarkups.set(blocoConfigurandoId, calculatedMarkup);
               setCalculatedMarkups(novosCalculatedMarkups);
               
-              toast({
-                title: "Configuração aplicada!",
-                description: "Os cálculos foram atualizados com os itens selecionados.",
-                duration: 3000
-              });
-              
               console.log('💾 Estados atualizados - configurações do modal aplicadas para bloco:', blocoConfigurandoId);
             }
           }}

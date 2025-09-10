@@ -120,38 +120,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     }
   };
 
-  // Salvar filtro quando mudado
-  const handleFiltroChange = async (novoFiltro: string) => {
-    console.log('🔄 handleFiltroChange chamado - Mudando filtro de', filtroPerido, 'para:', novoFiltro);
-    console.log('🔄 markupBlock existe?', !!markupBlock, markupBlock?.id);
-    
-    setFiltroPerido(novoFiltro);
-    
-    // Salvar filtro SEMPRE, mesmo para novos blocos
-    try {
-      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      console.log('💾 Salvando filtro com chave:', configKey, 'valor:', novoFiltro);
-      
-      await saveConfiguration(configKey, novoFiltro);
-      console.log('✅ Filtro salvo com sucesso:', configKey, novoFiltro);
-      
-      // Verificar se foi realmente salvo
-      const verificacao = await loadConfiguration(configKey);
-      console.log('🔍 Verificação do salvamento:', verificacao);
-      
-      // IMPORTANTE: Recalcular markup com o novo filtro
-      setTimeout(() => {
-        if (Object.keys(tempCheckboxStates).length > 0) {
-          console.log('🔄 Recalculando markup com novo filtro:', novoFiltro);
-          calcularMarkup(tempCheckboxStates);
-        }
-      }, 100); // Pequeno delay para garantir que o estado foi atualizado
-      
-    } catch (error) {
-      console.error('❌ Erro ao salvar filtro:', error);
-    }
-  };
-
   const carregarDados = async () => {
     if (!user) return;
     
@@ -354,95 +322,36 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   // Função para aplicar período selecionado e resetar configurações anteriores
   const handleAplicarPeriodo = useCallback(async () => {
     console.log(`🔄 Aplicando período: ${filtroPerido}`);
-    
+
     try {
-      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos usando limpeza em lote
       const configKeysToReset = [
         markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
         `filtro-periodo-forcado-${markupBlock?.id || 'default'}`,
         'ultimo-filtro-aplicado',
         'filtro-periodo-1',
-        'filtro-periodo-3', 
+        'filtro-periodo-3',
         'filtro-periodo-6',
         'filtro-periodo-12',
         'filtro-periodo-todos'
       ];
-      
-      console.log('🧹 Limpando configurações anteriores com nova estratégia...');
+
       await deleteMultipleConfigurations(configKeysToReset);
-      
-      // 2. Aguardar um pouco para garantir que a limpeza foi processada
       await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // 3. AGORA: Salvar APENAS o período selecionado com retry
+
       const mainConfigKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      
-      // Implementar retry inteligente
-      let retryCount = 0;
-      const maxRetries = 3;
-      let saved = false;
-      
-      while (!saved && retryCount < maxRetries) {
-        try {
-          await saveConfiguration(mainConfigKey, filtroPerido);
-          console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
-          saved = true;
-        } catch (error) {
-          retryCount++;
-          console.warn(`⚠️ Tentativa ${retryCount}/${maxRetries} falhou:`, error);
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 500 * retryCount)); // Backoff exponencial
-          } else {
-            throw error; // Falha após todas as tentativas
-          }
-        }
+      await saveConfiguration(mainConfigKey, filtroPerido);
+
+      const markupCalculado = calcularMarkup(tempCheckboxStates);
+      if (onMarkupUpdate) {
+        onMarkupUpdate(markupCalculado);
       }
-      
-      // 4. Reforçar o estado local
-      setFiltroPerido(filtroPerido);
-      
-      // 5. Recalcular com o novo período
-      setTimeout(() => {
-        if (Object.keys(tempCheckboxStates).length > 0) {
-          console.log('🔄 Recalculando com novo período:', filtroPerido);
-          handleFiltroChange(filtroPerido);
-        }
-      }, 300);
-      
-      // 6. Mostrar toast amigável e validar se foi salvo
-      const savedValue = await loadConfiguration(mainConfigKey);
-      const isCorrectlyApplied = savedValue === filtroPerido;
-      
+
       toast({
-        title: isCorrectlyApplied ? "Período aplicado com sucesso!" : "Período aplicado (verificando...)",
-        description: `Cálculos atualizados para ${
-          filtroPerido === '1' ? 'último mês' :
-          filtroPerido === '3' ? 'últimos 3 meses' :
-          filtroPerido === '6' ? 'últimos 6 meses' :
-          filtroPerido === '12' ? 'últimos 12 meses' :
-          'todos os períodos'
-        }${isCorrectlyApplied ? '' : ' - Validando aplicação...'}`,
-        duration: isCorrectlyApplied ? 3000 : 5000,
-        variant: isCorrectlyApplied ? "default" : "default"
+        title: "Configuração aplicada!",
+        description: "Os cálculos foram atualizados com o período selecionado.",
+        duration: 3000
       });
-      
-      // Se não foi aplicado corretamente, tentar uma última vez
-      if (!isCorrectlyApplied) {
-        console.warn(`⚠️ Validação falhou: esperado=${filtroPerido}, atual=${savedValue}`);
-        setTimeout(async () => {
-          try {
-            await saveConfiguration(mainConfigKey, filtroPerido);
-            toast({
-              title: "Período corrigido!",
-              description: "Aplicação do filtro foi validada e corrigida.",
-              duration: 3000
-            });
-          } catch (error) {
-            console.error('❌ Falha na correção final:', error);
-          }
-        }, 1000);
-      }
-      
+
     } catch (error) {
       console.error('❌ Erro ao aplicar período:', error);
       toast({
@@ -451,7 +360,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         variant: "destructive"
       });
     }
-  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
+  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, calcularMarkup, onMarkupUpdate, toast, deleteMultipleConfigurations]);
 
   // Função para calcular média mensal baseada no período selecionado
   const calcularMediaMensal = useMemo(() => {
@@ -657,12 +566,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       ...prev,
       ...categorias
     }));
-    
-    // Também chamar o callback externo se existir
-    if (onMarkupUpdate) {
-      onMarkupUpdate(categorias);
-    }
-  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
+
+    return categorias;
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, calcularMediaMensal]);
 
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {
