@@ -24,11 +24,11 @@ export function Markups() {
   const { calculations, loading, recalculateAllMarkups } = useMarkupCalculations();
   const { toast } = useToast();
 
-  // Bloco fixo para subreceita com lucro desejado padrão
+  // Bloco fixo para subreceita com lucro desejado para markup 2,50
   const blocoSubreceita: MarkupBlockData = {
     id: 'subreceita-fixo',
     nome: 'subreceita',
-    lucroDesejado: 20 // Valor padrão de 20%
+    lucroDesejado: 45 // Valor para atingir markup ideal de 2,50
   };
 
   // Carregar blocos salvos
