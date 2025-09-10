@@ -425,7 +425,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         duration: isCorrectlyApplied ? 3000 : 5000,
         variant: isCorrectlyApplied ? "default" : "default"
       });
-      
+
       // Se não foi aplicado corretamente, tentar uma última vez
       if (!isCorrectlyApplied) {
         console.warn(`⚠️ Validação falhou: esperado=${filtroPerido}, atual=${savedValue}`);
@@ -442,7 +442,13 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
           }
         }, 1000);
       }
-      
+
+      // 7. Notificar componente pai sobre a atualização
+      const markupCalculado = calcularMarkup(tempCheckboxStates);
+      if (onMarkupUpdate) {
+        onMarkupUpdate(markupCalculado);
+      }
+
     } catch (error) {
       console.error('❌ Erro ao aplicar período:', error);
       toast({
@@ -451,7 +457,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
         variant: "destructive"
       });
     }
-  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
+  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast, calcularMarkup, onMarkupUpdate]);
 
   // Função para calcular média mensal baseada no período selecionado
   const calcularMediaMensal = useMemo(() => {
@@ -569,7 +575,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     return 'outros';
   }, [categoriasMap]);
 
-  const calcularMarkup = useCallback((states: Record<string, boolean>) => {
+  const calcularMarkup = useCallback((states: Record<string, boolean>): Partial<MarkupBlock> => {
     if (!encargosVenda.length && !despesasFixas.length && !folhaPagamento.length) return;
 
     console.log('🧮 Calculando markup com estados:', states);
@@ -658,11 +664,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
       ...categorias
     }));
     
-    // Também chamar o callback externo se existir
-    if (onMarkupUpdate) {
-      onMarkupUpdate(categorias);
-    }
-  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
+    return categorias;
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, calcularMediaMensal]);
 
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {
@@ -684,17 +687,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const handleSalvar = async () => {
     try {
       console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
-      
+
       // IMPORTANTE: Calcular markup ANTES de salvar para garantir valores corretos
-      const markupCalculado = await new Promise<any>((resolve) => {
-        // Calcular markup com os estados temporários
-        calcularMarkup(tempCheckboxStates);
-        
-        // Aguardar um pequeno delay para garantir que o cálculo seja concluído
-        setTimeout(() => {
-          resolve(currentMarkupValues);
-        }, 100);
-      });
+      const markupCalculado = calcularMarkup(tempCheckboxStates);
       
       console.log('🧮 Markup calculado para salvamento:', markupCalculado);
       
