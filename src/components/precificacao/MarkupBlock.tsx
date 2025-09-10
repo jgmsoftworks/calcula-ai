@@ -11,6 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { calcMarkup } from '@/utils/calcMarkup';
+
+type MarkupPeriod = 'THREE_MONTHS' | 'SIX_MONTHS' | 'TWELVE_MONTHS' | 'ALL';
 
 interface MarkupCalculation {
   gastoSobreFaturamento: number;
@@ -25,6 +28,7 @@ interface MarkupBlockData {
   id: string;
   nome: string;
   lucroDesejado: number;
+  period: MarkupPeriod;
 }
 
 interface MarkupBlockProps {
@@ -34,19 +38,19 @@ interface MarkupBlockProps {
   onDelete: (id: string) => void;
   onUpdateProfit: (id: string, profit: number) => void;
   onOpenConfig: (id: string) => void;
-  onChangePeriod: (id: string, period: string) => void;
-  currentPeriod?: string;
+  onChangePeriod: (id: string, period: MarkupPeriod) => void;
+  currentPeriod: MarkupPeriod;
 }
 
-export function MarkupBlock({ 
-  block, 
-  calculation, 
-  onEditName, 
-  onDelete, 
-  onUpdateProfit, 
+export function MarkupBlock({
+  block,
+  calculation,
+  onEditName,
+  onDelete,
+  onUpdateProfit,
   onOpenConfig,
   onChangePeriod,
-  currentPeriod = '12'
+  currentPeriod
 }: MarkupBlockProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(block.nome);
@@ -70,23 +74,24 @@ export function MarkupBlock({
     onUpdateProfit(block.id, numValue);
   };
 
-  // Calcular o markup total
-  const markupTotal = 
-    calculation.gastoSobreFaturamento +
-    calculation.impostos +
-    calculation.taxasMeiosPagamento +
-    calculation.comissoesPlataformas +
-    calculation.outros +
-    block.lucroDesejado;
+  const { totalPercent, effectiveMultiplier } = calcMarkup({
+    percentFees: calculation.gastoSobreFaturamento / 100,
+    percentTaxes: calculation.impostos / 100,
+    percentPayment: calculation.taxasMeiosPagamento / 100,
+    percentCommissions: calculation.comissoesPlataformas / 100,
+    percentOthers: calculation.outros / 100,
+    desiredProfit: block.lucroDesejado / 100,
+    fixedValue: calculation.valorEmReal,
+  });
+  const markupTotal = (totalPercent * 100).toFixed(2);
+  const markupIdeal = effectiveMultiplier;
 
-  const getPeriodLabel = (period: string) => {
+  const getPeriodLabel = (period: MarkupPeriod) => {
     switch (period) {
-      case '1': return '1 mês';
-      case '3': return '3 meses';
-      case '6': return '6 meses';
-      case '12': return '12 meses';
-      case 'todos': return 'Todos';
-      default: return '12 meses';
+      case 'THREE_MONTHS': return '3 meses';
+      case 'SIX_MONTHS': return '6 meses';
+      case 'TWELVE_MONTHS': return '12 meses';
+      case 'ALL': return 'Todo período';
     }
   };
 
@@ -147,21 +152,18 @@ export function MarkupBlock({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '1')}>
-                    Último mês
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '3')}>
-                    Últimos 3 meses
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '6')}>
-                    Últimos 6 meses
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '12')}>
-                    Últimos 12 meses
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'todos')}>
-                    Todos os períodos
-                  </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'THREE_MONTHS')}>
+                  3 meses
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'SIX_MONTHS')}>
+                  6 meses
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'TWELVE_MONTHS')}>
+                  12 meses
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'ALL')}>
+                  Todo período
+                </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -252,12 +254,23 @@ export function MarkupBlock({
           </div>
         )}
 
-        {/* Markup Total */}
-        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <span className="font-semibold">Markup Total:</span>
-          <Badge className="text-base font-bold">
-            {markupTotal.toFixed(2)}%
-          </Badge>
+        {/* Markup Total e ideal */}
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-muted-foreground">Markup Total</p>
+            <p className="text-lg font-semibold">{markupTotal}%</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-medium text-primary mb-1">Markup ideal</p>
+              <p className="text-sm text-muted-foreground">
+                Multiplicador para aplicar sobre o custo do produto
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-4xl font-bold text-primary">{markupIdeal.toFixed(4)}</p>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

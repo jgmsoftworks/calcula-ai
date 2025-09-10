@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsc src/utils/calcMarkup.ts src/utils/calcMarkup.test.ts --module commonjs --target ES2020 --types node --skipLibCheck --outDir build && node --test build/utils/calcMarkup.test.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
