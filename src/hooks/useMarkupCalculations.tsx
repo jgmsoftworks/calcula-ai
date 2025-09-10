@@ -51,12 +51,12 @@ export function useMarkupCalculations() {
     }
 
     try {
-      // 1. Carregar período selecionado para este bloco
-      const periodoSelecionado = await loadConfiguration(`filtro-periodo-${block.id}`) || '12';
+      // 1. Carregar período selecionado para este bloco (subreceita sempre usa 12 meses)
+      const periodoSelecionado = block.id === 'subreceita-fixo' ? '12' : (await loadConfiguration(`filtro-periodo-${block.id}`) || '12');
       
-      // 2. Carregar configurações de itens selecionados
-      const checkboxStates = await loadConfiguration(`checkbox-states-${block.id}`) || {};
-
+      // 2. Carregar configurações de itens selecionados (subreceita seleciona todos por padrão)
+      let checkboxStates = await loadConfiguration(`checkbox-states-${block.id}`) || {};
+      
       // 3. Carregar dados necessários
       const [
         { data: despesasFixas },
@@ -67,6 +67,15 @@ export function useMarkupCalculations() {
         supabase.from('folha_pagamento').select('*').eq('user_id', user.id).eq('ativo', true),
         supabase.from('encargos_venda').select('*').eq('user_id', user.id).eq('ativo', true)
       ]);
+
+      // Para subreceita, se não há configuração salva, selecionar todos os itens por padrão
+      if (block.id === 'subreceita-fixo' && Object.keys(checkboxStates).length === 0) {
+        // Definir todos como selecionados
+        checkboxStates = {};
+        [...(despesasFixas || []), ...(folhaPagamento || []), ...(encargosVenda || [])].forEach(item => {
+          checkboxStates[item.id] = true;
+        });
+      }
 
       // 4. Carregar faturamentos e calcular média do período
       const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
