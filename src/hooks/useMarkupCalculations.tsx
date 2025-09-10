@@ -53,11 +53,11 @@ export function useMarkupCalculations() {
     // Para a subreceita, retornar valores de exemplo/demonstração
     if (block.id === 'subreceita-fixo') {
       return {
-        gastoSobreFaturamento: 25,
-        impostos: 35,
-        taxasMeiosPagamento: 10,
-        comissoesPlataformas: 20,
-        outros: 15,
+        gastoSobreFaturamento: 15,
+        impostos: 25,
+        taxasMeiosPagamento: 5,
+        comissoesPlataformas: 10,
+        outros: 5,
         valorEmReal: 200
       };
     }
