@@ -137,32 +137,34 @@ export function MarkupBlock({
           )}
           
           <div className="flex items-center gap-2">
-            {/* Dropdown para seleção de período */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  {getPeriodLabel(currentPeriod)}
-                  <ChevronDown className="h-4 w-4 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => onChangePeriod(block.id, '1')}>
-                  Último mês
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onChangePeriod(block.id, '3')}>
-                  Últimos 3 meses
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onChangePeriod(block.id, '6')}>
-                  Últimos 6 meses
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onChangePeriod(block.id, '12')}>
-                  Últimos 12 meses
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'todos')}>
-                  Todos os períodos
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Dropdown para seleção de período - apenas para blocos que não são subreceita */}
+            {block.id !== 'subreceita-fixo' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    {getPeriodLabel(currentPeriod)}
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '1')}>
+                    Último mês
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '3')}>
+                    Últimos 3 meses
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '6')}>
+                    Últimos 6 meses
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, '12')}>
+                    Últimos 12 meses
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onChangePeriod(block.id, 'todos')}>
+                    Todos os períodos
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {block.id !== 'subreceita-fixo' && (
               <TooltipProvider>
