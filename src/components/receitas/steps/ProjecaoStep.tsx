@@ -23,13 +23,24 @@ interface MaoObraItem {
   unidadeTempo?: string;
 }
 
-export function ProjecaoStep() {
+interface ProjecaoStepProps {
+  maoObra: MaoObraItem[];
+  rendimentoValor: string;
+  rendimentoUnidade: string;
+  onMaoObraChange: (maoObra: MaoObraItem[]) => void;
+  onRendimentoChange: (rendimentoValor: string, rendimentoUnidade: string) => void;
+}
+
+export function ProjecaoStep({ 
+  maoObra, 
+  rendimentoValor, 
+  rendimentoUnidade, 
+  onMaoObraChange, 
+  onRendimentoChange 
+}: ProjecaoStepProps) {
   const [tipoProduto, setTipoProduto] = useState('');
-  const [rendimentoValor, setRendimentoValor] = useState('');
-  const [rendimentoUnidade, setRendimentoUnidade] = useState('unidade');
   const [tempoPreparoTotal, setTempoPreparoTotal] = useState(0);
   const [tempoPreparoUnidade, setTempoPreparoUnidade] = useState('minutos');
-  const [maoObra, setMaoObra] = useState<MaoObraItem[]>([]);
   const [tiposProduto, setTiposProduto] = useState<{ id: string; nome: string }[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [modalMaoObraAberto, setModalMaoObraAberto] = useState(false);
@@ -63,7 +74,7 @@ export function ProjecaoStep() {
   };
 
   const atualizarMaoObra = (novaMaoObra: MaoObraItem[]) => {
-    setMaoObra(novaMaoObra);
+    onMaoObraChange(novaMaoObra);
   };
 
   const tempoTotalMaoObra = maoObra.reduce((total, item) => total + item.tempo, 0);
@@ -79,8 +90,8 @@ export function ProjecaoStep() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Projeção da Receita</h3>
           <p className="text-muted-foreground">Configure os dados finais e veja o resumo dos custos</p>
@@ -93,8 +104,8 @@ export function ProjecaoStep() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4 lg:col-span-2">
           {/* Dados do Produto */}
           <Card>
             <CardHeader>
@@ -103,7 +114,7 @@ export function ProjecaoStep() {
                 Dados do Produto
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div>
                 <Label htmlFor="tipo-produto">Tipo de Produto *</Label>
                 <div className="flex gap-2">
@@ -137,10 +148,10 @@ export function ProjecaoStep() {
                     id="rendimento-valor"
                     placeholder="Ex: 8, 500, 12"
                     value={rendimentoValor}
-                    onChange={(e) => setRendimentoValor(e.target.value)}
+                    onChange={(e) => onRendimentoChange(e.target.value, rendimentoUnidade)}
                     className="flex-1"
                   />
-                  <Select value={rendimentoUnidade} onValueChange={setRendimentoUnidade}>
+                  <Select value={rendimentoUnidade} onValueChange={(value) => onRendimentoChange(rendimentoValor, value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -165,7 +176,7 @@ export function ProjecaoStep() {
                 Tempos de Preparo
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div>
                 <Label className="text-sm">Tempo de Preparo Total</Label>
                 <div className="flex gap-2">
