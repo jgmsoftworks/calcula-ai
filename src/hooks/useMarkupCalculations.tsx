@@ -12,10 +12,13 @@ interface MarkupCalculation {
   valorEmReal: number;
 }
 
+type MarkupPeriod = 'THREE_MONTHS' | 'SIX_MONTHS' | 'TWELVE_MONTHS' | 'ALL';
+
 interface MarkupBlock {
   id: string;
   nome: string;
   lucroDesejado: number;
+  period: MarkupPeriod;
 }
 
 export function useMarkupCalculations() {
@@ -63,10 +66,7 @@ export function useMarkupCalculations() {
     }
 
     try {
-      // 1. Carregar período selecionado para este bloco
-      const periodoSelecionado = await loadConfiguration(`filtro-periodo-${block.id}`) || '12';
-      
-      // 2. Carregar configurações de itens selecionados
+      // 1. Carregar configurações de itens selecionados
       let checkboxStates = await loadConfiguration(`checkbox-states-${block.id}`) || {};
       
       // 3. Carregar dados necessários
@@ -96,8 +96,14 @@ export function useMarkupCalculations() {
         : [];
 
       let faturamentosFiltrados = todosFaturamentos;
-      if (periodoSelecionado !== 'todos') {
-        const mesesAtras = parseInt(periodoSelecionado, 10);
+      if (block.period !== 'ALL') {
+        const monthsMap: Record<MarkupPeriod, number> = {
+          THREE_MONTHS: 3,
+          SIX_MONTHS: 6,
+          TWELVE_MONTHS: 12,
+          ALL: 0,
+        };
+        const mesesAtras = monthsMap[block.period];
         const dataLimite = new Date();
         dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
         faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);

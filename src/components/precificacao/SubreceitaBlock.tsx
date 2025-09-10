@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calculator } from 'lucide-react';
+import { calcMarkup } from '@/utils/calcMarkup';
 
 interface MarkupCalculation {
   gastoSobreFaturamento: number;
@@ -23,12 +24,17 @@ export function SubreceitaBlock({ calculation, lucroDesejado = 20 }: SubreceitaB
     }).format(value);
   };
 
-  // Calcular markup ideal
-  const totalPercentuais = calculation.gastoSobreFaturamento + calculation.impostos + 
-    calculation.taxasMeiosPagamento + calculation.comissoesPlataformas + 
-    calculation.outros + lucroDesejado;
-  
-  const markupIdeal = totalPercentuais > 0 ? (100 / (100 - totalPercentuais)) : 1;
+  const { totalPercent, effectiveMultiplier } = calcMarkup({
+    percentFees: calculation.gastoSobreFaturamento / 100,
+    percentTaxes: calculation.impostos / 100,
+    percentPayment: calculation.taxasMeiosPagamento / 100,
+    percentCommissions: calculation.comissoesPlataformas / 100,
+    percentOthers: calculation.outros / 100,
+    desiredProfit: lucroDesejado / 100,
+    fixedValue: calculation.valorEmReal
+  });
+  const markupTotal = (totalPercent * 100).toFixed(2);
+  const markupIdeal = effectiveMultiplier;
 
   return (
     <Card className="border-l-4 border-l-primary">
@@ -84,8 +90,12 @@ export function SubreceitaBlock({ calculation, lucroDesejado = 20 }: SubreceitaB
           </div>
         </div>
 
-        {/* Markup ideal destacado */}
+        {/* Markup total e ideal */}
         <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-muted-foreground">Markup Total</p>
+            <p className="text-lg font-semibold">{markupTotal}%</p>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-lg font-medium text-primary mb-1">Markup ideal</p>
@@ -94,7 +104,7 @@ export function SubreceitaBlock({ calculation, lucroDesejado = 20 }: SubreceitaB
               </p>
             </div>
             <div className="text-right">
-              <p className="text-4xl font-bold text-primary">{markupIdeal.toFixed(2)}</p>
+              <p className="text-4xl font-bold text-primary">{markupIdeal.toFixed(4)}</p>
             </div>
           </div>
         </div>

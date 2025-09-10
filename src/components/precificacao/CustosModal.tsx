@@ -56,24 +56,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onSuccess }: Cust
   const [folhaPagamento, setFolhaPagamento] = useState<FolhaPagamento[]>([]);
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
   const [checkboxStates, setCheckboxStates] = useState<Record<string, boolean>>({});
-  const [filtroPerido, setFiltroPerido] = useState<string>('12');
-  
+  const [period, setPeriod] = useState<MarkupPeriod>('TWELVE_MONTHS');
+
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
 
-  // Carregar período salvo
   useEffect(() => {
     if (markupBlock && open) {
-      loadConfiguration(`filtro-periodo-${markupBlock.id}`)
-        .then(periodo => {
-          if (periodo && typeof periodo === 'string') {
-            setFiltroPerido(periodo);
-          }
-        })
-        .catch(console.error);
+      setPeriod(markupBlock.period);
     }
-  }, [markupBlock, open, loadConfiguration]);
+  }, [markupBlock, open]);
 
   // Carregar dados
   const carregarDados = useCallback(async () => {
@@ -180,15 +173,15 @@ export function CustosModal({ open, onOpenChange, markupBlock, onSuccess }: Cust
       const blockToSave: MarkupBlockData = markupBlock || {
         id: Date.now().toString(),
         nome: `Markup ${Date.now()}`,
-        lucroDesejado: 20
+        lucroDesejado: 20,
+        period: period
       };
 
       // Salvar configurações de checkboxes
       const configKey = `checkbox-states-${blockToSave.id}`;
       await saveConfiguration(configKey, checkboxStates);
 
-      // Salvar período selecionado
-      await saveConfiguration(`filtro-periodo-${blockToSave.id}`, filtroPerido);
+      blockToSave.period = period;
 
       // Chamar callback de sucesso
       onSuccess?.(blockToSave);
@@ -237,16 +230,15 @@ export function CustosModal({ open, onOpenChange, markupBlock, onSuccess }: Cust
                 <CardTitle className="text-base">Período de Cálculo</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select value={filtroPerido} onValueChange={setFiltroPerido}>
+                <Select value={period} onValueChange={(v: MarkupPeriod) => setPeriod(v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o período" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Último mês</SelectItem>
-                    <SelectItem value="3">Últimos 3 meses</SelectItem>
-                    <SelectItem value="6">Últimos 6 meses</SelectItem>
-                    <SelectItem value="12">Últimos 12 meses</SelectItem>
-                    <SelectItem value="todos">Todos os períodos</SelectItem>
+                    <SelectItem value="THREE_MONTHS">3 meses</SelectItem>
+                    <SelectItem value="SIX_MONTHS">6 meses</SelectItem>
+                    <SelectItem value="TWELVE_MONTHS">12 meses</SelectItem>
+                    <SelectItem value="ALL">Todo período</SelectItem>
                   </SelectContent>
                 </Select>
               </CardContent>
