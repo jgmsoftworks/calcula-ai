@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -788,18 +788,14 @@ export function Markups() {
                       <Edit2 className="h-3 w-3" />
                     </Button>
                     
-                    {/* Botão de configuração que expande o card */}
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => toggleSubmenu(bloco.id)}
-                      className="h-8 px-3 flex items-center gap-1"
+                    {/* Botão de configuração que abre o modal */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => abrirConfiguracaoCompleta(bloco.id)}
+                      className="h-8 w-8 p-0"
                     >
                       <Settings className="h-3 w-3" />
-                      {showExpansion ? 
-                        <ChevronUp className="h-3 w-3" /> : 
-                        <ChevronDown className="h-3 w-3" />
-                      }
                     </Button>
                     
                     <Button 
