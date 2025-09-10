@@ -128,7 +128,8 @@ export function Markups() {
         let faturamentosFiltrados = todosFaturamentos;
 
         if (periodoSelecionado !== 'todos') {
-            const mesesAtras = parseInt(periodoSelecionado, 10);
+            // 🔥 CORREÇÃO: Garantir que o período é string antes de parseInt
+            const mesesAtras = parseInt(String(periodoSelecionado), 10);
             const dataLimite = new Date();
             dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
 
@@ -220,13 +221,17 @@ export function Markups() {
 
   // 🎯 NOVO: Funções para gerenciar submenu de períodos
   const toggleSubmenu = useCallback((blocoId: string) => {
+    console.log(`🔧 Toggle submenu para bloco: ${blocoId}`);
     setSubmenusAbertos(prev => {
       const newSet = new Set(prev);
       if (newSet.has(blocoId)) {
         newSet.delete(blocoId);
+        console.log(`🔽 Fechando submenu para: ${blocoId}`);
       } else {
         newSet.add(blocoId);
+        console.log(`🔼 Abrindo submenu para: ${blocoId}`);
       }
+      console.log('📋 Submenus abertos:', Array.from(newSet));
       return newSet;
     });
   }, []);
@@ -297,11 +302,14 @@ export function Markups() {
 
   const aplicarPeriodo = useCallback(async (blocoId: string, periodo: string) => {
     try {
+      // 🔥 CORREÇÃO: Normalizar período para string
+      const periodoNormalizado = String(periodo);
+      
       // Salvar período selecionado
-      await saveConfiguration(`filtro-periodo-${blocoId}`, periodo);
+      await saveConfiguration(`filtro-periodo-${blocoId}`, periodoNormalizado);
       
       // Atualizar estado local
-      setPeriodosAplicados(prev => new Map(prev).set(blocoId, periodo));
+      setPeriodosAplicados(prev => new Map(prev).set(blocoId, periodoNormalizado));
       
       // Fechar submenu
       setSubmenusAbertos(prev => {
@@ -349,11 +357,27 @@ export function Markups() {
         try {
           const periodo = await loadConfiguration(`filtro-periodo-${bloco.id}`);
           if (periodo) {
-            periodosMap.set(bloco.id, periodo);
-            console.log(`📅 Período carregado para ${bloco.nome}: ${periodo}`);
+            // 🔥 CORREÇÃO: Normalizar período carregado para string e validar
+            let periodoNormalizado = String(periodo);
+            
+            // Validar se é um período aceito
+            const periodosValidos = ["1", "3", "6", "12", "todos"];
+            if (!periodosValidos.includes(periodoNormalizado)) {
+              console.log(`⚠️ Período inválido "${periodoNormalizado}" para ${bloco.nome}, usando "todos"`);
+              periodoNormalizado = "todos";
+            }
+            
+            periodosMap.set(bloco.id, periodoNormalizado);
+            console.log(`📅 Período carregado para ${bloco.nome}: ${periodoNormalizado}`);
+          } else {
+            // 🔥 CORREÇÃO: Se não há período salvo, usar "todos" como padrão
+            periodosMap.set(bloco.id, "todos");
+            console.log(`📅 Período padrão definido para ${bloco.nome}: todos`);
           }
         } catch (error) {
           console.warn(`⚠️ Erro ao carregar período para bloco ${bloco.id}:`, error);
+          // 🔥 CORREÇÃO: Em caso de erro, usar "todos" como fallback
+          periodosMap.set(bloco.id, "todos");
         }
       }
       
@@ -503,12 +527,22 @@ export function Markups() {
     const novosBlocos = [...blocos, novoBloco];
     setBlocos(novosBlocos);
     
+    // 🔥 CORREÇÃO: Definir período padrão para novos blocos
+    const periodosPadrao = new Map(periodosAplicados);
+    periodosPadrao.set(novoBloco.id, "todos");
+    setPeriodosAplicados(periodosPadrao);
+    
+    // Salvar período padrão
+    saveConfiguration(`filtro-periodo-${novoBloco.id}`, "todos").catch(error => {
+      console.warn('⚠️ Erro ao salvar período padrão:', error);
+    });
+    
     // Salvar nova lista
     saveConfiguration('markups_blocos', novosBlocos).then(() => {
       console.log('✅ Novo bloco criado com sucesso:', novoBloco);
       toast({
         title: "Bloco criado!",
-        description: `O bloco "${novoBloco.nome}" foi criado. Use o submenu para configurar o período.`
+        description: `O bloco "${novoBloco.nome}" foi criado com período padrão "todos".`
       });
     }).catch(error => {
       console.error('❌ Erro ao criar novo bloco:', error);
@@ -735,6 +769,8 @@ export function Markups() {
           const configExpansionKey = `expansion-${bloco.id}`;
           const showExpansion = submenusAbertos.has(bloco.id);
           
+          console.log(`🔍 Bloco ${bloco.nome} (${bloco.id}): showExpansion = ${showExpansion}, submenusAbertos =`, Array.from(submenusAbertos));
+          
           return (
             <Card key={bloco.id} className="border-border">
               <CardHeader>
@@ -833,13 +869,13 @@ export function Markups() {
                 </div>
 
                 {/* Expansão de Configuração */}
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out bg-background border-t relative z-50 ${
                   showExpansion 
-                    ? 'max-h-[600px] opacity-100' 
-                    : 'max-h-0 opacity-0'
+                    ? 'max-h-[800px] opacity-100 pt-4 mt-4' 
+                    : 'max-h-0 opacity-0 pt-0 mt-0'
                 }`}>
                   {showExpansion && (
-                    <div className="border-t pt-4 mt-4 space-y-4 animate-fade-in">
+                    <div className="space-y-4 animate-fade-in bg-background p-4 rounded-lg border shadow-lg">
                       <div className="text-sm font-medium text-muted-foreground">
                         Configurações de Custos - {bloco.nome}
                       </div>
