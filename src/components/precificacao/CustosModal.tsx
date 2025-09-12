@@ -285,6 +285,17 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     return media;
   }, [faturamentosHistoricos, globalPeriod]);
 
+  const periodoLabel = useMemo(() => {
+    switch (globalPeriod) {
+      case '1': return 'último mês';
+      case '3': return 'últimos 3 meses';
+      case '6': return 'últimos 6 meses';
+      case '12': return 'últimos 12 meses';
+      case 'todos': return 'todos os meses';
+      default: return 'últimos 12 meses';
+    }
+  }, [globalPeriod]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
