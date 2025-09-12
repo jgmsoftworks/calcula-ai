@@ -48,6 +48,12 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
   const [blocoConfigurandoId, setBlocoConfigurandoId] = useState<string | null>(null);
   
+  // Referência estável para evitar loops de dependência
+  const blocosRef = useRef<MarkupBlock[]>([]);
+  useEffect(() => {
+    blocosRef.current = blocos;
+  }, [blocos]);
+  
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -84,12 +90,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
   // Função ÚNICA para carregar e calcular configurações salvas
   const carregarConfiguracoesSalvas = useCallback(async () => {
-    if (!user?.id || blocos.length === 0) {
+    const blocosAtuais = blocosRef.current;
+    if (!user?.id || blocosAtuais.length === 0) {
       console.log('⏳ Aguardando carregamento...');
       return;
     }
 
-    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos com período:', globalPeriod);
+    console.log('🔄 Carregando configurações salvas para', blocosAtuais.length, 'blocos com período:', globalPeriod);
 
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
@@ -114,13 +121,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     });
 
     // Processar cada bloco individualmente
-    for (const bloco of blocos) {
+    for (const bloco of blocosAtuais) {
         const configKey = `checkbox-states-${bloco.id}`;
         const config = await loadConfiguration(configKey);
         
         console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
-        // <<-- CORREÇÃO: Lógica de cálculo da média de faturamento movida para DENTRO do loop
+        // Lógica de cálculo da média de faturamento movida para DENTRO do loop
         let mediaMensal = 0;
         
         // NOVA LÓGICA: Use o filtro global para todos os blocos EXCETO o subreceita
@@ -129,7 +136,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         let faturamentosFiltrados = todosFaturamentos;
 
         if (periodoSelecionado !== 'todos') {
-            // 🔥 CORREÇÃO: Garantir que o período é string antes de parseInt
             const mesesAtras = parseInt(String(periodoSelecionado), 10);
             const dataLimite = new Date();
             dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
@@ -218,7 +224,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         setCalculatedMarkups(novosCalculatedMarkups);
         console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
     }
-  }, [user?.id, blocos, loadConfiguration, getCategoriaByNome, globalPeriod]);
+  }, [user?.id, loadConfiguration, getCategoriaByNome, globalPeriod]);
 
   const abrirConfiguracaoCompleta = useCallback((blocoId: string) => {
     setBlocoConfigurandoId(blocoId);
@@ -240,22 +246,14 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     carregarBlocos();
   }, [loadConfiguration]);
   
-  // Carregar configurações salvas
+  // Carregar/recalcular configurações quando blocos, usuário ou período mudarem
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
-      console.log('🎯 Executando cálculo dos markups...');
+      console.log('🎯 Executando cálculo dos markups (trigger: blocos/user/período)...');
       carregarConfiguracoesSalvas();
     }
-  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
+  }, [blocos.length, user?.id, globalPeriod, carregarConfiguracoesSalvas]);
 
-  // Recalcular quando o período global mudar
-  useEffect(() => {
-    if (blocos.length > 0 && user?.id && globalPeriod) {
-      console.log('🔄 Período global mudou para:', globalPeriod, '- recalculando markups...');
-      // Recálculo imediato quando período muda
-      carregarConfiguracoesSalvas();
-    }
-  }, [globalPeriod, carregarConfiguracoesSalvas, blocos.length, user?.id]);
 
   // Real-time updates: escutar mudanças na tabela user_configurations
   useEffect(() => {
@@ -306,7 +304,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       console.log('🔌 Desconectando real-time updates');
       supabase.removeChannel(channel);
     };
-  }, [user?.id, carregarConfiguracoesSalvas, invalidateCache]);
+  }, [user?.id]);
 
   // Limpar timeouts ao desmontar
   useEffect(() => {
@@ -650,6 +648,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         open={modalConfiguracaoAberto}
         onOpenChange={setModalConfiguracaoAberto}
         markupBlock={blocoConfigurandoId ? blocos.find(b => b.id === blocoConfigurandoId) : undefined}
+        globalPeriod={globalPeriod}
         onMarkupUpdate={() => {
           // Recarregar configurações após atualização
           carregarConfiguracoesSalvas();

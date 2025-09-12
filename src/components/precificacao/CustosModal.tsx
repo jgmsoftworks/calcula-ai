@@ -62,9 +62,10 @@ interface CustosModalProps {
   onOpenChange: (open: boolean) => void;
   markupBlock?: MarkupBlock;
   onMarkupUpdate?: (markupData: Partial<MarkupBlock>) => void;
+  globalPeriod?: string;
 }
 
-export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }: CustosModalProps) {
+export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, globalPeriod = '12' }: CustosModalProps) {
   const [despesasFixas, setDespesasFixas] = useState<DespesaFixa[]>([]);
   const [folhaPagamento, setFolhaPagamento] = useState<FolhaPagamento[]>([]);
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
@@ -263,21 +264,26 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [open]);
 
-  // Função helper para calcular média mensal - usando 12 meses como padrão (não há mais filtro individual)
+  // Função helper para calcular média mensal baseada no período global
   const calcularMediaMensal = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
 
-    // Usar os últimos 12 meses como padrão para os cálculos do modal
-    const periodo = '12';
+    const periodo = globalPeriod || '12';
     let faturamentosSelecionados = [...faturamentosHistoricos];
-    
-    // Para o modal, sempre usar todos os dados disponíveis para base de cálculo
+
+    if (periodo !== 'todos') {
+      const mesesAtras = parseInt(String(periodo), 10);
+      const dataLimite = new Date();
+      dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+      faturamentosSelecionados = faturamentosHistoricos.filter(f => f.mes >= dataLimite);
+    }
+
     if (faturamentosSelecionados.length === 0) return 0;
 
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
     const media = totalFaturamento / faturamentosSelecionados.length;
     return media;
-  }, [faturamentosHistoricos]);
+  }, [faturamentosHistoricos, globalPeriod]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -680,7 +686,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
               {/* Informação sobre a média mensal fixa */}
               <div className="border rounded-lg p-4 bg-background">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Média Mensal (Base de cálculo - últimos 12 meses)</p>
+                  <p className="text-sm text-muted-foreground">Média Mensal (Base de cálculo - {periodoLabel})</p>
                   <p className="text-2xl font-bold text-primary">
                     {formatCurrency(calcularMediaMensal)}
                   </p>
