@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -6,11 +7,29 @@ import { MediaFaturamento } from '@/components/precificacao/MediaFaturamento';
 import { Markups } from '@/components/precificacao/Markups';
 
 const Precificacao = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("media-faturamento");
-  const [globalPeriod, setGlobalPeriod] = useState<string>("12");
+  
+  // Inicializar período do query parameter ou usar padrão
+  const [globalPeriod, setGlobalPeriod] = useState<string>(() => {
+    return searchParams.get('periodo') || "12";
+  });
+
+  // Sincronizar estado com URL quando componente carrega
+  useEffect(() => {
+    const periodoFromUrl = searchParams.get('periodo');
+    if (periodoFromUrl && periodoFromUrl !== globalPeriod) {
+      setGlobalPeriod(periodoFromUrl);
+    }
+  }, [searchParams]);
 
   const handleGlobalPeriodChange = (value: string) => {
     setGlobalPeriod(value);
+    
+    // Atualizar URL com novo período
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('periodo', value);
+    setSearchParams(newSearchParams, { replace: true });
   };
 
   return (

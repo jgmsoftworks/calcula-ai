@@ -89,7 +89,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       return;
     }
 
-    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos');
+    console.log('🔄 Carregando configurações salvas para', blocos.length, 'blocos com período:', globalPeriod);
 
     const novosCalculatedMarkups = new Map<string, CalculatedMarkup>();
 
@@ -100,13 +100,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         supabase.from('encargos_venda').select('*').eq('user_id', user.id)
     ]);
 
-    // <<-- CORREÇÃO: Carrega todos os faturamentos aqui, mas o cálculo será feito dentro do loop.
+    // Carrega todos os faturamentos aqui, mas o cálculo será feito dentro do loop.
     const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
     const todosFaturamentos = (faturamentosConfig && Array.isArray(faturamentosConfig))
         ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
         : [];
 
-    console.log('📊 Dados base para cálculo:', {
+    console.log('📊 Dados base para cálculo (período:', globalPeriod, '):', {
         despesasFixas: despesasFixas?.length,
         folhaPagamento: folhaPagamento?.length,
         encargosVenda: encargosVenda?.length,
@@ -250,8 +250,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
   // Recalcular quando o período global mudar
   useEffect(() => {
-    if (blocos.length > 0 && user?.id) {
-      console.log('🔄 Período global mudou, recalculando markups...');
+    if (blocos.length > 0 && user?.id && globalPeriod) {
+      console.log('🔄 Período global mudou para:', globalPeriod, '- recalculando markups...');
+      // Recálculo imediato quando período muda
       carregarConfiguracoesSalvas();
     }
   }, [globalPeriod, carregarConfiguracoesSalvas, blocos.length, user?.id]);
