@@ -73,12 +73,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   const [tempCheckboxStates, setTempCheckboxStates] = useState<Record<string, boolean>>({});
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
-  const [filtroPerido, setFiltroPerido] = useState<string>('12'); // Padrão 12 meses
-  
-  // Debug do estado do filtro
-  useEffect(() => {
-    console.log('🔍 Estado do filtro mudou para:', filtroPerido);
-  }, [filtroPerido]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
     despesasFixas: false,
@@ -93,64 +87,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
   useEffect(() => {
     if (markupBlock) {
       setCurrentMarkupValues(markupBlock);
-      // Carregar filtro salvo para este bloco
-      carregarFiltroSalvo();
     }
   }, [markupBlock]);
-
-  // Carregar filtro salvo
-  const carregarFiltroSalvo = async () => {
-    try {
-      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      console.log('🔍 Tentando carregar filtro com chave:', configKey);
-      
-      const filtroSalvo = await loadConfiguration(configKey);
-      console.log('🔍 Resultado do carregamento:', { configKey, filtroSalvo, tipo: typeof filtroSalvo });
-      
-      if (filtroSalvo && typeof filtroSalvo === 'string') {
-        console.log('✅ Aplicando filtro salvo:', filtroSalvo);
-        setFiltroPerido(filtroSalvo);
-      } else {
-        console.log('⚠️ Nenhum filtro salvo encontrado, usando padrão 12 meses');
-        setFiltroPerido('12'); // Forçar padrão
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar filtro:', error);
-      setFiltroPerido('12'); // Fallback
-    }
-  };
-
-  // Salvar filtro quando mudado
-  const handleFiltroChange = async (novoFiltro: string) => {
-    console.log('🔄 handleFiltroChange chamado - Mudando filtro de', filtroPerido, 'para:', novoFiltro);
-    console.log('🔄 markupBlock existe?', !!markupBlock, markupBlock?.id);
-    
-    setFiltroPerido(novoFiltro);
-    
-    // Salvar filtro SEMPRE, mesmo para novos blocos
-    try {
-      const configKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      console.log('💾 Salvando filtro com chave:', configKey, 'valor:', novoFiltro);
-      
-      await saveConfiguration(configKey, novoFiltro);
-      console.log('✅ Filtro salvo com sucesso:', configKey, novoFiltro);
-      
-      // Verificar se foi realmente salvo
-      const verificacao = await loadConfiguration(configKey);
-      console.log('🔍 Verificação do salvamento:', verificacao);
-      
-      // IMPORTANTE: Recalcular markup com o novo filtro
-      setTimeout(() => {
-        if (Object.keys(tempCheckboxStates).length > 0) {
-          console.log('🔄 Recalculando markup com novo filtro:', novoFiltro);
-          calcularMarkup(tempCheckboxStates);
-        }
-      }, 100); // Pequeno delay para garantir que o estado foi atualizado
-      
-    } catch (error) {
-      console.error('❌ Erro ao salvar filtro:', error);
-    }
-  };
 
   const carregarDados = async () => {
     if (!user) return;
@@ -267,9 +205,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     console.log('🔄 Modal aberto:', open, 'markupBlock:', markupBlock?.id || 'NOVO');
     if (open) {
       carregarDados();
-      carregarFiltroSalvo(); // Carregar filtro salvo sempre que abrir
     }
-  }, [open, user, markupBlock?.id]); // Adiciona markupBlock.id como dependência
+  }, [open, user, markupBlock?.id]);
 
   // Recalcular markup quando os dados são carregados
   useEffect(() => {
@@ -326,137 +263,21 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
     };
   }, [open]);
 
-  // Função helper para calcular média mensal para diferentes períodos
-  const calcularMediaPorPeriodo = useCallback((periodo: string) => {
+  // Função helper para calcular média mensal - usando 12 meses como padrão (não há mais filtro individual)
+  const calcularMediaMensal = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
 
+    // Usar os últimos 12 meses como padrão para os cálculos do modal
+    const periodo = '12';
     let faturamentosSelecionados = [...faturamentosHistoricos];
     
-    // Se não for "todos", pegar apenas a quantidade específica dos mais recentes
-    if (periodo !== 'todos') {
-      const quantidade = parseInt(periodo);
-      faturamentosSelecionados = faturamentosHistoricos.slice(0, quantidade);
-    }
-
+    // Para o modal, sempre usar todos os dados disponíveis para base de cálculo
     if (faturamentosSelecionados.length === 0) return 0;
 
-    // Se for apenas 1 mês (último mês), retornar o valor do mais recente
-    if (periodo === '1' && faturamentosSelecionados.length > 0) {
-      return faturamentosSelecionados[0].valor;
-    }
-
-    // Para outros casos, calcular a média dos selecionados
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
     const media = totalFaturamento / faturamentosSelecionados.length;
     return media;
   }, [faturamentosHistoricos]);
-
-  // Função para aplicar período selecionado e resetar configurações anteriores
-  const handleAplicarPeriodo = useCallback(async () => {
-    console.log(`🔄 Aplicando período: ${filtroPerido}`);
-    
-    try {
-      // 1. PRIMEIRO: Limpar todas as configurações antigas de períodos usando limpeza em lote
-      const configKeysToReset = [
-        markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default',
-        `filtro-periodo-forcado-${markupBlock?.id || 'default'}`,
-        'ultimo-filtro-aplicado',
-        'filtro-periodo-1',
-        'filtro-periodo-3', 
-        'filtro-periodo-6',
-        'filtro-periodo-12',
-        'filtro-periodo-todos'
-      ];
-      
-      console.log('🧹 Limpando configurações anteriores com nova estratégia...');
-      await deleteMultipleConfigurations(configKeysToReset);
-      
-      // 2. Aguardar um pouco para garantir que a limpeza foi processada
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // 3. AGORA: Salvar APENAS o período selecionado com retry
-      const mainConfigKey = markupBlock ? `filtro-periodo-${markupBlock.id}` : 'filtro-periodo-default';
-      
-      // Implementar retry inteligente
-      let retryCount = 0;
-      const maxRetries = 3;
-      let saved = false;
-      
-      while (!saved && retryCount < maxRetries) {
-        try {
-          await saveConfiguration(mainConfigKey, filtroPerido);
-          console.log(`✅ Novo período salvo: ${mainConfigKey} = ${filtroPerido}`);
-          saved = true;
-        } catch (error) {
-          retryCount++;
-          console.warn(`⚠️ Tentativa ${retryCount}/${maxRetries} falhou:`, error);
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 500 * retryCount)); // Backoff exponencial
-          } else {
-            throw error; // Falha após todas as tentativas
-          }
-        }
-      }
-      
-      // 4. Reforçar o estado local
-      setFiltroPerido(filtroPerido);
-      
-      // 5. Recalcular com o novo período
-      setTimeout(() => {
-        if (Object.keys(tempCheckboxStates).length > 0) {
-          console.log('🔄 Recalculando com novo período:', filtroPerido);
-          handleFiltroChange(filtroPerido);
-        }
-      }, 300);
-      
-      // 6. Mostrar toast amigável e validar se foi salvo
-      const savedValue = await loadConfiguration(mainConfigKey);
-      const isCorrectlyApplied = savedValue === filtroPerido;
-      
-      toast({
-        title: isCorrectlyApplied ? "Período aplicado com sucesso!" : "Período aplicado (verificando...)",
-        description: `Cálculos atualizados para ${
-          filtroPerido === '1' ? 'último mês' :
-          filtroPerido === '3' ? 'últimos 3 meses' :
-          filtroPerido === '6' ? 'últimos 6 meses' :
-          filtroPerido === '12' ? 'últimos 12 meses' :
-          'todos os períodos'
-        }${isCorrectlyApplied ? '' : ' - Validando aplicação...'}`,
-        duration: isCorrectlyApplied ? 3000 : 5000,
-        variant: isCorrectlyApplied ? "default" : "default"
-      });
-      
-      // Se não foi aplicado corretamente, tentar uma última vez
-      if (!isCorrectlyApplied) {
-        console.warn(`⚠️ Validação falhou: esperado=${filtroPerido}, atual=${savedValue}`);
-        setTimeout(async () => {
-          try {
-            await saveConfiguration(mainConfigKey, filtroPerido);
-            toast({
-              title: "Período corrigido!",
-              description: "Aplicação do filtro foi validada e corrigida.",
-              duration: 3000
-            });
-          } catch (error) {
-            console.error('❌ Falha na correção final:', error);
-          }
-        }, 1000);
-      }
-      
-    } catch (error) {
-      console.error('❌ Erro ao aplicar período:', error);
-      toast({
-        title: "Erro ao aplicar período",
-        description: "Tente novamente em alguns segundos.",
-        variant: "destructive"
-      });
-    }
-  }, [filtroPerido, tempCheckboxStates, saveConfiguration, markupBlock, handleFiltroChange, toast]);
-
-  // Função para calcular média mensal baseada no período selecionado
-  const calcularMediaMensal = useMemo(() => {
-    return calcularMediaPorPeriodo(filtroPerido);
-  }, [faturamentosHistoricos, filtroPerido, calcularMediaPorPeriodo]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -856,68 +677,13 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate }:
                 </CardTitle>
               </div>
               
-              {/* Tabs para Períodos */}
+              {/* Informação sobre a média mensal fixa */}
               <div className="border rounded-lg p-4 bg-background">
-                <h4 className="text-sm font-medium mb-3">Selecione o Período de Análise:</h4>
-                <Tabs value={filtroPerido} onValueChange={setFiltroPerido} className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="1">Último mês</TabsTrigger>
-                    <TabsTrigger value="3">Últimos 3 meses</TabsTrigger>
-                    <TabsTrigger value="6">Últimos 6 meses</TabsTrigger>
-                    <TabsTrigger value="12">Últimos 12 meses</TabsTrigger>
-                    <TabsTrigger value="todos">Todos</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="1" className="mt-4">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Média Mensal (Último mês)</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(calcularMediaPorPeriodo('1'))}
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="3" className="mt-4">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 3 meses)</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(calcularMediaPorPeriodo('3'))}
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="6" className="mt-4">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 6 meses)</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(calcularMediaPorPeriodo('6'))}
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="12" className="mt-4">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Média Mensal (Últimos 12 meses)</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(calcularMediaPorPeriodo('12'))}
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="todos" className="mt-4">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Média Mensal (Todos os períodos)</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(calcularMediaPorPeriodo('todos'))}
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-
-                <div className="flex justify-center mt-4">
-                  <Button onClick={handleAplicarPeriodo} variant="outline" size="sm">
-                    Aplicar Período Selecionado
-                  </Button>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Média Mensal (Base de cálculo - últimos 12 meses)</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {formatCurrency(calcularMediaMensal)}
+                  </p>
                 </div>
               </div>
             </div>
