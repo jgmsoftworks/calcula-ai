@@ -649,9 +649,22 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         onOpenChange={setModalConfiguracaoAberto}
         markupBlock={blocoConfigurandoId ? blocos.find(b => b.id === blocoConfigurandoId) : undefined}
         globalPeriod={globalPeriod}
-        onMarkupUpdate={() => {
-          // Recarregar configurações após atualização
-          carregarConfiguracoesSalvas();
+        onMarkupUpdate={(dados) => {
+          if (!blocoConfigurandoId) return;
+          setCalculatedMarkups((prev) => {
+            const novo = new Map(prev);
+            const anterior = novo.get(blocoConfigurandoId);
+            const atualizado: CalculatedMarkup = {
+              gastoSobreFaturamento: Number(dados.gastoSobreFaturamento ?? anterior?.gastoSobreFaturamento ?? 0),
+              impostos: Number(dados.impostos ?? anterior?.impostos ?? 0),
+              taxasMeiosPagamento: Number(dados.taxasMeiosPagamento ?? anterior?.taxasMeiosPagamento ?? 0),
+              comissoesPlataformas: Number(dados.comissoesPlataformas ?? anterior?.comissoesPlataformas ?? 0),
+              outros: Number(dados.outros ?? anterior?.outros ?? 0),
+              valorEmReal: Number(dados.valorEmReal ?? anterior?.valorEmReal ?? 0),
+            };
+            novo.set(blocoConfigurandoId, atualizado);
+            return novo;
+          });
         }}
       />
     </div>

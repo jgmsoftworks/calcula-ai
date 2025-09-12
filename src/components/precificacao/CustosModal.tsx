@@ -496,10 +496,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       ...categorias
     }));
     
-    // Também chamar o callback externo se existir
-    if (onMarkupUpdate) {
-      onMarkupUpdate(categorias);
-    }
+    // Atualizar valores locais para mostrar em tempo real
+    setCurrentMarkupValues(prev => ({
+      ...prev,
+      ...categorias
+    }));
+    
+    // Removido: não notificar o componente pai em cada cálculo para evitar loops de requisições
+
   }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
 
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
