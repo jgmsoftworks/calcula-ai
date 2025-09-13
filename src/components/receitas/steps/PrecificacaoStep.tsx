@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { TrendingUp, DollarSign, Weight, Calculator } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, DollarSign, Weight, Calculator, Target, Percent } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Ingrediente {
   id: string;
@@ -49,6 +51,20 @@ interface MaoObraItem {
   unidadeTempo?: string;
 }
 
+interface MarkupData {
+  id: string;
+  nome: string;
+  tipo: string;
+  periodo: string;
+  margem_lucro: number;
+  gasto_sobre_faturamento: number;
+  encargos_sobre_venda: number;
+  markup_ideal: number;
+  markup_aplicado: number;
+  preco_sugerido: number;
+  ativo: boolean;
+}
+
 interface ReceitaData {
   ingredientes: Ingrediente[];
   subReceitas: SubReceita[];
@@ -65,6 +81,35 @@ interface PrecificacaoStepProps {
 export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
   const [precoVenda, setPrecoVenda] = useState('');
   const [pesoUnitario, setPesoUnitario] = useState('');
+  const [markups, setMarkups] = useState<MarkupData[]>([]);
+  const { user } = useAuth();
+  
+  // Fetch markups from database
+  useEffect(() => {
+    const fetchMarkups = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('markups')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('ativo', true)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Erro ao buscar markups:', error);
+          return;
+        }
+        
+        setMarkups(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar markups:', error);
+      }
+    };
+    
+    fetchMarkups();
+  }, [user?.id]);
   
   // Function to format currency
   const formatCurrency = (value: string) => {
@@ -252,6 +297,78 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Markups Section */}
+      {markups.length > 0 && (
+        <div className="space-y-4">
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Markups Configurados
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              Blocos de markup criados na tela de Precificação. Para editar, acesse a tela Precificação.
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            {markups.map((markup) => (
+              <Card key={markup.id} className="bg-muted/20">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
+                    <div className="flex gap-2">
+                      <Badge variant={markup.tipo === 'sub_receita' ? 'secondary' : 'outline'}>
+                        {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
+                      </Badge>
+                      <Badge variant="outline">
+                        {markup.periodo} meses
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground flex items-center gap-1">
+                        <Percent className="h-3 w-3" />
+                        Margem Lucro
+                      </p>
+                      <p className="font-medium">{markup.margem_lucro.toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Gasto s/ Faturamento</p>
+                      <p className="font-medium">{markup.gasto_sobre_faturamento.toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Markup Ideal</p>
+                      <p className="font-medium text-primary">{markup.markup_ideal.toFixed(4)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Preço Sugerido</p>
+                      <p className="font-medium text-primary">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL'
+                        }).format(markup.preco_sugerido)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Encargos sobre Venda</span>
+                      <Badge variant="outline" className="text-xs">
+                        {markup.encargos_sobre_venda.toFixed(2)}%
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
