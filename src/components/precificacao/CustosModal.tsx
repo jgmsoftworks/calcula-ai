@@ -23,6 +23,7 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
+  periodo: string;
 }
 
 interface FaturamentoHistorico {
@@ -379,8 +380,41 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     console.log('💰 Total folha pagamento considerada:', totalFolhaPagamento, 'de', folhaConsiderada.length, 'funcionários');
     
     const totalGastos = totalDespesasFixas + totalFolhaPagamento;
-    
-    // Não calcular gastos sobre faturamento no modal - isso agora é feito no componente pai
+
+    // Calcular valor de faturamento baseado no período do bloco
+    const periodoBloco = markupBlock?.periodo || '12';
+    let valorFaturamento = 0;
+
+    if (faturamentosHistoricos.length > 0) {
+      if (periodoBloco === 'todos') {
+        // Para "todos": calcular a média de todos os lançamentos
+        const totalFaturamentos = faturamentosHistoricos.reduce((acc, f) => acc + f.valor, 0);
+        valorFaturamento = totalFaturamentos / faturamentosHistoricos.length;
+      } else {
+        // Para outros períodos: calcular a média
+        const mesesAtras = parseInt(String(periodoBloco), 10);
+        const dataLimite = new Date();
+        dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+        
+        const faturamentosFiltrados = faturamentosHistoricos.filter(f => f.mes >= dataLimite);
+        
+        if (faturamentosFiltrados.length > 0) {
+          const total = faturamentosFiltrados.reduce((acc, f) => acc + f.valor, 0);
+          valorFaturamento = total / faturamentosFiltrados.length;
+        }
+      }
+    }
+
+    // Calcular porcentagem sobre o valor de faturamento
+    if (valorFaturamento > 0 && totalGastos > 0) {
+      gastosSobreFaturamento = (totalGastos / valorFaturamento) * 100;
+    }
+
+    console.log('💰 Cálculo gastos sobre faturamento:', {
+      totalGastos,
+      valorFaturamento,
+      gastosSobreFaturamento: gastosSobreFaturamento
+    });
 
     // Calcular encargos sobre venda
     const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
@@ -434,7 +468,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     
     // Removido: não notificar o componente pai em cada cálculo para evitar loops de requisições
 
-  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate]);
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, faturamentosHistoricos, markupBlock?.periodo]);
 
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {

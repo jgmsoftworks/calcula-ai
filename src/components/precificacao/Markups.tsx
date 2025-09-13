@@ -770,7 +770,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         open={modalConfiguracaoAberto}
         onOpenChange={setModalConfiguracaoAberto}
         markupBlock={blocoConfigurandoId ? blocos.find(b => b.id === blocoConfigurandoId) : undefined}
-        globalPeriod={globalPeriod}
         onMarkupUpdate={(dados) => {
           if (!blocoConfigurandoId) return;
           setCalculatedMarkups((prev) => {
