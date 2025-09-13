@@ -328,6 +328,14 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     }
   }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
+  // Salvar no banco quando calculatedMarkups for atualizado
+  useEffect(() => {
+    if (calculatedMarkups.size > 0 && blocos.length > 0 && user?.id) {
+      console.log('💾 Salvando markups calculados no banco...');
+      salvarMarkupsNoBanco(blocos);
+    }
+  }, [calculatedMarkups, blocos, user?.id]);
+
 
   // Real-time updates: escutar mudanças na tabela user_configurations
   useEffect(() => {
@@ -395,11 +403,71 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     debounceRef.current = setTimeout(async () => {
       try {
         await saveConfiguration('markups_blocos', novosBlocos);
+        // Salvar também no banco de dados
+        await salvarMarkupsNoBanco(novosBlocos);
       } catch (error) {
         console.error('Erro ao salvar blocos:', error);
       }
     }, 800);
   }, [saveConfiguration]);
+
+  const salvarMarkupsNoBanco = async (blocos: MarkupBlock[]) => {
+    if (!user?.id) return;
+
+    try {
+      // Primeiro, marcar todos os markups existentes como inativos
+      await supabase
+        .from('markups')
+        .update({ ativo: false })
+        .eq('user_id', user.id);
+
+      // Depois, inserir ou atualizar os markups atuais
+      for (const bloco of blocos) {
+        const calculated = calculatedMarkups.get(bloco.id);
+        if (!calculated) continue;
+
+        // Buscar configuração salva para este bloco
+        const configKey = `checkbox-states-${bloco.id}`;
+        const config = await loadConfiguration(configKey);
+
+        const markupData = {
+          user_id: user.id,
+          nome: bloco.nome,
+          tipo: bloco.nome.toLowerCase().includes('sub') ? 'sub_receita' : 'normal',
+          periodo: bloco.periodo,
+          margem_lucro: bloco.lucroDesejado,
+          gasto_sobre_faturamento: calculated.gastoSobreFaturamento,
+          encargos_sobre_venda: calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros,
+          markup_ideal: calcularMarkupIdealParaBanco(bloco, calculated),
+          markup_aplicado: calcularMarkupAplicadoParaBanco(bloco, calculated),
+          preco_sugerido: calculated.valorEmReal,
+          despesas_fixas_selecionadas: config ? Object.keys(config).filter(key => config[key] && key.includes('despesa')) : [],
+          folha_pagamento_selecionada: config ? Object.keys(config).filter(key => config[key] && key.includes('folha')) : [],
+          encargos_venda_selecionados: config ? Object.keys(config).filter(key => config[key] && key.includes('encargo')) : [],
+          ativo: true
+        };
+
+        await supabase
+          .from('markups')
+          .upsert(markupData);
+      }
+
+      console.log('✅ Markups salvos no banco de dados');
+    } catch (error) {
+      console.error('❌ Erro ao salvar markups no banco:', error);
+    }
+  };
+
+  const calcularMarkupIdealParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
+    const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
+    const markup = ((100 + bloco.lucroDesejado) / (100 - totalEncargos)) - 1;
+    return markup * 100;
+  };
+
+  const calcularMarkupAplicadoParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
+    const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
+    return ((100 + bloco.lucroDesejado) / (100 - totalEncargos)) * 100;
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

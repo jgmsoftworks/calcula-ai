@@ -343,6 +343,66 @@ export type Database = {
         }
         Relationships: []
       }
+      markups: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          despesas_fixas_selecionadas: Json | null
+          encargos_sobre_venda: number
+          encargos_venda_selecionados: Json | null
+          folha_pagamento_selecionada: Json | null
+          gasto_sobre_faturamento: number
+          id: string
+          margem_lucro: number
+          markup_aplicado: number
+          markup_ideal: number
+          nome: string
+          periodo: string
+          preco_sugerido: number
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          despesas_fixas_selecionadas?: Json | null
+          encargos_sobre_venda?: number
+          encargos_venda_selecionados?: Json | null
+          folha_pagamento_selecionada?: Json | null
+          gasto_sobre_faturamento?: number
+          id?: string
+          margem_lucro?: number
+          markup_aplicado?: number
+          markup_ideal?: number
+          nome: string
+          periodo?: string
+          preco_sugerido?: number
+          tipo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          despesas_fixas_selecionadas?: Json | null
+          encargos_sobre_venda?: number
+          encargos_venda_selecionados?: Json | null
+          folha_pagamento_selecionada?: Json | null
+          gasto_sobre_faturamento?: number
+          id?: string
+          margem_lucro?: number
+          markup_aplicado?: number
+          markup_ideal?: number
+          nome?: string
+          periodo?: string
+          preco_sugerido?: number
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       movimentacoes: {
         Row: {
           created_at: string
@@ -660,6 +720,10 @@ export type Database = {
       generate_codigo_interno: {
         Args: { user_uuid: string }
         Returns: string
+      }
+      initialize_user_filters: {
+        Args: { user_uuid: string }
+        Returns: undefined
       }
     }
     Enums: {
