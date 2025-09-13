@@ -312,60 +312,119 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
           </div>
 
           <div className="grid gap-4">
-            {markups.map((markup) => (
-              <Card key={markup.id} className="bg-muted/20">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
-                    <div className="flex gap-2">
-                      <Badge variant={markup.tipo === 'sub_receita' ? 'secondary' : 'outline'}>
-                        {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {markup.periodo} meses
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground flex items-center gap-1">
-                        <Percent className="h-3 w-3" />
-                        Margem Lucro
-                      </p>
-                      <p className="font-medium">{markup.margem_lucro.toFixed(2)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Gasto s/ Faturamento</p>
-                      <p className="font-medium">{markup.gasto_sobre_faturamento.toFixed(2)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Markup Ideal</p>
-                      <p className="font-medium text-primary">{markup.markup_ideal.toFixed(4)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Preço Sugerido</p>
-                      <p className="font-medium text-primary">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        }).format(markup.preco_sugerido)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3 pt-3 border-t">
+            {markups.map((markup) => {
+              // Calculate markup based on entered price
+              const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
+              const precoSugerido = custoUnitario * markup.markup_ideal;
+              
+              // Calculate profit metrics
+              const lucroBrutoUnitario = precoNumerico - custoUnitario;
+              const lucroLiquidoEsperado = lucroBrutoUnitario * (markup.margem_lucro / 100);
+              const faturamentoBruto = precoNumerico;
+              
+              // Calculate percentages
+              const lucroBrutoPercent = precoNumerico > 0 ? (lucroBrutoUnitario / precoNumerico) * 100 : 0;
+              const lucroLiquidoPercent = precoNumerico > 0 ? (lucroLiquidoEsperado / precoNumerico) * 100 : 0;
+
+              return (
+                <Card key={markup.id} className="bg-muted/20">
+                  <CardHeader className="pb-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Encargos sobre Venda</span>
-                      <Badge variant="outline" className="text-xs">
-                        {markup.encargos_sobre_venda.toFixed(2)}%
-                      </Badge>
+                      <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
+                      <div className="flex gap-2">
+                        <Badge variant={markup.tipo === 'sub_receita' ? 'secondary' : 'outline'}>
+                          {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
+                        </Badge>
+                        <Badge variant="outline">
+                          {markup.periodo} meses
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-4">
+                    {/* Markup Values */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-3 bg-background rounded-lg border">
+                        <p className="text-sm text-muted-foreground mb-1">Markup da Categoria</p>
+                        <p className="text-lg font-bold text-primary">
+                          {markup.markup_ideal.toFixed(4)}
+                        </p>
+                      </div>
+                      
+                      <div className="text-center p-3 bg-background rounded-lg border">
+                        <p className="text-sm text-muted-foreground mb-1">Markup Final</p>
+                        <p className="text-lg font-bold text-secondary">
+                          {precoNumerico > 0 ? `Ex: ${markupFinal.toFixed(3)}` : 'Ex: 0,000'}
+                        </p>
+                      </div>
+                      
+                      <div className="text-center p-3 bg-background rounded-lg border">
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Sugestão de Preço 
+                          <span className="text-xs ml-1">(encargos: R$ {markup.encargos_sobre_venda.toFixed(2)})</span>
+                        </p>
+                        <p className="text-lg font-bold text-primary">
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                          }).format(precoSugerido)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Receitas Table */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm font-medium text-primary pb-2 border-b">
+                        <span>Receitas</span>
+                        <div className="flex gap-8">
+                          <span>Valor</span>
+                          <span>%</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Lucro Bruto (un.):</span>
+                        <div className="flex gap-8 text-right">
+                          <span className="w-20">
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(lucroBrutoUnitario)}
+                          </span>
+                          <span className="w-12">{lucroBrutoPercent.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Lucro Líq. Esperado (un.):</span>
+                        <div className="flex gap-8 text-right">
+                          <span className="w-20">
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(lucroLiquidoEsperado)}
+                          </span>
+                          <span className="w-12">{lucroLiquidoPercent.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-sm font-medium pt-2 border-t">
+                        <span className="text-primary">Faturamento Bruto (total):</span>
+                        <div className="flex gap-8 text-right">
+                          <span className="w-20 text-primary font-bold">
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(faturamentoBruto)}
+                          </span>
+                          <span className="w-12 text-primary font-bold">100%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
