@@ -202,17 +202,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         const periodoSelecionado = bloco.id === 'subreceita-fixo' ? 'todos' : globalPeriod;
         
         if (periodoSelecionado === 'todos') {
-            // Para "todos": usar o lançamento mais recente
+            // Para "todos": calcular a média de todos os lançamentos
             if (todosFaturamentos.length > 0) {
-                // Ordenar por data mais recente e pegar o primeiro
-                const maisRecente = todosFaturamentos.sort((a: any, b: any) => {
-                    const dateA = new Date(a.mes).getTime();
-                    const dateB = new Date(b.mes).getTime();
-                    if (dateB !== dateA) return dateB - dateA;
-                    // Se a data for igual, ordenar por ID (timestamp de criação)
-                    return parseInt(b.id) - parseInt(a.id);
-                })[0];
-                valorFaturamento = maisRecente.valor;
+                const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+                valorFaturamento = totalFaturamentos / todosFaturamentos.length;
             }
         } else {
             // Para outros períodos: calcular a média
