@@ -515,7 +515,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           <div className="flex items-center gap-2">
             <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
               <Calculator className="h-5 w-5" />
-              Subreceita (Base de Cálculo)
+              Subreceita
             </CardTitle>
             <TooltipProvider>
               <Tooltip>
