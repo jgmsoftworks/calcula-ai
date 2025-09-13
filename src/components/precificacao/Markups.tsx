@@ -512,10 +512,22 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       {/* Bloco Subreceita - Sempre fixo */}
       <Card className="border-primary bg-primary/5">
         <CardHeader>
-          <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Subreceita (Base de Cálculo)
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Subreceita (Base de Cálculo)
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p><strong>Atenção:</strong> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em receitas.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
