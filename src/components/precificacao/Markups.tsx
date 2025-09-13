@@ -521,31 +521,31 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
-              <div className="text-2xl font-bold text-primary">15%</div>
+              <div className="text-2xl font-bold text-primary">0%</div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
-              <div className="text-2xl font-bold text-primary">25%</div>
+              <div className="text-2xl font-bold text-primary">0%</div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
-              <div className="text-2xl font-bold text-primary">5%</div>
+              <div className="text-2xl font-bold text-primary">0%</div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
-              <div className="text-2xl font-bold text-primary">10%</div>
+              <div className="text-2xl font-bold text-primary">0%</div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
-              <div className="text-2xl font-bold text-primary">5%</div>
+              <div className="text-2xl font-bold text-primary">0%</div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
-              <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>{formatCurrency(200)}</div>
+              <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>{formatCurrency(0)}</div>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
-              <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>20%</div>
+              <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>0%</div>
             </div>
           </div>
           
