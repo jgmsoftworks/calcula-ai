@@ -120,10 +120,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
     const periodo = globalPeriod || '12';
 
-    // Se for "todos", retorna o lançamento mais recente
+    // Se for "todos", calcula a média de todos os lançamentos
     if (periodo === 'todos') {
-      // Os dados já vêm ordenados do mais recente para o mais antigo
-      return faturamentosHistoricos[0]?.valor || 0;
+      const totalFaturamentos = faturamentosHistoricos.reduce((acc, f) => acc + f.valor, 0);
+      return totalFaturamentos / faturamentosHistoricos.length;
     }
 
     // Para outros períodos, calcula a média
@@ -146,7 +146,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       case '3': return 'últimos 3 meses';
       case '6': return 'últimos 6 meses';
       case '12': return 'últimos 12 meses';
-      case 'todos': return 'valor mais recente';
+      case 'todos': return 'média de todos os períodos';
       default: return 'últimos 12 meses';
     }
   }, [globalPeriod]);
@@ -629,7 +629,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                   </div>
                   <div className="text-right">
                     <Label className="text-sm font-medium text-muted-foreground">
-                      {globalPeriod === 'todos' ? 'Faturamento mais recente' : `Média de faturamento (${periodoLabel})`}
+                      {globalPeriod === 'todos' ? 'Média de faturamento (todos os períodos)' : `Média de faturamento (${periodoLabel})`}
                     </Label>
                     <p className="text-lg font-bold text-primary">
                       {formatCurrency(calcularValorPeriodo)}
