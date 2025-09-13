@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,6 +40,7 @@ interface MarkupsProps {
 }
 
 export function Markups({ globalPeriod = "12" }: MarkupsProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
   const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
   const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
@@ -598,11 +600,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                       Período:
                     </Label>
                     <Select value={globalPeriod} onValueChange={(value) => {
-                      // Trigger change event for parent component
-                      const newSearchParams = new URLSearchParams(window.location.search);
+                      // Atualizar URL com novo período
+                      const newSearchParams = new URLSearchParams(searchParams);
                       newSearchParams.set('periodo', value);
-                      window.history.replaceState({}, '', `${window.location.pathname}?${newSearchParams}`);
-                      window.location.reload();
+                      setSearchParams(newSearchParams, { replace: true });
                     }}>
                       <SelectTrigger className="w-[160px]">
                         <SelectValue />
