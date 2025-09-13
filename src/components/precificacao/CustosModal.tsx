@@ -75,11 +75,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
   const [currentMarkupValues, setCurrentMarkupValues] = useState<Partial<MarkupBlock>>(markupBlock || {});
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [selectAllStates, setSelectAllStates] = useState({ // Novo estado para controlar "Selecionar Todos"
-    despesasFixas: false,
-    folhaPagamento: false,
-    encargosVenda: false
-  });
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadConfiguration, saveConfiguration, deleteMultipleConfigurations } = useOptimizedUserConfigurations();
@@ -326,36 +321,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     setHasUnsavedChanges(true);
     
     // Calcular markup em tempo real apenas para mostrar preview
-    debouncedCalculateMarkup(newTempStates);
-  };
-
-  // Nova função para selecionar/desmarcar todos de uma categoria
-  const handleSelectAll = (categoria: 'despesasFixas' | 'folhaPagamento' | 'encargosVenda', selectAll: boolean) => {
-    const newTempStates = { ...tempCheckboxStates };
-    let items: any[] = [];
-    
-    switch (categoria) {
-      case 'despesasFixas':
-        items = despesasFixas;
-        break;
-      case 'folhaPagamento':
-        items = folhaPagamento;
-        break;
-      case 'encargosVenda':
-        items = encargosVenda;
-        break;
-    }
-    
-    // Aplicar seleção apenas aos itens ativos
-    items.filter(item => item.ativo).forEach(item => {
-      newTempStates[item.id] = selectAll;
-    });
-    
-    setTempCheckboxStates(newTempStates);
-    setSelectAllStates(prev => ({ ...prev, [categoria]: selectAll }));
-    setHasUnsavedChanges(true);
-    
-    // Calcular markup em tempo real
     debouncedCalculateMarkup(newTempStates);
   };
 
@@ -665,19 +630,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
           <TabsContent value="despesas-fixas" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Despesas Fixas</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="select-all-despesas"
-                      checked={selectAllStates.despesasFixas}
-                      onCheckedChange={(checked) => handleSelectAll('despesasFixas', checked as boolean)}
-                    />
-                    <Label htmlFor="select-all-despesas" className="text-sm font-medium cursor-pointer">
-                      Selecionar Todos
-                    </Label>
-                  </div>
-                </div>
+                <CardTitle>Despesas Fixas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading ? (
@@ -725,19 +678,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
           <TabsContent value="folha-pagamento" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Folha de Pagamento</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="select-all-folha"
-                      checked={selectAllStates.folhaPagamento}
-                      onCheckedChange={(checked) => handleSelectAll('folhaPagamento', checked as boolean)}
-                    />
-                    <Label htmlFor="select-all-folha" className="text-sm font-medium cursor-pointer">
-                      Selecionar Todos
-                    </Label>
-                  </div>
-                </div>
+                <CardTitle>Folha de Pagamento</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading ? (
@@ -785,19 +726,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
           <TabsContent value="encargos-venda" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Encargos sobre Venda</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="select-all-encargos"
-                      checked={selectAllStates.encargosVenda}
-                      onCheckedChange={(checked) => handleSelectAll('encargosVenda', checked as boolean)}
-                    />
-                    <Label htmlFor="select-all-encargos" className="text-sm font-medium cursor-pointer">
-                      Selecionar Todos
-                    </Label>
-                  </div>
-                </div>
+                <CardTitle>Encargos sobre Venda</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {loading ? (

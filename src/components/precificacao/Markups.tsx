@@ -428,10 +428,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     const novosBlocos = [...blocos, novoBloco];
     setBlocos(novosBlocos);
     salvarBlocos(novosBlocos);
-    
-    // 🎯 NOVA FUNCIONALIDADE: Abrir modal de configuração automaticamente
-    setBlocoConfigurandoId(novoBloco.id);
-    setModalConfiguracaoAberto(true);
 
     toast({
       title: "Bloco criado!",
