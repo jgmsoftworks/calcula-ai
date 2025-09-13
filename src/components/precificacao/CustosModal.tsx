@@ -689,59 +689,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
           </DialogDescription>
         </DialogHeader>
 
-        <Card className="bg-blue-50/50 border-blue-200">
-          <CardHeader>
-            <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">
-                  {markupBlock ? 'Valores do Bloco de Markup' : 'Configuração do Novo Bloco'}
-                </CardTitle>
-              </div>
-              
-              {/* Informação sobre a média mensal fixa */}
-              <div className="border rounded-lg p-4 bg-background">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Média Mensal (Base de cálculo - {periodoLabel})</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {formatCurrency(calcularMediaMensal)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          {markupBlock && (
-            <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Gasto sobre faturamento</Label>
-                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.gastoSobreFaturamento || 0)}%</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Impostos</Label>
-                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.impostos || 0)}%</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Taxas da pagamento</Label>
-                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.taxasMeiosPagamento || 0)}%</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Comissões</Label>
-                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.comissoesPlataformas || 0)}%</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Outros</Label>
-                <p className="text-lg font-semibold text-blue-600">{formatPercentage(currentMarkupValues.outros || 0)}%</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Valor em real</Label>
-                <p className="text-lg font-semibold text-orange-600">{formatCurrency(currentMarkupValues.valorEmReal || 0)}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Lucro desejado</Label>
-                <p className="text-lg font-semibold text-green-600">{formatPercentage(currentMarkupValues.lucroDesejado || 0)}%</p>
-              </div>
-            </CardContent>
-          )}
-        </Card>
 
         <Tabs defaultValue="despesas-fixas" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
