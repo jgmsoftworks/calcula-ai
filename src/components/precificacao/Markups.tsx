@@ -560,7 +560,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     }
   };
 
-  const calcularMarkupIdeal = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
+  const calcularMarkupIdealParaExibicao = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
     const totalPercentuais = calculated.gastoSobreFaturamento + calculated.impostos + 
                             calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + 
                             calculated.outros + bloco.lucroDesejado;
@@ -641,7 +641,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
               <div className="text-3xl font-bold text-primary">
                 {(() => {
                   const calculatedSubreceita = calculatedMarkups.get('subreceita-fixo');
-                  const markupIdealSubreceita = calculatedSubreceita ? calcularMarkupIdeal(blocoSubreceita, calculatedSubreceita) : 1;
+                  const markupIdealSubreceita = calculatedSubreceita ? calcularMarkupIdealParaExibicao(blocoSubreceita, calculatedSubreceita) : 1;
                   return markupIdealSubreceita.toFixed(4).replace('.', ',');
                 })()}
               </div>
@@ -654,7 +654,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       {blocos.map((bloco) => {
         const calculated = calculatedMarkups.get(bloco.id);
         const hasCalculated = calculated !== undefined;
-        const markupIdeal = hasCalculated ? calcularMarkupIdeal(bloco, calculated) : 1;
+        const markupIdeal = hasCalculated ? calcularMarkupIdealParaExibicao(bloco, calculated) : 1;
         
         return (
           <Card key={bloco.id} className="border-border">
