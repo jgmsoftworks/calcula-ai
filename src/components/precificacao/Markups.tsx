@@ -552,7 +552,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
             <div className="flex items-center justify-between">
               <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
-              <div className="text-3xl font-bold text-primary">2,50</div>
+              <div className="text-3xl font-bold text-primary">
+                {(() => {
+                  const calculatedSubreceita = calculatedMarkups.get('subreceita-fixo');
+                  const markupIdealSubreceita = calculatedSubreceita ? calcularMarkupIdeal(blocoSubreceita, calculatedSubreceita) : 1;
+                  return markupIdealSubreceita.toFixed(4).replace('.', ',');
+                })()}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -700,7 +706,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-2 text-3xl font-bold text-primary">
-                          {hasCalculated ? markupIdeal.toFixed(2) : '1.00'}
+                          {hasCalculated ? markupIdeal.toFixed(4).replace('.', ',') : '1,0000'}
                           <Info className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </TooltipTrigger>
