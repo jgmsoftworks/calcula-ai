@@ -264,38 +264,6 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     };
   }, [open]);
 
-  // Função helper para calcular média mensal baseada no período global
-  const calcularMediaMensal = useMemo(() => {
-    if (faturamentosHistoricos.length === 0) return 0;
-
-    const periodo = globalPeriod || '12';
-    let faturamentosSelecionados = [...faturamentosHistoricos];
-
-    if (periodo !== 'todos') {
-      const mesesAtras = parseInt(String(periodo), 10);
-      const dataLimite = new Date();
-      dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
-      faturamentosSelecionados = faturamentosHistoricos.filter(f => f.mes >= dataLimite);
-    }
-
-    if (faturamentosSelecionados.length === 0) return 0;
-
-    const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
-    const media = totalFaturamento / faturamentosSelecionados.length;
-    return media;
-  }, [faturamentosHistoricos, globalPeriod]);
-
-  const periodoLabel = useMemo(() => {
-    switch (globalPeriod) {
-      case '1': return 'último mês';
-      case '3': return 'últimos 3 meses';
-      case '6': return 'últimos 6 meses';
-      case '12': return 'últimos 12 meses';
-      case 'todos': return 'todos os meses';
-      default: return 'últimos 12 meses';
-    }
-  }, [globalPeriod]);
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -447,10 +415,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     
     const totalGastos = totalDespesasFixas + totalFolhaPagamento;
     
-    // Calcular porcentagem sobre a média mensal
-    if (calcularMediaMensal > 0 && totalGastos > 0) {
-      gastosSobreFaturamento = (totalGastos / calcularMediaMensal) * 100;
-    }
+    // Não calcular gastos sobre faturamento no modal - isso agora é feito no componente pai
 
     // Calcular encargos sobre venda
     const encargosConsiderados = encargosVenda.filter(e => states[e.id] && e.ativo);
@@ -504,7 +469,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     
     // Removido: não notificar o componente pai em cada cálculo para evitar loops de requisições
 
-  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, calcularMediaMensal]);
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate]);
 
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {

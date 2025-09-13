@@ -43,6 +43,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const [blocoEditandoNome, setBlocoEditandoNome] = useState<MarkupBlock | null>(null);
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
+  const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<Array<{ data: string; valor: number }>>([]);
   
   // Estados para configuração
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
@@ -87,6 +88,65 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     if (categoriasMap.comissoes.has(nome)) return 'comissoes';
     return 'outros';
   }, [categoriasMap]);
+
+  // Buscar faturamentos históricos - mesma lógica do MediaFaturamento
+  const buscarFaturamentos = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      // Carregar faturamentos históricos do mesmo lugar que MediaFaturamento
+      const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+      if (configFaturamentos && Array.isArray(configFaturamentos)) {
+        const faturamentos = configFaturamentos.map((f: any) => ({
+          data: f.mes, // Usar campo 'mes' como data
+          valor: f.valor
+        }));
+        setFaturamentosHistoricos(faturamentos);
+      } else {
+        setFaturamentosHistoricos([]);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar faturamentos:', error);
+      setFaturamentosHistoricos([]);
+    }
+  }, [user?.id, loadConfiguration]);
+
+  // Função helper para calcular média mensal baseada no período global
+  const calcularMediaMensal = useMemo(() => {
+    if (faturamentosHistoricos.length === 0) return 0;
+
+    const periodo = globalPeriod || '12';
+    let faturamentosSelecionados = [...faturamentosHistoricos];
+
+    if (periodo !== 'todos') {
+      const mesesAtras = parseInt(String(periodo), 10);
+      const dataLimite = new Date();
+      dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+      faturamentosSelecionados = faturamentosHistoricos.filter(f => new Date(f.data) >= dataLimite);
+    }
+
+    if (faturamentosSelecionados.length === 0) return 0;
+
+    const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
+    const media = totalFaturamento / faturamentosSelecionados.length;
+    return media;
+  }, [faturamentosHistoricos, globalPeriod]);
+
+  const periodoLabel = useMemo(() => {
+    switch (globalPeriod) {
+      case '1': return 'último mês';
+      case '3': return 'últimos 3 meses';
+      case '6': return 'últimos 6 meses';
+      case '12': return 'últimos 12 meses';
+      case 'todos': return 'todos os meses';
+      default: return 'últimos 12 meses';
+    }
+  }, [globalPeriod]);
+
+  // Buscar faturamentos ao carregar componente
+  useEffect(() => {
+    buscarFaturamentos();
+  }, [buscarFaturamentos]);
 
   // Função ÚNICA para carregar e calcular configurações salvas
   const carregarConfiguracoesSalvas = useCallback(async () => {
@@ -435,6 +495,30 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           Novo Bloco de Markup
         </Button>
       </div>
+
+      {/* Informações do Período e Média de Faturamento */}
+      <Card className="bg-blue-50/50 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Período de análise
+              </Label>
+              <p className="text-lg font-semibold capitalize">
+                {periodoLabel}
+              </p>
+            </div>
+            <div className="space-y-1 text-right">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Média de faturamento
+              </Label>
+              <p className="text-2xl font-bold text-primary">
+                {formatCurrency(calcularMediaMensal)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Bloco Subreceita - Sempre fixo */}
       <Card className="border-primary bg-primary/5">
