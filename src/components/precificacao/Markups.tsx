@@ -24,6 +24,7 @@ interface MarkupBlock {
   outros: number;
   valorEmReal: number;
   lucroDesejado: number;
+  periodo: string;
 }
 
 interface CalculatedMarkup {
@@ -73,7 +74,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     comissoesPlataformas: 0,
     outros: 0,
     valorEmReal: 0,
-    lucroDesejado: 0
+    lucroDesejado: 0,
+    periodo: 'todos'
   };
 
   // Mapeamento de categorias - MESMA LÓGICA DO MODAL
@@ -114,11 +116,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     }
   }, [user?.id, loadConfiguration]);
 
-  // Função helper para calcular valor baseado no período global
-  const calcularValorPeriodo = useMemo(() => {
+  // Função helper para calcular valor baseado no período de um bloco específico
+  const calcularValorPeriodoBloco = useCallback((periodo: string) => {
     if (faturamentosHistoricos.length === 0) return 0;
-
-    const periodo = globalPeriod || '12';
 
     // Se for "todos", calcula a média de todos os lançamentos
     if (periodo === 'todos') {
@@ -138,10 +138,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     const totalFaturamento = faturamentosSelecionados.reduce((acc, f) => acc + f.valor, 0);
     const media = totalFaturamento / faturamentosSelecionados.length;
     return media;
-  }, [faturamentosHistoricos, globalPeriod]);
+  }, [faturamentosHistoricos]);
 
-  const periodoLabel = useMemo(() => {
-    switch (globalPeriod) {
+  // Função helper para obter label do período
+  const getPeriodoLabel = useCallback((periodo: string) => {
+    switch (periodo) {
       case '1': return 'último mês';
       case '3': return 'últimos 3 meses';
       case '6': return 'últimos 6 meses';
@@ -149,7 +150,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       case 'todos': return 'média de todos os períodos';
       default: return 'últimos 12 meses';
     }
-  }, [globalPeriod]);
+  }, []);
 
   // Buscar faturamentos ao carregar componente
   useEffect(() => {
@@ -195,11 +196,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         
         console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
-        // Lógica de cálculo do valor de faturamento baseado no período
+        // Lógica de cálculo do valor de faturamento baseado no período individual do bloco
         let valorFaturamento = 0;
         
-        // NOVA LÓGICA: Use o filtro global para todos os blocos EXCETO o subreceita
-        const periodoSelecionado = bloco.id === 'subreceita-fixo' ? 'todos' : globalPeriod;
+        // Use o período individual do bloco (subreceita sempre usa "todos")
+        const periodoSelecionado = bloco.id === 'subreceita-fixo' ? 'todos' : (bloco.periodo || '12');
         
         if (periodoSelecionado === 'todos') {
             // Para "todos": calcular a média de todos os lançamentos
@@ -319,13 +320,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     carregarBlocos();
   }, [loadConfiguration]);
   
-  // Carregar/recalcular configurações quando blocos, usuário ou período mudarem
+  // Carregar/recalcular configurações quando blocos ou usuário mudarem
   useEffect(() => {
     if (blocos.length > 0 && user?.id) {
-      console.log('🎯 Executando cálculo dos markups (trigger: blocos/user/período)...');
+      console.log('🎯 Executando cálculo dos markups (trigger: blocos/user)...');
       carregarConfiguracoesSalvas();
     }
-  }, [blocos.length, user?.id, globalPeriod, carregarConfiguracoesSalvas]);
+  }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
 
   // Real-time updates: escutar mudanças na tabela user_configurations
@@ -422,7 +423,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       comissoesPlataformas: 0,
       outros: 0,
       valorEmReal: 0,
-      lucroDesejado: 20
+      lucroDesejado: 20,
+      periodo: '12'
     };
     
     const novosBlocos = [...blocos, novoBloco];
@@ -623,11 +625,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                     <Label className="text-sm font-medium whitespace-nowrap">
                       Período:
                     </Label>
-                    <Select value={globalPeriod} onValueChange={(value) => {
-                      // Atualizar URL com novo período
-                      const newSearchParams = new URLSearchParams(searchParams);
-                      newSearchParams.set('periodo', value);
-                      setSearchParams(newSearchParams, { replace: true });
+                    <Select value={bloco.periodo} onValueChange={(value) => {
+                      atualizarBloco(bloco.id, 'periodo', value);
                     }}>
                       <SelectTrigger className="w-[160px]">
                         <SelectValue />
@@ -643,10 +642,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                   </div>
                   <div className="text-right">
                     <Label className="text-sm font-medium text-muted-foreground">
-                      {globalPeriod === 'todos' ? 'Média de faturamento (todos os períodos)' : `Média de faturamento (${periodoLabel})`}
+                      {bloco.periodo === 'todos' ? 'Média de faturamento (todos os períodos)' : `Média de faturamento (${getPeriodoLabel(bloco.periodo)})`}
                     </Label>
                     <p className="text-lg font-bold text-primary">
-                      {formatCurrency(calcularValorPeriodo)}
+                      {formatCurrency(calcularValorPeriodoBloco(bloco.periodo))}
                     </p>
                   </div>
                 </div>
