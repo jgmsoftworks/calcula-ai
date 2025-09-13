@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
@@ -496,30 +497,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         </Button>
       </div>
 
-      {/* Informações do Período e Média de Faturamento */}
-      <Card className="bg-blue-50/50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">
-                Período de análise
-              </Label>
-              <p className="text-lg font-semibold capitalize">
-                {periodoLabel}
-              </p>
-            </div>
-            <div className="space-y-1 text-right">
-              <Label className="text-sm font-medium text-muted-foreground">
-                Média de faturamento
-              </Label>
-              <p className="text-2xl font-bold text-primary">
-                {formatCurrency(calcularMediaMensal)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Bloco Subreceita - Sempre fixo */}
       <Card className="border-primary bg-primary/5">
         <CardHeader>
@@ -610,6 +587,43 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
+                </div>
+              </div>
+              
+              {/* Filtro de Período e Média de Faturamento - Individual por bloco */}
+              <div className="mt-4 p-4 bg-blue-50/50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium whitespace-nowrap">
+                      Período:
+                    </Label>
+                    <Select value={globalPeriod} onValueChange={(value) => {
+                      // Trigger change event for parent component
+                      const newSearchParams = new URLSearchParams(window.location.search);
+                      newSearchParams.set('periodo', value);
+                      window.history.replaceState({}, '', `${window.location.pathname}?${newSearchParams}`);
+                      window.location.reload();
+                    }}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Último mês</SelectItem>
+                        <SelectItem value="3">Últimos 3 meses</SelectItem>
+                        <SelectItem value="6">Últimos 6 meses</SelectItem>
+                        <SelectItem value="12">Últimos 12 meses</SelectItem>
+                        <SelectItem value="todos">Todos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="text-right">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Média de faturamento ({periodoLabel})
+                    </Label>
+                    <p className="text-lg font-bold text-primary">
+                      {formatCurrency(calcularMediaMensal)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardHeader>
