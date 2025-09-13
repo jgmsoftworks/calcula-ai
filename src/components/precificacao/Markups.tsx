@@ -408,7 +408,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   };
 
   const formatPercentage = (value: number) => {
-    return value.toFixed(4).replace('.', ',');
+    return value.toFixed(2);
   };
 
   const criarNovoBloco = () => {
