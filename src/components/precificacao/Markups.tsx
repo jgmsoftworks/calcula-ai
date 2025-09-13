@@ -482,6 +482,14 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     );
     setBlocos(novosBlocos);
     salvarBlocos(novosBlocos);
+    
+    // Se mudou o período, recalcular os markups imediatamente
+    if (campo === 'periodo') {
+      console.log(`🔄 Período alterado para bloco ${id}, recalculando markups...`);
+      setTimeout(() => {
+        carregarConfiguracoesSalvas();
+      }, 100);
+    }
   };
 
   const calcularMarkupIdeal = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
