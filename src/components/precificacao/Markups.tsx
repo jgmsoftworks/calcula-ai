@@ -114,19 +114,24 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     }
   }, [user?.id, loadConfiguration]);
 
-  // Função helper para calcular média mensal baseada no período global
-  const calcularMediaMensal = useMemo(() => {
+  // Função helper para calcular valor baseado no período global
+  const calcularValorPeriodo = useMemo(() => {
     if (faturamentosHistoricos.length === 0) return 0;
 
     const periodo = globalPeriod || '12';
-    let faturamentosSelecionados = [...faturamentosHistoricos];
 
-    if (periodo !== 'todos') {
-      const mesesAtras = parseInt(String(periodo), 10);
-      const dataLimite = new Date();
-      dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
-      faturamentosSelecionados = faturamentosHistoricos.filter(f => new Date(f.data) >= dataLimite);
+    // Se for "todos", retorna o lançamento mais recente
+    if (periodo === 'todos') {
+      // Os dados já vêm ordenados do mais recente para o mais antigo
+      return faturamentosHistoricos[0]?.valor || 0;
     }
+
+    // Para outros períodos, calcula a média
+    const mesesAtras = parseInt(String(periodo), 10);
+    const dataLimite = new Date();
+    dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+    
+    const faturamentosSelecionados = faturamentosHistoricos.filter(f => new Date(f.data) >= dataLimite);
 
     if (faturamentosSelecionados.length === 0) return 0;
 
@@ -141,7 +146,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       case '3': return 'últimos 3 meses';
       case '6': return 'últimos 6 meses';
       case '12': return 'últimos 12 meses';
-      case 'todos': return 'todos os meses';
+      case 'todos': return 'valor mais recente';
       default: return 'últimos 12 meses';
     }
   }, [globalPeriod]);
@@ -190,28 +195,40 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         
         console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
-        // Lógica de cálculo da média de faturamento movida para DENTRO do loop
-        let mediaMensal = 0;
+        // Lógica de cálculo do valor de faturamento baseado no período
+        let valorFaturamento = 0;
         
         // NOVA LÓGICA: Use o filtro global para todos os blocos EXCETO o subreceita
         const periodoSelecionado = bloco.id === 'subreceita-fixo' ? 'todos' : globalPeriod;
         
-        let faturamentosFiltrados = todosFaturamentos;
-
-        if (periodoSelecionado !== 'todos') {
+        if (periodoSelecionado === 'todos') {
+            // Para "todos": usar o lançamento mais recente
+            if (todosFaturamentos.length > 0) {
+                // Ordenar por data mais recente e pegar o primeiro
+                const maisRecente = todosFaturamentos.sort((a: any, b: any) => {
+                    const dateA = new Date(a.mes).getTime();
+                    const dateB = new Date(b.mes).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                    // Se a data for igual, ordenar por ID (timestamp de criação)
+                    return parseInt(b.id) - parseInt(a.id);
+                })[0];
+                valorFaturamento = maisRecente.valor;
+            }
+        } else {
+            // Para outros períodos: calcular a média
             const mesesAtras = parseInt(String(periodoSelecionado), 10);
             const dataLimite = new Date();
             dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
 
-            faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
-        }
-
-        if (faturamentosFiltrados.length > 0) {
-            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
-            mediaMensal = total / faturamentosFiltrados.length;
+            const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+            
+            if (faturamentosFiltrados.length > 0) {
+                const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+                valorFaturamento = total / faturamentosFiltrados.length;
+            }
         }
         
-        console.log(`📅 Para o bloco "${bloco.nome}" com período "${periodoSelecionado}", a média mensal é: ${mediaMensal}`);
+        console.log(`📅 Para o bloco "${bloco.nome}" com período "${periodoSelecionado}", o valor de faturamento é: ${valorFaturamento}`);
 
         if (config && typeof config === 'object' && Object.keys(config).length > 0) {
             
@@ -232,14 +249,14 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
             
             const totalGastos = totalDespesasFixas + totalFolhaPagamento;
             
-            // Calcular porcentagem sobre a média mensal ESPECÍFICA deste bloco
-            if (mediaMensal > 0 && totalGastos > 0) {
-                gastosSobreFaturamento = (totalGastos / mediaMensal) * 100;
+            // Calcular porcentagem sobre o valor de faturamento ESPECÍFICO deste bloco
+            if (valorFaturamento > 0 && totalGastos > 0) {
+                gastosSobreFaturamento = (totalGastos / valorFaturamento) * 100;
             }
 
             console.log(`💰 Cálculo detalhado para ${bloco.nome}:`, {
                 totalGastos,
-                mediaMensal,
+                valorFaturamento,
                 gastosSobreFaturamento
             });
 
@@ -619,10 +636,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                   </div>
                   <div className="text-right">
                     <Label className="text-sm font-medium text-muted-foreground">
-                      Média de faturamento ({periodoLabel})
+                      {globalPeriod === 'todos' ? 'Faturamento mais recente' : `Média de faturamento (${periodoLabel})`}
                     </Label>
                     <p className="text-lg font-bold text-primary">
-                      {formatCurrency(calcularMediaMensal)}
+                      {formatCurrency(calcularValorPeriodo)}
                     </p>
                   </div>
                 </div>
