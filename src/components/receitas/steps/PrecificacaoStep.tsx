@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Ingrediente {
   id: string;
@@ -76,13 +79,47 @@ interface ReceitaData {
 
 interface PrecificacaoStepProps {
   receitaData: ReceitaData;
+  receitaId?: string;
 }
 
-export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
+export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepProps) {
   const [precoVenda, setPrecoVenda] = useState('');
   const [pesoUnitario, setPesoUnitario] = useState('');
   const [markups, setMarkups] = useState<MarkupData[]>([]);
+  const [markupSelecionado, setMarkupSelecionado] = useState<string>('');
+  const { toast } = useToast();
   const { user } = useAuth();
+
+  // Função para salvar markup selecionado
+  const salvarMarkupSelecionado = async (markupId: string) => {
+    if (!receitaId || !user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('receitas')
+        .update({ markup_id: markupId })
+        .eq('id', receitaId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Erro ao salvar markup:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar o markup selecionado",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setMarkupSelecionado(markupId);
+      toast({
+        title: "Sucesso",
+        description: "Markup selecionado salvo com sucesso",
+      });
+    } catch (error) {
+      console.error('Erro ao salvar markup:', error);
+    }
+  };
   
   // Fetch markups from database
   useEffect(() => {
@@ -110,6 +147,35 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
     
     fetchMarkups();
   }, [user?.id]);
+
+  // Buscar markup selecionado da receita
+  useEffect(() => {
+    const fetchReceitaMarkup = async () => {
+      if (!receitaId || !user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('receitas')
+          .select('markup_id')
+          .eq('id', receitaId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Erro ao buscar markup da receita:', error);
+          return;
+        }
+
+        if (data?.markup_id) {
+          setMarkupSelecionado(data.markup_id);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar markup da receita:', error);
+      }
+    };
+
+    fetchReceitaMarkup();
+  }, [receitaId, user?.id]);
   
   // Function to format currency
   const formatCurrency = (value: string) => {
@@ -299,20 +365,46 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
       </div>
 
       {/* Markups Section */}
-      {markups.length > 0 && (
-        <div className="space-y-4">
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Markups Configurados
-            </h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Blocos de markup criados na tela de Precificação. Para editar, acesse a tela Precificação.
-            </p>
-          </div>
+      <div className="space-y-4">
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Seleção de Markup
+          </h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Selecione qual markup usar para precificar esta receita.
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="markup-select">Markup para esta receita</Label>
+              <Select value={markupSelecionado} onValueChange={salvarMarkupSelecionado}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um markup..." />
+                </SelectTrigger>
+                <SelectContent className="bg-background border border-border z-50">
+                  {markups.map((markup) => (
+                    <SelectItem key={markup.id} value={markup.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{markup.nome}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {markup.periodo} meses
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="grid gap-4">
-            {markups.map((markup) => {
+            {/* Mostrar detalhes do markup selecionado */}
+            {markupSelecionado && (() => {
+              const markup = markups.find(m => m.id === markupSelecionado);
+              if (!markup) return null;
+
               // Calculate markup based on entered price
               const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
               const precoSugerido = custoUnitario * markup.markup_ideal;
@@ -327,7 +419,7 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
               const lucroLiquidoPercent = precoNumerico > 0 ? (lucroLiquidoEsperado / precoNumerico) * 100 : 0;
 
               return (
-                <Card key={markup.id} className="bg-muted/20">
+                <Card className="bg-muted/20">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
@@ -430,10 +522,10 @@ export function PrecificacaoStep({ receitaData }: PrecificacaoStepProps) {
                   </CardContent>
                 </Card>
               );
-            })}
+            })()}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

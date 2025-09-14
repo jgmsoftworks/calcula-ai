@@ -248,7 +248,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
           />
         );
       case 5:
-        return <PrecificacaoStep receitaData={receitaData} />;
+        return <PrecificacaoStep receitaData={receitaData} receitaId={receitaId} />;
       default:
         return null;
     }

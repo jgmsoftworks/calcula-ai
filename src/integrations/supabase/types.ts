@@ -890,6 +890,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          markup_id: string | null
           nome: string
           observacoes: string | null
           rendimento_unidade: string | null
@@ -904,6 +905,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          markup_id?: string | null
           nome: string
           observacoes?: string | null
           rendimento_unidade?: string | null
@@ -918,6 +920,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          markup_id?: string | null
           nome?: string
           observacoes?: string | null
           rendimento_unidade?: string | null
@@ -929,7 +932,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "receitas_markup_id_fkey"
+            columns: ["markup_id"]
+            isOneToOne: false
+            referencedRelation: "markups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_configurations: {
         Row: {
