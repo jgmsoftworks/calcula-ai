@@ -87,6 +87,7 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
   const [pesoUnitario, setPesoUnitario] = useState('');
   const [markups, setMarkups] = useState<MarkupData[]>([]);
   const [markupSelecionado, setMarkupSelecionado] = useState<string>('');
+  
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -365,46 +366,20 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
       </div>
 
       {/* Markups Section */}
-      <div className="space-y-4">
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Seleção de Markup
-          </h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Selecione qual markup usar para precificar esta receita.
-          </p>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="markup-select">Markup para esta receita</Label>
-              <Select value={markupSelecionado} onValueChange={salvarMarkupSelecionado}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um markup..." />
-                </SelectTrigger>
-                <SelectContent className="bg-background border border-border z-50">
-                  {markups.map((markup) => (
-                    <SelectItem key={markup.id} value={markup.id}>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{markup.nome}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {markup.periodo} meses
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {markups.length > 0 && (
+        <div className="space-y-4">
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Markups Configurados
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              Selecione qual markup usar para precificar esta receita. Apenas um markup pode estar ativo por receita.
+            </p>
+          </div>
 
-            {/* Mostrar detalhes do markup selecionado */}
-            {markupSelecionado && (() => {
-              const markup = markups.find(m => m.id === markupSelecionado);
-              if (!markup) return null;
-
+          <div className="grid gap-4">
+            {markups.map((markup) => {
               // Calculate markup based on entered price
               const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
               const precoSugerido = custoUnitario * markup.markup_ideal;
@@ -418,18 +393,31 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
               const lucroBrutoPercent = precoNumerico > 0 ? (lucroBrutoUnitario / precoNumerico) * 100 : 0;
               const lucroLiquidoPercent = precoNumerico > 0 ? (lucroLiquidoEsperado / precoNumerico) * 100 : 0;
 
+              const isSelected = markupSelecionado === markup.id;
+
               return (
-                <Card className="bg-muted/20">
+                <Card 
+                  key={markup.id} 
+                  className={`transition-all ${isSelected ? 'ring-2 ring-primary bg-primary/5' : 'bg-muted/20'}`}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <Badge variant={markup.tipo === 'sub_receita' ? 'secondary' : 'outline'}>
                           {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
                         </Badge>
                         <Badge variant="outline">
                           {markup.periodo} meses
                         </Badge>
+                        <Button
+                          size="sm"
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => salvarMarkupSelecionado(markup.id)}
+                          className="ml-2"
+                        >
+                          {isSelected ? 'Selecionado' : 'Selecionar'}
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -522,10 +510,10 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
                   </CardContent>
                 </Card>
               );
-            })()}
+            })}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
