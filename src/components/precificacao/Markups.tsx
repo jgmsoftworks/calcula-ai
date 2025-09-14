@@ -415,13 +415,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     if (!user?.id) return;
 
     try {
-      // Primeiro, marcar todos os markups existentes como inativos
+      // Primeiro, deletar todos os markups existentes do usuário
       await supabase
         .from('markups')
-        .update({ ativo: false })
+        .delete()
         .eq('user_id', user.id);
 
-      // Depois, inserir ou atualizar os markups atuais
+      // Depois, inserir os markups atuais
       for (const bloco of blocos) {
         const calculated = calculatedMarkups.get(bloco.id);
         if (!calculated) continue;
@@ -449,7 +449,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
         await supabase
           .from('markups')
-          .upsert(markupData);
+          .insert(markupData);
       }
 
       console.log('✅ Markups salvos no banco de dados');
