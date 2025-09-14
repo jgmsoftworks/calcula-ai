@@ -45,7 +45,7 @@ const Receitas = () => {
         .select(`
           *,
           receita_ingredientes(count),
-          receita_sub_receitas(count),
+          receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
           receita_embalagens(count)
         `)
         .eq('user_id', user?.id)
