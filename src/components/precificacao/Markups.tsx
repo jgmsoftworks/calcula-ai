@@ -63,6 +63,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isMarkupSaving = useRef<boolean>(false);
 
   // Bloco fixo para subreceita
   const blocoSubreceita: MarkupBlock = {
@@ -412,17 +413,23 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   }, [saveConfiguration]);
 
   const salvarMarkupsNoBanco = async (blocos: MarkupBlock[]) => {
-    if (!user?.id) return;
+    if (!user?.id || isMarkupSaving.current) return;
 
     try {
+      isMarkupSaving.current = true;
+      
       // Primeiro, deletar todos os markups existentes do usuário
       await supabase
         .from('markups')
         .delete()
         .eq('user_id', user.id);
 
-      // Depois, inserir os markups atuais
-      for (const bloco of blocos) {
+      // Depois, inserir apenas os markups únicos atuais
+      const uniqueBlocos = blocos.filter((bloco, index, self) => 
+        index === self.findIndex(b => b.nome === bloco.nome)
+      );
+
+      for (const bloco of uniqueBlocos) {
         const calculated = calculatedMarkups.get(bloco.id);
         if (!calculated) continue;
 
@@ -455,6 +462,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       console.log('✅ Markups salvos no banco de dados');
     } catch (error) {
       console.error('❌ Erro ao salvar markups no banco:', error);
+    } finally {
+      isMarkupSaving.current = false;
     }
   };
 
