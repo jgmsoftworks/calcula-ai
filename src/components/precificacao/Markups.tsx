@@ -460,13 +460,16 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
   const calcularMarkupIdealParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
     const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
-    const markup = ((100 + bloco.lucroDesejado) / (100 - totalEncargos)) - 1;
-    return markup * 100;
+    const totalPercentuais = totalEncargos + bloco.lucroDesejado;
+    const markup = 100 / (100 - totalPercentuais);
+    return isFinite(markup) ? markup : 1;
   };
 
   const calcularMarkupAplicadoParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
     const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
-    return ((100 + bloco.lucroDesejado) / (100 - totalEncargos)) * 100;
+    const totalPercentuais = totalEncargos + bloco.lucroDesejado;
+    const markup = 100 / (100 - totalPercentuais);
+    return isFinite(markup) ? markup : 1;
   };
 
   const formatCurrency = (value: number) => {
