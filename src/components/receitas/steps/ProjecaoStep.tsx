@@ -24,6 +24,7 @@ interface MaoObraItem {
 }
 
 interface ProjecaoStepProps {
+  receitaId: string;
   maoObra: MaoObraItem[];
   rendimentoValor: string;
   rendimentoUnidade: string;
@@ -32,6 +33,7 @@ interface ProjecaoStepProps {
 }
 
 export function ProjecaoStep({ 
+  receitaId,
   maoObra, 
   rendimentoValor, 
   rendimentoUnidade, 

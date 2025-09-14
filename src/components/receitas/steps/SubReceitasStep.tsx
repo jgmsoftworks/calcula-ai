@@ -17,11 +17,12 @@ interface SubReceita {
 }
 
 interface SubReceitasStepProps {
+  receitaId: string;
   subReceitas: SubReceita[];
   onSubReceitasChange: (subReceitas: SubReceita[]) => void;
 }
 
-export function SubReceitasStep({ subReceitas, onSubReceitasChange }: SubReceitasStepProps) {
+export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }: SubReceitasStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Mock data de receitas disponíveis

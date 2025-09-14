@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Ingrediente {
   id: string;
@@ -28,18 +29,90 @@ interface Produto {
 }
 
 interface IngredientesStepProps {
+  receitaId: string;
   ingredientes: Ingrediente[];
   onIngredientesChange: (ingredientes: Ingrediente[]) => void;
 }
 
-export function IngredientesStep({ ingredientes, onIngredientesChange }: IngredientesStepProps) {
+export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange }: IngredientesStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [produtosDisponiveis, setProdutosDisponiveis] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadProdutos();
-  }, []);
+    loadIngredientesSalvos();
+  }, [receitaId]);
+
+  const loadIngredientesSalvos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('receita_ingredientes')
+        .select('*')
+        .eq('receita_id', receitaId);
+
+      if (error) {
+        console.error('Erro ao carregar ingredientes salvos:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const ingredientesSalvos: Ingrediente[] = data.map(item => ({
+          id: item.id,
+          produto_id: item.produto_id,
+          nome: item.nome,
+          quantidade: Number(item.quantidade),
+          unidade: item.unidade,
+          custo_unitario: Number(item.custo_unitario),
+          custo_total: Number(item.custo_total),
+          marcas: item.marcas || []
+        }));
+        onIngredientesChange(ingredientesSalvos);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar ingredientes salvos:', error);
+    }
+  };
+
+  const salvarIngredientes = async (novosIngredientes: Ingrediente[]) => {
+    try {
+      // Remover ingredientes existentes
+      await supabase
+        .from('receita_ingredientes')
+        .delete()
+        .eq('receita_id', receitaId);
+
+      // Adicionar novos ingredientes
+      if (novosIngredientes.length > 0) {
+        const ingredientesParaSalvar = novosIngredientes.map(ingrediente => ({
+          receita_id: receitaId,
+          produto_id: ingrediente.produto_id,
+          nome: ingrediente.nome,
+          quantidade: ingrediente.quantidade,
+          unidade: ingrediente.unidade,
+          custo_unitario: ingrediente.custo_unitario,
+          custo_total: ingrediente.custo_total,
+          marcas: ingrediente.marcas || []
+        }));
+
+        const { error } = await supabase
+          .from('receita_ingredientes')
+          .insert(ingredientesParaSalvar);
+
+        if (error) {
+          console.error('Erro ao salvar ingredientes:', error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível salvar os ingredientes.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao salvar ingredientes:', error);
+    }
+  };
 
   const loadProdutos = async () => {
     try {
@@ -75,12 +148,16 @@ export function IngredientesStep({ ingredientes, onIngredientesChange }: Ingredi
       marcas: produto.marcas,
     };
     
-    onIngredientesChange([...ingredientes, novoIngrediente]);
+    const novosIngredientes = [...ingredientes, novoIngrediente];
+    onIngredientesChange(novosIngredientes);
+    salvarIngredientes(novosIngredientes);
     setSearchTerm(''); // Limpa a busca após adicionar
   };
 
   const removerIngrediente = (id: string) => {
-    onIngredientesChange(ingredientes.filter(item => item.id !== id));
+    const novosIngredientes = ingredientes.filter(item => item.id !== id);
+    onIngredientesChange(novosIngredientes);
+    salvarIngredientes(novosIngredientes);
   };
 
   const atualizarQuantidade = (id: string, quantidade: number) => {
@@ -90,6 +167,7 @@ export function IngredientesStep({ ingredientes, onIngredientesChange }: Ingredi
         : item
     );
     onIngredientesChange(updatedIngredientes);
+    salvarIngredientes(updatedIngredientes);
   };
 
   const custoTotalIngredientes = ingredientes.reduce((total, item) => total + item.custo_total, 0);

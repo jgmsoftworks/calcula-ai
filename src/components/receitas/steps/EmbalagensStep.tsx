@@ -18,11 +18,12 @@ interface Embalagem {
 }
 
 interface EmbalagensStepProps {
+  receitaId: string;
   embalagens: Embalagem[];
   onEmbalagensChange: (embalagens: Embalagem[]) => void;
 }
 
-export function EmbalagensStep({ embalagens, onEmbalagensChange }: EmbalagensStepProps) {
+export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: EmbalagensStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [produtos, setProdutos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -24,7 +24,7 @@ interface ConservacaoItem {
   unidade_tempo: string;
 }
 
-export function GeralStep() {
+export function GeralStep({ receitaId }: { receitaId: string }) {
   const [nomeReceita, setNomeReceita] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [imagemReceita, setImagemReceita] = useState('');

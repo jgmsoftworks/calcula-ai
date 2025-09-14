@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,6 +8,9 @@ import { EmbalagensStep } from './steps/EmbalagensStep';
 import { GeralStep } from './steps/GeralStep';
 import { ProjecaoStep } from './steps/ProjecaoStep';
 import { PrecificacaoStep } from './steps/PrecificacaoStep';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface CriarReceitaModalProps {
   open: boolean;
@@ -79,6 +82,9 @@ const steps = [
 
 export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [receitaId, setReceitaId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   // Shared state for all recipe data
   const [receitaData, setReceitaData] = useState<ReceitaData>({
@@ -89,6 +95,44 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     rendimentoValor: '',
     rendimentoUnidade: 'unidade',
   });
+
+  // Criar receita inicial ao abrir modal
+  const criarReceitaInicial = useCallback(async () => {
+    if (!user?.id || receitaId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('receitas')
+        .insert({
+          user_id: user.id,
+          nome: 'Nova Receita',
+          status: 'rascunho'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao criar receita:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar a receita.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setReceitaId(data.id);
+    } catch (error) {
+      console.error('Erro ao criar receita:', error);
+    }
+  }, [user?.id, receitaId, toast]);
+
+  // Criar receita quando modal abrir
+  useCallback(() => {
+    if (open && !receitaId && user?.id) {
+      criarReceitaInicial();
+    }
+  }, [open, receitaId, user?.id, criarReceitaInicial])();
 
   const updateReceitaData = (updates: Partial<ReceitaData>) => {
     setReceitaData(prev => ({ ...prev, ...updates }));
@@ -106,8 +150,38 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     }
   };
 
+  const finalizarReceita = async () => {
+    if (!receitaId) return;
+
+    try {
+      await supabase
+        .from('receitas')
+        .update({ 
+          status: 'finalizada',
+          rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
+          rendimento_unidade: receitaData.rendimentoUnidade
+        })
+        .eq('id', receitaId);
+
+      toast({
+        title: "Sucesso",
+        description: "Receita finalizada com sucesso!",
+      });
+      
+      handleClose();
+    } catch (error) {
+      console.error('Erro ao finalizar receita:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível finalizar a receita.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleClose = () => {
     setCurrentStep(0);
+    setReceitaId(null);
     setReceitaData({
       ingredientes: [],
       subReceitas: [],
@@ -119,11 +193,25 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     onOpenChange(false);
   };
 
+  // Criar receita ao abrir modal
+  if (open && !receitaId && user?.id) {
+    criarReceitaInicial();
+  }
+
   const renderCurrentStep = () => {
+    if (!receitaId) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Criando receita...</p>
+        </div>
+      );
+    }
+
     switch (currentStep) {
       case 0:
         return (
           <IngredientesStep 
+            receitaId={receitaId}
             ingredientes={receitaData.ingredientes}
             onIngredientesChange={(ingredientes) => updateReceitaData({ ingredientes })}
           />
@@ -131,6 +219,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
       case 1:
         return (
           <SubReceitasStep 
+            receitaId={receitaId}
             subReceitas={receitaData.subReceitas}
             onSubReceitasChange={(subReceitas) => updateReceitaData({ subReceitas })}
           />
@@ -138,15 +227,17 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
       case 2:
         return (
           <EmbalagensStep 
+            receitaId={receitaId}
             embalagens={receitaData.embalagens}
             onEmbalagensChange={(embalagens) => updateReceitaData({ embalagens })}
           />
         );
       case 3:
-        return <GeralStep />;
+        return <GeralStep receitaId={receitaId} />;
       case 4:
         return (
           <ProjecaoStep 
+            receitaId={receitaId}
             maoObra={receitaData.maoObra}
             rendimentoValor={receitaData.rendimentoValor}
             rendimentoUnidade={receitaData.rendimentoUnidade}
@@ -226,7 +317,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
               Cancelar
             </Button>
             {currentStep === steps.length - 1 ? (
-              <Button onClick={handleClose} className="gap-2">
+              <Button onClick={finalizarReceita} className="gap-2">
                 Finalizar Receita
               </Button>
             ) : (
