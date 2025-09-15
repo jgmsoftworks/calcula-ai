@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -104,6 +104,7 @@ const steps = [
 export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [receitaId, setReceitaId] = useState<string | null>(null);
+  const [receitaCriada, setReceitaCriada] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -131,6 +132,8 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
   const criarReceitaInicial = useCallback(async () => {
     if (!user?.id || receitaId) return;
 
+    console.log('🆕 Criando receita inicial...', { userId: user.id, receitaIdExistente: receitaId });
+
     try {
       const { data, error } = await supabase
         .from('receitas')
@@ -152,18 +155,23 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
         return;
       }
 
+      console.log('✅ Receita criada:', data);
       setReceitaId(data.id);
     } catch (error) {
       console.error('Erro ao criar receita:', error);
     }
   }, [user?.id, receitaId, toast]);
 
-  // Criar receita quando modal abrir
-  useCallback(() => {
-    if (open && !receitaId && user?.id) {
+  // Efeito para criar receita quando modal abrir (apenas uma vez)
+  useEffect(() => {
+    if (open && !receitaId && user?.id && !receitaCriada) {
+      console.log('📂 Modal aberto, criando receita inicial...');
+      setReceitaCriada(true);
       criarReceitaInicial();
+    } else if (!open) {
+      setReceitaCriada(false);
     }
-  }, [open, receitaId, user?.id, criarReceitaInicial])();
+  }, [open, receitaId, user?.id, receitaCriada, criarReceitaInicial]);
 
   const updateReceitaData = (updates: Partial<ReceitaData>) => {
     setReceitaData(prev => ({ ...prev, ...updates }));
@@ -248,11 +256,6 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     });
     onOpenChange(false);
   };
-
-  // Criar receita ao abrir modal
-  if (open && !receitaId && user?.id) {
-    criarReceitaInicial();
-  }
 
   const renderCurrentStep = () => {
     if (!receitaId) {
