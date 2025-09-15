@@ -11,10 +11,10 @@ interface AppLayoutProps {
 
 const getPageInfo = (pathname: string): { title: string; description: string; } => {
   const pageMap: Record<string, { title: string; description: string; }> = {
-    '/': { title: 'Dashboard', description: 'Visão geral do seu negócio' },
+    '/': { title: 'Dashboard Executivo', description: 'Indicadores estratégicos e performance do seu negócio' },
     '/estoque': { title: 'Gestão de Estoque', description: 'Controle produtos, fornecedores e movimentações' },
-    '/custos': { title: 'Gestão de Custos', description: 'Gerencie despesas fixas, folha de pagamento e encargos' },
-    '/precificacao': { title: 'Precificação', description: 'Calcule preços com base em custos e margem desejada' },
+    '/custos': { title: 'Centro de Custos', description: 'Controle financeiro completo: despesas, folha e encargos operacionais' },
+    '/precificacao': { title: 'Estratégia de Preços', description: 'Defina preços competitivos com margem de lucro otimizada' },
     '/perfil': { title: 'Perfil do Negócio', description: 'Informações e configurações da empresa' }
   };
   
