@@ -210,6 +210,11 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
     fetchMarkups();
   }, [user?.id, receitaData.subReceitas?.length, markupsLoaded]);
 
+  // Reset loaded state when recipe data changes to force reload
+  useEffect(() => {
+    setMarkupsLoaded(false);
+  }, [receitaId, receitaData.subReceitas?.length]);
+
   // Buscar markup selecionado da receita
   useEffect(() => {
     const fetchReceitaMarkup = async () => {
