@@ -87,6 +87,7 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
   const [pesoUnitario, setPesoUnitario] = useState('');
   const [markups, setMarkups] = useState<MarkupData[]>([]);
   const [markupSelecionado, setMarkupSelecionado] = useState<string>('');
+  const [markupsLoaded, setMarkupsLoaded] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -125,7 +126,10 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
   // Fetch markups from database
   useEffect(() => {
     const fetchMarkups = async () => {
-      if (!user?.id) return;
+      if (!user?.id || markupsLoaded) return;
+      
+      console.log('🔍 Buscando markups do banco...');
+      setMarkupsLoaded(true);
       
       try {
         const { data, error } = await supabase
@@ -137,19 +141,31 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
         
         if (error) {
           console.error('Erro ao buscar markups:', error);
+          setMarkupsLoaded(false);
           return;
         }
         
-        // Remove duplicados por ID para evitar renderização dupla
-        const uniqueMarkups = (data || []).filter((markup, index, self) => 
-          index === self.findIndex(m => m.id === markup.id)
-        );
+        console.log('📦 Markups encontrados no banco:', data?.length || 0, data);
+        
+        // Remove duplicados usando Map para garantir unicidade por nome
+        const markupsMap = new Map();
+        (data || []).forEach(markup => {
+          if (!markupsMap.has(markup.nome)) {
+            markupsMap.set(markup.nome, markup);
+          }
+        });
+        
+        const uniqueMarkups = Array.from(markupsMap.values());
+        console.log('✨ Markups únicos após filtro:', uniqueMarkups.length, uniqueMarkups.map(m => m.nome));
         
         // Verificar se há sub-receitas na receita para adicionar bloco de sub-receita
         const hasSubReceitas = receitaData.subReceitas && receitaData.subReceitas.length > 0;
+        console.log('🔄 Tem sub-receitas?', hasSubReceitas, 'Quantidade:', receitaData.subReceitas?.length);
+        
+        let finalMarkups = [...uniqueMarkups];
         
         // Se há sub-receitas, adicionar o bloco fixo de sub-receita
-        if (hasSubReceitas) {
+        if (hasSubReceitas && !finalMarkups.find(m => m.nome === 'sub-receitas')) {
           const subReceitaMarkup = {
             id: 'subreceita-fixo',
             nome: 'sub-receitas',
@@ -170,23 +186,20 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
             folha_pagamento_selecionada: []
           };
           
-          // Adicionar o markup de sub-receita apenas se não existir já
-          if (!uniqueMarkups.find(m => m.id === 'subreceita-fixo')) {
-            uniqueMarkups.unshift(subReceitaMarkup);
-          }
+          finalMarkups.unshift(subReceitaMarkup);
+          console.log('➕ Adicionado markup de sub-receitas');
         }
         
-        setMarkups(uniqueMarkups);
+        console.log('🎯 Markups finais para renderizar:', finalMarkups.length, finalMarkups.map(m => m.nome));
+        setMarkups(finalMarkups);
       } catch (error) {
         console.error('Erro ao buscar markups:', error);
+        setMarkupsLoaded(false);
       }
     };
     
-    // Só buscar se ainda não tem markups ou se o user mudou
-    if (user?.id && markups.length === 0) {
-      fetchMarkups();
-    }
-  }, [user?.id, receitaData.subReceitas]);
+    fetchMarkups();
+  }, [user?.id, receitaData.subReceitas?.length, markupsLoaded]);
 
   // Buscar markup selecionado da receita
   useEffect(() => {
@@ -418,7 +431,10 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
           </div>
 
           <div className="grid gap-4">
-            {markups.map((markup) => {
+            {/* Filtro adicional durante render para garantir unicidade */}
+            {markups.filter((markup, index, self) => 
+              index === self.findIndex(m => m.nome === markup.nome)
+            ).map((markup) => {
               // Calculate markup based on entered price
               const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
               const precoSugerido = custoUnitario * markup.markup_ideal;
