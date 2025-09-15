@@ -89,49 +89,20 @@ const Receitas = () => {
 
     setDeletingId(receitaId);
     
+    // Update otimista: remove da lista imediatamente para feedback visual
+    const receitaOriginal = receitas.find(r => r.id === receitaId);
+    setReceitas(prev => prev.filter(r => r.id !== receitaId));
+    
     try {
       console.log('🗑️ Iniciando deleção da receita:', receitaId);
 
       // Deletar dados relacionados primeiro (devido às foreign keys)
-      const { error: ingredientesError } = await supabase
-        .from('receita_ingredientes')
-        .delete()
-        .eq('receita_id', receitaId);
-
-      if (ingredientesError) {
-        console.error('Erro ao deletar ingredientes:', ingredientesError);
-        throw ingredientesError;
-      }
-
-      const { error: subReceitasError } = await supabase
-        .from('receita_sub_receitas')
-        .delete()
-        .eq('receita_id', receitaId);
-
-      if (subReceitasError) {
-        console.error('Erro ao deletar sub-receitas:', subReceitasError);
-        throw subReceitasError;
-      }
-
-      const { error: embalagensError } = await supabase
-        .from('receita_embalagens')
-        .delete()
-        .eq('receita_id', receitaId);
-
-      if (embalagensError) {
-        console.error('Erro ao deletar embalagens:', embalagensError);
-        throw embalagensError;
-      }
-
-      const { error: maoObraError } = await supabase
-        .from('receita_mao_obra')
-        .delete()
-        .eq('receita_id', receitaId);
-
-      if (maoObraError) {
-        console.error('Erro ao deletar mão de obra:', maoObraError);
-        throw maoObraError;
-      }
+      await Promise.all([
+        supabase.from('receita_ingredientes').delete().eq('receita_id', receitaId),
+        supabase.from('receita_sub_receitas').delete().eq('receita_id', receitaId),
+        supabase.from('receita_embalagens').delete().eq('receita_id', receitaId),
+        supabase.from('receita_mao_obra').delete().eq('receita_id', receitaId)
+      ]);
 
       // Por último, deletar a receita principal
       const { error: receitaError } = await supabase
@@ -152,10 +123,16 @@ const Receitas = () => {
         description: "Receita deletada com sucesso!",
       });
 
-      // Recarregar lista
-      loadReceitas();
     } catch (error) {
       console.error('Erro ao deletar receita:', error);
+      
+      // Reverter update otimista em caso de erro
+      if (receitaOriginal) {
+        setReceitas(prev => [...prev, receitaOriginal].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ));
+      }
+      
       toast({
         title: "Erro",
         description: "Não foi possível deletar a receita.",
