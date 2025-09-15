@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ const Receitas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingReceitaId, setEditingReceitaId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -80,8 +81,19 @@ const Receitas = () => {
     setIsModalOpen(wasOpened);
     if (!wasOpened) {
       // Recarregar receitas quando modal for fechado
+      setEditingReceitaId(null);
       loadReceitas();
     }
+  };
+
+  const handleEditReceita = (receitaId: string) => {
+    setEditingReceitaId(receitaId);
+    setIsModalOpen(true);
+  };
+
+  const handleNovaReceita = () => {
+    setEditingReceitaId(null);
+    setIsModalOpen(true);
   };
 
   const deleteReceita = async (receitaId: string) => {
@@ -150,7 +162,7 @@ const Receitas = () => {
           <h1 className="text-3xl font-bold text-foreground">Receitas</h1>
           <p className="text-muted-foreground">Gerencie suas receitas e seus custos</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+        <Button onClick={handleNovaReceita} className="gap-2">
           <Plus className="h-4 w-4" />
           Nova Receita
         </Button>
@@ -185,6 +197,15 @@ const Receitas = () => {
                       <p>Criado: {new Date(receita.created_at).toLocaleDateString()}</p>
                       <p>Atualizado: {new Date(receita.updated_at).toLocaleDateString()}</p>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditReceita(receita.id)}
+                      className="gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Editar
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 
@@ -256,7 +277,7 @@ const Receitas = () => {
                   <h3 className="text-lg font-semibold">Nenhuma receita criada</h3>
                   <p className="text-muted-foreground">Comece criando sua primeira receita</p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+                <Button onClick={handleNovaReceita} className="gap-2">
                   <Plus className="h-4 w-4" />
                   Nova Receita
                 </Button>
@@ -269,6 +290,7 @@ const Receitas = () => {
       <CriarReceitaModal 
         open={isModalOpen} 
         onOpenChange={handleModalClose}
+        receitaId={editingReceitaId}
       />
     </div>
   );

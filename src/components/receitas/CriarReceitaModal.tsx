@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 interface CriarReceitaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  receitaId?: string | null; // Para edição de receita existente
 }
 
 // Interfaces for shared state
@@ -101,7 +102,7 @@ const steps = [
   { id: 'precificacao', title: 'Precificação' },
 ];
 
-export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps) {
+export function CriarReceitaModal({ open, onOpenChange, receitaId: existingReceitaId }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [receitaId, setReceitaId] = useState<string | null>(null);
   const [receitaCriada, setReceitaCriada] = useState(false);
@@ -162,16 +163,85 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     }
   }, [user?.id, receitaId, toast]);
 
-  // Efeito para criar receita quando modal abrir (apenas uma vez)
+  // Carregar receita existente para edição
+  const carregarReceitaExistente = useCallback(async () => {
+    if (!existingReceitaId || !user?.id) return;
+
+    try {
+      console.log('📖 Carregando receita para edição:', existingReceitaId);
+      
+      const { data: receita, error } = await supabase
+        .from('receitas')
+        .select(`
+          *,
+          receita_ingredientes(*),
+          receita_sub_receitas(*),
+          receita_embalagens(*),
+          receita_mao_obra(*)
+        `)
+        .eq('id', existingReceitaId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Erro ao carregar receita:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a receita.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Receita carregada:', receita);
+      setReceitaId(receita.id);
+      
+      // Carregar dados da receita no estado
+      setReceitaData(prev => ({
+        ...prev,
+        nomeReceita: receita.nome || '',
+        observacoes: receita.observacoes || '',
+        rendimentoValor: receita.rendimento_valor?.toString() || '',
+        rendimentoUnidade: receita.rendimento_unidade || 'unidade',
+        ingredientes: receita.receita_ingredientes || [],
+        subReceitas: receita.receita_sub_receitas || [],
+        embalagens: receita.receita_embalagens || [],
+        maoObra: (receita.receita_mao_obra || []).map((mo: any) => ({
+          id: mo.id,
+          funcionario: {
+            id: mo.funcionario_id,
+            nome: mo.funcionario_nome,
+            cargo: mo.funcionario_cargo,
+            custo_por_hora: mo.custo_por_hora
+          },
+          tempo: mo.tempo,
+          valorTotal: mo.valor_total,
+          unidadeTempo: mo.unidade_tempo
+        }))
+      }));
+
+    } catch (error) {
+      console.error('Erro ao carregar receita:', error);
+    }
+  }, [existingReceitaId, user?.id, toast]);
+
+  // Efeito para criar receita quando modal abrir (apenas uma vez) ou carregar existente
   useEffect(() => {
-    if (open && !receitaId && user?.id && !receitaCriada) {
-      console.log('📂 Modal aberto, criando receita inicial...');
-      setReceitaCriada(true);
-      criarReceitaInicial();
+    if (open && user?.id) {
+      if (existingReceitaId) {
+        // Modo edição - carregar receita existente
+        console.log('📂 Modal aberto em modo edição...');
+        carregarReceitaExistente();
+      } else if (!receitaId && !receitaCriada) {
+        // Modo criação - criar nova receita
+        console.log('📂 Modal aberto, criando receita inicial...');
+        setReceitaCriada(true);
+        criarReceitaInicial();
+      }
     } else if (!open) {
       setReceitaCriada(false);
     }
-  }, [open, receitaId, user?.id, receitaCriada, criarReceitaInicial]);
+  }, [open, existingReceitaId, receitaId, user?.id, receitaCriada, criarReceitaInicial, carregarReceitaExistente]);
 
   const updateReceitaData = (updates: Partial<ReceitaData>) => {
     setReceitaData(prev => ({ ...prev, ...updates }));
@@ -219,8 +289,8 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
   };
 
   const handleClose = async () => {
-    // Se há uma receita rascunho criada, deletá-la ao cancelar
-    if (receitaId) {
+    // Se há uma receita rascunho criada (não editada), deletá-la ao cancelar
+    if (receitaId && !existingReceitaId) {
       try {
         await supabase
           .from('receitas')
@@ -328,7 +398,7 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Nova Receita - {steps[currentStep].title}</span>
+            <span>{existingReceitaId ? 'Editar' : 'Nova'} Receita - {steps[currentStep].title}</span>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {currentStep + 1} de {steps.length}
             </div>
