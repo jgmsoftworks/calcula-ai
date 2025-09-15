@@ -205,11 +205,17 @@ const PerfilNegocio = () => {
     setIsLoading(true);
 
     try {
+      // Prepare profile data with proper null handling for date fields
+      const profileData = {
+        ...profile,
+        data_abertura: profile.data_abertura && profile.data_abertura.trim() !== '' ? profile.data_abertura : null
+      };
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
-          ...profile
+          ...profileData
         });
 
       if (error) throw error;
