@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CriarReceitaModal } from '@/components/receitas/CriarReceitaModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Receita {
   id: string;
@@ -27,7 +29,9 @@ const Receitas = () => {
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user?.id) {
@@ -80,6 +84,88 @@ const Receitas = () => {
     }
   };
 
+  const deleteReceita = async (receitaId: string) => {
+    if (!user?.id) return;
+
+    setDeletingId(receitaId);
+    
+    try {
+      console.log('🗑️ Iniciando deleção da receita:', receitaId);
+
+      // Deletar dados relacionados primeiro (devido às foreign keys)
+      const { error: ingredientesError } = await supabase
+        .from('receita_ingredientes')
+        .delete()
+        .eq('receita_id', receitaId);
+
+      if (ingredientesError) {
+        console.error('Erro ao deletar ingredientes:', ingredientesError);
+        throw ingredientesError;
+      }
+
+      const { error: subReceitasError } = await supabase
+        .from('receita_sub_receitas')
+        .delete()
+        .eq('receita_id', receitaId);
+
+      if (subReceitasError) {
+        console.error('Erro ao deletar sub-receitas:', subReceitasError);
+        throw subReceitasError;
+      }
+
+      const { error: embalagensError } = await supabase
+        .from('receita_embalagens')
+        .delete()
+        .eq('receita_id', receitaId);
+
+      if (embalagensError) {
+        console.error('Erro ao deletar embalagens:', embalagensError);
+        throw embalagensError;
+      }
+
+      const { error: maoObraError } = await supabase
+        .from('receita_mao_obra')
+        .delete()
+        .eq('receita_id', receitaId);
+
+      if (maoObraError) {
+        console.error('Erro ao deletar mão de obra:', maoObraError);
+        throw maoObraError;
+      }
+
+      // Por último, deletar a receita principal
+      const { error: receitaError } = await supabase
+        .from('receitas')
+        .delete()
+        .eq('id', receitaId)
+        .eq('user_id', user.id);
+
+      if (receitaError) {
+        console.error('Erro ao deletar receita:', receitaError);
+        throw receitaError;
+      }
+
+      console.log('✅ Receita deletada com sucesso');
+      
+      toast({
+        title: "Sucesso",
+        description: "Receita deletada com sucesso!",
+      });
+
+      // Recarregar lista
+      loadReceitas();
+    } catch (error) {
+      console.error('Erro ao deletar receita:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível deletar a receita.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -117,9 +203,42 @@ const Receitas = () => {
                       </Badge>
                     </div>
                   </div>
-                  <div className="text-right text-sm text-muted-foreground">
-                    <p>Criado: {new Date(receita.created_at).toLocaleDateString()}</p>
-                    <p>Atualizado: {new Date(receita.updated_at).toLocaleDateString()}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right text-sm text-muted-foreground">
+                      <p>Criado: {new Date(receita.created_at).toLocaleDateString()}</p>
+                      <p>Atualizado: {new Date(receita.updated_at).toLocaleDateString()}</p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          disabled={deletingId === receita.id}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Deletar Receita</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja deletar a receita "{receita.nome}"? 
+                            Esta ação não pode ser desfeita e todos os dados relacionados 
+                            (ingredientes, sub-receitas, embalagens, mão de obra) serão removidos.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => deleteReceita(receita.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Deletar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardHeader>
