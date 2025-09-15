@@ -138,17 +138,20 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
         
         // Se há sub-receitas, criar/verificar markup de sub-receitas no banco
         if (hasSubReceitas) {
-          const { data: existingSubMarkup } = await supabase
+          console.log('🔍 Verificando markup de sub-receitas existente...');
+          const { data: existingSubMarkup, error: selectError } = await supabase
             .from('markups')
             .select('*')
             .eq('user_id', user.id)
             .eq('tipo', 'sub_receita')
             .eq('ativo', true)
-            .single();
+            .maybeSingle();
+            
+          console.log('📋 Markup existente:', existingSubMarkup, 'Erro:', selectError);
             
           if (!existingSubMarkup) {
             console.log('➕ Criando markup de sub-receitas no banco...');
-            const { error: insertError } = await supabase
+            const { data: newMarkup, error: insertError } = await supabase
               .from('markups')
               .insert({
                 user_id: user.id,
@@ -165,11 +168,17 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
                 despesas_fixas_selecionadas: [],
                 encargos_venda_selecionados: [],
                 folha_pagamento_selecionada: []
-              });
+              })
+              .select()
+              .single();
               
             if (insertError) {
-              console.error('Erro ao criar markup de sub-receitas:', insertError);
+              console.error('❌ Erro ao criar markup de sub-receitas:', insertError);
+            } else {
+              console.log('✅ Markup de sub-receitas criado:', newMarkup);
             }
+          } else {
+            console.log('✅ Markup de sub-receitas já existe:', existingSubMarkup.nome);
           }
         }
         
@@ -182,12 +191,19 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
           .order('created_at', { ascending: false });
         
         if (error) {
-          console.error('Erro ao buscar markups:', error);
+          console.error('❌ Erro ao buscar markups:', error);
           setMarkupsLoaded(false);
           return;
         }
         
-        console.log('📦 Markups encontrados no banco:', data?.length || 0, data);
+        console.log('📦 Markups encontrados no banco:', data?.length || 0);
+        console.log('📋 Detalhes dos markups:', data?.map(m => ({ nome: m.nome, tipo: m.tipo, id: m.id })));
+        
+        if (!data || data.length === 0) {
+          console.log('⚠️ Nenhum markup encontrado no banco');
+          setMarkups([]);
+          return;
+        }
         
         // Remove duplicados usando Map para garantir unicidade por nome
         const markupsMap = new Map();
