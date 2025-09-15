@@ -140,14 +140,53 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
           return;
         }
         
-        setMarkups(data || []);
+        // Remove duplicados por ID para evitar renderização dupla
+        const uniqueMarkups = (data || []).filter((markup, index, self) => 
+          index === self.findIndex(m => m.id === markup.id)
+        );
+        
+        // Verificar se há sub-receitas na receita para adicionar bloco de sub-receita
+        const hasSubReceitas = receitaData.subReceitas && receitaData.subReceitas.length > 0;
+        
+        // Se há sub-receitas, adicionar o bloco fixo de sub-receita
+        if (hasSubReceitas) {
+          const subReceitaMarkup = {
+            id: 'subreceita-fixo',
+            nome: 'sub-receitas',
+            tipo: 'sub_receita',
+            periodo: 'todos',
+            margem_lucro: 20,
+            gasto_sobre_faturamento: 0,
+            encargos_sobre_venda: 0,
+            markup_ideal: 1.2500,
+            markup_aplicado: 1.2500,
+            preco_sugerido: 0,
+            ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user_id: user.id,
+            despesas_fixas_selecionadas: [],
+            encargos_venda_selecionados: [],
+            folha_pagamento_selecionada: []
+          };
+          
+          // Adicionar o markup de sub-receita apenas se não existir já
+          if (!uniqueMarkups.find(m => m.id === 'subreceita-fixo')) {
+            uniqueMarkups.unshift(subReceitaMarkup);
+          }
+        }
+        
+        setMarkups(uniqueMarkups);
       } catch (error) {
         console.error('Erro ao buscar markups:', error);
       }
     };
     
-    fetchMarkups();
-  }, [user?.id]);
+    // Só buscar se ainda não tem markups ou se o user mudou
+    if (user?.id && markups.length === 0) {
+      fetchMarkups();
+    }
+  }, [user?.id, receitaData.subReceitas]);
 
   // Buscar markup selecionado da receita
   useEffect(() => {
