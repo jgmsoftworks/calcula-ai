@@ -24,18 +24,31 @@ interface ConservacaoItem {
   unidade_tempo: string;
 }
 
-export function GeralStep({ receitaId }: { receitaId: string }) {
-  const [nomeReceita, setNomeReceita] = useState('');
-  const [observacoes, setObservacoes] = useState('');
-  const [imagemReceita, setImagemReceita] = useState('');
-  const [passosPreparo, setPassosPreparo] = useState<PassoPreparo[]>([
-    { id: '1', ordem: 1, descricao: '' }
-  ]);
-  const [conservacao, setConservacao] = useState<ConservacaoItem[]>([
-    { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
-    { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
-    { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
-  ]);
+interface GeralStepProps {
+  receitaId: string;
+  nomeReceita: string;
+  observacoes: string;
+  imagemReceita: string;
+  passosPreparo: PassoPreparo[];
+  conservacao: ConservacaoItem[];
+  onGeralChange: (data: Partial<{
+    nomeReceita: string;
+    observacoes: string;
+    imagemReceita: string;
+    passosPreparo: PassoPreparo[];
+    conservacao: ConservacaoItem[];
+  }>) => void;
+}
+
+export function GeralStep({ 
+  receitaId, 
+  nomeReceita, 
+  observacoes, 
+  imagemReceita, 
+  passosPreparo, 
+  conservacao, 
+  onGeralChange 
+}: GeralStepProps) {
 
   const adicionarPasso = () => {
     const novoPasso: PassoPreparo = {
@@ -43,7 +56,8 @@ export function GeralStep({ receitaId }: { receitaId: string }) {
       ordem: passosPreparo.length + 1,
       descricao: '',
     };
-    setPassosPreparo([...passosPreparo, novoPasso]);
+    const novosPassos = [...passosPreparo, novoPasso];
+    onGeralChange({ passosPreparo: novosPassos });
   };
 
   const removerPasso = (id: string) => {
@@ -52,25 +66,28 @@ export function GeralStep({ receitaId }: { receitaId: string }) {
       ...passo,
       ordem: index + 1
     }));
-    setPassosPreparo(passosReordenados);
+    onGeralChange({ passosPreparo: passosReordenados });
   };
 
   const atualizarPasso = (id: string, descricao: string) => {
-    setPassosPreparo(passosPreparo.map(passo =>
+    const novosPassos = passosPreparo.map(passo =>
       passo.id === id ? { ...passo, descricao } : passo
-    ));
+    );
+    onGeralChange({ passosPreparo: novosPassos });
   };
 
   const adicionarImagemPasso = (id: string, imagemUrl: string) => {
-    setPassosPreparo(passosPreparo.map(passo =>
+    const novosPassos = passosPreparo.map(passo =>
       passo.id === id ? { ...passo, imagem_url: imagemUrl } : passo
-    ));
+    );
+    onGeralChange({ passosPreparo: novosPassos });
   };
 
   const atualizarConservacao = (id: string, campo: keyof ConservacaoItem, valor: any) => {
-    setConservacao(conservacao.map(item =>
+    const novaConservacao = conservacao.map(item =>
       item.id === id ? { ...item, [campo]: valor } : item
-    ));
+    );
+    onGeralChange({ conservacao: novaConservacao });
   };
 
   const handleTemperaturaChange = (id: string, valor: string) => {
@@ -96,7 +113,7 @@ export function GeralStep({ receitaId }: { receitaId: string }) {
       if (file) {
         // Aqui você pode implementar o upload para o Supabase Storage
         const url = URL.createObjectURL(file);
-        setImagemReceita(url);
+        onGeralChange({ imagemReceita: url });
       }
     };
     input.click();
@@ -109,7 +126,7 @@ export function GeralStep({ receitaId }: { receitaId: string }) {
         <Input
           placeholder="Digite o nome da receita..."
           value={nomeReceita}
-          onChange={(e) => setNomeReceita(e.target.value)}
+          onChange={(e) => onGeralChange({ nomeReceita: e.target.value })}
           className="text-lg font-medium h-12"
         />
       </div>
@@ -130,7 +147,7 @@ export function GeralStep({ receitaId }: { receitaId: string }) {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setImagemReceita('');
+                    onGeralChange({ imagemReceita: '' });
                   }}
                   className="absolute top-2 right-2 p-1 h-6 w-6 bg-background/80 hover:bg-background"
                 >
@@ -288,7 +305,7 @@ export function GeralStep({ receitaId }: { receitaId: string }) {
           <Textarea
             placeholder="Adicione observações importantes sobre a receita..."
             value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value)}
+            onChange={(e) => onGeralChange({ observacoes: e.target.value })}
             rows={6}
             className="resize-none"
           />

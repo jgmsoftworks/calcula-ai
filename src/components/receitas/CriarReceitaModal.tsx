@@ -62,6 +62,21 @@ interface MaoObraItem {
   unidadeTempo?: string;
 }
 
+interface PassoPreparo {
+  id: string;
+  ordem: number;
+  descricao: string;
+  imagem_url?: string;
+}
+
+interface ConservacaoItem {
+  id: string;
+  descricao: string;
+  temperatura: string;
+  tempo: number;
+  unidade_tempo: string;
+}
+
 interface ReceitaData {
   ingredientes: Ingrediente[];
   subReceitas: SubReceita[];
@@ -69,6 +84,12 @@ interface ReceitaData {
   maoObra: MaoObraItem[];
   rendimentoValor: string;
   rendimentoUnidade: string;
+  // Dados do passo Geral
+  nomeReceita: string;
+  observacoes: string;
+  imagemReceita: string;
+  passosPreparo: PassoPreparo[];
+  conservacao: ConservacaoItem[];
 }
 
 const steps = [
@@ -94,6 +115,16 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     maoObra: [],
     rendimentoValor: '',
     rendimentoUnidade: 'unidade',
+    // Dados do passo Geral
+    nomeReceita: '',
+    observacoes: '',
+    imagemReceita: '',
+    passosPreparo: [{ id: '1', ordem: 1, descricao: '' }],
+    conservacao: [
+      { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
+      { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
+      { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
+    ],
   });
 
   // Criar receita inicial ao abrir modal
@@ -189,6 +220,16 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
       maoObra: [],
       rendimentoValor: '',
       rendimentoUnidade: 'unidade',
+      // Dados do passo Geral
+      nomeReceita: '',
+      observacoes: '',
+      imagemReceita: '',
+      passosPreparo: [{ id: '1', ordem: 1, descricao: '' }],
+      conservacao: [
+        { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
+        { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
+        { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
+      ],
     });
     onOpenChange(false);
   };
@@ -233,7 +274,17 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
           />
         );
       case 3:
-        return <GeralStep receitaId={receitaId} />;
+        return (
+          <GeralStep 
+            receitaId={receitaId}
+            nomeReceita={receitaData.nomeReceita}
+            observacoes={receitaData.observacoes}
+            imagemReceita={receitaData.imagemReceita}
+            passosPreparo={receitaData.passosPreparo}
+            conservacao={receitaData.conservacao}
+            onGeralChange={(geralData) => updateReceitaData(geralData)}
+          />
+        );
       case 4:
         return (
           <ProjecaoStep 
