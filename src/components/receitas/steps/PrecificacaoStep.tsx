@@ -132,11 +132,53 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
       setMarkupsLoaded(true);
       
       try {
+        // Verificar se há sub-receitas na receita
+        const hasSubReceitas = receitaData.subReceitas && receitaData.subReceitas.length > 0;
+        console.log('🔄 Tem sub-receitas?', hasSubReceitas, 'Quantidade:', receitaData.subReceitas?.length);
+        
+        // Se há sub-receitas, criar/verificar markup de sub-receitas no banco
+        if (hasSubReceitas) {
+          const { data: existingSubMarkup } = await supabase
+            .from('markups')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('tipo', 'sub_receita')
+            .eq('ativo', true)
+            .single();
+            
+          if (!existingSubMarkup) {
+            console.log('➕ Criando markup de sub-receitas no banco...');
+            const { error: insertError } = await supabase
+              .from('markups')
+              .insert({
+                user_id: user.id,
+                nome: 'sub-receitas',
+                tipo: 'sub_receita',
+                periodo: 'todos',
+                margem_lucro: 20,
+                gasto_sobre_faturamento: 0,
+                encargos_sobre_venda: 0,
+                markup_ideal: 1.2500,
+                markup_aplicado: 1.2500,
+                preco_sugerido: 0,
+                ativo: true,
+                despesas_fixas_selecionadas: [],
+                encargos_venda_selecionados: [],
+                folha_pagamento_selecionada: []
+              });
+              
+            if (insertError) {
+              console.error('Erro ao criar markup de sub-receitas:', insertError);
+            }
+          }
+        }
+        
         const { data, error } = await supabase
           .from('markups')
           .select('*')
           .eq('user_id', user.id)
           .eq('ativo', true)
+          .order('tipo', { ascending: false }) // sub_receita primeiro
           .order('created_at', { ascending: false });
         
         if (error) {
@@ -156,42 +198,9 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
         });
         
         const uniqueMarkups = Array.from(markupsMap.values());
-        console.log('✨ Markups únicos após filtro:', uniqueMarkups.length, uniqueMarkups.map(m => m.nome));
+        console.log('✨ Markups únicos após filtro:', uniqueMarkups.length, uniqueMarkups.map(m => `${m.nome} (${m.tipo})`));
         
-        // Verificar se há sub-receitas na receita para adicionar bloco de sub-receita
-        const hasSubReceitas = receitaData.subReceitas && receitaData.subReceitas.length > 0;
-        console.log('🔄 Tem sub-receitas?', hasSubReceitas, 'Quantidade:', receitaData.subReceitas?.length);
-        
-        let finalMarkups = [...uniqueMarkups];
-        
-        // Se há sub-receitas, adicionar o bloco fixo de sub-receita
-        if (hasSubReceitas && !finalMarkups.find(m => m.nome === 'sub-receitas')) {
-          const subReceitaMarkup = {
-            id: 'subreceita-fixo',
-            nome: 'sub-receitas',
-            tipo: 'sub_receita',
-            periodo: 'todos',
-            margem_lucro: 20,
-            gasto_sobre_faturamento: 0,
-            encargos_sobre_venda: 0,
-            markup_ideal: 1.2500,
-            markup_aplicado: 1.2500,
-            preco_sugerido: 0,
-            ativo: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            user_id: user.id,
-            despesas_fixas_selecionadas: [],
-            encargos_venda_selecionados: [],
-            folha_pagamento_selecionada: []
-          };
-          
-          finalMarkups.unshift(subReceitaMarkup);
-          console.log('➕ Adicionado markup de sub-receitas');
-        }
-        
-        console.log('🎯 Markups finais para renderizar:', finalMarkups.length, finalMarkups.map(m => m.nome));
-        setMarkups(finalMarkups);
+        setMarkups(uniqueMarkups);
       } catch (error) {
         console.error('Erro ao buscar markups:', error);
         setMarkupsLoaded(false);
