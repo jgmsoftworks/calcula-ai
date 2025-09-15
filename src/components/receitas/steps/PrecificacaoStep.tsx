@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface Ingrediente {
   id: string;
@@ -115,16 +115,23 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
 
       setMarkupSelecionado(markupId);
       
-      // Preencher preço de venda com o preço sugerido do markup
+      // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
       const markupSelecionadoData = markups.find(m => m.id === markupId);
-      if (markupSelecionadoData) {
+      if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
         const precoSugerido = custoUnitario * markupSelecionadoData.markup_ideal;
-        setPrecoVenda(formatCurrency(precoSugerido.toString()));
+        // Formatar corretamente com 2 casas decimais
+        const precoFormatado = new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(precoSugerido);
+        setPrecoVenda(precoFormatado);
       }
       
       toast({
         title: "Sucesso",
-        description: "Markup selecionado e preço de venda atualizado",
+        description: "Markup selecionado com sucesso",
       });
     } catch (error) {
       console.error('Erro ao salvar markup:', error);
@@ -283,6 +290,7 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(number);
   };
   
@@ -411,8 +419,14 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
               placeholder="R$ 0,00"
               value={precoVenda}
               onChange={handlePrecoVendaChange}
-              className="text-lg font-medium"
+              disabled={markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita'}
+              className={`text-lg font-medium ${markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' ? 'bg-muted cursor-not-allowed' : ''}`}
             />
+            {markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Preço definido automaticamente pelo markup de sub-receitas. Selecione outro markup para editar.
+              </p>
+            )}
           </CardContent>
         </Card>
 
