@@ -210,7 +210,22 @@ export function CriarReceitaModal({ open, onOpenChange }: CriarReceitaModalProps
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    // Se há uma receita rascunho criada, deletá-la ao cancelar
+    if (receitaId) {
+      try {
+        await supabase
+          .from('receitas')
+          .delete()
+          .eq('id', receitaId)
+          .eq('status', 'rascunho');
+        
+        console.log('🗑️ Receita rascunho deletada ao cancelar:', receitaId);
+      } catch (error) {
+        console.error('Erro ao deletar receita rascunho:', error);
+      }
+    }
+
     setCurrentStep(0);
     setReceitaId(null);
     setReceitaData({

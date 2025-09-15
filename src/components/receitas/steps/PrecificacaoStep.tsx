@@ -136,8 +136,8 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
         const hasSubReceitas = receitaData.subReceitas && receitaData.subReceitas.length > 0;
         console.log('🔄 Tem sub-receitas?', hasSubReceitas, 'Quantidade:', receitaData.subReceitas?.length);
         
-        // Se há sub-receitas, criar/verificar markup de sub-receitas no banco
-        if (hasSubReceitas) {
+        // SEMPRE criar/verificar markup de sub-receitas no banco (para aparecer na lista mesmo sem sub-receitas)
+        {
           console.log('🔍 Verificando markup de sub-receitas existente...');
           const { data: existingSubMarkup, error: selectError } = await supabase
             .from('markups')
