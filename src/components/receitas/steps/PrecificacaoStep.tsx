@@ -114,9 +114,17 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
       }
 
       setMarkupSelecionado(markupId);
+      
+      // Preencher preço de venda com o preço sugerido do markup
+      const markupSelecionadoData = markups.find(m => m.id === markupId);
+      if (markupSelecionadoData) {
+        const precoSugerido = custoUnitario * markupSelecionadoData.markup_ideal;
+        setPrecoVenda(formatCurrency(precoSugerido.toString()));
+      }
+      
       toast({
         title: "Sucesso",
-        description: "Markup selecionado salvo com sucesso",
+        description: "Markup selecionado e preço de venda atualizado",
       });
     } catch (error) {
       console.error('Erro ao salvar markup:', error);
