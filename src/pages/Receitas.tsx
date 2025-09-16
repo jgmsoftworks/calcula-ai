@@ -74,15 +74,15 @@ const Receitas = () => {
 
       // Transformar os dados para incluir as contagens e custos
       const receitasComContagens: Receita[] = (receitasData || []).map((receita, index) => {
-        const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (item.custo_total || 0), 0) || 0;
-        const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (item.custo_total || 0), 0) || 0;
-        const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (item.custo_total || 0), 0) || 0;
-        const custoMaoObra = receita.receita_mao_obra?.reduce((sum: number, item: any) => sum + (item.valor_total || 0), 0) || 0;
+        const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoMaoObra = receita.receita_mao_obra?.reduce((sum: number, item: any) => sum + (Number(item.valor_total) || 0), 0) || 0;
         
         const custoTotal = custoMateriaPrima + custoSubReceitas + custoEmbalagens + custoMaoObra;
-        const precoVenda = custoTotal * 2; // Valor padrão temporário
+        const precoVenda = custoTotal > 0 ? custoTotal * 2 : 0; // Valor padrão temporário
         const margemContribuicao = precoVenda - custoTotal;
-        const lucroLiquido = margemContribuicao * 0.8; // Exemplo de cálculo
+        const lucroLiquido = margemContribuicao > 0 ? margemContribuicao * 0.8 : 0; // Exemplo de cálculo
         
         return {
           ...receita,
@@ -187,10 +187,12 @@ const Receitas = () => {
   };
 
   const formatCurrency = (value: number) => {
+    // Se o valor for NaN, undefined, null ou não for um número válido, retorna R$ 0,00
+    const validValue = (!value || isNaN(value)) ? 0 : value;
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value);
+    }).format(validValue);
   };
 
   return (
