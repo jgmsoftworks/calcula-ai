@@ -23,6 +23,15 @@ interface Receita {
   embalagens_count: number;
   created_at: string;
   updated_at: string;
+  markup_id: string;
+  markup_nome: string;
+  custo_materia_prima: number;
+  custo_mao_obra: number;
+  custo_embalagens: number;
+  custo_total: number;
+  preco_venda: number;
+  margem_contribuicao: number;
+  lucro_liquido: number;
 }
 
 const Receitas = () => {
@@ -44,14 +53,16 @@ const Receitas = () => {
     try {
       setLoading(true);
 
-      // Buscar receitas com contagens
+      // Buscar receitas com contagens e informações de custos
       const { data: receitasData, error: receitasError } = await supabase
         .from('receitas')
         .select(`
           *,
-          receita_ingredientes(count),
-          receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
-          receita_embalagens(count)
+          receita_ingredientes(count, custo_total),
+          receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count, custo_total),
+          receita_embalagens(count, custo_total),
+          receita_mao_obra(custo_por_hora, tempo, valor_total),
+          markups!inner(nome)
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
@@ -61,13 +72,33 @@ const Receitas = () => {
         return;
       }
 
-      // Transformar os dados para incluir as contagens
-      const receitasComContagens: Receita[] = (receitasData || []).map(receita => ({
-        ...receita,
-        ingredientes_count: receita.receita_ingredientes[0]?.count || 0,
-        sub_receitas_count: receita.receita_sub_receitas[0]?.count || 0,
-        embalagens_count: receita.receita_embalagens[0]?.count || 0,
-      }));
+      // Transformar os dados para incluir as contagens e custos
+      const receitasComContagens: Receita[] = (receitasData || []).map((receita, index) => {
+        const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (item.custo_total || 0), 0) || 0;
+        const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (item.custo_total || 0), 0) || 0;
+        const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (item.custo_total || 0), 0) || 0;
+        const custoMaoObra = receita.receita_mao_obra?.reduce((sum: number, item: any) => sum + (item.valor_total || 0), 0) || 0;
+        
+        const custoTotal = custoMateriaPrima + custoSubReceitas + custoEmbalagens + custoMaoObra;
+        const precoVenda = custoTotal * 2; // Valor padrão temporário
+        const margemContribuicao = precoVenda - custoTotal;
+        const lucroLiquido = margemContribuicao * 0.8; // Exemplo de cálculo
+        
+        return {
+          ...receita,
+          ingredientes_count: receita.receita_ingredientes?.[0]?.count || 0,
+          sub_receitas_count: receita.receita_sub_receitas?.[0]?.count || 0,
+          embalagens_count: receita.receita_embalagens?.[0]?.count || 0,
+          markup_nome: receita.markups?.nome || 'Nenhum markup',
+          custo_materia_prima: custoMateriaPrima + custoSubReceitas,
+          custo_mao_obra: custoMaoObra,
+          custo_embalagens: custoEmbalagens,
+          custo_total: custoTotal,
+          preco_venda: precoVenda,
+          margem_contribuicao: margemContribuicao,
+          lucro_liquido: lucroLiquido,
+        };
+      });
 
       setReceitas(receitasComContagens);
     } catch (error) {
@@ -155,6 +186,13 @@ const Receitas = () => {
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -174,14 +212,20 @@ const Receitas = () => {
             <p className="text-muted-foreground">Carregando receitas...</p>
           </div>
         ) : receitas.length > 0 ? (
-          receitas.map((receita) => (
+          receitas.map((receita, index) => (
             <Card key={receita.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{receita.nome}</CardTitle>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-semibold">
+                        {index + 1}
+                      </span>
+                      <CardTitle className="text-lg">{receita.nome}</CardTitle>
+                    </div>
                     <div className="flex gap-2 mt-2">
                       <Badge variant="secondary">{receita.tipo_produto || 'Sem categoria'}</Badge>
+                      <Badge variant="outline">{receita.markup_nome}</Badge>
                       {receita.rendimento_valor && (
                         <Badge variant="outline">
                           Rendimento: {receita.rendimento_valor} {receita.rendimento_unidade}
@@ -241,7 +285,7 @@ const Receitas = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 text-sm mb-4">
                   <div>
                     <p className="text-muted-foreground">Tempo Total</p>
                     <p className="font-medium">{receita.tempo_preparo_total || 0} min</p>
@@ -261,6 +305,33 @@ const Receitas = () => {
                   <div>
                     <p className="text-muted-foreground">Embalagens</p>
                     <p className="font-medium">{receita.embalagens_count}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Custo M.O.</p>
+                    <p className="font-medium text-orange-600">{formatCurrency(receita.custo_mao_obra)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Custo Total</p>
+                    <p className="font-medium text-red-600">{formatCurrency(receita.custo_total)}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Custo Matéria-Prima</p>
+                    <p className="font-medium text-blue-600">{formatCurrency(receita.custo_materia_prima)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Margem Contribuição</p>
+                    <p className="font-medium text-green-600">{formatCurrency(receita.margem_contribuicao)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Preço Venda</p>
+                    <p className="font-medium text-purple-600">{formatCurrency(receita.preco_venda)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Lucro Líquido</p>
+                    <p className="font-medium text-emerald-600">{formatCurrency(receita.lucro_liquido)}</p>
                   </div>
                 </div>
               </CardContent>
