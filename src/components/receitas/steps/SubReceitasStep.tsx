@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SubReceita {
   id: string;
@@ -16,6 +18,14 @@ interface SubReceita {
   custo_total: number;
 }
 
+interface ReceitaDisponivel {
+  id: string;
+  nome: string;
+  custo_total: number;
+  rendimento_valor: number;
+  rendimento_unidade: string;
+}
+
 interface SubReceitasStepProps {
   receitaId: string;
   subReceitas: SubReceita[];
@@ -24,24 +34,81 @@ interface SubReceitasStepProps {
 
 export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }: SubReceitasStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Mock data de receitas disponíveis
-  const receitasDisponiveis = [
-    { id: '1', nome: 'Cobertura de Chocolate', unidade: 'porção', custo_unitario: 8.50 },
-    { id: '2', nome: 'Massa Base de Bolo', unidade: 'porção', custo_unitario: 12.00 },
-    { id: '3', nome: 'Recheio de Doce de Leite', unidade: 'porção', custo_unitario: 6.75 },
-    { id: '4', nome: 'Calda de Açúcar', unidade: 'porção', custo_unitario: 3.20 },
-  ];
+  const [receitasDisponiveis, setReceitasDisponiveis] = useState<ReceitaDisponivel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  const adicionarSubReceita = (receita: any) => {
+  useEffect(() => {
+    if (user?.id) {
+      loadReceitasComMarkupSubReceitas();
+    }
+  }, [user?.id]);
+
+  const loadReceitasComMarkupSubReceitas = async () => {
+    try {
+      setLoading(true);
+      
+      // Buscar receitas que têm markup "Sub-receitas"
+      const { data: receitas, error } = await supabase
+        .from('receitas')
+        .select(`
+          id,
+          nome,
+          rendimento_valor,
+          rendimento_unidade,
+          receita_ingredientes(custo_total),
+          receita_sub_receitas!receita_sub_receitas_receita_id_fkey(custo_total),
+          receita_embalagens(custo_total),
+          receita_mao_obra(valor_total),
+          markups!inner(nome)
+        `)
+        .eq('user_id', user?.id)
+        .eq('markups.nome', 'Sub-receitas')
+        .eq('status', 'finalizada')
+        .neq('id', receitaId); // Não incluir a própria receita
+
+      if (error) {
+        console.error('Erro ao carregar receitas com markup Sub-receitas:', error);
+        return;
+      }
+
+      // Calcular custo total de cada receita
+      const receitasComCustos: ReceitaDisponivel[] = (receitas || []).map(receita => {
+        const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoMaoObra = receita.receita_mao_obra?.reduce((sum: number, item: any) => sum + (Number(item.valor_total) || 0), 0) || 0;
+        
+        const custoTotal = custoMateriaPrima + custoSubReceitas + custoEmbalagens + custoMaoObra;
+        
+        return {
+          id: receita.id,
+          nome: receita.nome,
+          custo_total: custoTotal,
+          rendimento_valor: receita.rendimento_valor || 1,
+          rendimento_unidade: receita.rendimento_unidade || 'porção'
+        };
+      });
+
+      setReceitasDisponiveis(receitasComCustos);
+    } catch (error) {
+      console.error('Erro ao carregar receitas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const adicionarSubReceita = (receita: ReceitaDisponivel) => {
+    const custoUnitario = receita.custo_total / receita.rendimento_valor;
+    
     const novaSubReceita: SubReceita = {
       id: Date.now().toString(),
       receita_id: receita.id,
       nome: receita.nome,
       quantidade: 1,
-      unidade: receita.unidade,
-      custo_unitario: receita.custo_unitario,
-      custo_total: receita.custo_unitario,
+      unidade: receita.rendimento_unidade,
+      custo_unitario: custoUnitario,
+      custo_total: custoUnitario,
     };
     
     onSubReceitasChange([...subReceitas, novaSubReceita]);
@@ -89,26 +156,38 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
             </div>
           </CardHeader>
           <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            {receitasFiltradas.map((receita) => (
-              <div key={receita.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                <div>
-                  <p className="font-medium">{receita.nome}</p>
-                  <p className="text-sm text-muted-foreground">
-                    R$ {receita.custo_unitario.toFixed(2)} / {receita.unidade}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => adicionarSubReceita(receita)}
-                  disabled={subReceitas.some(item => item.receita_id === receita.id)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            {receitasFiltradas.length === 0 && (
+            {loading ? (
               <div className="text-center py-8 text-muted-foreground">
-                <p>Nenhuma receita encontrada</p>
+                <p>Carregando receitas...</p>
+              </div>
+            ) : receitasFiltradas.length > 0 ? (
+              receitasFiltradas.map((receita) => {
+                const custoUnitario = receita.custo_total / receita.rendimento_valor;
+                return (
+                  <div key={receita.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                    <div>
+                      <p className="font-medium">{receita.nome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        R$ {custoUnitario.toFixed(2)} / {receita.rendimento_unidade}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Rendimento: {receita.rendimento_valor} {receita.rendimento_unidade}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => adicionarSubReceita(receita)}
+                      disabled={subReceitas.some(item => item.receita_id === receita.id)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nenhuma receita com markup "Sub-receitas" encontrada</p>
+                <p className="text-sm">Crie receitas e marque-as com o markup "Sub-receitas"</p>
               </div>
             )}
           </CardContent>
