@@ -181,13 +181,23 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         `)
         .eq('id', existingReceitaId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erro ao carregar receita:', error);
         toast({
           title: "Erro",
           description: "Não foi possível carregar a receita.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!receita) {
+        console.error('Receita não encontrada:', existingReceitaId);
+        toast({
+          title: "Erro",
+          description: "Receita não encontrada.",
           variant: "destructive",
         });
         return;
@@ -222,6 +232,11 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
 
     } catch (error) {
       console.error('Erro ao carregar receita:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível editar a receita.",
+        variant: "destructive",
+      });
     }
   }, [existingReceitaId, user?.id, toast]);
 

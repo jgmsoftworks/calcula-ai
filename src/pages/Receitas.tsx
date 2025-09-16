@@ -226,7 +226,7 @@ const Receitas = () => {
                       <CardTitle className="text-lg">{receita.nome}</CardTitle>
                     </div>
                     <div className="flex gap-2 mt-2">
-                      <Badge variant="secondary">{receita.tipo_produto || 'Sem categoria'}</Badge>
+                      <Badge variant="secondary">{receita.tipo_produto || 'Tipo não definido'}</Badge>
                       <Badge variant="outline">{receita.markup_nome}</Badge>
                       {receita.rendimento_valor && (
                         <Badge variant="outline">
@@ -287,52 +287,52 @@ const Receitas = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 text-sm mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-sm mb-4">
                   <div>
-                    <p className="text-muted-foreground">Tempo Total</p>
+                    <p className="text-muted-foreground mb-1">Tempo Total</p>
                     <p className="font-medium">{receita.tempo_preparo_total || 0} min</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Tempo M.O.</p>
+                    <p className="text-muted-foreground mb-1">Tempo M.O.</p>
                     <p className="font-medium">{receita.tempo_preparo_mao_obra || 0} min</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Ingredientes</p>
+                    <p className="text-muted-foreground mb-1">Ingredientes</p>
                     <p className="font-medium">{receita.ingredientes_count}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Sub-receitas</p>
+                    <p className="text-muted-foreground mb-1">Sub-receitas</p>
                     <p className="font-medium">{receita.sub_receitas_count}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Embalagens</p>
+                    <p className="text-muted-foreground mb-1">Embalagens</p>
                     <p className="font-medium">{receita.embalagens_count}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Custo M.O.</p>
+                    <p className="text-muted-foreground mb-1">Custo M.O.</p>
                     <p className="font-medium text-orange-600">{formatCurrency(receita.custo_mao_obra)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Custo Total</p>
+                    <p className="text-muted-foreground mb-1">Custo Total</p>
                     <p className="font-medium text-red-600">{formatCurrency(receita.custo_total)}</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Custo Matéria-Prima</p>
+                    <p className="text-muted-foreground mb-1">Custo Matéria-Prima</p>
                     <p className="font-medium text-blue-600">{formatCurrency(receita.custo_materia_prima)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Margem Contribuição</p>
+                    <p className="text-muted-foreground mb-1">Margem Contribuição</p>
                     <p className="font-medium text-green-600">{formatCurrency(receita.margem_contribuicao)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Preço Venda</p>
+                    <p className="text-muted-foreground mb-1">Preço Venda</p>
                     <p className="font-medium text-purple-600">{formatCurrency(receita.preco_venda)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Lucro Líquido</p>
+                    <p className="text-muted-foreground mb-1">Lucro Líquido</p>
                     <p className="font-medium text-emerald-600">{formatCurrency(receita.lucro_liquido)}</p>
                   </div>
                 </div>
