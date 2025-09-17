@@ -140,7 +140,6 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         .select(`
           *,
           receita_ingredientes(*),
-          receita_sub_receitas(*),
           receita_embalagens(*),
           receita_mao_obra(*)
         `)
@@ -168,6 +167,12 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         return;
       }
 
+      // Buscar sub-receitas separadamente para evitar ambiguidade
+      const { data: subReceitas } = await supabase
+        .from('receita_sub_receitas')
+        .select('*')
+        .eq('receita_id', existingReceitaId);
+
       console.log('✅ Receita carregada para edição:', receita);
       
       // Atualizar receitaId para modo edição
@@ -185,7 +190,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           custo_total: ing.custo_total,
           marcas: ing.marcas || []
         })) || [],
-        subReceitas: receita.receita_sub_receitas?.map((sub: any) => ({
+        subReceitas: subReceitas?.map((sub: any) => ({
           id: sub.id,
           receita_id: sub.sub_receita_id,
           nome: sub.nome,
