@@ -374,24 +374,24 @@ const Receitas = () => {
                     <p className="font-medium text-orange-600">{formatCurrency(receita.custo_mao_obra)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground mb-1">Custo Total</p>
-                    <p className="font-medium text-red-600">{formatCurrency(receita.custo_total)}</p>
-                  </div>
-                  <div>
                     <p className="text-muted-foreground mb-1">Custo Matéria-Prima</p>
                     <p className="font-medium text-blue-600">{formatCurrency(receita.custo_materia_prima)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground mb-1">Margem Contribuição</p>
-                    <p className="font-medium text-green-600">{formatCurrency(receita.margem_contribuicao)}</p>
+                    <p className="text-muted-foreground mb-1">Custo Total</p>
+                    <p className="font-medium text-red-600">{formatCurrency(receita.custo_total)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-1">Preço Venda</p>
                     <p className="font-medium text-purple-600">{formatCurrency(receita.preco_venda)}</p>
                   </div>
                   <div>
+                    <p className="text-muted-foreground mb-1">Margem Contribuição</p>
+                    <p className="font-medium text-green-600">{formatCurrency(receita.margem_contribuicao)}</p>
+                  </div>
+                  <div>
                     <p className="text-muted-foreground mb-1">Lucro Líquido</p>
-                    <p className="font-medium text-emerald-600">{formatCurrency(receita.lucro_liquido)}</p>
+                    <p className="font-medium text-teal-600">{formatCurrency(receita.lucro_liquido)}</p>
                   </div>
                 </div>
               </CardContent>
