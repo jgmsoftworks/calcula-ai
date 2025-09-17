@@ -345,7 +345,7 @@ const Receitas = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-sm mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
                   <div>
                     <p className="text-muted-foreground mb-1">Tempo Total</p>
                     <p className="font-medium">{receita.tempo_preparo_total || 0} min</p>
@@ -366,6 +366,9 @@ const Receitas = () => {
                     <p className="text-muted-foreground mb-1">Embalagens</p>
                     <p className="font-medium">{receita.embalagens_count}</p>
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground mb-1">Custo M.O.</p>
                     <p className="font-medium text-orange-600">{formatCurrency(receita.custo_mao_obra)}</p>
@@ -374,9 +377,6 @@ const Receitas = () => {
                     <p className="text-muted-foreground mb-1">Custo Total</p>
                     <p className="font-medium text-red-600">{formatCurrency(receita.custo_total)}</p>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground mb-1">Custo Matéria-Prima</p>
                     <p className="font-medium text-blue-600">{formatCurrency(receita.custo_materia_prima)}</p>
