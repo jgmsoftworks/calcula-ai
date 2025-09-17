@@ -139,7 +139,11 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
       const markupSelecionadoData = markups.find(m => m.id === markupId);
       if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
-        const precoSugerido = custoUnitario * markupSelecionadoData.markup_ideal;
+        // Usar custo unitário real para o cálculo do preço
+        const custoParaCalculo = rendimentoUnidade === 'grama' && parseFloat(pesoUnitario) > 0 
+          ? custoUnitario * parseFloat(pesoUnitario)
+          : custoUnitario;
+        const precoSugerido = custoParaCalculo * markupSelecionadoData.markup_ideal;
         // Formatar corretamente com 2 casas decimais
         const precoFormatado = new Intl.NumberFormat('pt-BR', {
           style: 'currency',
@@ -336,10 +340,16 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   
   const { rendimentoValor, rendimentoUnidade } = receitaData;
 
-  // Calculate price per KG and unit cost
+  // Calculate unit cost based on yield
   const custoUnitario = custoTotal / (parseFloat(rendimentoValor) || 1);
-  const precoNumerico = getNumericValue(precoVenda);
+  
+  // Calculate real unit cost considering weight for actual product units
   const pesoNumerico = parseFloat(pesoUnitario) || 0;
+  const custoUnitarioReal = rendimentoUnidade === 'grama' && pesoNumerico > 0 
+    ? custoUnitario * pesoNumerico 
+    : custoUnitario;
+  
+  const precoNumerico = getNumericValue(precoVenda);
   const precoKg = (precoNumerico && pesoNumerico) 
     ? new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -411,13 +421,26 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           {rendimentoValor && (
             <div className="pt-3 border-t">
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Custo por Unidade</Label>
+                <Label className="text-sm font-medium">
+                  {rendimentoUnidade === 'grama' ? 'Custo por Grama' : 'Custo por Unidade'}
+                </Label>
                 <p className="text-lg font-bold text-primary">
-                  R$ {(custoTotal / (parseFloat(rendimentoValor) || 1)).toFixed(2)}
+                  R$ {custoUnitario.toFixed(4)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Baseado no rendimento: {rendimentoValor} {unidadesRendimento.find(u => u.value === rendimentoUnidade)?.label}
                 </p>
+                {rendimentoUnidade === 'grama' && pesoNumerico > 0 && (
+                  <div className="mt-2 pt-2 border-t">
+                    <Label className="text-sm font-medium">Custo por Unidade Real</Label>
+                    <p className="text-lg font-bold text-secondary">
+                      R$ {custoUnitarioReal.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Considerando peso unitário de {pesoNumerico}g
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -508,12 +531,22 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             {markups.filter((markup, index, self) => 
               index === self.findIndex(m => m.nome === markup.nome)
             ).map((markup) => {
-              // Calculate markup based on entered price
-              const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
-              const precoSugerido = custoUnitario * markup.markup_ideal;
+              // Use real unit cost for calculations
+              const custoParaCalculo = rendimentoUnidade === 'grama' && pesoNumerico > 0 
+                ? custoUnitario * pesoNumerico 
+                : custoUnitario;
               
-              // Calculate profit metrics
-              const lucroBrutoUnitario = precoNumerico - custoUnitario;
+              // Calculate markup based on entered price
+              const markupFinal = precoNumerico > 0 ? precoNumerico / custoParaCalculo : 0;
+              let precoSugerido = custoParaCalculo * markup.markup_ideal;
+              
+              // Adjust suggested price to ensure positive gross profit
+              if (precoNumerico > 0 && precoNumerico > precoSugerido) {
+                precoSugerido = Math.max(precoSugerido, precoNumerico * 1.01); // 1% minimum margin
+              }
+              
+              // Calculate profit metrics using real unit cost
+              const lucroBrutoUnitario = precoNumerico - custoParaCalculo;
               const lucroLiquidoEsperado = lucroBrutoUnitario * (markup.margem_lucro / 100);
               const faturamentoBruto = precoNumerico;
               
