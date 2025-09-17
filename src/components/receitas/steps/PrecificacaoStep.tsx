@@ -116,26 +116,36 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       
       let precoCalculado = 0;
       
-      // Calcular preço para markup de sub-receitas
-      if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
-        console.log('🧮 Calculando preço para sub-receita...');
-        console.log('💰 Custo unitário:', custoUnitario);
-        console.log('📈 Markup ideal:', markupSelecionadoData.markup_ideal);
+      // Calcular preço baseado no tipo de markup
+      if (markupSelecionadoData) {
+        console.log('🎯 Markup selecionado encontrado:', markupSelecionadoData.nome, 'Tipo:', markupSelecionadoData.tipo);
         
-        precoCalculado = custoUnitario * markupSelecionadoData.markup_ideal;
-        console.log('💲 Preço calculado:', precoCalculado);
-        console.log('✅ Preço > 0?', precoCalculado > 0);
-        
-        // Formatar e definir o preço de venda
-        const precoFormatado = new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(precoCalculado);
-        
-        console.log('🎨 Preço formatado:', precoFormatado);
-        setPrecoVenda(precoFormatado);
+        if (custoUnitario > 0) {
+          console.log('💰 Custo unitário:', custoUnitario);
+          
+          if (markupSelecionadoData.tipo === 'sub_receita') {
+            // Para sub-receitas, preço = custo (sem lucro)
+            precoCalculado = custoUnitario;
+            console.log('🏷️ Sub-receita: Preço = Custo (sem lucro):', precoCalculado);
+          } else {
+            // Para outros markups, aplicar o markup_ideal
+            console.log('📈 Markup ideal:', markupSelecionadoData.markup_ideal);
+            precoCalculado = custoUnitario * markupSelecionadoData.markup_ideal;
+            console.log('💲 Preço calculado com markup:', precoCalculado);
+          }
+          console.log('✅ Preço > 0?', precoCalculado > 0);
+          
+          // Formatar e definir o preço de venda
+          const precoFormatado = new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(precoCalculado);
+          
+          console.log('🎨 Preço formatado:', precoFormatado);
+          setPrecoVenda(precoFormatado);
+        }
       }
 
       // Preparar dados para salvamento
