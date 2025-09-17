@@ -139,19 +139,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
       const markupSelecionadoData = markups.find(m => m.id === markupId);
       if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
-        // Usar custo unitário real para o cálculo do preço (mesmo cálculo do card)
-        const custoParaCalculo = rendimentoUnidade === 'grama' && parseFloat(pesoUnitario) > 0 
-          ? custoUnitario * parseFloat(pesoUnitario)
-          : custoUnitario;
-        
-        // Usar exatamente o mesmo cálculo do preço sugerido do card
-        let precoSugerido = custoParaCalculo * markupSelecionadoData.markup_ideal;
-        
-        // Se já há um preço informado e é maior que o sugerido, ajustar (mesmo logic do card)
-        const precoAtual = getNumericValue(precoVenda);
-        if (precoAtual > 0 && precoAtual > precoSugerido) {
-          precoSugerido = Math.max(precoSugerido, precoAtual * 1.01);
-        }
+        // Usar apenas o custo unitário baseado no rendimento (não considerar peso unitário)
+        const precoSugerido = custoUnitario * markupSelecionadoData.markup_ideal;
         
         // Formatar corretamente com 2 casas decimais
         const precoFormatado = new Intl.NumberFormat('pt-BR', {
@@ -371,13 +360,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   // Calculate unit cost based on yield
   const custoUnitario = custoTotal / (parseFloat(rendimentoValor) || 1);
   
-  // Calculate real unit cost considering weight for actual product units
-  const pesoNumerico = parseFloat(pesoUnitario) || 0;
-  const custoUnitarioReal = rendimentoUnidade === 'grama' && pesoNumerico > 0 
-    ? custoUnitario * pesoNumerico 
-    : custoUnitario;
-  
   const precoNumerico = getNumericValue(precoVenda);
+  const pesoNumerico = parseFloat(pesoUnitario) || 0;
   const precoKg = (precoNumerico && pesoNumerico) 
     ? new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -548,22 +532,12 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             {markups.filter((markup, index, self) => 
               index === self.findIndex(m => m.nome === markup.nome)
             ).map((markup) => {
-              // Use real unit cost for calculations
-              const custoParaCalculo = rendimentoUnidade === 'grama' && pesoNumerico > 0 
-                ? custoUnitario * pesoNumerico 
-                : custoUnitario;
+              // Calculate markup based on entered price - use only unit cost from yield
+              const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
+              const precoSugerido = custoUnitario * markup.markup_ideal;
               
-              // Calculate markup based on entered price
-              const markupFinal = precoNumerico > 0 ? precoNumerico / custoParaCalculo : 0;
-              let precoSugerido = custoParaCalculo * markup.markup_ideal;
-              
-              // Adjust suggested price to ensure positive gross profit
-              if (precoNumerico > 0 && precoNumerico > precoSugerido) {
-                precoSugerido = Math.max(precoSugerido, precoNumerico * 1.01); // 1% minimum margin
-              }
-              
-              // Calculate profit metrics using real unit cost
-              const lucroBrutoUnitario = precoNumerico - custoParaCalculo;
+              // Calculate profit metrics using unit cost (not affected by unit weight)
+              const lucroBrutoUnitario = precoNumerico - custoUnitario;
               const lucroLiquidoEsperado = lucroBrutoUnitario * (markup.margem_lucro / 100);
               const faturamentoBruto = precoNumerico;
               
