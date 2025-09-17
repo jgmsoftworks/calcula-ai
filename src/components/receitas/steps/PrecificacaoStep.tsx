@@ -138,6 +138,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
       // Se estamos editando uma receita existente, salvar no banco
       if (receitaId) {
+        console.log('📝 Editando receita existente, ID:', receitaId);
         const updateData: { markup_id: string; preco_venda?: number } = {
           markup_id: markupId
         };
@@ -148,14 +149,17 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           console.log('💾 Salvando preço calculado no banco:', precoCalculado);
         }
         
-        const { error } = await supabase
+        console.log('📦 Dados para atualização:', updateData);
+        
+        const { data, error } = await supabase
           .from('receitas')
           .update(updateData)
           .eq('id', receitaId)
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .select();
 
         if (error) {
-          console.error('Erro ao salvar markup:', error);
+          console.error('❌ Erro ao salvar markup:', error);
           toast({
             title: "Erro",
             description: "Não foi possível salvar o markup selecionado",
@@ -164,7 +168,9 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           return;
         }
         
-        console.log('✅ Markup e preço salvos no banco');
+        console.log('✅ Markup e preço salvos no banco:', data);
+      } else {
+        console.log('⚠️ Não é edição (receitaId é null), apenas salvando no estado local');
       }
 
       // Sempre atualizar o estado local (tanto para criação quanto edição)
