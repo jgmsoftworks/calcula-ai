@@ -139,11 +139,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
       const markupSelecionadoData = markups.find(m => m.id === markupId);
       if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
-        // Usar custo unitário real para o cálculo do preço
+        // Usar custo unitário real para o cálculo do preço (mesmo cálculo do card)
         const custoParaCalculo = rendimentoUnidade === 'grama' && parseFloat(pesoUnitario) > 0 
           ? custoUnitario * parseFloat(pesoUnitario)
           : custoUnitario;
-        const precoSugerido = custoParaCalculo * markupSelecionadoData.markup_ideal;
+        
+        // Usar exatamente o mesmo cálculo do preço sugerido do card
+        let precoSugerido = custoParaCalculo * markupSelecionadoData.markup_ideal;
+        
+        // Se já há um preço informado e é maior que o sugerido, ajustar (mesmo logic do card)
+        const precoAtual = getNumericValue(precoVenda);
+        if (precoAtual > 0 && precoAtual > precoSugerido) {
+          precoSugerido = Math.max(precoSugerido, precoAtual * 1.01);
+        }
+        
         // Formatar corretamente com 2 casas decimais
         const precoFormatado = new Intl.NumberFormat('pt-BR', {
           style: 'currency',
