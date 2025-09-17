@@ -106,6 +106,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     if (!user?.id) return;
 
     console.log('🎯 Selecionando markup:', markupId);
+    console.log('📊 Estado atual - custoUnitario:', custoUnitario);
+    console.log('📊 Estado atual - markups:', markups);
     
     try {
       const markupSelecionadoData = markups.find(m => m.id === markupId);
@@ -141,8 +143,9 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         };
         
         // Adicionar preço calculado para sub-receitas
-        if (markupSelecionadoData?.tipo === 'sub_receita') {
+        if (markupSelecionadoData?.tipo === 'sub_receita' && precoCalculado > 0) {
           updateData.preco_venda = precoCalculado;
+          console.log('💾 Salvando preço calculado no banco:', precoCalculado);
         }
         
         const { error } = await supabase
@@ -334,6 +337,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         }
         
         if (data?.preco_venda && data.preco_venda > 0) {
+          console.log('📥 Carregando preço do banco:', data.preco_venda);
           const precoFormatado = new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',
@@ -341,6 +345,9 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             maximumFractionDigits: 2,
           }).format(data.preco_venda);
           setPrecoVenda(precoFormatado);
+          console.log('🎨 Preço formatado carregado:', precoFormatado);
+        } else {
+          console.log('⚠️ Nenhum preço salvo encontrado no banco');
         }
       } catch (error) {
         console.error('Erro ao buscar markup da receita:', error);
