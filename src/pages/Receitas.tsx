@@ -58,7 +58,7 @@ const Receitas = () => {
         .from('receitas')
         .select(`
           *,
-          markups(nome)
+          markups(nome, tipo)
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
@@ -123,9 +123,23 @@ const Receitas = () => {
         const custoMaoObra = receita.receita_mao_obra?.reduce((sum: number, item: any) => sum + (Number(item.valor_total) || 0), 0) || 0;
         
         const custoTotal = custoMateriaPrima + custoSubReceitas + custoEmbalagens + custoMaoObra;
-        const precoVenda = custoTotal > 0 ? custoTotal * 2 : 0; // Valor padrão temporário
-        const margemContribuicao = precoVenda - custoTotal;
-        const lucroLiquido = margemContribuicao > 0 ? margemContribuicao * 0.8 : 0; // Exemplo de cálculo
+        
+        // Verificar se é uma sub-receita
+        const isSubReceita = receita.markups?.tipo === 'sub_receita';
+        
+        let precoVenda, margemContribuicao, lucroLiquido;
+        
+        if (isSubReceita) {
+          // Para sub-receitas: preço = custo (sem lucro)
+          precoVenda = custoTotal;
+          margemContribuicao = 0;
+          lucroLiquido = 0;
+        } else {
+          // Para receitas normais: usar preço salvo ou valor padrão
+          precoVenda = receita.preco_venda || (custoTotal > 0 ? custoTotal * 2 : 0);
+          margemContribuicao = precoVenda - custoTotal;
+          lucroLiquido = margemContribuicao > 0 ? margemContribuicao * 0.8 : 0;
+        }
         
         return {
           ...receita,
