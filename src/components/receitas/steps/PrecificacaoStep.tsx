@@ -79,7 +79,7 @@ interface ReceitaData {
 
 interface PrecificacaoStepProps {
   receitaData: ReceitaData;
-  receitaId?: string;
+  receitaId?: string | null;
 }
 
 export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepProps) {

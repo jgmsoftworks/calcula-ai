@@ -29,7 +29,7 @@ interface Produto {
 }
 
 interface IngredientesStepProps {
-  receitaId: string;
+  receitaId: string | null;
   ingredientes: Ingrediente[];
   onIngredientesChange: (ingredientes: Ingrediente[]) => void;
 }
@@ -42,77 +42,9 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
 
   useEffect(() => {
     loadProdutos();
-    loadIngredientesSalvos();
-  }, [receitaId]);
-
-  const loadIngredientesSalvos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('receita_ingredientes')
-        .select('*')
-        .eq('receita_id', receitaId);
-
-      if (error) {
-        console.error('Erro ao carregar ingredientes salvos:', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const ingredientesSalvos: Ingrediente[] = data.map(item => ({
-          id: item.id,
-          produto_id: item.produto_id,
-          nome: item.nome,
-          quantidade: Number(item.quantidade),
-          unidade: item.unidade,
-          custo_unitario: Number(item.custo_unitario),
-          custo_total: Number(item.custo_total),
-          marcas: item.marcas || []
-        }));
-        onIngredientesChange(ingredientesSalvos);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar ingredientes salvos:', error);
-    }
-  };
-
-  const salvarIngredientes = async (novosIngredientes: Ingrediente[]) => {
-    try {
-      // Remover ingredientes existentes
-      await supabase
-        .from('receita_ingredientes')
-        .delete()
-        .eq('receita_id', receitaId);
-
-      // Adicionar novos ingredientes
-      if (novosIngredientes.length > 0) {
-        const ingredientesParaSalvar = novosIngredientes.map(ingrediente => ({
-          receita_id: receitaId,
-          produto_id: ingrediente.produto_id,
-          nome: ingrediente.nome,
-          quantidade: ingrediente.quantidade,
-          unidade: ingrediente.unidade,
-          custo_unitario: ingrediente.custo_unitario,
-          custo_total: ingrediente.custo_total,
-          marcas: ingrediente.marcas || []
-        }));
-
-        const { error } = await supabase
-          .from('receita_ingredientes')
-          .insert(ingredientesParaSalvar);
-
-        if (error) {
-          console.error('Erro ao salvar ingredientes:', error);
-          toast({
-            title: "Erro",
-            description: "Não foi possível salvar os ingredientes.",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao salvar ingredientes:', error);
-    }
-  };
+    // Não carregamos ingredientes salvos pois agora trabalhamos apenas em memória
+    // Os ingredientes já vêm via props se estivermos editando uma receita existente
+  }, []);
 
   const loadProdutos = async () => {
     try {
@@ -150,14 +82,12 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
     
     const novosIngredientes = [...ingredientes, novoIngrediente];
     onIngredientesChange(novosIngredientes);
-    salvarIngredientes(novosIngredientes);
     setSearchTerm(''); // Limpa a busca após adicionar
   };
 
   const removerIngrediente = (id: string) => {
     const novosIngredientes = ingredientes.filter(item => item.id !== id);
     onIngredientesChange(novosIngredientes);
-    salvarIngredientes(novosIngredientes);
   };
 
   const atualizarQuantidade = (id: string, quantidade: number) => {
@@ -167,7 +97,6 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
         : item
     );
     onIngredientesChange(updatedIngredientes);
-    salvarIngredientes(updatedIngredientes);
   };
 
   const custoTotalIngredientes = ingredientes.reduce((total, item) => total + item.custo_total, 0);

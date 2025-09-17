@@ -24,7 +24,7 @@ interface MaoObraItem {
 }
 
 interface ProjecaoStepProps {
-  receitaId: string;
+  receitaId: string | null;
   maoObra: MaoObraItem[];
   rendimentoValor: string;
   rendimentoUnidade: string;

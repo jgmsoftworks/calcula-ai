@@ -18,7 +18,7 @@ interface Embalagem {
 }
 
 interface EmbalagensStepProps {
-  receitaId: string;
+  receitaId: string | null;
   embalagens: Embalagem[];
   onEmbalagensChange: (embalagens: Embalagem[]) => void;
 }

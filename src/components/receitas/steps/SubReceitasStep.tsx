@@ -27,7 +27,7 @@ interface ReceitaDisponivel {
 }
 
 interface SubReceitasStepProps {
-  receitaId: string;
+  receitaId: string | null;
   subReceitas: SubReceita[];
   onSubReceitasChange: (subReceitas: SubReceita[]) => void;
 }

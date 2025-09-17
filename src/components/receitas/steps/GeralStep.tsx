@@ -25,7 +25,7 @@ interface ConservacaoItem {
 }
 
 interface GeralStepProps {
-  receitaId: string;
+  receitaId: string | null;
   nomeReceita: string;
   observacoes: string;
   imagemReceita: string;
