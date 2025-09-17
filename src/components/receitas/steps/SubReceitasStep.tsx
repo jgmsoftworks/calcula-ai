@@ -153,64 +153,69 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
         <p className="text-muted-foreground">Selecione as receitas que fazem parte desta receita principal (opcional)</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Lista de Receitas Disponíveis */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Receitas Disponíveis</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Buscar receitas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-80 overflow-y-auto">
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Carregando receitas...</p>
-              </div>
-            ) : receitasFiltradas.length > 0 ? (
-              receitasFiltradas.map((receita) => {
-                const custoUnitario = receita.custo_total / receita.rendimento_valor;
-                return (
-                  <div key={receita.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                    <div>
-                      <p className="font-medium">{receita.nome}</p>
-                      <p className="text-sm text-muted-foreground">
-                        R$ {custoUnitario.toFixed(2)} / {receita.rendimento_unidade}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Rendimento: {receita.rendimento_valor} {receita.rendimento_unidade}
-                      </p>
+      <div className="space-y-6">
+        {/* Buscar Receitas */}
+        <div>
+          <Label htmlFor="search-receitas" className="text-sm font-medium">
+            Buscar Sub-receitas
+          </Label>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              id="search-receitas"
+              placeholder="Digite o nome da receita..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Resultados da Busca */}
+          {searchTerm && (
+            <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-muted-foreground">Carregando receitas...</p>
+                </div>
+              ) : receitasFiltradas.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma receita com markup "sub-receitas" encontrada</p>
+                  <p className="text-sm">Crie receitas e marque-as com o markup "sub-receitas"</p>
+                </div>
+              ) : (
+                receitasFiltradas.map((receita) => {
+                  const custoUnitario = receita.custo_total / receita.rendimento_valor;
+                  return (
+                    <div key={receita.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                      <div>
+                        <p className="font-medium">{receita.nome}</p>
+                        <p className="text-sm text-muted-foreground">
+                          R$ {custoUnitario.toFixed(2)} / {receita.rendimento_unidade}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Rendimento: {receita.rendimento_valor} {receita.rendimento_unidade}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => adicionarSubReceita(receita)}
+                        disabled={subReceitas.some(item => item.receita_id === receita.id)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => adicionarSubReceita(receita)}
-                      disabled={subReceitas.some(item => item.receita_id === receita.id)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Nenhuma receita com markup "Sub-receitas" encontrada</p>
-                <p className="text-sm">Crie receitas e marque-as com o markup "Sub-receitas"</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Sub-receitas Selecionadas */}
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-base">Sub-receitas Adicionadas</CardTitle>
+              <CardTitle className="text-base">Sub-receitas da Receita</CardTitle>
               <Badge variant="secondary">
                 Total: R$ {custoTotalSubReceitas.toFixed(2)}
               </Badge>
@@ -220,8 +225,7 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
             {subReceitas.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>Nenhuma sub-receita adicionada</p>
-                <p className="text-sm">Esta etapa é opcional</p>
-                <p className="text-sm">Selecione receitas da lista ao lado se necessário</p>
+                <p className="text-sm">Busque e selecione receitas acima</p>
               </div>
             ) : (
               <Table>
