@@ -176,8 +176,8 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
                 margem_lucro: 20,
                 gasto_sobre_faturamento: 0,
                 encargos_sobre_venda: 0,
-                markup_ideal: 1.0000,
-                markup_aplicado: 1.0000,
+                markup_ideal: 1.25, // 100 / (100 - 20%) = 1.25 para 20% de margem
+                markup_aplicado: 1.25,
                 preco_sugerido: 0,
                 ativo: true,
                 despesas_fixas_selecionadas: [],

@@ -470,15 +470,23 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const calcularMarkupIdealParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
     const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
     const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-    const markup = 100 / (100 - totalPercentuais);
-    return isFinite(markup) ? markup : 1;
+    
+    // Garantir margem mínima de 20% se não houver lucro desejado configurado
+    const margemFinal = totalPercentuais === 0 ? 20 : totalPercentuais;
+    const markup = 100 / (100 - margemFinal);
+    
+    return isFinite(markup) && markup > 1 ? markup : 1.25; // Mínimo de 25% markup
   };
 
   const calcularMarkupAplicadoParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
     const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
     const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-    const markup = 100 / (100 - totalPercentuais);
-    return isFinite(markup) ? markup : 1;
+    
+    // Garantir margem mínima de 20% se não houver lucro desejado configurado
+    const margemFinal = totalPercentuais === 0 ? 20 : totalPercentuais;
+    const markup = 100 / (100 - margemFinal);
+    
+    return isFinite(markup) && markup > 1 ? markup : 1.25; // Mínimo de 25% markup
   };
 
   const formatCurrency = (value: number) => {
