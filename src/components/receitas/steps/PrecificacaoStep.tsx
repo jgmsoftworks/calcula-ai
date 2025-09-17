@@ -76,6 +76,7 @@ interface ReceitaData {
   rendimentoValor: string;
   rendimentoUnidade: string;
   markupSelecionado: string | null;
+  precoVenda?: number; // Adicionar campo para preço de venda
 }
 
 interface PrecificacaoStepProps {
@@ -136,19 +137,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         setPrecoVenda(precoFormatado);
       }
 
+      // Preparar dados para salvamento
+      const updateData: { markup_id: string; preco_venda?: number } = {
+        markup_id: markupId
+      };
+      
+      // Para sub-receitas, sempre salvar o preço calculado
+      if (markupSelecionadoData?.tipo === 'sub_receita') {
+        updateData.preco_venda = precoCalculado;
+        console.log('💾 Preparando para salvar preço de sub-receita:', precoCalculado);
+      }
+
       // Se estamos editando uma receita existente, salvar no banco
       if (receitaId) {
         console.log('📝 Editando receita existente, ID:', receitaId);
-        const updateData: { markup_id: string; preco_venda?: number } = {
-          markup_id: markupId
-        };
-        
-        // Adicionar preço calculado para sub-receitas
-        if (markupSelecionadoData?.tipo === 'sub_receita' && precoCalculado > 0) {
-          updateData.preco_venda = precoCalculado;
-          console.log('💾 Salvando preço calculado no banco:', precoCalculado);
-        }
-        
         console.log('📦 Dados para atualização:', updateData);
         
         const { data, error } = await supabase
@@ -170,7 +172,17 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         
         console.log('✅ Markup e preço salvos no banco:', data);
       } else {
-        console.log('⚠️ Não é edição (receitaId é null), apenas salvando no estado local');
+        console.log('⚠️ Não é edição (receitaId é null), dados preparados para salvamento futuro');
+      }
+      
+      // Para receitas novas, atualizar o estado compartilhado com o preço calculado
+      if (!receitaId && onReceitaDataChange && markupSelecionadoData?.tipo === 'sub_receita') {
+        onReceitaDataChange(prev => ({
+          ...prev,
+          markupSelecionado: markupId,
+          precoVenda: precoCalculado // Adicionar preço ao estado compartilhado
+        }));
+        console.log('📤 Preço de sub-receita adicionado ao estado compartilhado:', precoCalculado);
       }
 
       // Sempre atualizar o estado local (tanto para criação quanto edição)

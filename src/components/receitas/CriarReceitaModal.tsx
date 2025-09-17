@@ -100,6 +100,7 @@ interface ReceitaData {
   conservacao: ConservacaoItem[];
   // Dados da precificação
   markupSelecionado: string | null;
+  precoVenda?: number; // Adicionar campo para preço de venda
 }
 
 const steps = [
@@ -117,6 +118,29 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
   const { user } = useAuth();
   const { toast } = useToast();
   const [markups, setMarkups] = useState<MarkupData[]>([]);
+  
+  // Carregar markups quando abre o modal (para novas receitas)
+  useEffect(() => {
+    const carregarMarkups = async () => {
+      if (!user?.id || !open || existingReceitaId) return; // Só carrega para novas receitas
+      
+      try {
+        console.log('📊 Carregando markups para nova receita...');
+        const { data: markupsData } = await supabase
+          .from('markups')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('ativo', true);
+        
+        setMarkups(markupsData || []);
+        console.log('✅ Markups carregados:', markupsData?.length || 0);
+      } catch (error) {
+        console.error('Erro ao carregar markups:', error);
+      }
+    };
+    
+    carregarMarkups();
+  }, [user?.id, open, existingReceitaId]);
   
   // Shared state for all recipe data (apenas em memória até finalizar)
   const [receitaData, setReceitaData] = useState<ReceitaData>({
@@ -313,17 +337,28 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             rendimento_unidade: receitaData.rendimentoUnidade,
             status: 'finalizada',
             markup_id: receitaData.markupSelecionado,
-            // Calcular e salvar preço de venda para sub-receitas
-            preco_venda: receitaData.markupSelecionado ? (() => {
-              const markup = markups.find(m => m.id === receitaData.markupSelecionado);
-              if (markup?.tipo === 'sub_receita') {
-                const custoTotal = [...receitaData.ingredientes, ...receitaData.embalagens].reduce((total, item) => total + item.custo_total, 0) +
-                                  receitaData.maoObra.reduce((total, item) => total + item.valorTotal, 0);
-                const custoUnitario = custoTotal / (parseFloat(receitaData.rendimentoValor) || 1);
-                return custoUnitario * markup.markup_ideal;
+            // Usar preço de venda calculado se disponível, senão calcular
+            preco_venda: (() => {
+              // Se já temos um preço calculado para sub-receita, usar ele
+              if (receitaData.precoVenda !== undefined) {
+                console.log('💾 Usando preço de venda do estado:', receitaData.precoVenda);
+                return receitaData.precoVenda;
+              }
+              
+              // Senão, calcular baseado no markup selecionado
+              if (receitaData.markupSelecionado) {
+                const markup = markups.find(m => m.id === receitaData.markupSelecionado);
+                if (markup?.tipo === 'sub_receita') {
+                  const custoTotal = [...receitaData.ingredientes, ...receitaData.embalagens].reduce((total, item) => total + item.custo_total, 0) +
+                                    receitaData.maoObra.reduce((total, item) => total + item.valorTotal, 0);
+                  const custoUnitario = custoTotal / (parseFloat(receitaData.rendimentoValor) || 1);
+                  const precoCalculado = custoUnitario * markup.markup_ideal;
+                  console.log('🧮 Calculando preço na finalização:', precoCalculado);
+                  return precoCalculado;
+                }
               }
               return 0;
-            })() : 0
+            })()
           })
           .eq('id', existingReceitaId);
 
@@ -350,17 +385,28 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             rendimento_unidade: receitaData.rendimentoUnidade,
             status: 'finalizada',
             markup_id: receitaData.markupSelecionado,
-            // Calcular e salvar preço de venda para sub-receitas
-            preco_venda: receitaData.markupSelecionado ? (() => {
-              const markup = markups.find(m => m.id === receitaData.markupSelecionado);
-              if (markup?.tipo === 'sub_receita') {
-                const custoTotal = [...receitaData.ingredientes, ...receitaData.embalagens].reduce((total, item) => total + item.custo_total, 0) +
-                                  receitaData.maoObra.reduce((total, item) => total + item.valorTotal, 0);
-                const custoUnitario = custoTotal / (parseFloat(receitaData.rendimentoValor) || 1);
-                return custoUnitario * markup.markup_ideal;
+            // Usar preço de venda calculado se disponível, senão calcular
+            preco_venda: (() => {
+              // Se já temos um preço calculado para sub-receita, usar ele
+              if (receitaData.precoVenda !== undefined) {
+                console.log('💾 Usando preço de venda do estado (nova receita):', receitaData.precoVenda);
+                return receitaData.precoVenda;
+              }
+              
+              // Senão, calcular baseado no markup selecionado
+              if (receitaData.markupSelecionado) {
+                const markup = markups.find(m => m.id === receitaData.markupSelecionado);
+                if (markup?.tipo === 'sub_receita') {
+                  const custoTotal = [...receitaData.ingredientes, ...receitaData.embalagens].reduce((total, item) => total + item.custo_total, 0) +
+                                    receitaData.maoObra.reduce((total, item) => total + item.valorTotal, 0);
+                  const custoUnitario = custoTotal / (parseFloat(receitaData.rendimentoValor) || 1);
+                  const precoCalculado = custoUnitario * markup.markup_ideal;
+                  console.log('🧮 Calculando preço na finalização (nova receita):', precoCalculado);
+                  return precoCalculado;
+                }
               }
               return 0;
-            })() : 0
+            })()
           })
           .select()
           .single();
