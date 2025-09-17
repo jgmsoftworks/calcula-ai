@@ -56,10 +56,6 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
           nome,
           rendimento_valor,
           rendimento_unidade,
-          receita_ingredientes(custo_total),
-          receita_sub_receitas!receita_sub_receitas_receita_id_fkey(custo_total),
-          receita_embalagens(custo_total),
-          receita_mao_obra(valor_total),
           markups!inner(nome)
         `)
         .eq('user_id', user?.id)
@@ -78,23 +74,33 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
         return;
       }
 
-      // Calcular custo total de cada receita
-      const receitasComCustos: ReceitaDisponivel[] = (receitas || []).map(receita => {
-        const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
-        const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
-        const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
-        const custoMaoObra = receita.receita_mao_obra?.reduce((sum: number, item: any) => sum + (Number(item.valor_total) || 0), 0) || 0;
+      // Calcular custo total de cada receita fazendo queries separadas
+      const receitasComCustos: ReceitaDisponivel[] = [];
+      
+      for (const receita of receitas || []) {
+        // Buscar custos separadamente para evitar ambiguidade de relacionamentos
+        const [ingredientes, subReceitas, embalagens, maoObra] = await Promise.all([
+          supabase.from('receita_ingredientes').select('custo_total').eq('receita_id', receita.id),
+          supabase.from('receita_sub_receitas').select('custo_total').eq('receita_id', receita.id),
+          supabase.from('receita_embalagens').select('custo_total').eq('receita_id', receita.id),
+          supabase.from('receita_mao_obra').select('valor_total').eq('receita_id', receita.id)
+        ]);
+
+        const custoMateriaPrima = ingredientes.data?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoSubReceitas = subReceitas.data?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoEmbalagens = embalagens.data?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
+        const custoMaoObra = maoObra.data?.reduce((sum: number, item: any) => sum + (Number(item.valor_total) || 0), 0) || 0;
         
         const custoTotal = custoMateriaPrima + custoSubReceitas + custoEmbalagens + custoMaoObra;
         
-        return {
+        receitasComCustos.push({
           id: receita.id,
           nome: receita.nome,
           custo_total: custoTotal,
           rendimento_valor: receita.rendimento_valor || 1,
           rendimento_unidade: receita.rendimento_unidade || 'porção'
-        };
-      });
+        });
+      }
 
       setReceitasDisponiveis(receitasComCustos);
     } catch (error) {
