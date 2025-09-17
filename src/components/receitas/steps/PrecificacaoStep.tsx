@@ -430,17 +430,6 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                 <p className="text-xs text-muted-foreground">
                   Baseado no rendimento: {rendimentoValor} {unidadesRendimento.find(u => u.value === rendimentoUnidade)?.label}
                 </p>
-                {rendimentoUnidade === 'grama' && pesoNumerico > 0 && (
-                  <div className="mt-2 pt-2 border-t">
-                    <Label className="text-sm font-medium">Custo por Unidade Real</Label>
-                    <p className="text-lg font-bold text-secondary">
-                      R$ {custoUnitarioReal.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Considerando peso unitário de {pesoNumerico}g
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
           )}
