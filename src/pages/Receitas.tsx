@@ -53,16 +53,12 @@ const Receitas = () => {
     try {
       setLoading(true);
 
-      // Buscar receitas com contagens e informações de custos
+      // Buscar receitas básicas primeiro
       const { data: receitasData, error: receitasError } = await supabase
         .from('receitas')
         .select(`
           *,
-          receita_ingredientes(count, custo_total),
-          receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count, custo_total),
-          receita_embalagens(count, custo_total),
-          receita_mao_obra(custo_por_hora, tempo, valor_total),
-          markups!inner(nome)
+          markups(nome)
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
@@ -72,8 +68,55 @@ const Receitas = () => {
         return;
       }
 
+      if (!receitasData || receitasData.length === 0) {
+        setReceitas([]);
+        return;
+      }
+
+      // Buscar dados relacionados separadamente para cada receita
+      const receitasComDados = await Promise.all(
+        receitasData.map(async (receita) => {
+          // Buscar ingredientes
+          const { data: ingredientes } = await supabase
+            .from('receita_ingredientes')
+            .select('custo_total')
+            .eq('receita_id', receita.id);
+
+          // Buscar sub-receitas  
+          const { data: subReceitas } = await supabase
+            .from('receita_sub_receitas')
+            .select('custo_total')
+            .eq('receita_id', receita.id);
+
+          // Buscar embalagens
+          const { data: embalagens } = await supabase
+            .from('receita_embalagens')
+            .select('custo_total')
+            .eq('receita_id', receita.id);
+
+          // Buscar mão de obra
+          const { data: maoObra } = await supabase
+            .from('receita_mao_obra')
+            .select('valor_total')
+            .eq('receita_id', receita.id);
+
+          return {
+            ...receita,
+            receita_ingredientes: ingredientes || [],
+            receita_sub_receitas: subReceitas || [],
+            receita_embalagens: embalagens || [],
+            receita_mao_obra: maoObra || []
+          };
+        })
+      );
+
+      if (receitasError) {
+        console.error('Erro ao carregar receitas:', receitasError);
+        return;
+      }
+
       // Transformar os dados para incluir as contagens e custos
-      const receitasComContagens: Receita[] = (receitasData || []).map((receita, index) => {
+      const receitasComContagens: Receita[] = receitasComDados.map((receita, index) => {
         const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
         const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
         const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
@@ -86,9 +129,9 @@ const Receitas = () => {
         
         return {
           ...receita,
-          ingredientes_count: receita.receita_ingredientes?.[0]?.count || 0,
-          sub_receitas_count: receita.receita_sub_receitas?.[0]?.count || 0,
-          embalagens_count: receita.receita_embalagens?.[0]?.count || 0,
+          ingredientes_count: receita.receita_ingredientes?.length || 0,
+          sub_receitas_count: receita.receita_sub_receitas?.length || 0,
+          embalagens_count: receita.receita_embalagens?.length || 0,
           markup_nome: receita.markups?.nome || 'Nenhum markup',
           custo_materia_prima: custoMateriaPrima + custoSubReceitas,
           custo_mao_obra: custoMaoObra,
