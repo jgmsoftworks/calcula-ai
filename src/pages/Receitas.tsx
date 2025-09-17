@@ -127,16 +127,17 @@ const Receitas = () => {
         // Verificar se é uma sub-receita
         const isSubReceita = receita.markups?.tipo === 'sub_receita';
         
-        let precoVenda, margemContribuicao, lucroLiquido;
+        // Sempre usar o preço de venda salvo no banco, ou valor padrão se não existir
+        const precoVenda = receita.preco_venda || (custoTotal > 0 ? custoTotal * 2 : 0);
+        
+        let margemContribuicao, lucroLiquido;
         
         if (isSubReceita) {
-          // Para sub-receitas: preço = custo (sem lucro)
-          precoVenda = custoTotal;
+          // Para sub-receitas: não mostrar lucro nem margem
           margemContribuicao = 0;
           lucroLiquido = 0;
         } else {
-          // Para receitas normais: usar preço salvo ou valor padrão
-          precoVenda = receita.preco_venda || (custoTotal > 0 ? custoTotal * 2 : 0);
+          // Para receitas normais: calcular margem e lucro
           margemContribuicao = precoVenda - custoTotal;
           lucroLiquido = margemContribuicao > 0 ? margemContribuicao * 0.8 : 0;
         }
