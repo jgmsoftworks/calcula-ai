@@ -75,14 +75,16 @@ interface ReceitaData {
   maoObra: MaoObraItem[];
   rendimentoValor: string;
   rendimentoUnidade: string;
+  markupSelecionado: string | null;
 }
 
 interface PrecificacaoStepProps {
   receitaData: ReceitaData;
   receitaId?: string | null;
+  onReceitaDataChange?: (data: ReceitaData | ((prev: ReceitaData) => ReceitaData)) => void;
 }
 
-export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepProps) {
+export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }: PrecificacaoStepProps) {
   const [precoVenda, setPrecoVenda] = useState('');
   const [pesoUnitario, setPesoUnitario] = useState('');
   const [markups, setMarkups] = useState<MarkupData[]>([]);
@@ -92,28 +94,47 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Inicializar estado com markup da receita se estiver editando
+  useEffect(() => {
+    if (receitaData.markupSelecionado && receitaData.markupSelecionado !== markupSelecionado) {
+      setMarkupSelecionado(receitaData.markupSelecionado);
+    }
+  }, [receitaData.markupSelecionado]);
+
   // Função para salvar markup selecionado
   const salvarMarkupSelecionado = async (markupId: string) => {
-    if (!receitaId || !user?.id) return;
+    if (!user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('receitas')
-        .update({ markup_id: markupId })
-        .eq('id', receitaId)
-        .eq('user_id', user.id);
+      // Se estamos editando uma receita existente, salvar no banco
+      if (receitaId) {
+        const { error } = await supabase
+          .from('receitas')
+          .update({ markup_id: markupId })
+          .eq('id', receitaId)
+          .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Erro ao salvar markup:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível salvar o markup selecionado",
-          variant: "destructive",
-        });
-        return;
+        if (error) {
+          console.error('Erro ao salvar markup:', error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível salvar o markup selecionado",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
+      // Sempre atualizar o estado local (tanto para criação quanto edição)
       setMarkupSelecionado(markupId);
+      
+      // Se houver callback, atualizar o estado compartilhado também
+      if (onReceitaDataChange) {
+        onReceitaDataChange(prev => ({
+          ...prev,
+          markupSelecionado: markupId
+        }));
+      }
       
       // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
       const markupSelecionadoData = markups.find(m => m.id === markupId);

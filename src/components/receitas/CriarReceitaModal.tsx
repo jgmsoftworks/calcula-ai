@@ -91,6 +91,8 @@ interface ReceitaData {
   imagemReceita: string;
   passosPreparo: PassoPreparo[];
   conservacao: ConservacaoItem[];
+  // Dados da precificação
+  markupSelecionado: string | null;
 }
 
 const steps = [
@@ -126,6 +128,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
       { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
       { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
     ],
+    // Dados da precificação
+    markupSelecionado: null,
   });
 
   // Carregar receita existente para edição
@@ -231,6 +235,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
           { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
         ],
+        // Dados da precificação
+        markupSelecionado: receita.markup_id || null,
       });
 
     } catch (error) {
@@ -483,6 +489,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
         { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
       ],
+      // Dados da precificação
+      markupSelecionado: null,
     });
     onOpenChange(false);
   };
@@ -540,9 +548,10 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         );
       case 5:
         return (
-          <PrecificacaoStep
+          <PrecificacaoStep 
             receitaId={receitaId}
             receitaData={receitaData}
+            onReceitaDataChange={setReceitaData}
           />
         );
       default:
