@@ -60,7 +60,7 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
           markups!inner(nome)
         `)
         .eq('user_id', user?.id)
-        .eq('markups.nome', 'Sub-receitas')
+        .eq('markups.nome', 'sub-receitas')
         .eq('status', 'finalizada');
         
       // Não incluir a própria receita se estiver editando
