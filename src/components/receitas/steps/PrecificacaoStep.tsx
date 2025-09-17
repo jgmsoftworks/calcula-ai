@@ -105,6 +105,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const salvarMarkupSelecionado = async (markupId: string) => {
     if (!user?.id) return;
 
+    console.log('🎯 Selecionando markup:', markupId);
+    
     try {
       // Se estamos editando uma receita existente, salvar no banco
       if (receitaId) {
@@ -138,9 +140,17 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       
       // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
       const markupSelecionadoData = markups.find(m => m.id === markupId);
+      console.log('📊 Dados do markup selecionado:', markupSelecionadoData);
+      
       if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
+        console.log('🧮 Calculando preço para sub-receita...');
+        console.log('💰 Custo unitário:', custoUnitario);
+        console.log('📈 Markup ideal:', markupSelecionadoData.markup_ideal);
+        
         // Usar apenas o custo unitário baseado no rendimento (não considerar peso unitário)
         const precoSugerido = custoUnitario * markupSelecionadoData.markup_ideal;
+        
+        console.log('💲 Preço sugerido calculado:', precoSugerido);
         
         // Formatar corretamente com 2 casas decimais
         const precoFormatado = new Intl.NumberFormat('pt-BR', {
@@ -149,6 +159,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         }).format(precoSugerido);
+        
+        console.log('🎨 Preço formatado:', precoFormatado);
         setPrecoVenda(precoFormatado);
       }
       
