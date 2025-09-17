@@ -49,7 +49,7 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
       setLoading(true);
       
       // Buscar receitas que têm markup "Sub-receitas"
-      const { data: receitas, error } = await supabase
+      let query = supabase
         .from('receitas')
         .select(`
           id,
@@ -64,8 +64,14 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
         `)
         .eq('user_id', user?.id)
         .eq('markups.nome', 'Sub-receitas')
-        .eq('status', 'finalizada')
-        .neq('id', receitaId); // Não incluir a própria receita
+        .eq('status', 'finalizada');
+        
+      // Não incluir a própria receita se estiver editando
+      if (receitaId) {
+        query = query.neq('id', receitaId);
+      }
+      
+      const { data: receitas, error } = await query;
 
       if (error) {
         console.error('Erro ao carregar receitas com markup Sub-receitas:', error);

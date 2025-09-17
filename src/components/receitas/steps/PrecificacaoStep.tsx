@@ -170,7 +170,7 @@ export function PrecificacaoStep({ receitaData, receitaId }: PrecificacaoStepPro
               .from('markups')
               .insert({
                 user_id: user.id,
-                nome: 'sub-receitas',
+                nome: 'Sub-receitas',
                 tipo: 'sub_receita',
                 periodo: 'todos',
                 margem_lucro: 20,
