@@ -105,11 +105,10 @@ const steps = [
 export function CriarReceitaModal({ open, onOpenChange, receitaId: existingReceitaId }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [receitaId, setReceitaId] = useState<string | null>(null);
-  const [receitaCriada, setReceitaCriada] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Shared state for all recipe data
+  // Shared state for all recipe data (apenas em memória até finalizar)
   const [receitaData, setReceitaData] = useState<ReceitaData>({
     ingredientes: [],
     subReceitas: [],
@@ -128,40 +127,6 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
       { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
     ],
   });
-
-  // Criar receita inicial ao abrir modal
-  const criarReceitaInicial = useCallback(async () => {
-    if (!user?.id || receitaId) return;
-
-    console.log('🆕 Criando receita inicial...', { userId: user.id, receitaIdExistente: receitaId });
-
-    try {
-      const { data, error } = await supabase
-        .from('receitas')
-        .insert({
-          user_id: user.id,
-          nome: 'Nova Receita',
-          status: 'rascunho'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao criar receita:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível criar a receita.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('✅ Receita criada:', data);
-      setReceitaId(data.id);
-    } catch (error) {
-      console.error('Erro ao criar receita:', error);
-    }
-  }, [user?.id, receitaId, toast]);
 
   // Carregar receita existente para edição
   const carregarReceitaExistente = useCallback(async () => {
@@ -203,60 +168,78 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         return;
       }
 
-      console.log('✅ Receita carregada:', receita);
-      setReceitaId(receita.id);
+      console.log('✅ Receita carregada para edição:', receita);
       
-      // Carregar dados da receita no estado
-      setReceitaData(prev => ({
-        ...prev,
-        nomeReceita: receita.nome || '',
-        observacoes: receita.observacoes || '',
+      // Atualizar receitaId para modo edição
+      setReceitaId(existingReceitaId);
+      
+      // Carregar dados da receita no state
+      setReceitaData({
+        ingredientes: receita.receita_ingredientes?.map((ing: any) => ({
+          id: ing.id,
+          produto_id: ing.produto_id,
+          nome: ing.nome,
+          quantidade: ing.quantidade,
+          unidade: ing.unidade,
+          custo_unitario: ing.custo_unitario,
+          custo_total: ing.custo_total,
+          marcas: ing.marcas || []
+        })) || [],
+        subReceitas: receita.receita_sub_receitas?.map((sub: any) => ({
+          id: sub.id,
+          receita_id: sub.sub_receita_id,
+          nome: sub.nome,
+          quantidade: sub.quantidade,
+          unidade: sub.unidade,
+          custo_unitario: sub.custo_unitario,
+          custo_total: sub.custo_total
+        })) || [],
+        embalagens: receita.receita_embalagens?.map((emb: any) => ({
+          id: emb.id,
+          produto_id: emb.produto_id,
+          nome: emb.nome,
+          quantidade: emb.quantidade,
+          unidade: emb.unidade,
+          custo_unitario: emb.custo_unitario,
+          custo_total: emb.custo_total
+        })) || [],
+        maoObra: receita.receita_mao_obra?.map((mao: any) => ({
+          id: mao.id,
+          funcionario: {
+            id: mao.funcionario_id,
+            nome: mao.funcionario_nome,
+            cargo: mao.funcionario_cargo,
+            custo_por_hora: mao.custo_por_hora
+          },
+          tempo: mao.tempo,
+          valorTotal: mao.valor_total,
+          unidadeTempo: mao.unidade_tempo
+        })) || [],
         rendimentoValor: receita.rendimento_valor?.toString() || '',
         rendimentoUnidade: receita.rendimento_unidade || 'unidade',
-        ingredientes: receita.receita_ingredientes || [],
-        subReceitas: receita.receita_sub_receitas || [],
-        embalagens: receita.receita_embalagens || [],
-        maoObra: (receita.receita_mao_obra || []).map((mo: any) => ({
-          id: mo.id,
-          funcionario: {
-            id: mo.funcionario_id,
-            nome: mo.funcionario_nome,
-            cargo: mo.funcionario_cargo,
-            custo_por_hora: mo.custo_por_hora
-          },
-          tempo: mo.tempo,
-          valorTotal: mo.valor_total,
-          unidadeTempo: mo.unidade_tempo
-        }))
-      }));
+        nomeReceita: receita.nome || '',
+        observacoes: receita.observacoes || '',
+        imagemReceita: '',
+        passosPreparo: [{ id: '1', ordem: 1, descricao: '' }], // TODO: carregar do banco quando implementado
+        conservacao: [
+          { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
+          { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
+          { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
+        ],
+      });
 
     } catch (error) {
       console.error('Erro ao carregar receita:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível editar a receita.",
-        variant: "destructive",
-      });
     }
   }, [existingReceitaId, user?.id, toast]);
 
-  // Efeito para criar receita quando modal abrir (apenas uma vez) ou carregar existente
+  // Efeito para carregar receita existente quando modal abrir em modo edição
   useEffect(() => {
-    if (open && user?.id) {
-      if (existingReceitaId) {
-        // Modo edição - carregar receita existente
-        console.log('📂 Modal aberto em modo edição...');
-        carregarReceitaExistente();
-      } else if (!receitaId && !receitaCriada) {
-        // Modo criação - criar nova receita
-        console.log('📂 Modal aberto, criando receita inicial...');
-        setReceitaCriada(true);
-        criarReceitaInicial();
-      }
-    } else if (!open) {
-      setReceitaCriada(false);
+    if (open && existingReceitaId && user?.id) {
+      console.log('📂 Modal aberto em modo edição...');
+      carregarReceitaExistente();
     }
-  }, [open, existingReceitaId, receitaId, user?.id, receitaCriada, criarReceitaInicial, carregarReceitaExistente]);
+  }, [open, existingReceitaId, user?.id, carregarReceitaExistente]);
 
   const updateReceitaData = (updates: Partial<ReceitaData>) => {
     setReceitaData(prev => ({ ...prev, ...updates }));
@@ -274,22 +257,193 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     }
   };
 
+  // Função para criar e salvar a receita completa no banco
   const finalizarReceita = async () => {
-    if (!receitaId) return;
+    if (!user?.id) return;
+
+    // Validação básica
+    if (!receitaData.nomeReceita.trim()) {
+      toast({
+        title: "Erro",
+        description: "Por favor, informe o nome da receita.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      await supabase
-        .from('receitas')
-        .update({ 
-          status: 'finalizada',
-          rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
-          rendimento_unidade: receitaData.rendimentoUnidade
-        })
-        .eq('id', receitaId);
+      let receitaFinalId = receitaId;
+
+      // Se estamos editando, atualizar receita existente
+      if (existingReceitaId) {
+        const { error: updateError } = await supabase
+          .from('receitas')
+          .update({
+            nome: receitaData.nomeReceita,
+            observacoes: receitaData.observacoes,
+            rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
+            rendimento_unidade: receitaData.rendimentoUnidade,
+            status: 'finalizada'
+          })
+          .eq('id', existingReceitaId);
+
+        if (updateError) {
+          console.error('Erro ao atualizar receita:', updateError);
+          toast({
+            title: "Erro",
+            description: "Não foi possível atualizar a receita.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        receitaFinalId = existingReceitaId;
+      } else {
+        // Criar nova receita
+        const { data: novaReceita, error: createError } = await supabase
+          .from('receitas')
+          .insert({
+            user_id: user.id,
+            nome: receitaData.nomeReceita,
+            observacoes: receitaData.observacoes,
+            rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
+            rendimento_unidade: receitaData.rendimentoUnidade,
+            status: 'finalizada'
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Erro ao criar receita:', createError);
+          toast({
+            title: "Erro",
+            description: "Não foi possível criar a receita.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        receitaFinalId = novaReceita.id;
+      }
+
+      // Salvar ingredientes
+      if (receitaData.ingredientes.length > 0) {
+        if (existingReceitaId) {
+          // Deletar ingredientes existentes
+          await supabase
+            .from('receita_ingredientes')
+            .delete()
+            .eq('receita_id', existingReceitaId);
+        }
+
+        const { error: ingredientesError } = await supabase
+          .from('receita_ingredientes')
+          .insert(
+            receitaData.ingredientes.map(ing => ({
+              receita_id: receitaFinalId,
+              produto_id: ing.produto_id,
+              nome: ing.nome,
+              quantidade: ing.quantidade,
+              unidade: ing.unidade,
+              custo_unitario: ing.custo_unitario,
+              custo_total: ing.custo_total,
+              marcas: ing.marcas
+            }))
+          );
+
+        if (ingredientesError) {
+          console.error('Erro ao salvar ingredientes:', ingredientesError);
+        }
+      }
+
+      // Salvar sub-receitas
+      if (receitaData.subReceitas.length > 0) {
+        if (existingReceitaId) {
+          await supabase
+            .from('receita_sub_receitas')
+            .delete()
+            .eq('receita_id', existingReceitaId);
+        }
+
+        const { error: subReceitasError } = await supabase
+          .from('receita_sub_receitas')
+          .insert(
+            receitaData.subReceitas.map(sub => ({
+              receita_id: receitaFinalId,
+              sub_receita_id: sub.receita_id,
+              nome: sub.nome,
+              quantidade: sub.quantidade,
+              unidade: sub.unidade,
+              custo_unitario: sub.custo_unitario,
+              custo_total: sub.custo_total
+            }))
+          );
+
+        if (subReceitasError) {
+          console.error('Erro ao salvar sub-receitas:', subReceitasError);
+        }
+      }
+
+      // Salvar embalagens
+      if (receitaData.embalagens.length > 0) {
+        if (existingReceitaId) {
+          await supabase
+            .from('receita_embalagens')
+            .delete()
+            .eq('receita_id', existingReceitaId);
+        }
+
+        const { error: embalagensError } = await supabase
+          .from('receita_embalagens')
+          .insert(
+            receitaData.embalagens.map(emb => ({
+              receita_id: receitaFinalId,
+              produto_id: emb.produto_id,
+              nome: emb.nome,
+              quantidade: emb.quantidade,
+              unidade: emb.unidade,
+              custo_unitario: emb.custo_unitario,
+              custo_total: emb.custo_total
+            }))
+          );
+
+        if (embalagensError) {
+          console.error('Erro ao salvar embalagens:', embalagensError);
+        }
+      }
+
+      // Salvar mão de obra
+      if (receitaData.maoObra.length > 0) {
+        if (existingReceitaId) {
+          await supabase
+            .from('receita_mao_obra')
+            .delete()
+            .eq('receita_id', existingReceitaId);
+        }
+
+        const { error: maoObraError } = await supabase
+          .from('receita_mao_obra')
+          .insert(
+            receitaData.maoObra.map(mao => ({
+              receita_id: receitaFinalId,
+              funcionario_id: mao.funcionario.id,
+              funcionario_nome: mao.funcionario.nome,
+              funcionario_cargo: mao.funcionario.cargo,
+              custo_por_hora: mao.funcionario.custo_por_hora,
+              tempo: mao.tempo,
+              valor_total: mao.valorTotal,
+              unidade_tempo: mao.unidadeTempo
+            }))
+          );
+
+        if (maoObraError) {
+          console.error('Erro ao salvar mão de obra:', maoObraError);
+        }
+      }
 
       toast({
         title: "Sucesso",
-        description: "Receita finalizada com sucesso!",
+        description: existingReceitaId ? "Receita atualizada com sucesso!" : "Receita criada com sucesso!",
       });
       
       handleClose();
@@ -303,22 +457,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     }
   };
 
-  const handleClose = async () => {
-    // Se há uma receita rascunho criada (não editada), deletá-la ao cancelar
-    if (receitaId && !existingReceitaId) {
-      try {
-        await supabase
-          .from('receitas')
-          .delete()
-          .eq('id', receitaId)
-          .eq('status', 'rascunho');
-        
-        console.log('🗑️ Receita rascunho deletada ao cancelar:', receitaId);
-      } catch (error) {
-        console.error('Erro ao deletar receita rascunho:', error);
-      }
-    }
-
+  const handleClose = () => {
+    // Apenas resetar o estado - não há nada para deletar do banco
     setCurrentStep(0);
     setReceitaId(null);
     setReceitaData({
@@ -343,18 +483,10 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
   };
 
   const renderCurrentStep = () => {
-    if (!receitaId) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Criando receita...</p>
-        </div>
-      );
-    }
-
     switch (currentStep) {
       case 0:
         return (
-          <IngredientesStep 
+          <IngredientesStep
             receitaId={receitaId}
             ingredientes={receitaData.ingredientes}
             onIngredientesChange={(ingredientes) => updateReceitaData({ ingredientes })}
@@ -362,7 +494,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         );
       case 1:
         return (
-          <SubReceitasStep 
+          <SubReceitasStep
             receitaId={receitaId}
             subReceitas={receitaData.subReceitas}
             onSubReceitasChange={(subReceitas) => updateReceitaData({ subReceitas })}
@@ -370,7 +502,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         );
       case 2:
         return (
-          <EmbalagensStep 
+          <EmbalagensStep
             receitaId={receitaId}
             embalagens={receitaData.embalagens}
             onEmbalagensChange={(embalagens) => updateReceitaData({ embalagens })}
@@ -378,20 +510,20 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         );
       case 3:
         return (
-          <GeralStep 
-            receitaId={receitaId}
+          <GeralStep
+            receitaId={receitaId || ''}
             nomeReceita={receitaData.nomeReceita}
             observacoes={receitaData.observacoes}
             imagemReceita={receitaData.imagemReceita}
             passosPreparo={receitaData.passosPreparo}
             conservacao={receitaData.conservacao}
-            onGeralChange={(geralData) => updateReceitaData(geralData)}
+            onGeralChange={(data) => updateReceitaData(data)}
           />
         );
       case 4:
         return (
-          <ProjecaoStep 
-            receitaId={receitaId}
+          <ProjecaoStep
+            receitaId={receitaId || ''}
             maoObra={receitaData.maoObra}
             rendimentoValor={receitaData.rendimentoValor}
             rendimentoUnidade={receitaData.rendimentoUnidade}
@@ -402,7 +534,12 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           />
         );
       case 5:
-        return <PrecificacaoStep receitaData={receitaData} receitaId={receitaId} />;
+        return (
+          <PrecificacaoStep
+            receitaId={receitaId}
+            receitaData={receitaData}
+          />
+        );
       default:
         return null;
     }
@@ -410,13 +547,10 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden w-[95vw]">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>{existingReceitaId ? 'Editar' : 'Nova'} Receita - {steps[currentStep].title}</span>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {currentStep + 1} de {steps.length}
-            </div>
+          <DialogTitle>
+            {existingReceitaId ? 'Editar Receita' : 'Criar Nova Receita'}
           </DialogTitle>
         </DialogHeader>
 
@@ -472,7 +606,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             </Button>
             {currentStep === steps.length - 1 ? (
               <Button onClick={finalizarReceita} className="gap-2">
-                Finalizar Receita
+                {existingReceitaId ? 'Atualizar Receita' : 'Finalizar Receita'}
               </Button>
             ) : (
               <Button onClick={handleNext} className="gap-2">
