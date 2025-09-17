@@ -102,13 +102,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     }
   }, [receitaData.markupSelecionado]);
 
-  // Função para salvar markup selecionado
   const salvarMarkupSelecionado = async (markupId: string) => {
     if (!user?.id) return;
 
     console.log('🎯 Selecionando markup:', markupId);
     console.log('📊 Estado atual - custoUnitario:', custoUnitario);
     console.log('📊 Estado atual - markups:', markups);
+    console.log('📊 Estado atual - receitaId:', receitaId);
     
     try {
       const markupSelecionadoData = markups.find(m => m.id === markupId);
@@ -124,6 +124,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         
         precoCalculado = custoUnitario * markupSelecionadoData.markup_ideal;
         console.log('💲 Preço calculado:', precoCalculado);
+        console.log('✅ Preço > 0?', precoCalculado > 0);
         
         // Formatar e definir o preço de venda
         const precoFormatado = new Intl.NumberFormat('pt-BR', {
@@ -146,6 +147,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       if (markupSelecionadoData?.tipo === 'sub_receita') {
         updateData.preco_venda = precoCalculado;
         console.log('💾 Preparando para salvar preço de sub-receita:', precoCalculado);
+        console.log('🔍 Condições para salvar - receitaId existe?', !!receitaId, 'precoCalculado > 0?', precoCalculado > 0);
       }
 
       // Se estamos editando uma receita existente, salvar no banco
