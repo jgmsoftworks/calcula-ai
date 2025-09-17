@@ -12,6 +12,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+interface MarkupData {
+  id: string;
+  nome: string;
+  tipo: string;
+  markup_ideal: number;
+}
+
 interface CriarReceitaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -109,6 +116,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
   const [receitaId, setReceitaId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [markups, setMarkups] = useState<MarkupData[]>([]);
   
   // Shared state for all recipe data (apenas em memória até finalizar)
   const [receitaData, setReceitaData] = useState<ReceitaData>({
@@ -138,6 +146,15 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
 
     try {
       console.log('📖 Carregando receita para edição:', existingReceitaId);
+      
+      // Buscar markups disponíveis para uso no cálculo
+      const { data: markupsData } = await supabase
+        .from('markups')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('ativo', true);
+      
+      setMarkups(markupsData || []);
       
       const { data: receita, error } = await supabase
         .from('receitas')
@@ -294,7 +311,19 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             observacoes: receitaData.observacoes,
             rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
             rendimento_unidade: receitaData.rendimentoUnidade,
-            status: 'finalizada'
+            status: 'finalizada',
+            markup_id: receitaData.markupSelecionado,
+            // Calcular e salvar preço de venda para sub-receitas
+            preco_venda: receitaData.markupSelecionado ? (() => {
+              const markup = markups.find(m => m.id === receitaData.markupSelecionado);
+              if (markup?.tipo === 'sub_receita') {
+                const custoTotal = [...receitaData.ingredientes, ...receitaData.embalagens].reduce((total, item) => total + item.custo_total, 0) +
+                                  receitaData.maoObra.reduce((total, item) => total + item.valorTotal, 0);
+                const custoUnitario = custoTotal / (parseFloat(receitaData.rendimentoValor) || 1);
+                return custoUnitario * markup.markup_ideal;
+              }
+              return 0;
+            })() : 0
           })
           .eq('id', existingReceitaId);
 
@@ -319,7 +348,19 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             observacoes: receitaData.observacoes,
             rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
             rendimento_unidade: receitaData.rendimentoUnidade,
-            status: 'finalizada'
+            status: 'finalizada',
+            markup_id: receitaData.markupSelecionado,
+            // Calcular e salvar preço de venda para sub-receitas
+            preco_venda: receitaData.markupSelecionado ? (() => {
+              const markup = markups.find(m => m.id === receitaData.markupSelecionado);
+              if (markup?.tipo === 'sub_receita') {
+                const custoTotal = [...receitaData.ingredientes, ...receitaData.embalagens].reduce((total, item) => total + item.custo_total, 0) +
+                                  receitaData.maoObra.reduce((total, item) => total + item.valorTotal, 0);
+                const custoUnitario = custoTotal / (parseFloat(receitaData.rendimentoValor) || 1);
+                return custoUnitario * markup.markup_ideal;
+              }
+              return 0;
+            })() : 0
           })
           .select()
           .single();

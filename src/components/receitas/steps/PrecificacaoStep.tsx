@@ -108,11 +108,46 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     console.log('🎯 Selecionando markup:', markupId);
     
     try {
+      const markupSelecionadoData = markups.find(m => m.id === markupId);
+      console.log('📊 Dados do markup selecionado:', markupSelecionadoData);
+      
+      let precoCalculado = 0;
+      
+      // Calcular preço para markup de sub-receitas
+      if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
+        console.log('🧮 Calculando preço para sub-receita...');
+        console.log('💰 Custo unitário:', custoUnitario);
+        console.log('📈 Markup ideal:', markupSelecionadoData.markup_ideal);
+        
+        precoCalculado = custoUnitario * markupSelecionadoData.markup_ideal;
+        console.log('💲 Preço calculado:', precoCalculado);
+        
+        // Formatar e definir o preço de venda
+        const precoFormatado = new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(precoCalculado);
+        
+        console.log('🎨 Preço formatado:', precoFormatado);
+        setPrecoVenda(precoFormatado);
+      }
+
       // Se estamos editando uma receita existente, salvar no banco
       if (receitaId) {
+        const updateData: { markup_id: string; preco_venda?: number } = {
+          markup_id: markupId
+        };
+        
+        // Adicionar preço calculado para sub-receitas
+        if (markupSelecionadoData?.tipo === 'sub_receita') {
+          updateData.preco_venda = precoCalculado;
+        }
+        
         const { error } = await supabase
           .from('receitas')
-          .update({ markup_id: markupId })
+          .update(updateData)
           .eq('id', receitaId)
           .eq('user_id', user.id);
 
@@ -125,6 +160,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           });
           return;
         }
+        
+        console.log('✅ Markup e preço salvos no banco');
       }
 
       // Sempre atualizar o estado local (tanto para criação quanto edição)
@@ -136,32 +173,6 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           ...prev,
           markupSelecionado: markupId
         }));
-      }
-      
-      // Apenas para markup de sub-receitas, preencher preço de venda automaticamente
-      const markupSelecionadoData = markups.find(m => m.id === markupId);
-      console.log('📊 Dados do markup selecionado:', markupSelecionadoData);
-      
-      if (markupSelecionadoData && markupSelecionadoData.tipo === 'sub_receita') {
-        console.log('🧮 Calculando preço para sub-receita...');
-        console.log('💰 Custo unitário:', custoUnitario);
-        console.log('📈 Markup ideal:', markupSelecionadoData.markup_ideal);
-        
-        // Usar apenas o custo unitário baseado no rendimento (não considerar peso unitário)
-        const precoSugerido = custoUnitario * markupSelecionadoData.markup_ideal;
-        
-        console.log('💲 Preço sugerido calculado:', precoSugerido);
-        
-        // Formatar corretamente com 2 casas decimais
-        const precoFormatado = new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(precoSugerido);
-        
-        console.log('🎨 Preço formatado:', precoFormatado);
-        setPrecoVenda(precoFormatado);
       }
       
       toast({
@@ -300,7 +311,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     setMarkupsLoaded(false);
   }, [receitaId, receitaData.subReceitas?.length]);
 
-  // Buscar markup selecionado da receita
+  // Buscar markup e preço selecionado da receita
   useEffect(() => {
     const fetchReceitaMarkup = async () => {
       if (!receitaId || !user?.id) return;
@@ -308,7 +319,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       try {
         const { data, error } = await supabase
           .from('receitas')
-          .select('markup_id')
+          .select('markup_id, preco_venda')
           .eq('id', receitaId)
           .eq('user_id', user.id)
           .single();
@@ -320,6 +331,16 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
         if (data?.markup_id) {
           setMarkupSelecionado(data.markup_id);
+        }
+        
+        if (data?.preco_venda && data.preco_venda > 0) {
+          const precoFormatado = new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(data.preco_venda);
+          setPrecoVenda(precoFormatado);
         }
       } catch (error) {
         console.error('Erro ao buscar markup da receita:', error);
