@@ -198,11 +198,11 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                 nome: 'Sub-receitas',
                 tipo: 'sub_receita',
                 periodo: 'todos',
-                margem_lucro: 20,
+                margem_lucro: 0,
                 gasto_sobre_faturamento: 0,
                 encargos_sobre_venda: 0,
-                markup_ideal: 1.25, // 100 / (100 - 20%) = 1.25 para 20% de margem
-                markup_aplicado: 1.25,
+                markup_ideal: 1.0000, // Sem lucro para sub-receitas
+                markup_aplicado: 1.0000,
                 preco_sugerido: 0,
                 ativo: true,
                 despesas_fixas_selecionadas: [],
@@ -219,6 +219,25 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             }
           } else {
             console.log('✅ Markup de sub-receitas já existe:', existingSubMarkup.nome);
+            
+            // Verificar e corrigir markup se estiver incorreto
+            if (existingSubMarkup.markup_ideal !== 1.0000 || existingSubMarkup.margem_lucro !== 0) {
+              console.log('🔧 Corrigindo markup de sub-receitas...');
+              const { error: updateError } = await supabase
+                .from('markups')
+                .update({
+                  margem_lucro: 0,
+                  markup_ideal: 1.0000,
+                  markup_aplicado: 1.0000
+                })
+                .eq('id', existingSubMarkup.id);
+                
+              if (updateError) {
+                console.error('❌ Erro ao corrigir markup de sub-receitas:', updateError);
+              } else {
+                console.log('✅ Markup de sub-receitas corrigido');
+              }
+            }
           }
         }
         
