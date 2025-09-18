@@ -517,7 +517,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           taxas: calculated.taxasMeiosPagamento,
           comissoes: calculated.comissoesPlataformas,
           outros: calculated.outros,
-          valorEmReal: calculated.valorEmReal
+          valorEmReal: calculated.valorEmReal,
+          // ✅ CORREÇÃO: Incluir lucroDesejado e markupIdeal na configuração individual
+          lucroDesejado: bloco.lucroDesejado,
+          markupIdeal: markupIdealCorreto
         };
 
         const tooltipConfigKey = `markup_${bloco.nome.toLowerCase().replace(/\s+/g, '_')}`;

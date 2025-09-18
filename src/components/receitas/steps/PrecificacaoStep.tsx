@@ -124,28 +124,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     }
 
     try {
-      // Buscar dados corretos da user_configurations onde estão os valores detalhados atualizados
-      const { data: configData, error } = await supabase
+      // 1. Primeiro, buscar dados da user_configurations
+      const { data: configData, error: configError } = await supabase
         .from('user_configurations')
         .select('configuration')
         .eq('user_id', user.id)
         .eq('type', `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`)
         .maybeSingle();
 
-      if (error) {
-        console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar configuração:`, error);
+      if (configError) {
+        console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar configuração:`, configError);
         return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
       }
 
-      if (!configData?.configuration) {
-        console.log(`⚠️ [TOOLTIP DEBUG] Nenhuma configuração encontrada para ${markup.nome}`);
-        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
-      }
-
-      const config = configData.configuration as any;
-      console.log(`📊 [TOOLTIP DEBUG] Configuração encontrada para ${markup.nome}:`, config);
-
-      // Buscar dados de faturamento para calcular média
+      // 2. Buscar dados de faturamento para calcular média
       const faturamentosConfigResult = await supabase
         .from('user_configurations')
         .select('configuration')
@@ -158,38 +150,69 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         ? faturamentosConfigResult.data.configuration.map((f: any) => ({ mes: new Date(f.mes), valor: f.valor }))
         : [];
 
-      if (todosFaturamentos.length > 0) {
-        const periodoSelecionado = config.periodo || '12';
-        
-        if (periodoSelecionado === 'todos') {
-          const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
-          mediaFaturamento = totalFaturamentos / todosFaturamentos.length;
-        } else {
-          const mesesAtras = parseInt(String(periodoSelecionado), 10);
-          const dataLimite = new Date();
-          dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+      let impostos = 0, taxas = 0, comissoes = 0, outros = 0, gastoSobreFaturamentoCalculado = 0;
+      let lucroDesejado = 0, markupIdeal = 0;
 
-          const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+      // 3. Se encontrou configuração na user_configurations, extrair valores detalhados
+      if (configData?.configuration) {
+        const config = configData.configuration as any;
+        console.log(`📊 [TOOLTIP DEBUG] Configuração user_configurations para ${markup.nome}:`, config);
+
+        impostos = Number(config.impostos || 0);
+        taxas = Number(config.taxas || 0);
+        comissoes = Number(config.comissoes || 0);
+        outros = Number(config.outros || 0);
+        gastoSobreFaturamentoCalculado = Number(config.gastoSobreFaturamento || 0);
+        lucroDesejado = Number(config.lucroDesejado || 0);
+        markupIdeal = Number(config.markupIdeal || 0);
+
+        // Calcular média de faturamento baseada no período
+        if (todosFaturamentos.length > 0) {
+          const periodoSelecionado = config.periodo || '12';
           
-          if (faturamentosFiltrados.length > 0) {
-            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
-            mediaFaturamento = total / faturamentosFiltrados.length;
+          if (periodoSelecionado === 'todos') {
+            const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+            mediaFaturamento = totalFaturamentos / todosFaturamentos.length;
+          } else {
+            const mesesAtras = parseInt(String(periodoSelecionado), 10);
+            const dataLimite = new Date();
+            dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+
+            const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+            
+            if (faturamentosFiltrados.length > 0) {
+              const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+              mediaFaturamento = total / faturamentosFiltrados.length;
+            }
           }
         }
       }
 
-      // Extrair valores detalhados da configuração
-      const impostos = Number(config.impostos || 0);
-      const taxas = Number(config.taxas || 0);
-      const comissoes = Number(config.comissoes || 0);
-      const outros = Number(config.outros || 0);
-      const gastoSobreFaturamentoCalculado = Number(config.gastoSobreFaturamento || 0);
-      
+      // 4. ✅ FALLBACK: Se lucroDesejado ou markupIdeal não foram encontrados na user_configurations,
+      // buscar na tabela markups onde estão salvos como margem_lucro e markup_ideal
+      if (lucroDesejado === 0 || markupIdeal === 0) {
+        console.log(`🔄 [TOOLTIP DEBUG] Valores ausentes na user_configurations, buscando fallback na tabela markups`);
+        
+        const { data: markupData, error: markupError } = await supabase
+          .from('markups')
+          .select('margem_lucro, markup_ideal')
+          .eq('user_id', user.id)
+          .eq('id', markup.id)
+          .maybeSingle();
+
+        if (!markupError && markupData) {
+          console.log(`📊 [TOOLTIP DEBUG] Dados fallback da tabela markups:`, markupData);
+          
+          if (lucroDesejado === 0) {
+            lucroDesejado = Number(markupData.margem_lucro || 0);
+          }
+          if (markupIdeal === 0) {
+            markupIdeal = Number(markupData.markup_ideal || 0);
+          }
+        }
+      }
+
       const total = impostos + taxas + comissoes + outros;
-      
-      // ✅ CORREÇÃO: Buscar lucroDesejado e markupIdeal da user_configurations também
-      const lucroDesejado = Number(config.lucroDesejado || 0);
-      const markupIdeal = Number(config.markupIdeal || 0);
       
       const resultado = { 
         impostos, 
@@ -203,7 +226,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         markupIdeal
       };
       
-      console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome} (da user_configurations):`, resultado);
+      console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome}:`, resultado);
       
       return resultado;
     } catch (error) {
