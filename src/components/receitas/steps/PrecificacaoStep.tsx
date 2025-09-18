@@ -115,7 +115,22 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     mediaFaturamento: number; 
     gastoSobreFaturamentoCalculado: number; 
   }> => {
+    console.log(`🔍 [TOOLTIP DEBUG] Iniciando cálculo detalhado para markup: ${markup.nome} (ID: ${markup.id})`);
+    console.log(`📊 [TOOLTIP DEBUG] Dados brutos do markup:`, {
+      nome: markup.nome,
+      periodo: markup.periodo,
+      margem_lucro: markup.margem_lucro,
+      gasto_sobre_faturamento: markup.gasto_sobre_faturamento,
+      encargos_sobre_venda: markup.encargos_sobre_venda,
+      markup_ideal: markup.markup_ideal,
+      markup_aplicado: markup.markup_aplicado,
+      despesas_fixas_selecionadas: markup.despesas_fixas_selecionadas,
+      encargos_venda_selecionados: markup.encargos_venda_selecionados,
+      folha_pagamento_selecionada: markup.folha_pagamento_selecionada
+    });
+
     if (!user?.id) {
+      console.log(`❌ [TOOLTIP DEBUG] User ID não encontrado`);
       return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
     }
 
@@ -130,6 +145,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         .maybeSingle();
 
       const checkboxConfig = config?.data?.configuration || {};
+      console.log(`⚙️ [TOOLTIP DEBUG] Configuração checkbox para ${markup.nome}:`, checkboxConfig);
 
       // Buscar dados base
       const [
@@ -147,28 +163,41 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           .maybeSingle()
       ]);
 
+      console.log(`📋 [TOOLTIP DEBUG] Dados base carregados:`, {
+        despesasFixas: despesasFixas?.length || 0,
+        folhaPagamento: folhaPagamento?.length || 0,
+        encargosVenda: encargosVenda?.length || 0,
+        temFaturamentos: !!faturamentosConfigResult?.data?.configuration
+      });
+
       // Calcular média de faturamento baseada no período
       let mediaFaturamento = 0;
       const todosFaturamentos = (faturamentosConfigResult?.data?.configuration && Array.isArray(faturamentosConfigResult.data.configuration))
         ? faturamentosConfigResult.data.configuration.map((f: any) => ({ mes: new Date(f.mes), valor: f.valor }))
         : [];
 
+      console.log(`💰 [TOOLTIP DEBUG] Faturamentos históricos encontrados:`, todosFaturamentos.length);
+
       if (todosFaturamentos.length > 0) {
         const periodoSelecionado = markup.periodo || '12';
+        console.log(`📅 [TOOLTIP DEBUG] Período selecionado para ${markup.nome}: ${periodoSelecionado}`);
         
         if (periodoSelecionado === 'todos') {
           const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
           mediaFaturamento = totalFaturamentos / todosFaturamentos.length;
+          console.log(`📊 [TOOLTIP DEBUG] Média calculada (todos os períodos): R$ ${mediaFaturamento.toFixed(2)}`);
         } else {
           const mesesAtras = parseInt(String(periodoSelecionado), 10);
           const dataLimite = new Date();
           dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
 
           const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+          console.log(`🔍 [TOOLTIP DEBUG] Faturamentos filtrados (${mesesAtras} meses): ${faturamentosFiltrados.length} de ${todosFaturamentos.length}`);
           
           if (faturamentosFiltrados.length > 0) {
             const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
             mediaFaturamento = total / faturamentosFiltrados.length;
+            console.log(`📊 [TOOLTIP DEBUG] Média calculada (${mesesAtras} meses): R$ ${mediaFaturamento.toFixed(2)}`);
           }
         }
       }
@@ -191,6 +220,16 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         
         const totalGastos = totalDespesasFixas + totalFolhaPagamento;
         gastoSobreFaturamentoCalculado = (totalGastos / mediaFaturamento) * 100;
+        
+        console.log(`💸 [TOOLTIP DEBUG] Cálculo de gastos sobre faturamento para ${markup.nome}:`, {
+          despesasConsideradas: despesasConsideradas.length,
+          totalDespesasFixas,
+          folhaConsiderada: folhaConsiderada.length,
+          totalFolhaPagamento,
+          totalGastos,
+          mediaFaturamento,
+          gastoSobreFaturamentoCalculado: gastoSobreFaturamentoCalculado.toFixed(2) + '%'
+        });
       }
 
       // Categorizar encargos
@@ -212,6 +251,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
       if (encargosVenda && Object.keys(checkboxConfig).length > 0) {
         const encargosConsiderados = encargosVenda.filter(e => checkboxConfig[e.id]);
+        console.log(`🏷️ [TOOLTIP DEBUG] Encargos considerados para ${markup.nome}:`, encargosConsiderados.map(e => ({ nome: e.nome, valor_percentual: e.valor_percentual, valor_fixo: e.valor_fixo })));
         
         encargosConsiderados.forEach(encargo => {
           const categoria = getCategoriaByNome(encargo.nome);
@@ -226,11 +266,14 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             case 'comissoes': comissoes += valor; break;
             case 'outros': outros += valor; break;
           }
+          
+          console.log(`🏷️ [TOOLTIP DEBUG] ${encargo.nome} -> Categoria: ${categoria}, Percentual: ${valor}%, Fixo: R$ ${valorFixo}`);
         });
       }
 
       const total = impostos + taxas + comissoes + outros;
-      return { 
+      
+      const resultado = { 
         impostos, 
         taxas, 
         comissoes, 
@@ -239,8 +282,12 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         mediaFaturamento,
         gastoSobreFaturamentoCalculado
       };
+      
+      console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome}:`, resultado);
+      
+      return resultado;
     } catch (error) {
-      console.error('Erro ao calcular detalhes do markup:', error);
+      console.error(`❌ [TOOLTIP DEBUG] Erro ao calcular detalhes do markup ${markup.nome}:`, error);
       return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
     }
   };
