@@ -608,9 +608,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               
               // Calculate profit metrics using unit cost (not affected by unit weight)
               const lucroBrutoUnitario = precoNumerico - custoUnitario;
+              
               // Lucro Líquido Real = Preço - (Custo + Encargos reais)
-              const encargosReais = markup.encargos_sobre_venda || 0;
-              const lucroLiquidoReal = precoNumerico - custoUnitario - encargosReais;
+              // Calcular todos os encargos como percentual do preço de venda
+              const gastosSobreFaturamento = (markup.gasto_sobre_faturamento || 0) / 100 * precoNumerico;
+              const encargosSobreVenda = (markup.encargos_sobre_venda || 0) / 100 * precoNumerico;
+              const encargosReaisTotal = gastosSobreFaturamento + encargosSobreVenda;
+              const lucroLiquidoReal = precoNumerico - custoUnitario - encargosReaisTotal;
               const faturamentoBruto = precoNumerico;
               
               // Calculate percentages
