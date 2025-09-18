@@ -78,6 +78,8 @@ interface EncargosDetalhados {
   comissoes: number;
   outros: number;
   total: number;
+  mediaFaturamento: number;
+  gastoSobreFaturamentoCalculado: number;
 }
 
 interface ReceitaData {
@@ -109,55 +111,137 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const { user } = useAuth();
 
   // Função para calcular detalhes dos encargos
-  const calcularEncargosDetalhados = async (markup: MarkupData): Promise<EncargosDetalhados> => {
-    if (!user?.id || !markup.encargos_venda_selecionados?.length) {
-      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0 };
+  const calcularEncargosDetalhados = async (markup: MarkupData): Promise<EncargosDetalhados & { 
+    mediaFaturamento: number; 
+    gastoSobreFaturamentoCalculado: number; 
+  }> => {
+    if (!user?.id) {
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
     }
 
     try {
-      const { data: encargos, error } = await supabase
-        .from('encargos_venda')
-        .select('*')
-        .in('id', markup.encargos_venda_selecionados)
+      // Buscar configuração salva para este markup
+      const configKey = `checkbox-states-${markup.id}`;
+      const config = await supabase
+        .from('user_configurations')
+        .select('configuration')
         .eq('user_id', user.id)
-        .eq('ativo', true);
+        .eq('type', configKey)
+        .maybeSingle();
 
-      if (error || !encargos) {
-        console.error('Erro ao buscar encargos detalhados:', error);
-        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0 };
+      const checkboxConfig = config?.data?.configuration || {};
+
+      // Buscar dados base
+      const [
+        { data: despesasFixas },
+        { data: folhaPagamento },
+        { data: encargosVenda },
+        faturamentosConfigResult
+      ] = await Promise.all([
+        supabase.from('despesas_fixas').select('*').eq('user_id', user.id).eq('ativo', true),
+        supabase.from('folha_pagamento').select('*').eq('user_id', user.id).eq('ativo', true),
+        supabase.from('encargos_venda').select('*').eq('user_id', user.id).eq('ativo', true),
+        supabase.from('user_configurations').select('configuration')
+          .eq('user_id', user.id)
+          .eq('type', 'faturamentos_historicos')
+          .maybeSingle()
+      ]);
+
+      // Calcular média de faturamento baseada no período
+      let mediaFaturamento = 0;
+      const todosFaturamentos = (faturamentosConfigResult?.data?.configuration && Array.isArray(faturamentosConfigResult.data.configuration))
+        ? faturamentosConfigResult.data.configuration.map((f: any) => ({ mes: new Date(f.mes), valor: f.valor }))
+        : [];
+
+      if (todosFaturamentos.length > 0) {
+        const periodoSelecionado = markup.periodo || '12';
+        
+        if (periodoSelecionado === 'todos') {
+          const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+          mediaFaturamento = totalFaturamentos / todosFaturamentos.length;
+        } else {
+          const mesesAtras = parseInt(String(periodoSelecionado), 10);
+          const dataLimite = new Date();
+          dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+
+          const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+          
+          if (faturamentosFiltrados.length > 0) {
+            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+            mediaFaturamento = total / faturamentosFiltrados.length;
+          }
+        }
       }
 
-      let impostos = 0, taxas = 0, comissoes = 0, outros = 0;
-
-      encargos.forEach(encargo => {
-        const valor = encargo.valor_percentual || 0;
+      // Calcular gasto sobre faturamento
+      let gastoSobreFaturamentoCalculado = 0;
+      if (Object.keys(checkboxConfig).length > 0 && mediaFaturamento > 0) {
+        // Somar despesas fixas marcadas como "Considerar"
+        const despesasConsideradas = despesasFixas ? despesasFixas.filter(d => checkboxConfig[d.id]) : [];
+        const totalDespesasFixas = despesasConsideradas.reduce((acc, despesa) => acc + Number(despesa.valor), 0);
         
-        switch (encargo.nome.toLowerCase()) {
-          case 'impostos':
-          case 'imposto':
-            impostos += valor;
-            break;
-          case 'taxas de meios de pagamento':
-          case 'taxas':
-          case 'taxa':
-            taxas += valor;
-            break;
-          case 'comissões e plataformas':
-          case 'comissões':
-          case 'comissao':
-            comissoes += valor;
-            break;
-          default:
-            outros += valor;
-            break;
-        }
-      });
+        // Somar folha de pagamento marcada como "Considerar"
+        const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => checkboxConfig[f.id]) : [];
+        const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
+          const custoMensal = funcionario.custo_por_hora > 0 
+            ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
+            : funcionario.salario_base;
+          return acc + Number(custoMensal);
+        }, 0);
+        
+        const totalGastos = totalDespesasFixas + totalFolhaPagamento;
+        gastoSobreFaturamentoCalculado = (totalGastos / mediaFaturamento) * 100;
+      }
+
+      // Categorizar encargos
+      const categoriasMap = {
+        'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
+        'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
+        'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
+      };
+
+      const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
+        if (categoriasMap.impostos.has(nome)) return 'impostos';
+        if (categoriasMap.meios_pagamento.has(nome)) return 'meios_pagamento';
+        if (categoriasMap.comissoes.has(nome)) return 'comissoes';
+        return 'outros';
+      };
+
+      // Calcular encargos detalhados
+      let impostos = 0, taxas = 0, comissoes = 0, outros = 0, valorEmReal = 0;
+
+      if (encargosVenda && Object.keys(checkboxConfig).length > 0) {
+        const encargosConsiderados = encargosVenda.filter(e => checkboxConfig[e.id]);
+        
+        encargosConsiderados.forEach(encargo => {
+          const categoria = getCategoriaByNome(encargo.nome);
+          const valor = Number(encargo.valor_percentual || 0);
+          const valorFixo = Number(encargo.valor_fixo || 0);
+          
+          valorEmReal += valorFixo;
+          
+          switch (categoria) {
+            case 'impostos': impostos += valor; break;
+            case 'meios_pagamento': taxas += valor; break;
+            case 'comissoes': comissoes += valor; break;
+            case 'outros': outros += valor; break;
+          }
+        });
+      }
 
       const total = impostos + taxas + comissoes + outros;
-      return { impostos, taxas, comissoes, outros, total };
+      return { 
+        impostos, 
+        taxas, 
+        comissoes, 
+        outros, 
+        total, 
+        mediaFaturamento,
+        gastoSobreFaturamentoCalculado
+      };
     } catch (error) {
-      console.error('Erro ao calcular encargos detalhados:', error);
-      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0 };
+      console.error('Erro ao calcular detalhes do markup:', error);
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
     }
   };
 
@@ -716,24 +800,32 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                 <div>• Período: {markup.periodo === '12' ? 'Últimos 12 meses' : 
                                  markup.periodo === '6' ? 'Últimos 6 meses' : 
                                  markup.periodo === '3' ? 'Últimos 3 meses' : 
-                                 markup.periodo === '1' ? 'Último mês' : `${markup.periodo} meses`}</div>
-                <div>• Média de faturamento: Calculada automaticamente</div>
-                <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento?.toFixed(2)}%</div>
+                                 markup.periodo === '1' ? 'Último mês' : 
+                                 markup.periodo === 'todos' ? 'Média de todos os períodos' : `${markup.periodo} meses`}</div>
                 
                 {encargosDetalhados[markup.id] && (
                   <>
+                    <div>• Média de faturamento: R$ {encargosDetalhados[markup.id].mediaFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div>• Gasto sobre faturamento: {encargosDetalhados[markup.id].gastoSobreFaturamentoCalculado.toFixed(2)}%</div>
+                    
                     <div className="font-medium mt-3">Encargos sobre venda:</div>
-                    <div>• Impostos: {encargosDetalhados[markup.id].impostos.toFixed(2)}%</div>
-                    <div>• Taxas de meios de pagamento: {encargosDetalhados[markup.id].taxas.toFixed(2)}%</div>
-                    <div>• Comissões e plataformas: {encargosDetalhados[markup.id].comissoes.toFixed(2)}%</div>
-                    <div>• Outros: {encargosDetalhados[markup.id].outros.toFixed(2)}%</div>
-                    <div>• Total de encargos: R$ {((encargosDetalhados[markup.id].total || 0) / 100 * precoNumerico).toFixed(2)}</div>
+                    <div className="pl-2 space-y-1">
+                      <div>• Impostos: {encargosDetalhados[markup.id].impostos.toFixed(2)}%</div>
+                      <div>• Taxas de meios de pagamento: {encargosDetalhados[markup.id].taxas.toFixed(2)}%</div>
+                      <div>• Comissões e plataformas: {encargosDetalhados[markup.id].comissoes.toFixed(2)}%</div>
+                      <div>• Outros: {encargosDetalhados[markup.id].outros.toFixed(2)}%</div>
+                      <div className="font-medium">• Total de encargos: R$ {((encargosDetalhados[markup.id].total || 0) / 100 * precoNumerico).toFixed(2)}</div>
+                    </div>
+                    
+                    <div className="font-medium mt-3">Resultado:</div>
+                    <div>• Lucro desejado sobre venda: {markup.margem_lucro?.toFixed(2)}%</div>
+                    <div>• Markup ideal: {markup.markup_ideal?.toFixed(4)}</div>
                   </>
                 )}
                 
-                <div className="font-medium mt-3">Resultado:</div>
-                <div>• Lucro desejado sobre venda: {markup.margem_lucro?.toFixed(2)}%</div>
-                <div>• Markup ideal: {markup.markup_ideal?.toFixed(4)}</div>
+                {!encargosDetalhados[markup.id] && (
+                  <div className="text-muted-foreground text-xs">Carregando dados detalhados...</div>
+                )}
               </div>
             </TooltipContent>
                          </Tooltip>
