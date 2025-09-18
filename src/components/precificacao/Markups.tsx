@@ -504,6 +504,21 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           .from('markups')
           .insert(markupData);
 
+        // Salvar configuração individual para o tooltip
+        const configIndividual = {
+          periodo: bloco.periodo,
+          gastoSobreFaturamento: calculated.gastoSobreFaturamento,
+          impostos: calculated.impostos,
+          taxas: calculated.taxasMeiosPagamento,
+          comissoes: calculated.comissoesPlataformas,
+          outros: calculated.outros,
+          valorEmReal: calculated.valorEmReal
+        };
+
+        const tooltipConfigKey = `markup_${bloco.nome.toLowerCase().replace(/\s+/g, '_')}`;
+        await saveConfiguration(tooltipConfigKey, configIndividual);
+        console.log(`💾 [SALVAR MARKUPS] Configuração individual salva para tooltip: ${tooltipConfigKey}`, configIndividual);
+
         // Sincronizar com user_configurations - atualizar bloco com valores calculados
         const configBlocosAtualizados = [...blocos];
         const blocoIndex = configBlocosAtualizados.findIndex(b => b.id === bloco.id);

@@ -110,38 +110,38 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Função para calcular detalhes dos encargos - Agora usa dados diretos da tabela markups
+  // Função para calcular detalhes dos encargos - Agora usa dados corretos da user_configurations
   const calcularEncargosDetalhados = async (markup: MarkupData): Promise<EncargosDetalhados & { 
     mediaFaturamento: number; 
     gastoSobreFaturamentoCalculado: number; 
   }> => {
-    console.log(`🔍 [TOOLTIP DEBUG] Buscando dados diretos da tabela markups para: ${markup.nome} (ID: ${markup.id})`);
+    console.log(`🔍 [TOOLTIP DEBUG] Buscando dados corretos da user_configurations para: ${markup.nome} (ID: ${markup.id})`);
 
     if (!user?.id) {
       return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
     }
 
     try {
-      // Buscar dados atualizados diretamente da tabela markups
-      const { data: markupAtualizado, error } = await supabase
-        .from('markups')
-        .select('*')
+      // Buscar dados corretos da user_configurations onde estão os valores detalhados atualizados
+      const { data: configData, error } = await supabase
+        .from('user_configurations')
+        .select('configuration')
         .eq('user_id', user.id)
-        .eq('id', markup.id)
+        .eq('type', `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`)
         .maybeSingle();
 
-      if (error || !markupAtualizado) {
-        console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar markup atualizado:`, error);
+      if (error) {
+        console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar configuração:`, error);
         return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
       }
 
-      console.log(`📊 [TOOLTIP DEBUG] Dados do markup ${markup.nome} da tabela:`, {
-        gasto_sobre_faturamento: markupAtualizado.gasto_sobre_faturamento,
-        encargos_sobre_venda: markupAtualizado.encargos_sobre_venda,
-        despesas_fixas_selecionadas: markupAtualizado.despesas_fixas_selecionadas,
-        encargos_venda_selecionados: markupAtualizado.encargos_venda_selecionados,
-        folha_pagamento_selecionada: markupAtualizado.folha_pagamento_selecionada
-      });
+      if (!configData?.configuration) {
+        console.log(`⚠️ [TOOLTIP DEBUG] Nenhuma configuração encontrada para ${markup.nome}`);
+        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
+      }
+
+      const config = configData.configuration as any;
+      console.log(`📊 [TOOLTIP DEBUG] Configuração encontrada para ${markup.nome}:`, config);
 
       // Buscar dados de faturamento para calcular média
       const faturamentosConfigResult = await supabase
@@ -157,7 +157,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         : [];
 
       if (todosFaturamentos.length > 0) {
-        const periodoSelecionado = markupAtualizado.periodo || '12';
+        const periodoSelecionado = config.periodo || '12';
         
         if (periodoSelecionado === 'todos') {
           const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
@@ -176,50 +176,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         }
       }
 
-      // Buscar detalhes dos encargos selecionados para categorização
-      const encargosIds = Array.isArray(markupAtualizado.encargos_venda_selecionados) 
-        ? markupAtualizado.encargos_venda_selecionados.map(id => String(id))
-        : [];
-      let impostos = 0, taxas = 0, comissoes = 0, outros = 0, valorEmReal = 0;
-
-      if (encargosIds.length > 0) {
-        const { data: encargosVenda } = await supabase
-          .from('encargos_venda')
-          .select('*')
-          .eq('user_id', user.id)
-          .in('id', encargosIds);
-
-        if (encargosVenda) {
-          const categoriasMap = {
-            'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
-            'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
-            'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
-          };
-
-          const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
-            if (categoriasMap.impostos.has(nome)) return 'impostos';
-            if (categoriasMap.meios_pagamento.has(nome)) return 'meios_pagamento';
-            if (categoriasMap.comissoes.has(nome)) return 'comissoes';
-            return 'outros';
-          };
-
-          encargosVenda.forEach(encargo => {
-            const categoria = getCategoriaByNome(encargo.nome);
-            const valor = Number(encargo.valor_percentual || 0);
-            const valorFixo = Number(encargo.valor_fixo || 0);
-            
-            valorEmReal += valorFixo;
-            
-            switch (categoria) {
-              case 'impostos': impostos += valor; break;
-              case 'meios_pagamento': taxas += valor; break;
-              case 'comissoes': comissoes += valor; break;
-              case 'outros': outros += valor; break;
-            }
-          });
-        }
-      }
-
+      // Extrair valores detalhados da configuração
+      const impostos = Number(config.impostos || 0);
+      const taxas = Number(config.taxas || 0);
+      const comissoes = Number(config.comissoes || 0);
+      const outros = Number(config.outros || 0);
+      const gastoSobreFaturamentoCalculado = Number(config.gastoSobreFaturamento || 0);
+      
       const total = impostos + taxas + comissoes + outros;
       
       const resultado = { 
@@ -229,10 +192,10 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         outros, 
         total, 
         mediaFaturamento,
-        gastoSobreFaturamentoCalculado: markupAtualizado.gasto_sobre_faturamento || 0
+        gastoSobreFaturamentoCalculado
       };
       
-      console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome} (da tabela markups):`, resultado);
+      console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome} (da user_configurations):`, resultado);
       
       return resultado;
     } catch (error) {

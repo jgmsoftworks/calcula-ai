@@ -207,6 +207,28 @@ export function useMarkupInitializer() {
           .from('markups')
           .insert(markupData);
 
+        // Salvar configuração individual para o tooltip
+        const configIndividual = {
+          periodo: bloco.periodo,
+          gastoSobreFaturamento: categorias.gastoSobreFaturamento,
+          impostos: categorias.impostos,
+          taxas: categorias.taxasMeiosPagamento,
+          comissoes: categorias.comissoesPlataformas,
+          outros: categorias.outros,
+          valorEmReal: categorias.valorEmReal
+        };
+
+        const tooltipConfigKey = `markup_${bloco.nome.toLowerCase().replace(/\s+/g, '_')}`;
+        await supabase
+          .from('user_configurations')
+          .upsert({
+            user_id: user.id,
+            type: tooltipConfigKey,
+            configuration: configIndividual
+          });
+        
+        console.log(`💾 [MARKUP INITIALIZER] Configuração individual salva para tooltip: ${tooltipConfigKey}`, configIndividual);
+
         // Também sincronizar com user_configurations para manter consistência
         const blocosConfig = await loadConfiguration('markups_blocos') || [];
         const blocoIndex = blocosConfig.findIndex((b: any) => b.nome === bloco.nome);
