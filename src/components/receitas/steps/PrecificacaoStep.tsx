@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, DollarSign, Weight, Calculator, Target, Percent } from 'lucide-react';
+import { TrendingUp, DollarSign, Weight, Calculator, Target, Percent, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -449,7 +450,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   ];
 
   return (
-    <div className="space-y-4">
+    <TooltipProvider>
+      <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Precificação</h3>
@@ -628,9 +630,26 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                   key={markup.id} 
                   className={`transition-all ${isSelected ? 'ring-2 ring-primary bg-primary/5' : 'bg-muted/20'}`}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
+                   <CardHeader className="pb-3">
+                     <div className="flex justify-between items-center">
+                       <div className="flex items-center gap-2">
+                         <CardTitle className="text-base capitalize">{markup.nome}</CardTitle>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                           </TooltipTrigger>
+                           <TooltipContent side="right" className="max-w-xs">
+                             <div className="space-y-2 text-sm">
+                               <div className="font-medium">Configurações do Markup:</div>
+                               <div>• Margem de lucro: {markup.margem_lucro}%</div>
+                               <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento}%</div>
+                               <div>• Encargos sobre venda: {markup.encargos_sobre_venda}%</div>
+                               <div>• Markup ideal: {markup.markup_ideal.toFixed(4)}</div>
+                               <div>• Período: {markup.periodo} meses</div>
+                             </div>
+                           </TooltipContent>
+                         </Tooltip>
+                       </div>
                       <div className="flex gap-2 items-center">
                         <Badge variant={markup.tipo === 'sub_receita' ? 'secondary' : 'outline'}>
                           {markup.tipo === 'sub_receita' ? 'Sub-receita' : 'Normal'}
@@ -740,8 +759,9 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               );
             })}
           </div>
-        </div>
-      )}
-    </div>
-  );
+         </div>
+       )}
+     </div>
+   </TooltipProvider>
+   );
 }
