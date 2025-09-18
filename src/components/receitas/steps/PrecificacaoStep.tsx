@@ -823,7 +823,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             ).map((markup) => {
               // Calculate markup based on entered price - use only unit cost from yield
               const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
-              const precoSugerido = custoUnitario * markup.markup_ideal;
+              const precoSugerido = (custoUnitario * markup.markup_ideal) + (encargosDetalhados[markup.id]?.valorEmReal || 0);
               
               // Calculate profit metrics using unit cost (not affected by unit weight)
               const lucroBrutoUnitario = precoNumerico - custoUnitario;
