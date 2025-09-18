@@ -940,7 +940,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-sm text-muted-foreground mb-1">
                             Sugestão de Preço 
-                            <span className="text-xs ml-1">(adicional RS {encargosReaisTotal.toFixed(2)})</span>
+                            <span className="text-xs ml-1">(adicional RS {(encargosDetalhados[markup.id]?.valorEmReal || 0).toFixed(2)})</span>
                           </p>
                         <p className="text-lg font-bold text-primary">
                           {new Intl.NumberFormat('pt-BR', {
