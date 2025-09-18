@@ -638,16 +638,19 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                            <TooltipTrigger asChild>
                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                            </TooltipTrigger>
-                           <TooltipContent side="right" className="max-w-xs">
-                             <div className="space-y-2 text-sm">
-                               <div className="font-medium">Configurações do Markup:</div>
-                               <div>• Margem de lucro: {markup.margem_lucro}%</div>
-                               <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento}%</div>
-                               <div>• Encargos sobre venda: {markup.encargos_sobre_venda}%</div>
-                               <div>• Markup ideal: {markup.markup_ideal.toFixed(4)}</div>
-                               <div>• Período: {markup.periodo} meses</div>
-                             </div>
-                           </TooltipContent>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <div className="space-y-2 text-sm">
+                                <div className="font-medium">Configurações do Markup:</div>
+                                <div>• Margem de lucro: {markup.margem_lucro}%</div>
+                                <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento}%</div>
+                                <div>• Total de encargos: {markup.encargos_sobre_venda}%</div>
+                                <div className="text-muted-foreground text-xs pl-4">
+                                  (soma de impostos, taxas e comissões)
+                                </div>
+                                <div>• Markup ideal: {markup.markup_ideal.toFixed(4)}</div>
+                                <div>• Período: {markup.periodo} meses</div>
+                              </div>
+                            </TooltipContent>
                          </Tooltip>
                        </div>
                       <div className="flex gap-2 items-center">
