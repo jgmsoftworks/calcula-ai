@@ -187,9 +187,9 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       
       const total = impostos + taxas + comissoes + outros;
       
-      // Usar valores do markup original para lucro desejado e markup ideal
-      const lucroDesejado = Number(markup.margem_lucro || 0);
-      const markupIdeal = Number(markup.markup_ideal || 0);
+      // ✅ CORREÇÃO: Buscar lucroDesejado e markupIdeal da user_configurations também
+      const lucroDesejado = Number(config.lucroDesejado || 0);
+      const markupIdeal = Number(config.markupIdeal || 0);
       
       const resultado = { 
         impostos, 
@@ -510,6 +510,67 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
     fetchReceitaMarkup();
   }, [receitaId, user?.id]);
+  
+  // ✅ CORREÇÃO: Real-time updates para sincronizar com mudanças da página de Precificação
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('🔄 [RECEITAS] Configurando real-time updates para markups');
+    
+    const channel = supabase
+      .channel('receitas-markups-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_configurations',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 [RECEITAS] Real-time update recebida:', payload);
+          
+          // Verificar se é uma mudança relacionada aos markups
+          const configType = (payload.new as any)?.type || (payload.old as any)?.type;
+          if (configType && configType.includes('markup_')) {
+            console.log('🔃 [RECEITAS] Recarregando markups devido à mudança em tempo real');
+            
+            // Forçar recarregamento dos markups
+            setMarkupsLoaded(false);
+            
+            // Pequeno delay para garantir que todas as alterações foram salvas
+            setTimeout(() => {
+              setMarkupsLoaded(false); // Force reload
+            }, 300);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'markups',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 [RECEITAS] Real-time update nos markups:', payload);
+          
+          // Forçar recarregamento dos markups
+          setMarkupsLoaded(false);
+          
+          setTimeout(() => {
+            setMarkupsLoaded(false); // Force reload
+          }, 300);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 [RECEITAS] Desconectando real-time updates');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
   
   // Function to format currency
   const formatCurrency = (value: string) => {
