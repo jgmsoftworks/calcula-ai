@@ -608,12 +608,14 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               
               // Calculate profit metrics using unit cost (not affected by unit weight)
               const lucroBrutoUnitario = precoNumerico - custoUnitario;
-              const lucroLiquidoEsperado = lucroBrutoUnitario * (markup.margem_lucro / 100);
+              // Lucro Líquido Real = Preço - (Custo + Encargos reais)
+              const encargosReais = markup.encargos_sobre_venda || 0;
+              const lucroLiquidoReal = precoNumerico - custoUnitario - encargosReais;
               const faturamentoBruto = precoNumerico;
               
               // Calculate percentages
               const lucroBrutoPercent = precoNumerico > 0 ? (lucroBrutoUnitario / precoNumerico) * 100 : 0;
-              const lucroLiquidoPercent = precoNumerico > 0 ? (lucroLiquidoEsperado / precoNumerico) * 100 : 0;
+              const lucroLiquidoPercent = precoNumerico > 0 ? (lucroLiquidoReal / precoNumerico) * 100 : 0;
 
               const isSelected = markupSelecionado === markup.id;
 
@@ -703,18 +705,18 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         </div>
                       </div>
                       
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Lucro Líq. Esperado (un.):</span>
-                        <div className="flex gap-8 text-right">
-                          <span className="w-20">
-                            {new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL'
-                            }).format(lucroLiquidoEsperado)}
-                          </span>
-                          <span className="w-12">{lucroLiquidoPercent.toFixed(0)}%</span>
-                        </div>
-                      </div>
+                       <div className="flex justify-between items-center text-sm">
+                         <span className="text-muted-foreground">Lucro Líq. Real (un.):</span>
+                         <div className="flex gap-8 text-right">
+                           <span className="w-20">
+                             {new Intl.NumberFormat('pt-BR', {
+                               style: 'currency',
+                               currency: 'BRL'
+                             }).format(lucroLiquidoReal)}
+                           </span>
+                           <span className="w-12">{lucroLiquidoPercent.toFixed(0)}%</span>
+                         </div>
+                       </div>
                       
                       <div className="flex justify-between items-center text-sm font-medium pt-2 border-t">
                         <span className="text-primary">Faturamento Bruto (total):</span>
