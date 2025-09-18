@@ -80,6 +80,8 @@ interface EncargosDetalhados {
   total: number;
   mediaFaturamento: number;
   gastoSobreFaturamentoCalculado: number;
+  lucroDesejado: number;
+  markupIdeal: number;
 }
 
 interface ReceitaData {
@@ -132,12 +134,12 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
       if (error) {
         console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar configuração:`, error);
-        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
+        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
       }
 
       if (!configData?.configuration) {
         console.log(`⚠️ [TOOLTIP DEBUG] Nenhuma configuração encontrada para ${markup.nome}`);
-        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
+        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
       }
 
       const config = configData.configuration as any;
@@ -200,7 +202,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       return resultado;
     } catch (error) {
       console.error(`❌ [TOOLTIP DEBUG] Erro ao buscar detalhes do markup ${markup.nome}:`, error);
-      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
     }
   };
 
@@ -777,8 +779,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                     </div>
                     
                     <div className="font-medium mt-3">Resultado:</div>
-                    <div>• Lucro desejado sobre venda: {markup.margem_lucro?.toFixed(2)}%</div>
-                    <div>• Markup ideal: {markup.markup_ideal?.toFixed(4)}</div>
+                    <div>• Lucro desejado sobre venda: {encargosDetalhados[markup.id].lucroDesejado?.toFixed(2)}%</div>
+                    <div>• Markup ideal: {encargosDetalhados[markup.id].markupIdeal?.toFixed(4)}</div>
                   </>
                 )}
                 

@@ -471,6 +471,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           });
         }
 
+        // Calcular markup ideal correto baseado nos valores atualizados
+        const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
+        const totalPercentuais = totalEncargos + bloco.lucroDesejado;
+        const markupIdealCorreto = totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.25;
+
         const markupData = {
           user_id: user.id,
           nome: bloco.nome,
@@ -479,8 +484,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           margem_lucro: bloco.lucroDesejado,
           gasto_sobre_faturamento: calculated.gastoSobreFaturamento,
           encargos_sobre_venda: calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros,
-          markup_ideal: calcularMarkupIdealParaBanco(bloco, calculated),
-          markup_aplicado: calcularMarkupAplicadoParaBanco(bloco, calculated),
+          markup_ideal: markupIdealCorreto,
+          markup_aplicado: markupIdealCorreto,
           preco_sugerido: calculated.valorEmReal,
           despesas_fixas_selecionadas: despesasFixasSelecionadas,
           folha_pagamento_selecionada: folhaPagamentoSelecionada,

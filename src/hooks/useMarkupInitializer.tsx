@@ -176,6 +176,11 @@ export function useMarkupInitializer() {
         const folhaPagamentoSelecionada = folhaPagamento ? folhaPagamento.filter(f => config[f.id]).map(f => f.id) : [];
         const encargosVendaSelecionados = encargosVenda ? encargosVenda.filter(e => config[e.id]).map(e => e.id) : [];
 
+        // Calcular markup ideal correto baseado no calcularMarkupIdeal
+        const totalEncargos = categorias.gastoSobreFaturamento + categorias.impostos + categorias.taxasMeiosPagamento + categorias.comissoesPlataformas + categorias.outros;
+        const totalPercentuais = totalEncargos + bloco.lucroDesejado;
+        const markupIdealCorreto = totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.25;
+
         const markupData = {
           user_id: user.id,
           nome: bloco.nome,
@@ -184,8 +189,8 @@ export function useMarkupInitializer() {
           margem_lucro: bloco.lucroDesejado,
           gasto_sobre_faturamento: categorias.gastoSobreFaturamento,
           encargos_sobre_venda: categorias.impostos + categorias.taxasMeiosPagamento + categorias.comissoesPlataformas + categorias.outros,
-          markup_ideal: calcularMarkupIdeal(bloco, categorias),
-          markup_aplicado: calcularMarkupIdeal(bloco, categorias),
+          markup_ideal: markupIdealCorreto,
+          markup_aplicado: markupIdealCorreto,
           preco_sugerido: categorias.valorEmReal,
           despesas_fixas_selecionadas: despesasFixasSelecionadas,
           folha_pagamento_selecionada: folhaPagamentoSelecionada,
