@@ -67,6 +67,17 @@ interface MarkupData {
   markup_aplicado: number;
   preco_sugerido: number;
   ativo: boolean;
+  despesas_fixas_selecionadas?: any[];
+  encargos_venda_selecionados?: any[];
+  folha_pagamento_selecionada?: any[];
+}
+
+interface EncargosDetalhados {
+  impostos: number;
+  taxas: number;
+  comissoes: number;
+  outros: number;
+  total: number;
 }
 
 interface ReceitaData {
@@ -92,9 +103,63 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const [markups, setMarkups] = useState<MarkupData[]>([]);
   const [markupSelecionado, setMarkupSelecionado] = useState<string>('');
   const [markupsLoaded, setMarkupsLoaded] = useState(false);
+  const [encargosDetalhados, setEncargosDetalhados] = useState<{[key: string]: EncargosDetalhados}>({});
   
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Função para calcular detalhes dos encargos
+  const calcularEncargosDetalhados = async (markup: MarkupData): Promise<EncargosDetalhados> => {
+    if (!user?.id || !markup.encargos_venda_selecionados?.length) {
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0 };
+    }
+
+    try {
+      const { data: encargos, error } = await supabase
+        .from('encargos_venda')
+        .select('*')
+        .in('id', markup.encargos_venda_selecionados)
+        .eq('user_id', user.id)
+        .eq('ativo', true);
+
+      if (error || !encargos) {
+        console.error('Erro ao buscar encargos detalhados:', error);
+        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0 };
+      }
+
+      let impostos = 0, taxas = 0, comissoes = 0, outros = 0;
+
+      encargos.forEach(encargo => {
+        const valor = encargo.valor_percentual || 0;
+        
+        switch (encargo.nome.toLowerCase()) {
+          case 'impostos':
+          case 'imposto':
+            impostos += valor;
+            break;
+          case 'taxas de meios de pagamento':
+          case 'taxas':
+          case 'taxa':
+            taxas += valor;
+            break;
+          case 'comissões e plataformas':
+          case 'comissões':
+          case 'comissao':
+            comissoes += valor;
+            break;
+          default:
+            outros += valor;
+            break;
+        }
+      });
+
+      const total = impostos + taxas + comissoes + outros;
+      return { impostos, taxas, comissoes, outros, total };
+    } catch (error) {
+      console.error('Erro ao calcular encargos detalhados:', error);
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0 };
+    }
+  };
 
   // Inicializar estado com markup da receita se estiver editando
   useEffect(() => {
@@ -331,6 +396,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         console.log('✨ Markups únicos após filtro:', uniqueMarkups.length, uniqueMarkups.map(m => `${m.nome} (${m.tipo})`));
         
         setMarkups(uniqueMarkups);
+        
+        // Carregar detalhes dos encargos para cada markup
+        const encargosMap: {[key: string]: EncargosDetalhados} = {};
+        for (const markup of uniqueMarkups) {
+          encargosMap[markup.id] = await calcularEncargosDetalhados(markup);
+        }
+        setEncargosDetalhados(encargosMap);
       } catch (error) {
         console.error('Erro ao buscar markups:', error);
         setMarkupsLoaded(false);
@@ -647,12 +719,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                                  markup.periodo === '1' ? 'Último mês' : `${markup.periodo} meses`}</div>
                 <div>• Média de faturamento: Calculada automaticamente</div>
                 <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento?.toFixed(2)}%</div>
-                <div>• Total de encargos: {markup.encargos_sobre_venda?.toFixed(2)}%</div>
-                <div className="text-muted-foreground text-xs pl-4">
-                  (impostos, taxas, comissões e outros)
-                </div>
-                <div>• Valor em real: R$ {((markup.encargos_sobre_venda || 0) / 100 * precoNumerico).toFixed(2)}</div>
-                <div>• Lucro desejado: {markup.margem_lucro?.toFixed(2)}%</div>
+                
+                {encargosDetalhados[markup.id] && (
+                  <>
+                    <div className="font-medium mt-3">Encargos sobre venda:</div>
+                    <div>• Impostos: {encargosDetalhados[markup.id].impostos.toFixed(2)}%</div>
+                    <div>• Taxas de meios de pagamento: {encargosDetalhados[markup.id].taxas.toFixed(2)}%</div>
+                    <div>• Comissões e plataformas: {encargosDetalhados[markup.id].comissoes.toFixed(2)}%</div>
+                    <div>• Outros: {encargosDetalhados[markup.id].outros.toFixed(2)}%</div>
+                    <div>• Total de encargos: R$ {((encargosDetalhados[markup.id].total || 0) / 100 * precoNumerico).toFixed(2)}</div>
+                  </>
+                )}
+                
+                <div className="font-medium mt-3">Resultado:</div>
+                <div>• Lucro desejado sobre venda: {markup.margem_lucro?.toFixed(2)}%</div>
                 <div>• Markup ideal: {markup.markup_ideal?.toFixed(4)}</div>
               </div>
             </TooltipContent>
