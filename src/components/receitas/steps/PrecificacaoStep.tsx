@@ -120,7 +120,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     console.log(`🔍 [TOOLTIP DEBUG] Buscando dados corretos da user_configurations para: ${markup.nome} (ID: ${markup.id})`);
 
     if (!user?.id) {
-      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0 };
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
     }
 
     try {
@@ -187,6 +187,10 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       
       const total = impostos + taxas + comissoes + outros;
       
+      // Usar valores do markup original para lucro desejado e markup ideal
+      const lucroDesejado = Number(markup.margem_lucro || 0);
+      const markupIdeal = Number(markup.markup_ideal || 0);
+      
       const resultado = { 
         impostos, 
         taxas, 
@@ -194,7 +198,9 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         outros, 
         total, 
         mediaFaturamento,
-        gastoSobreFaturamentoCalculado
+        gastoSobreFaturamentoCalculado,
+        lucroDesejado,
+        markupIdeal
       };
       
       console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome} (da user_configurations):`, resultado);
