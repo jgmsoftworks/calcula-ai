@@ -430,6 +430,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         index === self.findIndex(b => b.nome === bloco.nome)
       );
 
+      // Preparar configurações atualizadas para sincronizar com user_configurations
+      const configBlocosAtualizados = [...blocos];
+
       for (const bloco of uniqueBlocos) {
         const calculated = calculatedMarkups.get(bloco.id);
         if (!calculated) {
@@ -500,6 +503,45 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         await supabase
           .from('markups')
           .insert(markupData);
+
+        // Sincronizar com user_configurations - atualizar bloco com valores calculados
+        const configBlocosAtualizados = [...blocos];
+        const blocoIndex = configBlocosAtualizados.findIndex(b => b.id === bloco.id);
+        if (blocoIndex >= 0) {
+          configBlocosAtualizados[blocoIndex] = {
+            ...configBlocosAtualizados[blocoIndex],
+            gastoSobreFaturamento: calculated.gastoSobreFaturamento,
+            impostos: calculated.impostos,
+            taxasMeiosPagamento: calculated.taxasMeiosPagamento,
+            comissoesPlataformas: calculated.comissoesPlataformas,
+            outros: calculated.outros,
+            valorEmReal: calculated.valorEmReal
+          };
+        }
+      }
+
+      // Sincronizar configurações atualizadas com user_configurations
+      try {
+        const configBlocosAtualizados = blocos.map(bloco => {
+          const calculated = calculatedMarkups.get(bloco.id);
+          if (calculated) {
+            return {
+              ...bloco,
+              gastoSobreFaturamento: calculated.gastoSobreFaturamento,
+              impostos: calculated.impostos,
+              taxasMeiosPagamento: calculated.taxasMeiosPagamento,
+              comissoesPlataformas: calculated.comissoesPlataformas,
+              outros: calculated.outros,
+              valorEmReal: calculated.valorEmReal
+            };
+          }
+          return bloco;
+        });
+        
+        await saveConfiguration('markups_blocos', configBlocosAtualizados);
+        console.log('🔄 [SALVAR MARKUPS] Configurações sincronizadas com user_configurations');
+      } catch (error) {
+        console.error('❌ [SALVAR MARKUPS] Erro ao sincronizar configurações:', error);
       }
 
       console.log('✅ [SALVAR MARKUPS] Markups salvos no banco de dados com sucesso!');

@@ -206,6 +206,34 @@ export function useMarkupInitializer() {
         await supabase
           .from('markups')
           .insert(markupData);
+
+        // Também sincronizar com user_configurations para manter consistência
+        const blocosConfig = await loadConfiguration('markups_blocos') || [];
+        const blocoIndex = blocosConfig.findIndex((b: any) => b.nome === bloco.nome);
+        
+        if (blocoIndex >= 0) {
+          // Atualizar bloco existente com valores calculados
+          blocosConfig[blocoIndex] = {
+            ...blocosConfig[blocoIndex],
+            gastoSobreFaturamento: categorias.gastoSobreFaturamento,
+            impostos: categorias.impostos,
+            taxasMeiosPagamento: categorias.taxasMeiosPagamento,
+            comissoesPlataformas: categorias.comissoesPlataformas,
+            outros: categorias.outros,
+            valorEmReal: categorias.valorEmReal
+          };
+
+          // Salvar configuração atualizada
+          await supabase
+            .from('user_configurations')
+            .upsert({
+              user_id: user.id,
+              type: 'markups_blocos',
+              configuration: blocosConfig
+            });
+          
+          console.log(`🔄 [MARKUP INITIALIZER] Sincronizado ${bloco.nome} com user_configurations`);
+        }
       }
 
       console.log('✅ [MARKUP INITIALIZER] Markups inicializados com sucesso!');
