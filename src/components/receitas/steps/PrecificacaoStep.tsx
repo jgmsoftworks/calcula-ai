@@ -905,17 +905,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-sm text-muted-foreground mb-1">Markup da Categoria</p>
                           <p className="text-lg font-bold text-primary">
-                            {(1.0000).toLocaleString('pt-BR', { 
+                            {encargosDetalhados[markup.id]?.markupIdeal ? `${encargosDetalhados[markup.id].markupIdeal.toLocaleString('pt-BR', { 
                               minimumFractionDigits: 4, 
                               maximumFractionDigits: 4 
-                            })}
+                            })}` : '1,0000'}
                           </p>
                         </div>
                         
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-sm text-muted-foreground mb-1">Markup Final</p>
                           <p className="text-lg font-bold text-secondary">
-                            {encargosDetalhados[markup.id]?.markupIdeal ? `${encargosDetalhados[markup.id].markupIdeal.toLocaleString('pt-BR', { 
+                            {markup.markup_aplicado > 0 ? `${markup.markup_aplicado.toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 3, 
+                              maximumFractionDigits: 3 
+                            })}` : encargosDetalhados[markup.id]?.markupIdeal ? `${encargosDetalhados[markup.id].markupIdeal.toLocaleString('pt-BR', { 
                               minimumFractionDigits: 3, 
                               maximumFractionDigits: 3
                             })}` : '0,000'}
