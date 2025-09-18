@@ -638,19 +638,24 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                            <TooltipTrigger asChild>
                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-xs">
-                              <div className="space-y-2 text-sm">
-                                <div className="font-medium">Configurações do Markup:</div>
-                                <div>• Margem de lucro: {markup.margem_lucro}%</div>
-                                <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento}%</div>
-                                <div>• Total de encargos: {markup.encargos_sobre_venda}%</div>
-                                <div className="text-muted-foreground text-xs pl-4">
-                                  (soma de impostos, taxas e comissões)
-                                </div>
-                                <div>• Markup ideal: {markup.markup_ideal.toFixed(4)}</div>
-                                <div>• Período: {markup.periodo} meses</div>
-                              </div>
-                            </TooltipContent>
+            <TooltipContent side="right" className="max-w-sm">
+              <div className="space-y-2 text-sm">
+                <div className="font-medium">Configurações do Markup:</div>
+                <div>• Período: {markup.periodo === '12' ? 'Últimos 12 meses' : 
+                                 markup.periodo === '6' ? 'Últimos 6 meses' : 
+                                 markup.periodo === '3' ? 'Últimos 3 meses' : 
+                                 markup.periodo === '1' ? 'Último mês' : `${markup.periodo} meses`}</div>
+                <div>• Média de faturamento: Calculada automaticamente</div>
+                <div>• Gasto sobre faturamento: {markup.gasto_sobre_faturamento?.toFixed(2)}%</div>
+                <div>• Total de encargos: {markup.encargos_sobre_venda?.toFixed(2)}%</div>
+                <div className="text-muted-foreground text-xs pl-4">
+                  (impostos, taxas, comissões e outros)
+                </div>
+                <div>• Valor em real: R$ {((markup.encargos_sobre_venda || 0) / 100 * precoNumerico).toFixed(2)}</div>
+                <div>• Lucro desejado: {markup.margem_lucro?.toFixed(2)}%</div>
+                <div>• Markup ideal: {markup.markup_ideal?.toFixed(4)}</div>
+              </div>
+            </TooltipContent>
                          </Tooltip>
                        </div>
                       <div className="flex gap-2 items-center">
