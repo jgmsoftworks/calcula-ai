@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
+import { useMarkupInitializer } from '@/hooks/useMarkupInitializer';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AppLayoutProps {
@@ -25,6 +26,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [isReady, setIsReady] = useState(false);
+  
+  // Inicializar markups automaticamente quando o usuário estiver logado
+  useMarkupInitializer();
 
   useEffect(() => {
     if (!loading) {

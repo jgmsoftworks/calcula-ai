@@ -417,6 +417,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
     try {
       isMarkupSaving.current = true;
+      console.log('💾 [SALVAR MARKUPS] Iniciando salvamento no banco...', blocos.length);
       
       // Primeiro, deletar todos os markups existentes do usuário
       await supabase
@@ -431,11 +432,41 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
       for (const bloco of uniqueBlocos) {
         const calculated = calculatedMarkups.get(bloco.id);
-        if (!calculated) continue;
+        if (!calculated) {
+          console.log(`⚠️ [SALVAR MARKUPS] Valores calculados não encontrados para ${bloco.nome}`);
+          continue;
+        }
 
         // Buscar configuração salva para este bloco
         const configKey = `checkbox-states-${bloco.id}`;
         const config = await loadConfiguration(configKey);
+        
+        // Buscar IDs selecionados das tabelas relacionadas
+        const despesasFixasSelecionadas = [];
+        const folhaPagamentoSelecionada = [];
+        const encargosVendaSelecionados = [];
+        
+        if (config && typeof config === 'object') {
+          // Buscar todos os dados para mapear os IDs corretamente
+          const [{ data: despesasFixas }, { data: folhaPagamento }, { data: encargosVenda }] = await Promise.all([
+            supabase.from('despesas_fixas').select('id').eq('user_id', user.id).eq('ativo', true),
+            supabase.from('folha_pagamento').select('id').eq('user_id', user.id).eq('ativo', true),
+            supabase.from('encargos_venda').select('id').eq('user_id', user.id).eq('ativo', true)
+          ]);
+
+          // Filtrar IDs selecionados
+          despesasFixas?.forEach(item => {
+            if (config[item.id]) despesasFixasSelecionadas.push(item.id);
+          });
+          
+          folhaPagamento?.forEach(item => {
+            if (config[item.id]) folhaPagamentoSelecionada.push(item.id);
+          });
+          
+          encargosVenda?.forEach(item => {
+            if (config[item.id]) encargosVendaSelecionados.push(item.id);
+          });
+        }
 
         const markupData = {
           user_id: user.id,
@@ -448,20 +479,32 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           markup_ideal: calcularMarkupIdealParaBanco(bloco, calculated),
           markup_aplicado: calcularMarkupAplicadoParaBanco(bloco, calculated),
           preco_sugerido: calculated.valorEmReal,
-          despesas_fixas_selecionadas: config ? Object.keys(config).filter(key => config[key] && key.includes('despesa')) : [],
-          folha_pagamento_selecionada: config ? Object.keys(config).filter(key => config[key] && key.includes('folha')) : [],
-          encargos_venda_selecionados: config ? Object.keys(config).filter(key => config[key] && key.includes('encargo')) : [],
+          despesas_fixas_selecionadas: despesasFixasSelecionadas,
+          folha_pagamento_selecionada: folhaPagamentoSelecionada,
+          encargos_venda_selecionados: encargosVendaSelecionados,
           ativo: true
         };
+
+        console.log(`💾 [SALVAR MARKUPS] Salvando ${bloco.nome}:`, {
+          ...markupData,
+          detalhesCalculados: {
+            gastoSobreFaturamento: calculated.gastoSobreFaturamento,
+            impostos: calculated.impostos,
+            taxasMeiosPagamento: calculated.taxasMeiosPagamento,
+            comissoesPlataformas: calculated.comissoesPlataformas,
+            outros: calculated.outros,
+            valorEmReal: calculated.valorEmReal
+          }
+        });
 
         await supabase
           .from('markups')
           .insert(markupData);
       }
 
-      console.log('✅ Markups salvos no banco de dados');
+      console.log('✅ [SALVAR MARKUPS] Markups salvos no banco de dados com sucesso!');
     } catch (error) {
-      console.error('❌ Erro ao salvar markups no banco:', error);
+      console.error('❌ [SALVAR MARKUPS] Erro ao salvar markups no banco:', error);
     } finally {
       isMarkupSaving.current = false;
     }
