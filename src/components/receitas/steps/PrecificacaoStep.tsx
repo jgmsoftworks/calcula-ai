@@ -672,11 +672,11 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                          </p>
                        </div>
                       
-                      <div className="text-center p-3 bg-background rounded-lg border">
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Sugestão de Preço 
-                          <span className="text-xs ml-1">(encargos: R$ {markup.encargos_sobre_venda.toFixed(2)})</span>
-                        </p>
+                       <div className="text-center p-3 bg-background rounded-lg border">
+                         <p className="text-sm text-muted-foreground mb-1">
+                           Sugestão de Preço 
+                           <span className="text-xs ml-1">(encargos: R$ {encargosReaisTotal.toFixed(2)})</span>
+                         </p>
                         <p className="text-lg font-bold text-primary">
                           {new Intl.NumberFormat('pt-BR', {
                             style: 'currency',
