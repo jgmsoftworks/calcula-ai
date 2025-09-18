@@ -82,6 +82,7 @@ interface EncargosDetalhados {
   gastoSobreFaturamentoCalculado: number;
   lucroDesejado: number;
   markupIdeal: number;
+  valorEmReal: number;
 }
 
 interface ReceitaData {
@@ -116,11 +117,12 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const calcularEncargosDetalhados = async (markup: MarkupData): Promise<EncargosDetalhados & { 
     mediaFaturamento: number; 
     gastoSobreFaturamentoCalculado: number; 
+    valorEmReal: number;
   }> => {
     console.log(`🔍 [TOOLTIP DEBUG] Buscando dados corretos da user_configurations para: ${markup.nome} (ID: ${markup.id})`);
 
     if (!user?.id) {
-      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0, valorEmReal: 0 };
     }
 
     try {
@@ -133,8 +135,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         .maybeSingle();
 
       if (configError) {
-        console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar configuração:`, configError);
-        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
+      console.log(`❌ [TOOLTIP DEBUG] Erro ao buscar configuração:`, configError);
+        return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0, valorEmReal: 0 };
       }
 
       // 2. Buscar dados de faturamento para calcular média
@@ -214,6 +216,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
       const total = impostos + taxas + comissoes + outros;
       
+      // 5. Extrair o "Valor em real" da configuração do markup
+      let valorEmReal = 0;
+      if (configData?.configuration) {
+        const config = configData.configuration as any;
+        valorEmReal = Number(config.valorEmReal || config.valor_em_real || 0);
+      }
+
       const resultado = { 
         impostos, 
         taxas, 
@@ -223,7 +232,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         mediaFaturamento,
         gastoSobreFaturamentoCalculado,
         lucroDesejado,
-        markupIdeal
+        markupIdeal,
+        valorEmReal
       };
       
       console.log(`✅ [TOOLTIP DEBUG] Resultado final para ${markup.nome}:`, resultado);
@@ -231,7 +241,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       return resultado;
     } catch (error) {
       console.error(`❌ [TOOLTIP DEBUG] Erro ao buscar detalhes do markup ${markup.nome}:`, error);
-      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0 };
+      return { impostos: 0, taxas: 0, comissoes: 0, outros: 0, total: 0, mediaFaturamento: 0, gastoSobreFaturamentoCalculado: 0, lucroDesejado: 0, markupIdeal: 0, valorEmReal: 0 };
     }
   };
 
@@ -819,9 +829,11 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               const lucroBrutoUnitario = precoNumerico - custoUnitario;
               
               // Lucro Líquido Real = Preço - (Custo + Encargos reais)
-              // Calcular todos os encargos como percentual do preço de venda
-              const gastosSobreFaturamento = (markup.gasto_sobre_faturamento || 0) / 100 * precoNumerico;
-              const encargosSobreVenda = (markup.encargos_sobre_venda || 0) / 100 * precoNumerico;
+              // Usar o "Valor em real" da configuração do markup em vez do preço inserido pelo usuário
+              const valorEmRealConfigurado = encargosDetalhados[markup.id]?.valorEmReal || 0;
+              const valorParaCalculo = valorEmRealConfigurado > 0 ? valorEmRealConfigurado : precoNumerico;
+              const gastosSobreFaturamento = (markup.gasto_sobre_faturamento || 0) / 100 * valorParaCalculo;
+              const encargosSobreVenda = (markup.encargos_sobre_venda || 0) / 100 * valorParaCalculo;
               const encargosReaisTotal = gastosSobreFaturamento + encargosSobreVenda;
               const lucroLiquidoReal = precoNumerico - custoUnitario - encargosReaisTotal;
               const faturamentoBruto = precoNumerico;
@@ -865,7 +877,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                       <div>• Taxas de meios de pagamento: {encargosDetalhados[markup.id].taxas.toFixed(2)}%</div>
                       <div>• Comissões e plataformas: {encargosDetalhados[markup.id].comissoes.toFixed(2)}%</div>
                       <div>• Outros: {encargosDetalhados[markup.id].outros.toFixed(2)}%</div>
-                      <div className="font-medium">• Total de encargos: R$ {((encargosDetalhados[markup.id].total || 0) / 100 * precoNumerico).toFixed(2)}</div>
+                      <div className="font-medium">• Adicional RS: R$ {((encargosDetalhados[markup.id].total || 0) / 100 * (encargosDetalhados[markup.id].valorEmReal || 0)).toFixed(2)}</div>
                     </div>
                     
                     <div className="font-medium mt-3">Resultado:</div>
