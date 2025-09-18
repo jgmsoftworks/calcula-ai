@@ -877,7 +877,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                       <div>• Taxas de meios de pagamento: {encargosDetalhados[markup.id].taxas.toFixed(2)}%</div>
                       <div>• Comissões e plataformas: {encargosDetalhados[markup.id].comissoes.toFixed(2)}%</div>
                       <div>• Outros: {encargosDetalhados[markup.id].outros.toFixed(2)}%</div>
-                      <div className="font-medium">• Adicional RS: R$ {((encargosDetalhados[markup.id].total || 0) / 100 * (encargosDetalhados[markup.id].valorEmReal || 0)).toFixed(2)}</div>
+                      <div className="font-medium">• Adicional RS: R$ {(encargosDetalhados[markup.id].valorEmReal || 0).toFixed(2)}</div>
                     </div>
                     
                     <div className="font-medium mt-3">Resultado:</div>
