@@ -902,25 +902,25 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                   <CardContent className="pt-0 space-y-4">
                     {/* Markup Values */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                       <div className="text-center p-3 bg-background rounded-lg border">
-                         <p className="text-sm text-muted-foreground mb-1">Markup da Categoria</p>
-                         <p className="text-lg font-bold text-primary">
-                           {markup.markup_ideal.toLocaleString('pt-BR', { 
-                             minimumFractionDigits: 4, 
-                             maximumFractionDigits: 4 
-                           })}
-                         </p>
-                       </div>
-                       
-                       <div className="text-center p-3 bg-background rounded-lg border">
-                         <p className="text-sm text-muted-foreground mb-1">Markup Final</p>
-                         <p className="text-lg font-bold text-secondary">
-                           {precoNumerico > 0 ? `${markupFinal.toLocaleString('pt-BR', { 
-                             minimumFractionDigits: 3, 
-                             maximumFractionDigits: 3 
-                           })}` : '0,000'}
-                         </p>
-                       </div>
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <p className="text-sm text-muted-foreground mb-1">Markup da Categoria</p>
+                          <p className="text-lg font-bold text-primary">
+                            {(1.0000).toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 4, 
+                              maximumFractionDigits: 4 
+                            })}
+                          </p>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <p className="text-sm text-muted-foreground mb-1">Markup Final</p>
+                          <p className="text-lg font-bold text-secondary">
+                            {encargosDetalhados[markup.id]?.markupIdeal ? `${encargosDetalhados[markup.id].markupIdeal.toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 3, 
+                              maximumFractionDigits: 3
+                            })}` : '0,000'}
+                          </p>
+                        </div>
                       
                        <div className="text-center p-3 bg-background rounded-lg border">
                          <p className="text-sm text-muted-foreground mb-1">
