@@ -826,6 +826,16 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               // Calculate suggested price: unit cost × markup + additional value in R$
               const precoSugerido = (custoUnitario * markup.markup_ideal) + (encargosDetalhados[markup.id]?.valorEmReal || 0);
               
+              // Debug logs - TEMPORARY
+              console.log('DEBUG - Cálculo Sugestão de Preço:', {
+                custoUnitario,
+                markupIdeal: markup.markup_ideal,
+                valorEmReal: encargosDetalhados[markup.id]?.valorEmReal || 0,
+                calculoBase: custoUnitario * markup.markup_ideal,
+                precoSugerido,
+                markupNome: markup.nome
+              });
+              
               // Calculate profit metrics using unit cost (not affected by unit weight)
               const lucroBrutoUnitario = precoNumerico - custoUnitario;
               
