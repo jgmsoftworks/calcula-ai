@@ -27,7 +27,7 @@ interface CalculatedMarkup {
 
 export function useMarkupInitializer() {
   const { user } = useAuth();
-  const { loadConfiguration } = useOptimizedUserConfigurations();
+  const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const isInitializing = useRef(false);
 
   const categoriasMap = {
@@ -200,19 +200,38 @@ export function useMarkupInitializer() {
 
         console.log(`💾 [MARKUP INITIALIZER] Salvando ${bloco.nome}:`, markupData);
 
-        // Primeiro, deletar markup existente com mesmo nome
-        await supabase
+        // Verificar se o markup já existe antes de tentar salvar
+        const { data: existingMarkup } = await supabase
           .from('markups')
-          .delete()
+          .select('id')
           .eq('user_id', user.id)
-          .eq('nome', bloco.nome);
+          .eq('nome', bloco.nome)
+          .maybeSingle();
 
-        // Depois inserir o novo
-        await supabase
-          .from('markups')
-          .insert(markupData);
+        if (existingMarkup) {
+          // Atualizar markup existente
+          const { error: updateError } = await supabase
+            .from('markups')
+            .update(markupData)
+            .eq('id', existingMarkup.id);
 
-        // Salvar configuração individual para o tooltip
+          if (updateError) {
+            console.error(`❌ [MARKUP INITIALIZER] Erro ao atualizar ${bloco.nome}:`, updateError);
+            continue;
+          }
+        } else {
+          // Inserir novo markup
+          const { error: insertError } = await supabase
+            .from('markups')
+            .insert(markupData);
+
+          if (insertError) {
+            console.error(`❌ [MARKUP INITIALIZER] Erro ao inserir ${bloco.nome}:`, insertError);
+            continue;
+          }
+        }
+
+        // Salvar configuração individual para o tooltip usando saveConfiguration
         const configIndividual = {
           periodo: bloco.periodo,
           gastoSobreFaturamento: categorias.gastoSobreFaturamento,
@@ -224,42 +243,37 @@ export function useMarkupInitializer() {
         };
 
         const tooltipConfigKey = `markup_${bloco.nome.toLowerCase().replace(/\s+/g, '_')}`;
-        await supabase
-          .from('user_configurations')
-          .upsert({
-            user_id: user.id,
-            type: tooltipConfigKey,
-            configuration: configIndividual
-          });
         
-        console.log(`💾 [MARKUP INITIALIZER] Configuração individual salva para tooltip: ${tooltipConfigKey}`, configIndividual);
+        try {
+          await saveConfiguration(tooltipConfigKey, configIndividual);
+          console.log(`💾 [MARKUP INITIALIZER] Configuração individual salva para tooltip: ${tooltipConfigKey}`, configIndividual);
+        } catch (error) {
+          console.error(`❌ [MARKUP INITIALIZER] Erro ao salvar tooltip config:`, error);
+        }
 
         // Também sincronizar com user_configurations para manter consistência
-        const blocosConfig = await loadConfiguration('markups_blocos') || [];
-        const blocoIndex = blocosConfig.findIndex((b: any) => b.nome === bloco.nome);
-        
-        if (blocoIndex >= 0) {
-          // Atualizar bloco existente com valores calculados
-          blocosConfig[blocoIndex] = {
-            ...blocosConfig[blocoIndex],
-            gastoSobreFaturamento: categorias.gastoSobreFaturamento,
-            impostos: categorias.impostos,
-            taxasMeiosPagamento: categorias.taxasMeiosPagamento,
-            comissoesPlataformas: categorias.comissoesPlataformas,
-            outros: categorias.outros,
-            valorEmReal: categorias.valorEmReal
-          };
-
-          // Salvar configuração atualizada
-          await supabase
-            .from('user_configurations')
-            .upsert({
-              user_id: user.id,
-              type: 'markups_blocos',
-              configuration: blocosConfig
-            });
+        try {
+          const blocosConfig = await loadConfiguration('markups_blocos') || [];
+          const blocoIndex = blocosConfig.findIndex((b: any) => b.nome === bloco.nome);
           
-          console.log(`🔄 [MARKUP INITIALIZER] Sincronizado ${bloco.nome} com user_configurations`);
+          if (blocoIndex >= 0) {
+            // Atualizar bloco existente com valores calculados
+            blocosConfig[blocoIndex] = {
+              ...blocosConfig[blocoIndex],
+              gastoSobreFaturamento: categorias.gastoSobreFaturamento,
+              impostos: categorias.impostos,
+              taxasMeiosPagamento: categorias.taxasMeiosPagamento,
+              comissoesPlataformas: categorias.comissoesPlataformas,
+              outros: categorias.outros,
+              valorEmReal: categorias.valorEmReal
+            };
+
+            // Salvar configuração atualizada usando saveConfiguration
+            await saveConfiguration('markups_blocos', blocosConfig);
+            console.log(`🔄 [MARKUP INITIALIZER] Sincronizado ${bloco.nome} com user_configurations`);
+          }
+        } catch (error) {
+          console.error(`❌ [MARKUP INITIALIZER] Erro ao sincronizar blocos:`, error);
         }
       }
 
@@ -271,14 +285,18 @@ export function useMarkupInitializer() {
     }
   }, [user?.id, loadConfiguration, getCategoriaByNome, calcularMarkupIdeal]);
 
-  // Executar quando o usuário logar
+  // Executar quando o usuário logar (com debounce e proteção)
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !isInitializing.current) {
       console.log('👤 [MARKUP INITIALIZER] Usuário logado, inicializando markups...');
-      // Pequeno delay para garantir que outras configurações já foram carregadas
-      setTimeout(() => {
-        inicializarMarkups();
-      }, 1000);
+      // Delay maior para garantir que outras configurações já foram carregadas
+      const timer = setTimeout(() => {
+        if (!isInitializing.current) {
+          inicializarMarkups();
+        }
+      }, 3000);
+
+      return () => clearTimeout(timer);
     }
   }, [user?.id, inicializarMarkups]);
 

@@ -329,16 +329,22 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     }
   }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
-  // Salvar no banco quando calculatedMarkups for atualizado
+  // Salvar no banco quando calculatedMarkups for atualizado (com debounce para evitar loops)
   useEffect(() => {
-    if (calculatedMarkups.size > 0 && blocos.length > 0 && user?.id) {
+    if (calculatedMarkups.size > 0 && blocos.length > 0 && user?.id && !isMarkupSaving.current) {
       console.log('💾 Salvando markups calculados no banco...');
-      salvarMarkupsNoBanco(blocos);
+      
+      // Debounce para evitar salvamentos excessivos
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      
+      debounceRef.current = setTimeout(() => {
+        salvarMarkupsNoBanco(blocos);
+      }, 1000);
     }
   }, [calculatedMarkups, blocos, user?.id]);
 
 
-  // Real-time updates: escutar mudanças na tabela user_configurations
+  // Real-time updates: escutar mudanças na tabela user_configurations (com proteção contra loops)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -355,29 +361,34 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          // Ignorar se estamos salvando para evitar loops infinitos
+          if (isMarkupSaving.current) {
+            console.log('⏸️ Ignorando real-time update durante salvamento para evitar loop');
+            return;
+          }
+          
           console.log('🔔 Real-time update recebida:', payload);
           
           // Verificar se é uma mudança relacionada aos nossos dados
-          const configType = (payload.new as any)?.config_key || (payload.old as any)?.config_key;
+          const configType = (payload.new as any)?.type || (payload.old as any)?.type;
           if (configType && (
                 configType.includes('checkbox-states-') ||
-                configType === 'despesas_fixas' ||
-                configType === 'folha_pagamento' ||
-                configType === 'encargos_venda' ||
                 configType === 'faturamentos_historicos' ||
-                configType === 'despesas_fixas' ||
-                configType === 'folha_pagamento' ||
-                configType === 'encargos_venda')) {
+                configType.includes('despesas_fixas') ||
+                configType.includes('folha_pagamento') ||
+                configType.includes('encargos_venda'))) {
              
             console.log('🔃 Recarregando configurações devido à mudança em tempo real');
             
             // Invalidar cache para forçar recarregamento
             invalidateCache();
             
-            // Pequeno delay para garantir que todas as alterações foram salvas
+            // Usar timeout maior para evitar conflitos
             setTimeout(() => {
-              carregarConfiguracoesSalvas();
-            }, 300);
+              if (!isMarkupSaving.current) {
+                carregarConfiguracoesSalvas();
+              }
+            }, 2000);
           }
         }
       )
@@ -387,7 +398,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       console.log('🔌 Desconectando real-time updates');
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, invalidateCache, carregarConfiguracoesSalvas]);
 
   // Limpar timeouts ao desmontar
   useEffect(() => {
