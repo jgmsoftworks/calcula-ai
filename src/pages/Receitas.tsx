@@ -318,7 +318,7 @@ const Receitas = () => {
       // Gerar PDF
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.width;
-      let yPosition = 20;
+      let yPosition = 5;
 
       // CABEÇALHO DA EMPRESA
       const logoMaxSize = 20; // Reduzido de 30 para 20 para caber melhor nas linhas
@@ -327,10 +327,10 @@ const Receitas = () => {
       // Desenhar linha superior do cabeçalho
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.5);
-      pdf.line(20, yPosition - 5, pageWidth - 20, yPosition - 5);
+      pdf.line(5, yPosition - 5, pageWidth - 5, yPosition - 5);
       
-      let logoX = 25;
-      let infoX = pageWidth - 20;
+      let logoX = 5;
+      let infoX = pageWidth - 5;
       
       // Adicionar logo se disponível
       if (logoConfig && logoConfig.configuration && typeof logoConfig.configuration === 'string') {
@@ -403,37 +403,37 @@ const Receitas = () => {
 
       // Desenhar linha inferior do cabeçalho - grudada ao conteúdo
       yPosition = currentY + 2;
-      pdf.line(20, yPosition, pageWidth - 20, yPosition);
+      pdf.line(5, yPosition, pageWidth - 5, yPosition);
       yPosition += 15;
 
       // Título da receita
       pdf.setFontSize(20);
       pdf.setFont(undefined, 'bold');
-      pdf.text(`Receita: ${receita.nome}`, 20, yPosition);
+      pdf.text(`Receita: ${receita.nome}`, 5, yPosition);
       yPosition += 15;
 
       // Informações gerais
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`Tipo: ${receita.tipo_produto || 'Não definido'}`, 20, yPosition);
+      pdf.text(`Tipo: ${receita.tipo_produto || 'Não definido'}`, 5, yPosition);
       yPosition += 5; // Reduzido de 8 para 5
-      pdf.text(`Rendimento: ${receita.rendimento_valor} ${receita.rendimento_unidade}`, 20, yPosition);
+      pdf.text(`Rendimento: ${receita.rendimento_valor} ${receita.rendimento_unidade}`, 5, yPosition);
       yPosition += 5; // Reduzido de 8 para 5
-      pdf.text(`Status: ${receita.status}`, 20, yPosition);
+      pdf.text(`Status: ${receita.status}`, 5, yPosition);
       yPosition += 5; // Reduzido de 8 para 5
-      pdf.text(`Markup: ${receita.markups?.nome || 'Nenhum'}`, 20, yPosition);
+      pdf.text(`Markup: ${receita.markups?.nome || 'Nenhum'}`, 5, yPosition);
       yPosition += 10; // Reduzido de 15 para 10
 
       // Ingredientes
       if (ingredientes && ingredientes.length > 0) {
         pdf.setFont(undefined, 'bold');
-        pdf.text('INGREDIENTES:', 20, yPosition);
+        pdf.text('INGREDIENTES:', 5, yPosition);
         yPosition += 7; // Reduzido de 10 para 7
         pdf.setFont(undefined, 'normal');
         
         ingredientes.forEach((ing) => {
           const text = `• ${ing.nome}: ${ing.quantidade} ${ing.unidade} - ${formatCurrency(ing.custo_total)}`;
-          pdf.text(text, 25, yPosition);
+          pdf.text(text, 10, yPosition);
           yPosition += 5; // Reduzido de 8 para 5
         });
         yPosition += 3; // Reduzido de 5 para 3
@@ -442,13 +442,13 @@ const Receitas = () => {
       // Sub-receitas
       if (subReceitas && subReceitas.length > 0) {
         pdf.setFont(undefined, 'bold');
-        pdf.text('SUB-RECEITAS:', 20, yPosition);
+        pdf.text('SUB-RECEITAS:', 5, yPosition);
         yPosition += 7; // Reduzido de 10 para 7
         pdf.setFont(undefined, 'normal');
         
         subReceitas.forEach((sub) => {
           const text = `• ${sub.nome}: ${sub.quantidade} ${sub.unidade} - ${formatCurrency(sub.custo_total)}`;
-          pdf.text(text, 25, yPosition);
+          pdf.text(text, 10, yPosition);
           yPosition += 5; // Reduzido de 8 para 5
         });
         yPosition += 3; // Reduzido de 5 para 3
@@ -457,13 +457,13 @@ const Receitas = () => {
       // Embalagens
       if (embalagens && embalagens.length > 0) {
         pdf.setFont(undefined, 'bold');
-        pdf.text('EMBALAGENS:', 20, yPosition);
+        pdf.text('EMBALAGENS:', 5, yPosition);
         yPosition += 7; // Reduzido de 10 para 7
         pdf.setFont(undefined, 'normal');
         
         embalagens.forEach((emb) => {
           const text = `• ${emb.nome}: ${emb.quantidade} ${emb.unidade} - ${formatCurrency(emb.custo_total)}`;
-          pdf.text(text, 25, yPosition);
+          pdf.text(text, 10, yPosition);
           yPosition += 5; // Reduzido de 8 para 5
         });
         yPosition += 3; // Reduzido de 5 para 3
@@ -472,13 +472,13 @@ const Receitas = () => {
       // Mão de obra
       if (maoObra && maoObra.length > 0) {
         pdf.setFont(undefined, 'bold');
-        pdf.text('MÃO DE OBRA:', 20, yPosition);
+        pdf.text('MÃO DE OBRA:', 5, yPosition);
         yPosition += 7; // Reduzido de 10 para 7
         pdf.setFont(undefined, 'normal');
         
         maoObra.forEach((mo) => {
           const text = `• ${mo.funcionario_nome} (${mo.funcionario_cargo}): ${mo.tempo} ${mo.unidade_tempo} - ${formatCurrency(mo.valor_total)}`;
-          pdf.text(text, 25, yPosition);
+          pdf.text(text, 10, yPosition);
           yPosition += 5; // Reduzido de 8 para 5
         });
         yPosition += 10; // Reduzido de 15 para 10
@@ -488,35 +488,35 @@ const Receitas = () => {
       const receitaCompleta = receitas.find(r => r.id === receitaId);
       if (receitaCompleta) {
         pdf.setFont(undefined, 'bold');
-        pdf.text('RESUMO FINANCEIRO:', 20, yPosition);
+        pdf.text('RESUMO FINANCEIRO:', 5, yPosition);
         yPosition += 7; // Reduzido de 10 para 7
         pdf.setFont(undefined, 'normal');
         
-        pdf.text(`Custo Matéria-Prima: ${formatCurrency(receitaCompleta.custo_materia_prima)}`, 25, yPosition);
+        pdf.text(`Custo Matéria-Prima: ${formatCurrency(receitaCompleta.custo_materia_prima)}`, 10, yPosition);
         yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Custo Mão de Obra: ${formatCurrency(receitaCompleta.custo_mao_obra)}`, 25, yPosition);
+        pdf.text(`Custo Mão de Obra: ${formatCurrency(receitaCompleta.custo_mao_obra)}`, 10, yPosition);
         yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Custo Embalagens: ${formatCurrency(receitaCompleta.custo_embalagens)}`, 25, yPosition);
+        pdf.text(`Custo Embalagens: ${formatCurrency(receitaCompleta.custo_embalagens)}`, 10, yPosition);
         yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Custo Total: ${formatCurrency(receitaCompleta.custo_total)}`, 25, yPosition);
+        pdf.text(`Custo Total: ${formatCurrency(receitaCompleta.custo_total)}`, 10, yPosition);
         yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Preço de Venda: ${formatCurrency(receitaCompleta.preco_venda)}`, 25, yPosition);
+        pdf.text(`Preço de Venda: ${formatCurrency(receitaCompleta.preco_venda)}`, 10, yPosition);
         yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Margem de Contribuição: ${formatCurrency(receitaCompleta.margem_contribuicao)}`, 25, yPosition);
+        pdf.text(`Margem de Contribuição: ${formatCurrency(receitaCompleta.margem_contribuicao)}`, 10, yPosition);
         yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Lucro Líquido: ${formatCurrency(receitaCompleta.lucro_liquido)}`, 25, yPosition);
+        pdf.text(`Lucro Líquido: ${formatCurrency(receitaCompleta.lucro_liquido)}`, 10, yPosition);
       }
 
       // Observações
       if (receita.observacoes) {
         yPosition += 10; // Reduzido de 15 para 10
         pdf.setFont(undefined, 'bold');
-        pdf.text('OBSERVAÇÕES:', 20, yPosition);
+        pdf.text('OBSERVAÇÕES:', 5, yPosition);
         yPosition += 7; // Reduzido de 10 para 7
         pdf.setFont(undefined, 'normal');
         
-        const lines = pdf.splitTextToSize(receita.observacoes, pageWidth - 40);
-        pdf.text(lines, 20, yPosition);
+        const lines = pdf.splitTextToSize(receita.observacoes, pageWidth - 10);
+        pdf.text(lines, 5, yPosition);
       }
 
       // Salvar PDF
