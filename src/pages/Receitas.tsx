@@ -337,34 +337,8 @@ const Receitas = () => {
         try {
           const logoData = logoConfig.configuration as string;
           
-          // Criar uma imagem temporária para obter dimensões originais
-          const img = new Image();
-          img.onload = function() {
-            const aspectRatio = img.width / img.height;
-            let logoWidth = logoMaxSize;
-            let logoHeight = logoMaxSize;
-            
-            // Manter proporção da imagem
-            if (aspectRatio > 1) {
-              // Imagem mais larga que alta
-              logoHeight = logoMaxSize / aspectRatio;
-            } else {
-              // Imagem mais alta que larga
-              logoWidth = logoMaxSize * aspectRatio;
-            }
-            
-            pdf.addImage(logoData, 'PNG', logoX, yPosition, logoWidth, logoHeight);
-          };
-          img.src = logoData;
-          
-          // Fallback - adicionar com tamanho original se não conseguir calcular proporção
-          setTimeout(() => {
-            try {
-              pdf.addImage(logoData, 'PNG', logoX, yPosition, logoMaxSize, logoMaxSize);
-            } catch (e) {
-              console.log('Erro no fallback do logo:', e);
-            }
-          }, 100);
+          // Adicionar logo com tamanho fixo (a proporção será mantida pelo jsPDF automaticamente)
+          pdf.addImage(logoData, 'PNG', logoX, yPosition, logoMaxSize, logoMaxSize);
           
         } catch (error) {
           console.log('Erro ao adicionar logo ao PDF:', error);
