@@ -321,7 +321,7 @@ const Receitas = () => {
       let yPosition = 20;
 
       // CABEÇALHO DA EMPRESA
-      const logoMaxSize = 30;
+      const logoMaxSize = 20; // Reduzido de 30 para 20 para caber melhor nas linhas
       const headerHeight = 50;
       
       // Desenhar linha superior do cabeçalho
