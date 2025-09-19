@@ -36,6 +36,7 @@ interface BusinessProfile {
 }
 
 interface UserProfile {
+  id?: string; // Add ID for profile updates
   full_name: string;
   phone?: string;
   business_name?: string;
@@ -200,6 +201,7 @@ const PerfilNegocio = () => {
 
       if (data) {
         setProfile({
+          id: data.id, // Include the profile ID
           full_name: data.full_name || '',
           phone: data.phone || '',
           business_name: data.business_name || '',
@@ -260,6 +262,7 @@ const PerfilNegocio = () => {
       const { error } = await supabase
         .from('profiles')
         .upsert({
+          id: profile.id, // Include ID for proper update
           user_id: user.id,
           ...profileData
         });
