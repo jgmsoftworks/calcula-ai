@@ -276,6 +276,21 @@ const Receitas = () => {
         return;
       }
 
+      // Buscar dados do perfil do negócio
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      // Buscar logo do negócio
+      const { data: logoConfig } = await supabase
+        .from('user_configurations')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('type', 'business_logo')
+        .single();
+
       // Buscar ingredientes
       const { data: ingredientes } = await supabase
         .from('receita_ingredientes')
@@ -305,7 +320,90 @@ const Receitas = () => {
       const pageWidth = pdf.internal.pageSize.width;
       let yPosition = 20;
 
-      // Título
+      // CABEÇALHO DA EMPRESA
+      const logoSize = 30;
+      const headerHeight = 50;
+      
+      // Desenhar linha superior do cabeçalho
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.5);
+      pdf.line(20, yPosition - 5, pageWidth - 20, yPosition - 5);
+      
+      let logoX = 25;
+      let infoX = pageWidth - 20;
+      
+      // Adicionar logo se disponível
+      if (logoConfig && logoConfig.configuration && typeof logoConfig.configuration === 'string') {
+        try {
+          const logoData = logoConfig.configuration as string;
+          pdf.addImage(logoData, 'PNG', logoX, yPosition, logoSize, logoSize);
+        } catch (error) {
+          console.log('Erro ao adicionar logo ao PDF:', error);
+        }
+      }
+      
+      // Informações da empresa (lado direito)
+      pdf.setFontSize(16);
+      pdf.setFont(undefined, 'bold');
+      let currentY = yPosition + 5;
+      
+      // Nome fantasia
+      if (profile?.nome_fantasia) {
+        const nomeFantasia = profile.nome_fantasia;
+        const textWidth = pdf.getTextWidth(nomeFantasia);
+        pdf.text(nomeFantasia, infoX - textWidth, currentY);
+        currentY += 7;
+      }
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      
+      // Razão social
+      if (profile?.razao_social) {
+        const razaoSocial = profile.razao_social;
+        const textWidth = pdf.getTextWidth(razaoSocial);
+        pdf.text(razaoSocial, infoX - textWidth, currentY);
+        currentY += 5;
+      }
+      
+      // CNPJ/CPF
+      if (profile?.cnpj_cpf) {
+        const cnpjCpf = `CNPJ/CPF: ${profile.cnpj_cpf}`;
+        const textWidth = pdf.getTextWidth(cnpjCpf);
+        pdf.text(cnpjCpf, infoX - textWidth, currentY);
+        currentY += 5;
+      }
+      
+      // Telefone comercial
+      if (profile?.telefone_comercial) {
+        const telefone = `Tel: ${profile.telefone_comercial}`;
+        const textWidth = pdf.getTextWidth(telefone);
+        pdf.text(telefone, infoX - textWidth, currentY);
+        currentY += 5;
+      }
+      
+      // Celular
+      if (profile?.celular) {
+        const celular = `Cel: ${profile.celular}`;
+        const textWidth = pdf.getTextWidth(celular);
+        pdf.text(celular, infoX - textWidth, currentY);
+        currentY += 5;
+      }
+      
+      // Email
+      if (profile?.email_comercial) {
+        const email = profile.email_comercial;
+        const textWidth = pdf.getTextWidth(email);
+        pdf.text(email, infoX - textWidth, currentY);
+        currentY += 5;
+      }
+
+      // Desenhar linha inferior do cabeçalho
+      yPosition = Math.max(yPosition + headerHeight, currentY + 10);
+      pdf.line(20, yPosition, pageWidth - 20, yPosition);
+      yPosition += 15;
+
+      // Título da receita
       pdf.setFontSize(20);
       pdf.setFont(undefined, 'bold');
       pdf.text(`Receita: ${receita.nome}`, 20, yPosition);
