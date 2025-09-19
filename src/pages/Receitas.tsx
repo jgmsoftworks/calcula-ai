@@ -316,207 +316,327 @@ const Receitas = () => {
         .eq('receita_id', receitaId);
 
       // Gerar PDF
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.width;
-      let yPosition = 5;
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-      // CABEÇALHO DA EMPRESA
-      const logoMaxSize = 20; // Reduzido de 30 para 20 para caber melhor nas linhas
-      const headerHeight = 50;
-      
-      // Desenhar linha superior do cabeçalho
-      pdf.setDrawColor(0, 0, 0);
-      pdf.setLineWidth(0.5);
-      pdf.line(5, yPosition - 5, pageWidth - 5, yPosition - 5);
-      
-      let logoX = 5;
-      let infoX = pageWidth - 5;
-      
-      // Adicionar logo se disponível
-      if (logoConfig && logoConfig.configuration && typeof logoConfig.configuration === 'string') {
-        try {
-          const logoData = logoConfig.configuration as string;
-          
-          // Adicionar logo com tamanho fixo (a proporção será mantida pelo jsPDF automaticamente)
-          pdf.addImage(logoData, 'PNG', logoX, yPosition, logoMaxSize, logoMaxSize);
-          
-        } catch (error) {
-          console.log('Erro ao adicionar logo ao PDF:', error);
-        }
-      }
-      
-      // Informações da empresa (lado direito)
-      pdf.setFontSize(16);
-      pdf.setFont(undefined, 'bold');
-      let currentY = yPosition + 5;
-      
-      // Nome fantasia
-      if (profile?.nome_fantasia) {
-        const nomeFantasia = profile.nome_fantasia;
-        const textWidth = pdf.getTextWidth(nomeFantasia);
-        pdf.text(nomeFantasia, infoX - textWidth, currentY);
-        currentY += 4; // Reduzido de 7 para 4
-      }
-      
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      
-      // Razão social
-      if (profile?.razao_social) {
-        const razaoSocial = profile.razao_social;
-        const textWidth = pdf.getTextWidth(razaoSocial);
-        pdf.text(razaoSocial, infoX - textWidth, currentY);
-        currentY += 3; // Reduzido de 5 para 3
-      }
-      
-      // CNPJ/CPF
-      if (profile?.cnpj_cpf) {
-        const cnpjCpf = `CNPJ/CPF: ${profile.cnpj_cpf}`;
-        const textWidth = pdf.getTextWidth(cnpjCpf);
-        pdf.text(cnpjCpf, infoX - textWidth, currentY);
-        currentY += 3; // Reduzido de 5 para 3
-      }
-      
-      // Telefone comercial
-      if (profile?.telefone_comercial) {
-        const telefone = `Tel: ${profile.telefone_comercial}`;
-        const textWidth = pdf.getTextWidth(telefone);
-        pdf.text(telefone, infoX - textWidth, currentY);
-        currentY += 3; // Reduzido de 5 para 3
-      }
-      
-      // Celular
-      if (profile?.celular) {
-        const celular = `Cel: ${profile.celular}`;
-        const textWidth = pdf.getTextWidth(celular);
-        pdf.text(celular, infoX - textWidth, currentY);
-        currentY += 3; // Reduzido de 5 para 3
-      }
-      
-      // Email
-      if (profile?.email_comercial) {
-        const email = profile.email_comercial;
-        const textWidth = pdf.getTextWidth(email);
-        pdf.text(email, infoX - textWidth, currentY);
-        currentY += 3; // Reduzido de 5 para 3
-      }
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 15;
 
-      // Desenhar linha inferior do cabeçalho - grudada ao conteúdo
-      yPosition = currentY + 2;
-      pdf.line(5, yPosition, pageWidth - 5, yPosition);
-      yPosition += 5;
-
-      // Título da receita
+      // Título da receita no topo
       pdf.setFontSize(20);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(`Receita: ${receita.nome}`, 5, yPosition);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(receita.nome.toUpperCase(), pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 15;
 
-      // Informações gerais
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, 'normal');
-      pdf.text(`Tipo: ${receita.tipo_produto || 'Não definido'}`, 5, yPosition);
-      yPosition += 5; // Reduzido de 8 para 5
-      pdf.text(`Rendimento: ${receita.rendimento_valor} ${receita.rendimento_unidade}`, 5, yPosition);
-      yPosition += 5; // Reduzido de 8 para 5
-      pdf.text(`Status: ${receita.status}`, 5, yPosition);
-      yPosition += 5; // Reduzido de 8 para 5
-      pdf.text(`Markup: ${receita.markups?.nome || 'Nenhum'}`, 5, yPosition);
-      yPosition += 10; // Reduzido de 15 para 10
+      // Linha horizontal após título
+      pdf.line(10, yPosition, pageWidth - 10, yPosition);
+      yPosition += 10;
 
-      // Ingredientes
+      // Layout em três colunas: Info da empresa (esquerda), Foto do produto (centro), Dados (direita)
+      const leftColWidth = 45;
+      const rightColWidth = 60;
+      const centerColStart = leftColWidth + 10;
+      const centerColWidth = pageWidth - leftColWidth - rightColWidth - 30;
+      const rightColStart = pageWidth - rightColWidth - 10;
+
+      // Coluna esquerda - Informações da empresa
+      let leftYPos = yPosition;
+      
+      // Logo da empresa
+      if (logoConfig && logoConfig.configuration) {
+        try {
+          const logoMaxSize = 30;
+          const logoData = logoConfig.configuration as string;
+          
+          pdf.rect(10, leftYPos, leftColWidth, logoMaxSize + 5);
+          pdf.addImage(logoData, 'PNG', 15, leftYPos + 2, logoMaxSize, logoMaxSize);
+          leftYPos += logoMaxSize + 10;
+        } catch (error) {
+          console.error('Erro ao adicionar logo:', error);
+          leftYPos += 35;
+        }
+      } else {
+        pdf.rect(10, leftYPos, leftColWidth, 30);
+        pdf.setFontSize(8);
+        pdf.text('LOGO DA EMPRESA', 32.5, leftYPos + 18, { align: 'center' });
+        leftYPos += 35;
+      }
+
+      // Informações da empresa
+      const empresaInfo = [
+        profile?.business_name || profile?.nome_fantasia || 'NOME FANTASIA',
+        profile?.cnpj_cpf || 'CNPJ',
+        profile?.telefone_comercial || profile?.celular || 'TELEFONE'
+      ];
+
+      empresaInfo.forEach(info => {
+        pdf.rect(10, leftYPos, leftColWidth, 8);
+        pdf.setFontSize(8);
+        pdf.text(info, 12, leftYPos + 5);
+        leftYPos += 8;
+      });
+
+      // Centro - Área da foto do produto
+      pdf.rect(centerColStart, yPosition, centerColWidth, leftYPos - yPosition);
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      
+      // Texto diagonal "FOTO DO PRODUTO"
+      const centerX = centerColStart + centerColWidth / 2;
+      const centerY = yPosition + (leftYPos - yPosition) / 2;
+      
+      pdf.saveGraphicsState();
+      pdf.setGState(pdf.GState({ opacity: 0.3 }));
+      pdf.text('FOTO DO PRODUTO', centerX, centerY, { 
+        align: 'center',
+        angle: 45 
+      });
+      pdf.restoreGraphicsState();
+
+      // Coluna direita - Dados
+      let rightYPos = yPosition;
+      
+      // Seção Dados
+      pdf.setFillColor(100, 100, 100);
+      pdf.rect(rightColStart, rightYPos, rightColWidth, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Dados:', rightColStart + 2, rightYPos + 5);
+      rightYPos += 8;
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+
+      const dadosInfo = [
+        ['Tipo do Produto', receita.tipo_produto || 'MASSA'],
+        ['Rendimento:', `${receita.rendimento_valor || 0} ${receita.rendimento_unidade || 'g'}`],
+        ['Peso unitário:', `${receita.rendimento_valor || 0} g`]
+      ];
+
+      dadosInfo.forEach(([label, value]) => {
+        pdf.rect(rightColStart, rightYPos, rightColWidth, 6);
+        pdf.text(label, rightColStart + 2, rightYPos + 4);
+        pdf.text(value, rightColStart + 30, rightYPos + 4);
+        rightYPos += 6;
+      });
+
+      rightYPos += 3;
+
+      // Seção Conservação
+      pdf.setFillColor(100, 100, 100);
+      pdf.rect(rightColStart, rightYPos, rightColWidth, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Conservação:', rightColStart + 2, rightYPos + 5);
+      rightYPos += 8;
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+
+      // Cabeçalho da tabela de conservação
+      const conservacaoHeaders = ['Local', 'Temp. °C', 'Tempo'];
+      const colWidths = [rightColWidth * 0.4, rightColWidth * 0.3, rightColWidth * 0.3];
+      let xPos = rightColStart;
+
+      conservacaoHeaders.forEach((header, i) => {
+        pdf.rect(xPos, rightYPos, colWidths[i], 6);
+        pdf.text(header, xPos + 1, rightYPos + 4);
+        xPos += colWidths[i];
+      });
+      rightYPos += 6;
+
+      // Linhas da tabela de conservação
+      const conservacaoRows = [
+        ['Congelado', '', ''],
+        ['Refrigerado', '', ''],
+        ['Ambiente', '', '']
+      ];
+
+      conservacaoRows.forEach(row => {
+        xPos = rightColStart;
+        row.forEach((cell, i) => {
+          pdf.rect(xPos, rightYPos, colWidths[i], 6);
+          pdf.text(cell, xPos + 1, rightYPos + 4);
+          xPos += colWidths[i];
+        });
+        rightYPos += 6;
+      });
+
+      // Posicionar para próximas seções
+      yPosition = Math.max(leftYPos, rightYPos) + 10;
+
+      // Tabela de Ingredientes
       if (ingredientes && ingredientes.length > 0) {
-        pdf.setFont(undefined, 'bold');
-        pdf.text('INGREDIENTES:', 5, yPosition);
-        yPosition += 7; // Reduzido de 10 para 7
-        pdf.setFont(undefined, 'normal');
+        // Cabeçalho
+        pdf.setFillColor(100, 100, 100);
+        pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Ingredientes', 12, yPosition + 5);
         
-        ingredientes.forEach((ing) => {
-          const text = `• ${ing.nome}: ${ing.quantidade} ${ing.unidade} - ${formatCurrency(ing.custo_total)}`;
-          pdf.text(text, 10, yPosition);
-          yPosition += 5; // Reduzido de 8 para 5
+        const tableHeaders = ['Un. Medida', '1 Receita', '2 Receitas', '3 Receitas'];
+        const headerWidths = [(pageWidth - 80) / 2, (pageWidth - 80) / 6, (pageWidth - 80) / 6, (pageWidth - 80) / 6];
+        let headerX = 12 + (pageWidth - 80) / 2;
+        
+        tableHeaders.forEach((header, i) => {
+          pdf.text(header, headerX, yPosition + 5);
+          headerX += headerWidths[i];
         });
-        yPosition += 3; // Reduzido de 5 para 3
+        
+        yPosition += 8;
+
+        // Linhas de ingredientes
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        
+        ingredientes.forEach((ingrediente) => {
+          pdf.rect(10, yPosition, pageWidth - 20, 6);
+          pdf.text(ingrediente.nome, 12, yPosition + 4);
+          pdf.text(ingrediente.unidade, 12 + (pageWidth - 80) / 2, yPosition + 4);
+          pdf.text(ingrediente.quantidade.toString(), 12 + (pageWidth - 80) / 2 + (pageWidth - 80) / 6, yPosition + 4);
+          pdf.text((ingrediente.quantidade * 2).toString(), 12 + (pageWidth - 80) / 2 + 2 * (pageWidth - 80) / 6, yPosition + 4);
+          pdf.text((ingrediente.quantidade * 3).toString(), 12 + (pageWidth - 80) / 2 + 3 * (pageWidth - 80) / 6, yPosition + 4);
+          yPosition += 6;
+        });
+        
+        yPosition += 5;
       }
 
-      // Sub-receitas
+      // Tabela de Sub-receitas (se houver)
       if (subReceitas && subReceitas.length > 0) {
-        pdf.setFont(undefined, 'bold');
-        pdf.text('SUB-RECEITAS:', 5, yPosition);
-        yPosition += 7; // Reduzido de 10 para 7
-        pdf.setFont(undefined, 'normal');
+        pdf.setFillColor(100, 100, 100);
+        pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Receitas', 12, yPosition + 5);
         
-        subReceitas.forEach((sub) => {
-          const text = `• ${sub.nome}: ${sub.quantidade} ${sub.unidade} - ${formatCurrency(sub.custo_total)}`;
-          pdf.text(text, 10, yPosition);
-          yPosition += 5; // Reduzido de 8 para 5
+        const tableHeaders = ['Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
+        const headerWidths = [(pageWidth - 80) / 2, (pageWidth - 80) / 6, (pageWidth - 80) / 6, (pageWidth - 80) / 6];
+        let headerX = 12 + (pageWidth - 80) / 2;
+        
+        tableHeaders.forEach((header, i) => {
+          pdf.text(header, headerX, yPosition + 5);
+          headerX += headerWidths[i];
         });
-        yPosition += 3; // Reduzido de 5 para 3
+        
+        yPosition += 8;
+
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        
+        subReceitas.forEach((subReceita) => {
+          pdf.rect(10, yPosition, pageWidth - 20, 6);
+          pdf.text(subReceita.nome, 12, yPosition + 4);
+          pdf.text(subReceita.unidade, 12 + (pageWidth - 80) / 2, yPosition + 4);
+          pdf.text(subReceita.quantidade.toString(), 12 + (pageWidth - 80) / 2 + (pageWidth - 80) / 6, yPosition + 4);
+          pdf.text((subReceita.quantidade * 2).toString(), 12 + (pageWidth - 80) / 2 + 2 * (pageWidth - 80) / 6, yPosition + 4);
+          pdf.text((subReceita.quantidade * 3).toString(), 12 + (pageWidth - 80) / 2 + 3 * (pageWidth - 80) / 6, yPosition + 4);
+          yPosition += 6;
+        });
+        
+        yPosition += 5;
       }
 
-      // Embalagens
+      // Tabela de Embalagens (se houver)
       if (embalagens && embalagens.length > 0) {
-        pdf.setFont(undefined, 'bold');
-        pdf.text('EMBALAGENS:', 5, yPosition);
-        yPosition += 7; // Reduzido de 10 para 7
-        pdf.setFont(undefined, 'normal');
+        pdf.setFillColor(100, 100, 100);
+        pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Embalagem', 12, yPosition + 5);
         
-        embalagens.forEach((emb) => {
-          const text = `• ${emb.nome}: ${emb.quantidade} ${emb.unidade} - ${formatCurrency(emb.custo_total)}`;
-          pdf.text(text, 10, yPosition);
-          yPosition += 5; // Reduzido de 8 para 5
+        const tableHeaders = ['Medida', '1 Receita', '2 Receitas', '3 Receitas'];
+        const headerWidths = [(pageWidth - 80) / 2, (pageWidth - 80) / 6, (pageWidth - 80) / 6, (pageWidth - 80) / 6];
+        let headerX = 12 + (pageWidth - 80) / 2;
+        
+        tableHeaders.forEach((header, i) => {
+          pdf.text(header, headerX, yPosition + 5);
+          headerX += headerWidths[i];
         });
-        yPosition += 3; // Reduzido de 5 para 3
+        
+        yPosition += 8;
+
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        
+        embalagens.forEach((embalagem) => {
+          pdf.rect(10, yPosition, pageWidth - 20, 6);
+          pdf.text(embalagem.nome, 12, yPosition + 4);
+          pdf.text(embalagem.unidade, 12 + (pageWidth - 80) / 2, yPosition + 4);
+          pdf.text(embalagem.quantidade.toString(), 12 + (pageWidth - 80) / 2 + (pageWidth - 80) / 6, yPosition + 4);
+          pdf.text((embalagem.quantidade * 2).toString(), 12 + (pageWidth - 80) / 2 + 2 * (pageWidth - 80) / 6, yPosition + 4);
+          pdf.text((embalagem.quantidade * 3).toString(), 12 + (pageWidth - 80) / 2 + 3 * (pageWidth - 80) / 6, yPosition + 4);
+          yPosition += 6;
+        });
+        
+        yPosition += 5;
       }
 
-      // Mão de obra
-      if (maoObra && maoObra.length > 0) {
-        pdf.setFont(undefined, 'bold');
-        pdf.text('MÃO DE OBRA:', 5, yPosition);
-        yPosition += 7; // Reduzido de 10 para 7
-        pdf.setFont(undefined, 'normal');
-        
-        maoObra.forEach((mo) => {
-          const text = `• ${mo.funcionario_nome} (${mo.funcionario_cargo}): ${mo.tempo} ${mo.unidade_tempo} - ${formatCurrency(mo.valor_total)}`;
-          pdf.text(text, 10, yPosition);
-          yPosition += 5; // Reduzido de 8 para 5
-        });
-        yPosition += 10; // Reduzido de 15 para 10
-      }
+      // Modo de Preparo
+      yPosition += 5;
+      pdf.setFillColor(100, 100, 100);
+      pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Modo de Preparo:', 12, yPosition + 5);
+      yPosition += 8;
 
-      // Custos totais
-      const receitaCompleta = receitas.find(r => r.id === receitaId);
-      if (receitaCompleta) {
-        pdf.setFont(undefined, 'bold');
-        pdf.text('RESUMO FINANCEIRO:', 5, yPosition);
-        yPosition += 7; // Reduzido de 10 para 7
-        pdf.setFont(undefined, 'normal');
-        
-        pdf.text(`Custo Matéria-Prima: ${formatCurrency(receitaCompleta.custo_materia_prima)}`, 10, yPosition);
-        yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Custo Mão de Obra: ${formatCurrency(receitaCompleta.custo_mao_obra)}`, 10, yPosition);
-        yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Custo Embalagens: ${formatCurrency(receitaCompleta.custo_embalagens)}`, 10, yPosition);
-        yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Custo Total: ${formatCurrency(receitaCompleta.custo_total)}`, 10, yPosition);
-        yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Preço de Venda: ${formatCurrency(receitaCompleta.preco_venda)}`, 10, yPosition);
-        yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Margem de Contribuição: ${formatCurrency(receitaCompleta.margem_contribuicao)}`, 10, yPosition);
-        yPosition += 5; // Reduzido de 8 para 5
-        pdf.text(`Lucro Líquido: ${formatCurrency(receitaCompleta.lucro_liquido)}`, 10, yPosition);
-      }
+      // Seção de duas colunas para passos e fotos
+      const stepColWidth = (pageWidth - 20) / 2;
+      
+      // Cabeçalhos das colunas
+      pdf.setFillColor(200, 200, 200);
+      pdf.rect(10, yPosition, stepColWidth, 6, 'F');
+      pdf.rect(10 + stepColWidth, yPosition, stepColWidth, 6, 'F');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(9);
+      pdf.text('Passos', 12, yPosition + 4);
+      pdf.text('Fotos dos Passos', 12 + stepColWidth, yPosition + 4);
+      yPosition += 6;
+
+      // Área vazia para passos (pode ser preenchida manualmente)
+      const stepAreaHeight = 40;
+      pdf.rect(10, yPosition, stepColWidth, stepAreaHeight);
+      pdf.rect(10 + stepColWidth, yPosition, stepColWidth, stepAreaHeight);
+      yPosition += stepAreaHeight + 5;
 
       // Observações
+      pdf.setFillColor(100, 100, 100);
+      pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Observações:', 12, yPosition + 5);
+      yPosition += 8;
+
       if (receita.observacoes) {
-        yPosition += 10; // Reduzido de 15 para 10
-        pdf.setFont(undefined, 'bold');
-        pdf.text('OBSERVAÇÕES:', 5, yPosition);
-        yPosition += 7; // Reduzido de 10 para 7
-        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
         
-        const lines = pdf.splitTextToSize(receita.observacoes, pageWidth - 10);
-        pdf.text(lines, 5, yPosition);
+        const maxWidth = pageWidth - 20;
+        const lines = pdf.splitTextToSize(receita.observacoes, maxWidth);
+        pdf.text(lines, 12, yPosition + 5);
+        yPosition += lines.length * 4 + 10;
+      } else {
+        // Área vazia para observações
+        pdf.rect(10, yPosition, pageWidth - 20, 20);
+        yPosition += 25;
       }
 
       // Salvar PDF
