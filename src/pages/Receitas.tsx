@@ -404,7 +404,7 @@ const Receitas = () => {
       // Desenhar linha inferior do cabeçalho - grudada ao conteúdo
       yPosition = currentY + 2;
       pdf.line(5, yPosition, pageWidth - 5, yPosition);
-      yPosition += 15;
+      yPosition += 5;
 
       // Título da receita
       pdf.setFontSize(20);
