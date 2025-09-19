@@ -315,7 +315,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
       // Preparar dados para salvamento
       const updateData: any = {
-        markup_selecionado: markupId,
+        markup_id: markupId,
       };
       
       // Para sub-receitas, sempre salvar o preço calculado
