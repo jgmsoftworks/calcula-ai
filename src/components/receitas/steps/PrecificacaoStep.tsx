@@ -823,15 +823,17 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             ).map((markup) => {
               // Calculate markup based on entered price - use only unit cost from yield
               const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
-              // Calculate suggested price: unit cost × markup + additional value in R$
-              const precoSugerido = (custoUnitario * markup.markup_ideal) + (encargosDetalhados[markup.id]?.valorEmReal || 0);
+              // Calculate suggested price: unit cost × markup da categoria + additional value in R$
+              const markupDaCategoria = encargosDetalhados[markup.id]?.markupIdeal || markup.markup_ideal;
+              const precoSugerido = (custoUnitario * markupDaCategoria) + (encargosDetalhados[markup.id]?.valorEmReal || 0);
               
               // Debug logs - TEMPORARY
-              console.log('DEBUG - Cálculo Sugestão de Preço:', {
+              console.log('DEBUG - Cálculo Sugestão de Preço (CORRIGIDO):', {
                 custoUnitario,
-                markupIdeal: markup.markup_ideal,
+                markupDaCategoria,
+                markupIdealDB: markup.markup_ideal,
                 valorEmReal: encargosDetalhados[markup.id]?.valorEmReal || 0,
-                calculoBase: custoUnitario * markup.markup_ideal,
+                calculoBase: custoUnitario * markupDaCategoria,
                 precoSugerido,
                 markupNome: markup.nome
               });
