@@ -465,9 +465,9 @@ const PerfilNegocio = () => {
             Dados da Empresa
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="card-premium">
-              <CardContent className="p-6 space-y-6">
+          <Card className="card-premium">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="nome_fantasia">Nome Fantasia *</Label>
                   <Input
@@ -490,11 +490,7 @@ const PerfilNegocio = () => {
                     className="input-premium"
                   />
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card className="card-premium">
-              <CardContent className="p-6 space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="cnpj_cpf">CNPJ / CPF *</Label>
                   <Input
@@ -528,9 +524,9 @@ const PerfilNegocio = () => {
                     <option value="other">Outro</option>
                   </select>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Seção: Endereço */}
@@ -540,9 +536,9 @@ const PerfilNegocio = () => {
             Endereço
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            <Card className="card-premium">
-              <CardContent className="p-6 space-y-4">
+          <Card className="card-premium">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="cep">CEP</Label>
                   <div className="flex gap-2">
@@ -584,11 +580,7 @@ const PerfilNegocio = () => {
                     maxLength={2}
                   />
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card className="card-premium">
-              <CardContent className="p-6 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="logradouro">Logradouro</Label>
                   <Input
@@ -629,11 +621,7 @@ const PerfilNegocio = () => {
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card className="card-premium">
-              <CardContent className="p-6 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="complemento">Complemento</Label>
                   <Input
@@ -655,37 +643,31 @@ const PerfilNegocio = () => {
                     className="input-premium"
                   />
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card className="card-premium lg:col-span-2">
-              <CardContent className="p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <Input
-                      id="cidade"
-                      value={profile.cidade}
-                      onChange={(e) => setProfile(prev => ({ ...prev, cidade: e.target.value }))}
-                      placeholder="Nome da cidade"
-                      className="input-premium"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pais">País</Label>
-                    <Input
-                      id="pais"
-                      value={profile.pais}
-                      onChange={(e) => setProfile(prev => ({ ...prev, pais: e.target.value }))}
-                      className="input-premium"
-                      disabled
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cidade">Cidade</Label>
+                  <Input
+                    id="cidade"
+                    value={profile.cidade}
+                    onChange={(e) => setProfile(prev => ({ ...prev, cidade: e.target.value }))}
+                    placeholder="Nome da cidade"
+                    className="input-premium"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pais">País</Label>
+                  <Input
+                    id="pais"
+                    value={profile.pais}
+                    onChange={(e) => setProfile(prev => ({ ...prev, pais: e.target.value }))}
+                    className="input-premium"
+                    disabled
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Seção: Contatos e Configurações */}
