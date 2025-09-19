@@ -133,11 +133,66 @@ const PerfilNegocio = () => {
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCEP, setIsLoadingCEP] = useState(false);
+  const [semNumero, setSemNumero] = useState(false);
+
+  // Formatting functions
+  const formatCNPJ = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .substring(0, 18);
+  };
+
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .substring(0, 14);
+  };
+
+  const formatCNPJCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return formatCPF(value);
+    }
+    return formatCNPJ(value);
+  };
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 10) {
+      return numbers
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d)/, '$1-$2')
+        .substring(0, 14);
+    }
+    return numbers
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .substring(0, 15);
+  };
+
+  const formatCEP = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{5})(\d)/, '$1-$2')
+      .substring(0, 9);
+  };
 
   useEffect(() => {
     loadProfile();
     loadLogo();
   }, []);
+
+  // Initialize semNumero state based on profile data
+  useEffect(() => {
+    setSemNumero(profile.numero === 'S/N');
+  }, [profile.numero]);
 
   const loadProfile = async () => {
     if (!user) return;
@@ -157,7 +212,7 @@ const PerfilNegocio = () => {
           business_type: data.business_type || 'food',
           cnpj_cpf: data.cnpj_cpf || '',
           razao_social: data.razao_social || '',
-          nome_fantasia: data.nome_fantasia || '',
+        nome_fantasia: data.nome_fantasia || '',
           inscricao_estadual: data.inscricao_estadual || '',
           inscricao_municipal: data.inscricao_municipal || '',
           cep: data.cep || '',
@@ -404,65 +459,6 @@ const PerfilNegocio = () => {
           </CardContent>
         </Card>
         
-        {/* Informações Pessoais */}
-        <Card className="card-premium">
-          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Informações Pessoais
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 p-6">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Nome Completo *</Label>
-              <Input
-                id="full_name"
-                value={profile.full_name}
-                onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
-                placeholder="Digite seu nome completo"
-                className="input-premium"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={user?.email || ''}
-                disabled
-                className="bg-muted input-premium opacity-60"
-              />
-              <p className="text-xs text-muted-foreground">
-                Email não pode ser alterado
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone Pessoal</Label>
-              <Input
-                id="phone"
-                value={profile.phone}
-                onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="(11) 99999-9999"
-                className="input-premium"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="responsavel_cpf">CPF do Responsável</Label>
-              <Input
-                id="responsavel_cpf"
-                value={profile.responsavel_cpf}
-                onChange={(e) => setProfile(prev => ({ ...prev, responsavel_cpf: e.target.value }))}
-                placeholder="000.000.000-00"
-                className="input-premium"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Dados da Empresa */}
         <Card className="card-premium">
@@ -476,11 +472,11 @@ const PerfilNegocio = () => {
           </CardHeader>
           <CardContent className="space-y-6 p-6">
             <div className="space-y-2">
-              <Label htmlFor="business_name">Nome Fantasia *</Label>
+              <Label htmlFor="nome_fantasia">Nome Fantasia *</Label>
               <Input
-                id="business_name"
-                value={profile.business_name}
-                onChange={(e) => setProfile(prev => ({ ...prev, business_name: e.target.value }))}
+                id="nome_fantasia"
+                value={profile.nome_fantasia}
+                onChange={(e) => setProfile(prev => ({ ...prev, nome_fantasia: e.target.value }))}
                 placeholder="Nome do seu negócio"
                 className="input-premium"
                 required
@@ -503,34 +499,13 @@ const PerfilNegocio = () => {
               <Input
                 id="cnpj_cpf"
                 value={profile.cnpj_cpf}
-                onChange={(e) => setProfile(prev => ({ ...prev, cnpj_cpf: e.target.value }))}
+                onChange={(e) => {
+                  const formatted = formatCNPJCPF(e.target.value);
+                  setProfile(prev => ({ ...prev, cnpj_cpf: formatted }));
+                }}
                 placeholder="00.000.000/0000-00 ou 000.000.000-00"
                 className="input-premium"
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="inscricao_estadual">Insc. Estadual</Label>
-                <Input
-                  id="inscricao_estadual"
-                  value={profile.inscricao_estadual}
-                  onChange={(e) => setProfile(prev => ({ ...prev, inscricao_estadual: e.target.value }))}
-                  placeholder="000.000.000.000"
-                  className="input-premium"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="inscricao_municipal">Insc. Municipal</Label>
-                <Input
-                  id="inscricao_municipal"
-                  value={profile.inscricao_municipal}
-                  onChange={(e) => setProfile(prev => ({ ...prev, inscricao_municipal: e.target.value }))}
-                  placeholder="000000000"
-                  className="input-premium"
-                />
-              </div>
             </div>
 
             <div className="space-y-2">
@@ -552,50 +527,6 @@ const PerfilNegocio = () => {
                 <option value="other">Outro</option>
               </select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="regime_tributario">Regime Tributário</Label>
-              <select
-                id="regime_tributario"
-                value={profile.regime_tributario}
-                onChange={(e) => setProfile(prev => ({ ...prev, regime_tributario: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background input-premium"
-              >
-                <option value="">Selecione...</option>
-                <option value="mei">MEI</option>
-                <option value="simples_nacional">Simples Nacional</option>
-                <option value="lucro_presumido">Lucro Presumido</option>
-                <option value="lucro_real">Lucro Real</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="porte_empresa">Porte da Empresa</Label>
-              <select
-                id="porte_empresa"
-                value={profile.porte_empresa}
-                onChange={(e) => setProfile(prev => ({ ...prev, porte_empresa: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background input-premium"
-              >
-                <option value="">Selecione...</option>
-                <option value="mei">MEI</option>
-                <option value="micro">Microempresa</option>
-                <option value="pequena">Pequena Empresa</option>
-                <option value="media">Média Empresa</option>
-                <option value="grande">Grande Empresa</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="data_abertura">Data de Abertura</Label>
-              <Input
-                id="data_abertura"
-                type="date"
-                value={profile.data_abertura}
-                onChange={(e) => setProfile(prev => ({ ...prev, data_abertura: e.target.value }))}
-                className="input-premium"
-              />
-            </div>
           </CardContent>
         </Card>
 
@@ -610,45 +541,46 @@ const PerfilNegocio = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cep">CEP</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="cep"
-                    value={profile.cep}
-                    onChange={(e) => setProfile(prev => ({ ...prev, cep: e.target.value }))}
-                    placeholder="00000-000"
-                    className="input-premium"
-                    maxLength={9}
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => buscarEnderecoPorCEP(profile.cep)}
-                    disabled={isLoadingCEP || !profile.cep}
-                    variant="outline"
-                    size="icon"
-                    className="border-primary/20 hover:border-primary/50 hover:bg-primary/5 shrink-0"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Digite o CEP e clique na lupa para buscar automaticamente
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="estado">Estado</Label>
+            <div className="space-y-2">
+              <Label htmlFor="cep">CEP</Label>
+              <div className="flex gap-2">
                 <Input
-                  id="estado"
-                  value={profile.estado}
-                  onChange={(e) => setProfile(prev => ({ ...prev, estado: e.target.value }))}
-                  placeholder="SP"
+                  id="cep"
+                  value={profile.cep}
+                  onChange={(e) => {
+                    const formatted = formatCEP(e.target.value);
+                    setProfile(prev => ({ ...prev, cep: formatted }));
+                  }}
+                  placeholder="00000-000"
                   className="input-premium"
-                  maxLength={2}
+                  maxLength={9}
                 />
+                <Button
+                  type="button"
+                  onClick={() => buscarEnderecoPorCEP(profile.cep)}
+                  disabled={isLoadingCEP || !profile.cep}
+                  variant="outline"
+                  size="icon"
+                  className="border-primary/20 hover:border-primary/50 hover:bg-primary/5 shrink-0"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Digite o CEP e clique na lupa para buscar automaticamente
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="estado">Estado</Label>
+              <Input
+                id="estado"
+                value={profile.estado}
+                onChange={(e) => setProfile(prev => ({ ...prev, estado: e.target.value.toUpperCase() }))}
+                placeholder="SP"
+                className="input-premium"
+                maxLength={2}
+              />
             </div>
 
             <div className="space-y-2">
@@ -662,28 +594,45 @@ const PerfilNegocio = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="numero">Número</Label>
+            <div className="space-y-2">
+              <Label htmlFor="numero">Número</Label>
+              <div className="flex gap-2">
                 <Input
                   id="numero"
-                  value={profile.numero}
-                  onChange={(e) => setProfile(prev => ({ ...prev, numero: e.target.value }))}
+                  value={semNumero ? 'S/N' : profile.numero}
+                  onChange={(e) => !semNumero && setProfile(prev => ({ ...prev, numero: e.target.value }))}
                   placeholder="123"
                   className="input-premium"
+                  disabled={semNumero}
                 />
+                <Button
+                  type="button"
+                  variant={semNumero ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSemNumero(!semNumero);
+                    if (!semNumero) {
+                      setProfile(prev => ({ ...prev, numero: 'S/N' }));
+                    } else {
+                      setProfile(prev => ({ ...prev, numero: '' }));
+                    }
+                  }}
+                  className="whitespace-nowrap"
+                >
+                  Sem Número
+                </Button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="complemento">Complemento</Label>
-                <Input
-                  id="complemento"
-                  value={profile.complemento}
-                  onChange={(e) => setProfile(prev => ({ ...prev, complemento: e.target.value }))}
-                  placeholder="Sala, Andar, etc."
-                  className="input-premium"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="complemento">Complemento</Label>
+              <Input
+                id="complemento"
+                value={profile.complemento}
+                onChange={(e) => setProfile(prev => ({ ...prev, complemento: e.target.value }))}
+                placeholder="Sala, Andar, etc."
+                className="input-premium"
+              />
             </div>
 
             <div className="space-y-2">
@@ -737,7 +686,10 @@ const PerfilNegocio = () => {
               <Input
                 id="telefone_comercial"
                 value={profile.telefone_comercial}
-                onChange={(e) => setProfile(prev => ({ ...prev, telefone_comercial: e.target.value }))}
+                onChange={(e) => {
+                  const formatted = formatPhone(e.target.value);
+                  setProfile(prev => ({ ...prev, telefone_comercial: formatted }));
+                }}
                 placeholder="(11) 3000-0000"
                 className="input-premium"
               />
@@ -748,18 +700,10 @@ const PerfilNegocio = () => {
               <Input
                 id="celular"
                 value={profile.celular}
-                onChange={(e) => setProfile(prev => ({ ...prev, celular: e.target.value }))}
-                placeholder="(11) 99999-9999"
-                className="input-premium"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                value={profile.whatsapp}
-                onChange={(e) => setProfile(prev => ({ ...prev, whatsapp: e.target.value }))}
+                onChange={(e) => {
+                  const formatted = formatPhone(e.target.value);
+                  setProfile(prev => ({ ...prev, celular: formatted }));
+                }}
                 placeholder="(11) 99999-9999"
                 className="input-premium"
               />
@@ -778,98 +722,18 @@ const PerfilNegocio = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="instagram">Instagram</Label>
               <Input
-                id="website"
-                value={profile.website}
+                id="instagram"
+                value={profile.website} // Using website field for Instagram temporarily
                 onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
-                placeholder="https://www.empresa.com"
+                placeholder="@seuinstagram"
                 className="input-premium"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Informações Adicionais */}
-        <Card className="card-premium">
-          <CardHeader className="bg-gradient-to-r from-card/50 to-card border-b border-border/30">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-secondary" />
-              <span className="bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
-                Informações Adicionais
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 p-6">
-            <div className="space-y-2">
-              <Label htmlFor="setor_atividade">Setor de Atividade</Label>
-              <Input
-                id="setor_atividade"
-                value={profile.setor_atividade}
-                onChange={(e) => setProfile(prev => ({ ...prev, setor_atividade: e.target.value }))}
-                placeholder="Ex: Alimentação, Varejo, Tecnologia"
-                className="input-premium"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="descricao_empresa">Descrição da Empresa</Label>
-              <textarea
-                id="descricao_empresa"
-                value={profile.descricao_empresa}
-                onChange={(e) => setProfile(prev => ({ ...prev, descricao_empresa: e.target.value }))}
-                placeholder="Descreva brevemente sua empresa e atividades"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background input-premium min-h-[100px] resize-none"
-                rows={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="responsavel_nome">Nome do Responsável</Label>
-              <Input
-                id="responsavel_nome"
-                value={profile.responsavel_nome}
-                onChange={(e) => setProfile(prev => ({ ...prev, responsavel_nome: e.target.value }))}
-                placeholder="Nome completo do responsável"
-                className="input-premium"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="responsavel_cargo">Cargo do Responsável</Label>
-              <Input
-                id="responsavel_cargo"
-                value={profile.responsavel_cargo}
-                onChange={(e) => setProfile(prev => ({ ...prev, responsavel_cargo: e.target.value }))}
-                placeholder="Ex: Diretor, Gerente, Proprietário"
-                className="input-premium"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="responsavel_email">Email do Responsável</Label>
-              <Input
-                id="responsavel_email"
-                type="email"
-                value={profile.responsavel_email}
-                onChange={(e) => setProfile(prev => ({ ...prev, responsavel_email: e.target.value }))}
-                placeholder="email@responsavel.com"
-                className="input-premium"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="responsavel_telefone">Telefone do Responsável</Label>
-              <Input
-                id="responsavel_telefone"
-                value={profile.responsavel_telefone}
-                onChange={(e) => setProfile(prev => ({ ...prev, responsavel_telefone: e.target.value }))}
-                placeholder="(11) 99999-9999"
-                className="input-premium"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Configurações de Aparência */}
         <Card className="card-premium">
