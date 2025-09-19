@@ -273,19 +273,19 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         if (custoUnitario > 0) {
           console.log('💰 Custo unitário:', custoUnitario);
           
-          if (markupSelecionadoData.tipo === 'sub_receita') {
-            // Para sub-receitas, preço = custo (sem lucro)
-            precoCalculado = custoUnitario;
-            console.log('🏷️ Sub-receita: Preço = Custo (sem lucro):', precoCalculado);
-          } else {
-            // Para outros markups, aplicar o markup_ideal
-            console.log('📈 Markup ideal:', markupSelecionadoData.markup_ideal);
-            precoCalculado = custoUnitario * markupSelecionadoData.markup_ideal;
-            console.log('💲 Preço calculado com markup:', precoCalculado);
-          }
-          console.log('✅ Preço > 0?', precoCalculado > 0);
-          
-          // Formatar e definir o preço de venda
+        if (markupSelecionadoData.tipo === 'sub_receita') {
+          // Para sub-receitas, preço = custo (sem lucro)
+          precoCalculado = custoUnitario;
+          console.log('🏷️ Sub-receita: Preço = Custo (sem lucro):', precoCalculado);
+        } else {
+          // Para outros markups, NÃO aplicar preço automático
+          console.log('📋 Markup normal: usuário deve digitar o preço manualmente');
+          precoCalculado = 0; // Não definir preço automaticamente
+        }
+        console.log('✅ Preço > 0?', precoCalculado > 0);
+        
+        // Definir preço de venda APENAS para sub-receitas
+        if (markupSelecionadoData.tipo === 'sub_receita' && precoCalculado > 0) {
           const precoFormatado = new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',
@@ -293,21 +293,37 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             maximumFractionDigits: 2,
           }).format(precoCalculado);
           
-          console.log('🎨 Preço formatado:', precoFormatado);
+          console.log('🎨 Preço formatado para sub-receita:', precoFormatado);
           setPrecoVenda(precoFormatado);
+        } else {
+          console.log('📋 Markup normal: preço não alterado automaticamente');
         }
+        } // Closing brace for if (custoUnitario > 0)
+      }
+
+      // Verificar se o markup existe antes de salvar
+      const markupExists = markups.some(m => m.id === markupId);
+      if (!markupExists) {
+        console.error('❌ Markup não encontrado:', markupId);
+        toast({
+          title: "Erro",
+          description: "Markup selecionado não foi encontrado",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Preparar dados para salvamento
-      const updateData: { markup_id: string; preco_venda?: number } = {
-        markup_id: markupId
+      const updateData: any = {
+        markup_selecionado: markupId,
       };
       
       // Para sub-receitas, sempre salvar o preço calculado
-      if (markupSelecionadoData?.tipo === 'sub_receita') {
+      if (markupSelecionadoData?.tipo === 'sub_receita' && precoCalculado > 0) {
         updateData.preco_venda = precoCalculado;
         console.log('💾 Preparando para salvar preço de sub-receita:', precoCalculado);
-        console.log('🔍 Condições para salvar - receitaId existe?', !!receitaId, 'precoCalculado > 0?', precoCalculado > 0);
+      } else {
+        console.log('📋 Markup normal: preço não incluído no salvamento automático');
       }
 
       // Se estamos editando uma receita existente, salvar no banco
@@ -324,11 +340,21 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
 
         if (error) {
           console.error('❌ Erro ao salvar markup:', error);
-          toast({
-            title: "Erro",
-            description: "Não foi possível salvar o markup selecionado",
-            variant: "destructive",
-          });
+          
+          // Tratar erro de foreign key especificamente
+          if (error.code === '23503') {
+            toast({
+              title: "Erro de Referência", 
+              description: "O markup selecionado não existe mais no sistema",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Erro",
+              description: "Não foi possível salvar o markup selecionado",
+              variant: "destructive",
+            });
+          }
           return;
         }
         
@@ -342,7 +368,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       
       // Se houver callback, atualizar o estado compartilhado também
       if (onReceitaDataChange) {
-        if (markupSelecionadoData?.tipo === 'sub_receita') {
+        if (markupSelecionadoData?.tipo === 'sub_receita' && precoCalculado > 0) {
           // Para sub-receitas, definir o preço automaticamente
           onReceitaDataChange(prev => ({
             ...prev,
@@ -351,12 +377,12 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           }));
           console.log('📤 Sub-receita: preço definido automaticamente no estado compartilhado:', precoCalculado);
         } else {
-          // Para outros markups, apenas sincronizar o markup selecionado
+          // Para outros markups, apenas sincronizar o markup selecionado (sem alterar preço)
           onReceitaDataChange(prev => ({
             ...prev,
             markupSelecionado: markupId
           }));
-          console.log('📤 Markup sincronizado no estado compartilhado:', markupId);
+          console.log('📤 Markup normal sincronizado (preço não alterado):', markupId);
         }
       }
       
