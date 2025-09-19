@@ -401,8 +401,8 @@ const Receitas = () => {
         currentY += 3; // Reduzido de 5 para 3
       }
 
-      // Desenhar linha inferior do cabeçalho
-      yPosition = Math.max(yPosition + headerHeight, currentY + 2);
+      // Desenhar linha inferior do cabeçalho - grudada ao conteúdo
+      yPosition = currentY + 2;
       pdf.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 15;
 
