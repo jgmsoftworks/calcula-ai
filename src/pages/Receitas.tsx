@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -253,6 +254,189 @@ const Receitas = () => {
     }).format(validValue);
   };
 
+  const downloadReceita = async (receitaId: string) => {
+    try {
+      // Buscar dados completos da receita
+      const { data: receita, error: receitaError } = await supabase
+        .from('receitas')
+        .select(`
+          *,
+          markups(nome, tipo, margem_lucro, markup_aplicado)
+        `)
+        .eq('id', receitaId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (receitaError || !receita) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os dados da receita.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Buscar ingredientes
+      const { data: ingredientes } = await supabase
+        .from('receita_ingredientes')
+        .select('*')
+        .eq('receita_id', receitaId);
+
+      // Buscar sub-receitas
+      const { data: subReceitas } = await supabase
+        .from('receita_sub_receitas')
+        .select('*')
+        .eq('receita_id', receitaId);
+
+      // Buscar embalagens
+      const { data: embalagens } = await supabase
+        .from('receita_embalagens')
+        .select('*')
+        .eq('receita_id', receitaId);
+
+      // Buscar mão de obra
+      const { data: maoObra } = await supabase
+        .from('receita_mao_obra')
+        .select('*')
+        .eq('receita_id', receitaId);
+
+      // Gerar PDF
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.width;
+      let yPosition = 20;
+
+      // Título
+      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(`Receita: ${receita.nome}`, 20, yPosition);
+      yPosition += 15;
+
+      // Informações gerais
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(`Tipo: ${receita.tipo_produto || 'Não definido'}`, 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Rendimento: ${receita.rendimento_valor} ${receita.rendimento_unidade}`, 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Status: ${receita.status}`, 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Markup: ${receita.markups?.nome || 'Nenhum'}`, 20, yPosition);
+      yPosition += 15;
+
+      // Ingredientes
+      if (ingredientes && ingredientes.length > 0) {
+        pdf.setFont(undefined, 'bold');
+        pdf.text('INGREDIENTES:', 20, yPosition);
+        yPosition += 10;
+        pdf.setFont(undefined, 'normal');
+        
+        ingredientes.forEach((ing) => {
+          const text = `• ${ing.nome}: ${ing.quantidade} ${ing.unidade} - ${formatCurrency(ing.custo_total)}`;
+          pdf.text(text, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 5;
+      }
+
+      // Sub-receitas
+      if (subReceitas && subReceitas.length > 0) {
+        pdf.setFont(undefined, 'bold');
+        pdf.text('SUB-RECEITAS:', 20, yPosition);
+        yPosition += 10;
+        pdf.setFont(undefined, 'normal');
+        
+        subReceitas.forEach((sub) => {
+          const text = `• ${sub.nome}: ${sub.quantidade} ${sub.unidade} - ${formatCurrency(sub.custo_total)}`;
+          pdf.text(text, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 5;
+      }
+
+      // Embalagens
+      if (embalagens && embalagens.length > 0) {
+        pdf.setFont(undefined, 'bold');
+        pdf.text('EMBALAGENS:', 20, yPosition);
+        yPosition += 10;
+        pdf.setFont(undefined, 'normal');
+        
+        embalagens.forEach((emb) => {
+          const text = `• ${emb.nome}: ${emb.quantidade} ${emb.unidade} - ${formatCurrency(emb.custo_total)}`;
+          pdf.text(text, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 5;
+      }
+
+      // Mão de obra
+      if (maoObra && maoObra.length > 0) {
+        pdf.setFont(undefined, 'bold');
+        pdf.text('MÃO DE OBRA:', 20, yPosition);
+        yPosition += 10;
+        pdf.setFont(undefined, 'normal');
+        
+        maoObra.forEach((mo) => {
+          const text = `• ${mo.funcionario_nome} (${mo.funcionario_cargo}): ${mo.tempo} ${mo.unidade_tempo} - ${formatCurrency(mo.valor_total)}`;
+          pdf.text(text, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 15;
+      }
+
+      // Custos totais
+      const receitaCompleta = receitas.find(r => r.id === receitaId);
+      if (receitaCompleta) {
+        pdf.setFont(undefined, 'bold');
+        pdf.text('RESUMO FINANCEIRO:', 20, yPosition);
+        yPosition += 10;
+        pdf.setFont(undefined, 'normal');
+        
+        pdf.text(`Custo Matéria-Prima: ${formatCurrency(receitaCompleta.custo_materia_prima)}`, 25, yPosition);
+        yPosition += 8;
+        pdf.text(`Custo Mão de Obra: ${formatCurrency(receitaCompleta.custo_mao_obra)}`, 25, yPosition);
+        yPosition += 8;
+        pdf.text(`Custo Embalagens: ${formatCurrency(receitaCompleta.custo_embalagens)}`, 25, yPosition);
+        yPosition += 8;
+        pdf.text(`Custo Total: ${formatCurrency(receitaCompleta.custo_total)}`, 25, yPosition);
+        yPosition += 8;
+        pdf.text(`Preço de Venda: ${formatCurrency(receitaCompleta.preco_venda)}`, 25, yPosition);
+        yPosition += 8;
+        pdf.text(`Margem de Contribuição: ${formatCurrency(receitaCompleta.margem_contribuicao)}`, 25, yPosition);
+        yPosition += 8;
+        pdf.text(`Lucro Líquido: ${formatCurrency(receitaCompleta.lucro_liquido)}`, 25, yPosition);
+      }
+
+      // Observações
+      if (receita.observacoes) {
+        yPosition += 15;
+        pdf.setFont(undefined, 'bold');
+        pdf.text('OBSERVAÇÕES:', 20, yPosition);
+        yPosition += 10;
+        pdf.setFont(undefined, 'normal');
+        
+        const lines = pdf.splitTextToSize(receita.observacoes, pageWidth - 40);
+        pdf.text(lines, 20, yPosition);
+      }
+
+      // Salvar PDF
+      const fileName = `receita-${receita.nome.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+      pdf.save(fileName);
+
+      toast({
+        title: "Sucesso",
+        description: "Receita baixada com sucesso!",
+      });
+
+    } catch (error) {
+      console.error('Erro ao baixar receita:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível baixar a receita.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -301,6 +485,15 @@ const Receitas = () => {
                       <p>Criado: {new Date(receita.created_at).toLocaleDateString()}</p>
                       <p>Atualizado: {new Date(receita.updated_at).toLocaleDateString()}</p>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadReceita(receita.id)}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Baixar
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
