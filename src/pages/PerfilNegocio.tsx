@@ -45,8 +45,6 @@ interface UserProfile {
   cnpj_cpf?: string;
   razao_social?: string;
   nome_fantasia?: string;
-  inscricao_estadual?: string;
-  inscricao_municipal?: string;
   
   // Endereço
   cep?: string;
@@ -61,9 +59,8 @@ interface UserProfile {
   // Contatos
   telefone_comercial?: string;
   celular?: string;
-  whatsapp?: string;
   email_comercial?: string;
-  website?: string;
+  instagram?: string;
   
   // Informações empresariais
   setor_atividade?: string;
@@ -99,8 +96,6 @@ const PerfilNegocio = () => {
     cnpj_cpf: '',
     razao_social: '',
     nome_fantasia: '',
-    inscricao_estadual: '',
-    inscricao_municipal: '',
     cep: '',
     logradouro: '',
     numero: '',
@@ -111,9 +106,8 @@ const PerfilNegocio = () => {
     pais: 'Brasil',
     telefone_comercial: '',
     celular: '',
-    whatsapp: '',
     email_comercial: '',
-    website: '',
+    instagram: '',
     setor_atividade: '',
     descricao_empresa: '',
     data_abertura: '',
@@ -212,9 +206,7 @@ const PerfilNegocio = () => {
           business_type: data.business_type || 'food',
           cnpj_cpf: data.cnpj_cpf || '',
           razao_social: data.razao_social || '',
-        nome_fantasia: data.nome_fantasia || '',
-          inscricao_estadual: data.inscricao_estadual || '',
-          inscricao_municipal: data.inscricao_municipal || '',
+          nome_fantasia: data.nome_fantasia || '',
           cep: data.cep || '',
           logradouro: data.logradouro || '',
           numero: data.numero || '',
@@ -225,9 +217,8 @@ const PerfilNegocio = () => {
           pais: data.pais || 'Brasil',
           telefone_comercial: data.telefone_comercial || '',
           celular: data.celular || '',
-          whatsapp: data.whatsapp || '',
           email_comercial: data.email_comercial || '',
-          website: data.website || '',
+          instagram: data.instagram || '',
           setor_atividade: data.setor_atividade || '',
           descricao_empresa: data.descricao_empresa || '',
           data_abertura: data.data_abertura || '',
@@ -273,16 +264,20 @@ const PerfilNegocio = () => {
           ...profileData
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro detalhado do Supabase:', error);
+        throw error;
+      }
 
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram salvas com sucesso"
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro ao salvar perfil:', error);
       toast({
         title: "Erro ao atualizar perfil",
-        description: "Tente novamente em alguns instantes",
+        description: error?.message || "Tente novamente em alguns instantes",
         variant: "destructive"
       });
     } finally {
@@ -726,8 +721,8 @@ const PerfilNegocio = () => {
                   <Label htmlFor="instagram">Instagram</Label>
                   <Input
                     id="instagram"
-                    value={profile.website}
-                    onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
+                    value={profile.instagram}
+                    onChange={(e) => setProfile(prev => ({ ...prev, instagram: e.target.value }))}
                     placeholder="@seuinstagram"
                     className="input-premium"
                   />
