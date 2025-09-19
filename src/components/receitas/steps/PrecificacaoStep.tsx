@@ -337,25 +337,27 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         console.log('⚠️ Não é edição (receitaId é null), dados preparados para salvamento futuro');
       }
       
-      // Para receitas novas, atualizar o estado compartilhado com o preço calculado
-      if (!receitaId && onReceitaDataChange && markupSelecionadoData?.tipo === 'sub_receita') {
-        onReceitaDataChange(prev => ({
-          ...prev,
-          markupSelecionado: markupId,
-          precoVenda: precoCalculado // Adicionar preço ao estado compartilhado
-        }));
-        console.log('📤 Preço de sub-receita adicionado ao estado compartilhado:', precoCalculado);
-      }
-
-      // Sempre atualizar o estado local (tanto para criação quanto edição)
+      // Sempre atualizar o estado local
       setMarkupSelecionado(markupId);
       
       // Se houver callback, atualizar o estado compartilhado também
       if (onReceitaDataChange) {
-        onReceitaDataChange(prev => ({
-          ...prev,
-          markupSelecionado: markupId
-        }));
+        if (markupSelecionadoData?.tipo === 'sub_receita') {
+          // Para sub-receitas, definir o preço automaticamente
+          onReceitaDataChange(prev => ({
+            ...prev,
+            markupSelecionado: markupId,
+            precoVenda: precoCalculado
+          }));
+          console.log('📤 Sub-receita: preço definido automaticamente no estado compartilhado:', precoCalculado);
+        } else {
+          // Para outros markups, apenas sincronizar o markup selecionado
+          onReceitaDataChange(prev => ({
+            ...prev,
+            markupSelecionado: markupId
+          }));
+          console.log('📤 Markup sincronizado no estado compartilhado:', markupId);
+        }
       }
       
       toast({
@@ -633,7 +635,19 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   
   const handlePrecoVendaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCurrency(e.target.value);
+    const numericValue = getNumericValue(formatted);
+    
     setPrecoVenda(formatted);
+    
+    // Sync with parent state
+    if (onReceitaDataChange) {
+      onReceitaDataChange(prev => ({
+        ...prev,
+        precoVenda: numericValue
+      }));
+    }
+    
+    console.log('💰 Preço de venda alterado:', { formatted, numericValue });
   };
   
   // Calculate real costs from the recipe data
@@ -835,6 +849,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                 valorEmReal: encargosDetalhados[markup.id]?.valorEmReal || 0,
                 calculoBase: custoUnitario * markupDaCategoria,
                 precoSugerido,
+                markupFinal: markupFinal.toFixed(4),
+                precoNumerico,
                 markupNome: markup.nome
               });
               
@@ -940,13 +956,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-sm text-muted-foreground mb-1">Markup Final</p>
                           <p className="text-lg font-bold text-secondary">
-                            {markup.markup_aplicado > 0 ? `${markup.markup_aplicado.toLocaleString('pt-BR', { 
-                              minimumFractionDigits: 3, 
-                              maximumFractionDigits: 3 
-                            })}` : encargosDetalhados[markup.id]?.markupIdeal ? `${encargosDetalhados[markup.id].markupIdeal.toLocaleString('pt-BR', { 
-                              minimumFractionDigits: 3, 
-                              maximumFractionDigits: 3
-                            })}` : '0,000'}
+                            {markupFinal > 0 ? `${markupFinal.toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 4, 
+                              maximumFractionDigits: 4 
+                            })}` : markupDaCategoria ? `${markupDaCategoria.toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 4, 
+                              maximumFractionDigits: 4
+                            })}` : '0,0000'}
                           </p>
                         </div>
                       
