@@ -402,7 +402,7 @@ const Receitas = () => {
       }
 
       // Desenhar linha inferior do cabeçalho
-      yPosition = Math.max(yPosition + headerHeight, currentY + 10);
+      yPosition = Math.max(yPosition + headerHeight, currentY + 2);
       pdf.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 15;
 
