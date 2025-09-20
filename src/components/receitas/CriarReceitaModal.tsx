@@ -74,7 +74,7 @@ interface PassoPreparo {
   id: string;
   ordem: number;
   descricao: string;
-  imagem_url?: string;
+  imagem?: string;
 }
 
 interface ConservacaoItem {
@@ -218,6 +218,13 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         .select('*')
         .eq('receita_id', existingReceitaId);
 
+      // Buscar passos de preparo
+      const { data: passosPreparo } = await supabase
+        .from('receita_passos_preparo')
+        .select('*')
+        .eq('receita_id', existingReceitaId)
+        .order('ordem');
+
       console.log('✅ Receita carregada para edição:', receita);
       
       // Atualizar receitaId para modo edição
@@ -269,8 +276,13 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         rendimentoUnidade: receita.rendimento_unidade || 'unidade',
         nomeReceita: receita.nome || '',
         observacoes: receita.observacoes || '',
-        imagemReceita: '',
-        passosPreparo: [{ id: '1', ordem: 1, descricao: '' }], // TODO: carregar do banco quando implementado
+        imagemReceita: receita.imagem_url || '',
+        passosPreparo: passosPreparo?.map((passo: any) => ({
+          id: passo.id,
+          ordem: passo.ordem,
+          descricao: passo.descricao,
+          imagem: passo.imagem_url || ''
+        })) || [{ id: '1', ordem: 1, descricao: '' }],
         conservacao: (receita.conservacao as unknown as ConservacaoItem[]) || [
           { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
           { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
@@ -309,6 +321,31 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     }
   };
 
+  // Helper function to upload image to Supabase storage
+  const uploadImage = async (file: File, folder: string): Promise<string | null> => {
+    if (!user?.id) return null;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${folder}/${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('receitas-images')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('receitas-images')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Erro ao fazer upload da imagem:', error);
+      return null;
+    }
+  };
+
   // Função para criar e salvar a receita completa no banco
   const finalizarReceita = async () => {
     if (!user?.id) return;
@@ -325,6 +362,19 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
 
     try {
       let receitaFinalId = receitaId;
+      let imagemUrl = receitaData.imagemReceita;
+
+      // Upload da imagem principal se for um arquivo
+      if (receitaData.imagemReceita && receitaData.imagemReceita.startsWith('blob:')) {
+        try {
+          const response = await fetch(receitaData.imagemReceita);
+          const blob = await response.blob();
+          const file = new File([blob], 'recipe-image.jpg', { type: 'image/jpeg' });
+          imagemUrl = await uploadImage(file, 'recipes') || '';
+        } catch (error) {
+          console.error('Erro ao processar imagem:', error);
+        }
+      }
 
       // Se estamos editando, atualizar receita existente
       if (existingReceitaId) {
@@ -338,6 +388,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             status: 'finalizada',
             markup_id: receitaData.markupSelecionado,
             conservacao: receitaData.conservacao as any,
+            imagem_url: imagemUrl,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -387,6 +438,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             status: 'finalizada',
             markup_id: receitaData.markupSelecionado,
             conservacao: receitaData.conservacao as any,
+            imagem_url: imagemUrl,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -538,6 +590,53 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
 
         if (maoObraError) {
           console.error('Erro ao salvar mão de obra:', maoObraError);
+        }
+      }
+
+      // Salvar passos de preparo
+      if (receitaData.passosPreparo.length > 0) {
+        // Primeiro deletar registros existentes se for edição
+        if (existingReceitaId) {
+          await supabase
+            .from('receita_passos_preparo')
+            .delete()
+            .eq('receita_id', existingReceitaId);
+        }
+
+        // Processar cada passo e fazer upload das imagens se necessário
+        const passosParaSalvar = await Promise.all(
+          receitaData.passosPreparo
+            .filter(passo => passo.descricao.trim() !== '') // Só salvar passos com descrição
+            .map(async (passo, index) => {
+              let imagemUrl = passo.imagem || '';
+              
+              // Se a imagem é um blob (arquivo recém-selecionado), fazer upload
+              if (passo.imagem && passo.imagem.startsWith('blob:')) {
+                try {
+                  const response = await fetch(passo.imagem);
+                  const blob = await response.blob();
+                  const file = new File([blob], `step-${index + 1}.jpg`, { type: 'image/jpeg' });
+                  imagemUrl = await uploadImage(file, 'steps') || '';
+                } catch (error) {
+                  console.error('Erro ao processar imagem do passo:', error);
+                }
+              }
+
+              return {
+                receita_id: receitaFinalId,
+                ordem: passo.ordem,
+                descricao: passo.descricao,
+                imagem_url: imagemUrl
+              };
+            })
+        );
+
+        if (passosParaSalvar.length > 0) {
+          const { error: passosError } = await supabase
+            .from('receita_passos_preparo')
+            .insert(passosParaSalvar);
+
+          if (passosError) throw passosError;
         }
       }
 

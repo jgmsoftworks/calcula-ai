@@ -315,6 +315,13 @@ const Receitas = () => {
         .select('*')
         .eq('receita_id', receitaId);
 
+      // Buscar passos de preparo
+      const { data: passosPreparo } = await supabase
+        .from('receita_passos_preparo')
+        .select('*')
+        .eq('receita_id', receitaId)
+        .order('ordem');
+
       // Gerar PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -610,31 +617,72 @@ const Receitas = () => {
       // Modo de Preparo
       yPosition += 5;
       pdf.setFillColor(100, 100, 100);
-      pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
+      pdf.rect(5, yPosition, pageWidth - 10, 8, 'F');
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Modo de Preparo:', 7, yPosition + 5); // Ajustado para nova margem
+      pdf.text('Modo de Preparo:', 7, yPosition + 5);
       yPosition += 8;
 
       // Seção de duas colunas para passos e fotos
-      const stepColWidth = (pageWidth - 10) / 2; // Largura expandida
+      const stepColWidth = (pageWidth - 10) / 2;
       
       // Cabeçalhos das colunas
       pdf.setFillColor(200, 200, 200);
-      pdf.rect(5, yPosition, stepColWidth, 6, 'F'); // Margens reduzidas
+      pdf.rect(5, yPosition, stepColWidth, 6, 'F');
       pdf.rect(5 + stepColWidth, yPosition, stepColWidth, 6, 'F');
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(9);
-      pdf.text('Passos', 7, yPosition + 4); // Ajustado para nova margem
+      pdf.text('Passos', 7, yPosition + 4);
       pdf.text('Fotos dos Passos', 7 + stepColWidth, yPosition + 4);
       yPosition += 6;
 
-      // Área vazia para passos (pode ser preenchida manualmente)
-      const stepAreaHeight = 40;
-      pdf.rect(5, yPosition, stepColWidth, stepAreaHeight); // Margens reduzidas
-      pdf.rect(5 + stepColWidth, yPosition, stepColWidth, stepAreaHeight);
-      yPosition += stepAreaHeight + 5;
+      // Renderizar passos de preparo reais ou área vazia
+      if (passosPreparo && passosPreparo.length > 0) {
+        // Calcular altura necessária baseada no número de passos
+        const minStepHeight = 8; // Altura mínima por passo
+        const totalStepsHeight = Math.max(40, passosPreparo.length * minStepHeight);
+        
+        pdf.rect(5, yPosition, stepColWidth, totalStepsHeight);
+        pdf.rect(5 + stepColWidth, yPosition, stepColWidth, totalStepsHeight);
+        
+        // Renderizar cada passo
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        
+        let currentStepY = yPosition + 3;
+        passosPreparo.forEach((passo: any) => {
+          if (currentStepY + 10 > yPosition + totalStepsHeight) return; // Evitar overflow
+          
+          // Texto do passo (limitado à largura da coluna)
+          const stepText = `${passo.ordem}. ${passo.descricao}`;
+          const maxWidth = stepColWidth - 6;
+          const lines = pdf.splitTextToSize(stepText, maxWidth);
+          
+          // Renderizar apenas as primeiras linhas que cabem
+          const availableHeight = (yPosition + totalStepsHeight) - currentStepY - 2;
+          const maxLines = Math.floor(availableHeight / 3);
+          const displayLines = lines.slice(0, maxLines);
+          
+          pdf.text(displayLines, 7, currentStepY);
+          
+          // Se há imagem, indicar na coluna de fotos
+          if (passo.imagem_url) {
+            pdf.text(`Passo ${passo.ordem}: (Imagem)`, 7 + stepColWidth, currentStepY);
+          }
+          
+          currentStepY += displayLines.length * 3 + 2;
+        });
+        
+        yPosition += totalStepsHeight + 5;
+      } else {
+        // Área vazia para passos (pode ser preenchida manualmente)
+        const stepAreaHeight = 40;
+        pdf.rect(5, yPosition, stepColWidth, stepAreaHeight);
+        pdf.rect(5 + stepColWidth, yPosition, stepColWidth, stepAreaHeight);
+        yPosition += stepAreaHeight + 5;
+      }
 
       // Observações
       pdf.setFillColor(100, 100, 100);

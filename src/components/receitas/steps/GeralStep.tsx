@@ -13,7 +13,7 @@ interface PassoPreparo {
   id: string;
   ordem: number;
   descricao: string;
-  imagem_url?: string;
+  imagem?: string;
 }
 
 interface ConservacaoItem {
@@ -78,7 +78,7 @@ export function GeralStep({
 
   const adicionarImagemPasso = (id: string, imagemUrl: string) => {
     const novosPassos = passosPreparo.map(passo =>
-      passo.id === id ? { ...passo, imagem_url: imagemUrl } : passo
+      passo.id === id ? { ...passo, imagem: imagemUrl } : passo
     );
     onGeralChange({ passosPreparo: novosPassos });
   };
@@ -280,10 +280,10 @@ export function GeralStep({
                   rows={2}
                   className="flex-1"
                 />
-                {passo.imagem_url && (
+                {passo.imagem && (
                   <div className="w-16 h-16">
                     <img 
-                      src={passo.imagem_url} 
+                      src={passo.imagem} 
                       alt={`Passo ${passo.ordem}`}
                       className="w-full h-full object-cover rounded border"
                     />

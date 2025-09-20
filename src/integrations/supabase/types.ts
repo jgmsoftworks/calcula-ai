@@ -835,6 +835,36 @@ export type Database = {
           },
         ]
       }
+      receita_passos_preparo: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          imagem_url: string | null
+          ordem: number
+          receita_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          imagem_url?: string | null
+          ordem: number
+          receita_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          imagem_url?: string | null
+          ordem?: number
+          receita_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       receita_sub_receitas: {
         Row: {
           created_at: string
@@ -894,6 +924,7 @@ export type Database = {
           conservacao: Json | null
           created_at: string
           id: string
+          imagem_url: string | null
           markup_id: string | null
           nome: string
           observacoes: string | null
@@ -911,6 +942,7 @@ export type Database = {
           conservacao?: Json | null
           created_at?: string
           id?: string
+          imagem_url?: string | null
           markup_id?: string | null
           nome: string
           observacoes?: string | null
@@ -928,6 +960,7 @@ export type Database = {
           conservacao?: Json | null
           created_at?: string
           id?: string
+          imagem_url?: string | null
           markup_id?: string | null
           nome?: string
           observacoes?: string | null
