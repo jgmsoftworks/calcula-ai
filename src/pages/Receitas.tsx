@@ -324,7 +324,7 @@ const Receitas = () => {
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      let yPosition = 15;
+      let yPosition = 10; // Margem top reduzida de 15 para 10
 
       // Título da receita no topo
       pdf.setFontSize(20);
@@ -333,15 +333,15 @@ const Receitas = () => {
       yPosition += 15;
 
       // Linha horizontal após título
-      pdf.line(10, yPosition, pageWidth - 10, yPosition);
+      pdf.line(5, yPosition, pageWidth - 5, yPosition); // Margens laterais reduzidas de 10 para 5
       yPosition += 10;
 
-      // Layout em três colunas: Info da empresa (esquerda), Foto do produto (centro), Dados (direita)
-      const leftColWidth = 45;
-      const rightColWidth = 60;
-      const centerColStart = leftColWidth + 10;
-      const centerColWidth = pageWidth - leftColWidth - rightColWidth - 30;
-      const rightColStart = pageWidth - rightColWidth - 10;
+      // Layout em três colunas expandido: Info da empresa (esquerda), Foto do produto (centro), Dados (direita)
+      const leftColWidth = 55; // Expandido de 45 para 55
+      const rightColWidth = 70; // Expandido de 60 para 70  
+      const centerColStart = leftColWidth + 5; // Margem reduzida de 10 para 5
+      const centerColWidth = pageWidth - leftColWidth - rightColWidth - 20; // Margens reduzidas
+      const rightColStart = pageWidth - rightColWidth - 5; // Margem reduzida de 10 para 5
 
       // Coluna esquerda - Informações da empresa
       let leftYPos = yPosition;
@@ -349,20 +349,20 @@ const Receitas = () => {
       // Logo da empresa
       if (logoConfig && logoConfig.configuration) {
         try {
-          const logoMaxSize = 30;
+          const logoMaxSize = 35; // Aumentado de 30 para 35
           const logoData = logoConfig.configuration as string;
           
-          pdf.rect(10, leftYPos, leftColWidth, logoMaxSize + 5);
-          pdf.addImage(logoData, 'PNG', 15, leftYPos + 2, logoMaxSize, logoMaxSize);
+          pdf.rect(5, leftYPos, leftColWidth, logoMaxSize + 5); // Margem reduzida de 10 para 5
+          pdf.addImage(logoData, 'PNG', 10, leftYPos + 2, logoMaxSize, logoMaxSize); // Ajustado para nova margem
           leftYPos += logoMaxSize + 10;
         } catch (error) {
           console.error('Erro ao adicionar logo:', error);
           leftYPos += 35;
         }
       } else {
-        pdf.rect(10, leftYPos, leftColWidth, 30);
+        pdf.rect(5, leftYPos, leftColWidth, 30); // Margem reduzida de 10 para 5
         pdf.setFontSize(8);
-        pdf.text('LOGO DA EMPRESA', 32.5, leftYPos + 18, { align: 'center' });
+        pdf.text('LOGO DA EMPRESA', 5 + leftColWidth/2, leftYPos + 18, { align: 'center' }); // Centrado na nova margem
         leftYPos += 35;
       }
 
@@ -374,9 +374,9 @@ const Receitas = () => {
       ];
 
       empresaInfo.forEach(info => {
-        pdf.rect(10, leftYPos, leftColWidth, 8);
+        pdf.rect(5, leftYPos, leftColWidth, 8); // Margem reduzida de 10 para 5
         pdf.setFontSize(8);
-        pdf.text(info, 12, leftYPos + 5);
+        pdf.text(info, 7, leftYPos + 5); // Ajustado para nova margem
         leftYPos += 8;
       });
 
@@ -477,15 +477,15 @@ const Receitas = () => {
       if (ingredientes && ingredientes.length > 0) {
         // Cabeçalho
         pdf.setFillColor(100, 100, 100);
-        pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+        pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas de 10-20 para 5-10
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Ingredientes', 12, yPosition + 5);
+        pdf.text('Ingredientes', 7, yPosition + 5); // Ajustado para nova margem
         
         const tableHeaders = ['Un. Medida', '1 Receita', '2 Receitas', '3 Receitas'];
-        const headerWidths = [(pageWidth - 80) / 2, (pageWidth - 80) / 6, (pageWidth - 80) / 6, (pageWidth - 80) / 6];
-        let headerX = 12 + (pageWidth - 80) / 2;
+        const headerWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6]; // Largura expandida
+        let headerX = 7 + (pageWidth - 70) / 2; // Ajustado para nova margem
         
         tableHeaders.forEach((header, i) => {
           pdf.text(header, headerX, yPosition + 5);
@@ -500,12 +500,12 @@ const Receitas = () => {
         pdf.setFontSize(8);
         
         ingredientes.forEach((ingrediente) => {
-          pdf.rect(10, yPosition, pageWidth - 20, 6);
-          pdf.text(ingrediente.nome, 12, yPosition + 4);
-          pdf.text(ingrediente.unidade, 12 + (pageWidth - 80) / 2, yPosition + 4);
-          pdf.text(ingrediente.quantidade.toString(), 12 + (pageWidth - 80) / 2 + (pageWidth - 80) / 6, yPosition + 4);
-          pdf.text((ingrediente.quantidade * 2).toString(), 12 + (pageWidth - 80) / 2 + 2 * (pageWidth - 80) / 6, yPosition + 4);
-          pdf.text((ingrediente.quantidade * 3).toString(), 12 + (pageWidth - 80) / 2 + 3 * (pageWidth - 80) / 6, yPosition + 4);
+          pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
+          pdf.text(ingrediente.nome, 7, yPosition + 4); // Ajustado para nova margem
+          pdf.text(ingrediente.unidade, 7 + (pageWidth - 70) / 2, yPosition + 4);
+          pdf.text(ingrediente.quantidade.toString(), 7 + (pageWidth - 70) / 2 + (pageWidth - 70) / 6, yPosition + 4);
+          pdf.text((ingrediente.quantidade * 2).toString(), 7 + (pageWidth - 70) / 2 + 2 * (pageWidth - 70) / 6, yPosition + 4);
+          pdf.text((ingrediente.quantidade * 3).toString(), 7 + (pageWidth - 70) / 2 + 3 * (pageWidth - 70) / 6, yPosition + 4);
           yPosition += 6;
         });
         
@@ -515,15 +515,15 @@ const Receitas = () => {
       // Tabela de Sub-receitas (se houver)
       if (subReceitas && subReceitas.length > 0) {
         pdf.setFillColor(100, 100, 100);
-        pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+        pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Receitas', 12, yPosition + 5);
+        pdf.text('Receitas', 7, yPosition + 5); // Ajustado para nova margem
         
         const tableHeaders = ['Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
-        const headerWidths = [(pageWidth - 80) / 2, (pageWidth - 80) / 6, (pageWidth - 80) / 6, (pageWidth - 80) / 6];
-        let headerX = 12 + (pageWidth - 80) / 2;
+        const headerWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6]; // Largura expandida
+        let headerX = 7 + (pageWidth - 70) / 2; // Ajustado para nova margem
         
         tableHeaders.forEach((header, i) => {
           pdf.text(header, headerX, yPosition + 5);
@@ -537,12 +537,12 @@ const Receitas = () => {
         pdf.setFontSize(8);
         
         subReceitas.forEach((subReceita) => {
-          pdf.rect(10, yPosition, pageWidth - 20, 6);
-          pdf.text(subReceita.nome, 12, yPosition + 4);
-          pdf.text(subReceita.unidade, 12 + (pageWidth - 80) / 2, yPosition + 4);
-          pdf.text(subReceita.quantidade.toString(), 12 + (pageWidth - 80) / 2 + (pageWidth - 80) / 6, yPosition + 4);
-          pdf.text((subReceita.quantidade * 2).toString(), 12 + (pageWidth - 80) / 2 + 2 * (pageWidth - 80) / 6, yPosition + 4);
-          pdf.text((subReceita.quantidade * 3).toString(), 12 + (pageWidth - 80) / 2 + 3 * (pageWidth - 80) / 6, yPosition + 4);
+          pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
+          pdf.text(subReceita.nome, 7, yPosition + 4); // Ajustado para nova margem
+          pdf.text(subReceita.unidade, 7 + (pageWidth - 70) / 2, yPosition + 4);
+          pdf.text(subReceita.quantidade.toString(), 7 + (pageWidth - 70) / 2 + (pageWidth - 70) / 6, yPosition + 4);
+          pdf.text((subReceita.quantidade * 2).toString(), 7 + (pageWidth - 70) / 2 + 2 * (pageWidth - 70) / 6, yPosition + 4);
+          pdf.text((subReceita.quantidade * 3).toString(), 7 + (pageWidth - 70) / 2 + 3 * (pageWidth - 70) / 6, yPosition + 4);
           yPosition += 6;
         });
         
@@ -552,15 +552,15 @@ const Receitas = () => {
       // Tabela de Embalagens (se houver)
       if (embalagens && embalagens.length > 0) {
         pdf.setFillColor(100, 100, 100);
-        pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+        pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Embalagem', 12, yPosition + 5);
+        pdf.text('Embalagem', 7, yPosition + 5); // Ajustado para nova margem
         
         const tableHeaders = ['Medida', '1 Receita', '2 Receitas', '3 Receitas'];
-        const headerWidths = [(pageWidth - 80) / 2, (pageWidth - 80) / 6, (pageWidth - 80) / 6, (pageWidth - 80) / 6];
-        let headerX = 12 + (pageWidth - 80) / 2;
+        const headerWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6]; // Largura expandida
+        let headerX = 7 + (pageWidth - 70) / 2; // Ajustado para nova margem
         
         tableHeaders.forEach((header, i) => {
           pdf.text(header, headerX, yPosition + 5);
@@ -574,12 +574,12 @@ const Receitas = () => {
         pdf.setFontSize(8);
         
         embalagens.forEach((embalagem) => {
-          pdf.rect(10, yPosition, pageWidth - 20, 6);
-          pdf.text(embalagem.nome, 12, yPosition + 4);
-          pdf.text(embalagem.unidade, 12 + (pageWidth - 80) / 2, yPosition + 4);
-          pdf.text(embalagem.quantidade.toString(), 12 + (pageWidth - 80) / 2 + (pageWidth - 80) / 6, yPosition + 4);
-          pdf.text((embalagem.quantidade * 2).toString(), 12 + (pageWidth - 80) / 2 + 2 * (pageWidth - 80) / 6, yPosition + 4);
-          pdf.text((embalagem.quantidade * 3).toString(), 12 + (pageWidth - 80) / 2 + 3 * (pageWidth - 80) / 6, yPosition + 4);
+          pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
+          pdf.text(embalagem.nome, 7, yPosition + 4); // Ajustado para nova margem
+          pdf.text(embalagem.unidade, 7 + (pageWidth - 70) / 2, yPosition + 4);
+          pdf.text(embalagem.quantidade.toString(), 7 + (pageWidth - 70) / 2 + (pageWidth - 70) / 6, yPosition + 4);
+          pdf.text((embalagem.quantidade * 2).toString(), 7 + (pageWidth - 70) / 2 + 2 * (pageWidth - 70) / 6, yPosition + 4);
+          pdf.text((embalagem.quantidade * 3).toString(), 7 + (pageWidth - 70) / 2 + 3 * (pageWidth - 70) / 6, yPosition + 4);
           yPosition += 6;
         });
         
@@ -589,39 +589,39 @@ const Receitas = () => {
       // Modo de Preparo
       yPosition += 5;
       pdf.setFillColor(100, 100, 100);
-      pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+      pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Modo de Preparo:', 12, yPosition + 5);
+      pdf.text('Modo de Preparo:', 7, yPosition + 5); // Ajustado para nova margem
       yPosition += 8;
 
       // Seção de duas colunas para passos e fotos
-      const stepColWidth = (pageWidth - 20) / 2;
+      const stepColWidth = (pageWidth - 10) / 2; // Largura expandida
       
       // Cabeçalhos das colunas
       pdf.setFillColor(200, 200, 200);
-      pdf.rect(10, yPosition, stepColWidth, 6, 'F');
-      pdf.rect(10 + stepColWidth, yPosition, stepColWidth, 6, 'F');
+      pdf.rect(5, yPosition, stepColWidth, 6, 'F'); // Margens reduzidas
+      pdf.rect(5 + stepColWidth, yPosition, stepColWidth, 6, 'F');
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(9);
-      pdf.text('Passos', 12, yPosition + 4);
-      pdf.text('Fotos dos Passos', 12 + stepColWidth, yPosition + 4);
+      pdf.text('Passos', 7, yPosition + 4); // Ajustado para nova margem
+      pdf.text('Fotos dos Passos', 7 + stepColWidth, yPosition + 4);
       yPosition += 6;
 
       // Área vazia para passos (pode ser preenchida manualmente)
       const stepAreaHeight = 40;
-      pdf.rect(10, yPosition, stepColWidth, stepAreaHeight);
-      pdf.rect(10 + stepColWidth, yPosition, stepColWidth, stepAreaHeight);
+      pdf.rect(5, yPosition, stepColWidth, stepAreaHeight); // Margens reduzidas
+      pdf.rect(5 + stepColWidth, yPosition, stepColWidth, stepAreaHeight);
       yPosition += stepAreaHeight + 5;
 
       // Observações
       pdf.setFillColor(100, 100, 100);
-      pdf.rect(10, yPosition, pageWidth - 20, 8, 'F');
+      pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Observações:', 12, yPosition + 5);
+      pdf.text('Observações:', 7, yPosition + 5); // Ajustado para nova margem
       yPosition += 8;
 
       if (receita.observacoes) {
@@ -629,13 +629,13 @@ const Receitas = () => {
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'normal');
         
-        const maxWidth = pageWidth - 20;
+        const maxWidth = pageWidth - 10; // Largura expandida
         const lines = pdf.splitTextToSize(receita.observacoes, maxWidth);
-        pdf.text(lines, 12, yPosition + 5);
+        pdf.text(lines, 7, yPosition + 5); // Ajustado para nova margem
         yPosition += lines.length * 4 + 10;
       } else {
         // Área vazia para observações
-        pdf.rect(10, yPosition, pageWidth - 20, 20);
+        pdf.rect(5, yPosition, pageWidth - 10, 20); // Margens reduzidas
         yPosition += 25;
       }
 
@@ -671,16 +671,13 @@ const Receitas = () => {
         </Button>
       </div>
 
-      {/* Break out of container to use full width */}
-      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-        <div className="px-4 lg:px-6">
-          <div className="grid grid-cols-1 gap-4 w-full">
-            {loading ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Carregando receitas...</p>
-              </div>
-            ) : receitas.length > 0 ? (
-              receitas.map((receita, index) => (
+      <div className="grid grid-cols-1 gap-4 w-full">
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Carregando receitas...</p>
+          </div>
+        ) : receitas.length > 0 ? (
+          receitas.map((receita, index) => (
             <Card key={receita.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -833,8 +830,6 @@ const Receitas = () => {
             </CardContent>
           </Card>
         )}
-      </div>
-        </div>
       </div>
 
       <CriarReceitaModal
