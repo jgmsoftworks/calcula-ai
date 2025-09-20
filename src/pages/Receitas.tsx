@@ -383,19 +383,27 @@ const Receitas = () => {
       // Centro - Área da foto do produto
       pdf.rect(centerColStart, yPosition, centerColWidth, leftYPos - yPosition);
       
-      // Texto diagonal "FOTO DO PRODUTO" (placeholder até implementar armazenamento de imagem)
-      pdf.setFontSize(24);
-      pdf.setFont('helvetica', 'bold');
-      const centerX = centerColStart + centerColWidth / 2;
-      const centerY = yPosition + (leftYPos - yPosition) / 2;
+      // Verificar se existe imagem do produto (por enquanto sempre falso)
+      const hasProductImage = false; // Placeholder para futura implementação
       
-      pdf.saveGraphicsState();
-      pdf.setGState(pdf.GState({ opacity: 0.3 }));
-      pdf.text('FOTO DO PRODUTO', centerX, centerY, { 
-        align: 'center',
-        angle: 45 
-      });
-      pdf.restoreGraphicsState();
+      // Só mostrar texto quando não houver imagem
+      if (!hasProductImage) {
+        // Marca d'água "FOTO DO PRODUTO" - centralizada, cinza claro, itálica
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'italic');
+        pdf.setTextColor(153, 153, 153); // Cinza claro #999999
+        
+        const centerX = centerColStart + centerColWidth / 2;
+        const centerY = yPosition + (leftYPos - yPosition) / 2;
+        
+        pdf.text('FOTO DO PRODUTO', centerX, centerY, { 
+          align: 'center'
+          // Sem angle - texto horizontal
+        });
+        
+        // Restaurar cor do texto para preto
+        pdf.setTextColor(0, 0, 0);
+      }
 
       // Coluna direita - Dados
       let rightYPos = yPosition;
