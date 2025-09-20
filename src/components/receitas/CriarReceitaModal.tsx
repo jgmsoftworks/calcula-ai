@@ -271,7 +271,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         observacoes: receita.observacoes || '',
         imagemReceita: '',
         passosPreparo: [{ id: '1', ordem: 1, descricao: '' }], // TODO: carregar do banco quando implementado
-        conservacao: [
+        conservacao: (receita.conservacao as unknown as ConservacaoItem[]) || [
           { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
           { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
           { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
@@ -337,6 +337,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             rendimento_unidade: receitaData.rendimentoUnidade,
             status: 'finalizada',
             markup_id: receitaData.markupSelecionado,
+            conservacao: receitaData.conservacao as any,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -385,6 +386,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             rendimento_unidade: receitaData.rendimentoUnidade,
             status: 'finalizada',
             markup_id: receitaData.markupSelecionado,
+            conservacao: receitaData.conservacao as any,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele

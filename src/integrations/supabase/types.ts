@@ -891,6 +891,7 @@ export type Database = {
       }
       receitas: {
         Row: {
+          conservacao: Json | null
           created_at: string
           id: string
           markup_id: string | null
@@ -907,6 +908,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conservacao?: Json | null
           created_at?: string
           id?: string
           markup_id?: string | null
@@ -923,6 +925,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conservacao?: Json | null
           created_at?: string
           id?: string
           markup_id?: string | null

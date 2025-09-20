@@ -422,9 +422,9 @@ const Receitas = () => {
       pdf.setFontSize(8);
 
       const dadosInfo = [
-        ['Tipo do Produto', receita.tipo_produto || 'MASSA'],
-        ['Rendimento:', `${receita.rendimento_valor || 0} ${receita.rendimento_unidade || 'g'}`],
-        ['Peso unitário:', `${receita.rendimento_valor || 0} g`]
+        ['Tipo do Produto', receita.tipo_produto || ''],
+        ['Rendimento:', receita.rendimento_valor && receita.rendimento_unidade ? `${receita.rendimento_valor} ${receita.rendimento_unidade}` : ''],
+        ['Peso unitário:', ''] // Campo deixado vazio por enquanto
       ];
 
       dadosInfo.forEach(([label, value]) => {
@@ -461,12 +461,25 @@ const Receitas = () => {
       });
       rightYPos += 6;
 
-      // Linhas da tabela de conservação
-      const conservacaoRows = [
-        ['Congelado', '', ''],
-        ['Refrigerado', '', ''],
-        ['Ambiente', '', '']
-      ];
+      // Linhas da tabela de conservação - usar dados reais se existirem
+      const conservacaoData = receita.conservacao as unknown as any[];
+      let conservacaoRows = [];
+      
+      if (conservacaoData && Array.isArray(conservacaoData) && conservacaoData.length > 0) {
+        // Usar dados reais de conservação
+        conservacaoRows = conservacaoData.map(item => [
+          item.descricao || '',
+          item.temperatura || '',
+          item.tempo && item.unidade_tempo ? `${item.tempo} ${item.unidade_tempo}` : ''
+        ]);
+      } else {
+        // Campos vazios se não houver dados
+        conservacaoRows = [
+          ['Congelado', '', ''],
+          ['Refrigerado', '', ''],
+          ['Ambiente', '', '']
+        ];
+      }
 
       conservacaoRows.forEach(row => {
         xPos = rightColStart;
