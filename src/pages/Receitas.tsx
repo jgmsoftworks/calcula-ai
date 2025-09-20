@@ -671,7 +671,7 @@ const Receitas = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4 w-full">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Carregando receitas...</p>
