@@ -671,13 +671,16 @@ const Receitas = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 w-full">
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Carregando receitas...</p>
-          </div>
-        ) : receitas.length > 0 ? (
-          receitas.map((receita, index) => (
+      {/* Break out of container to use full width */}
+      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+        <div className="px-4 lg:px-6">
+          <div className="grid grid-cols-1 gap-4 w-full">
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Carregando receitas...</p>
+              </div>
+            ) : receitas.length > 0 ? (
+              receitas.map((receita, index) => (
             <Card key={receita.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -831,8 +834,10 @@ const Receitas = () => {
           </Card>
         )}
       </div>
+        </div>
+      </div>
 
-      <CriarReceitaModal 
+      <CriarReceitaModal
         open={isModalOpen} 
         onOpenChange={handleModalClose}
         receitaId={editingReceitaId}
