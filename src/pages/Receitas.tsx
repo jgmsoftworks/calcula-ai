@@ -352,8 +352,8 @@ const Receitas = () => {
           const logoMaxSize = 35; // Aumentado de 30 para 35
           const logoData = logoConfig.configuration as string;
           
-          pdf.rect(5, leftYPos, leftColWidth, logoMaxSize + 5); // Margem reduzida de 10 para 5
-          pdf.addImage(logoData, 'PNG', 10, leftYPos + 2, logoMaxSize, logoMaxSize); // Ajustado para nova margem
+          pdf.rect(5, leftYPos, leftColWidth, logoMaxSize + 5);
+          pdf.addImage(logoData, 'PNG', 5, leftYPos, leftColWidth, logoMaxSize + 5); // Preenche toda a área
           leftYPos += logoMaxSize + 10;
         } catch (error) {
           console.error('Erro ao adicionar logo:', error);
@@ -382,10 +382,10 @@ const Receitas = () => {
 
       // Centro - Área da foto do produto
       pdf.rect(centerColStart, yPosition, centerColWidth, leftYPos - yPosition);
+      
+      // Texto diagonal "FOTO DO PRODUTO" (placeholder até implementar armazenamento de imagem)
       pdf.setFontSize(24);
       pdf.setFont('helvetica', 'bold');
-      
-      // Texto diagonal "FOTO DO PRODUTO"
       const centerX = centerColStart + centerColWidth / 2;
       const centerY = yPosition + (leftYPos - yPosition) / 2;
       
