@@ -656,7 +656,7 @@ const Receitas = () => {
           if (currentStepY + 10 > yPosition + totalStepsHeight) return; // Evitar overflow
           
           // Texto do passo (limitado à largura da coluna)
-          const stepText = `${passo.ordem}. ${passo.descricao}`;
+          const stepText = `Passo ${passo.ordem}: ${passo.descricao}`;
           const maxWidth = stepColWidth - 6;
           const lines = pdf.splitTextToSize(stepText, maxWidth);
           
