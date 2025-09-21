@@ -596,9 +596,12 @@ const Receitas = () => {
           if (marcas.length > 0) {
             marcas.forEach((marca, marcaIndex) => {
               const marcaY = yPosition + 4 + (marcaIndex * 3);
-              const textWidth = pdf.getTextWidth(marca);
-              const centerX = columnPositions[2] + (columnWidths[2] - textWidth) / 2;
-              pdf.text(marca, centerX, marcaY);
+              const marcaText = String(marca || ''); // Garantir que é string
+              if (marcaText) {
+                const textWidth = pdf.getTextWidth(marcaText);
+                const centerX = columnPositions[2] + (columnWidths[2] - textWidth) / 2;
+                pdf.text(marcaText, centerX, marcaY);
+              }
             });
           }
           
@@ -720,9 +723,12 @@ const Receitas = () => {
           if (marcas.length > 0) {
             marcas.forEach((marca, marcaIndex) => {
               const marcaY = yPosition + 4 + (marcaIndex * 3);
-              const textWidth = pdf.getTextWidth(marca);
-              const centerX = columnPositions[2] + (columnWidths[2] - textWidth) / 2;
-              pdf.text(marca, centerX, marcaY);
+              const marcaText = String(marca || ''); // Garantir que é string
+              if (marcaText) {
+                const textWidth = pdf.getTextWidth(marcaText);
+                const centerX = columnPositions[2] + (columnWidths[2] - textWidth) / 2;
+                pdf.text(marcaText, centerX, marcaY);
+              }
             });
           }
           
