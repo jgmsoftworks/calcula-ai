@@ -643,7 +643,7 @@ const Receitas = () => {
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(70, 70, 70);
           pdf.text(`Passo ${passo.ordem}:`, 10, yPosition);
-          yPosition += 7;
+          yPosition += 5;
           
           // Layout com imagem na direita
           let hasImage = false;
@@ -702,7 +702,7 @@ const Receitas = () => {
           const textHeight = lines.length * 4;
           const stepHeight = Math.max(textHeight, imageHeight);
           
-          yPosition += stepHeight + 10; // Espaçamento entre passos
+          yPosition += stepHeight + 5; // Espaçamento entre passos reduzido
           
           // Linha divisória sutil entre passos (exceto no último)
           if (i < passosPreparo.length - 1) {
