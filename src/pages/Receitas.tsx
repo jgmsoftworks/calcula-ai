@@ -297,6 +297,23 @@ const Receitas = () => {
         .select('*')
         .eq('receita_id', receitaId);
 
+      // Buscar marcas dos produtos dos ingredientes
+      const ingredientesComMarcas = [];
+      if (ingredientes && ingredientes.length > 0) {
+        for (const ingrediente of ingredientes) {
+          const { data: produto } = await supabase
+            .from('produtos')
+            .select('marcas')
+            .eq('id', ingrediente.produto_id)
+            .single();
+          
+          ingredientesComMarcas.push({
+            ...ingrediente,
+            marcas: produto?.marcas || []
+          });
+        }
+      }
+
       // Buscar sub-receitas
       const { data: subReceitas } = await supabase
         .from('receita_sub_receitas')
@@ -308,6 +325,23 @@ const Receitas = () => {
         .from('receita_embalagens')
         .select('*')
         .eq('receita_id', receitaId);
+
+      // Buscar marcas dos produtos das embalagens
+      const embalagensComMarcas = [];
+      if (embalagens && embalagens.length > 0) {
+        for (const embalagem of embalagens) {
+          const { data: produto } = await supabase
+            .from('produtos')
+            .select('marcas')
+            .eq('id', embalagem.produto_id)
+            .single();
+          
+          embalagensComMarcas.push({
+            ...embalagem,
+            marcas: produto?.marcas || []
+          });
+        }
+      }
 
       // Buscar mão de obra
       const { data: maoObra } = await supabase
@@ -501,8 +535,8 @@ const Receitas = () => {
       // Posicionar para próximas seções
       yPosition = Math.max(leftYPos, rightYPos) + 10;
 
-      // Tabela de Ingredientes
-      if (ingredientes && ingredientes.length > 0) {
+      // Verificar se há ingredientes para mostrar tabela
+      if (ingredientesComMarcas && ingredientesComMarcas.length > 0) {
         // Cabeçalho
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas de 10-20 para 5-10
@@ -534,8 +568,12 @@ const Receitas = () => {
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8);
         
-        ingredientes.forEach((ingrediente) => {
-          pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
+        ingredientesComMarcas.forEach((ingrediente) => {
+          // Calcular altura necessária para marcas
+          const marcas = ingrediente.marcas || [];
+          const rowHeight = Math.max(6, marcas.length * 3 + 2); // Altura mínima de 6 ou baseada no número de marcas
+          
+          pdf.rect(5, yPosition, pageWidth - 10, rowHeight); // Margens reduzidas
           
           // Centralizar texto em cada coluna usando as mesmas posições do cabeçalho
           const nome = ingrediente.nome;
@@ -544,15 +582,27 @@ const Receitas = () => {
           const qty2 = (ingrediente.quantidade * 2).toString();
           const qty3 = (ingrediente.quantidade * 3).toString();
           
-          const values = [nome, unidade, qty1, qty2, qty3];
+          const values = [nome, unidade, '', qty1, qty2, qty3]; // Deixamos vazio para marcas pois será tratado separadamente
           
           values.forEach((value, i) => {
-            const textWidth = pdf.getTextWidth(value);
-            const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
-            pdf.text(value, centerX, yPosition + 4);
+            if (i !== 2) { // Pular a coluna de marcas
+              const textWidth = pdf.getTextWidth(value);
+              const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+              pdf.text(value, centerX, yPosition + 4);
+            }
           });
           
-          yPosition += 6;
+          // Exibir marcas na coluna específica (uma abaixo da outra)
+          if (marcas.length > 0) {
+            marcas.forEach((marca, marcaIndex) => {
+              const marcaY = yPosition + 4 + (marcaIndex * 3);
+              const textWidth = pdf.getTextWidth(marca);
+              const centerX = columnPositions[2] + (columnWidths[2] - textWidth) / 2;
+              pdf.text(marca, centerX, marcaY);
+            });
+          }
+          
+          yPosition += rowHeight;
         });
         
         yPosition += 5;
@@ -612,8 +662,8 @@ const Receitas = () => {
         yPosition += 5;
       }
 
-      // Tabela de Embalagens (se houver)
-      if (embalagens && embalagens.length > 0) {
+      // Verificar se há embalagens para mostrar tabela
+      if (embalagensComMarcas && embalagensComMarcas.length > 0) {
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
         pdf.setTextColor(255, 255, 255);
@@ -642,8 +692,12 @@ const Receitas = () => {
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8);
         
-        embalagens.forEach((embalagem) => {
-          pdf.rect(5, yPosition, pageWidth - 10, 6);
+        embalagensComMarcas.forEach((embalagem) => {
+          // Calcular altura necessária para marcas
+          const marcas = embalagem.marcas || [];
+          const rowHeight = Math.max(6, marcas.length * 3 + 2);
+          
+          pdf.rect(5, yPosition, pageWidth - 10, rowHeight);
           
           // Centralizar texto em cada coluna
           const nome = embalagem.nome;
@@ -652,15 +706,27 @@ const Receitas = () => {
           const qty2 = (embalagem.quantidade * 2).toString();
           const qty3 = (embalagem.quantidade * 3).toString();
           
-          const values = [nome, unidade, qty1, qty2, qty3];
+          const values = [nome, unidade, '', qty1, qty2, qty3]; // Deixamos vazio para marcas pois será tratado separadamente
           
           values.forEach((value, i) => {
-            const textWidth = pdf.getTextWidth(value);
-            const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
-            pdf.text(value, centerX, yPosition + 4);
+            if (i !== 2) { // Pular a coluna de marcas
+              const textWidth = pdf.getTextWidth(value);
+              const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+              pdf.text(value, centerX, yPosition + 4);
+            }
           });
           
-          yPosition += 6;
+          // Exibir marcas na coluna específica (uma abaixo da outra)
+          if (marcas.length > 0) {
+            marcas.forEach((marca, marcaIndex) => {
+              const marcaY = yPosition + 4 + (marcaIndex * 3);
+              const textWidth = pdf.getTextWidth(marca);
+              const centerX = columnPositions[2] + (columnWidths[2] - textWidth) / 2;
+              pdf.text(marca, centerX, marcaY);
+            });
+          }
+          
+          yPosition += rowHeight;
         });
         
         yPosition += 5;
