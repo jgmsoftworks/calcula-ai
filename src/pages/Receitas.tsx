@@ -667,6 +667,12 @@ const Receitas = () => {
                       const imgX = pageWidth - logoSize - 10;
                       
                       pdf.addImage(imageData, 'JPEG', imgX, yPosition, logoSize, logoSize, undefined, 'FAST');
+                      
+                      // Adicionar borda sutil à imagem
+                      pdf.setDrawColor(200, 200, 200);
+                      pdf.setLineWidth(0.5);
+                      pdf.rect(imgX, yPosition, logoSize, logoSize);
+                      
                       hasImage = true;
                       imageHeight = logoSize;
                       
