@@ -645,24 +645,14 @@ const Receitas = () => {
           pdf.text(`Passo ${passo.ordem}:`, 10, yPosition);
           yPosition += 7;
           
-          // Layout: texto ocupando toda a largura disponível
-          const maxWidth = pageWidth - 20;
+          // Layout com imagem na direita
+          let hasImage = false;
+          let imageHeight = 0;
+          const logoSize = 20; // Mesmo tamanho da logo
           
-          // Texto do passo
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(0, 0, 0);
-          const lines = pdf.splitTextToSize(passo.descricao, maxWidth);
-          pdf.text(lines, 10, yPosition);
-          
-          // Calcular altura do texto
-          const textHeight = lines.length * 4;
-          yPosition += textHeight + 5;
-          
-          // Carregar e exibir imagem se existir
+          // Se tiver imagem, carrega primeiro para calcular o layout
           if (passo.imagem_url) {
             try {
-              // Converter URL da imagem para base64 e adicionar ao PDF
               const response = await fetch(passo.imagem_url);
               if (response.ok) {
                 const blob = await response.blob();
@@ -673,19 +663,12 @@ const Receitas = () => {
                     try {
                       const imageData = reader.result as string;
                       
-                      // Dimensões da imagem no PDF
-                      const maxImgWidth = 80;
-                      const maxImgHeight = 60;
+                      // Posição da imagem na direita
+                      const imgX = pageWidth - logoSize - 10;
                       
-                      // Centralizar imagem
-                      const imgX = (pageWidth - maxImgWidth) / 2;
-                      
-                      pdf.addImage(imageData, 'JPEG', imgX, yPosition, maxImgWidth, maxImgHeight, undefined, 'FAST');
-                      
-                      // Adicionar borda sutil à imagem
-                      pdf.setDrawColor(200, 200, 200);
-                      pdf.setLineWidth(0.5);
-                      pdf.rect(imgX, yPosition, maxImgWidth, maxImgHeight);
+                      pdf.addImage(imageData, 'JPEG', imgX, yPosition, logoSize, logoSize, undefined, 'FAST');
+                      hasImage = true;
+                      imageHeight = logoSize;
                       
                     } catch (error) {
                       console.log('Erro ao processar imagem:', error);
@@ -694,24 +677,26 @@ const Receitas = () => {
                   };
                   reader.readAsDataURL(blob);
                 });
-                
-                yPosition += 65; // Espaço da imagem + margem
               }
             } catch (error) {
               console.log('Erro ao carregar imagem:', error);
             }
           }
           
-          // Espaçamento entre passos
-          yPosition += 8;
+          // Texto do passo (ajusta largura se tiver imagem)
+          const textWidth = hasImage ? pageWidth - logoSize - 30 : pageWidth - 20;
           
-          // Linha divisória sutil entre passos (exceto no último)
-          if (i < passosPreparo.length - 1) {
-            pdf.setDrawColor(230, 230, 230);
-            pdf.setLineWidth(0.3);
-            pdf.line(10, yPosition, pageWidth - 10, yPosition);
-            yPosition += 5;
-          }
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+          const lines = pdf.splitTextToSize(passo.descricao, textWidth);
+          pdf.text(lines, 10, yPosition);
+          
+          // Calcular altura do passo (texto ou imagem, o que for maior)
+          const textHeight = lines.length * 4;
+          const stepHeight = Math.max(textHeight, imageHeight);
+          
+          yPosition += stepHeight + 10; // Espaçamento entre passos
         }
         
         yPosition += 5;
