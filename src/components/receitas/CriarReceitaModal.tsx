@@ -720,7 +720,6 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           <GeralStep
             receitaId={receitaId || ''}
             nomeReceita={receitaData.nomeReceita}
-            tipoProduto={receitaData.tipoProduto}
             observacoes={receitaData.observacoes}
             imagemReceita={receitaData.imagemReceita}
             passosPreparo={receitaData.passosPreparo}

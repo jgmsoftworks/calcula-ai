@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TiposProdutoSelector } from './TiposProdutoSelector';
+
 
 interface PassoPreparo {
   id: string;
@@ -28,14 +28,12 @@ interface ConservacaoItem {
 interface GeralStepProps {
   receitaId: string | null;
   nomeReceita: string;
-  tipoProduto: string;
   observacoes: string;
   imagemReceita: string;
   passosPreparo: PassoPreparo[];
   conservacao: ConservacaoItem[];
   onGeralChange: (data: Partial<{
     nomeReceita: string;
-    tipoProduto: string;
     observacoes: string;
     imagemReceita: string;
     passosPreparo: PassoPreparo[];
@@ -46,7 +44,6 @@ interface GeralStepProps {
 export function GeralStep({ 
   receitaId, 
   nomeReceita,
-  tipoProduto,
   observacoes, 
   imagemReceita, 
   passosPreparo, 
@@ -125,30 +122,18 @@ export function GeralStep({
 
   return (
     <div className="space-y-6">
-      {/* Nome da Receita e Tipo de Produto */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="nomeReceita" className="text-sm font-medium">
-            Nome da Receita
-          </Label>
-          <Input
-            id="nomeReceita"
-            placeholder="Digite o nome da receita..."
-            value={nomeReceita}
-            onChange={(e) => onGeralChange({ nomeReceita: e.target.value })}
-            className="text-lg font-medium h-12"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="tipoProduto" className="text-sm font-medium">
-            Tipo de Produto
-          </Label>
-          <TiposProdutoSelector
-            selectedTipo={tipoProduto}
-            onTipoChange={(tipo) => onGeralChange({ tipoProduto: tipo })}
-          />
-        </div>
+      {/* Nome da Receita */}
+      <div className="space-y-2">
+        <Label htmlFor="nomeReceita" className="text-sm font-medium">
+          Nome da Receita
+        </Label>
+        <Input
+          id="nomeReceita"
+          placeholder="Digite o nome da receita..."
+          value={nomeReceita}
+          onChange={(e) => onGeralChange({ nomeReceita: e.target.value })}
+          className="text-lg font-medium h-12"
+        />
       </div>
 
       {/* Layout Principal: Imagem e Conservação/Observações */}
