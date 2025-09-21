@@ -31,13 +31,9 @@ interface ProjecaoStepProps {
   rendimentoValor: string;
   rendimentoUnidade: string;
   tipoProduto: string;
-  pesoUnitario: string;
-  precoVenda: number;
   onMaoObraChange: (maoObra: MaoObraItem[]) => void;
   onRendimentoChange: (rendimentoValor: string, rendimentoUnidade: string) => void;
   onTipoProdutoChange: (tipoProduto: string) => void;
-  onPesoUnitarioChange: (pesoUnitario: string) => void;
-  onPrecoVendaChange: (precoVenda: number) => void;
 }
 
 export function ProjecaoStep({ 
@@ -46,13 +42,9 @@ export function ProjecaoStep({
   rendimentoValor, 
   rendimentoUnidade, 
   tipoProduto,
-  pesoUnitario,
-  precoVenda,
   onMaoObraChange, 
   onRendimentoChange,
-  onTipoProdutoChange,
-  onPesoUnitarioChange,
-  onPrecoVendaChange
+  onTipoProdutoChange
 }: ProjecaoStepProps) {
   const [tempoPreparoTotal, setTempoPreparoTotal] = useState(0);
   const [tempoPreparoUnidade, setTempoPreparoUnidade] = useState('minutos');
@@ -205,41 +197,6 @@ export function ProjecaoStep({
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="peso-unitario">Peso Unitário</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="peso-unitario"
-                    placeholder="Ex: 150, 2.5"
-                    value={pesoUnitario}
-                    onChange={(e) => onPesoUnitarioChange(e.target.value)}
-                    className="flex-1"
-                  />
-                  <div className="w-16 flex items-center px-3 text-sm text-muted-foreground bg-muted rounded-md">
-                    g
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="preco-venda">Preço de Venda</Label>
-                <div className="flex gap-2">
-                  <div className="flex items-center">
-                    <span className="px-3 py-2 text-sm text-muted-foreground bg-muted rounded-l-md border-r">R$</span>
-                    <Input
-                      id="preco-venda"
-                      placeholder="0,00"
-                      value={precoVenda ? precoVenda.toFixed(2).replace('.', ',') : ''}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(',', '.');
-                        const numValue = parseFloat(value) || 0;
-                        onPrecoVendaChange(numValue);
-                      }}
-                      className="rounded-l-none flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
