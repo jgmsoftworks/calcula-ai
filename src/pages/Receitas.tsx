@@ -576,19 +576,22 @@ const Receitas = () => {
           pdf.rect(5, yPosition, pageWidth - 10, rowHeight); // Margens reduzidas
           
           // Centralizar texto em cada coluna usando as mesmas posições do cabeçalho
-          const nome = ingrediente.nome;
-          const unidade = ingrediente.unidade;
-          const qty1 = ingrediente.quantidade.toString();
-          const qty2 = (ingrediente.quantidade * 2).toString();
-          const qty3 = (ingrediente.quantidade * 3).toString();
+          const nome = String(ingrediente.nome || '');
+          const unidade = String(ingrediente.unidade || '');
+          const qty1 = String(ingrediente.quantidade || 0);
+          const qty2 = String((ingrediente.quantidade || 0) * 2);
+          const qty3 = String((ingrediente.quantidade || 0) * 3);
           
           const values = [nome, unidade, '', qty1, qty2, qty3]; // Deixamos vazio para marcas pois será tratado separadamente
           
           values.forEach((value, i) => {
             if (i !== 2) { // Pular a coluna de marcas
-              const textWidth = pdf.getTextWidth(value);
-              const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
-              pdf.text(value, centerX, yPosition + 4);
+              const safeValue = String(value || ''); // Garantir que é string
+              if (safeValue) {
+                const textWidth = pdf.getTextWidth(safeValue);
+                const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+                pdf.text(safeValue, centerX, yPosition + 4);
+              }
             }
           });
           
@@ -645,18 +648,21 @@ const Receitas = () => {
           pdf.rect(5, yPosition, pageWidth - 10, 6); 
           
           // Centralizar texto em cada coluna
-          const nome = subReceita.nome;
-          const unidade = subReceita.unidade;
-          const qty1 = subReceita.quantidade.toString();
-          const qty2 = (subReceita.quantidade * 2).toString();
-          const qty3 = (subReceita.quantidade * 3).toString();
+          const nome = String(subReceita.nome || '');
+          const unidade = String(subReceita.unidade || '');
+          const qty1 = String(subReceita.quantidade || 0);
+          const qty2 = String((subReceita.quantidade || 0) * 2);
+          const qty3 = String((subReceita.quantidade || 0) * 3);
           
           const values = [nome, unidade, qty1, qty2, qty3];
           
           values.forEach((value, i) => {
-            const textWidth = pdf.getTextWidth(value);
-            const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
-            pdf.text(value, centerX, yPosition + 4);
+            const safeValue = String(value || ''); // Garantir que é string
+            if (safeValue) {
+              const textWidth = pdf.getTextWidth(safeValue);
+              const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+              pdf.text(safeValue, centerX, yPosition + 4);
+            }
           });
           
           yPosition += 6;
@@ -703,19 +709,22 @@ const Receitas = () => {
           pdf.rect(5, yPosition, pageWidth - 10, rowHeight);
           
           // Centralizar texto em cada coluna
-          const nome = embalagem.nome;
-          const unidade = embalagem.unidade;
-          const qty1 = embalagem.quantidade.toString();
-          const qty2 = (embalagem.quantidade * 2).toString();
-          const qty3 = (embalagem.quantidade * 3).toString();
+          const nome = String(embalagem.nome || '');
+          const unidade = String(embalagem.unidade || '');
+          const qty1 = String(embalagem.quantidade || 0);
+          const qty2 = String((embalagem.quantidade || 0) * 2);
+          const qty3 = String((embalagem.quantidade || 0) * 3);
           
           const values = [nome, unidade, '', qty1, qty2, qty3]; // Deixamos vazio para marcas pois será tratado separadamente
           
           values.forEach((value, i) => {
             if (i !== 2) { // Pular a coluna de marcas
-              const textWidth = pdf.getTextWidth(value);
-              const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
-              pdf.text(value, centerX, yPosition + 4);
+              const safeValue = String(value || ''); // Garantir que é string
+              if (safeValue) {
+                const textWidth = pdf.getTextWidth(safeValue);
+                const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+                pdf.text(safeValue, centerX, yPosition + 4);
+              }
             }
           });
           
