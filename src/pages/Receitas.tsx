@@ -543,16 +543,17 @@ const Receitas = () => {
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        const tableHeaders = ['Ingrediente', 'Un. Medida', '1 Receita', '2 Receitas', '3 Receitas'];
+        const tableHeaders = ['Ingrediente', 'Un. Medida', 'Marcas', '1 Receita', '2 Receitas', '3 Receitas'];
         
-        // Definir posições fixas das colunas
+        // Definir posições fixas das colunas para 6 colunas
         const col1X = 7; // Nome do ingrediente
-        const col2X = 7 + (pageWidth - 70) / 2; // Unidade de medida
-        const col3X = col2X + (pageWidth - 70) / 6; // 1 Receita
-        const col4X = col3X + (pageWidth - 70) / 6; // 2 Receitas  
-        const col5X = col4X + (pageWidth - 70) / 6; // 3 Receitas
-        const columnPositions = [col1X, col2X, col3X, col4X, col5X];
-        const columnWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6];
+        const col2X = 7 + (pageWidth - 70) * 0.35; // Unidade de medida
+        const col3X = col2X + (pageWidth - 70) * 0.15; // Marcas
+        const col4X = col3X + (pageWidth - 70) * 0.15; // 1 Receita
+        const col5X = col4X + (pageWidth - 70) * 0.15; // 2 Receitas  
+        const col6X = col5X + (pageWidth - 70) * 0.15; // 3 Receitas
+        const columnPositions = [col1X, col2X, col3X, col4X, col5X, col6X];
+        const columnWidths = [(pageWidth - 70) * 0.35, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.05];
         
         tableHeaders.forEach((header, i) => {
           // Centralizar texto na coluna
@@ -678,16 +679,17 @@ const Receitas = () => {
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        const tableHeaders = ['Embalagem', 'Medida', '1 Receita', '2 Receitas', '3 Receitas'];
+        const tableHeaders = ['Embalagem', 'Medida', 'Marcas', '1 Receita', '2 Receitas', '3 Receitas'];
         
-        // Usar as mesmas posições de colunas para consistência
+        // Definir posições fixas das colunas para 6 colunas (mesmo layout dos ingredientes)
         const col1X = 7; 
-        const col2X = 7 + (pageWidth - 70) / 2; 
-        const col3X = col2X + (pageWidth - 70) / 6; 
-        const col4X = col3X + (pageWidth - 70) / 6; 
-        const col5X = col4X + (pageWidth - 70) / 6; 
-        const columnPositions = [col1X, col2X, col3X, col4X, col5X];
-        const columnWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6];
+        const col2X = 7 + (pageWidth - 70) * 0.35; 
+        const col3X = col2X + (pageWidth - 70) * 0.15; 
+        const col4X = col3X + (pageWidth - 70) * 0.15; 
+        const col5X = col4X + (pageWidth - 70) * 0.15; 
+        const col6X = col5X + (pageWidth - 70) * 0.15; 
+        const columnPositions = [col1X, col2X, col3X, col4X, col5X, col6X];
+        const columnWidths = [(pageWidth - 70) * 0.35, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.05];
         
         tableHeaders.forEach((header, i) => {
           const textWidth = pdf.getTextWidth(header);
