@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, Package, TrendingUp, Plus, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TipoProdutoModal } from './TipoProdutoModal';
 import { MaoObraModal } from './MaoObraModal';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MaoObraItem {
   id: string;
@@ -28,8 +30,14 @@ interface ProjecaoStepProps {
   maoObra: MaoObraItem[];
   rendimentoValor: string;
   rendimentoUnidade: string;
+  tipoProduto: string;
+  pesoUnitario: string;
+  precoVenda: number;
   onMaoObraChange: (maoObra: MaoObraItem[]) => void;
   onRendimentoChange: (rendimentoValor: string, rendimentoUnidade: string) => void;
+  onTipoProdutoChange: (tipoProduto: string) => void;
+  onPesoUnitarioChange: (pesoUnitario: string) => void;
+  onPrecoVendaChange: (precoVenda: number) => void;
 }
 
 export function ProjecaoStep({ 
@@ -37,15 +45,44 @@ export function ProjecaoStep({
   maoObra, 
   rendimentoValor, 
   rendimentoUnidade, 
+  tipoProduto,
+  pesoUnitario,
+  precoVenda,
   onMaoObraChange, 
-  onRendimentoChange 
+  onRendimentoChange,
+  onTipoProdutoChange,
+  onPesoUnitarioChange,
+  onPrecoVendaChange
 }: ProjecaoStepProps) {
-  const [tipoProduto, setTipoProduto] = useState('');
   const [tempoPreparoTotal, setTempoPreparoTotal] = useState(0);
   const [tempoPreparoUnidade, setTempoPreparoUnidade] = useState('minutos');
   const [tiposProduto, setTiposProduto] = useState<{ id: string; nome: string }[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [modalMaoObraAberto, setModalMaoObraAberto] = useState(false);
+  const { user } = useAuth();
+
+  // Carregar tipos de produto do banco
+  useEffect(() => {
+    const loadTipos = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('tipos_produto')
+          .select('id, nome')
+          .eq('user_id', user.id)
+          .eq('ativo', true)
+          .order('nome');
+
+        if (error) throw error;
+        setTiposProduto(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar tipos de produto:', error);
+      }
+    };
+
+    loadTipos();
+  }, [user?.id]);
 
   // Mock data para cálculos
   const custoIngredientes = 45.20;
@@ -120,7 +157,7 @@ export function ProjecaoStep({
               <div>
                 <Label htmlFor="tipo-produto">Tipo de Produto *</Label>
                 <div className="flex gap-2">
-                  <Select value={tipoProduto} onValueChange={setTipoProduto}>
+                  <Select value={tipoProduto} onValueChange={onTipoProdutoChange}>
                     <SelectTrigger>
                       <SelectValue placeholder={tiposProduto.length === 0 ? "Nenhum tipo cadastrado - adicione um tipo" : "Selecione o tipo"} />
                     </SelectTrigger>
@@ -165,6 +202,42 @@ export function ProjecaoStep({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="peso-unitario">Peso Unitário</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="peso-unitario"
+                    placeholder="Ex: 150, 2.5"
+                    value={pesoUnitario}
+                    onChange={(e) => onPesoUnitarioChange(e.target.value)}
+                    className="flex-1"
+                  />
+                  <div className="w-16 flex items-center px-3 text-sm text-muted-foreground bg-muted rounded-md">
+                    g
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="preco-venda">Preço de Venda</Label>
+                <div className="flex gap-2">
+                  <div className="flex items-center">
+                    <span className="px-3 py-2 text-sm text-muted-foreground bg-muted rounded-l-md border-r">R$</span>
+                    <Input
+                      id="preco-venda"
+                      placeholder="0,00"
+                      value={precoVenda ? precoVenda.toFixed(2).replace('.', ',') : ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(',', '.');
+                        const numValue = parseFloat(value) || 0;
+                        onPrecoVendaChange(numValue);
+                      }}
+                      className="rounded-l-none flex-1"
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>

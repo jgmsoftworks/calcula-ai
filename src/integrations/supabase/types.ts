@@ -928,6 +928,7 @@ export type Database = {
           markup_id: string | null
           nome: string
           observacoes: string | null
+          peso_unitario: number | null
           preco_venda: number | null
           rendimento_unidade: string | null
           rendimento_valor: number | null
@@ -946,6 +947,7 @@ export type Database = {
           markup_id?: string | null
           nome: string
           observacoes?: string | null
+          peso_unitario?: number | null
           preco_venda?: number | null
           rendimento_unidade?: string | null
           rendimento_valor?: number | null
@@ -964,6 +966,7 @@ export type Database = {
           markup_id?: string | null
           nome?: string
           observacoes?: string | null
+          peso_unitario?: number | null
           preco_venda?: number | null
           rendimento_unidade?: string | null
           rendimento_valor?: number | null

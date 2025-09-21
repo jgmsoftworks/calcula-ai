@@ -101,7 +101,8 @@ interface ReceitaData {
   conservacao: ConservacaoItem[];
   // Dados da precificação
   markupSelecionado: string | null;
-  precoVenda?: number; // Adicionar campo para preço de venda
+  precoVenda: number;
+  pesoUnitario: string;
 }
 
 const steps = [
@@ -164,6 +165,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     ],
     // Dados da precificação
     markupSelecionado: null,
+    precoVenda: 0,
+    pesoUnitario: '',
   });
 
   // Carregar receita existente para edição
@@ -293,6 +296,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         ],
         // Dados da precificação
         markupSelecionado: receita.markup_id || null,
+        precoVenda: receita.preco_venda || 0,
+        pesoUnitario: receita.peso_unitario?.toString() || '',
       });
 
     } catch (error) {
@@ -393,6 +398,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             markup_id: receitaData.markupSelecionado,
             conservacao: receitaData.conservacao as any,
             imagem_url: imagemUrl,
+            peso_unitario: parseFloat(receitaData.pesoUnitario) || null,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -444,6 +450,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             markup_id: receitaData.markupSelecionado,
             conservacao: receitaData.conservacao as any,
             imagem_url: imagemUrl,
+            peso_unitario: parseFloat(receitaData.pesoUnitario) || null,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -685,6 +692,8 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
       ],
       // Dados da precificação
       markupSelecionado: null,
+      precoVenda: 0,
+      pesoUnitario: '',
     });
     onOpenChange(false);
   };
@@ -734,10 +743,16 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             maoObra={receitaData.maoObra}
             rendimentoValor={receitaData.rendimentoValor}
             rendimentoUnidade={receitaData.rendimentoUnidade}
+            tipoProduto={receitaData.tipoProduto}
+            pesoUnitario={receitaData.pesoUnitario}
+            precoVenda={receitaData.precoVenda}
             onMaoObraChange={(maoObra) => updateReceitaData({ maoObra })}
             onRendimentoChange={(rendimentoValor, rendimentoUnidade) => 
               updateReceitaData({ rendimentoValor, rendimentoUnidade })
             }
+            onTipoProdutoChange={(tipoProduto) => updateReceitaData({ tipoProduto })}
+            onPesoUnitarioChange={(pesoUnitario) => updateReceitaData({ pesoUnitario })}
+            onPrecoVendaChange={(precoVenda) => updateReceitaData({ precoVenda })}
           />
         );
       case 5:
