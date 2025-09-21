@@ -614,7 +614,7 @@ const Receitas = () => {
         yPosition += 5;
       }
 
-      // Modo de Preparo
+       // Modo de Preparo
       yPosition += 5;
       pdf.setFillColor(100, 100, 100);
       pdf.rect(5, yPosition, pageWidth - 10, 8, 'F');
@@ -622,66 +622,106 @@ const Receitas = () => {
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.text('Modo de Preparo:', 7, yPosition + 5);
-      yPosition += 8;
+      yPosition += 12;
 
-      // Seção de duas colunas para passos e fotos
-      const stepColWidth = (pageWidth - 10) / 2;
-      
-      // Cabeçalhos das colunas
-      pdf.setFillColor(200, 200, 200);
-      pdf.rect(5, yPosition, stepColWidth, 6, 'F');
-      pdf.rect(5 + stepColWidth, yPosition, stepColWidth, 6, 'F');
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(9);
-      pdf.text('Passos', 7, yPosition + 4);
-      pdf.text('Fotos dos Passos', 7 + stepColWidth, yPosition + 4);
-      yPosition += 6;
-
-      // Renderizar passos de preparo reais ou área vazia
+      // Renderizar passos de preparo com layout melhorado
       if (passosPreparo && passosPreparo.length > 0) {
-        // Calcular altura necessária baseada no número de passos
-        const minStepHeight = 8; // Altura mínima por passo
-        const totalStepsHeight = Math.max(40, passosPreparo.length * minStepHeight);
-        
-        pdf.rect(5, yPosition, stepColWidth, totalStepsHeight);
-        pdf.rect(5 + stepColWidth, yPosition, stepColWidth, totalStepsHeight);
-        
-        // Renderizar cada passo
         pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
         
-        let currentStepY = yPosition + 3;
-        passosPreparo.forEach((passo: any) => {
-          if (currentStepY + 10 > yPosition + totalStepsHeight) return; // Evitar overflow
+        for (let i = 0; i < passosPreparo.length; i++) {
+          const passo = passosPreparo[i];
           
-          // Texto do passo (limitado à largura da coluna)
-          const stepText = `Passo ${passo.ordem}: ${passo.descricao}`;
-          const maxWidth = stepColWidth - 6;
-          const lines = pdf.splitTextToSize(stepText, maxWidth);
-          
-          // Renderizar apenas as primeiras linhas que cabem
-          const availableHeight = (yPosition + totalStepsHeight) - currentStepY - 2;
-          const maxLines = Math.floor(availableHeight / 3);
-          const displayLines = lines.slice(0, maxLines);
-          
-          pdf.text(displayLines, 7, currentStepY);
-          
-          // Se há imagem, indicar na coluna de fotos
-          if (passo.imagem_url) {
-            pdf.text(`Passo ${passo.ordem}: (Imagem)`, 7 + stepColWidth, currentStepY);
+          // Verificar se precisa de nova página
+          if (yPosition > 240) {
+            pdf.addPage();
+            yPosition = 20;
           }
           
-          currentStepY += displayLines.length * 3 + 2;
-        });
+          // Título do passo
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(70, 70, 70);
+          pdf.text(`Passo ${passo.ordem}:`, 10, yPosition);
+          yPosition += 7;
+          
+          // Layout: texto ocupando toda a largura disponível
+          const maxWidth = pageWidth - 20;
+          
+          // Texto do passo
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+          const lines = pdf.splitTextToSize(passo.descricao, maxWidth);
+          pdf.text(lines, 10, yPosition);
+          
+          // Calcular altura do texto
+          const textHeight = lines.length * 4;
+          yPosition += textHeight + 5;
+          
+          // Carregar e exibir imagem se existir
+          if (passo.imagem_url) {
+            try {
+              // Converter URL da imagem para base64 e adicionar ao PDF
+              const response = await fetch(passo.imagem_url);
+              if (response.ok) {
+                const blob = await response.blob();
+                const reader = new FileReader();
+                
+                await new Promise<void>((resolve) => {
+                  reader.onloadend = () => {
+                    try {
+                      const imageData = reader.result as string;
+                      
+                      // Dimensões da imagem no PDF
+                      const maxImgWidth = 80;
+                      const maxImgHeight = 60;
+                      
+                      // Centralizar imagem
+                      const imgX = (pageWidth - maxImgWidth) / 2;
+                      
+                      pdf.addImage(imageData, 'JPEG', imgX, yPosition, maxImgWidth, maxImgHeight, undefined, 'FAST');
+                      
+                      // Adicionar borda sutil à imagem
+                      pdf.setDrawColor(200, 200, 200);
+                      pdf.setLineWidth(0.5);
+                      pdf.rect(imgX, yPosition, maxImgWidth, maxImgHeight);
+                      
+                    } catch (error) {
+                      console.log('Erro ao processar imagem:', error);
+                    }
+                    resolve();
+                  };
+                  reader.readAsDataURL(blob);
+                });
+                
+                yPosition += 65; // Espaço da imagem + margem
+              }
+            } catch (error) {
+              console.log('Erro ao carregar imagem:', error);
+            }
+          }
+          
+          // Espaçamento entre passos
+          yPosition += 8;
+          
+          // Linha divisória sutil entre passos (exceto no último)
+          if (i < passosPreparo.length - 1) {
+            pdf.setDrawColor(230, 230, 230);
+            pdf.setLineWidth(0.3);
+            pdf.line(10, yPosition, pageWidth - 10, yPosition);
+            yPosition += 5;
+          }
+        }
         
-        yPosition += totalStepsHeight + 5;
+        yPosition += 5;
       } else {
-        // Área vazia para passos (pode ser preenchida manualmente)
-        const stepAreaHeight = 40;
-        pdf.rect(5, yPosition, stepColWidth, stepAreaHeight);
-        pdf.rect(5 + stepColWidth, yPosition, stepColWidth, stepAreaHeight);
-        yPosition += stepAreaHeight + 5;
+        // Mensagem quando não há passos
+        pdf.setFontSize(9);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('Nenhum passo de preparo cadastrado.', 10, yPosition);
+        yPosition += 20;
+        pdf.setTextColor(0, 0, 0);
       }
 
       // Observações
