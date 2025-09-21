@@ -424,12 +424,31 @@ const Receitas = () => {
       // Centro - Área da foto do produto
       pdf.rect(centerColStart, yPosition, centerColWidth, leftYPos - yPosition);
       
-      // Verificar se existe imagem do produto (por enquanto sempre falso)
-      const hasProductImage = false; // Placeholder para futura implementação
+      // Verificar se existe imagem do produto
+      const hasProductImage = receita.imagem_url && receita.imagem_url.trim() !== '';
       
-      // Só mostrar texto quando não houver imagem
-      if (!hasProductImage) {
-        // Marca d'água "FOTO DO PRODUTO" - centralizada, cinza claro, itálica
+      if (hasProductImage) {
+        try {
+          // Adicionar imagem do produto
+          pdf.addImage(receita.imagem_url, 'JPEG', centerColStart + 2, yPosition + 2, centerColWidth - 4, leftYPos - yPosition - 4);
+        } catch (error) {
+          console.error('Erro ao carregar imagem do produto:', error);
+          // Fallback para texto se houver erro na imagem
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'italic');
+          pdf.setTextColor(153, 153, 153);
+          
+          const centerX = centerColStart + centerColWidth / 2;
+          const centerY = yPosition + (leftYPos - yPosition) / 2;
+          
+          pdf.text('ERRO AO CARREGAR IMAGEM', centerX, centerY, { 
+            align: 'center'
+          });
+          
+          pdf.setTextColor(0, 0, 0);
+        }
+      } else {
+        // Só mostrar texto quando não houver imagem
         pdf.setFontSize(16);
         pdf.setFont('helvetica', 'italic');
         pdf.setTextColor(153, 153, 153); // Cinza claro #999999
@@ -439,7 +458,6 @@ const Receitas = () => {
         
         pdf.text('FOTO DO PRODUTO', centerX, centerY, { 
           align: 'center'
-          // Sem angle - texto horizontal
         });
         
         // Restaurar cor do texto para preto
@@ -465,7 +483,7 @@ const Receitas = () => {
       const dadosInfo = [
         ['Tipo do Produto', receita.tipo_produto || ''],
         ['Rendimento:', receita.rendimento_valor && receita.rendimento_unidade ? `${receita.rendimento_valor} ${receita.rendimento_unidade}` : ''],
-        ['Peso unitário:', ''] // Campo deixado vazio por enquanto
+        ['Peso unitário:', receita.peso_unitario ? `${receita.peso_unitario}g` : '']
       ];
 
       dadosInfo.forEach(([label, value]) => {
@@ -533,7 +551,7 @@ const Receitas = () => {
       });
 
       // Posicionar para próximas seções
-      yPosition = Math.max(leftYPos, rightYPos) + 10;
+      yPosition = Math.max(leftYPos, rightYPos) + 15;
 
       // Verificar se há ingredientes para mostrar tabela
       if (ingredientesComMarcas && ingredientesComMarcas.length > 0) {
@@ -612,7 +630,7 @@ const Receitas = () => {
           yPosition += rowHeight;
         });
         
-        yPosition += 5;
+        yPosition += 10;
       }
 
       // Tabela de Sub-receitas (se houver)
@@ -669,7 +687,7 @@ const Receitas = () => {
           yPosition += 6;
         });
         
-        yPosition += 5;
+        yPosition += 10;
       }
 
       // Verificar se há embalagens para mostrar tabela
@@ -746,7 +764,7 @@ const Receitas = () => {
           yPosition += rowHeight;
         });
         
-        yPosition += 5;
+        yPosition += 10;
       }
 
        // Modo de Preparo

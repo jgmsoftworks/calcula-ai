@@ -537,7 +537,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
       try {
         const { data, error } = await supabase
           .from('receitas')
-          .select('markup_id, preco_venda')
+          .select('markup_id, preco_venda, peso_unitario')
           .eq('id', receitaId)
           .eq('user_id', user.id)
           .single();
@@ -563,6 +563,14 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           console.log('🎨 Preço formatado carregado:', precoFormatado);
         } else {
           console.log('⚠️ Nenhum preço salvo encontrado no banco');
+        }
+
+        if (data?.peso_unitario && data.peso_unitario > 0) {
+          console.log('📥 Carregando peso unitário do banco:', data.peso_unitario);
+          setPesoUnitario(data.peso_unitario.toString());
+          console.log('💪 Peso unitário carregado:', data.peso_unitario);
+        } else {
+          console.log('⚠️ Nenhum peso unitário salvo encontrado no banco');
         }
       } catch (error) {
         console.error('Erro ao buscar markup da receita:', error);
@@ -674,6 +682,30 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     }
     
     console.log('💰 Preço de venda alterado:', { formatted, numericValue });
+  };
+
+  const handlePesoUnitarioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPesoUnitario(value);
+    
+    // Auto-save peso unitário to database when editing
+    if (receitaId && user?.id && value) {
+      try {
+        const { error } = await supabase
+          .from('receitas')
+          .update({ peso_unitario: parseFloat(value) || 0 })
+          .eq('id', receitaId)
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Erro ao salvar peso unitário:', error);
+        } else {
+          console.log('💪 Peso unitário salvo automaticamente:', value);
+        }
+      } catch (error) {
+        console.error('Erro ao salvar peso unitário:', error);
+      }
+    }
   };
   
   // Calculate real costs from the recipe data
@@ -819,7 +851,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               min="0"
               placeholder="Ex: 500"
               value={pesoUnitario}
-              onChange={(e) => setPesoUnitario(e.target.value)}
+              onChange={handlePesoUnitarioChange}
               className="text-lg font-medium"
             />
           </CardContent>
