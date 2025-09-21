@@ -638,19 +638,35 @@ const Receitas = () => {
             yPosition = 20;
           }
           
-          // Título do passo
+          // Layout em duas colunas fixas
+          const leftColumnWidth = pageWidth * 0.65; // 65% para texto
+          const rightColumnX = leftColumnWidth + 5; // Posição da coluna direita
+          const rightColumnWidth = pageWidth - rightColumnX - 10; // Largura da coluna direita
+          
+          // Salva a posição inicial do passo (para alinhar imagem)
+          const stepStartY = yPosition;
+          
+          // Título do passo na coluna esquerda
           pdf.setFontSize(10);
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(70, 70, 70);
           pdf.text(`Passo ${passo.ordem}:`, 10, yPosition);
           yPosition += 5;
           
-          // Layout com imagem na direita
-          let hasImage = false;
-          let imageHeight = 0;
-          const logoSize = 20; // Mesmo tamanho da logo
+          // Texto do passo limitado à coluna esquerda
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+          const lines = pdf.splitTextToSize(passo.descricao, leftColumnWidth - 20);
+          pdf.text(lines, 10, yPosition);
           
-          // Se tiver imagem, carrega primeiro para calcular o layout
+          // Calcular altura do texto
+          const textHeight = lines.length * 4;
+          
+          // Imagem ancorada ao topo da coluna direita (alinhada com o título)
+          let imageHeight = 0;
+          const logoSize = 20;
+          
           if (passo.imagem_url) {
             try {
               const response = await fetch(passo.imagem_url);
@@ -663,17 +679,16 @@ const Receitas = () => {
                     try {
                       const imageData = reader.result as string;
                       
-                      // Posição da imagem na direita
-                      const imgX = pageWidth - logoSize - 10;
+                      // Imagem no topo da coluna direita, alinhada com o título
+                      const imgX = rightColumnX + (rightColumnWidth - logoSize) / 2;
                       
-                      pdf.addImage(imageData, 'JPEG', imgX, yPosition, logoSize, logoSize, undefined, 'FAST');
+                      pdf.addImage(imageData, 'JPEG', imgX, stepStartY, logoSize, logoSize, undefined, 'FAST');
                       
-                      // Adicionar borda sutil à imagem
+                      // Borda sutil na imagem
                       pdf.setDrawColor(200, 200, 200);
                       pdf.setLineWidth(0.5);
-                      pdf.rect(imgX, yPosition, logoSize, logoSize);
+                      pdf.rect(imgX, stepStartY, logoSize, logoSize);
                       
-                      hasImage = true;
                       imageHeight = logoSize;
                       
                     } catch (error) {
@@ -689,20 +704,9 @@ const Receitas = () => {
             }
           }
           
-          // Texto do passo (ajusta largura se tiver imagem)
-          const textWidth = hasImage ? pageWidth - logoSize - 30 : pageWidth - 20;
-          
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(0, 0, 0);
-          const lines = pdf.splitTextToSize(passo.descricao, textWidth);
-          pdf.text(lines, 10, yPosition);
-          
-          // Calcular altura do passo (texto ou imagem, o que for maior)
-          const textHeight = lines.length * 4;
+          // A altura do passo é determinada pelo maior entre texto e imagem
           const stepHeight = Math.max(textHeight, imageHeight);
-          
-          yPosition += stepHeight + 2; // Espaçamento mínimo entre passos
+          yPosition += stepHeight + 2;
           
           // Linha divisória sutil entre passos (exceto no último)
           if (i < passosPreparo.length - 1) {
