@@ -661,7 +661,7 @@ const Receitas = () => {
           pdf.text(lines, 10, yPosition);
           
           // Calcular altura do texto
-          const textHeight = lines.length * 4;
+          const textHeight = lines.length * 3; // Espaçamento reduzido entre linhas
           
           // Imagem ancorada ao topo da coluna direita (alinhada com o título)
           let imageHeight = 0;
@@ -679,8 +679,8 @@ const Receitas = () => {
                     try {
                       const imageData = reader.result as string;
                       
-                      // Imagem no topo da coluna direita, alinhada com o título
-                      const imgX = rightColumnX + (rightColumnWidth - logoSize) / 2;
+                      // Imagem colada na borda direita
+                      const imgX = pageWidth - logoSize - 10;
                       
                       pdf.addImage(imageData, 'JPEG', imgX, stepStartY, logoSize, logoSize, undefined, 'FAST');
                       
