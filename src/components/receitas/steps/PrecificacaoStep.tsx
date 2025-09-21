@@ -667,7 +667,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
     return parseInt(numericValue) / 100;
   };
   
-  const handlePrecoVendaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePrecoVendaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCurrency(e.target.value);
     const numericValue = getNumericValue(formatted);
     
@@ -679,6 +679,25 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         ...prev,
         precoVenda: numericValue
       }));
+    }
+    
+    // Auto-save preço de venda to database when editing
+    if (receitaId && user?.id && numericValue !== undefined) {
+      try {
+        const { error } = await supabase
+          .from('receitas')
+          .update({ preco_venda: numericValue })
+          .eq('id', receitaId)
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Erro ao salvar preço de venda:', error);
+        } else {
+          console.log('💰 Preço de venda salvo automaticamente:', numericValue);
+        }
+      } catch (error) {
+        console.error('Erro ao salvar preço de venda:', error);
+      }
     }
     
     console.log('💰 Preço de venda alterado:', { formatted, numericValue });
