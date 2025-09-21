@@ -702,7 +702,7 @@ const Receitas = () => {
           const textHeight = lines.length * 4;
           const stepHeight = Math.max(textHeight, imageHeight);
           
-          yPosition += stepHeight + 5; // Espaçamento entre passos reduzido
+          yPosition += stepHeight + 2; // Espaçamento mínimo entre passos
           
           // Linha divisória sutil entre passos (exceto no último)
           if (i < passosPreparo.length - 1) {
