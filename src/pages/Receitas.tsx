@@ -511,13 +511,22 @@ const Receitas = () => {
         pdf.setFont('helvetica', 'bold');
         pdf.text('Ingredientes', 7, yPosition + 5); // Ajustado para nova margem
         
-        const tableHeaders = ['Un. Medida', '1 Receita', '2 Receitas', '3 Receitas'];
-        const headerWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6]; // Largura expandida
-        let headerX = 7 + (pageWidth - 70) / 2; // Ajustado para nova margem
+        const tableHeaders = ['Ingrediente', 'Un. Medida', '1 Receita', '2 Receitas', '3 Receitas'];
+        
+        // Definir posições fixas das colunas
+        const col1X = 7; // Nome do ingrediente
+        const col2X = 7 + (pageWidth - 70) / 2; // Unidade de medida
+        const col3X = col2X + (pageWidth - 70) / 6; // 1 Receita
+        const col4X = col3X + (pageWidth - 70) / 6; // 2 Receitas  
+        const col5X = col4X + (pageWidth - 70) / 6; // 3 Receitas
+        const columnPositions = [col1X, col2X, col3X, col4X, col5X];
+        const columnWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6];
         
         tableHeaders.forEach((header, i) => {
-          pdf.text(header, headerX, yPosition + 5);
-          headerX += headerWidths[i];
+          // Centralizar texto na coluna
+          const textWidth = pdf.getTextWidth(header);
+          const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+          pdf.text(header, centerX, yPosition + 5);
         });
         
         yPosition += 8;
@@ -529,11 +538,22 @@ const Receitas = () => {
         
         ingredientes.forEach((ingrediente) => {
           pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
-          pdf.text(ingrediente.nome, 7, yPosition + 4); // Ajustado para nova margem
-          pdf.text(ingrediente.unidade, 7 + (pageWidth - 70) / 2, yPosition + 4);
-          pdf.text(ingrediente.quantidade.toString(), 7 + (pageWidth - 70) / 2 + (pageWidth - 70) / 6, yPosition + 4);
-          pdf.text((ingrediente.quantidade * 2).toString(), 7 + (pageWidth - 70) / 2 + 2 * (pageWidth - 70) / 6, yPosition + 4);
-          pdf.text((ingrediente.quantidade * 3).toString(), 7 + (pageWidth - 70) / 2 + 3 * (pageWidth - 70) / 6, yPosition + 4);
+          
+          // Centralizar texto em cada coluna usando as mesmas posições do cabeçalho
+          const nome = ingrediente.nome;
+          const unidade = ingrediente.unidade;
+          const qty1 = ingrediente.quantidade.toString();
+          const qty2 = (ingrediente.quantidade * 2).toString();
+          const qty3 = (ingrediente.quantidade * 3).toString();
+          
+          const values = [nome, unidade, qty1, qty2, qty3];
+          
+          values.forEach((value, i) => {
+            const textWidth = pdf.getTextWidth(value);
+            const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+            pdf.text(value, centerX, yPosition + 4);
+          });
+          
           yPosition += 6;
         });
         
@@ -549,13 +569,21 @@ const Receitas = () => {
         pdf.setFont('helvetica', 'bold');
         pdf.text('Receitas', 7, yPosition + 5); // Ajustado para nova margem
         
-        const tableHeaders = ['Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
-        const headerWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6]; // Largura expandida
-        let headerX = 7 + (pageWidth - 70) / 2; // Ajustado para nova margem
+        const tableHeaders = ['Sub-receita', 'Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
+        
+        // Usar as mesmas posições de colunas para consistência
+        const col1X = 7; 
+        const col2X = 7 + (pageWidth - 70) / 2; 
+        const col3X = col2X + (pageWidth - 70) / 6; 
+        const col4X = col3X + (pageWidth - 70) / 6; 
+        const col5X = col4X + (pageWidth - 70) / 6; 
+        const columnPositions = [col1X, col2X, col3X, col4X, col5X];
+        const columnWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6];
         
         tableHeaders.forEach((header, i) => {
-          pdf.text(header, headerX, yPosition + 5);
-          headerX += headerWidths[i];
+          const textWidth = pdf.getTextWidth(header);
+          const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+          pdf.text(header, centerX, yPosition + 5);
         });
         
         yPosition += 8;
@@ -565,12 +593,23 @@ const Receitas = () => {
         pdf.setFontSize(8);
         
         subReceitas.forEach((subReceita) => {
-          pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
-          pdf.text(subReceita.nome, 7, yPosition + 4); // Ajustado para nova margem
-          pdf.text(subReceita.unidade, 7 + (pageWidth - 70) / 2, yPosition + 4);
-          pdf.text(subReceita.quantidade.toString(), 7 + (pageWidth - 70) / 2 + (pageWidth - 70) / 6, yPosition + 4);
-          pdf.text((subReceita.quantidade * 2).toString(), 7 + (pageWidth - 70) / 2 + 2 * (pageWidth - 70) / 6, yPosition + 4);
-          pdf.text((subReceita.quantidade * 3).toString(), 7 + (pageWidth - 70) / 2 + 3 * (pageWidth - 70) / 6, yPosition + 4);
+          pdf.rect(5, yPosition, pageWidth - 10, 6); 
+          
+          // Centralizar texto em cada coluna
+          const nome = subReceita.nome;
+          const unidade = subReceita.unidade;
+          const qty1 = subReceita.quantidade.toString();
+          const qty2 = (subReceita.quantidade * 2).toString();
+          const qty3 = (subReceita.quantidade * 3).toString();
+          
+          const values = [nome, unidade, qty1, qty2, qty3];
+          
+          values.forEach((value, i) => {
+            const textWidth = pdf.getTextWidth(value);
+            const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+            pdf.text(value, centerX, yPosition + 4);
+          });
+          
           yPosition += 6;
         });
         
@@ -586,13 +625,21 @@ const Receitas = () => {
         pdf.setFont('helvetica', 'bold');
         pdf.text('Embalagem', 7, yPosition + 5); // Ajustado para nova margem
         
-        const tableHeaders = ['Medida', '1 Receita', '2 Receitas', '3 Receitas'];
-        const headerWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6]; // Largura expandida
-        let headerX = 7 + (pageWidth - 70) / 2; // Ajustado para nova margem
+        const tableHeaders = ['Embalagem', 'Medida', '1 Receita', '2 Receitas', '3 Receitas'];
+        
+        // Usar as mesmas posições de colunas para consistência
+        const col1X = 7; 
+        const col2X = 7 + (pageWidth - 70) / 2; 
+        const col3X = col2X + (pageWidth - 70) / 6; 
+        const col4X = col3X + (pageWidth - 70) / 6; 
+        const col5X = col4X + (pageWidth - 70) / 6; 
+        const columnPositions = [col1X, col2X, col3X, col4X, col5X];
+        const columnWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6];
         
         tableHeaders.forEach((header, i) => {
-          pdf.text(header, headerX, yPosition + 5);
-          headerX += headerWidths[i];
+          const textWidth = pdf.getTextWidth(header);
+          const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+          pdf.text(header, centerX, yPosition + 5);
         });
         
         yPosition += 8;
@@ -602,12 +649,23 @@ const Receitas = () => {
         pdf.setFontSize(8);
         
         embalagens.forEach((embalagem) => {
-          pdf.rect(5, yPosition, pageWidth - 10, 6); // Margens reduzidas
-          pdf.text(embalagem.nome, 7, yPosition + 4); // Ajustado para nova margem
-          pdf.text(embalagem.unidade, 7 + (pageWidth - 70) / 2, yPosition + 4);
-          pdf.text(embalagem.quantidade.toString(), 7 + (pageWidth - 70) / 2 + (pageWidth - 70) / 6, yPosition + 4);
-          pdf.text((embalagem.quantidade * 2).toString(), 7 + (pageWidth - 70) / 2 + 2 * (pageWidth - 70) / 6, yPosition + 4);
-          pdf.text((embalagem.quantidade * 3).toString(), 7 + (pageWidth - 70) / 2 + 3 * (pageWidth - 70) / 6, yPosition + 4);
+          pdf.rect(5, yPosition, pageWidth - 10, 6);
+          
+          // Centralizar texto em cada coluna
+          const nome = embalagem.nome;
+          const unidade = embalagem.unidade;
+          const qty1 = embalagem.quantidade.toString();
+          const qty2 = (embalagem.quantidade * 2).toString();
+          const qty3 = (embalagem.quantidade * 3).toString();
+          
+          const values = [nome, unidade, qty1, qty2, qty3];
+          
+          values.forEach((value, i) => {
+            const textWidth = pdf.getTextWidth(value);
+            const centerX = columnPositions[i] + (columnWidths[i] - textWidth) / 2;
+            pdf.text(value, centerX, yPosition + 4);
+          });
+          
           yPosition += 6;
         });
         
