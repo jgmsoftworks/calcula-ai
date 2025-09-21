@@ -509,8 +509,6 @@ const Receitas = () => {
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Ingredientes', 7, yPosition + 5); // Ajustado para nova margem
-        
         const tableHeaders = ['Ingrediente', 'Un. Medida', '1 Receita', '2 Receitas', '3 Receitas'];
         
         // Definir posições fixas das colunas
@@ -567,8 +565,6 @@ const Receitas = () => {
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Receitas', 7, yPosition + 5); // Ajustado para nova margem
-        
         const tableHeaders = ['Sub-receita', 'Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
         
         // Usar as mesmas posições de colunas para consistência
@@ -623,8 +619,6 @@ const Receitas = () => {
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Embalagem', 7, yPosition + 5); // Ajustado para nova margem
-        
         const tableHeaders = ['Embalagem', 'Medida', '1 Receita', '2 Receitas', '3 Receitas'];
         
         // Usar as mesmas posições de colunas para consistência
