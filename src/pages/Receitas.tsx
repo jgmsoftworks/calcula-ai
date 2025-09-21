@@ -697,6 +697,14 @@ const Receitas = () => {
           const stepHeight = Math.max(textHeight, imageHeight);
           
           yPosition += stepHeight + 10; // Espaçamento entre passos
+          
+          // Linha divisória sutil entre passos (exceto no último)
+          if (i < passosPreparo.length - 1) {
+            pdf.setDrawColor(230, 230, 230);
+            pdf.setLineWidth(0.3);
+            pdf.line(10, yPosition, pageWidth - 10, yPosition);
+            yPosition += 5;
+          }
         }
         
         yPosition += 5;
