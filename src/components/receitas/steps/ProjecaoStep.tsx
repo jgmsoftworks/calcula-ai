@@ -67,7 +67,7 @@ export function ProjecaoStep({
     { value: 'dias', label: 'Dias' },
   ];
 
-  const adicionarTipoProduto = (novoTipo: { id: string; nome: string }) => {
+  const adicionarTipoProduto = (novoTipo: { id: string; nome: string; descricao?: string }) => {
     setTiposProduto([...tiposProduto, novoTipo]);
   };
 
@@ -258,8 +258,7 @@ export function ProjecaoStep({
       <TipoProdutoModal
         isOpen={modalAberto}
         onClose={() => setModalAberto(false)}
-        onTipoProdutoCreated={adicionarTipoProduto}
-        onTipoProdutoUpdated={atualizarTiposProduto}
+        onTipoCreated={adicionarTipoProduto}
         existingTipos={tiposProduto}
       />
 

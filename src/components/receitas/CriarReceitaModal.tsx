@@ -94,6 +94,7 @@ interface ReceitaData {
   rendimentoUnidade: string;
   // Dados do passo Geral
   nomeReceita: string;
+  tipoProduto: string;
   observacoes: string;
   imagemReceita: string;
   passosPreparo: PassoPreparo[];
@@ -152,6 +153,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     rendimentoUnidade: 'unidade',
     // Dados do passo Geral
     nomeReceita: '',
+    tipoProduto: '',
     observacoes: '',
     imagemReceita: '',
     passosPreparo: [{ id: '1', ordem: 1, descricao: '' }],
@@ -275,6 +277,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         rendimentoValor: receita.rendimento_valor?.toString() || '',
         rendimentoUnidade: receita.rendimento_unidade || 'unidade',
         nomeReceita: receita.nome || '',
+        tipoProduto: receita.tipo_produto || '',
         observacoes: receita.observacoes || '',
         imagemReceita: receita.imagem_url || '',
         passosPreparo: passosPreparo?.map((passo: any) => ({
@@ -382,6 +385,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           .from('receitas')
           .update({
             nome: receitaData.nomeReceita,
+            tipo_produto: receitaData.tipoProduto,
             observacoes: receitaData.observacoes,
             rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
             rendimento_unidade: receitaData.rendimentoUnidade,
@@ -432,6 +436,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           .insert({
             user_id: user.id,
             nome: receitaData.nomeReceita,
+            tipo_produto: receitaData.tipoProduto,
             observacoes: receitaData.observacoes,
             rendimento_valor: parseFloat(receitaData.rendimentoValor) || null,
             rendimento_unidade: receitaData.rendimentoUnidade,
@@ -669,6 +674,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
       rendimentoUnidade: 'unidade',
       // Dados do passo Geral
       nomeReceita: '',
+      tipoProduto: '',
       observacoes: '',
       imagemReceita: '',
       passosPreparo: [{ id: '1', ordem: 1, descricao: '' }],
@@ -714,6 +720,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           <GeralStep
             receitaId={receitaId || ''}
             nomeReceita={receitaData.nomeReceita}
+            tipoProduto={receitaData.tipoProduto}
             observacoes={receitaData.observacoes}
             imagemReceita={receitaData.imagemReceita}
             passosPreparo={receitaData.passosPreparo}
