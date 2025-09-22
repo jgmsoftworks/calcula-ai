@@ -10,6 +10,7 @@ import {
   ChefHat,
   MessageSquare,
   Crown,
+  DollarSign,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -34,6 +35,7 @@ const navigationItems = [
   { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Receitas', url: '/receitas', icon: ChefHat },
+  { title: 'Simulador', url: '/simulador', icon: DollarSign },
   { title: 'Sugestões', url: '/sugestoes', icon: MessageSquare },
 ];
 
