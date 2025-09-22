@@ -8,6 +8,7 @@ import {
   Building2,
   TrendingUp,
   ChefHat,
+  MessageSquare,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const navigationItems = [
   { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Receitas', url: '/receitas', icon: ChefHat },
+  { title: 'Sugestões', url: '/sugestoes', icon: MessageSquare },
 ];
 
 const businessItems = [
