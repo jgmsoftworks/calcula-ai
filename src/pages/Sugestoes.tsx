@@ -49,23 +49,11 @@ export default function Sugestoes() {
             <MapPin className="h-4 w-4" />
             Próximas Atualizações
           </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="suggestions" className="flex items-center gap-2">
-              <MessageSquarePlus className="h-4 w-4" />
-              Enviar Sugestão
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        {!isAdmin && (
-          <Alert className="mt-6">
+          <TabsTrigger value="suggestions" className="flex items-center gap-2">
             <MessageSquarePlus className="h-4 w-4" />
-            <AlertDescription>
-              O envio de sugestões foi temporariamente restrito aos administradores. 
-              Continue acompanhando nosso roadmap de atualizações!
-            </AlertDescription>
-          </Alert>
-        )}
+            Enviar Sugestão
+          </TabsTrigger>
+        </TabsList>
 
         {isAdmin && (
           <TabsContent value="admin" className="space-y-6">
@@ -73,13 +61,11 @@ export default function Sugestoes() {
           </TabsContent>
         )}
 
-        {isAdmin && (
-          <TabsContent value="suggestions" className="space-y-6">
-            <Card className="p-6">
-              <SuggestionForm />
-            </Card>
-          </TabsContent>
-        )}
+        <TabsContent value="suggestions" className="space-y-6">
+          <Card className="p-6">
+            <SuggestionForm />
+          </Card>
+        </TabsContent>
 
         <TabsContent value="roadmap" className="space-y-6">
           <RoadmapList />
