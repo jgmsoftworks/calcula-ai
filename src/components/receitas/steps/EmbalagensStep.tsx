@@ -168,9 +168,9 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Embalagem</TableHead>
-                    <TableHead>Qtd</TableHead>
-                    <TableHead>Custo</TableHead>
+                    <TableHead className="font-semibold text-foreground min-w-[200px]">Embalagem</TableHead>
+                    <TableHead className="font-semibold text-foreground min-w-[100px]">Quantidade</TableHead>
+                    <TableHead className="font-semibold text-foreground min-w-[120px]">Custo Total</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>

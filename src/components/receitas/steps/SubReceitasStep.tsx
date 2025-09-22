@@ -231,9 +231,9 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Receita</TableHead>
-                    <TableHead>Qtd</TableHead>
-                    <TableHead>Custo</TableHead>
+                    <TableHead className="font-semibold text-foreground min-w-[200px]">Receita</TableHead>
+                    <TableHead className="font-semibold text-foreground min-w-[100px]">Quantidade</TableHead>
+                    <TableHead className="font-semibold text-foreground min-w-[120px]">Custo Total</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
