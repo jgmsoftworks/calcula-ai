@@ -421,47 +421,15 @@ const Receitas = () => {
         leftYPos += 8;
       });
 
-      // Centro - Área da foto do produto
-      pdf.rect(centerColStart, yPosition, centerColWidth, leftYPos - yPosition);
+      // Centro - Área da foto do produto (será desenhada após calcular ambas as colunas)
       
       // Verificar se existe imagem do produto
       const hasProductImage = receita.imagem_url && receita.imagem_url.trim() !== '';
       
       if (hasProductImage) {
-        try {
-          // Adicionar imagem do produto
-          pdf.addImage(receita.imagem_url, 'JPEG', centerColStart + 2, yPosition + 2, centerColWidth - 4, leftYPos - yPosition - 4);
-        } catch (error) {
-          console.error('Erro ao carregar imagem do produto:', error);
-          // Fallback para texto se houver erro na imagem
-          pdf.setFontSize(16);
-          pdf.setFont('helvetica', 'italic');
-          pdf.setTextColor(153, 153, 153);
-          
-          const centerX = centerColStart + centerColWidth / 2;
-          const centerY = yPosition + (leftYPos - yPosition) / 2;
-          
-          pdf.text('ERRO AO CARREGAR IMAGEM', centerX, centerY, { 
-            align: 'center'
-          });
-          
-          pdf.setTextColor(0, 0, 0);
-        }
+        // Imagem será adicionada após calcular altura das colunas
       } else {
-        // Só mostrar texto quando não houver imagem
-        pdf.setFontSize(16);
-        pdf.setFont('helvetica', 'italic');
-        pdf.setTextColor(153, 153, 153); // Cinza claro #999999
-        
-        const centerX = centerColStart + centerColWidth / 2;
-        const centerY = yPosition + (leftYPos - yPosition) / 2;
-        
-        pdf.text('FOTO DO PRODUTO', centerX, centerY, { 
-          align: 'center'
-        });
-        
-        // Restaurar cor do texto para preto
-        pdf.setTextColor(0, 0, 0);
+        // Texto será adicionado após calcular altura das colunas
       }
 
       // Coluna direita - Dados
@@ -549,6 +517,48 @@ const Receitas = () => {
         });
         rightYPos += 6;
       });
+
+      // Agora renderizar o bloco da foto com altura alinhada às colunas
+      const maxColumnHeight = Math.max(leftYPos, rightYPos) - yPosition;
+      pdf.rect(centerColStart, yPosition, centerColWidth, maxColumnHeight);
+      
+      if (hasProductImage) {
+        try {
+          // Adicionar imagem do produto centralizada no bloco
+          const imgHeight = maxColumnHeight - 4; // Margem de 2mm de cada lado
+          pdf.addImage(receita.imagem_url, 'JPEG', centerColStart + 2, yPosition + 2, centerColWidth - 4, imgHeight);
+        } catch (error) {
+          console.error('Erro ao carregar imagem do produto:', error);
+          // Fallback para texto se houver erro na imagem
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'italic');
+          pdf.setTextColor(153, 153, 153);
+          
+          const centerX = centerColStart + centerColWidth / 2;
+          const centerY = yPosition + maxColumnHeight / 2;
+          
+          pdf.text('ERRO AO CARREGAR IMAGEM', centerX, centerY, { 
+            align: 'center'
+          });
+          
+          pdf.setTextColor(0, 0, 0);
+        }
+      } else {
+        // Texto centralizado no bloco da foto
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'italic');
+        pdf.setTextColor(153, 153, 153); // Cinza claro #999999
+        
+        const centerX = centerColStart + centerColWidth / 2;
+        const centerY = yPosition + maxColumnHeight / 2;
+        
+        pdf.text('FOTO DO PRODUTO', centerX, centerY, { 
+          align: 'center'
+        });
+        
+        // Restaurar cor do texto para preto
+        pdf.setTextColor(0, 0, 0);
+      }
 
       // Posicionar para próximas seções
       yPosition = Math.max(leftYPos, rightYPos) + 15;
