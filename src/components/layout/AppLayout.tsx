@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Mail, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -161,6 +162,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
             </div>
           </main>
         </div>
+
+        {/* Botão de Suporte WhatsApp - aparece em todas as telas */}
+        <WhatsAppSupportButton />
       </div>
     </SidebarProvider>
   );
