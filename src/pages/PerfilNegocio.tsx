@@ -20,7 +20,12 @@ import {
   Mail,
   FileText,
   Search,
-  ImageIcon
+  ImageIcon,
+  Crown,
+  Check,
+  X,
+  Zap,
+  Star
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -791,6 +796,169 @@ const PerfilNegocio = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Seção: Planos */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <Crown className="h-5 w-5 text-yellow-500" />
+            Planos de Assinatura
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Plano Gratuito */}
+            <Card className="card-premium relative overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Star className="h-5 w-5 text-gray-500" />
+                    Gratuito
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                    Atual
+                  </Badge>
+                </div>
+                <div className="text-3xl font-bold text-foreground">
+                  R$ 0
+                  <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Até 10 receitas</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Até 50 produtos</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Precificação básica</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <X className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-muted-foreground">Relatórios avançados</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <X className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-muted-foreground">Suporte prioritário</span>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full" disabled>
+                  Plano Atual
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Plano Pro */}
+            <Card className="card-premium relative overflow-hidden border-primary/20">
+              <div className="absolute top-0 right-0 bg-gradient-to-l from-primary to-primary-light text-white px-3 py-1 text-xs font-semibold">
+                POPULAR
+              </div>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-blue-500" />
+                  Pro
+                </CardTitle>
+                <div className="text-3xl font-bold text-foreground">
+                  R$ 29
+                  <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Receitas ilimitadas</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Produtos ilimitados</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Precificação avançada</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Relatórios avançados</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Controle de estoque</span>
+                  </div>
+                </div>
+                <Button className="w-full button-premium">
+                  Fazer upgrade
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Plano Premium */}
+            <Card className="card-premium relative overflow-hidden border-yellow-500/20">
+              <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-500 to-yellow-400 text-white px-3 py-1 text-xs font-semibold">
+                PREMIUM
+              </div>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-500" />
+                  Premium
+                </CardTitle>
+                <div className="text-3xl font-bold text-foreground">
+                  R$ 59
+                  <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Tudo do plano Pro</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Multi-empresa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">API personalizada</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Suporte prioritário</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Backup automático</span>
+                  </div>
+                </div>
+                <Button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-600 hover:to-yellow-500 text-white">
+                  Escolher Premium
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-muted/20 border border-border/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <Crown className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1">
+                  Precisa de algo personalizado?
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Entre em contato conosco para planos empresariais e soluções sob medida para sua empresa.
+                </p>
+                <Button variant="outline" size="sm">
+                  Falar com vendas
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
