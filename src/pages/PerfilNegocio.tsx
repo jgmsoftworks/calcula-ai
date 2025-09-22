@@ -134,6 +134,7 @@ const PerfilNegocio = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCEP, setIsLoadingCEP] = useState(false);
   const [semNumero, setSemNumero] = useState(false);
+  const [billingType, setBillingType] = useState<'monthly' | 'yearly'>('monthly');
 
   // Formatting functions
   const formatCNPJ = (value: string) => {
@@ -800,165 +801,205 @@ const PerfilNegocio = () => {
         </div>
 
         {/* Seção: Planos */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <Crown className="h-5 w-5 text-yellow-500" />
             Planos de Assinatura
           </h2>
           
+          {/* Toggle de cobrança e badges */}
+          <div className="flex flex-col items-center space-y-4">
+            {/* Badge de desconto */}
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              Economize 20%
+            </div>
+            
+            {/* Toggle Mensal/Anual */}
+            <div className="flex items-center bg-background border rounded-full p-1">
+              <button
+                onClick={() => setBillingType('monthly')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  billingType === 'monthly'
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Mensal
+              </button>
+              <button
+                onClick={() => setBillingType('yearly')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  billingType === 'yearly'
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Anual
+              </button>
+            </div>
+            
+            {/* Desconto info */}
+            {billingType === 'yearly' && (
+              <p className="text-sm text-muted-foreground">
+                Desconto de 20% no plano anual
+              </p>
+            )}
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Plano Gratuito */}
-            <Card className="card-premium relative overflow-hidden">
+            <Card className="bg-background border border-border/50 relative overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Star className="h-5 w-5 text-gray-500" />
+                  <CardTitle className="text-lg text-foreground">
                     Gratuito
                   </CardTitle>
-                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
                     Atual
                   </Badge>
                 </div>
+                <p className="text-sm text-muted-foreground mb-3">Para quem está começando.</p>
                 <div className="text-3xl font-bold text-foreground">
-                  R$ 0
-                  <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                  R$0
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Até 10 receitas</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">30 cadastros de matéria-prima</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Até 50 produtos</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">5 receitas</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Precificação básica</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Monitore seu lucro</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <X className="h-4 w-4 text-red-500" />
-                    <span className="text-sm text-muted-foreground">Relatórios avançados</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Simulação de preço</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <X className="h-4 w-4 text-red-500" />
-                    <span className="text-sm text-muted-foreground">Suporte prioritário</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">1 bloco de markup</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Suporte humanizado</span>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full" disabled>
-                  Plano Atual
+                <Button variant="outline" className="w-full mt-6" disabled>
+                  Começar Agora
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Plano Pro */}
-            <Card className="card-premium relative overflow-hidden border-primary/20">
-              <div className="absolute top-0 right-0 bg-gradient-to-l from-primary to-primary-light text-white px-3 py-1 text-xs font-semibold">
-                POPULAR
+            {/* Plano Profissional */}
+            <Card className="bg-background border-2 border-purple-500/50 relative overflow-hidden shadow-lg">
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-1 rounded-b-lg text-xs font-semibold">
+                MAIS POPULAR
               </div>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-blue-500" />
-                  Pro
-                </CardTitle>
+              <CardHeader className="pb-4 pt-8">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-purple-600">
+                    Profissional
+                  </CardTitle>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">Para quem quer crescer com segurança.</p>
                 <div className="text-3xl font-bold text-foreground">
-                  R$ 29
+                  R${billingType === 'monthly' ? '49,90' : '39,90'}
                   <span className="text-sm font-normal text-muted-foreground">/mês</span>
                 </div>
+                {billingType === 'yearly' && (
+                  <p className="text-xs text-muted-foreground">no plano anual</p>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Cadastro ilimitado de matéria-prima</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">60 receitas</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Movimentação de estoque</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Monitore seu lucro</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Simulação de preço</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">3 blocos de markup</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Impressão de receitas em PDF (80/mês)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Sistema em desenvolvimento</span>
+                  </div>
+                </div>
+                <Button className="w-full mt-6 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
+                  Escolher Plano Profissional
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Plano Empresarial */}
+            <Card className="bg-background border border-border/50 relative overflow-hidden">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg text-foreground">
+                  Empresarial
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mb-3">Para negócios com maior volume.</p>
+                <div className="text-3xl font-bold text-foreground">
+                  R${billingType === 'monthly' ? '89,90' : '69,90'}
+                  <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                </div>
+                {billingType === 'yearly' && (
+                  <p className="text-xs text-muted-foreground">no plano anual</p>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm font-medium">Tudo do Profissional, mais:</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                     <span className="text-sm">Receitas ilimitadas</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Produtos ilimitados</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Blocos de markup ilimitados</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Precificação avançada</span>
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Impressão de receitas em PDF (ilimitado)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Relatórios avançados</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Controle de estoque</span>
-                  </div>
-                </div>
-                <Button className="w-full button-premium">
-                  Fazer upgrade
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Plano Premium */}
-            <Card className="card-premium relative overflow-hidden border-yellow-500/20">
-              <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-500 to-yellow-400 text-white px-3 py-1 text-xs font-semibold">
-                PREMIUM
-              </div>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-yellow-500" />
-                  Premium
-                </CardTitle>
-                <div className="text-3xl font-bold text-foreground">
-                  R$ 59
-                  <span className="text-sm font-normal text-muted-foreground">/mês</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Tudo do plano Pro</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Multi-empresa</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">API personalizada</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                     <span className="text-sm">Suporte prioritário</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Backup automático</span>
-                  </div>
                 </div>
-                <Button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-600 hover:to-yellow-500 text-white">
-                  Escolher Premium
+                <Button variant="outline" className="w-full mt-6 hover:bg-muted">
+                  Falar com Vendas
                 </Button>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="bg-muted/20 border border-border/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="bg-primary/10 p-2 rounded-full">
-                <Crown className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">
-                  Precisa de algo personalizado?
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Entre em contato conosco para planos empresariais e soluções sob medida para sua empresa.
-                </p>
-                <Button variant="outline" size="sm">
-                  Falar com vendas
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
 
