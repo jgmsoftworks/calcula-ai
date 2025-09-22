@@ -987,6 +987,42 @@ export type Database = {
           },
         ]
       }
+      sensitive_data_access_log: {
+        Row: {
+          accessed_at: string | null
+          action: string
+          id: string
+          ip_address: unknown | null
+          record_id: string | null
+          sensitive_fields: string[] | null
+          table_name: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string | null
+          action: string
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string | null
+          sensitive_fields?: string[] | null
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string | null
+          action?: string
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string | null
+          sensitive_fields?: string[] | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tipos_produto: {
         Row: {
           ativo: boolean
@@ -1044,6 +1080,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1053,12 +1122,24 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
+      get_user_role: {
+        Args: { check_user_id?: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role_or_higher: {
+        Args: {
+          check_user_id?: string
+          required_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       initialize_user_filters: {
         Args: { user_uuid: string }
         Returns: undefined
       }
     }
     Enums: {
+      app_role: "owner" | "admin" | "hr_manager" | "employee" | "viewer"
       tipo_movimentacao: "entrada" | "saida"
       unidade_medida: "g" | "kg" | "ml" | "L" | "un"
     }
@@ -1188,6 +1269,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["owner", "admin", "hr_manager", "employee", "viewer"],
       tipo_movimentacao: ["entrada", "saida"],
       unidade_medida: ["g", "kg", "ml", "L", "un"],
     },
