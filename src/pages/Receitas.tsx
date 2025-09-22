@@ -561,17 +561,26 @@ const Receitas = () => {
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
-        const tableHeaders = ['Ingrediente', 'Un.', 'Marcas', '1x', '2x', '3x'];
+        const tableHeaders = ['Ingrediente', 'Un. Medida', 'Marcas', '1 Receita', '2 Receitas', '3 Receitas'];
         
-        // Definir posições fixas das colunas para 6 colunas
+        // Definir larguras das colunas (somando 100%)
+        const tableWidth = pageWidth - 14; // Largura total da tabela (considerando margens)
+        const col1Width = tableWidth * 0.25; // Ingrediente: 25%
+        const col2Width = tableWidth * 0.10; // Un. Medida: 10%
+        const col3Width = tableWidth * 0.12; // Marcas: 12%
+        const col4Width = tableWidth * 0.18; // 1 Receita: 18%
+        const col5Width = tableWidth * 0.18; // 2 Receitas: 18%
+        const col6Width = tableWidth * 0.17; // 3 Receitas: 17%
+        
+        // Calcular posições cumulativas das colunas
         const col1X = 7; // Nome do ingrediente
-        const col2X = 7 + (pageWidth - 70) * 0.30; // Unidade de medida
-        const col3X = col2X + (pageWidth - 70) * 0.12; // Marcas
-        const col4X = col3X + (pageWidth - 70) * 0.15; // 1 Receita
-        const col5X = col4X + (pageWidth - 70) * 0.14; // 2 Receitas  
-        const col6X = col5X + (pageWidth - 70) * 0.14; // 3 Receitas
+        const col2X = col1X + col1Width; // Unidade de medida
+        const col3X = col2X + col2Width; // Marcas
+        const col4X = col3X + col3Width; // 1 Receita
+        const col5X = col4X + col4Width; // 2 Receitas  
+        const col6X = col5X + col5Width; // 3 Receitas
         const columnPositions = [col1X, col2X, col3X, col4X, col5X, col6X];
-        const columnWidths = [(pageWidth - 70) * 0.30, (pageWidth - 70) * 0.12, (pageWidth - 70) * 0.15, (pageWidth - 70) * 0.14, (pageWidth - 70) * 0.14, (pageWidth - 70) * 0.15];
+        const columnWidths = [col1Width, col2Width, col3Width, col4Width, col5Width, col6Width];
         
         tableHeaders.forEach((header, i) => {
           // Centralizar texto na coluna
