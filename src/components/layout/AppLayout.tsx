@@ -31,7 +31,19 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
   const [isReady, setIsReady] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [hasAuthFragment, setHasAuthFragment] = useState(false);
   const { toast } = useToast();
+  
+  // Check if URL contains OAuth fragments
+  useEffect(() => {
+    const fragment = window.location.hash;
+    if (fragment.includes('access_token') || fragment.includes('error')) {
+      setHasAuthFragment(true);
+      // Give extra time for Supabase to process OAuth tokens
+      const timer = setTimeout(() => setHasAuthFragment(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
   
   // Inicializar markups automaticamente quando o usuário estiver logado
   useMarkupInitializer();
@@ -69,12 +81,14 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     }
   }, [loading]);
 
-  if (loading || !isReady) {
+  if (loading || !isReady || hasAuthFragment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground">Carregando aplicação...</p>
+          <p className="text-muted-foreground">
+            {hasAuthFragment ? "Processando autenticação..." : "Carregando aplicação..."}
+          </p>
         </div>
       </div>
     );
