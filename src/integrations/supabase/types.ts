@@ -1306,6 +1306,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_employee_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          ativo: boolean
+          cargo: string
+          dias_por_semana: number
+          employee_name: string
+          horas_por_dia: number
+          tipo_mao_obra: string
+        }[]
+      }
       get_user_role: {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
