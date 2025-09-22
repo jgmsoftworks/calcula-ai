@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Home -->
+  <!-- Página Principal -->
   <url>
     <loc>https://calculaaibr.com/</loc>
     <lastmod>2025-09-22</lastmod>
@@ -8,41 +8,11 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Planos / Preços -->
+  <!-- Autenticação -->
   <url>
-    <loc>https://calculaaibr.com/planos</loc>
-    <lastmod>2025-09-22</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Cadastro e Login (se forem públicos e indexáveis) -->
-  <url>
-    <loc>https://calculaaibr.com/cadastro</loc>
-    <lastmod>2025-09-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://calculaaibr.com/login</loc>
+    <loc>https://calculaaibr.com/auth</loc>
     <lastmod>2025-09-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
-  <!-- Institucionais (adicione se existirem) -->
-  <!--
-  <url>
-    <loc>https://calculaaibr.com/sobre</loc>
-    <lastmod>2025-09-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://calculaaibr.com/contato</loc>
-    <lastmod>2025-09-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  -->
 </urlset>
