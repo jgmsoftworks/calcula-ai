@@ -555,11 +555,18 @@ const Receitas = () => {
 
       // Verificar se há ingredientes para mostrar tabela
       if (ingredientesComMarcas && ingredientesComMarcas.length > 0) {
-        // Cabeçalho
+        // Título da seção Ingredientes
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('INGREDIENTES', 7, yPosition + 5);
+        yPosition += 10;
+        
+        // Cabeçalho da tabela
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas de 10-20 para 5-10
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(11);
+        pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
         const tableHeaders = ['Ingrediente', 'Un. Medida', 'Marcas', '1 Receita', '2 Receitas', '3 Receitas'];
         
@@ -594,7 +601,7 @@ const Receitas = () => {
         // Linhas de ingredientes
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
+        pdf.setFontSize(8);
         
         ingredientesComMarcas.forEach((ingrediente) => {
           // Calcular altura necessária para marcas
@@ -644,6 +651,14 @@ const Receitas = () => {
 
       // Tabela de Sub-receitas (se houver)
       if (subReceitas && subReceitas.length > 0) {
+        // Título da seção Sub-receitas
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('SUB-RECEITAS', 7, yPosition + 5);
+        yPosition += 10;
+        
+        // Cabeçalho da tabela
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
         pdf.setTextColor(255, 255, 255);
@@ -701,6 +716,14 @@ const Receitas = () => {
 
       // Verificar se há embalagens para mostrar tabela
       if (embalagensComMarcas && embalagensComMarcas.length > 0) {
+        // Título da seção Embalagens
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('EMBALAGENS', 7, yPosition + 5);
+        yPosition += 10;
+        
+        // Cabeçalho da tabela
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
         pdf.setTextColor(255, 255, 255);
