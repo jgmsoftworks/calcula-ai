@@ -207,6 +207,121 @@ export const useRoadmap = () => {
     }
   }, [user?.id, logActivity, fetchRoadmapItems]);
 
+  const createRoadmapItem = useCallback(async (itemData: {
+    title: string;
+    description: string;
+    status: "planned" | "in_progress" | "released";
+    eta?: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase
+        .from('roadmap_items')
+        .insert([itemData]);
+
+      if (error) {
+        console.error("Erro ao criar item do roadmap:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao criar item do roadmap.",
+          variant: "destructive",
+        });
+        return { success: false, error: error.message };
+      }
+
+      logActivity("Item criado", "roadmap_items", undefined, "Novo item do roadmap criado");
+      
+      toast({
+        title: "Sucesso!",
+        description: "Item do roadmap criado com sucesso.",
+      });
+
+      await fetchRoadmapItems();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Erro ao criar item:", error);
+      return { success: false, error: error.message };
+    }
+  }, [logActivity, fetchRoadmapItems]);
+
+  const updateRoadmapItem = useCallback(async (
+    itemId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      status?: "planned" | "in_progress" | "released";
+      eta?: string;
+    }
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase
+        .from('roadmap_items')
+        .update(updates)
+        .eq('id', itemId);
+
+      if (error) {
+        console.error("Erro ao atualizar item do roadmap:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao atualizar item do roadmap.",
+          variant: "destructive",
+        });
+        return { success: false, error: error.message };
+      }
+
+      logActivity("Item atualizado", "roadmap_items", itemId, "Item do roadmap atualizado");
+      
+      toast({
+        title: "Sucesso!",
+        description: "Item do roadmap atualizado com sucesso.",
+      });
+
+      await fetchRoadmapItems();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Erro ao atualizar item:", error);
+      return { success: false, error: error.message };
+    }
+  }, [logActivity, fetchRoadmapItems]);
+
+  const deleteRoadmapItem = useCallback(async (itemId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // First delete all votes for this item
+      await supabase
+        .from('roadmap_votes')
+        .delete()
+        .eq('roadmap_item_id', itemId);
+
+      // Then delete the item
+      const { error } = await supabase
+        .from('roadmap_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) {
+        console.error("Erro ao excluir item do roadmap:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir item do roadmap.",
+          variant: "destructive",
+        });
+        return { success: false, error: error.message };
+      }
+
+      logActivity("Item excluído", "roadmap_items", itemId, "Item do roadmap excluído");
+      
+      toast({
+        title: "Sucesso!",
+        description: "Item do roadmap excluído com sucesso.",
+      });
+
+      await fetchRoadmapItems();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Erro ao excluir item:", error);
+      return { success: false, error: error.message };
+    }
+  }, [logActivity, fetchRoadmapItems]);
+
   // Fetch roadmap items when filters change or component mounts
   useEffect(() => {
     fetchRoadmapItems();
@@ -220,6 +335,9 @@ export const useRoadmap = () => {
     setStatusFilter,
     setSortBy,
     toggleVote,
+    createRoadmapItem,
+    updateRoadmapItem,
+    deleteRoadmapItem,
     refreshRoadmap: fetchRoadmapItems,
   };
 };

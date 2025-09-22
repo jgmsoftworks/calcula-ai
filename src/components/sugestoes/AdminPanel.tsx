@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ import { Settings, Eye, Edit, Trash2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AdminRoadmapPanel } from "./AdminRoadmapPanel";
 
 interface Suggestion {
   id: string;
@@ -167,137 +169,156 @@ export const AdminPanel = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Painel Administrativo - Sugestões
-          </div>
-          <Button 
-            onClick={fetchSuggestions} 
-            disabled={loading}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-        </CardTitle>
-        <CardDescription>
-          Gerencie todas as sugestões recebidas pelos usuários
-        </CardDescription>
-      </CardHeader>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Settings className="h-5 w-5" />
+        <h1 className="text-2xl font-bold">Painel Administrativo</h1>
+      </div>
+      
+      <Tabs defaultValue="suggestions" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="suggestions">Sugestões</TabsTrigger>
+          <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+        </TabsList>
 
-      <CardContent>
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Carregando sugestões...</p>
-          </div>
-        ) : suggestions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Nenhuma sugestão encontrada</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-              <div><strong>Total:</strong> {suggestions.length}</div>
-              <div><strong>Novas:</strong> {suggestions.filter(s => s.status === 'new').length}</div>
-              <div><strong>Em análise:</strong> {suggestions.filter(s => s.status === 'review').length}</div>
-              <div><strong>Implementadas:</strong> {suggestions.filter(s => s.status === 'released').length}</div>
-              <div><strong>Rejeitadas:</strong> {suggestions.filter(s => s.status === 'rejected').length}</div>
-            </div>
+        <TabsContent value="suggestions">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Gerenciar Sugestões</CardTitle>
+                  <CardDescription>
+                    Gerencie todas as sugestões recebidas pelos usuários
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={fetchSuggestions} 
+                  disabled={loading}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </div>
+            </CardHeader>
 
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Impacto</TableHead>
-                    <TableHead>Urgência</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {suggestions.map((suggestion) => (
-                    <TableRow key={suggestion.id}>
-                      <TableCell className="max-w-xs">
-                        <div>
-                          <p className="font-medium truncate">{suggestion.title}</p>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {suggestion.description}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {categoryLabels[suggestion.category as keyof typeof categoryLabels]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {levelLabels[suggestion.impact as keyof typeof levelLabels]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {levelLabels[suggestion.urgency as keyof typeof levelLabels]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={suggestion.status}
-                          onValueChange={(value) => updateSuggestionStatus(suggestion.id, value)}
-                        >
-                          <SelectTrigger className="w-[130px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(statusLabels).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(suggestion.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              // Show full details in a modal or expand
-                              alert(`Detalhes completos:\n\nTítulo: ${suggestion.title}\n\nDescrição: ${suggestion.description}\n\nPlano: ${suggestion.plan}\n\nPermite contato: ${suggestion.allow_contact ? 'Sim' : 'Não'}`);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteSuggestion(suggestion.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Carregando sugestões...</p>
+                </div>
+              ) : suggestions.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Nenhuma sugestão encontrada</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                    <div><strong>Total:</strong> {suggestions.length}</div>
+                    <div><strong>Novas:</strong> {suggestions.filter(s => s.status === 'new').length}</div>
+                    <div><strong>Em análise:</strong> {suggestions.filter(s => s.status === 'review').length}</div>
+                    <div><strong>Implementadas:</strong> {suggestions.filter(s => s.status === 'released').length}</div>
+                    <div><strong>Rejeitadas:</strong> {suggestions.filter(s => s.status === 'rejected').length}</div>
+                  </div>
+
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Título</TableHead>
+                          <TableHead>Categoria</TableHead>
+                          <TableHead>Impacto</TableHead>
+                          <TableHead>Urgência</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {suggestions.map((suggestion) => (
+                          <TableRow key={suggestion.id}>
+                            <TableCell className="max-w-xs">
+                              <div>
+                                <p className="font-medium truncate">{suggestion.title}</p>
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {suggestion.description}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {categoryLabels[suggestion.category as keyof typeof categoryLabels]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {levelLabels[suggestion.impact as keyof typeof levelLabels]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {levelLabels[suggestion.urgency as keyof typeof levelLabels]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={suggestion.status}
+                                onValueChange={(value) => updateSuggestionStatus(suggestion.id, value)}
+                              >
+                                <SelectTrigger className="w-[130px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(statusLabels).map(([value, label]) => (
+                                    <SelectItem key={value} value={value}>
+                                      {label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(suggestion.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Show full details in a modal or expand
+                                    alert(`Detalhes completos:\n\nTítulo: ${suggestion.title}\n\nDescrição: ${suggestion.description}\n\nPlano: ${suggestion.plan}\n\nPermite contato: ${suggestion.allow_contact ? 'Sim' : 'Não'}`);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteSuggestion(suggestion.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="roadmap">
+          <AdminRoadmapPanel />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };

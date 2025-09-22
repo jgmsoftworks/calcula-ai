@@ -1,11 +1,15 @@
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRoadmap, RoadmapStatus, RoadmapSort } from "@/hooks/useRoadmap";
-import { Heart, Clock, CheckCircle, PlayCircle, Filter, SortDesc, Sparkles } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useRoadmap, RoadmapStatus, RoadmapSort, RoadmapItem } from "@/hooks/useRoadmap";
+import { useAuth } from "@/hooks/useAuth";
+import { Heart, Clock, CheckCircle, PlayCircle, Filter, SortDesc, Sparkles, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { RoadmapItemModal } from "./RoadmapItemModal";
 
 export const RoadmapList = () => {
   const { 
@@ -15,8 +19,22 @@ export const RoadmapList = () => {
     sortBy, 
     setStatusFilter, 
     setSortBy, 
-    toggleVote 
+    toggleVote,
+    deleteRoadmapItem
   } = useRoadmap();
+  
+  const { isAdmin } = useAuth();
+  const [editingItem, setEditingItem] = React.useState<RoadmapItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
+  const handleEdit = (item: RoadmapItem) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (itemId: string) => {
+    await deleteRoadmapItem(itemId);
+  };
 
   const statusLabels = {
     all: "Todos",
@@ -162,17 +180,59 @@ export const RoadmapList = () => {
                       </div>
                     </div>
                     
-                    <Button
-                      variant={item.user_voted ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleVote(item.id)}
-                      className="flex items-center gap-2 min-w-[80px]"
-                    >
-                      <Heart 
-                        className={`h-4 w-4 ${item.user_voted ? 'fill-current' : ''}`} 
-                      />
-                      {item.vote_count}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={item.user_voted ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleVote(item.id)}
+                        className="flex items-center gap-2 min-w-[80px]"
+                      >
+                        <Heart 
+                          className={`h-4 w-4 ${item.user_voted ? 'fill-current' : ''}`} 
+                        />
+                        {item.vote_count}
+                      </Button>
+                      
+                      {isAdmin && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(item)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir o item "{item.title}"? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(item.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -195,6 +255,12 @@ export const RoadmapList = () => {
           </Button>
         </div>
       )}
+
+      <RoadmapItemModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        item={editingItem}
+      />
     </div>
   );
 };
