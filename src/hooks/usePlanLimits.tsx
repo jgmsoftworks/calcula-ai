@@ -184,9 +184,17 @@ export const usePlanLimits = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase.rpc('increment_pdf_count', {
-        user_uuid: user.id
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          pdf_exports_count: await supabase
+            .from('profiles')
+            .select('pdf_exports_count')
+            .eq('user_id', user.id)
+            .single()
+            .then(({ data }) => (data?.pdf_exports_count || 0) + 1)
+        })
+        .eq('user_id', user.id);
 
       if (error) throw error;
     } catch (error) {

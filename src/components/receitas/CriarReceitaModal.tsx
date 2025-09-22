@@ -11,6 +11,8 @@ import { PrecificacaoStep } from './steps/PrecificacaoStep';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 
 interface MarkupData {
   id: string;
@@ -117,8 +119,10 @@ const steps = [
 export function CriarReceitaModal({ open, onOpenChange, receitaId: existingReceitaId }: CriarReceitaModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [receitaId, setReceitaId] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkLimit, showUpgradeMessage } = usePlanLimits();
   const [markups, setMarkups] = useState<MarkupData[]>([]);
   
   // Carregar markups quando abre o modal (para novas receitas)
@@ -366,6 +370,19 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         variant: "destructive",
       });
       return;
+    }
+
+    // Verificar limite do plano apenas para novas receitas
+    if (!existingReceitaId) {
+      const limitCheck = await checkLimit('receitas');
+      
+      if (!limitCheck.allowed) {
+        if (limitCheck.reason === 'limit_exceeded') {
+          showUpgradeMessage('receitas');
+          setShowUpgradeModal(true);
+        }
+        return;
+      }
     }
 
     try {
@@ -836,6 +853,11 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
           </div>
         </div>
       </DialogContent>
+
+      <UpgradePlansModal 
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+      />
     </Dialog>
   );
 }

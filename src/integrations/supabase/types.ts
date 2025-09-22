@@ -1306,6 +1306,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_pdf_count: {
+        Args: { user_uuid: string }
+        Returns: undefined
+      }
       initialize_user_filters: {
         Args: { user_uuid: string }
         Returns: undefined

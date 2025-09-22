@@ -13,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 
 interface MarkupBlock {
   id: string;
@@ -48,6 +50,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<Array<{ data: string; valor: number }>>([]);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   // Estados para configuração
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
@@ -62,6 +65,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { checkLimit, showUpgradeMessage } = usePlanLimits();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isMarkupSaving = useRef<boolean>(false);
 
@@ -1002,6 +1006,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
             return novo;
           });
         }}
+      />
+
+      <UpgradePlansModal 
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
       />
     </div>
   );

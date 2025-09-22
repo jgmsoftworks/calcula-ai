@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { MediaFaturamento } from '@/components/precificacao/MediaFaturamento';
 import { Markups } from '@/components/precificacao/Markups';
 
@@ -15,29 +13,13 @@ const Precificacao = () => {
     return searchParams.get('periodo') || "12";
   });
 
-  // Sincronizar estado com URL quando componente carrega
-  useEffect(() => {
-    const periodoFromUrl = searchParams.get('periodo');
-    if (periodoFromUrl && periodoFromUrl !== globalPeriod) {
-      setGlobalPeriod(periodoFromUrl);
-    }
-  }, [searchParams]);
-
-  const handleGlobalPeriodChange = (value: string) => {
-    setGlobalPeriod(value);
-    
-    // Atualizar URL com novo período
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('periodo', value);
-    setSearchParams(newSearchParams, { replace: true });
-  };
-
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="media-faturamento">Média de Faturamento</TabsTrigger>
           <TabsTrigger value="markups">Markups</TabsTrigger>
+          <TabsTrigger value="planos">Planos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="media-faturamento" className="space-y-4">
@@ -46,6 +28,20 @@ const Precificacao = () => {
 
         <TabsContent value="markups" className="space-y-4">
           <Markups globalPeriod={globalPeriod} />
+        </TabsContent>
+
+        <TabsContent value="planos" className="space-y-4">
+          <div className="p-6">
+            <h2 className="text-2xl font-semibold mb-4">Gerenciar Planos</h2>
+            <p className="text-muted-foreground mb-6">
+              Gerencie sua assinatura e veja os limites do seu plano atual.
+            </p>
+            <iframe 
+              src="/planos" 
+              className="w-full h-screen border rounded-lg"
+              title="Gerenciar Planos"
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Power, Plus } from 'lucide-react';
 import { ProductModal } from './ProductModal';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 
 interface Produto {
   id: string;
@@ -52,9 +54,11 @@ export const CadastroProdutos = () => {
   const [filterAtivo, setFilterAtivo] = useState<'todos' | 'ativo' | 'inativo'>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkLimit, showUpgradeMessage } = usePlanLimits();
 
   useEffect(() => {
     loadProdutos();
@@ -120,7 +124,17 @@ export const CadastroProdutos = () => {
     }
   };
 
-  const openNewProductModal = () => {
+  const openNewProductModal = async () => {
+    const limitCheck = await checkLimit('produtos');
+    
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'limit_exceeded') {
+        showUpgradeMessage('produtos');
+        setShowUpgradeModal(true);
+      }
+      return;
+    }
+    
     setSelectedProduct(null);
     setIsModalOpen(true);
   };
@@ -253,6 +267,11 @@ export const CadastroProdutos = () => {
         onClose={closeModal}
         product={selectedProduct}
         onSave={handleModalSave}
+      />
+
+      <UpgradePlansModal 
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
       />
     </div>
   );
