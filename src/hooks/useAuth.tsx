@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   emailVerified: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -35,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           setEmailVerified(!!session.user.email_confirmed_at);
           
-          // Create profile automatically if user just signed up or signed in
+          // Check if user is admin and create profile automatically if needed
           setTimeout(async () => {
             try {
               const { data: profile } = await supabase
@@ -45,20 +47,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .maybeSingle();
 
               if (!profile) {
+                // Create profile if it doesn't exist
                 await supabase
                   .from('profiles')
                   .insert({
                     user_id: session.user.id,
                     full_name: session.user.user_metadata?.full_name,
                     business_name: session.user.user_metadata?.business_name,
+                    is_admin: false,
                   });
+                setIsAdmin(false);
+              } else {
+                // Set admin status from existing profile
+                setIsAdmin(profile.is_admin || false);
               }
             } catch (error) {
-              console.error('Error creating profile:', error);
+              console.error('Error handling profile:', error);
+              setIsAdmin(false);
             }
           }, 0);
         } else {
           setEmailVerified(false);
+          setIsAdmin(false);
         }
       }
     );
@@ -138,6 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       session,
       loading,
       emailVerified,
+      isAdmin,
       signUp,
       signIn,
       signInWithGoogle,

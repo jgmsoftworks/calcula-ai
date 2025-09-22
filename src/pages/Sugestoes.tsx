@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { MessageSquarePlus, MapPin } from "lucide-react";
+import { MessageSquarePlus, MapPin, Settings } from "lucide-react";
 import { SuggestionForm } from "@/components/sugestoes/SuggestionForm";
 import { RoadmapList } from "@/components/sugestoes/RoadmapList";
+import { AdminPanel } from "@/components/sugestoes/AdminPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Sugestoes() {
-  const [activeTab, setActiveTab] = useState<"suggestions" | "roadmap">("suggestions");
-  const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<"suggestions" | "roadmap" | "admin">("roadmap");
+  const { user, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -35,23 +37,49 @@ export default function Sugestoes() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "suggestions" | "roadmap")}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="suggestions" className="flex items-center gap-2">
-            <MessageSquarePlus className="h-4 w-4" />
-            Enviar Sugestão
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "suggestions" | "roadmap" | "admin")}>
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {isAdmin && (
+            <TabsTrigger value="admin" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Admin
+            </TabsTrigger>
+          )}
           <TabsTrigger value="roadmap" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
             Próximas Atualizações
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="suggestions" className="flex items-center gap-2">
+              <MessageSquarePlus className="h-4 w-4" />
+              Enviar Sugestão
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="suggestions" className="space-y-6">
-          <Card className="p-6">
-            <SuggestionForm />
-          </Card>
-        </TabsContent>
+        {!isAdmin && (
+          <Alert className="mt-6">
+            <MessageSquarePlus className="h-4 w-4" />
+            <AlertDescription>
+              O envio de sugestões foi temporariamente restrito aos administradores. 
+              Continue acompanhando nosso roadmap de atualizações!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="admin" className="space-y-6">
+            <AdminPanel />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="suggestions" className="space-y-6">
+            <Card className="p-6">
+              <SuggestionForm />
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="roadmap" className="space-y-6">
           <RoadmapList />
