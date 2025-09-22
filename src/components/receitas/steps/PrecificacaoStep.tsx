@@ -93,7 +93,8 @@ interface ReceitaData {
   rendimentoValor: string;
   rendimentoUnidade: string;
   markupSelecionado: string | null;
-  precoVenda?: number; // Adicionar campo para preço de venda
+  precoVenda?: number;
+  pesoUnitario?: number;
 }
 
 interface PrecificacaoStepProps {
@@ -569,8 +570,11 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           console.log('📥 Carregando peso unitário do banco:', data.peso_unitario);
           setPesoUnitario(data.peso_unitario.toString());
           console.log('💪 Peso unitário carregado:', data.peso_unitario);
+        } else if (receitaData.pesoUnitario && receitaData.pesoUnitario > 0) {
+          console.log('📥 Carregando peso unitário do estado compartilhado:', receitaData.pesoUnitario);
+          setPesoUnitario(receitaData.pesoUnitario.toString());
         } else {
-          console.log('⚠️ Nenhum peso unitário salvo encontrado no banco');
+          console.log('⚠️ Nenhum peso unitário salvo encontrado');
         }
       } catch (error) {
         console.error('Erro ao buscar markup da receita:', error);
@@ -706,6 +710,14 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const handlePesoUnitarioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPesoUnitario(value);
+    
+    // Sync with parent state
+    if (onReceitaDataChange) {
+      onReceitaDataChange(prev => ({
+        ...prev,
+        pesoUnitario: parseFloat(value) || 0
+      }));
+    }
     
     // Auto-save peso unitário to database when editing
     if (receitaId && user?.id && value) {

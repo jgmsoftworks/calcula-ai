@@ -102,6 +102,7 @@ interface ReceitaData {
   // Dados da precificação
   markupSelecionado: string | null;
   precoVenda: number;
+  pesoUnitario: number;
 }
 
 const steps = [
@@ -165,6 +166,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     // Dados da precificação
     markupSelecionado: null,
     precoVenda: 0,
+    pesoUnitario: 0,
   });
 
   // Carregar receita existente para edição
@@ -295,6 +297,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         // Dados da precificação
         markupSelecionado: receita.markup_id || null,
         precoVenda: receita.preco_venda || 0,
+        pesoUnitario: receita.peso_unitario || 0,
       });
 
     } catch (error) {
@@ -395,6 +398,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             markup_id: receitaData.markupSelecionado,
             conservacao: receitaData.conservacao as any,
             imagem_url: imagemUrl,
+            peso_unitario: receitaData.pesoUnitario,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -446,6 +450,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
             markup_id: receitaData.markupSelecionado,
             conservacao: receitaData.conservacao as any,
             imagem_url: imagemUrl,
+            peso_unitario: receitaData.pesoUnitario,
             // Usar preço de venda calculado se disponível, senão calcular
             preco_venda: (() => {
               // Se já temos um preço calculado para sub-receita, usar ele
@@ -688,6 +693,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
       // Dados da precificação
       markupSelecionado: null,
       precoVenda: 0,
+      pesoUnitario: 0,
     });
     onOpenChange(false);
   };
