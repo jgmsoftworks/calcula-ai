@@ -235,6 +235,12 @@ const Planos = () => {
                   <td className="text-center p-3">✅</td>
                 </tr>
                 <tr className="border-b">
+                  <td className="p-3">Simulador de Preços</td>
+                  <td className="text-center p-3">❌</td>
+                  <td className="text-center p-3">✅</td>
+                  <td className="text-center p-3">✅</td>
+                </tr>
+                <tr className="border-b">
                   <td className="p-3">Impressão PDF</td>
                   <td className="text-center p-3">❌</td>
                   <td className="text-center p-3">80/mês</td>

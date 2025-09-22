@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SimuladorModal } from "@/components/simulador/SimuladorModal";
+import { PlanRestrictedArea } from "@/components/planos/PlanRestrictedArea";
 
 interface Receita {
   id: string;
@@ -172,16 +173,21 @@ export default function Simulador() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient-primary">Simulador de Preços</h1>
-          <p className="text-muted-foreground mt-2">
-            Simule diferentes cenários de preço para suas receitas finalizadas
-          </p>
+    <PlanRestrictedArea 
+      requiredPlan="professional"
+      feature="Simulador de Preços"
+      variant="overlay"
+    >
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gradient-primary">Simulador de Preços</h1>
+            <p className="text-muted-foreground mt-2">
+              Simule diferentes cenários de preço para suas receitas finalizadas
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* Search */}
       <Card>
@@ -324,14 +330,15 @@ export default function Simulador() {
         </div>
       )}
 
-      {/* Modal de Simulação */}
-      {selectedReceita && (
-        <SimuladorModal
-          receita={selectedReceita}
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-        />
-      )}
-    </div>
+        {/* Modal de Simulação */}
+        {selectedReceita && (
+          <SimuladorModal
+            receita={selectedReceita}
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+          />
+        )}
+      </div>
+    </PlanRestrictedArea>
   );
 }
