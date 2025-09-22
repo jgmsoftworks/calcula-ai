@@ -6,9 +6,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  emailVerified: boolean;
   signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
+  resendConfirmation: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -26,25 +30,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Create profile if user just signed up
-        if (event === 'SIGNED_IN' && session?.user) {
+        // Update email verification status
+        if (session?.user) {
+          setEmailVerified(!!session.user.email_confirmed_at);
+          
+          // Create profile automatically if user just signed up or signed in
           setTimeout(async () => {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .single();
-
-            if (!profile) {
-              await supabase
+            try {
+              const { data: profile } = await supabase
                 .from('profiles')
-                .insert({
-                  user_id: session.user.id,
-                  full_name: session.user.user_metadata?.full_name,
-                  business_name: session.user.user_metadata?.business_name,
-                });
+                .select('*')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+
+              if (!profile) {
+                await supabase
+                  .from('profiles')
+                  .insert({
+                    user_id: session.user.id,
+                    full_name: session.user.user_metadata?.full_name,
+                    business_name: session.user.user_metadata?.business_name,
+                  });
+              }
+            } catch (error) {
+              console.error('Error creating profile:', error);
             }
           }, 0);
+        } else {
+          setEmailVerified(false);
         }
       }
     );
@@ -76,6 +89,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+    return { error };
+  };
+
+  const resendConfirmation = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+      }
+    });
+    return { error };
+  };
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -93,9 +126,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user,
       session,
       loading,
+      emailVerified,
       signUp,
       signIn,
       signOut,
+      resetPassword,
+      resendConfirmation,
     }}>
       {children}
     </AuthContext.Provider>

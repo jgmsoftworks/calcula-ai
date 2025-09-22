@@ -15,7 +15,9 @@ import {
   Shield,
   CheckCircle,
   Users,
-  Sparkles
+  Sparkles,
+  KeyRound,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -29,8 +31,11 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -61,15 +66,76 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      await signUp(email, password, fullName, businessName);
+      const { error } = await signUp(email, password, fullName, businessName);
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Conta criada com sucesso!",
-        description: "Verifique seu email para confirmar a conta",
+        description: "Verifique seu email para confirmar a conta. Não esqueça de verificar a pasta de spam.",
       });
+      
+      // Mostrar opção de reenviar confirmação
+      setShowResendConfirmation(true);
     } catch (error: any) {
       toast({
         title: "Erro ao criar conta",
+        description: error.message || "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await resetPassword(resetEmail);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Email enviado!",
+        description: "Verifique seu email para instruções de redefinição de senha.",
+      });
+      
+      setShowForgotPassword(false);
+      setResetEmail('');
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar email",
+        description: error.message || "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    setLoading(true);
+
+    try {
+      const { error } = await resendConfirmation(email);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Email de confirmação reenviado!",
+        description: "Verifique seu email, incluindo a pasta de spam.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao reenviar email",
         description: error.message || "Tente novamente",
         variant: "destructive",
       });
@@ -158,22 +224,81 @@ const Auth = () => {
             </CardHeader>
 
             <CardContent className="p-8 pt-0">
-              <Tabs defaultValue="login" className="space-y-8">
-                {/* Enhanced Tab List */}
-                <TabsList className="grid w-full grid-cols-2 bg-gradient-glass border border-border/50 p-1.5 rounded-2xl h-14">
-                  <TabsTrigger 
-                    value="login" 
-                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
-                  >
-                    Entrar
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="signup" 
-                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
-                  >
-                    Criar conta
-                  </TabsTrigger>
-                </TabsList>
+              {showForgotPassword ? (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="text-center space-y-2">
+                    <KeyRound className="h-12 w-12 mx-auto text-primary" />
+                    <h3 className="text-xl font-semibold">Recuperar Senha</h3>
+                    <p className="text-muted-foreground">Digite seu email para receber instruções</p>
+                  </div>
+                  
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2 group">
+                      <Label htmlFor="resetEmail" className="text-base font-medium">Email</Label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                          <Mail className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        </div>
+                        <Input
+                          id="resetEmail"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          className="pl-12 h-12 input-premium"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Button 
+                        type="submit" 
+                        disabled={loading}
+                        className="w-full h-12 button-premium"
+                        variant="gradient"
+                      >
+                        {loading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Enviando...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Mail className="h-4 w-4" />
+                            <span>Enviar instruções</span>
+                          </div>
+                        )}
+                      </Button>
+                      
+                      <Button 
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowForgotPassword(false)}
+                        className="w-full"
+                      >
+                        Voltar ao login
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <Tabs defaultValue="login" className="space-y-8">
+                  {/* Enhanced Tab List */}
+                  <TabsList className="grid w-full grid-cols-2 bg-gradient-glass border border-border/50 p-1.5 rounded-2xl h-14">
+                    <TabsTrigger 
+                      value="login" 
+                      className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
+                    >
+                      Entrar
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="signup" 
+                      className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
+                    >
+                      Criar conta
+                    </TabsTrigger>
+                  </TabsList>
 
                 <TabsContent value="login" className="animate-fade-in">
                   <form onSubmit={handleLogin} className="space-y-6">
@@ -215,24 +340,37 @@ const Auth = () => {
                       </div>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      disabled={loading}
-                      className="w-full h-12 button-premium shadow-glow text-base font-semibold hover:scale-105 transition-all duration-300" 
-                      variant="gradient"
-                    >
-                      {loading ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          <span>Entrando...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <span>Entrar</span>
-                          <ArrowRight className="h-4 w-4" />
-                        </div>
-                      )}
-                    </Button>
+                    <div className="space-y-3">
+                      <Button 
+                        type="submit" 
+                        disabled={loading}
+                        className="w-full h-12 button-premium shadow-glow text-base font-semibold hover:scale-105 transition-all duration-300" 
+                        variant="gradient"
+                      >
+                        {loading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Entrando...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <span>Entrar</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </div>
+                        )}
+                      </Button>
+                      
+                      <div className="text-center">
+                        <Button 
+                          type="button"
+                          variant="link"
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-primary hover:text-primary-glow transition-colors text-sm"
+                        >
+                          Esqueceu sua senha?
+                        </Button>
+                      </div>
+                    </div>
                   </form>
                 </TabsContent>
 
@@ -312,27 +450,47 @@ const Auth = () => {
                       </div>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      disabled={loading}
-                      className="w-full h-12 button-premium shadow-glow text-base font-semibold hover:scale-105 transition-all duration-300" 
-                      variant="gradient"
-                    >
-                      {loading ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          <span>Criando conta...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <span>Criar conta</span>
-                          <ArrowRight className="h-4 w-4" />
+                    <div className="space-y-3">
+                      <Button 
+                        type="submit" 
+                        disabled={loading}
+                        className="w-full h-12 button-premium shadow-glow text-base font-semibold hover:scale-105 transition-all duration-300" 
+                        variant="gradient"
+                      >
+                        {loading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Criando conta...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <span>Criar conta</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </div>
+                        )}
+                      </Button>
+                      
+                      {showResendConfirmation && (
+                        <div className="text-center space-y-2 p-4 bg-primary/10 rounded-lg">
+                          <p className="text-sm text-muted-foreground">Não recebeu o email de confirmação?</p>
+                          <Button 
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResendConfirmation}
+                            disabled={loading}
+                            className="text-primary hover:text-primary-glow"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Reenviar email
+                          </Button>
                         </div>
                       )}
-                    </Button>
+                    </div>
                   </form>
                 </TabsContent>
-              </Tabs>
+                </Tabs>
+              )}
             </CardContent>
           </Card>
 

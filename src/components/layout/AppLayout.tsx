@@ -5,6 +5,10 @@ import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useMarkupInitializer } from '@/hooks/useMarkupInitializer';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Mail, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,12 +27,40 @@ const getPageInfo = (pathname: string): { title: string; description: string; } 
 };
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, emailVerified, resendConfirmation } = useAuth();
   const location = useLocation();
   const [isReady, setIsReady] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const { toast } = useToast();
   
   // Inicializar markups automaticamente quando o usuário estiver logado
   useMarkupInitializer();
+
+  const handleResendConfirmation = async () => {
+    if (!user?.email) return;
+    
+    setIsResending(true);
+    try {
+      const { error } = await resendConfirmation(user.email);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Email reenviado!",
+        description: "Verifique sua caixa de entrada e pasta de spam.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao reenviar email",
+        description: error.message || "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -61,20 +93,51 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         
         <div className="flex-1 flex flex-col min-h-screen">
           {/* Header */}
-          <header className="h-16 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 flex items-center px-4 lg:px-6">
-            <SidebarTrigger className="lg:hidden" />
-            
-            {/* Header content can be customized per page */}
-            <div className="flex-1 ml-4 lg:ml-0">
-              <h2 className="text-lg font-semibold text-foreground">
-                {pageInfo.title}
-              </h2>
-              {pageInfo.description && (
-                <p className="text-sm text-muted-foreground">
-                  {pageInfo.description}
-                </p>
-              )}
+          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="h-16 flex items-center px-4 lg:px-6">
+              <SidebarTrigger className="lg:hidden" />
+              
+              {/* Header content can be customized per page */}
+              <div className="flex-1 ml-4 lg:ml-0">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {pageInfo.title}
+                </h2>
+                {pageInfo.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {pageInfo.description}
+                  </p>
+                )}
+              </div>
             </div>
+            
+            {/* Email Verification Alert */}
+            {user && !emailVerified && (
+              <Alert className="mx-4 mb-4 border-amber-200 bg-amber-50 text-amber-800">
+                <Mail className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Confirme seu email para ter acesso completo às funcionalidades.</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResendConfirmation}
+                    disabled={isResending}
+                    className="ml-2 border-amber-300 text-amber-700 hover:bg-amber-100"
+                  >
+                    {isResending ? (
+                      <div className="flex items-center space-x-1">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        <span>Enviando...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-1">
+                        <Mail className="h-3 w-3" />
+                        <span>Reenviar</span>
+                      </div>
+                    )}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
           </header>
 
           {/* Main Content */}
