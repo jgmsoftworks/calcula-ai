@@ -10,10 +10,12 @@ const corsHeaders = {
 // Mapeamento de produtos para planos
 const PRODUCT_TO_PLAN = {
   "prod_T6TXCmpEQTIaRT": "professional", // Professional mensal (antigo)
-  "prod_T6TeSPeBygwJz7": "professional", // Professional anual
+  "prod_T6TeSPeBygwJz7": "professional", // Professional anual (antigo)
+  "prod_T6TiY7VskZgNKg": "professional", // Professional anual (novo preço)
   "prod_T6TYlKJ4hdq6m1": "enterprise",   // Enterprise mensal (antigo) 
   "prod_T6TdpmHjPubwhM": "enterprise",   // Enterprise mensal (novo preço)
-  "prod_T6Te4Zsr3iA7x5": "enterprise"    // Enterprise anual
+  "prod_T6Te4Zsr3iA7x5": "enterprise",   // Enterprise anual (antigo)
+  "prod_T6TiS2ZoP1MhUL": "enterprise"    // Enterprise anual (novo preço)
 };
 
 serve(async (req) => {

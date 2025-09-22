@@ -213,8 +213,8 @@ const Planos = () => {
                 <tr className="border-b">
                   <td className="p-3">Preço Anual</td>
                   <td className="text-center p-3">-</td>
-                  <td className="text-center p-3">R$ 490,00 <br/><small>(~17% desconto)</small></td>
-                  <td className="text-center p-3">R$ 899,00 <br/><small>(~17% desconto)</small></td>
+                  <td className="text-center p-3">R$ 478,80 <br/><small>(20% desconto)</small></td>
+                  <td className="text-center p-3">R$ 838,80 <br/><small>(20% desconto)</small></td>
                 </tr>
                 <tr className="border-b">
                   <td className="p-3">Matéria-prima</td>

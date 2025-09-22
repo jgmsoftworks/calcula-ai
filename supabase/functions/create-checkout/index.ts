@@ -10,9 +10,9 @@ const corsHeaders = {
 // Mapeamento dos planos
 const PLAN_PRICES = {
   professional_monthly: "price_1SAGaVBnxFLGYBYff91rBqoP",
-  professional_yearly: "price_1SAGgvBnxFLGYBYf15n8DxUc", 
+  professional_yearly: "price_1SAGl3BnxFLGYBYfNdoF5crq", 
   enterprise_monthly: "price_1SAGgdBnxFLGYBYfOzJwhMw3",
-  enterprise_yearly: "price_1SAGhHBnxFLGYBYfWyhMAyiy"
+  enterprise_yearly: "price_1SAGlUBnxFLGYBYfwLnEZoId"
 };
 
 serve(async (req) => {
