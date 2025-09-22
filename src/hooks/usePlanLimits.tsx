@@ -202,6 +202,59 @@ export const usePlanLimits = () => {
     }
   };
 
+  const hasAccess = (requiredPlan: PlanType): boolean => {
+    const planHierarchy: Record<PlanType, number> = {
+      'free': 0,
+      'professional': 1,
+      'enterprise': 2
+    };
+    
+    return planHierarchy[currentPlan] >= planHierarchy[requiredPlan];
+  };
+
+  const getCurrentUsage = async (featureType: keyof PlanLimits): Promise<number> => {
+    if (!user) return 0;
+
+    try {
+      let count = 0;
+      
+      switch (featureType) {
+        case 'produtos':
+          const { count: produtosCount } = await supabase
+            .from('produtos')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          count = produtosCount || 0;
+          break;
+          
+        case 'receitas':
+          const { count: receitasCount } = await supabase
+            .from('receitas')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          count = receitasCount || 0;
+          break;
+          
+        case 'markups':
+          const { count: markupsCount } = await supabase
+            .from('markups')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .neq('tipo', 'sub_receita');
+          count = markupsCount || 0;
+          break;
+          
+        default:
+          count = 0;
+      }
+      
+      return count;
+    } catch (error) {
+      console.error('Erro ao buscar uso atual:', error);
+      return 0;
+    }
+  };
+
   return {
     currentPlan,
     planExpiration,
@@ -211,5 +264,7 @@ export const usePlanLimits = () => {
     showUpgradeMessage,
     updatePdfCount,
     reloadPlan: loadUserPlan,
+    hasAccess,
+    getCurrentUsage,
   };
 };

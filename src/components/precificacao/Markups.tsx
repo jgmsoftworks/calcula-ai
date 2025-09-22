@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
+import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 
 interface MarkupBlock {
   id: string;
@@ -65,7 +66,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { checkLimit, showUpgradeMessage } = usePlanLimits();
+  const { checkLimit, showUpgradeMessage, planInfo } = usePlanLimits();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isMarkupSaving = useRef<boolean>(false);
 
@@ -623,7 +624,24 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     return value.toFixed(2);
   };
 
-  const criarNovoBloco = () => {
+  const criarNovoBloco = async () => {
+    // Verificar limite antes de adicionar
+    const limitCheck = await checkLimit('markups');
+    
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'limit_exceeded') {
+        toast({
+          title: 'Limite atingido',
+          description: `Você atingiu o limite de ${limitCheck.maxAllowed} blocos de markup do seu plano. Faça upgrade para criar mais blocos.`,
+          variant: 'destructive',
+        });
+        setShowUpgradeModal(true);
+      } else {
+        showUpgradeMessage('markups');
+      }
+      return;
+    }
+
     // 🎯 NOVO: Criação direta sem modal complexo
     const novoBloco: MarkupBlock = {
       id: Date.now().toString(),
@@ -716,7 +734,12 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     <div className="space-y-6">
       {/* Botão para criar novo bloco */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Configuração de Markups</h2>
+        <div>
+          <h2 className="text-2xl font-bold">Configuração de Markups</h2>
+          <p className="text-muted-foreground">
+            {blocos.filter(b => b.id !== 'subreceita-fixo').length}/{planInfo.limits.markups === -1 ? '∞' : planInfo.limits.markups} blocos de markup
+          </p>
+        </div>
         <Button 
           onClick={criarNovoBloco}
           className="bg-primary hover:bg-primary/90"

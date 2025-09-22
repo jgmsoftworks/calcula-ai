@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CriarReceitaModal } from '@/components/receitas/CriarReceitaModal';
+import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 interface Receita {
   id: string;
@@ -43,6 +45,7 @@ const Receitas = () => {
   const [editingReceitaId, setEditingReceitaId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { hasAccess, checkLimit, planInfo, currentPlan } = usePlanLimits();
 
   useEffect(() => {
     if (user?.id) {
@@ -181,7 +184,19 @@ const Receitas = () => {
     setIsModalOpen(true);
   };
 
-  const handleNovaReceita = () => {
+  const handleNovaReceita = async () => {
+    // Verificar limite de receitas antes de abrir modal
+    const limitCheck = await checkLimit('receitas');
+    
+    if (!limitCheck.allowed) {
+      toast({
+        title: 'Limite atingido',
+        description: `Você atingiu o limite de ${planInfo.limits.receitas} receitas do plano ${planInfo.name}. Faça upgrade para criar mais receitas.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setEditingReceitaId(null);
     setIsModalOpen(true);
   };
@@ -255,6 +270,26 @@ const Receitas = () => {
   };
 
   const downloadReceita = async (receitaId: string) => {
+    // Verificar limite de PDF exports
+    if (!hasAccess('professional')) {
+      toast({
+        title: 'Recurso Premium',
+        description: 'Exportação de receitas em PDF disponível apenas no plano Profissional.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const limitCheck = await checkLimit('pdf_exports');
+    if (!limitCheck.allowed) {
+      toast({
+        title: 'Limite de PDFs atingido',
+        description: `Você atingiu o limite de ${planInfo.limits.pdf_exports} PDFs por mês do plano ${planInfo.name}.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // Função para adicionar logo no rodapé de todas as páginas
       const addFooterLogo = (pdf: any, pageWidth: number) => {
@@ -1022,15 +1057,21 @@ const Receitas = () => {
                       <p>Criado: {new Date(receita.created_at).toLocaleDateString()}</p>
                       <p>Atualizado: {new Date(receita.updated_at).toLocaleDateString()}</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadReceita(receita.id)}
-                      className="gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Baixar
-                    </Button>
+                    {hasAccess('professional') ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadReceita(receita.id)}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Baixar
+                      </Button>
+                    ) : (
+                      <PlanRestrictedArea requiredPlan="professional" feature="Exportação de PDFs" variant="button">
+                        Baixar PDF
+                      </PlanRestrictedArea>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
