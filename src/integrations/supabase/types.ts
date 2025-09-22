@@ -629,6 +629,7 @@ export type Database = {
           responsavel_email: string | null
           responsavel_nome: string | null
           responsavel_telefone: string | null
+          role: string
           setor_atividade: string | null
           telefone_comercial: string | null
           updated_at: string
@@ -672,6 +673,7 @@ export type Database = {
           responsavel_email?: string | null
           responsavel_nome?: string | null
           responsavel_telefone?: string | null
+          role?: string
           setor_atividade?: string | null
           telefone_comercial?: string | null
           updated_at?: string
@@ -715,6 +717,7 @@ export type Database = {
           responsavel_email?: string | null
           responsavel_nome?: string | null
           responsavel_telefone?: string | null
+          role?: string
           setor_atividade?: string | null
           telefone_comercial?: string | null
           updated_at?: string
