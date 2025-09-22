@@ -12,7 +12,13 @@ export const WhatsAppSupportButton = () => {
     const encodedMessage = encodeURIComponent(message);
     const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
     
-    window.open(whatsappURL, '_blank', 'noopener,noreferrer');
+    // Tenta abrir o WhatsApp primeiro, depois fallback para web
+    try {
+      window.open(whatsappURL, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      // Fallback: tenta abrir no próprio navegador
+      window.location.href = whatsappURL;
+    }
   };
 
   return (
