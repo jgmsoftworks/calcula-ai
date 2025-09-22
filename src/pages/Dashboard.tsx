@@ -1,11 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Link } from 'react-router-dom';
 import { 
-  Calculator, 
   TrendingUp, 
   Package, 
   BarChart3,
@@ -13,94 +10,66 @@ import {
   Plus,
   ArrowUpRight,
   Building2,
-  Target,
   Activity,
-  Calendar,
-  Users,
-  PieChart,
-  Briefcase,
-  ShoppingCart,
-  TrendingDown,
   AlertTriangle,
-  CheckCircle2,
   ArrowDown,
   ArrowUp,
   Eye,
-  Filter
+  RefreshCcw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Cell, AreaChart, Area, Pie } from 'recharts';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { useActivityLog } from '@/hooks/useActivityLog';
+import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
+  const { activities, loading: activitiesLoading } = useActivityLog();
 
-  // Dados para gráficos
-  const revenueData = [
-    { month: 'Jan', revenue: 4500, cost: 3200 },
-    { month: 'Fev', revenue: 5200, cost: 3600 },
-    { month: 'Mar', revenue: 4800, cost: 3400 },
-    { month: 'Abr', revenue: 6100, cost: 4200 },
-    { month: 'Mai', revenue: 7200, cost: 4800 },
-    { month: 'Jun', revenue: 8450, cost: 5200 },
-  ];
-
-  const categoryData = [
-    { name: 'Produtos A', value: 35, color: 'hsl(var(--primary))' },
-    { name: 'Produtos B', value: 25, color: 'hsl(var(--secondary))' },
-    { name: 'Produtos C', value: 20, color: 'hsl(var(--accent))' },
-    { name: 'Outros', value: 20, color: 'hsl(var(--muted))' },
-  ];
-
-  const dailyActivity = [
-    { day: 'Seg', vendas: 12, produtos: 8 },
-    { day: 'Ter', vendas: 19, produtos: 12 },
-    { day: 'Qua', vendas: 15, produtos: 10 },
-    { day: 'Qui', vendas: 25, produtos: 16 },
-    { day: 'Sex', vendas: 22, produtos: 14 },
-    { day: 'Sáb', vendas: 18, produtos: 11 },
-    { day: 'Dom', vendas: 14, produtos: 9 },
-  ];
-
+  // Preparar dados dos cards principais baseados nos dados reais
   const stats = [
     {
       title: 'Receita Total',
-      value: 'R$ 8.450',
-      change: '+15.3%',
-      changeType: 'positive',
-      description: 'vs mês anterior',
+      value: `R$ ${data.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      change: `${data.totalRevenueChange >= 0 ? '+' : ''}${data.totalRevenueChange.toFixed(1)}%`,
+      changeType: data.totalRevenueChange >= 0 ? 'positive' : 'negative',
+      description: 'vs período anterior',
       icon: DollarSign,
       color: 'text-primary',
-      trend: [65, 78, 72, 85, 91, 88, 95],
+      trend: data.revenueData.slice(-7).map(d => d.revenue),
     },
     {
       title: 'Produtos Ativos',
-      value: '247',
-      change: '+12',
-      changeType: 'positive', 
-      description: 'novos esta semana',
+      value: data.activeProducts.toString(),
+      change: `+${data.activeProductsChange}`,
+      changeType: 'positive' as const,
+      description: 'novos no período',
       icon: Package,
       color: 'text-secondary',
-      trend: [45, 52, 48, 61, 67, 72, 75],
+      trend: [45, 52, 48, 61, 67, 72, data.activeProducts],
     },
     {
       title: 'Margem Média',
-      value: '32.8%',
-      change: '+2.1%',
-      changeType: 'positive',
+      value: `${data.averageMargin.toFixed(1)}%`,
+      change: `${data.averageMarginChange >= 0 ? '+' : ''}${data.averageMarginChange.toFixed(1)}%`,
+      changeType: data.averageMarginChange >= 0 ? 'positive' : 'negative',
       description: 'Meta: 30%',
       icon: TrendingUp,
       color: 'text-accent',
-      trend: [28, 30, 29, 31, 32, 33, 32.8],
+      trend: [28, 30, 29, 31, 32, 33, data.averageMargin],
     },
     {
       title: 'Custos Operacionais',
-      value: 'R$ 3.250',
-      change: '-5.2%',
-      changeType: 'negative',
-      description: 'redução mensal',
+      value: `R$ ${data.operationalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      change: `${data.operationalCostsChange >= 0 ? '+' : ''}${data.operationalCostsChange.toFixed(1)}%`,
+      changeType: data.operationalCostsChange >= 0 ? 'positive' : 'negative',
+      description: 'variação mensal',
       icon: BarChart3,
       color: 'text-orange',
-      trend: [3800, 3650, 3500, 3400, 3350, 3300, 3250],
+      trend: [3800, 3650, 3500, 3400, 3350, 3300, data.operationalCosts],
     },
   ];
 
@@ -111,7 +80,7 @@ const Dashboard = () => {
       icon: Plus,
       href: '/estoque',
       gradient: 'from-primary to-primary-glow',
-      stats: '12 produtos cadastrados hoje',
+      stats: `${data.activeProductsChange} produtos no período`,
     },
     {
       title: 'Análise Avançada',
@@ -119,7 +88,7 @@ const Dashboard = () => {
       icon: BarChart3,
       href: '/custos',
       gradient: 'from-secondary to-purple',
-      stats: '3 relatórios pendentes',
+      stats: 'Dados atualizados em tempo real',
     },
     {
       title: 'Configurações',
@@ -127,48 +96,21 @@ const Dashboard = () => {
       icon: Building2,
       href: '/perfil',
       gradient: 'from-accent to-red',
-      stats: 'Perfil 85% completo',
+      stats: 'Gerencie suas configurações',
     },
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      action: 'Produto atualizado',
-      description: 'Hambúrguer Artesanal - Nova margem: 35%',
-      time: '2 min atrás',
-      type: 'update',
-      value: 'R$ 18,50',
-      status: 'success'
-    },
-    {
-      id: 2,
-      action: 'Produto cadastrado',
-      description: 'Pizza Margherita adicionada ao catálogo',
-      time: '1 hora atrás',
-      type: 'create',
-      value: 'R$ 24,00',
-      status: 'success'
-    },
-    {
-      id: 3,
-      action: 'Custo alterado',
-      description: 'Matéria-prima - Ajuste de 8%',
-      time: '3 horas atrás',
-      type: 'cost',
-      value: '+R$ 125',
-      status: 'warning'
-    },
-    {
-      id: 4,
-      action: 'Relatório gerado',
-      description: 'Análise mensal de performance',
-      time: '1 dia atrás',
-      type: 'report',
-      value: '15 produtos',
-      status: 'info'
-    }
-  ];
+  // Loading state
+  if (data.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Carregando dados do dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -188,17 +130,25 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm" className="h-9">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
-          <Button variant="outline" size="sm" className="h-9">
-            <Calendar className="h-4 w-4 mr-2" />
-            Período
+          <DashboardFilters
+            currentPeriod={filters.period}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+            onPeriodChange={(period) => updateFilters({ period })}
+            onDateRangeChange={(startDate, endDate) => updateFilters({ startDate, endDate })}
+          />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshData}
+            className="h-9"
+          >
+            <RefreshCcw className="h-4 w-4 mr-2" />
+            Atualizar
           </Button>
           <Button size="sm" className="h-9 bg-gradient-primary text-white shadow-glow">
             <Eye className="h-4 w-4 mr-2" />
-            Relatório Completo
+            Relatório
           </Button>
         </div>
       </div>
@@ -280,17 +230,20 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl">Performance Financeira</CardTitle>
-                  <CardDescription>Receita vs Custos nos últimos 6 meses</CardDescription>
+                  <CardDescription>
+                    Receita vs Custos • {data.revenueData.length > 0 ? 'Últimos meses' : 'Dados históricos'}
+                  </CardDescription>
                 </div>
                 <Badge className="bg-gradient-primary text-white border-0">
-                  +15.3% este mês
+                  {data.totalRevenueChange >= 0 ? '+' : ''}{data.totalRevenueChange.toFixed(1)}% no período
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                {data.revenueData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                     <defs>
                       <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
@@ -340,8 +293,17 @@ const Dashboard = () => {
                       fillOpacity={1} 
                       fill="url(#costGradient)"
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center space-y-2">
+                      <BarChart3 className="h-12 w-12 mx-auto opacity-50" />
+                      <p>Nenhum dado de faturamento encontrado</p>
+                      <p className="text-sm">Configure seus dados históricos em Custos</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -356,27 +318,36 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value}%`} />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+                {data.categoryData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={data.categoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {data.categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `${value}%`} />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center space-y-2">
+                      <Package className="h-8 w-8 mx-auto opacity-50" />
+                      <p className="text-sm">Nenhuma categoria encontrada</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-3 mt-4">
-                {categoryData.map((item, index) => (
+                {data.categoryData.map((item, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div 
@@ -401,7 +372,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="h-32">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyActivity} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                  <BarChart data={data.dailyActivity} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                     <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
                     <Tooltip 
                       formatter={(value, name) => [value, name === 'vendas' ? 'Vendas' : 'Produtos']}
@@ -466,37 +437,56 @@ const Dashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-glass border border-border/50 hover:bg-muted/30 transition-colors">
-                <div className={`p-2 rounded-lg ${
-                  activity.status === 'success' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
-                  activity.status === 'warning' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                  activity.status === 'info' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
-                  'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400'
-                }`}>
-                  {activity.type === 'update' && <TrendingUp className="h-4 w-4" />}
-                  {activity.type === 'create' && <Plus className="h-4 w-4" />}
-                  {activity.type === 'cost' && <AlertTriangle className="h-4 w-4" />}
-                  {activity.type === 'report' && <BarChart3 className="h-4 w-4" />}
-                </div>
-                
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-foreground">{activity.action}</p>
-                    <Badge variant="outline" className="text-xs">
-                      {activity.value}
-                    </Badge>
+          {activitiesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner />
+              <span className="ml-2 text-muted-foreground">Carregando atividades...</span>
+            </div>
+          ) : activities.length > 0 ? (
+            <div className="space-y-4">
+              {activities.slice(0, 8).map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-glass border border-border/50 hover:bg-muted/30 transition-colors">
+                  <div className={`p-2 rounded-lg ${
+                    activity.status === 'success' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
+                    activity.status === 'warning' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                    activity.status === 'info' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
+                    activity.status === 'error' ? 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400' :
+                    'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400'
+                  }`}>
+                    {activity.type === 'update' && <TrendingUp className="h-4 w-4" />}
+                    {activity.type === 'create' && <Plus className="h-4 w-4" />}
+                    {activity.type === 'delete' && <ArrowDown className="h-4 w-4" />}
+                    {activity.type === 'auth' && <Activity className="h-4 w-4" />}
+                    {activity.type === 'cost' && <AlertTriangle className="h-4 w-4" />}
+                    {activity.type === 'report' && <BarChart3 className="h-4 w-4" />}
+                    {(activity.type === 'info' || activity.type === 'login') && <Eye className="h-4 w-4" />}
                   </div>
-                  <p className="text-sm text-muted-foreground">{activity.description}</p>
+                  
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-foreground">{activity.action}</p>
+                      {activity.value && (
+                        <Badge variant="outline" className="text-xs">
+                          {activity.value}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{activity.description}</p>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground">
+                    {activity.time}
+                  </div>
                 </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  {activity.time}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="h-12 w-12 mx-auto opacity-50 mb-4" />
+              <p>Nenhuma atividade recente</p>
+              <p className="text-sm">As atividades aparecerão aqui conforme você usar o sistema</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
