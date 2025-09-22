@@ -460,6 +460,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          related_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          related_id?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          related_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           ativo: boolean
@@ -581,6 +614,7 @@ export type Database = {
           inscricao_estadual: string | null
           inscricao_municipal: string | null
           instagram: string | null
+          is_admin: boolean
           logo_empresa_url: string | null
           logradouro: string | null
           nome_fantasia: string | null
@@ -623,6 +657,7 @@ export type Database = {
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           instagram?: string | null
+          is_admin?: boolean
           logo_empresa_url?: string | null
           logradouro?: string | null
           nome_fantasia?: string | null
@@ -665,6 +700,7 @@ export type Database = {
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           instagram?: string | null
+          is_admin?: boolean
           logo_empresa_url?: string | null
           logradouro?: string | null
           nome_fantasia?: string | null
@@ -987,6 +1023,65 @@ export type Database = {
           },
         ]
       }
+      roadmap_items: {
+        Row: {
+          created_at: string
+          description: string
+          eta: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          eta?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          eta?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      roadmap_votes: {
+        Row: {
+          created_at: string
+          id: string
+          roadmap_item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          roadmap_item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          roadmap_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_votes_roadmap_item_id_fkey"
+            columns: ["roadmap_item_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sensitive_data_access_log: {
         Row: {
           accessed_at: string | null
@@ -1019,6 +1114,57 @@ export type Database = {
           sensitive_fields?: string[] | null
           table_name?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      suggestions: {
+        Row: {
+          allow_contact: boolean
+          app_version: string | null
+          attachment_url: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          impact: string
+          plan: string | null
+          status: string
+          title: string
+          updated_at: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          allow_contact?: boolean
+          app_version?: string | null
+          attachment_url?: string | null
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          impact: string
+          plan?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          urgency: string
+          user_id: string
+        }
+        Update: {
+          allow_contact?: boolean
+          app_version?: string | null
+          attachment_url?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          impact?: string
+          plan?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          urgency?: string
           user_id?: string
         }
         Relationships: []
@@ -1118,6 +1264,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_user_suggestions_24h: {
+        Args: { check_user_id: string }
+        Returns: number
+      }
       generate_codigo_interno: {
         Args: { user_uuid: string }
         Returns: string
