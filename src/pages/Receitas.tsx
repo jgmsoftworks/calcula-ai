@@ -256,6 +256,23 @@ const Receitas = () => {
 
   const downloadReceita = async (receitaId: string) => {
     try {
+      // Função para adicionar logo no rodapé de todas as páginas
+      const addFooterLogo = (pdf: any, pageWidth: number) => {
+        try {
+          const logoWidth = 15; // 15mm de largura
+          const logoHeight = 5; // 5mm de altura
+          const marginRight = 3; // 3mm da borda direita
+          const marginBottom = 3; // 3mm da borda inferior
+          
+          const logoX = pageWidth - logoWidth - marginRight;
+          const logoY = 297 - logoHeight - marginBottom; // A4 height = 297mm
+          
+          pdf.addImage('/assets/logo-calculaai.png', 'PNG', logoX, logoY, logoWidth, logoHeight);
+        } catch (error) {
+          console.log('Logo não pôde ser carregado no rodapé');
+        }
+      };
+
       // Buscar dados completos da receita
       const { data: receita, error: receitaError } = await supabase
         .from('receitas')
@@ -829,6 +846,7 @@ const Receitas = () => {
           // Verificar se precisa de nova página
           if (yPosition > 240) {
             pdf.addPage();
+            addFooterLogo(pdf, pageWidth);
             yPosition = 20;
           }
           
@@ -933,6 +951,9 @@ const Receitas = () => {
         pdf.text(lines, 7, yPosition + 5); // Ajustado para nova margem
         yPosition += lines.length * 4 + 10;
       }
+
+      // Adicionar logo na primeira página
+      addFooterLogo(pdf, pageWidth);
 
       // Salvar PDF
       const fileName = `receita-${receita.nome.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
