@@ -36,7 +36,7 @@ export const useStripe = () => {
     }
   };
 
-  const createCheckout = async (planType: string) => {
+  const createCheckout = async (planType: string, billing: 'monthly' | 'yearly' = 'monthly') => {
     if (!user) {
       toast({
         title: 'Erro',
@@ -50,7 +50,7 @@ export const useStripe = () => {
     
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planType }
+        body: { planType, billing }
       });
       
       if (error) {

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { PlanCard } from './PlanCard';
+import { PlanSelector } from './PlanSelector';
 import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
 import { useStripe } from '@/hooks/useStripe';
 
@@ -13,7 +13,7 @@ export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePl
   const { currentPlan } = usePlanLimits();
   const { createCheckout, openCustomerPortal, loading } = useStripe();
 
-  const handleSelectPlan = async (planType: PlanType) => {
+  const handleSelectPlan = async (planType: PlanType, billing?: 'monthly' | 'yearly') => {
     if (planType === currentPlan) {
       // Se é o plano atual e não é free, abrir portal de gerenciamento
       if (planType !== 'free') {
@@ -27,7 +27,7 @@ export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePl
       await openCustomerPortal();
     } else {
       // Para upgrade, criar checkout
-      await createCheckout(planType);
+      await createCheckout(planType, billing || 'monthly');
       onOpenChange(false); // Fechar modal após iniciar checkout
     }
   };
@@ -41,7 +41,7 @@ export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePl
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           {Object.entries(PLAN_CONFIGS).map(([planType, planInfo]) => (
-            <PlanCard
+            <PlanSelector
               key={planType}
               planType={planType as PlanType}
               planInfo={planInfo}

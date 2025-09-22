@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { PlanCard } from '@/components/planos/PlanCard';
+import { PlanSelector } from '@/components/planos/PlanSelector';
 import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ const Planos = () => {
     }
   }, [toast, reloadPlan]);
 
-  const handleSelectPlan = async (planType: PlanType) => {
+  const handleSelectPlan = async (planType: PlanType, billing?: 'monthly' | 'yearly') => {
     if (planType === currentPlan) {
       // Se é o plano atual e não é free, abrir portal de gerenciamento
       if (planType !== 'free') {
@@ -60,7 +60,7 @@ const Planos = () => {
         await openCustomerPortal();
       } else {
         // Para upgrade, criar checkout
-        await createCheckout(planType);
+        await createCheckout(planType, billing || 'monthly');
       }
     } catch (error) {
       console.error('Erro ao processar plano:', error);
@@ -156,7 +156,7 @@ const Planos = () => {
         <h2 className="text-2xl font-semibold mb-6">Todos os Planos</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Object.entries(PLAN_CONFIGS).map(([planType, planInfo]) => (
-            <PlanCard
+            <PlanSelector
               key={planType}
               planType={planType as PlanType}
               planInfo={planInfo}
@@ -205,6 +205,18 @@ const Planos = () => {
               </thead>
               <tbody className="text-sm">
                 <tr className="border-b">
+                  <td className="p-3">Preço Mensal</td>
+                  <td className="text-center p-3">Grátis</td>
+                  <td className="text-center p-3">R$ 49,00</td>
+                  <td className="text-center p-3">R$ 89,90</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="p-3">Preço Anual</td>
+                  <td className="text-center p-3">-</td>
+                  <td className="text-center p-3">R$ 490,00 <br/><small>(~17% desconto)</small></td>
+                  <td className="text-center p-3">R$ 899,00 <br/><small>(~17% desconto)</small></td>
+                </tr>
+                <tr className="border-b">
                   <td className="p-3">Matéria-prima</td>
                   <td className="text-center p-3">30</td>
                   <td className="text-center p-3">Ilimitado</td>
@@ -214,12 +226,6 @@ const Planos = () => {
                   <td className="p-3">Receitas</td>
                   <td className="text-center p-3">5</td>
                   <td className="text-center p-3">60</td>
-                  <td className="text-center p-3">Ilimitado</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-3">Blocos de Markup</td>
-                  <td className="text-center p-3">1</td>
-                  <td className="text-center p-3">3</td>
                   <td className="text-center p-3">Ilimitado</td>
                 </tr>
                 <tr className="border-b">

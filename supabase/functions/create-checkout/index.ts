@@ -9,8 +9,10 @@ const corsHeaders = {
 
 // Mapeamento dos planos
 const PLAN_PRICES = {
-  professional: "price_1SAGaVBnxFLGYBYff91rBqoP",
-  enterprise: "price_1SAGauBnxFLGYBYf75DHpZ3z"
+  professional_monthly: "price_1SAGaVBnxFLGYBYff91rBqoP",
+  professional_yearly: "price_1SAGgvBnxFLGYBYf15n8DxUc", 
+  enterprise_monthly: "price_1SAGgdBnxFLGYBYfOzJwhMw3",
+  enterprise_yearly: "price_1SAGhHBnxFLGYBYfWyhMAyiy"
 };
 
 serve(async (req) => {
@@ -33,10 +35,11 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
-    const { planType } = await req.json();
+    const { planType, billing } = await req.json();
+    const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
     
-    if (!PLAN_PRICES[planType as keyof typeof PLAN_PRICES]) {
-      throw new Error("Invalid plan type");
+    if (!PLAN_PRICES[planKey]) {
+      throw new Error(`Invalid plan type: ${planKey}`);
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
@@ -57,7 +60,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: PLAN_PRICES[planType as keyof typeof PLAN_PRICES],
+          price: PLAN_PRICES[planKey],
           quantity: 1,
         },
       ],
@@ -66,11 +69,12 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/planos?canceled=true`,
       metadata: {
         user_id: user.id,
-        plan_type: planType
+        plan_type: planType,
+        billing_cycle: billing
       }
     });
 
-    console.log(`Checkout session created for user ${user.id}, plan ${planType}`);
+    console.log(`Checkout session created for user ${user.id}, plan ${planType} ${billing}`);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

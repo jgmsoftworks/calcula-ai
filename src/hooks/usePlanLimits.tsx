@@ -16,6 +16,7 @@ export interface PlanLimits {
 export interface PlanInfo {
   name: string;
   price: number;
+  yearlyPrice: number;
   limits: PlanLimits;
   features: string[];
 }
@@ -24,6 +25,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   free: {
     name: 'Free',
     price: 0,
+    yearlyPrice: 0,
     limits: {
       produtos: 30,
       receitas: 5,
@@ -40,7 +42,8 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   },
   professional: {
     name: 'Profissional',
-    price: 49.90,
+    price: 49,
+    yearlyPrice: 490,
     limits: {
       produtos: -1,
       receitas: 60,
@@ -58,7 +61,8 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   },
   enterprise: {
     name: 'Empresarial',
-    price: 89.90,
+    price: 89.9,
+    yearlyPrice: 899,
     limits: {
       produtos: -1,
       receitas: -1,
