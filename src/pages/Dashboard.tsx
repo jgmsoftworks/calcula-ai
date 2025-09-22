@@ -23,11 +23,14 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
   const { activities, loading: activitiesLoading } = useActivityLog();
+  const { hasAccess } = usePlanLimits();
 
   // Preparar dados dos cards principais baseados nos dados reais
   const stats = [
@@ -89,6 +92,7 @@ const Dashboard = () => {
       href: '/custos',
       gradient: 'from-secondary to-purple',
       stats: 'Dados atualizados em tempo real',
+      requiresPlan: 'professional' as const,
     },
     {
       title: 'Configurações',
@@ -392,32 +396,68 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="grid gap-6 md:grid-cols-3">
-        {quickActions.map((action, index) => (
-          <Link key={action.title} to={action.href} className="block group">
-            <Card className="relative overflow-hidden border-0 shadow-elegant bg-gradient-to-br from-card to-card/50 hover:shadow-2xl transition-all duration-500 group-hover:scale-[1.02]">
-              <div className={`absolute inset-0 bg-gradient-to-r ${action.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500`}></div>
-              <CardContent className="relative p-6">
-                <div className="flex items-start space-x-4">
-                  <div className={`p-3 rounded-2xl bg-gradient-to-r ${action.gradient} shadow-lg group-hover:shadow-xl transition-all duration-500 group-hover:scale-110`}>
-                    <action.icon className="h-6 w-6 text-white" />
+        {quickActions.map((action, index) => {
+          if (action.requiresPlan && !hasAccess(action.requiresPlan)) {
+            return (
+              <PlanRestrictedArea 
+                key={action.title}
+                requiredPlan={action.requiresPlan}
+                feature={action.title}
+                variant="overlay"
+              >
+                <Card className="relative overflow-hidden border-0 shadow-elegant bg-gradient-to-br from-card to-card/50">
+                  <div className={`absolute inset-0 bg-gradient-to-r ${action.gradient} opacity-5`}></div>
+                  <CardContent className="relative p-6">
+                    <div className="flex items-start space-x-4">
+                      <div className={`p-3 rounded-2xl bg-gradient-to-r ${action.gradient} shadow-lg`}>
+                        <action.icon className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <h3 className="text-lg font-semibold text-foreground">
+                          {action.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {action.description}
+                        </p>
+                        <p className="text-xs font-medium text-primary">
+                          {action.stats}
+                        </p>
+                      </div>
+                      <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </PlanRestrictedArea>
+            );
+          }
+          
+          return (
+            <Link key={action.title} to={action.href} className="block group">
+              <Card className="relative overflow-hidden border-0 shadow-elegant bg-gradient-to-br from-card to-card/50 hover:shadow-2xl transition-all duration-500 group-hover:scale-[1.02]">
+                <div className={`absolute inset-0 bg-gradient-to-r ${action.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500`}></div>
+                <CardContent className="relative p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className={`p-3 rounded-2xl bg-gradient-to-r ${action.gradient} shadow-lg group-hover:shadow-xl transition-all duration-500 group-hover:scale-110`}>
+                      <action.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h3 className="text-lg font-semibold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                        {action.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {action.description}
+                      </p>
+                      <p className="text-xs font-medium text-primary">
+                        {action.stats}
+                      </p>
+                    </div>
+                    <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <h3 className="text-lg font-semibold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                      {action.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {action.description}
-                    </p>
-                    <p className="text-xs font-medium text-primary">
-                      {action.stats}
-                    </p>
-                  </div>
-                  <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Recent Activity */}

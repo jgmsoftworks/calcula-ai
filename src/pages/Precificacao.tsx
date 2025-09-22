@@ -16,10 +16,9 @@ const Precificacao = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="media-faturamento">Média de Faturamento</TabsTrigger>
           <TabsTrigger value="markups">Markups</TabsTrigger>
-          <TabsTrigger value="planos">Planos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="media-faturamento" className="space-y-4">
@@ -30,19 +29,6 @@ const Precificacao = () => {
           <Markups globalPeriod={globalPeriod} />
         </TabsContent>
 
-        <TabsContent value="planos" className="space-y-4">
-          <div className="p-6">
-            <h2 className="text-2xl font-semibold mb-4">Gerenciar Planos</h2>
-            <p className="text-muted-foreground mb-6">
-              Gerencie sua assinatura e veja os limites do seu plano atual.
-            </p>
-            <iframe 
-              src="/planos" 
-              className="w-full h-screen border rounded-lg"
-              title="Gerenciar Planos"
-            />
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

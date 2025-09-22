@@ -3,9 +3,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DespesasFixas } from '@/components/custos/DespesasFixas';
 import { FolhaPagamento } from '@/components/custos/FolhaPagamento';
 import { EncargosVenda } from '@/components/custos/EncargosVenda';
+import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const Custos = () => {
   const [activeTab, setActiveTab] = useState("despesas-fixas");
+  const { hasAccess } = usePlanLimits();
 
   return (
     <div className="space-y-6">
@@ -21,7 +24,13 @@ const Custos = () => {
         </TabsContent>
 
         <TabsContent value="folha-pagamento" className="space-y-4">
-          <FolhaPagamento />
+          <PlanRestrictedArea
+            requiredPlan="professional"
+            feature="Folha de Pagamento Completa"
+            variant="overlay"
+          >
+            <FolhaPagamento />
+          </PlanRestrictedArea>
         </TabsContent>
 
         <TabsContent value="encargos-venda" className="space-y-4">

@@ -9,6 +9,7 @@ import {
   TrendingUp,
   ChefHat,
   MessageSquare,
+  Crown,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const navigationItems = [
 
 const businessItems = [
   { title: 'Perfil de Negócio', url: '/perfil', icon: Building2 },
+  { title: 'Planos', url: '/planos', icon: Crown },
 ];
 
 export function AppSidebar() {
