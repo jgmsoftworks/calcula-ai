@@ -620,7 +620,11 @@ export type Database = {
           nome_fantasia: string | null
           numero: string | null
           pais: string | null
+          pdf_exports_count: number | null
+          pdf_exports_reset_at: string | null
           phone: string | null
+          plan: string | null
+          plan_expires_at: string | null
           porte_empresa: string | null
           razao_social: string | null
           regime_tributario: string | null
@@ -664,7 +668,11 @@ export type Database = {
           nome_fantasia?: string | null
           numero?: string | null
           pais?: string | null
+          pdf_exports_count?: number | null
+          pdf_exports_reset_at?: string | null
           phone?: string | null
+          plan?: string | null
+          plan_expires_at?: string | null
           porte_empresa?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
@@ -708,7 +716,11 @@ export type Database = {
           nome_fantasia?: string | null
           numero?: string | null
           pais?: string | null
+          pdf_exports_count?: number | null
+          pdf_exports_reset_at?: string | null
           phone?: string | null
+          plan?: string | null
+          plan_expires_at?: string | null
           porte_empresa?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
@@ -1267,6 +1279,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_plan_limits: {
+        Args: {
+          feature_count?: number
+          feature_type: string
+          user_uuid: string
+        }
+        Returns: Json
+      }
       count_user_suggestions_24h: {
         Args: { check_user_id: string }
         Returns: number
@@ -1288,6 +1308,10 @@ export type Database = {
       }
       initialize_user_filters: {
         Args: { user_uuid: string }
+        Returns: undefined
+      }
+      reset_monthly_pdf_counter: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
     }

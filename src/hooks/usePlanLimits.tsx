@@ -1,0 +1,207 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from './useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from './use-toast';
+
+export type PlanType = 'free' | 'professional' | 'enterprise';
+
+export interface PlanLimits {
+  produtos: number; // -1 = ilimitado
+  receitas: number;
+  markups: number;
+  movimentacoes: number; // 0 = bloqueado, -1 = ilimitado
+  pdf_exports: number;
+}
+
+export interface PlanInfo {
+  name: string;
+  price: number;
+  limits: PlanLimits;
+  features: string[];
+}
+
+export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
+  free: {
+    name: 'Free',
+    price: 0,
+    limits: {
+      produtos: 30,
+      receitas: 5,
+      markups: 1,
+      movimentacoes: 0,
+      pdf_exports: 0,
+    },
+    features: [
+      'Máx. 30 cadastros de matéria-prima',
+      'Máx. 5 receitas',
+      '1 bloco de markup',
+      'Funcionalidades básicas',
+    ],
+  },
+  professional: {
+    name: 'Profissional',
+    price: 49.90,
+    limits: {
+      produtos: -1,
+      receitas: 60,
+      markups: 3,
+      movimentacoes: -1,
+      pdf_exports: 80,
+    },
+    features: [
+      'Matéria-prima ilimitada',
+      'Máx. 60 receitas',
+      'Até 3 blocos de markup',
+      'Movimentação de estoque',
+      '80 PDFs por mês',
+    ],
+  },
+  enterprise: {
+    name: 'Empresarial',
+    price: 89.90,
+    limits: {
+      produtos: -1,
+      receitas: -1,
+      markups: -1,
+      movimentacoes: -1,
+      pdf_exports: -1,
+    },
+    features: [
+      'Tudo ilimitado',
+      'Suporte prioritário',
+      'Recursos avançados',
+    ],
+  },
+};
+
+export const usePlanLimits = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
+  const [planExpiration, setPlanExpiration] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadUserPlan();
+    }
+  }, [user]);
+
+  const loadUserPlan = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('plan, plan_expires_at')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      setCurrentPlan((data?.plan as PlanType) || 'free');
+      setPlanExpiration(data?.plan_expires_at ? new Date(data.plan_expires_at) : null);
+    } catch (error) {
+      console.error('Erro ao carregar plano:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao carregar informações do plano',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkLimit = async (featureType: keyof PlanLimits, count: number = 1): Promise<{
+    allowed: boolean;
+    reason?: string;
+    currentCount?: number;
+    maxAllowed?: number;
+    plan?: string;
+  }> => {
+    if (!user) {
+      return { allowed: false, reason: 'user_not_authenticated' };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('check_plan_limits', {
+        user_uuid: user.id,
+        feature_type: featureType,
+        feature_count: count,
+      });
+
+      if (error) throw error;
+
+      return data as {
+        allowed: boolean;
+        reason?: string;
+        currentCount?: number;
+        maxAllowed?: number;
+        plan?: string;
+      };
+    } catch (error) {
+      console.error('Erro ao verificar limite:', error);
+      return { allowed: false, reason: 'check_error' };
+    }
+  };
+
+  const showUpgradeMessage = (featureType: keyof PlanLimits) => {
+    let featureName = '';
+    let suggestedPlan = '';
+
+    switch (featureType) {
+      case 'produtos':
+        featureName = 'cadastro de matéria-prima';
+        suggestedPlan = 'Profissional';
+        break;
+      case 'receitas':
+        featureName = 'receitas';
+        suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
+        break;
+      case 'markups':
+        featureName = 'blocos de markup';
+        suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
+        break;
+      case 'movimentacoes':
+        featureName = 'movimentação de estoque';
+        suggestedPlan = 'Profissional';
+        break;
+      case 'pdf_exports':
+        featureName = 'exportação de PDFs';
+        suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
+        break;
+    }
+
+    toast({
+      title: 'Recurso bloqueado',
+      description: `${featureName} disponível apenas no plano ${suggestedPlan}. Faça upgrade para desbloquear.`,
+      variant: 'destructive',
+    });
+  };
+
+  const updatePdfCount = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.rpc('increment_pdf_count', {
+        user_uuid: user.id
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao atualizar contador de PDF:', error);
+    }
+  };
+
+  return {
+    currentPlan,
+    planExpiration,
+    loading,
+    planInfo: PLAN_CONFIGS[currentPlan],
+    checkLimit,
+    showUpgradeMessage,
+    updatePdfCount,
+    reloadPlan: loadUserPlan,
+  };
+};
