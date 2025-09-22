@@ -380,8 +380,8 @@ const Receitas = () => {
       // Layout em três colunas expandido: Info da empresa (esquerda), Foto do produto (centro), Dados (direita)
       const leftColWidth = 55; // Expandido de 45 para 55
       const rightColWidth = 70; // Expandido de 60 para 70  
-      const centerColStart = leftColWidth + 5; // Margem reduzida de 10 para 5
-      const centerColWidth = pageWidth - leftColWidth - rightColWidth - 20; // Margens reduzidas
+      const centerColStart = leftColWidth + 10; // Margem simétrica de 5mm de cada lado
+      const centerColWidth = pageWidth - leftColWidth - rightColWidth - 25; // Margens simétricas (5+5+5+5+5)
       const rightColStart = pageWidth - rightColWidth - 5; // Margem reduzida de 10 para 5
 
       // Coluna esquerda - Informações da empresa
