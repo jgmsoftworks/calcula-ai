@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PlanCard } from './PlanCard';
 import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
-import { useToast } from '@/hooks/use-toast';
+import { useStripe } from '@/hooks/useStripe';
 
 interface UpgradePlansModalProps {
   open: boolean;
@@ -12,37 +11,24 @@ interface UpgradePlansModalProps {
 
 export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePlansModalProps) => {
   const { currentPlan } = usePlanLimits();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { createCheckout, openCustomerPortal, loading } = useStripe();
 
   const handleSelectPlan = async (planType: PlanType) => {
-    if (planType === currentPlan) return;
-
-    setLoading(true);
-    
-    try {
-      if (planType === 'free') {
-        // Para downgrade para free, apenas atualizamos diretamente
-        toast({
-          title: 'Funcionalidade em desenvolvimento',
-          description: 'A alteração de planos será implementada em breve.',
-        });
-      } else {
-        // Para planos pagos, integração com Mercado Pago será implementada
-        toast({
-          title: 'Integração com Mercado Pago',
-          description: 'A integração com pagamentos será implementada em breve. Entre em contato conosco.',
-        });
+    if (planType === currentPlan) {
+      // Se é o plano atual e não é free, abrir portal de gerenciamento
+      if (planType !== 'free') {
+        await openCustomerPortal();
       }
-    } catch (error) {
-      console.error('Erro ao processar plano:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao processar alteração de plano. Tente novamente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+      return;
+    }
+
+    if (planType === 'free') {
+      // Para downgrade, abrir portal do Stripe
+      await openCustomerPortal();
+    } else {
+      // Para upgrade, criar checkout
+      await createCheckout(planType);
+      onOpenChange(false); // Fechar modal após iniciar checkout
     }
   };
 
@@ -70,7 +56,8 @@ export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePl
           <h4 className="font-semibold mb-2">Informações importantes:</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• Os limites se aplicam imediatamente após a mudança de plano</li>
-            <li>• Pagamentos processados via Mercado Pago (integração em desenvolvimento)</li>
+            <li>• Pagamentos processados via Stripe com máxima segurança</li>
+            <li>• Cancele ou altere seu plano a qualquer momento</li>
             <li>• Suporte via email para dúvidas sobre planos</li>
           </ul>
         </div>

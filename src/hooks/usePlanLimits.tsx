@@ -88,26 +88,29 @@ export const usePlanLimits = () => {
   }, [user]);
 
   const loadUserPlan = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('plan, plan_expires_at')
         .eq('user_id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao carregar plano do usuário:', error);
+        return;
+      }
 
-      setCurrentPlan((data?.plan as PlanType) || 'free');
-      setPlanExpiration(data?.plan_expires_at ? new Date(data.plan_expires_at) : null);
+      if (profile) {
+        setCurrentPlan((profile.plan as PlanType) || 'free');
+        setPlanExpiration(profile.plan_expires_at ? new Date(profile.plan_expires_at) : null);
+      }
     } catch (error) {
       console.error('Erro ao carregar plano:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao carregar informações do plano',
-        variant: 'destructive',
-      });
     } finally {
       setLoading(false);
     }

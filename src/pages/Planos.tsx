@@ -1,35 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlanCard } from '@/components/planos/PlanCard';
 import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
+import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
-import { Crown, Zap, Gift, CheckCircle, AlertCircle } from 'lucide-react';
+import { Crown, Zap, Gift, CheckCircle, AlertCircle, CreditCard, Check, X } from 'lucide-react';
 
 const Planos = () => {
-  const { currentPlan, planInfo, loading } = usePlanLimits();
+  const { currentPlan, planInfo, loading, reloadPlan } = usePlanLimits();
+  const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
   const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null);
 
+  // Verificar parâmetros da URL para mensagens de sucesso/cancelamento
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+
+    if (success === 'true') {
+      toast({
+        title: 'Pagamento realizado com sucesso!',
+        description: 'Seu plano foi atualizado. Pode levar alguns minutos para refletir.',
+      });
+      // Recarregar dados do plano
+      reloadPlan();
+      // Limpar parâmetros da URL
+      window.history.replaceState({}, '', '/planos');
+    }
+
+    if (canceled === 'true') {
+      toast({
+        title: 'Pagamento cancelado',
+        description: 'Você pode tentar novamente a qualquer momento.',
+        variant: 'destructive'
+      });
+      // Limpar parâmetros da URL
+      window.history.replaceState({}, '', '/planos');
+    }
+  }, [toast, reloadPlan]);
+
   const handleSelectPlan = async (planType: PlanType) => {
-    if (planType === currentPlan) return;
+    if (planType === currentPlan) {
+      // Se é o plano atual e não é free, abrir portal de gerenciamento
+      if (planType !== 'free') {
+        await openCustomerPortal();
+      }
+      return;
+    }
 
     setProcessingPlan(planType);
     
     try {
       if (planType === 'free') {
-        // Para downgrade para free, apenas atualizamos diretamente
-        toast({
-          title: 'Funcionalidade em desenvolvimento',
-          description: 'A alteração de planos será implementada em breve.',
-        });
+        // Para downgrade, abrir portal do Stripe
+        await openCustomerPortal();
       } else {
-        // Para planos pagos, integração com Mercado Pago será implementada
-        toast({
-          title: 'Integração com Mercado Pago',
-          description: 'A integração com pagamentos será implementada em breve. Entre em contato conosco.',
-        });
+        // Para upgrade, criar checkout
+        await createCheckout(planType);
       }
     } catch (error) {
       console.error('Erro ao processar plano:', error);
@@ -131,7 +162,7 @@ const Planos = () => {
               planInfo={planInfo}
               currentPlan={currentPlan}
               onSelectPlan={handleSelectPlan}
-              loading={processingPlan === planType}
+              loading={processingPlan === planType || stripeLoading}
             />
           ))}
         </div>
@@ -148,7 +179,7 @@ const Planos = () => {
         <CardContent>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>• Os limites se aplicam imediatamente após a mudança de plano</p>
-            <p>• Pagamentos processados via Mercado Pago (integração em desenvolvimento)</p>
+            <p>• Pagamentos processados com segurança via Stripe</p>
             <p>• Suporte via email para dúvidas sobre planos</p>
             <p>• Cancelamento pode ser feito a qualquer momento</p>
             <p>• Dados são preservados ao fazer downgrade (funcionalidades podem ficar limitadas)</p>

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Crown, Zap } from 'lucide-react';
+import { Check, Crown, Zap, CreditCard } from 'lucide-react';
 import { PlanInfo, PlanType } from '@/hooks/usePlanLimits';
 
 interface PlanCardProps {
@@ -70,9 +70,15 @@ export const PlanCard = ({ planType, planInfo, currentPlan, onSelectPlan, loadin
           className="w-full"
           variant={isCurrentPlan ? 'secondary' : 'default'}
           onClick={() => onSelectPlan(planType)}
-          disabled={loading || isCurrentPlan}
+          disabled={loading}
         >
           {loading ? 'Carregando...' : 
+           isCurrentPlan && planType !== 'free' ? (
+             <>
+               <CreditCard className="h-4 w-4 mr-2" />
+               Gerenciar Assinatura
+             </>
+           ) :
            isCurrentPlan ? 'Plano Atual' :
            isUpgrade ? 'Fazer Upgrade' :
            isDowngrade ? 'Alterar Plano' :
