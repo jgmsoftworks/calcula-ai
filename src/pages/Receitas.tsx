@@ -555,13 +555,6 @@ const Receitas = () => {
 
       // Verificar se há ingredientes para mostrar tabela
       if (ingredientesComMarcas && ingredientesComMarcas.length > 0) {
-        // Título da seção Ingredientes
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('INGREDIENTES', 7, yPosition + 5);
-        yPosition += 10;
-        
         // Cabeçalho da tabela
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas de 10-20 para 5-10
@@ -651,29 +644,32 @@ const Receitas = () => {
 
       // Tabela de Sub-receitas (se houver)
       if (subReceitas && subReceitas.length > 0) {
-        // Título da seção Sub-receitas
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('SUB-RECEITAS', 7, yPosition + 5);
-        yPosition += 10;
-        
         // Cabeçalho da tabela
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
-        const tableHeaders = ['Sub-receita', 'Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
+        const tableHeaders = ['Sub-receita', 'Un. Medida', 'Tipo', '1 Receita', '2 Receitas', '3 Receitas'];
         
-        // Usar as mesmas posições de colunas para consistência
-        const col1X = 7; 
-        const col2X = 7 + (pageWidth - 70) / 2; 
-        const col3X = col2X + (pageWidth - 70) / 6; 
-        const col4X = col3X + (pageWidth - 70) / 6; 
-        const col5X = col4X + (pageWidth - 70) / 6; 
-        const columnPositions = [col1X, col2X, col3X, col4X, col5X];
-        const columnWidths = [(pageWidth - 70) / 2, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6, (pageWidth - 70) / 6];
+        // Definir larguras das colunas (somando 100%) - mesmas da tabela de ingredientes
+        const tableWidth = pageWidth - 14; // Largura total da tabela (considerando margens)
+        const col1Width = tableWidth * 0.25; // Sub-receita: 25%
+        const col2Width = tableWidth * 0.10; // Un. Medida: 10%
+        const col3Width = tableWidth * 0.12; // Tipo: 12%
+        const col4Width = tableWidth * 0.18; // 1 Receita: 18%
+        const col5Width = tableWidth * 0.18; // 2 Receitas: 18%
+        const col6Width = tableWidth * 0.17; // 3 Receitas: 17%
+        
+        // Calcular posições cumulativas das colunas
+        const col1X = 7; // Nome da sub-receita
+        const col2X = col1X + col1Width; // Unidade de medida
+        const col3X = col2X + col2Width; // Tipo
+        const col4X = col3X + col3Width; // 1 Receita
+        const col5X = col4X + col4Width; // 2 Receitas  
+        const col6X = col5X + col5Width; // 3 Receitas
+        const columnPositions = [col1X, col2X, col3X, col4X, col5X, col6X];
+        const columnWidths = [col1Width, col2Width, col3Width, col4Width, col5Width, col6Width];
         
         tableHeaders.forEach((header, i) => {
           const textWidth = pdf.getTextWidth(header);
@@ -693,11 +689,12 @@ const Receitas = () => {
           // Centralizar texto em cada coluna
           const nome = String(subReceita.nome || '');
           const unidade = String(subReceita.unidade || '');
+          const tipo = ''; // Placeholder para tipo - será implementado posteriormente
           const qty1 = String(subReceita.quantidade || 0);
           const qty2 = String((subReceita.quantidade || 0) * 2);
           const qty3 = String((subReceita.quantidade || 0) * 3);
           
-          const values = [nome, unidade, qty1, qty2, qty3];
+          const values = [nome, unidade, tipo, qty1, qty2, qty3]; // Agora com 6 valores
           
           values.forEach((value, i) => {
             const safeValue = String(value || ''); // Garantir que é string
@@ -716,13 +713,6 @@ const Receitas = () => {
 
       // Verificar se há embalagens para mostrar tabela
       if (embalagensComMarcas && embalagensComMarcas.length > 0) {
-        // Título da seção Embalagens
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('EMBALAGENS', 7, yPosition + 5);
-        yPosition += 10;
-        
         // Cabeçalho da tabela
         pdf.setFillColor(100, 100, 100);
         pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
@@ -808,18 +798,18 @@ const Receitas = () => {
         yPosition += 10;
       }
 
-       // Modo de Preparo
-      yPosition += 5;
-      pdf.setFillColor(100, 100, 100);
-      pdf.rect(5, yPosition, pageWidth - 10, 8, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Modo de Preparo:', 7, yPosition + 5);
-      yPosition += 12;
-
-      // Renderizar passos de preparo com layout melhorado
+      // Modo de Preparo (só se houver passos)
       if (passosPreparo && passosPreparo.length > 0) {
+        yPosition += 5;
+        pdf.setFillColor(100, 100, 100);
+        pdf.rect(5, yPosition, pageWidth - 10, 8, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Modo de Preparo:', 7, yPosition + 5);
+        yPosition += 12;
+
+        // Renderizar passos de preparo com layout melhorado
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'normal');
         
@@ -912,37 +902,26 @@ const Receitas = () => {
         }
         
         yPosition += 5;
-      } else {
-        // Mensagem quando não há passos
-        pdf.setFontSize(9);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text('Nenhum passo de preparo cadastrado.', 10, yPosition);
-        yPosition += 20;
-        pdf.setTextColor(0, 0, 0);
       }
 
-      // Observações
-      pdf.setFillColor(100, 100, 100);
-      pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Observações:', 7, yPosition + 5); // Ajustado para nova margem
-      yPosition += 8;
+      // Observações (só se houver conteúdo)
+      if (receita.observacoes && receita.observacoes.trim()) {
+        pdf.setFillColor(100, 100, 100);
+        pdf.rect(5, yPosition, pageWidth - 10, 8, 'F'); // Margens reduzidas
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Observações:', 7, yPosition + 5); // Ajustado para nova margem
+        yPosition += 8;
 
-      if (receita.observacoes) {
         pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(9);
+        pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
         
         const maxWidth = pageWidth - 10; // Largura expandida
         const lines = pdf.splitTextToSize(receita.observacoes, maxWidth);
         pdf.text(lines, 7, yPosition + 5); // Ajustado para nova margem
         yPosition += lines.length * 4 + 10;
-      } else {
-        // Área vazia para observações
-        pdf.rect(5, yPosition, pageWidth - 10, 20); // Margens reduzidas
-        yPosition += 25;
       }
 
       // Salvar PDF
