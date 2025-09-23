@@ -43,7 +43,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   },
   professional: {
     name: 'Profissional',
-    price: 49,
+    price: 49.9,
     yearlyPrice: 478.8,
     limits: {
       produtos: -1,
