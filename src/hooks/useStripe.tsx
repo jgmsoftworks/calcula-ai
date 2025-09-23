@@ -49,22 +49,49 @@ export const useStripe = () => {
     setLoading(true);
     
     try {
+      console.log('[CHECKOUT] Iniciando checkout:', { planType, billing, userId: user.id });
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { planType, billing }
       });
       
+      console.log('[CHECKOUT] Resposta recebida:', { data, error });
+      
       if (error) {
+        console.error('[CHECKOUT] Erro na função:', error);
         throw error;
       }
       
       if (data?.url) {
+        console.log('[CHECKOUT] Redirecionando para:', data.url);
         window.open(data.url, '_blank');
+        
+        // Aguardar um pouco e verificar status da assinatura
+        setTimeout(() => {
+          checkSubscription();
+        }, 2000);
+      } else {
+        throw new Error('URL de checkout não recebida');
       }
     } catch (error) {
-      console.error('Erro ao criar checkout:', error);
+      console.error('[CHECKOUT] Erro completo:', error);
+      
+      let errorMessage = 'Erro ao processar pagamento. Tente novamente.';
+      
+      // Tratar diferentes tipos de erro
+      if (error?.message) {
+        if (error.message.includes('Authentication')) {
+          errorMessage = 'Erro de autenticação. Faça login novamente.';
+        } else if (error.message.includes('Invalid plan') || error.message.includes('price')) {
+          errorMessage = 'Plano não disponível. Contate o suporte.';
+        } else if (error.message.includes('configuração')) {
+          errorMessage = 'Serviço de pagamento temporariamente indisponível.';
+        }
+      }
+      
       toast({
-        title: 'Erro',
-        description: 'Erro ao processar pagamento. Tente novamente.',
+        title: 'Erro no Pagamento',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
