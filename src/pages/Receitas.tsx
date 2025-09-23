@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit, Download } from 'lucide-react';
+import { Plus, Trash2, Edit, Download, Package2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CriarReceitaModal } from '@/components/receitas/CriarReceitaModal';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
+import { HistoricoReceitaModal } from '@/components/vitrine/HistoricoReceitaModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +44,8 @@ const Receitas = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingReceitaId, setEditingReceitaId] = useState<string | null>(null);
+  const [historicoModalOpen, setHistoricoModalOpen] = useState(false);
+  const [selectedReceitaHistorico, setSelectedReceitaHistorico] = useState<{id: string, nome: string} | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { hasAccess, checkLimit, planInfo, currentPlan } = usePlanLimits();
@@ -182,6 +185,11 @@ const Receitas = () => {
   const handleEditReceita = (receitaId: string) => {
     setEditingReceitaId(receitaId);
     setIsModalOpen(true);
+  };
+
+  const handleHistoricoVitrine = (receita: Receita) => {
+    setSelectedReceitaHistorico({ id: receita.id, nome: receita.nome });
+    setHistoricoModalOpen(true);
   };
 
   const handleNovaReceita = async () => {
@@ -1081,6 +1089,16 @@ const Receitas = () => {
                       <Edit className="h-4 w-4" />
                       Editar
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleHistoricoVitrine(receita)}
+                      className="gap-2"
+                      title="Ver histórico da vitrine"
+                    >
+                      <Package2 className="h-4 w-4" />
+                      Vitrine
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 
@@ -1194,6 +1212,16 @@ const Receitas = () => {
         onOpenChange={handleModalClose}
         receitaId={editingReceitaId}
       />
+
+      {/* Modal de Histórico da Vitrine */}
+      {selectedReceitaHistorico && (
+        <HistoricoReceitaModal
+          open={historicoModalOpen}
+          onOpenChange={setHistoricoModalOpen}
+          receitaId={selectedReceitaHistorico.id}
+          receitaNome={selectedReceitaHistorico.nome}
+        />
+      )}
     </div>
   );
 };

@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Estoque from "./pages/Estoque";
+import Vitrine from "./pages/Vitrine";
 import Custos from "./pages/Custos";
 import Precificacao from "./pages/Precificacao";
 import Receitas from "./pages/Receitas";
@@ -41,9 +42,10 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
                 <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
+                <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
+                <Route path="/vitrine" element={<AppLayout><Vitrine /></AppLayout>} />
                 <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />
                 <Route path="/precificacao" element={<AppLayout><Precificacao /></AppLayout>} />
-                <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
                 <Route path="/simulador" element={<AppLayout><Simulador /></AppLayout>} />
                 <Route path="/planos" element={<AppLayout><Planos /></AppLayout>} />
                 <Route path="/sugestoes" element={<AppLayout><Sugestoes /></AppLayout>} />

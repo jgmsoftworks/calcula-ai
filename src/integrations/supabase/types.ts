@@ -197,7 +197,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_estoque_receitas_receita"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       folha_pagamento: {
         Row: {
@@ -542,7 +550,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_movimentacoes_receitas_receita"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {

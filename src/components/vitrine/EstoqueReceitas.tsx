@@ -48,18 +48,16 @@ export function EstoqueReceitas() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Carregar estoque
+      const { data: estoqueData, error: estoqueError } = await supabase
         .from('estoque_receitas')
-        .select(`
-          *,
-          receita:receitas(nome, imagem_url)
-        `)
+        .select('*')
         .eq('user_id', user?.id)
         .eq('ativo', true)
         .order('data_ultima_movimentacao', { ascending: false });
 
-      if (error) {
-        console.error('Erro ao carregar estoque:', error);
+      if (estoqueError) {
+        console.error('Erro ao carregar estoque:', estoqueError);
         toast({
           title: "Erro",
           description: "Erro ao carregar estoque de receitas",
@@ -68,7 +66,41 @@ export function EstoqueReceitas() {
         return;
       }
 
-      setEstoques(data || []);
+      if (!estoqueData || estoqueData.length === 0) {
+        setEstoques([]);
+        return;
+      }
+
+      // Carregar receitas relacionadas
+      const receitaIds = estoqueData.map(e => e.receita_id);
+      const { data: receitasData, error: receitasError } = await supabase
+        .from('receitas')
+        .select('id, nome, imagem_url')
+        .in('id', receitaIds);
+
+      if (receitasError) {
+        console.error('Erro ao carregar receitas:', receitasError);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar receitas",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Combinar dados
+      const estoquesComReceitas = estoqueData.map(estoque => {
+        const receita = receitasData?.find(r => r.id === estoque.receita_id);
+        return {
+          ...estoque,
+          receita: {
+            nome: receita?.nome || 'Receita não encontrada',
+            imagem_url: receita?.imagem_url || null
+          }
+        };
+      });
+
+      setEstoques(estoquesComReceitas);
     } catch (error) {
       console.error('Erro ao carregar estoque:', error);
       toast({

@@ -67,10 +67,7 @@ export function HistoricoReceitas() {
       // Carregar movimentações
       const { data: movimentacoesData, error: movError } = await supabase
         .from('movimentacoes_receitas')
-        .select(`
-          *,
-          receita:receitas(nome)
-        `)
+        .select('*')
         .eq('user_id', user?.id)
         .order('data', { ascending: false })
         .order('created_at', { ascending: false });
@@ -86,7 +83,29 @@ export function HistoricoReceitas() {
 
       if (recError) throw recError;
 
-      setMovimentacoes(movimentacoesData || []);
+      // Se há movimentações, carregar dados das receitas relacionadas
+      let movimentacoesComReceitas: MovimentacaoReceita[] = [];
+      if (movimentacoesData && movimentacoesData.length > 0) {
+        const receitaIds = [...new Set(movimentacoesData.map(m => m.receita_id))];
+        const { data: receitasMovData, error: recMovError } = await supabase
+          .from('receitas')
+          .select('id, nome')
+          .in('id', receitaIds);
+
+        if (recMovError) throw recMovError;
+
+        movimentacoesComReceitas = movimentacoesData.map(mov => {
+          const receita = receitasMovData?.find(r => r.id === mov.receita_id);
+          return {
+            ...mov,
+            receita: {
+              nome: receita?.nome || 'Receita não encontrada'
+            }
+          };
+        });
+      }
+
+      setMovimentacoes(movimentacoesComReceitas);
       setReceitas(receitasData || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

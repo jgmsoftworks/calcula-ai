@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Crown,
   DollarSign,
+  Store,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -32,9 +33,10 @@ import { useToast } from '@/hooks/use-toast';
 const navigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
   { title: 'Estoque', url: '/estoque', icon: Package },
+  { title: 'Receitas', url: '/receitas', icon: ChefHat },
+  { title: 'Vitrine', url: '/vitrine', icon: Store },
   { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
-  { title: 'Receitas', url: '/receitas', icon: ChefHat },
   { title: 'Simulador', url: '/simulador', icon: DollarSign },
   { title: 'Sugestões', url: '/sugestoes', icon: MessageSquare },
 ];
