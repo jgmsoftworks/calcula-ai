@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // Mapeamento dos planos - Price IDs de PRODUÇÃO
 const PLAN_PRICES = {
-  professional_monthly: "price_1SALJABgdnRO3nnJgi69AKSd",
+  professional_monthly: "price_1SALFDBnxFLGYBYf0oYQfE9S",
   professional_yearly: "price_1SAL2uBgdnRO3nnJ7OjBCLUP", 
   enterprise_monthly: "price_1SAL38BgdnRO3nnJNLV1NcT2",
   enterprise_yearly: "price_1SAL3KBgdnRO3nnJWRpnlzXy"
