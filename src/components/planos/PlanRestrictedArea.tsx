@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UpgradePlansModal } from './UpgradePlansModal';
 import { usePlanLimits, PlanType } from '@/hooks/usePlanLimits';
+import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 
 interface PlanRestrictedAreaProps {
@@ -23,9 +24,10 @@ export const PlanRestrictedArea = ({
   size = 'md' 
 }: PlanRestrictedAreaProps) => {
   const { currentPlan, hasAccess } = usePlanLimits();
+  const { isAdmin } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  const hasFeatureAccess = hasAccess(requiredPlan);
+  const hasFeatureAccess = isAdmin || hasAccess(requiredPlan);
 
   const handleUpgradeClick = () => {
     setShowUpgradeModal(true);

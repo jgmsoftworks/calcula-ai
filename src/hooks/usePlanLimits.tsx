@@ -83,7 +83,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
 };
 
 export const usePlanLimits = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
   const [planExpiration, setPlanExpiration] = useState<Date | null>(null);
@@ -133,6 +133,17 @@ export const usePlanLimits = () => {
   }> => {
     if (!user) {
       return { allowed: false, reason: 'user_not_authenticated' };
+    }
+
+    // Admin tem acesso ilimitado a tudo
+    if (isAdmin) {
+      return { 
+        allowed: true, 
+        reason: 'admin_access',
+        currentCount: 0,
+        maxAllowed: -1,
+        plan: 'enterprise'
+      };
     }
 
     try {
@@ -214,6 +225,11 @@ export const usePlanLimits = () => {
   };
 
   const hasAccess = (requiredPlan: PlanType): boolean => {
+    // Admin tem acesso a tudo
+    if (isAdmin) {
+      return true;
+    }
+
     const planHierarchy: Record<PlanType, number> = {
       'free': 0,
       'professional': 1,
