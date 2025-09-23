@@ -1417,6 +1417,13 @@ export type Database = {
           tipo_mao_obra: string
         }[]
       }
+      get_roadmap_vote_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          roadmap_item_id: string
+          vote_count: number
+        }[]
+      }
       get_user_role: {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]

@@ -36,10 +36,7 @@ export const useRoadmap = () => {
     try {
       let query = supabase
         .from('roadmap_items')
-        .select(`
-          *,
-          roadmap_votes!inner(count)
-        `);
+        .select('*');
 
       // Apply status filter
       if (statusFilter !== "all") {
@@ -60,14 +57,14 @@ export const useRoadmap = () => {
         return;
       }
 
-      // Get vote counts and user votes separately for better performance
+      // Get vote counts using secure function and user votes separately
+      const { data: voteCounts } = await supabase.rpc('get_roadmap_vote_counts');
+      const voteCountsMap = new Map(voteCounts?.map(vc => [vc.roadmap_item_id, vc.vote_count]) || []);
+      
       const itemsWithVotes = await Promise.all(
         (items || []).map(async (item) => {
-          // Get vote count
-          const { count: voteCount } = await supabase
-            .from('roadmap_votes')
-            .select('*', { count: 'exact', head: true })
-            .eq('roadmap_item_id', item.id);
+          // Get vote count from secure function result
+          const voteCount = voteCountsMap.get(item.id) || 0;
 
           // Check if user voted (only if logged in)
           let userVoted = false;
