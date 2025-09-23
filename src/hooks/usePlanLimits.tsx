@@ -30,7 +30,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
       produtos: 30,
       receitas: 5,
       markups: 1,
-      movimentacoes: 0,
+      movimentacoes: -1, // Liberado para todos os planos
       pdf_exports: 0,
     },
     features: [
@@ -38,6 +38,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
       'Máx. 5 receitas',
       '1 bloco de markup',
       'Funcionalidades básicas',
+      'Folha de pagamento liberada',
     ],
   },
   professional: {
