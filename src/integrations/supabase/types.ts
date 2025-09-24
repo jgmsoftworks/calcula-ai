@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      backup_history: {
+        Row: {
+          backup_data: Json | null
+          backup_type: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          records_count: Json | null
+          started_at: string
+          status: string
+          tables_included: string[]
+          updated_at: string
+        }
+        Insert: {
+          backup_data?: Json | null
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          records_count?: Json | null
+          started_at?: string
+          status?: string
+          tables_included?: string[]
+          updated_at?: string
+        }
+        Update: {
+          backup_data?: Json | null
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          records_count?: Json | null
+          started_at?: string
+          status?: string
+          tables_included?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categorias: {
         Row: {
           ativo: boolean
@@ -1391,9 +1442,17 @@ export type Database = {
         Args: { check_user_id: string }
         Returns: number
       }
+      create_system_backup: {
+        Args: { backup_type?: string }
+        Returns: string
+      }
       generate_codigo_interno: {
         Args: { user_uuid: string }
         Returns: string
+      }
+      get_backup_data: {
+        Args: { backup_id: string }
+        Returns: Json
       }
       get_employee_basic_info: {
         Args: Record<PropertyKey, never>

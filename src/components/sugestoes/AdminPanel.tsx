@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminRoadmapPanel } from "./AdminRoadmapPanel";
+import { BackupPanel } from "@/components/admin/BackupPanel";
 
 interface Suggestion {
   id: string;
@@ -176,9 +177,10 @@ export const AdminPanel = () => {
       </div>
       
       <Tabs defaultValue="suggestions" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="suggestions">Sugestões</TabsTrigger>
           <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+          <TabsTrigger value="backups">Backups</TabsTrigger>
         </TabsList>
 
         <TabsContent value="suggestions">
@@ -317,6 +319,10 @@ export const AdminPanel = () => {
 
         <TabsContent value="roadmap">
           <AdminRoadmapPanel />
+        </TabsContent>
+
+        <TabsContent value="backups">
+          <BackupPanel />
         </TabsContent>
       </Tabs>
     </div>
