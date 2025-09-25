@@ -10,42 +10,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Camera, X, Trash2 } from 'lucide-react';
+import { Camera, X, Trash2, Plus } from 'lucide-react';
 import { ImageCropper } from './ImageCropper';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
-
-interface Produto {
-  id: string;
-  nome: string;
-  categoria: string | null;
-  categorias: string[] | null;
-  marcas: string[] | null;
-  unidade: string;
-  estoque_atual: number;
-  custo_medio: number;
-  custo_unitario: number;
-  custo_total?: number;
-  estoque_minimo: number;
-  sku: string | null;
-  codigo_interno: string | null;
-  codigo_barras: string | null;
-  codigo_barras_secundario?: string | null;
-  imagem_url: string | null;
-  fornecedor_ids: string[] | null;
-  ativo: boolean;
-  rotulo_porcao: string | null;
-  rotulo_kcal: number | null;
-  rotulo_carb: number | null;
-  rotulo_prot: number | null;
-  rotulo_gord_total: number | null;
-  rotulo_gord_sat: number | null;
-  rotulo_gord_trans: number | null;
-  rotulo_fibra: number | null;
-  rotulo_sodio: number | null;
-  total_embalagem?: number | null;
-}
+import { Produto } from './CadastroProdutos';
 
 interface Fornecedor {
   id: string;
@@ -73,8 +43,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     marcas: [] as string[],
     categorias: [] as string[],
     codigo_interno: '',
-    codigo_barras: '',
-    codigo_barras_secundario: '',
+    codigos_barras: [] as string[], // Array de códigos de barras
     unidade: 'un' as const,
     total_embalagem: 1,
     custo_unitario: 0,
@@ -113,8 +82,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         marcas: product.marcas || [],
         categorias: product.categorias || [],
         codigo_interno: product.codigo_interno || '',
-        codigo_barras: product.codigo_barras || '',
-        codigo_barras_secundario: product.codigo_barras_secundario || '',
+        codigos_barras: Array.isArray(product.codigo_barras) && product.codigo_barras.length > 0 
+          ? product.codigo_barras 
+          : [''], // Garantir que sempre tenha pelo menos um campo vazio
         unidade: product.unidade as any,
         total_embalagem: product.total_embalagem || 1,
         custo_unitario: product.custo_unitario || 0,
@@ -302,8 +272,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         marcas: formData.marcas.length > 0 ? formData.marcas : null,
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
-        codigo_barras: formData.codigo_barras || null,
-        codigo_barras_secundario: formData.codigo_barras_secundario || null,
+        codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
         unidade: formData.unidade,
         total_embalagem: formData.total_embalagem,
         custo_unitario: formData.custo_unitario,
@@ -454,26 +423,49 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Códigos de Barras Múltiplos */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">Códigos de Barras</Label>
                     <div className="space-y-2">
-                      <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras Principal</Label>
-                      <Input
-                        id="codigo_barras"
-                        value={formData.codigo_barras}
-                        onChange={(e) => handleInputChange('codigo_barras', e.target.value)}
-                        className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                        placeholder="Código principal"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="codigo_barras_secundario" className="text-sm font-medium text-foreground">Código de Barras Secundário</Label>
-                      <Input
-                        id="codigo_barras_secundario"
-                        value={formData.codigo_barras_secundario}
-                        onChange={(e) => handleInputChange('codigo_barras_secundario', e.target.value)}
-                        className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                        placeholder="Código secundário"
-                      />
+                      {formData.codigos_barras.map((codigo, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={codigo}
+                            onChange={(e) => {
+                              const newCodigos = [...formData.codigos_barras];
+                              newCodigos[index] = e.target.value;
+                              handleInputChange('codigos_barras', newCodigos);
+                            }}
+                            className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg flex-1"
+                            placeholder={`Código de barras ${index + 1}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newCodigos = formData.codigos_barras.filter((_, i) => i !== index);
+                              handleInputChange('codigos_barras', newCodigos);
+                            }}
+                            className="h-12 px-3 border-destructive/40 text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          handleInputChange('codigos_barras', [...formData.codigos_barras, '']);
+                        }}
+                        className="h-10 w-full border-primary/40 text-primary hover:bg-primary/10"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar mais Códigos de Barras
+                      </Button>
                     </div>
                   </div>
                 </div>

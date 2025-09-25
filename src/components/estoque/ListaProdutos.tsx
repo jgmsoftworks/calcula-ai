@@ -12,42 +12,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { Edit, Search, Trash2, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { ProductModal } from './ProductModal';
+import { Produto } from './CadastroProdutos';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
 import { ImportacaoProdutos } from './ImportacaoProdutos';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { FileSpreadsheet } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import * as XLSX from 'xlsx';
-
-interface Produto {
-  id: string;
-  nome: string;
-  categoria: string | null;
-  categorias: string[] | null;
-  marcas: string[] | null;
-  unidade: string;
-  estoque_atual: number;
-  custo_medio: number;
-  custo_unitario: number;
-  custo_total?: number;
-  estoque_minimo: number;
-  sku: string | null;
-  codigo_interno: string | null;
-  codigo_barras: string | null;
-  imagem_url: string | null;
-  fornecedor_ids: string[] | null;
-  ativo: boolean;
-  rotulo_porcao: string | null;
-  rotulo_kcal: number | null;
-  rotulo_carb: number | null;
-  rotulo_prot: number | null;
-  rotulo_gord_total: number | null;
-  rotulo_gord_sat: number | null;
-  rotulo_gord_trans: number | null;
-  rotulo_fibra: number | null;
-  rotulo_sodio: number | null;
-  total_embalagem?: number | null;
-}
 
 export const ListaProdutos = () => {
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -293,7 +264,7 @@ export const ListaProdutos = () => {
   const filteredProdutos = produtos.filter(produto => {
     const matchesSearch = produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       produto.codigo_interno?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      produto.codigo_barras?.toLowerCase().includes(searchTerm.toLowerCase());
+      produto.codigo_barras?.join(' ').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategoria = filterCategoria === 'todas' || 
       (produto.categorias && produto.categorias.includes(filterCategoria));

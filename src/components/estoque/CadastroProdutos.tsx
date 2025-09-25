@@ -13,7 +13,7 @@ import { ProductModal } from './ProductModal';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 
-interface Produto {
+export interface Produto {
   id: string;
   nome: string;
   categoria: string | null;
@@ -27,7 +27,7 @@ interface Produto {
   estoque_minimo: number;
   sku: string | null;
   codigo_interno: string | null;
-  codigo_barras: string | null;
+  codigo_barras: string[] | null; // Agora é array
   imagem_url: string | null;
   fornecedor_ids: string[] | null;
   ativo: boolean;

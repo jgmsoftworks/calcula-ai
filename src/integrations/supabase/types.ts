@@ -649,8 +649,7 @@ export type Database = {
           ativo: boolean
           categoria: string | null
           categorias: string[] | null
-          codigo_barras: string | null
-          codigo_barras_secundario: string | null
+          codigo_barras: string[] | null
           codigo_interno: string | null
           created_at: string
           custo_medio: number
@@ -682,8 +681,7 @@ export type Database = {
           ativo?: boolean
           categoria?: string | null
           categorias?: string[] | null
-          codigo_barras?: string | null
-          codigo_barras_secundario?: string | null
+          codigo_barras?: string[] | null
           codigo_interno?: string | null
           created_at?: string
           custo_medio?: number
@@ -715,8 +713,7 @@ export type Database = {
           ativo?: boolean
           categoria?: string | null
           categorias?: string[] | null
-          codigo_barras?: string | null
-          codigo_barras_secundario?: string | null
+          codigo_barras?: string[] | null
           codigo_interno?: string | null
           created_at?: string
           custo_medio?: number
