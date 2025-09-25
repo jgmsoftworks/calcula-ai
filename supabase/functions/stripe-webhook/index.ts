@@ -1,29 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import {
-  extractPlanFromMetadata,
-  getStripe,
-  isoFromSeconds,
-  markSubscriptionCanceled,
-  markSubscriptionPaid,
-  syncSubscriptionFromStripe,
-} from "../_shared/billing.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-
-if (!webhookSecret) {
-  console.warn("[STRIPE-WEBHOOK] STRIPE_WEBHOOK_SECRET not configured");
-}
-
-const logEvent = (message: string, payload?: Record<string, unknown>) => {
-  const suffix = payload ? ` ${JSON.stringify(payload)}` : "";
-  console.log(`[STRIPE-WEBHOOK] ${message}${suffix}`);
+// Mapeamento de produtos para planos
+const PRODUCT_TO_PLAN = {
+  "prod_T6TXCmpEQTIaRT": "professional", // Professional mensal (antigo)
+  "prod_T6TeSPeBygwJz7": "professional", // Professional anual (antigo)
+  "prod_T6TiY7VskZgNKg": "professional", // Professional anual (novo preço)
+  "prod_T6TYlKJ4hdq6m1": "enterprise",   // Enterprise mensal (antigo) 
+  "prod_T6TdpmHjPubwhM": "enterprise",   // Enterprise mensal (novo preço)
+  "prod_T6Te4Zsr3iA7x5": "enterprise",   // Enterprise anual (antigo)
+  "prod_T6TiS2ZoP1MhUL": "enterprise"    // Enterprise anual (novo preço)
 };
 
 serve(async (req) => {
@@ -31,107 +23,109 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const signature = req.headers.get("stripe-signature");
-  if (!signature) {
-    return new Response(JSON.stringify({ error: "Missing Stripe signature" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const body = await req.text();
-  const stripe = getStripe();
-
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret ?? "");
-  } catch (error) {
-    console.error("[STRIPE-WEBHOOK] Signature verification failed", error);
-    return new Response(JSON.stringify({ error: "Invalid signature" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
 
   try {
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2025-08-27.basil",
+    });
+
+    const body = await req.text();
+    const signature = req.headers.get("stripe-signature");
+
+    if (!signature) {
+      throw new Error("No Stripe signature found");
+    }
+
+    // Verificar webhook signature (em produção, usar endpoint secret)
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, Deno.env.get("STRIPE_WEBHOOK_SECRET") || "");
+    } catch (err) {
+      console.log(`Webhook signature verification failed.`, err);
+      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    }
+
+    console.log(`Processing webhook event: ${event.type}`);
+
     switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const subscriptionId = typeof session.subscription === "string"
-          ? session.subscription
-          : session.subscription?.id;
-
-        if (!subscriptionId) {
-          logEvent("Checkout session without subscription", { sessionId: session.id });
-          break;
-        }
-
-        const plan = extractPlanFromMetadata(session.metadata);
-        await syncSubscriptionFromStripe(stripe, subscriptionId, plan);
-        logEvent("Processed checkout.session.completed", {
-          sessionId: session.id,
-          subscriptionId,
-          plan,
-        });
-        break;
-      }
-
-      case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = invoice.subscription as string | null;
-
-        if (!subscriptionId) {
-          logEvent("Invoice without subscription", { invoiceId: invoice.id });
-          break;
-        }
-
-        await syncSubscriptionFromStripe(stripe, subscriptionId);
-
-        await markSubscriptionPaid({
-          stripeSubscriptionId: subscriptionId,
-          invoiceId: invoice.id,
-          amount: invoice.amount_paid ?? invoice.amount_due ?? 0,
-          currency: invoice.currency ?? "brl",
-          periodStart: isoFromSeconds(invoice.lines?.data?.[0]?.period?.start ?? invoice.period_start),
-          periodEnd: isoFromSeconds(invoice.lines?.data?.[0]?.period?.end ?? invoice.period_end),
-        });
-
-        logEvent("Registered invoice.payment_succeeded", {
-          invoiceId: invoice.id,
-          subscriptionId,
-          amount: invoice.amount_paid ?? invoice.amount_due ?? 0,
-        });
-        break;
-      }
-
-      case "customer.subscription.deleted": {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
         const subscription = event.data.object as Stripe.Subscription;
-        await markSubscriptionCanceled(subscription.id);
-        logEvent("Marked subscription as canceled", { subscriptionId: subscription.id });
+        
+        // Buscar cliente
+        const customer = await stripe.customers.retrieve(subscription.customer as string);
+        if (!customer || customer.deleted) break;
+        
+        const customerEmail = (customer as Stripe.Customer).email;
+        if (!customerEmail) break;
+
+        // Buscar usuário no Supabase pelo email
+        const { data: users } = await supabaseClient.auth.admin.listUsers();
+        const user = users.users.find(u => u.email === customerEmail);
+        
+        if (user) {
+          const productId = subscription.items.data[0]?.price.product as string;
+          const planType = PRODUCT_TO_PLAN[productId] || 'free';
+          const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+          
+          // Atualizar plano do usuário
+          await supabaseClient
+            .from('profiles')
+            .upsert({ 
+              user_id: user.id,
+              plan: planType,
+              plan_expires_at: subscriptionEnd
+            });
+          
+          console.log(`Updated user ${user.id} to plan ${planType}`);
+        }
         break;
-      }
+
+      case 'customer.subscription.deleted':
+        const deletedSubscription = event.data.object as Stripe.Subscription;
+        
+        // Buscar cliente
+        const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer as string);
+        if (!deletedCustomer || deletedCustomer.deleted) break;
+        
+        const deletedCustomerEmail = (deletedCustomer as Stripe.Customer).email;
+        if (!deletedCustomerEmail) break;
+
+        // Buscar usuário no Supabase pelo email
+        const { data: deletedUsers } = await supabaseClient.auth.admin.listUsers();
+        const deletedUser = deletedUsers.users.find(u => u.email === deletedCustomerEmail);
+        
+        if (deletedUser) {
+          // Downgrade para plano free
+          await supabaseClient
+            .from('profiles')
+            .upsert({ 
+              user_id: deletedUser.id,
+              plan: 'free',
+              plan_expires_at: null
+            });
+          
+          console.log(`Downgraded user ${deletedUser.id} to free plan`);
+        }
+        break;
 
       default:
-        logEvent("Unhandled event", { type: event.type });
-        break;
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (handlerError) {
-    console.error(`[STRIPE-WEBHOOK] Error processing ${event.type}`, handlerError);
-    return new Response(JSON.stringify({ error: "Handler failure" }), {
+  } catch (error) {
+    console.error("Error processing webhook:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });
