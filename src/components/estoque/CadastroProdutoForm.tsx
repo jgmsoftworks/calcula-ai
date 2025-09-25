@@ -30,6 +30,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
     categorias: [] as string[], // Mudança: agora é array de categorias
     codigo_interno: '',
     codigo_barras: '',
+    codigo_barras_secundario: '',
     unidade: 'un' as const,
     total_embalagem: 1,
     custo_unitario: 0,
@@ -222,6 +223,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigo_barras || null,
+        codigo_barras_secundario: formData.codigo_barras_secundario || null,
         unidade: formData.unidade,
         total_embalagem: formData.total_embalagem,
         custo_unitario: formData.custo_unitario,
@@ -253,6 +255,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         categorias: [], // Mudança: resetar array
         codigo_interno: '',
         codigo_barras: '',
+        codigo_barras_secundario: '',
         unidade: 'un',
         total_embalagem: 1,
         custo_unitario: 0,
@@ -338,7 +341,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                 </div>
 
                 {/* Códigos */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
                     <Input
@@ -349,15 +352,28 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                       placeholder="121212"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras</Label>
-                    <Input
-                      id="codigo_barras"
-                      value={formData.codigo_barras}
-                      onChange={(e) => handleInputChange('codigo_barras', e.target.value)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                      placeholder="Digite o código de barras"
-                    />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras Principal</Label>
+                      <Input
+                        id="codigo_barras"
+                        value={formData.codigo_barras}
+                        onChange={(e) => handleInputChange('codigo_barras', e.target.value)}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                        placeholder="Código principal"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_barras_secundario" className="text-sm font-medium text-foreground">Código de Barras Secundário</Label>
+                      <Input
+                        id="codigo_barras_secundario"
+                        value={formData.codigo_barras_secundario}
+                        onChange={(e) => handleInputChange('codigo_barras_secundario', e.target.value)}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                        placeholder="Código secundário"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

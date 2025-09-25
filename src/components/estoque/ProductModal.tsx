@@ -31,6 +31,7 @@ interface Produto {
   sku: string | null;
   codigo_interno: string | null;
   codigo_barras: string | null;
+  codigo_barras_secundario?: string | null;
   imagem_url: string | null;
   fornecedor_ids: string[] | null;
   ativo: boolean;
@@ -73,6 +74,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     categorias: [] as string[],
     codigo_interno: '',
     codigo_barras: '',
+    codigo_barras_secundario: '',
     unidade: 'un' as const,
     total_embalagem: 1,
     custo_unitario: 0,
@@ -112,6 +114,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         categorias: product.categorias || [],
         codigo_interno: product.codigo_interno || '',
         codigo_barras: product.codigo_barras || '',
+        codigo_barras_secundario: product.codigo_barras_secundario || '',
         unidade: product.unidade as any,
         total_embalagem: product.total_embalagem || 1,
         custo_unitario: product.custo_unitario || 0,
@@ -300,6 +303,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigo_barras || null,
+        codigo_barras_secundario: formData.codigo_barras_secundario || null,
         unidade: formData.unidade,
         total_embalagem: formData.total_embalagem,
         custo_unitario: formData.custo_unitario,
@@ -438,7 +442,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 </div>
 
                 {/* Códigos */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="codigo_interno" className="text-sm font-medium text-foreground">Código Interno</Label>
                     <Input
@@ -449,15 +453,28 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       placeholder="121212"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras</Label>
-                    <Input
-                      id="codigo_barras"
-                      value={formData.codigo_barras}
-                      onChange={(e) => handleInputChange('codigo_barras', e.target.value)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                      placeholder="Digite o código de barras"
-                    />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_barras" className="text-sm font-medium text-foreground">Código de Barras Principal</Label>
+                      <Input
+                        id="codigo_barras"
+                        value={formData.codigo_barras}
+                        onChange={(e) => handleInputChange('codigo_barras', e.target.value)}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                        placeholder="Código principal"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_barras_secundario" className="text-sm font-medium text-foreground">Código de Barras Secundário</Label>
+                      <Input
+                        id="codigo_barras_secundario"
+                        value={formData.codigo_barras_secundario}
+                        onChange={(e) => handleInputChange('codigo_barras_secundario', e.target.value)}
+                        className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
+                        placeholder="Código secundário"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
