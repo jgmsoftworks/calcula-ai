@@ -97,7 +97,7 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
       const productId = subscription.items.data[0].price.product as string;
-      planType = PRODUCT_TO_PLAN[productId] || 'free';
+      planType = (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'free';
       logStep("Determined plan type", { productId, planType });
       
       // Atualizar perfil no Supabase

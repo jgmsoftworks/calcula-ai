@@ -100,7 +100,8 @@ serve(async (req) => {
       await stripe.prices.retrieve(priceId);
       logStep("Price ID validated in Stripe", { priceId });
     } catch (stripeError) {
-      logStep("Stripe price validation failed", { priceId, error: stripeError.message });
+      const errorMessage = stripeError instanceof Error ? stripeError.message : String(stripeError);
+      logStep("Stripe price validation failed", { priceId, error: errorMessage });
       throw new Error(`Invalid price ID in Stripe: ${priceId}`);
     }
 

@@ -77,10 +77,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Erro ao buscar imagens:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({ 
         error: 'Erro interno do servidor',
-        message: error.message 
+        message: errorMessage 
       }),
       { 
         status: 500,

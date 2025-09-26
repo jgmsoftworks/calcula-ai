@@ -63,9 +63,9 @@ const handler = async (req: Request): Promise<Response> => {
       <h3>Detalhes da Sugestão:</h3>
       <ul>
         <li><strong>Título:</strong> ${title}</li>
-        <li><strong>Categoria:</strong> ${categoryLabels[category] || category}</li>
-        <li><strong>Impacto:</strong> ${impactLabels[impact] || impact}</li>
-        <li><strong>Urgência:</strong> ${urgencyLabels[urgency] || urgency}</li>
+        <li><strong>Categoria:</strong> ${(categoryLabels as Record<string, string>)[category] || category}</li>
+        <li><strong>Impacto:</strong> ${(impactLabels as Record<string, string>)[impact] || impact}</li>
+        <li><strong>Urgência:</strong> ${(urgencyLabels as Record<string, string>)[urgency] || urgency}</li>
         <li><strong>Plano do usuário:</strong> ${plan || "Não informado"}</li>
         <li><strong>Permite contato:</strong> ${allow_contact ? "Sim" : "Não"}</li>
         <li><strong>ID do usuário:</strong> ${user_id}</li>

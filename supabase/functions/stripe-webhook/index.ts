@@ -46,7 +46,8 @@ serve(async (req) => {
       event = stripe.webhooks.constructEvent(body, signature, Deno.env.get("STRIPE_WEBHOOK_SECRET") || "");
     } catch (err) {
       console.log(`Webhook signature verification failed.`, err);
-      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return new Response(`Webhook Error: ${errorMessage}`, { status: 400 });
     }
 
     console.log(`Processing webhook event: ${event.type}`);
@@ -69,7 +70,7 @@ serve(async (req) => {
         
         if (user) {
           const productId = subscription.items.data[0]?.price.product as string;
-          const planType = PRODUCT_TO_PLAN[productId] || 'free';
+          const planType = (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'free';
           const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
           
           // Atualizar plano do usuário
@@ -123,7 +124,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error processing webhook:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
