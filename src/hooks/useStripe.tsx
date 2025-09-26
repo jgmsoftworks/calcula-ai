@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+const DIRECT_CHECKOUT_LINKS = {
+  professional_monthly: 'https://buy.stripe.com/aFa28qcpv9Nh6kN7WpcZa02',
+  professional_yearly: 'https://buy.stripe.com/00w7sK617gbF6kNdgJcZa05',
+  enterprise_monthly: 'https://buy.stripe.com/bJe28qahn1gLeRj7WpcZa03',
+  enterprise_yearly: 'https://buy.stripe.com/7sY14m1KRgbF6kN0tXcZa04',
+} as const;
+
 interface SubscriptionData {
   subscribed: boolean;
   plan: string;
@@ -50,7 +57,21 @@ export const useStripe = () => {
     
     try {
       console.log('[CHECKOUT] Iniciando checkout:', { planType, billing, userId: user.id });
-      
+
+      const planKey = `${planType}_${billing}` as keyof typeof DIRECT_CHECKOUT_LINKS;
+      const directCheckoutUrl = DIRECT_CHECKOUT_LINKS[planKey];
+
+      if (directCheckoutUrl) {
+        console.log('[CHECKOUT] Usando link direto do Stripe:', { planKey, directCheckoutUrl });
+        window.open(directCheckoutUrl, '_blank');
+
+        setTimeout(() => {
+          checkSubscription();
+        }, 2000);
+
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { planType, billing }
       });
