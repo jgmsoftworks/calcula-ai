@@ -129,15 +129,16 @@ const Planos = () => {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-2xl font-bold">
+        <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-start px-6 pb-6">
+          <div className="rounded-lg border bg-muted/40 p-4 text-center space-y-2">
+            <span className="text-2xl font-bold block">
               {formatPrice(planInfo.price)}
-              {planInfo.price > 0 && <span className="text-sm font-normal text-muted-foreground">/mês</span>}
+              {planInfo.price > 0 && (
+                <span className="text-sm font-normal text-muted-foreground ml-1">/mês</span>
+              )}
             </span>
           </div>
-          
-          <div className="space-y-2">
+          <div className="rounded-lg border p-4 bg-background space-y-2">
             <h4 className="font-semibold">Recursos inclusos:</h4>
             <ul className="space-y-1">
               {planInfo.features.map((feature, index) => (
@@ -148,7 +149,7 @@ const Planos = () => {
               ))}
             </ul>
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Todos os Planos */}
