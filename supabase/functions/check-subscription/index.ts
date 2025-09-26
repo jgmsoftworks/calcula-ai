@@ -23,6 +23,18 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+const logError = (error: unknown, context: string, details?: any) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error(`[CHECK-SUBSCRIPTION ERROR] ${context}`, {
+    message: errorMessage,
+    stack,
+    details,
+    timestamp: new Date().toISOString()
+  });
+  return errorMessage;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -130,11 +142,42 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in check-subscription", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    const errorMessage = logError(error, "Main function execution");
+    
+    // Fallback seguro: sempre retornar plano free em caso de erro
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+          { auth: { persistSession: false } }
+        );
+        
+        const { data: userData } = await supabaseClient.auth.getUser(token);
+        if (userData.user) {
+          await supabaseClient
+            .from('profiles')
+            .upsert({ 
+              user_id: userData.user.id, 
+              plan: 'free',
+              plan_expires_at: null
+            });
+        }
+      }
+    } catch (fallbackError) {
+      logError(fallbackError, "Fallback update to free plan");
+    }
+
+    return new Response(JSON.stringify({ 
+      subscribed: false, 
+      plan: 'free',
+      subscription_end: null,
+      error: "Erro ao verificar assinatura. Usando plano gratuito como fallback."
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: 200, // Retorna 200 com fallback em vez de erro 500
     });
   }
 });

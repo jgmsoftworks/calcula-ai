@@ -21,6 +21,18 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+const logError = (error: unknown, context: string, details?: any) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error(`[CREATE-CHECKOUT ERROR] ${context}`, {
+    message: errorMessage,
+    stack,
+    details,
+    timestamp: new Date().toISOString()
+  });
+  return errorMessage;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -160,32 +172,44 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorDetails = {
-      message: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString()
-    };
+    const errorMessage = logError(error, "Main checkout function execution");
 
-    logStep("ERROR in create-checkout", errorDetails);
-
-    // Retornar erro mais específico
+    // Categorizar tipos de erro e fornecer mensagens específicas
     let userFriendlyMessage = "Erro interno do servidor";
+    let statusCode = 500;
     
-    if (errorMessage.includes("Authentication")) {
-      userFriendlyMessage = "Erro de autenticação. Faça login novamente.";
+    if (errorMessage.includes("Authentication") || errorMessage.includes("authorization")) {
+      userFriendlyMessage = "Sessão expirada. Faça login novamente.";
+      statusCode = 401;
     } else if (errorMessage.includes("Invalid price") || errorMessage.includes("No such price")) {
-      userFriendlyMessage = "Plano não disponível. Contate o suporte.";
-    } else if (errorMessage.includes("STRIPE_SECRET_KEY")) {
-      userFriendlyMessage = "Configuração de pagamento indisponível.";
+      userFriendlyMessage = "Plano selecionado não está disponível. Tente outro plano.";
+      statusCode = 400;
+    } else if (errorMessage.includes("STRIPE_SECRET_KEY") || errorMessage.includes("Missing Supabase")) {
+      userFriendlyMessage = "Serviço de pagamento temporariamente indisponível. Tente novamente em alguns minutos.";
+      statusCode = 503;
+    } else if (errorMessage.includes("Missing planType") || errorMessage.includes("Invalid plan type")) {
+      userFriendlyMessage = "Dados do plano inválidos. Selecione um plano válido.";
+      statusCode = 400;
+    } else if (errorMessage.includes("rate_limit")) {
+      userFriendlyMessage = "Muitas tentativas. Aguarde um momento antes de tentar novamente.";
+      statusCode = 429;
     }
 
+    // Fallback: log do erro para investigação
+    logStep("Checkout error categorized", { 
+      originalMessage: errorMessage,
+      userFriendlyMessage,
+      statusCode 
+    });
+
     return new Response(JSON.stringify({ 
+      success: false,
       error: userFriendlyMessage,
-      details: errorMessage 
+      code: statusCode,
+      timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: statusCode,
     });
   }
 });

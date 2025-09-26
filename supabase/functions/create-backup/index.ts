@@ -5,6 +5,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const logError = (error: unknown, context: string, details?: any) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error(`[CREATE-BACKUP ERROR] ${context}`, {
+    message: errorMessage,
+    stack,
+    details,
+    timestamp: new Date().toISOString()
+  });
+  return errorMessage;
+};
+
+const logStep = (step: string, details?: any) => {
+  console.log(`[CREATE-BACKUP] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
+};
+
 interface BackupRequest {
   backup_type?: 'full' | 'incremental';
   tables?: string[];
@@ -22,14 +38,14 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('Starting backup process...');
+    logStep('Starting backup process');
 
     // Parse request body
     let requestData: BackupRequest = { backup_type: 'full' };
     try {
       requestData = await req.json();
     } catch (error) {
-      console.log('No request body provided, using defaults');
+      logStep('No request body provided, using defaults');
     }
 
     // Get the requesting user
@@ -125,7 +141,7 @@ Deno.serve(async (req) => {
         }
 
       } catch (error) {
-        console.warn(`Error processing table ${tableName}:`, error);
+        logError(error, `Processing table ${tableName}`, { tableName });
         recordCounts[tableName] = -1; // Indicate error
       }
     }
@@ -168,12 +184,38 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Backup function error:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = logError(error, "Main backup function execution");
+    
+    // Fallback: tentar criar um backup mínimo com informações de erro
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      await supabaseClient
+        .from('backup_history')
+        .insert({
+          backup_type: 'error_fallback',
+          status: 'failed',
+          tables_included: [],
+          records_count: { error: errorMessage },
+          file_size: 0,
+          completed_at: new Date().toISOString()
+        });
+        
+      logStep('Created error fallback backup record');
+    } catch (fallbackError) {
+      logError(fallbackError, "Fallback backup record creation");
+    }
+
     return new Response(
       JSON.stringify({
-        error: 'Internal server error',
-        message: errorMessage
+        success: false,
+        error: 'Falha ao criar backup. Tente novamente ou contate o suporte.',
+        message: errorMessage,
+        backup_id: null,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,

@@ -8,6 +8,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const logError = (error: unknown, context: string, details?: any) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error(`[GENERATE-IMAGE-SUGGESTIONS ERROR] ${context}`, {
+    message: errorMessage,
+    stack,
+    details,
+    timestamp: new Date().toISOString()
+  });
+  return errorMessage;
+};
+
+const logStep = (step: string, details?: any) => {
+  console.log(`[GENERATE-IMAGE-SUGGESTIONS] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -31,7 +47,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Buscando imagens no Pixabay para:', productName);
+    logStep('Buscando imagens no Pixabay', { productName });
 
     // Buscar imagens na API do Pixabay
     const pixabayUrl = new URL('https://pixabay.com/api/');
@@ -54,9 +70,13 @@ serve(async (req) => {
     const data = await response.json();
     
     if (!data.hits || data.hits.length === 0) {
-      console.log('Nenhuma imagem encontrada para:', productName);
+      logStep('Nenhuma imagem encontrada', { productName });
       return new Response(
-        JSON.stringify({ images: [] }),
+        JSON.stringify({ 
+          images: [],
+          message: "Nenhuma imagem encontrada para este produto",
+          fallback: true
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
@@ -66,7 +86,7 @@ serve(async (req) => {
     // Pegar as primeiras 4 imagens (tamanho médio)
     const images = data.hits.slice(0, 4).map((hit: any) => hit.webformatURL);
 
-    console.log(`Encontradas ${images.length} imagens para: ${productName}`);
+    logStep('Imagens encontradas com sucesso', { productName, count: images.length });
 
     return new Response(
       JSON.stringify({ images }),
@@ -76,15 +96,20 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro ao buscar imagens:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = logError(error, "Image search failed");
+    
+    // Fallback: retornar array vazio em vez de erro para não quebrar UX
+    logStep("Using fallback empty images array");
+    
     return new Response(
       JSON.stringify({ 
-        error: 'Erro interno do servidor',
-        message: errorMessage 
+        images: [],
+        error: false, // Não é erro crítico para o usuário
+        message: "Não foi possível buscar imagens no momento. Você pode fazer upload manual.",
+        fallback: true
       }),
       { 
-        status: 500,
+        status: 200, // Retorna sucesso com fallback
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
