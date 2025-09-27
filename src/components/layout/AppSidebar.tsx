@@ -12,6 +12,7 @@ import {
   Crown,
   DollarSign,
   Store,
+  Users,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -151,6 +152,20 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {/* Admin only - Afiliados */}
+              {user?.email === 'jgmsoftworks@gmail.com' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/afiliados"
+                      className={getNavClassName('/afiliados')}
+                    >
+                      <Users className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                      {!isCollapsed && <span>Afiliados</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

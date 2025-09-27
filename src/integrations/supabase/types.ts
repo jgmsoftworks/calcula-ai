@@ -14,6 +14,280 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_commissions: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          payment_details: Json | null
+          payment_method: string | null
+          sale_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_details?: Json | null
+          payment_method?: string | null
+          sale_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_details?: Json | null
+          payment_method?: string | null
+          sale_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_customers: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          customer_user_id: string | null
+          first_purchase_date: string | null
+          id: string
+          total_commission_generated: number | null
+          total_purchases: number | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          customer_user_id?: string | null
+          first_purchase_date?: string | null
+          id?: string
+          total_commission_generated?: number | null
+          total_purchases?: number | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          customer_user_id?: string | null
+          first_purchase_date?: string | null
+          id?: string
+          total_commission_generated?: number | null
+          total_purchases?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_customers_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_links: {
+        Row: {
+          affiliate_id: string
+          clicks_count: number | null
+          conversions_count: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          link_code: string
+          product_type: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          clicks_count?: number | null
+          conversions_count?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link_code: string
+          product_type?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          clicks_count?: number | null
+          conversions_count?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link_code?: string
+          product_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_links_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_sales: {
+        Row: {
+          affiliate_id: string
+          affiliate_link_id: string | null
+          commission_amount: number
+          confirmed_at: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          customer_user_id: string | null
+          id: string
+          plan_type: string
+          sale_amount: number
+          sale_date: string
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          affiliate_link_id?: string | null
+          commission_amount: number
+          confirmed_at?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          customer_user_id?: string | null
+          id?: string
+          plan_type: string
+          sale_amount: number
+          sale_date?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          affiliate_link_id?: string | null
+          commission_amount?: number
+          confirmed_at?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          customer_user_id?: string | null
+          id?: string
+          plan_type?: string
+          sale_amount?: number
+          sale_date?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_sales_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_sales_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          bank_details: Json | null
+          commission_fixed_amount: number | null
+          commission_percentage: number
+          commission_type: string
+          created_at: string
+          document: string | null
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          pix_key: string | null
+          status: string
+          total_commissions: number | null
+          total_customers: number | null
+          total_sales: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_details?: Json | null
+          commission_fixed_amount?: number | null
+          commission_percentage?: number
+          commission_type?: string
+          created_at?: string
+          document?: string | null
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          pix_key?: string | null
+          status?: string
+          total_commissions?: number | null
+          total_customers?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_details?: Json | null
+          commission_fixed_amount?: number | null
+          commission_percentage?: number
+          commission_type?: string
+          created_at?: string
+          document?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          pix_key?: string | null
+          status?: string
+          total_commissions?: number | null
+          total_customers?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       backup_history: {
         Row: {
           backup_data: Json | null
@@ -1444,6 +1718,10 @@ export type Database = {
       }
       create_system_backup: {
         Args: { backup_type?: string }
+        Returns: string
+      }
+      generate_affiliate_link_code: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       generate_codigo_interno: {
