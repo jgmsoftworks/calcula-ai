@@ -33,7 +33,7 @@ export function AffiliatesLinks() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string>("");
-  const [selectedProduct, setSelectedProduct] = useState<'all' | 'professional' | 'enterprise'>('all');
+  const [selectedProduct, setSelectedProduct] = useState<'all' | 'professional_monthly' | 'professional_yearly' | 'enterprise_monthly' | 'enterprise_yearly'>('all');
 
   const handleCreateLink = async () => {
     if (!selectedAffiliate) {
@@ -55,8 +55,8 @@ export function AffiliatesLinks() {
     }
   };
 
-  const copyToClipboard = async (linkCode: string) => {
-    const url = generateAffiliateUrl(linkCode);
+  const copyToClipboard = async (linkCode: string, productType: string) => {
+    const url = generateAffiliateUrl(linkCode, productType);
     try {
       await navigator.clipboard.writeText(url);
       toast({
@@ -120,15 +120,17 @@ export function AffiliatesLinks() {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Tipo de Produto</label>
-                  <Select value={selectedProduct} onValueChange={(value: 'all' | 'professional' | 'enterprise') => setSelectedProduct(value)}>
+                  <label className="block text-sm font-medium mb-2">Plano Específico</label>
+                  <Select value={selectedProduct} onValueChange={(value: typeof selectedProduct) => setSelectedProduct(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os Planos</SelectItem>
-                      <SelectItem value="professional">Plano Profissional</SelectItem>
-                      <SelectItem value="enterprise">Plano Empresarial</SelectItem>
+                      <SelectItem value="professional_monthly">Profissional Mensal - R$ 67/mês</SelectItem>
+                      <SelectItem value="professional_yearly">Profissional Anual - R$ 540/ano</SelectItem>
+                      <SelectItem value="enterprise_monthly">Empresarial Mensal - R$ 117/mês</SelectItem>
+                      <SelectItem value="enterprise_yearly">Empresarial Anual - R$ 948/ano</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -173,7 +175,11 @@ export function AffiliatesLinks() {
                     <TableCell>
                       <Badge variant="outline">
                         {link.product_type === 'all' ? 'Todos' : 
-                         link.product_type === 'professional' ? 'Profissional' : 'Empresarial'}
+                         link.product_type === 'professional_monthly' ? 'Prof. Mensal' :
+                         link.product_type === 'professional_yearly' ? 'Prof. Anual' :
+                         link.product_type === 'enterprise_monthly' ? 'Emp. Mensal' :
+                         link.product_type === 'enterprise_yearly' ? 'Emp. Anual' :
+                         link.product_type}
                       </Badge>
                     </TableCell>
                     <TableCell>{link.clicks_count || 0}</TableCell>
@@ -188,14 +194,14 @@ export function AffiliatesLinks() {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={() => copyToClipboard(link.link_code)}
+                          onClick={() => copyToClipboard(link.link_code, link.product_type)}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => window.open(generateAffiliateUrl(link.link_code), '_blank')}
+                          onClick={() => window.open(generateAffiliateUrl(link.link_code, link.product_type), '_blank')}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>

@@ -25,7 +25,7 @@ serve(async (req) => {
   );
 
   try {
-    const { planType, billing, affiliateCode } = await req.json();
+    const { planType, billing, affiliateCode, direct } = await req.json();
     
     // Rastrear clique no link de afiliado se presente
     if (affiliateCode) {
@@ -54,6 +54,29 @@ serve(async (req) => {
       throw new Error("Plano inválido");
     }
 
+    // Para chamadas diretas (guest checkout), não verificar autenticação
+    let customerConfig = {};
+    
+    if (!direct) {
+      // Para chamadas autenticadas, usar email do usuário
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const { data } = await supabaseClient.auth.getUser(token);
+        const user = data.user;
+        
+        if (user?.email) {
+          // Verificar se já existe um customer no Stripe
+          const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+          if (customers.data.length > 0) {
+            customerConfig = { customer: customers.data[0].id };
+          } else {
+            customerConfig = { customer_email: user.email };
+          }
+        }
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{
         price: priceId,
@@ -66,7 +89,8 @@ serve(async (req) => {
         affiliate_code: affiliateCode || "",
         plan_type: planType,
         billing: billing
-      }
+      },
+      ...customerConfig
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

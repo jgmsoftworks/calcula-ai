@@ -22,6 +22,7 @@ import Simulador from "./pages/Simulador";
 import Planos from "./pages/Planos";
 import Sugestoes from "./pages/Sugestoes";
 import PerfilNegocio from "./pages/PerfilNegocio";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,8 +44,9 @@ const App = () => (
               <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/success" element={<AuthSuccess />} />
-          <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
-          <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
+            <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
             <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
                 <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />

@@ -275,7 +275,7 @@ export const useAffiliates = () => {
   };
 
   // Criar link de afiliado
-  const createAffiliateLink = async (affiliateId: string, productType: 'all' | 'professional' | 'enterprise') => {
+  const createAffiliateLink = async (affiliateId: string, productType: 'all' | 'professional_monthly' | 'professional_yearly' | 'enterprise_monthly' | 'enterprise_yearly') => {
     try {
       // Gerar código único
       const { data: codeData, error: codeError } = await supabase
@@ -314,14 +314,19 @@ export const useAffiliates = () => {
     }
   };
 
-  // Gerar URL de afiliação
-  const generateAffiliateUrl = (linkCode: string, planType?: string) => {
+  // Gerar URL de afiliação direta para checkout
+  const generateAffiliateUrl = (linkCode: string, productType?: string) => {
     const baseUrl = window.location.origin;
-    let url = `${baseUrl}/planos?ref=${linkCode}`;
-    if (planType) {
-      url += `&plan=${planType}`;
+    
+    // Se o productType não for 'all', gerar URL direta para checkout
+    if (productType && productType !== 'all') {
+      // Extrair planType e billing do productType
+      const [planType, billing] = productType.split('_');
+      return `${baseUrl}/checkout?ref=${linkCode}&plan=${planType}&billing=${billing}`;
     }
-    return url;
+    
+    // Para 'all' ou sem productType específico, manter o comportamento atual
+    return `${baseUrl}/planos?ref=${linkCode}`;
   };
 
   // Carregar todos os dados
