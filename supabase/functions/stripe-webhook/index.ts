@@ -363,6 +363,132 @@ serve(async (req) => {
         }
         break;
 
+      case 'checkout.session.completed':
+        const session = event.data.object as Stripe.Checkout.Session;
+        
+        logStep("Processing checkout session completed", {
+          sessionId: session.id,
+          customerId: session.customer,
+          amountTotal: session.amount_total,
+          metadata: session.metadata
+        });
+
+        // Verificar se há código de afiliado nos metadados
+        const affiliateCode = session.metadata?.affiliate_code;
+        if (affiliateCode) {
+          try {
+            logStep("Processing affiliate sale", { 
+              affiliateCode, 
+              sessionId: session.id,
+              customerId: session.customer 
+            });
+
+            // Buscar link de afiliado
+            const { data: affiliateLink, error: linkError } = await supabaseClient
+              .from('affiliate_links')
+              .select(`
+                *,
+                affiliate:affiliates(*)
+              `)
+              .eq('link_code', affiliateCode)
+              .eq('is_active', true)
+              .single();
+
+            if (linkError || !affiliateLink) {
+              logStep("Affiliate link not found", { affiliateCode });
+            } else {
+              // Recuperar customer do Stripe
+              const customer = await stripe.customers.retrieve(session.customer as string);
+              const customerEmail = (customer as Stripe.Customer).email;
+              const customerName = (customer as Stripe.Customer).name;
+              
+              // Determinar tipo de plano e valor
+              const planType = session.metadata?.plan_type || 'professional';
+              const saleAmount = (session.amount_total || 0) / 100; // Converter de centavos
+              
+              // Calcular comissão
+              const affiliate = affiliateLink.affiliate;
+              let commissionAmount = 0;
+              
+              if (affiliate.commission_type === 'percentage') {
+                commissionAmount = (saleAmount * affiliate.commission_percentage) / 100;
+              } else {
+                commissionAmount = affiliate.commission_fixed_amount || 0;
+              }
+
+              // Registrar venda de afiliado
+              const { data: sale, error: saleError } = await supabaseClient
+                .from('affiliate_sales')
+                .insert({
+                  affiliate_id: affiliate.id,
+                  affiliate_link_id: affiliateLink.id,
+                  customer_email: customerEmail || '',
+                  customer_name: customerName,
+                  plan_type: planType,
+                  sale_amount: saleAmount,
+                  commission_amount: commissionAmount,
+                  stripe_session_id: session.id,
+                  status: 'confirmed'
+                })
+                .select()
+                .single();
+
+              if (saleError) {
+                logError(saleError, "Failed to create affiliate sale", { affiliateCode, sessionId: session.id });
+              } else {
+                logStep("Affiliate sale created", { 
+                  saleId: sale.id, 
+                  affiliateId: affiliate.id,
+                  commissionAmount 
+                });
+
+                // Criar comissão
+                const { error: commissionError } = await supabaseClient
+                  .from('affiliate_commissions')
+                  .insert({
+                    affiliate_id: affiliate.id,
+                    sale_id: sale.id,
+                    amount: commissionAmount,
+                    status: 'pending'
+                  });
+
+                if (commissionError) {
+                  logError(commissionError, "Failed to create commission", { saleId: sale.id });
+                } else {
+                  logStep("Commission created successfully", { 
+                    affiliateId: affiliate.id,
+                    amount: commissionAmount 
+                  });
+                }
+
+                // Atualizar contador de conversões no link
+                await supabaseClient
+                  .from('affiliate_links')
+                  .update({ 
+                    conversions_count: (affiliateLink.conversions_count || 0) + 1 
+                  })
+                  .eq('id', affiliateLink.id);
+
+                // Atualizar totais do afiliado
+                await supabaseClient
+                  .from('affiliates')
+                  .update({
+                    total_sales: (affiliate.total_sales || 0) + saleAmount,
+                    total_commissions: (affiliate.total_commissions || 0) + commissionAmount,
+                    total_customers: (affiliate.total_customers || 0) + 1
+                  })
+                  .eq('id', affiliate.id);
+              }
+            }
+          } catch (affiliateError) {
+            logError(affiliateError, "Error processing affiliate sale", { 
+              affiliateCode, 
+              sessionId: session.id 
+            });
+          }
+        }
+        break;
+
       case 'invoice.payment_succeeded':
         const invoice = event.data.object as Stripe.Invoice;
         

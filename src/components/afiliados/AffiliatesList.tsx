@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AffiliateForm } from "./AffiliateForm";
 
 export function AffiliatesList() {
   const { affiliates, loading, createAffiliate, updateAffiliate } = useAffiliates();
@@ -139,142 +140,20 @@ export function AffiliatesList() {
               Novo Afiliado
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingAffiliate ? "Editar Afiliado" : "Novo Afiliado"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="document">CPF/CNPJ</Label>
-                  <Input
-                    id="document"
-                    value={formData.document}
-                    onChange={(e) => setFormData(prev => ({ ...prev, document: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="commission_type">Tipo Comissão</Label>
-                  <Select
-                    value={formData.commission_type}
-                    onValueChange={(value: "percentage" | "fixed") => 
-                      setFormData(prev => ({ ...prev, commission_type: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentage">Percentual</SelectItem>
-                      <SelectItem value="fixed">Valor Fixo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formData.commission_type === "percentage" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="commission_percentage">Percentual (%)</Label>
-                    <Input
-                      id="commission_percentage"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={formData.commission_percentage}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        commission_percentage: parseFloat(e.target.value) || 0 
-                      }))}
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="commission_fixed_amount">Valor Fixo (R$)</Label>
-                    <Input
-                      id="commission_fixed_amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.commission_fixed_amount}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        commission_fixed_amount: parseFloat(e.target.value) || 0 
-                      }))}
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="pix_key">Chave PIX</Label>
-                  <Input
-                    id="pix_key"
-                    value={formData.pix_key}
-                    onChange={(e) => setFormData(prev => ({ ...prev, pix_key: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bank_details">Dados Bancários (JSON)</Label>
-                <Textarea
-                  id="bank_details"
-                  placeholder='{"banco": "001", "agencia": "1234", "conta": "12345-6", "titular": "Nome do Titular"}'
-                  value={formData.bank_details}
-                  onChange={(e) => setFormData(prev => ({ ...prev, bank_details: e.target.value }))}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingAffiliate ? "Salvar" : "Criar"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingAffiliate ? "Editar Afiliado" : "Novo Afiliado"}
+                </DialogTitle>
+              </DialogHeader>
+              <AffiliateForm 
+                editingAffiliate={editingAffiliate}
+                onSuccess={() => {
+                  setIsDialogOpen(false);
+                  resetForm();
+                }}
+              />
+            </DialogContent>
         </Dialog>
       </CardHeader>
       

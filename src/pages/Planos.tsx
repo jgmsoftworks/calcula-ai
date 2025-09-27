@@ -55,12 +55,16 @@ const Planos = () => {
     setProcessingPlan(planType);
     
     try {
+      // Verificar se há código de afiliado na URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const affiliateCode = urlParams.get('ref');
+      
       if (planType === 'free') {
         // Para downgrade, abrir portal do Stripe
         await openCustomerPortal();
       } else {
-        // Para upgrade, criar checkout
-        await createCheckout(planType, billing || 'monthly');
+        // Para upgrade, criar checkout (com afiliado se houver)
+        await createCheckout(planType, billing || 'monthly', affiliateCode || undefined);
       }
     } catch (error) {
       console.error('Erro ao processar plano:', error);

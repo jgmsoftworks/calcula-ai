@@ -43,7 +43,7 @@ export const useStripe = () => {
     }
   };
 
-  const createCheckout = async (planType: string, billing: 'monthly' | 'yearly' = 'monthly') => {
+  const createCheckout = async (planType: string, billing: 'monthly' | 'yearly' = 'monthly', affiliateCode?: string) => {
     if (!user) {
       toast({
         title: 'Erro',
@@ -56,7 +56,31 @@ export const useStripe = () => {
     setLoading(true);
     
     try {
-      console.log('[CHECKOUT] Iniciando checkout:', { planType, billing, userId: user.id });
+      console.log('[CHECKOUT] Iniciando checkout:', { planType, billing, userId: user.id, affiliateCode });
+
+      // Se há código de afiliado, usar sempre a edge function
+      if (affiliateCode) {
+        const { data, error } = await supabase.functions.invoke('affiliate-checkout', {
+          body: { planType, billing, affiliateCode }
+        });
+        
+        if (error) {
+          console.error('[CHECKOUT] Erro na função affiliate-checkout:', error);
+          throw error;
+        }
+        
+        if (data?.url) {
+          console.log('[CHECKOUT] Redirecionando para checkout com afiliado:', data.url);
+          window.open(data.url, '_blank');
+          
+          setTimeout(() => {
+            checkSubscription();
+          }, 2000);
+        } else {
+          throw new Error('URL de checkout não recebida');
+        }
+        return;
+      }
 
       const planKey = `${planType}_${billing}` as keyof typeof DIRECT_CHECKOUT_LINKS;
       const directCheckoutUrl = DIRECT_CHECKOUT_LINKS[planKey];
