@@ -54,9 +54,21 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     
-    // Obter session_id da URL ou body
+    // Obter session_id e dados do body
     const url = new URL(req.url);
-    const sessionId = url.searchParams.get("session_id");
+    let sessionId = url.searchParams.get("session_id");
+    let signupData = null;
+
+    // Se for POST, obter dados do body
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        sessionId = sessionId || body.session_id;
+        signupData = body.signup_data;
+      } catch (e) {
+        // Se não conseguir ler o body, continuar apenas com URL params
+      }
+    }
     
     if (!sessionId) {
       throw new Error("session_id parameter is required");
@@ -112,19 +124,39 @@ serve(async (req) => {
     }
 
     let user = existingUsers.users.find(u => u.email === customerEmail);
+    const userExists = !!user;
 
     if (!user) {
-      logStep("Creating new user", { customerEmail });
+      logStep("User does not exist", { customerEmail, hasSignupData: !!signupData });
       
-      // Criar novo usuário
+      // Se não temos dados de cadastro, retornar info para o frontend solicitar
+      if (!signupData) {
+        logStep("Returning user creation required", { customerEmail });
+        
+        return new Response(JSON.stringify({
+          success: true,
+          user_exists: false,
+          customer_name: customer.name,
+          customer_email: customerEmail,
+          plan: planType
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      // Criar novo usuário com dados fornecidos
+      logStep("Creating new user with signup data", { customerEmail, fullName: signupData.full_name });
+      
       const { data: newUserData, error: createUserError } = await supabaseClient.auth.admin.createUser({
         email: customerEmail,
+        password: signupData.password,
         email_confirm: true, // Auto-confirmar email
         user_metadata: {
           email: customerEmail,
           email_verified: true,
-          full_name: customer.name || '',
-          business_name: customer.name || customerEmail.split('@')[0]
+          full_name: signupData.full_name || customer.name || '',
+          business_name: signupData.full_name || customer.name || customerEmail.split('@')[0]
         }
       });
 
@@ -164,54 +196,48 @@ serve(async (req) => {
       type: 'magiclink',
       email: customerEmail,
       options: {
-        redirectTo: `${req.headers.get("origin")}/dashboard?welcome=true&plan=${planType}`
+        redirectTo: `${req.headers.get("origin")}/?welcome=true&plan=${planType}`
       }
     });
 
     if (tokenError || !tokenData.properties?.action_link) {
       logError(tokenError, "Failed to generate access token", { customerEmail });
-      // Fallback: redirecionar para login manual
-      const fallbackUrl = `${req.headers.get("origin")}/auth?email=${encodeURIComponent(customerEmail)}&message=${encodeURIComponent('Pagamento processado com sucesso! Faça login para acessar sua conta.')}`;
-      
-      return new Response(null, {
-        status: 302,
-        headers: {
-          ...corsHeaders,
-          'Location': fallbackUrl
-        }
-      });
+      throw new Error("Failed to generate login link");
     }
 
     // Extrair URL de login automático
     const loginUrl = tokenData.properties.action_link;
     
-    logStep("Generated login URL, redirecting user", { 
+    logStep("Generated login URL successfully", { 
       userId: user.id, 
       planType,
-      hasLoginUrl: !!loginUrl 
+      hasLoginUrl: !!loginUrl,
+      userExists
     });
 
-    // Redirecionar para URL de login automático
-    return new Response(null, {
-      status: 302,
-      headers: {
-        ...corsHeaders,
-        'Location': loginUrl
-      }
+    // Retornar dados para o frontend
+    return new Response(JSON.stringify({
+      success: true,
+      user_exists: userExists,
+      user_id: user.id,
+      customer_name: customer.name,
+      customer_email: customerEmail,
+      plan: planType,
+      magic_link: loginUrl
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
   } catch (error) {
     const errorMessage = logError(error, "Payment processing failed");
     
-    // Redirecionar para página de erro
-    const errorUrl = `${req.headers.get("origin")}/planos?error=${encodeURIComponent(errorMessage)}`;
-    
-    return new Response(null, {
-      status: 302,
-      headers: {
-        ...corsHeaders,
-        'Location': errorUrl
-      }
+    return new Response(JSON.stringify({
+      success: false,
+      error: errorMessage
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 });

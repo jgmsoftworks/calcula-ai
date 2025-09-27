@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+
+const AuthSuccess = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [showSignupForm, setShowSignupForm] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const sessionId = searchParams.get('session_id');
+
+  useEffect(() => {
+    if (user) {
+      // Usuário já está logado, redireciona para dashboard
+      navigate('/', { replace: true });
+      return;
+    }
+
+    if (sessionId) {
+      processStripeSession();
+    } else {
+      toast({
+        title: 'Erro',
+        description: 'Session ID não encontrado',
+        variant: 'destructive'
+      });
+      navigate('/auth', { replace: true });
+    }
+  }, [sessionId, user]);
+
+  const processStripeSession = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('process-stripe-payment', {
+        body: { session_id: sessionId }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user_exists) {
+        // Usuário já existe, fazer login automático via magic link
+        toast({
+          title: 'Redirecionando...',
+          description: 'Fazendo login automático...'
+        });
+        
+        // Pequeno delay para mostrar a mensagem
+        setTimeout(() => {
+          window.location.href = data.magic_link;
+        }, 1000);
+      } else {
+        // Usuário não existe, mostrar formulário de cadastro
+        setShowSignupForm(true);
+        setFormData(prev => ({
+          ...prev,
+          fullName: data.customer_name || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      toast({
+        title: 'Erro no processamento',
+        description: 'Erro ao processar seu pagamento. Tente novamente.',
+        variant: 'destructive'
+      });
+      navigate('/auth', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: 'Erro',
+        description: 'As senhas não coincidem',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter pelo menos 6 caracteres',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      setProcessing(true);
+
+      // Reprocessar com dados de cadastro
+      const { data, error } = await supabase.functions.invoke('process-stripe-payment', {
+        body: { 
+          session_id: sessionId,
+          signup_data: {
+            full_name: formData.fullName,
+            password: formData.password
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Conta criada!',
+        description: 'Fazendo login automático...'
+      });
+
+      // Login automático via magic link
+      setTimeout(() => {
+        window.location.href = data.magic_link;
+      }, 1000);
+
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      toast({
+        title: 'Erro no cadastro',
+        description: 'Erro ao criar sua conta. Tente novamente.',
+        variant: 'destructive'
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner className="mx-auto mb-4" />
+          <p className="text-muted-foreground">Processando seu pagamento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!showSignupForm) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner className="mx-auto mb-4" />
+          <p className="text-muted-foreground">Redirecionando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold">Finalize seu cadastro</h1>
+            <p className="text-muted-foreground mt-2">
+              Seu pagamento foi processado com sucesso! Complete seus dados para acessar sua conta.
+            </p>
+          </div>
+
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <Label htmlFor="fullName">Nome completo</Label>
+              <Input
+                id="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                required
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password">Criar senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                required
+                minLength={6}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                required
+                minLength={6}
+                className="mt-1"
+              />
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={processing}
+            >
+              {processing ? (
+                <>
+                  <LoadingSpinner className="mr-2 h-4 w-4" />
+                  Criando conta...
+                </>
+              ) : (
+                'Criar conta e acessar'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AuthSuccess;

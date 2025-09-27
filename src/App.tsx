@@ -9,6 +9,7 @@ import { ActivityProvider } from "@/contexts/ActivityContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthSuccess from "./pages/AuthSuccess";
 import ResetPassword from "./pages/ResetPassword";
 import Estoque from "./pages/Estoque";
 import Vitrine from "./pages/Vitrine";
@@ -38,8 +39,9 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/success" element={<AuthSuccess />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
                 <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
                 <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
