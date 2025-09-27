@@ -7,10 +7,10 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const PLAN_INFO = {
-  professional_monthly: { name: 'Profissional Mensal', price: 'R$ 67/mês' },
-  professional_yearly: { name: 'Profissional Anual', price: 'R$ 540/ano' },
-  enterprise_monthly: { name: 'Empresarial Mensal', price: 'R$ 117/mês' },
-  enterprise_yearly: { name: 'Empresarial Anual', price: 'R$ 948/ano' },
+  professional_monthly: { name: 'Profissional Mensal', price: 'R$ 49,90/mês' },
+  professional_yearly: { name: 'Profissional Anual', price: 'R$ 478,80/ano' },
+  enterprise_monthly: { name: 'Empresarial Mensal', price: 'R$ 89,90/mês' },
+  enterprise_yearly: { name: 'Empresarial Anual', price: 'R$ 838,80/ano' },
 };
 
 export default function Checkout() {
@@ -50,14 +50,23 @@ export default function Checkout() {
       
       if (error) {
         console.error('Erro no checkout:', error);
-        throw error;
+        toast({
+          title: 'Erro no Checkout',
+          description: error.message || 'Erro ao processar pagamento. Tente novamente.',
+          variant: 'destructive'
+        });
+        return;
       }
       
       if (data?.url) {
         // Redirecionar para o Stripe Checkout
         window.location.href = data.url;
       } else {
-        throw new Error('URL de checkout não recebida');
+        toast({
+          title: 'Erro no Checkout',
+          description: 'URL de checkout não recebida',
+          variant: 'destructive'
+        });
       }
     } catch (error) {
       console.error('Erro ao processar checkout:', error);
@@ -110,13 +119,6 @@ export default function Checkout() {
               )}
             </Button>
             
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/planos')} 
-              className="w-full"
-            >
-              Ver Todos os Planos
-            </Button>
           </div>
           
           <div className="text-center text-xs text-muted-foreground">

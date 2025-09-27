@@ -314,7 +314,31 @@ export const useAffiliates = () => {
     }
   };
 
-  // Gerar URL de afiliação direta para checkout
+  // Deletar link de afiliado
+  const deleteAffiliateLink = async (linkId: string) => {
+    try {
+      const { error } = await supabase
+        .from('affiliate_links')
+        .delete()
+        .eq('id', linkId);
+
+      if (error) throw error;
+
+      await loadAffiliateLinks();
+      
+      toast({
+        title: "Sucesso",
+        description: "Link de afiliado excluído com sucesso"
+      });
+    } catch (error) {
+      console.error('Erro ao excluir link:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir link de afiliado",
+        variant: "destructive"
+      });
+    }
+  };
   const generateAffiliateUrl = (linkCode: string, productType?: string) => {
     const baseUrl = window.location.origin;
     
@@ -369,6 +393,7 @@ export const useAffiliates = () => {
     createAffiliate,
     updateAffiliate,
     createAffiliateLink,
+    deleteAffiliateLink,
     generateAffiliateUrl,
     loadAllData
   };

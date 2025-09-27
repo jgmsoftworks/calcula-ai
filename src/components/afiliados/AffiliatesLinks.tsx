@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Copy, ExternalLink } from "lucide-react";
+import { Plus, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useAffiliates } from "@/hooks/useAffiliates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -27,9 +27,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function AffiliatesLinks() {
-  const { affiliates, affiliateLinks, loading, createAffiliateLink, generateAffiliateUrl } = useAffiliates();
+  const { affiliates, affiliateLinks, loading, createAffiliateLink, deleteAffiliateLink, generateAffiliateUrl } = useAffiliates();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string>("");
@@ -127,10 +138,10 @@ export function AffiliatesLinks() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os Planos</SelectItem>
-                      <SelectItem value="professional_monthly">Profissional Mensal - R$ 67/mês</SelectItem>
-                      <SelectItem value="professional_yearly">Profissional Anual - R$ 540/ano</SelectItem>
-                      <SelectItem value="enterprise_monthly">Empresarial Mensal - R$ 117/mês</SelectItem>
-                      <SelectItem value="enterprise_yearly">Empresarial Anual - R$ 948/ano</SelectItem>
+                      <SelectItem value="professional_monthly">Profissional Mensal - R$ 49,90/mês</SelectItem>
+                      <SelectItem value="professional_yearly">Profissional Anual - R$ 478,80/ano</SelectItem>
+                      <SelectItem value="enterprise_monthly">Empresarial Mensal - R$ 89,90/mês</SelectItem>
+                      <SelectItem value="enterprise_yearly">Empresarial Anual - R$ 838,80/ano</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -205,6 +216,30 @@ export function AffiliatesLinks() {
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir este link de afiliado? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteAffiliateLink(link.id)}>
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
