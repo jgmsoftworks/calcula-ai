@@ -179,6 +179,8 @@ const Planos = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm text-muted-foreground">
+            <p>• <strong>Após o pagamento:</strong> Você será redirecionado para finalizar seu cadastro e acessar imediatamente o sistema</p>
+            <p>• <strong>Usuários existentes:</strong> Serão conectados automaticamente à sua conta atual</p>
             <p>• Os limites se aplicam imediatamente após a mudança de plano</p>
             <p>• Pagamentos processados com segurança via Stripe</p>
             <p>• Suporte via email para dúvidas sobre planos</p>

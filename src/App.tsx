@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthSuccess from "./pages/AuthSuccess";
+import AuthStripeComplete from "./pages/AuthStripeComplete";
 import ResetPassword from "./pages/ResetPassword";
 import Estoque from "./pages/Estoque";
 import Vitrine from "./pages/Vitrine";
@@ -41,6 +42,7 @@ const App = () => (
               <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/success" element={<AuthSuccess />} />
+            <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
             <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
                 <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />

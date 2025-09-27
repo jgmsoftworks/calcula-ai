@@ -53,20 +53,21 @@ const AuthSuccess = () => {
       });
 
       if (error) {
+        console.error('Erro na função process-stripe-payment:', error);
         throw error;
       }
 
       if (data.user_exists) {
         // Usuário já existe, fazer login automático via magic link
         toast({
-          title: 'Redirecionando...',
+          title: '✅ Pagamento confirmado!',
           description: 'Fazendo login automático...'
         });
         
         // Pequeno delay para mostrar a mensagem
         setTimeout(() => {
           window.location.href = data.magic_link;
-        }, 1000);
+        }, 1500);
       } else {
         // Usuário não existe, mostrar formulário de cadastro
         setShowSignupForm(true);
@@ -77,9 +78,21 @@ const AuthSuccess = () => {
       }
     } catch (error) {
       console.error('Erro ao processar pagamento:', error);
+      
+      // Mensagens de erro mais específicas
+      let errorMessage = 'Erro ao processar seu pagamento. Tente novamente.';
+      
+      if (error?.message?.includes('session_id')) {
+        errorMessage = 'Session de pagamento inválida. Tente fazer um novo pagamento.';
+      } else if (error?.message?.includes('Payment not completed')) {
+        errorMessage = 'Pagamento não foi concluído. Verifique seu método de pagamento.';
+      } else if (error?.message?.includes('Failed to check existing users')) {
+        errorMessage = 'Erro temporário no sistema. Tente novamente em alguns minutos.';
+      }
+      
       toast({
         title: 'Erro no processamento',
-        description: 'Erro ao processar seu pagamento. Tente novamente.',
+        description: errorMessage,
         variant: 'destructive'
       });
       navigate('/auth', { replace: true });
@@ -128,7 +141,7 @@ const AuthSuccess = () => {
       }
 
       toast({
-        title: 'Conta criada!',
+        title: '🎉 Conta criada com sucesso!',
         description: 'Fazendo login automático...'
       });
 
@@ -151,10 +164,17 @@ const AuthSuccess = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner className="mx-auto mb-4" />
-          <p className="text-muted-foreground">Processando seu pagamento...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center p-8">
+          <div className="animate-pulse mb-6">
+            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LoadingSpinner className="w-8 h-8 text-primary" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-semibold mb-2">Processando seu pagamento</h2>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Estamos confirmando seu pagamento e preparando sua conta. Isso pode levar alguns segundos...
+          </p>
         </div>
       </div>
     );
@@ -162,10 +182,17 @@ const AuthSuccess = () => {
 
   if (!showSignupForm) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner className="mx-auto mb-4" />
-          <p className="text-muted-foreground">Redirecionando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center p-8">
+          <div className="animate-pulse mb-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LoadingSpinner className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-semibold mb-2 text-green-600">Pagamento confirmado!</h2>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Redirecionando você para sua conta...
+          </p>
         </div>
       </div>
     );
@@ -176,6 +203,16 @@ const AuthSuccess = () => {
       <Card className="w-full max-w-md">
         <CardContent className="pt-6">
           <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg 
+                className="w-8 h-8 text-green-600" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
             <h1 className="text-2xl font-bold">Finalize seu cadastro</h1>
             <p className="text-muted-foreground mt-2">
               Seu pagamento foi processado com sucesso! Complete seus dados para acessar sua conta.
@@ -205,7 +242,11 @@ const AuthSuccess = () => {
                 required
                 minLength={6}
                 className="mt-1"
+                placeholder="Mínimo 6 caracteres"
               />
+              {formData.password.length > 0 && formData.password.length < 6 && (
+                <p className="text-xs text-red-500 mt-1">A senha deve ter pelo menos 6 caracteres</p>
+              )}
             </div>
 
             <div>
@@ -218,7 +259,11 @@ const AuthSuccess = () => {
                 required
                 minLength={6}
                 className="mt-1"
+                placeholder="Digite a senha novamente"
               />
+              {formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">As senhas não coincidem</p>
+              )}
             </div>
 
             <Button 

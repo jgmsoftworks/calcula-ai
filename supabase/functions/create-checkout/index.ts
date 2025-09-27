@@ -149,7 +149,7 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/planos?success=true`,
+      success_url: `${origin}/auth/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/planos?canceled=true`,
       metadata: {
         user_id: user.id,
