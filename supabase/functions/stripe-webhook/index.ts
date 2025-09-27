@@ -34,6 +34,123 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
 };
 
+const createUserFromCustomer = async (supabaseClient: any, customer: any, planType: string) => {
+  logStep("Creating new user from Stripe customer", { 
+    customerEmail: customer.email, 
+    customerId: customer.id,
+    planType 
+  });
+
+  try {
+    // Criar usuário com dados completos do Stripe
+    const userData = {
+      email: customer.email,
+      email_confirm: true,
+      user_metadata: {
+        email: customer.email,
+        email_verified: true,
+        full_name: customer.name || customer.email.split('@')[0],
+        business_name: customer.name || customer.email.split('@')[0],
+        stripe_customer_id: customer.id,
+        plan: planType,
+        created_from_stripe: true,
+        created_at: new Date().toISOString()
+      }
+    };
+
+    logStep("Creating user with Supabase Auth", userData);
+
+    const { data: newUserData, error: createUserError } = await supabaseClient.auth.admin.createUser(userData);
+
+    if (createUserError || !newUserData.user) {
+      throw new Error(`Failed to create user: ${createUserError?.message || 'Unknown error'}`);
+    }
+
+    logStep("User created successfully in Auth", { 
+      userId: newUserData.user.id, 
+      email: newUserData.user.email 
+    });
+
+    return newUserData.user;
+  } catch (error) {
+    logError(error, "Failed to create user from Stripe customer", { 
+      customerEmail: customer.email, 
+      customerId: customer.id 
+    });
+    throw error;
+  }
+};
+
+const updateUserProfile = async (supabaseClient: any, user: any, planType: string, subscriptionEnd: string | null, customer: any) => {
+  logStep("Updating user profile", { 
+    userId: user.id, 
+    planType, 
+    subscriptionEnd 
+  });
+
+  try {
+    // Preparar dados do perfil com informações do Stripe
+    const profileData: any = {
+      user_id: user.id,
+      plan: planType,
+      plan_expires_at: subscriptionEnd,
+      full_name: user.user_metadata?.full_name || customer.name || user.email?.split('@')[0] || '',
+      business_name: user.user_metadata?.business_name || customer.name || user.email?.split('@')[0] || '',
+      updated_at: new Date().toISOString()
+    };
+
+    // Adicionar dados adicionais do customer se disponíveis
+    if (customer.phone) {
+      profileData.phone = customer.phone;
+    }
+    if (customer.address?.line1) {
+      profileData.logradouro = customer.address.line1;
+      profileData.cidade = customer.address.city;
+      profileData.estado = customer.address.state;
+      profileData.cep = customer.address.postal_code;
+      profileData.pais = customer.address.country || 'Brasil';
+    }
+
+    logStep("Upserting profile data", profileData);
+
+    const { error: profileError } = await supabaseClient
+      .from('profiles')
+      .upsert(profileData, {
+        onConflict: 'user_id'
+      });
+
+    if (profileError) {
+      throw new Error(`Failed to update profile: ${profileError.message}`);
+    }
+
+    logStep("Profile updated successfully", { 
+      userId: user.id, 
+      planType 
+    });
+
+    // Verificar se o perfil foi realmente criado/atualizado
+    const { data: verifyProfile, error: verifyError } = await supabaseClient
+      .from('profiles')
+      .select('user_id, plan, plan_expires_at')
+      .eq('user_id', user.id)
+      .single();
+
+    if (verifyError || !verifyProfile) {
+      logError(verifyError, "Failed to verify profile creation", { userId: user.id });
+    } else {
+      logStep("Profile verification successful", verifyProfile);
+    }
+
+    return true;
+  } catch (error) {
+    logError(error, "Failed to update user profile", { 
+      userId: user.id, 
+      planType 
+    });
+    throw error;
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -73,9 +190,19 @@ serve(async (req) => {
       case 'customer.subscription.updated':
         const subscription = event.data.object as Stripe.Subscription;
         
-        // Buscar cliente com fallback seguro
+        logStep(`Processing subscription event: ${event.type}`, {
+          subscriptionId: subscription.id,
+          customerId: subscription.customer,
+          status: subscription.status,
+          currentPeriodEnd: subscription.current_period_end
+        });
+
         try {
-          const customer = await stripe.customers.retrieve(subscription.customer as string);
+          // Recuperar customer com dados expandidos
+          const customer = await stripe.customers.retrieve(subscription.customer as string, {
+            expand: ['subscriptions']
+          });
+          
           if (!customer || customer.deleted) {
             logStep('Customer not found or deleted', { customerId: subscription.customer });
             break;
@@ -87,44 +214,83 @@ serve(async (req) => {
             break;
           }
 
-          // Buscar usuário no Supabase pelo email
+          logStep("Retrieved customer data", {
+            customerEmail,
+            customerId: customer.id,
+            customerName: (customer as Stripe.Customer).name
+          });
+
+          // Determinar tipo de plano baseado no produto
+          const productId = subscription.items.data[0]?.price.product as string;
+          const planType = productId && (productId in PRODUCT_TO_PLAN) 
+            ? (PRODUCT_TO_PLAN as Record<string, string>)[productId]
+            : 'professional'; // fallback seguro
+
+          const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+
+          logStep("Determined subscription details", {
+            productId,
+            planType,
+            subscriptionEnd,
+            subscriptionStatus: subscription.status
+          });
+
+          // Buscar usuário existente no Supabase
           const { data: users, error: usersError } = await supabaseClient.auth.admin.listUsers();
           if (usersError) {
-            logError(usersError, 'Failed to list users', { customerEmail });
-            break;
+            throw new Error(`Failed to list users: ${usersError.message}`);
           }
           
-          const user = users.users.find(u => u.email === customerEmail);
-          
-          if (user) {
-            const productId = subscription.items.data[0]?.price.product as string;
-            const planType = (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'free';
-            const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-            
-            // Atualizar plano do usuário com retry
-            const { error: updateError } = await supabaseClient
-              .from('profiles')
-              .upsert({ 
-                user_id: user.id,
-                plan: planType,
-                plan_expires_at: subscriptionEnd
-              });
-            
-            if (updateError) {
-              logError(updateError, 'Failed to update user plan', { userId: user.id, planType });
-            } else {
-              logStep(`Updated user to plan`, { userId: user.id, planType, subscriptionEnd });
-            }
+          let user = users.users.find(u => u.email === customerEmail);
+
+          // Criar usuário automaticamente se não existir
+          if (!user) {
+            logStep("User not found, creating new user automatically", { customerEmail });
+            user = await createUserFromCustomer(supabaseClient, customer, planType);
           } else {
-            logStep('User not found in Supabase', { customerEmail });
+            logStep("Found existing user", { 
+              userId: user.id, 
+              email: user.email,
+              existingPlan: user.user_metadata?.plan 
+            });
           }
-        } catch (customerError) {
-          logError(customerError, 'Error processing customer subscription', { customerId: subscription.customer });
+
+          // Atualizar perfil do usuário com dados mais completos
+          if (user) {
+            await updateUserProfile(supabaseClient, user, planType, subscriptionEnd, customer);
+
+            logStep(`Successfully processed subscription ${event.type}`, {
+              userId: user.id,
+              email: user.email,
+              planType,
+              subscriptionEnd
+            });
+          } else {
+            logError(null, "User is undefined after creation/retrieval", {
+              customerEmail,
+              customerId: customer.id
+            });
+          }
+
+        } catch (subscriptionError) {
+          logError(subscriptionError, `Error processing subscription ${event.type}`, {
+            customerId: subscription.customer,
+            subscriptionId: subscription.id,
+            eventType: event.type
+          });
+          
+          // Não quebrar o webhook por um erro - continuar processamento
+          logStep("Continuing webhook processing despite subscription error");
         }
         break;
 
       case 'customer.subscription.deleted':
         const deletedSubscription = event.data.object as Stripe.Subscription;
+        
+        logStep("Processing subscription deletion", {
+          subscriptionId: deletedSubscription.id,
+          customerId: deletedSubscription.customer
+        });
         
         try {
           // Buscar cliente
@@ -140,40 +306,96 @@ serve(async (req) => {
             break;
           }
 
+          logStep("Retrieved deleted customer data", {
+            customerEmail: deletedCustomerEmail,
+            customerId: deletedCustomer.id
+          });
+
           // Buscar usuário no Supabase pelo email
           const { data: deletedUsers, error: deletedUsersError } = await supabaseClient.auth.admin.listUsers();
           if (deletedUsersError) {
-            logError(deletedUsersError, 'Failed to list users for deletion', { customerEmail: deletedCustomerEmail });
-            break;
+            throw new Error(`Failed to list users for deletion: ${deletedUsersError.message}`);
           }
           
           const deletedUser = deletedUsers.users.find(u => u.email === deletedCustomerEmail);
           
           if (deletedUser) {
-            // Downgrade para plano free
-            const { error: downgradError } = await supabaseClient
+            logStep("Downgrading user to free plan", { 
+              userId: deletedUser.id, 
+              email: deletedUser.email 
+            });
+
+            // Downgrade para plano free com dados de expiração
+            const downgradData = {
+              user_id: deletedUser.id,
+              plan: 'free',
+              plan_expires_at: null,
+              updated_at: new Date().toISOString()
+            };
+
+            const { error: downgradeError } = await supabaseClient
               .from('profiles')
-              .upsert({ 
-                user_id: deletedUser.id,
-                plan: 'free',
-                plan_expires_at: null
-              });
+              .upsert(downgradData, { onConflict: 'user_id' });
             
-            if (downgradError) {
-              logError(downgradError, 'Failed to downgrade user to free', { userId: deletedUser.id });
-            } else {
-              logStep(`Downgraded user to free plan`, { userId: deletedUser.id });
+            if (downgradeError) {
+              throw new Error(`Failed to downgrade user: ${downgradeError.message}`);
             }
+
+            // Verificar downgrade
+            const { data: verifyDowngrade } = await supabaseClient
+              .from('profiles')
+              .select('user_id, plan')
+              .eq('user_id', deletedUser.id)
+              .single();
+
+            logStep("Successfully downgraded user to free plan", { 
+              userId: deletedUser.id,
+              newPlan: verifyDowngrade?.plan || 'unknown'
+            });
           } else {
             logStep('User not found for downgrade', { customerEmail: deletedCustomerEmail });
           }
         } catch (deleteError) {
-          logError(deleteError, 'Error processing subscription deletion', { customerId: deletedSubscription.customer });
+          logError(deleteError, 'Error processing subscription deletion', { 
+            customerId: deletedSubscription.customer,
+            subscriptionId: deletedSubscription.id
+          });
         }
         break;
 
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object as Stripe.Invoice;
+        
+        logStep("Processing successful payment", {
+          invoiceId: invoice.id,
+          customerId: invoice.customer,
+          amountPaid: invoice.amount_paid,
+          subscriptionId: invoice.subscription
+        });
+
+        // Aqui podemos implementar lógica adicional para pagamentos bem-sucedidos
+        // Como envio de emails de confirmação, ativação de recursos, etc.
+        break;
+
+      case 'invoice.payment_failed':
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        
+        logStep("Processing failed payment", {
+          invoiceId: failedInvoice.id,
+          customerId: failedInvoice.customer,
+          amountDue: failedInvoice.amount_due,
+          subscriptionId: failedInvoice.subscription
+        });
+
+        // Implementar lógica para pagamentos falhos
+        // Como notificações, suspensão de conta temporária, etc.
+        break;
+
       default:
-        logStep(`Unhandled event type: ${event.type}`, { eventId: event.id });
+        logStep(`Received unhandled event type: ${event.type}`, { 
+          eventId: event.id,
+          eventType: event.type 
+        });
     }
 
     return new Response(JSON.stringify({ received: true }), {
