@@ -9,6 +9,8 @@ import { AffiliatesDashboard } from "@/components/afiliados/AffiliatesDashboard"
 import { AffiliatesLinks } from "@/components/afiliados/AffiliatesLinks";
 import { AffiliatesSales } from "@/components/afiliados/AffiliatesSales";
 import { AffiliatesCommissions } from "@/components/afiliados/AffiliatesCommissions";
+import { AffiliateSystemSettings } from "@/components/afiliados/AffiliateSystemSettings";
+import { AffiliatePaymentSystem } from "@/components/afiliados/AffiliatePaymentSystem";
 import { useAffiliates } from "@/hooks/useAffiliates";
 
 export default function Afiliados() {
@@ -96,12 +98,14 @@ export default function Afiliados() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="afiliados">Afiliados</TabsTrigger>
           <TabsTrigger value="links">Links</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+          <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
+          <TabsTrigger value="configuracoes">Config</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboard" className="space-y-4">
@@ -122,6 +126,14 @@ export default function Afiliados() {
         
         <TabsContent value="comissoes" className="space-y-4">
           <AffiliatesCommissions />
+        </TabsContent>
+        
+        <TabsContent value="pagamentos" className="space-y-4">
+          <AffiliatePaymentSystem />
+        </TabsContent>
+        
+        <TabsContent value="configuracoes" className="space-y-4">
+          <AffiliateSystemSettings />
         </TabsContent>
       </Tabs>
     </div>

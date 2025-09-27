@@ -216,11 +216,13 @@ export const useAffiliates = () => {
     bank_details?: any;
   }) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from('affiliates')
         .insert([{
           ...affiliateData,
-          user_id: affiliateData.email // Usar email como user_id temporário
+          user_id: user?.id
         }])
         .select()
         .single();
