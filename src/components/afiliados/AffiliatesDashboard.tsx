@@ -1,9 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAffiliates } from "@/hooks/useAffiliates";
-import { TrendingUp, Users, DollarSign, Link2 } from "lucide-react";
+import { TrendingUp, Users, DollarSign, Link2, Calendar, Download, Filter } from "lucide-react";
+import { useState } from "react";
 
 export function AffiliatesDashboard() {
   const { affiliates, affiliateLinks, affiliateSales, affiliateCommissions, loading } = useAffiliates();
+  const [dateFilter, setDateFilter] = useState('this_month');
 
   if (loading) {
     return (
@@ -27,34 +31,90 @@ export function AffiliatesDashboard() {
     .filter(c => c.status === 'pending')
     .reduce((sum, c) => sum + c.amount, 0);
 
-  const thisMonthSales = affiliateSales.filter(sale => {
-    const saleDate = new Date(sale.sale_date);
+  const getFilteredSales = () => {
     const now = new Date();
-    return saleDate.getMonth() === now.getMonth() && 
-           saleDate.getFullYear() === now.getFullYear() &&
-           sale.status === 'confirmed';
-  });
+    return affiliateSales.filter(sale => {
+      const saleDate = new Date(sale.sale_date);
+      
+      switch (dateFilter) {
+        case 'today':
+          return saleDate.toDateString() === now.toDateString() && sale.status === 'confirmed';
+        case 'this_week':
+          const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+          return saleDate >= weekStart && sale.status === 'confirmed';
+        case 'this_month':
+          return saleDate.getMonth() === now.getMonth() && 
+                 saleDate.getFullYear() === now.getFullYear() &&
+                 sale.status === 'confirmed';
+        case 'last_month':
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+          return saleDate.getMonth() === lastMonth.getMonth() && 
+                 saleDate.getFullYear() === lastMonth.getFullYear() &&
+                 sale.status === 'confirmed';
+        default:
+          return sale.status === 'confirmed';
+      }
+    });
+  };
+
+  const filteredSales = getFilteredSales();
 
   const conversionRates = affiliateLinks.map(link => ({
     ...link,
     conversionRate: link.clicks_count > 0 ? (link.conversions_count / link.clicks_count) * 100 : 0
   })).sort((a, b) => b.conversionRate - a.conversionRate);
 
+  const exportReport = () => {
+    // Placeholder para futura implementação de exportação
+    alert('Funcionalidade de exportação será implementada em breve!');
+  };
+
   return (
     <div className="space-y-6">
+      {/* Controles do Dashboard */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-bold">Dashboard Executivo</h2>
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="this_week">Esta Semana</SelectItem>
+              <SelectItem value="this_month">Este Mês</SelectItem>
+              <SelectItem value="last_month">Mês Passado</SelectItem>
+              <SelectItem value="all">Todos os Períodos</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button variant="outline" onClick={exportReport}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+        </div>
+      </div>
+
       {/* Resumo executivo */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Este Mês</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Vendas - {dateFilter === 'today' ? 'Hoje' : 
+                       dateFilter === 'this_week' ? 'Esta Semana' :
+                       dateFilter === 'this_month' ? 'Este Mês' :
+                       dateFilter === 'last_month' ? 'Mês Passado' : 'Total'}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {thisMonthSales.reduce((sum, s) => sum + s.sale_amount, 0).toFixed(2)}
+              R$ {filteredSales.reduce((sum, s) => sum + s.sale_amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {thisMonthSales.length} vendas confirmadas
+              {filteredSales.length} vendas confirmadas
             </p>
           </CardContent>
         </Card>

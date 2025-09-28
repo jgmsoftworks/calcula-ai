@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Percent, DollarSign, Calendar, Users, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Percent, DollarSign, Calendar, Users, ToggleLeft, ToggleRight, Trash2, Search, Filter, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAffiliates } from "@/hooks/useAffiliates";
@@ -36,8 +36,11 @@ export function AffiliateCoupons() {
   const { affiliates } = useAffiliates();
   const { toast } = useToast();
   const [coupons, setCoupons] = useState<AffiliateCoupon[]>([]);
+  const [filteredCoupons, setFilteredCoupons] = useState<AffiliateCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [formData, setFormData] = useState({
     affiliateId: '',
     name: '',
@@ -70,6 +73,7 @@ export function AffiliateCoupons() {
       }));
 
       setCoupons(formattedCoupons);
+      setFilteredCoupons(formattedCoupons);
     } catch (error) {
       console.error('Erro ao carregar cupons:', error);
       toast({
@@ -85,6 +89,32 @@ export function AffiliateCoupons() {
   useEffect(() => {
     loadCoupons();
   }, []);
+
+  useEffect(() => {
+    let filtered = coupons;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(coupon => 
+        coupon.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        coupon.stripe_coupon_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        coupon.affiliate?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(coupon => {
+        const expired = isExpired(coupon.expires_at);
+        switch (statusFilter) {
+          case 'active': return coupon.is_active && !expired;
+          case 'inactive': return !coupon.is_active;
+          case 'expired': return expired;
+          default: return true;
+        }
+      });
+    }
+    
+    setFilteredCoupons(filtered);
+  }, [coupons, searchTerm, statusFilter]);
 
   const handleCreateCoupon = async () => {
     if (!formData.affiliateId || !formData.name || !formData.discountValue) {
@@ -188,6 +218,48 @@ export function AffiliateCoupons() {
     }
   };
 
+  const deleteCoupon = async (couponId: string, couponName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o cupom "${couponName}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('affiliate_coupons')
+        .delete()
+        .eq('id', couponId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Cupom excluído com sucesso"
+      });
+
+      loadCoupons();
+    } catch (error) {
+      console.error('Erro ao excluir cupom:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir cupom",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const duplicateCoupon = async (coupon: AffiliateCoupon) => {
+    setFormData({
+      affiliateId: coupon.affiliate_id,
+      name: `${coupon.name}_COPY`,
+      description: coupon.description || '',
+      discountType: coupon.discount_type,
+      discountValue: coupon.discount_value,
+      maxRedemptions: coupon.max_redemptions ? coupon.max_redemptions.toString() : '',
+      expiresAt: ''
+    });
+    setIsDialogOpen(true);
+  };
+
   const formatDiscountValue = (type: string, value: number) => {
     if (type === 'percentage') {
       return `${value}%`;
@@ -219,7 +291,7 @@ export function AffiliateCoupons() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Cupons de Afiliados</CardTitle>
+          <CardTitle>Cupons de Afiliados ({filteredCoupons.length})</CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -336,7 +408,37 @@ export function AffiliateCoupons() {
         </div>
       </CardHeader>
       <CardContent>
-        {coupons.length === 0 ? (
+        {/* Filtros e Busca */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, código ou afiliado..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="active">Ativos</SelectItem>
+              <SelectItem value="inactive">Inativos</SelectItem>
+              <SelectItem value="expired">Expirados</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {filteredCoupons.length === 0 && coupons.length > 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum cupom encontrado com os filtros aplicados.
+          </div>
+        ) : coupons.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum cupom criado ainda.
           </div>
@@ -354,7 +456,7 @@ export function AffiliateCoupons() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {coupons.map((coupon) => (
+              {filteredCoupons.map((coupon) => (
                 <TableRow key={coupon.id}>
                   <TableCell>
                     <div>
@@ -416,18 +518,40 @@ export function AffiliateCoupons() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toggleCouponStatus(coupon.id, coupon.is_active)}
-                      disabled={isExpired(coupon.expires_at)}
-                    >
-                      {coupon.is_active ? (
-                        <ToggleRight className="h-4 w-4" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleCouponStatus(coupon.id, coupon.is_active)}
+                        disabled={isExpired(coupon.expires_at)}
+                        title={coupon.is_active ? 'Desativar' : 'Ativar'}
+                      >
+                        {coupon.is_active ? (
+                          <ToggleRight className="h-4 w-4" />
+                        ) : (
+                          <ToggleLeft className="h-4 w-4" />
+                        )}
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => duplicateCoupon(coupon)}
+                        title="Duplicar cupom"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteCoupon(coupon.id, coupon.name)}
+                        title="Excluir cupom"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -12,6 +12,8 @@ import { AffiliatesCommissions } from "@/components/afiliados/AffiliatesCommissi
 import { AffiliateSystemSettings } from "@/components/afiliados/AffiliateSystemSettings";
 import { AffiliatePaymentSystem } from "@/components/afiliados/AffiliatePaymentSystem";
 import { AffiliateCoupons } from "@/components/afiliados/AffiliateCoupons";
+import { AffiliatesReports } from "@/components/afiliados/AffiliatesReports";
+import { AdminActions } from "@/components/afiliados/AdminActions";
 import { useAffiliates } from "@/hooks/useAffiliates";
 
 export default function Afiliados() {
@@ -99,7 +101,7 @@ export default function Afiliados() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-10 text-xs">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="afiliados">Afiliados</TabsTrigger>
           <TabsTrigger value="links">Links</TabsTrigger>
@@ -107,6 +109,8 @@ export default function Afiliados() {
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
           <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
+          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+          <TabsTrigger value="admin">Admin</TabsTrigger>
           <TabsTrigger value="configuracoes">Config</TabsTrigger>
         </TabsList>
         
@@ -136,6 +140,14 @@ export default function Afiliados() {
         
         <TabsContent value="pagamentos" className="space-y-4">
           <AffiliatePaymentSystem />
+        </TabsContent>
+        
+        <TabsContent value="relatorios" className="space-y-4">
+          <AffiliatesReports />
+        </TabsContent>
+        
+        <TabsContent value="admin" className="space-y-4">
+          <AdminActions />
         </TabsContent>
         
         <TabsContent value="configuracoes" className="space-y-4">
