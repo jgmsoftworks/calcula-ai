@@ -1924,6 +1924,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      user_is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      user_is_affiliate_owner: {
+        Args: { affiliate_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "hr_manager" | "employee" | "viewer"
