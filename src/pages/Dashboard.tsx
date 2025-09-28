@@ -15,25 +15,76 @@ import {
   ArrowDown,
   ArrowUp,
   Eye,
-  RefreshCcw
+  RefreshCcw,
+  Users,
+  Crown,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Cell, AreaChart, Area, Pie } from 'recharts';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useActivityLog } from '@/hooks/useActivityLog';
+import { useAdminData } from '@/hooks/useAdminData';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
+  const { data: adminData, refreshData: refreshAdminData } = useAdminData();
   const { activities, loading: activitiesLoading } = useActivityLog();
   const { hasAccess } = usePlanLimits();
 
-  // Preparar dados dos cards principais baseados nos dados reais
-  const stats = [
+  // Use admin data if user is admin, otherwise use regular dashboard data
+  const isAdminView = isAdmin;
+  const currentData = isAdminView ? adminData : data;
+  const currentRefresh = isAdminView ? refreshAdminData : refreshData;
+
+  // Preparar dados dos cards principais baseados no tipo de usuário
+  const stats = isAdminView ? [
+    {
+      title: 'Total de Usuários',
+      value: adminData.totalUsers.toString(),
+      change: '+12%',
+      changeType: 'positive' as const,
+      description: 'crescimento mensal',
+      icon: Users,
+      color: 'text-primary',
+      trend: [120, 135, 142, 158, 167, 178, adminData.totalUsers],
+    },
+    {
+      title: 'Assinantes Ativos',
+      value: adminData.activeSubscriptions.toString(),
+      change: '+23%',
+      changeType: 'positive' as const,
+      description: 'conversões do mês',
+      icon: Crown,
+      color: 'text-secondary',
+      trend: [45, 52, 48, 61, 67, 72, adminData.activeSubscriptions],
+    },
+    {
+      title: 'Receita Mensal',
+      value: `R$ ${adminData.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      change: '+18%',
+      changeType: 'positive' as const,
+      description: 'receita recorrente',
+      icon: DollarSign,
+      color: 'text-accent',
+      trend: [2800, 3200, 3100, 3500, 3800, 4200, adminData.monthlyRevenue],
+    },
+    {
+      title: 'Afiliados Ativos',
+      value: adminData.totalAffiliates.toString(),
+      change: '+8%',
+      changeType: 'positive' as const,
+      description: 'parceiros ativos',
+      icon: Building2,
+      color: 'text-orange',
+      trend: [12, 15, 14, 18, 19, 22, adminData.totalAffiliates],
+    },
+  ] : [
     {
       title: 'Receita Total',
       value: `R$ ${data.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
@@ -76,7 +127,32 @@ const Dashboard = () => {
     },
   ];
 
-  const quickActions = [
+  const quickActions = isAdminView ? [
+    {
+      title: 'Gerenciar Usuários',
+      description: 'Administrar contas e planos',
+      icon: Users,
+      href: '/admin-usuarios',
+      gradient: 'from-primary to-primary-glow',
+      stats: `${adminData.totalUsers} usuários registrados`,
+    },
+    {
+      title: 'Sistema de Afiliados',
+      description: 'Controlar parcerias e comissões',
+      icon: Crown,
+      href: '/afiliados',
+      gradient: 'from-secondary to-purple',
+      stats: `R$ ${adminData.pendingCommissions.toLocaleString('pt-BR')} em comissões`,
+    },
+    {
+      title: 'Configurações',
+      description: 'Administração do sistema',
+      icon: Building2,
+      href: '/admin-configuracoes',
+      gradient: 'from-accent to-red',
+      stats: 'Controle total do sistema',
+    },
+  ] : [
     {
       title: 'Novo Produto',
       description: 'Cadastrar e precificar rapidamente',
@@ -105,12 +181,14 @@ const Dashboard = () => {
   ];
 
   // Loading state
-  if (data.loading) {
+  if (currentData.loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
           <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground">Carregando dados do dashboard...</p>
+          <p className="text-muted-foreground">
+            {isAdminView ? 'Carregando dados administrativos...' : 'Carregando dados do dashboard...'}
+          </p>
         </div>
       </div>
     );
@@ -122,10 +200,10 @@ const Dashboard = () => {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div className="space-y-1">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent">
-            Dashboard Executivo
+            {isAdminView ? 'Dashboard Administrativo' : 'Dashboard Executivo'}
           </h1>
           <p className="text-lg text-muted-foreground">
-            {user?.user_metadata?.full_name || user?.email} • {new Date().toLocaleDateString('pt-BR', { 
+            {isAdminView ? 'Administração Geral do Sistema' : user?.user_metadata?.full_name || user?.email} • {new Date().toLocaleDateString('pt-BR', { 
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
@@ -134,25 +212,33 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <DashboardFilters
-            currentPeriod={filters.period}
-            startDate={filters.startDate}
-            endDate={filters.endDate}
-            onPeriodChange={(period) => updateFilters({ period })}
-            onDateRangeChange={(startDate, endDate) => updateFilters({ startDate, endDate })}
-          />
+          {!isAdminView && (
+            <DashboardFilters
+              currentPeriod={filters.period}
+              startDate={filters.startDate}
+              endDate={filters.endDate}
+              onPeriodChange={(period) => updateFilters({ period })}
+              onDateRangeChange={(startDate, endDate) => updateFilters({ startDate, endDate })}
+            />
+          )}
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={refreshData}
+            onClick={currentRefresh}
             className="h-9"
           >
             <RefreshCcw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
+          {isAdminView && (
+            <Badge className="bg-gradient-primary text-white border-0">
+              <Shield className="h-3 w-3 mr-1" />
+              Modo Admin
+            </Badge>
+          )}
           <Button size="sm" className="h-9 bg-gradient-primary text-white shadow-glow">
             <Eye className="h-4 w-4 mr-2" />
-            Relatório
+            {isAdminView ? 'Relatório do Sistema' : 'Relatório'}
           </Button>
         </div>
       </div>
@@ -245,9 +331,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="h-80">
-                {data.revenueData.length > 0 ? (
+                {(isAdminView ? adminData.userGrowth.length > 0 : data.revenueData.length > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data.revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <AreaChart data={isAdminView ? adminData.userGrowth : data.revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                     <defs>
                       <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
@@ -267,7 +353,7 @@ const Dashboard = () => {
                     <YAxis 
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={12}
-                      tickFormatter={(value) => `R$ ${(value/1000).toFixed(0)}k`}
+                      tickFormatter={(value) => isAdminView ? value.toString() : `R$ ${(value/1000).toFixed(0)}k`}
                     />
                     <Tooltip 
                       contentStyle={{
@@ -276,35 +362,55 @@ const Dashboard = () => {
                         borderRadius: '8px',
                         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                       }}
-                      formatter={(value, name) => [
-                        `R$ ${value.toLocaleString('pt-BR')}`, 
-                        name === 'revenue' ? 'Receita' : 'Custos'
-                      ]}
+                      formatter={(value, name) => {
+                        if (isAdminView) {
+                          return [
+                            value.toString(), 
+                            name === 'users' ? 'Usuários' : 'Receita (R$)'
+                          ];
+                        }
+                        return [
+                          `R$ ${value.toLocaleString('pt-BR')}`, 
+                          name === 'revenue' ? 'Receita' : 'Custos'
+                        ];
+                      }}
                     />
                     <Area 
                       type="monotone" 
-                      dataKey="revenue" 
+                      dataKey={isAdminView ? "users" : "revenue"} 
                       stroke="hsl(var(--primary))" 
                       strokeWidth={3}
                       fillOpacity={1} 
                       fill="url(#revenueGradient)"
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="cost" 
-                      stroke="hsl(var(--accent))" 
-                      strokeWidth={3}
-                      fillOpacity={1} 
-                      fill="url(#costGradient)"
-                    />
+                    {!isAdminView && (
+                      <Area 
+                        type="monotone" 
+                        dataKey="cost" 
+                        stroke="hsl(var(--accent))" 
+                        strokeWidth={3}
+                        fillOpacity={1} 
+                        fill="url(#costGradient)"
+                      />
+                    )}
+                    {isAdminView && (
+                      <Area 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="hsl(var(--accent))" 
+                        strokeWidth={3}
+                        fillOpacity={1} 
+                        fill="url(#costGradient)"
+                      />
+                    )}
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center space-y-2">
                       <BarChart3 className="h-12 w-12 mx-auto opacity-50" />
-                      <p>Nenhum dado de faturamento encontrado</p>
-                      <p className="text-sm">Configure seus dados históricos em Custos</p>
+                      <p>{isAdminView ? 'Nenhum dado de crescimento encontrado' : 'Nenhum dado de faturamento encontrado'}</p>
+                      <p className="text-sm">{isAdminView ? 'Dados serão exibidos conforme usuários se cadastram' : 'Configure seus dados históricos em Custos'}</p>
                     </div>
                   </div>
                 )}
@@ -317,16 +423,16 @@ const Dashboard = () => {
         <div className="space-y-6">
           <Card className="border-0 shadow-elegant">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Distribuição de Vendas</CardTitle>
-              <CardDescription>Por categoria de produto</CardDescription>
+              <CardTitle className="text-lg">{isAdminView ? 'Distribuição de Planos' : 'Distribuição de Vendas'}</CardTitle>
+              <CardDescription>{isAdminView ? 'Por tipo de plano' : 'Por categoria de produto'}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-48">
-                {data.categoryData.length > 0 ? (
+                {(isAdminView ? adminData.planDistribution.length > 0 : data.categoryData.length > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
-                        data={data.categoryData}
+                        data={isAdminView ? adminData.planDistribution : data.categoryData}
                         cx="50%"
                         cy="50%"
                         innerRadius={40}
@@ -334,24 +440,24 @@ const Dashboard = () => {
                         paddingAngle={5}
                         dataKey="value"
                       >
-                        {data.categoryData.map((entry, index) => (
+                        {(isAdminView ? adminData.planDistribution : data.categoryData).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `${value}%`} />
+                      <Tooltip formatter={(value) => isAdminView ? `${value} usuários` : `${value}%`} />
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center space-y-2">
                       <Package className="h-8 w-8 mx-auto opacity-50" />
-                      <p className="text-sm">Nenhuma categoria encontrada</p>
+                      <p className="text-sm">{isAdminView ? 'Nenhum plano ativo' : 'Nenhuma categoria encontrada'}</p>
                     </div>
                   </div>
                 )}
               </div>
               <div className="space-y-3 mt-4">
-                {data.categoryData.map((item, index) => (
+                {(isAdminView ? adminData.planDistribution : data.categoryData).map((item, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div 
@@ -360,35 +466,61 @@ const Dashboard = () => {
                       />
                       <span className="text-sm font-medium">{item.name}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{item.value}%</span>
+                    <span className="text-sm text-muted-foreground">
+                      {isAdminView ? `${item.value} usuários` : `${item.value}%`}
+                    </span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Weekly Activity */}
+          {/* Activity Section */}
           <Card className="border-0 shadow-elegant">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Atividade Semanal</CardTitle>
-              <CardDescription>Vendas e produtos por dia</CardDescription>
+              <CardTitle className="text-lg">{isAdminView ? 'Atividades Recentes' : 'Atividade Semanal'}</CardTitle>
+              <CardDescription>{isAdminView ? 'Eventos do sistema' : 'Vendas e produtos por dia'}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-32">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.dailyActivity} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                    <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-                    <Tooltip 
-                      formatter={(value, name) => [value, name === 'vendas' ? 'Vendas' : 'Produtos']}
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                      }}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {isAdminView ? (
+                <div className="space-y-3">
+                  {adminData.recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50">
+                      <div className="p-1 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20">
+                        <Activity className="h-3 w-3 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{activity.description}</p>
+                        {activity.user && (
+                          <p className="text-xs text-muted-foreground">{activity.user}</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(activity.timestamp).toLocaleTimeString('pt-BR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.dailyActivity} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                      <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+                      <Tooltip 
+                        formatter={(value, name) => [value, name === 'vendas' ? 'Vendas' : 'Produtos']}
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                        }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

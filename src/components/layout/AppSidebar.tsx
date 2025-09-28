@@ -31,7 +31,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-const navigationItems = [
+// Items for regular business users
+const businessNavigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
   { title: 'Estoque', url: '/estoque', icon: Package },
   { title: 'Receitas', url: '/receitas', icon: ChefHat },
@@ -47,13 +48,29 @@ const businessItems = [
   { title: 'Planos', url: '/planos', icon: Crown },
 ];
 
+// Items for admin users
+const adminNavigationItems = [
+  { title: 'Dashboard', url: '/', icon: Home },
+  { title: 'Usuários', url: '/admin-usuarios', icon: Users },
+  { title: 'Afiliados', url: '/afiliados', icon: Crown },
+  { title: 'Sugestões', url: '/sugestoes', icon: MessageSquare },
+];
+
+const adminItems = [
+  { title: 'Configurações', url: '/admin-configuracoes', icon: Building2 },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin } = useAuth();
   const { toast } = useToast();
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
+
+  // Select navigation items based on admin status
+  const navigationItems = isAdmin ? adminNavigationItems : businessNavigationItems;
+  const toolsItems = isAdmin ? adminItems : businessItems;
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -97,11 +114,20 @@ export function AppSidebar() {
               className="h-10 w-10 object-contain"
             />
           ) : (
-            <img 
-              src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
-              alt="CalculaAi - Precificação Inteligente" 
-              className="h-10 w-full object-contain object-left"
-            />
+            <div className="w-full">
+              <img 
+                src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
+                alt="CalculaAi - Precificação Inteligente" 
+                className="h-10 w-full object-contain object-left"
+              />
+              {isAdmin && (
+                <div className="mt-2 flex items-center justify-center">
+                  <span className="px-2 py-1 text-xs font-bold bg-gradient-primary text-white rounded-full shadow-glow">
+                    ADMIN MASTER
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </SidebarHeader>
@@ -110,7 +136,7 @@ export function AppSidebar() {
         {/* Main Navigation */}
         <SidebarGroup className="py-4">
           <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
-            Navegação Principal
+            {isAdmin ? 'Administração' : 'Navegação Principal'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -132,14 +158,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Business Tools */}
+        {/* Tools Section */}
         <SidebarGroup className="py-4">
           <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
-            Ferramentas de Negócio
+            {isAdmin ? 'Sistema' : 'Ferramentas de Negócio'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
-              {businessItems.map((item) => (
+              {toolsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
@@ -152,20 +178,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {/* Admin only - Afiliados */}
-              {user?.email === 'jgmsoftworks@gmail.com' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/afiliados"
-                      className={getNavClassName('/afiliados')}
-                    >
-                      <Users className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                      {!isCollapsed && <span>Afiliados</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -22,6 +22,8 @@ import Simulador from "./pages/Simulador";
 import Planos from "./pages/Planos";
 import Sugestoes from "./pages/Sugestoes";
 import PerfilNegocio from "./pages/PerfilNegocio";
+import AdminUsers from "./pages/AdminUsers";
+import AdminSettings from "./pages/AdminSettings";
 import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
 import NotFound from "./pages/NotFound";
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/a/:code" element={<AffiliateRedirect />} />
             <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
+            <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
+            <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
             <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
                 <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
