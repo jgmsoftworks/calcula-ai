@@ -185,6 +185,30 @@ serve(async (req) => {
 
     logStep(`Processing webhook event: ${event.type}`, { eventId: event.id });
 
+    // Verificar idempotência - evitar processar o mesmo evento duas vezes
+    const { data: existingEvent } = await supabaseClient
+      .from('stripe_events')
+      .select('id')
+      .eq('stripe_event_id', event.id)
+      .single();
+
+    if (existingEvent) {
+      logStep(`Event already processed, skipping`, { eventId: event.id });
+      return new Response(JSON.stringify({ received: true, skipped: true }), { 
+        headers: corsHeaders,
+        status: 200 
+      });
+    }
+
+    // Registrar evento para idempotência
+    await supabaseClient
+      .from('stripe_events')
+      .insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        processed_at: new Date().toISOString()
+      });
+
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':

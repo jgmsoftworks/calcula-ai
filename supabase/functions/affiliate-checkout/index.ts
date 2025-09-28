@@ -8,10 +8,10 @@ const corsHeaders = {
 };
 
 const PLAN_PRICES = {
-  professional_monthly: "price_1Qo3XwL9S1MuVhKR6oRGh8Dn",
-  professional_yearly: "price_1Qo3YzL9S1MuVhKRGxT3MJgz",
-  enterprise_monthly: "price_1Qo3ZxL9S1MuVhKRfxQRsNyW",
-  enterprise_yearly: "price_1Qo3a7L9S1MuVhKRGhFqpHxR",
+  professional_monthly: "price_1SAGaVBnxFLGYBYff91rBqoP", // R$ 49,00
+  professional_yearly: "price_1SAGl3BnxFLGYBYfNdoF5crq", // R$ 478,80
+  enterprise_monthly: "price_1SAGgdBnxFLGYBYfOzJwhMw3", // R$ 89,90
+  enterprise_yearly: "price_1SAGlUBnxFLGYBYfwLnEZoId", // R$ 838,80
 } as const;
 
 serve(async (req) => {
