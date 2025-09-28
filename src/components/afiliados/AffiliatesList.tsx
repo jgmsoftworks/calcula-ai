@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AffiliateForm } from "./AffiliateForm";
+import { MigrateAffiliatesButton } from "./MigrateAffiliatesButton";
 
 export function AffiliatesList() {
   const { affiliates, loading, createAffiliate, updateAffiliate } = useAffiliates();
@@ -132,14 +133,21 @@ export function AffiliatesList() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Gestão de Afiliados</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Afiliado
-            </Button>
-          </DialogTrigger>
+        <div>
+          <CardTitle>Gestão de Afiliados</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cada afiliado tem produtos únicos no Stripe para rastreamento automático
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <MigrateAffiliatesButton />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Afiliado
+              </Button>
+            </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>
@@ -154,7 +162,8 @@ export function AffiliatesList() {
                 }}
               />
             </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </CardHeader>
       
       <CardContent>

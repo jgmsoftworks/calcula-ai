@@ -241,6 +241,50 @@ export type Database = {
           },
         ]
       }
+      affiliate_stripe_products: {
+        Row: {
+          affiliate_id: string
+          billing: string
+          created_at: string
+          id: string
+          is_active: boolean
+          plan_type: string
+          stripe_price_id: string
+          stripe_product_id: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          billing: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_type: string
+          stripe_price_id: string
+          stripe_product_id: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          billing?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_type?: string
+          stripe_price_id?: string
+          stripe_product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_stripe_products_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliates: {
         Row: {
           bank_details: Json | null

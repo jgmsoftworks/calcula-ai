@@ -231,11 +231,39 @@ export const useAffiliates = () => {
 
       if (error) throw error;
 
+      // Criar produtos únicos no Stripe para este afiliado
+      try {
+        console.log('Criando produtos no Stripe para:', data.name);
+        const { data: productsResult, error: productsError } = await supabase.functions.invoke(
+          'create-affiliate-products',
+          {
+            body: {
+              affiliateId: data.id,
+              affiliateName: data.name
+            }
+          }
+        );
+
+        if (productsError) {
+          console.error('Erro ao criar produtos no Stripe:', productsError);
+          // Não falhar a criação do afiliado por erro nos produtos
+          toast({
+            title: "Aviso",
+            description: "Afiliado criado, mas houve erro ao criar produtos no Stripe",
+            variant: "destructive"
+          });
+        } else {
+          console.log('Produtos criados com sucesso:', productsResult);
+        }
+      } catch (stripeError) {
+        console.error('Erro ao invocar função de produtos:', stripeError);
+      }
+
       await loadAffiliates();
       
       toast({
         title: "Sucesso",
-        description: "Afiliado criado com sucesso"
+        description: `Afiliado ${data.name} criado com produtos únicos no Stripe`
       });
 
       return data;

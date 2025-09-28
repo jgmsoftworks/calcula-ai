@@ -7,8 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PLAN_PRICES = {
-  professional_monthly: "price_1SAGaVBnxFLGYBYff91rBqoP", // R$ 49,00
+// Preços padrão (fallback se não houver afiliado)
+const FALLBACK_PLAN_PRICES = {
+  professional_monthly: "price_1SAL2dBnxFLGYBYfkowqS28X", // R$ 49,90
   professional_yearly: "price_1SAGl3BnxFLGYBYfNdoF5crq", // R$ 478,80
   enterprise_monthly: "price_1SAGgdBnxFLGYBYfOzJwhMw3", // R$ 89,90
   enterprise_yearly: "price_1SAGlUBnxFLGYBYfwLnEZoId", // R$ 838,80
@@ -21,11 +22,13 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
     const { planType, billing, affiliateCode, direct } = await req.json();
+    
+    console.log(`[AFFILIATE-CHECKOUT] Iniciando checkout - Plan: ${planType}_${billing}, Affiliate: ${affiliateCode}`);
     
     // Verificar se há cookie de afiliado para visitantes
     let affiliateCodeFromCookie = null;
@@ -39,16 +42,47 @@ serve(async (req) => {
     }
     
     const finalAffiliateCode = affiliateCode || affiliateCodeFromCookie;
-    
-    // Rastrear clique no link de afiliado se presente
+    let priceId = null;
+    let affiliateId = null;
+
+    // Se há código de afiliado, buscar o price ID específico
     if (finalAffiliateCode) {
+      console.log(`[AFFILIATE-CHECKOUT] Buscando produto específico para afiliado: ${finalAffiliateCode}`);
+      
+      // Buscar o link do afiliado e seus produtos
       const { data: linkData } = await supabaseClient
         .from('affiliate_links')
-        .select('clicks_count')
+        .select(`
+          *,
+          affiliate:affiliates!inner(
+            id,
+            name,
+            affiliate_stripe_products(
+              stripe_price_id,
+              plan_type,
+              billing,
+              is_active
+            )
+          )
+        `)
         .eq('link_code', finalAffiliateCode)
         .single();
 
-      if (linkData) {
+      if (linkData?.affiliate) {
+        affiliateId = linkData.affiliate.id;
+        
+        // Encontrar o produto específico para este plano
+        const affiliateProducts = linkData.affiliate.affiliate_stripe_products || [];
+        const specificProduct = affiliateProducts.find(
+          (p: any) => p.plan_type === planType && p.billing === billing && p.is_active
+        );
+
+        if (specificProduct) {
+          priceId = specificProduct.stripe_price_id;
+          console.log(`[AFFILIATE-CHECKOUT] Usando price ID específico do afiliado: ${priceId}`);
+        }
+
+        // Atualizar contador de cliques
         await supabaseClient
           .from('affiliate_links')
           .update({ clicks_count: (linkData.clicks_count || 0) + 1 })
@@ -56,16 +90,20 @@ serve(async (req) => {
       }
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
-    const priceId = PLAN_PRICES[planKey];
+    // Se não encontrou price ID específico, usar fallback
+    if (!priceId) {
+      const planKey = `${planType}_${billing}` as keyof typeof FALLBACK_PLAN_PRICES;
+      priceId = FALLBACK_PLAN_PRICES[planKey];
+      console.log(`[AFFILIATE-CHECKOUT] Usando price ID padrão: ${priceId}`);
+    }
 
     if (!priceId) {
       throw new Error("Plano inválido");
     }
+
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2025-08-27.basil",
+    });
 
     // Para chamadas diretas (guest checkout), não verificar autenticação
     let customerConfig = {};
@@ -100,8 +138,10 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/planos`,
       metadata: {
         affiliate_code: finalAffiliateCode || "",
+        affiliate_id: affiliateId || "",
         plan_type: planType,
-        billing: billing
+        billing: billing,
+        is_affiliate_sale: finalAffiliateCode ? "true" : "false"
       },
       ...customerConfig
     });
