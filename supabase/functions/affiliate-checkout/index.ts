@@ -128,6 +128,39 @@ serve(async (req) => {
       }
     }
 
+    // Buscar cupom ativo para o afiliado
+    let discountConfig = {};
+    if (finalAffiliateCode && affiliateId) {
+      console.log(`[AFFILIATE-CHECKOUT] Buscando cupons ativos para afiliado: ${affiliateId}`);
+      
+      const { data: coupons } = await supabaseClient
+        .from('affiliate_coupons')
+        .select('*')
+        .eq('affiliate_id', affiliateId)
+        .eq('is_active', true)
+        .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`)
+        .limit(1);
+
+      if (coupons && coupons.length > 0) {
+        const coupon = coupons[0];
+        console.log(`[AFFILIATE-CHECKOUT] Cupom encontrado: ${coupon.stripe_coupon_id}`);
+        
+        // Verificar se o cupom ainda não atingiu o limite de usos
+        if (!coupon.max_redemptions || coupon.times_redeemed < coupon.max_redemptions) {
+          discountConfig = {
+            discounts: [{
+              coupon: coupon.stripe_coupon_id
+            }]
+          };
+          console.log(`[AFFILIATE-CHECKOUT] Aplicando cupom: ${coupon.stripe_coupon_id}`);
+        } else {
+          console.log(`[AFFILIATE-CHECKOUT] Cupom atingiu limite de usos: ${coupon.times_redeemed}/${coupon.max_redemptions}`);
+        }
+      } else {
+        console.log(`[AFFILIATE-CHECKOUT] Nenhum cupom ativo encontrado para afiliado: ${affiliateId}`);
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{
         price: priceId,
@@ -143,7 +176,8 @@ serve(async (req) => {
         billing: billing,
         is_affiliate_sale: finalAffiliateCode ? "true" : "false"
       },
-      ...customerConfig
+      ...customerConfig,
+      ...discountConfig
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

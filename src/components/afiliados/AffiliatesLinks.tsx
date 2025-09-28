@@ -16,8 +16,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Copy, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, Copy, ExternalLink, Trash2, Tag } from "lucide-react";
 import { useAffiliates } from "@/hooks/useAffiliates";
+import { useAffiliateCoupons } from "@/hooks/useAffiliateCoupons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -41,6 +42,7 @@ import {
 
 export function AffiliatesLinks() {
   const { affiliates, affiliateLinks, loading, createAffiliateLink, deleteAffiliateLink, generateAffiliateUrl } = useAffiliates();
+  const { getActiveCouponsForAffiliate, formatDiscountValue } = useAffiliateCoupons();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string>("");
@@ -166,6 +168,7 @@ export function AffiliatesLinks() {
                   <TableHead>Código</TableHead>
                   <TableHead>Afiliado</TableHead>
                   <TableHead>Produto</TableHead>
+                  <TableHead>Cupons</TableHead>
                   <TableHead>Cliques</TableHead>
                   <TableHead>Conversões</TableHead>
                   <TableHead>Status</TableHead>
@@ -192,6 +195,28 @@ export function AffiliatesLinks() {
                          link.product_type === 'enterprise_yearly' ? 'Emp. Anual' :
                          link.product_type}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const activeCoupons = getActiveCouponsForAffiliate(link.affiliate_id);
+                        return activeCoupons.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {activeCoupons.slice(0, 2).map(coupon => (
+                              <Badge key={coupon.id} variant="secondary" className="text-xs flex items-center gap-1">
+                                <Tag className="h-3 w-3" />
+                                {formatDiscountValue(coupon.discount_type, coupon.discount_value)}
+                              </Badge>
+                            ))}
+                            {activeCoupons.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{activeCoupons.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Sem cupons</span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>{link.clicks_count || 0}</TableCell>
                     <TableCell>{link.conversions_count || 0}</TableCell>
