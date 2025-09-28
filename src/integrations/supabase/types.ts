@@ -19,10 +19,12 @@ export type Database = {
           affiliate_id: string
           amount: number
           created_at: string
+          cycle_number: number | null
           id: string
           paid_at: string | null
           payment_details: Json | null
           payment_method: string | null
+          recurring_from_sale_id: string | null
           sale_id: string
           status: string
           updated_at: string
@@ -31,10 +33,12 @@ export type Database = {
           affiliate_id: string
           amount: number
           created_at?: string
+          cycle_number?: number | null
           id?: string
           paid_at?: string | null
           payment_details?: Json | null
           payment_method?: string | null
+          recurring_from_sale_id?: string | null
           sale_id: string
           status?: string
           updated_at?: string
@@ -43,10 +47,12 @@ export type Database = {
           affiliate_id?: string
           amount?: number
           created_at?: string
+          cycle_number?: number | null
           id?: string
           paid_at?: string | null
           payment_details?: Json | null
           payment_method?: string | null
+          recurring_from_sale_id?: string | null
           sale_id?: string
           status?: string
           updated_at?: string
@@ -57,6 +63,13 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_recurring_from_sale_id_fkey"
+            columns: ["recurring_from_sale_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_sales"
             referencedColumns: ["id"]
           },
           {
@@ -1555,6 +1568,30 @@ export type Database = {
           table_name?: string
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          processed_at: string
+          stripe_event_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          processed_at?: string
+          stripe_event_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          processed_at?: string
+          stripe_event_id?: string
         }
         Relationships: []
       }

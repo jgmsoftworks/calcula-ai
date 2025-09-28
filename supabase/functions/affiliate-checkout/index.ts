@@ -27,19 +27,32 @@ serve(async (req) => {
   try {
     const { planType, billing, affiliateCode, direct } = await req.json();
     
+    // Verificar se há cookie de afiliado para visitantes
+    let affiliateCodeFromCookie = null;
+    if (direct && !affiliateCode) {
+      // Se for checkout direto sem código de afiliado, verificar cookie
+      const cookies = req.headers.get("cookie") || "";
+      const affCookieMatch = cookies.match(/aff_code=([^;]+)/);
+      if (affCookieMatch) {
+        affiliateCodeFromCookie = affCookieMatch[1];
+      }
+    }
+    
+    const finalAffiliateCode = affiliateCode || affiliateCodeFromCookie;
+    
     // Rastrear clique no link de afiliado se presente
-    if (affiliateCode) {
+    if (finalAffiliateCode) {
       const { data: linkData } = await supabaseClient
         .from('affiliate_links')
         .select('clicks_count')
-        .eq('link_code', affiliateCode)
+        .eq('link_code', finalAffiliateCode)
         .single();
 
       if (linkData) {
         await supabaseClient
           .from('affiliate_links')
           .update({ clicks_count: (linkData.clicks_count || 0) + 1 })
-          .eq('link_code', affiliateCode);
+          .eq('link_code', finalAffiliateCode);
       }
     }
 
@@ -86,7 +99,7 @@ serve(async (req) => {
       success_url: `${req.headers.get("origin")}/auth/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/planos`,
       metadata: {
-        affiliate_code: affiliateCode || "",
+        affiliate_code: finalAffiliateCode || "",
         plan_type: planType,
         billing: billing
       },

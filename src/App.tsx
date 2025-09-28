@@ -23,6 +23,7 @@ import Planos from "./pages/Planos";
 import Sugestoes from "./pages/Sugestoes";
 import PerfilNegocio from "./pages/PerfilNegocio";
 import Checkout from "./pages/Checkout";
+import AffiliateRedirect from "./pages/AffiliateRedirect";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/auth/success" element={<AuthSuccess />} />
             <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/a/:code" element={<AffiliateRedirect />} />
             <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
             <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />

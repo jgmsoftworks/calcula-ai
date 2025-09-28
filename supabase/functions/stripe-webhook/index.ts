@@ -516,15 +516,102 @@ serve(async (req) => {
       case 'invoice.payment_succeeded':
         const invoice = event.data.object as Stripe.Invoice;
         
-        logStep("Processing successful payment", {
+        logStep("Processing successful payment (recurrence)", {
           invoiceId: invoice.id,
           customerId: invoice.customer,
           amountPaid: invoice.amount_paid,
           subscriptionId: invoice.subscription
         });
 
-        // Aqui podemos implementar lógica adicional para pagamentos bem-sucedidos
-        // Como envio de emails de confirmação, ativação de recursos, etc.
+        // Processar comissões recorrentes se houver assinatura
+        if (invoice.subscription) {
+          try {
+            // Buscar customer do Stripe
+            const customer = await stripe.customers.retrieve(invoice.customer as string);
+            const customerEmail = (customer as Stripe.Customer).email;
+
+            if (customerEmail) {
+              // Buscar vendas existentes deste cliente para encontrar afiliados
+              const { data: existingSales, error: salesError } = await supabaseClient
+                .from('affiliate_sales')
+                .select(`
+                  *,
+                  affiliate:affiliates(*)
+                `)
+                .eq('customer_email', customerEmail)
+                .eq('status', 'confirmed');
+
+              if (salesError) {
+                logError(salesError, "Error fetching existing sales for recurrence", { customerEmail });
+              } else if (existingSales && existingSales.length > 0) {
+                // Para cada venda encontrada, criar comissão recorrente
+                for (const sale of existingSales) {
+                  const affiliate = sale.affiliate;
+                  
+                  // Contar ciclos existentes para esta venda
+                  const { data: existingCommissions } = await supabaseClient
+                    .from('affiliate_commissions')
+                    .select('cycle_number')
+                    .eq('sale_id', sale.id)
+                    .order('cycle_number', { ascending: false })
+                    .limit(1);
+
+                  const nextCycle = existingCommissions && existingCommissions.length > 0 
+                    ? (existingCommissions[0].cycle_number || 1) + 1 
+                    : 2; // Primeiro ciclo já foi criado no checkout
+
+                  // Calcular comissão baseada no valor pago (em centavos)
+                  const amountPaid = (invoice.amount_paid || 0) / 100; // Converter de centavos
+                  let commissionAmount = 0;
+                  
+                  if (affiliate.commission_type === 'percentage') {
+                    commissionAmount = (amountPaid * affiliate.commission_percentage) / 100;
+                  } else {
+                    commissionAmount = affiliate.commission_fixed_amount || 0;
+                  }
+
+                  // Criar comissão recorrente
+                  const { error: commissionError } = await supabaseClient
+                    .from('affiliate_commissions')
+                    .insert({
+                      affiliate_id: affiliate.id,
+                      sale_id: sale.id,
+                      amount: commissionAmount,
+                      status: 'pending',
+                      cycle_number: nextCycle,
+                      recurring_from_sale_id: sale.id
+                    });
+
+                  if (commissionError) {
+                    logError(commissionError, "Failed to create recurring commission", { 
+                      saleId: sale.id,
+                      cycle: nextCycle 
+                    });
+                  } else {
+                    logStep("Recurring commission created", { 
+                      affiliateId: affiliate.id,
+                      saleId: sale.id,
+                      cycle: nextCycle,
+                      amount: commissionAmount 
+                    });
+
+                    // Atualizar totais do afiliado
+                    await supabaseClient
+                      .from('affiliates')
+                      .update({
+                        total_commissions: (affiliate.total_commissions || 0) + commissionAmount
+                      })
+                      .eq('id', affiliate.id);
+                  }
+                }
+              }
+            }
+          } catch (recurrenceError) {
+            logError(recurrenceError, "Error processing recurring commissions", { 
+              invoiceId: invoice.id 
+            });
+          }
+        }
         break;
 
       case 'invoice.payment_failed':

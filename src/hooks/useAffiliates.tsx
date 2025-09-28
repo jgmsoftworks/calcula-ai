@@ -64,6 +64,8 @@ interface AffiliateCommission {
   payment_method?: string;
   payment_details?: any;
   paid_at?: string;
+  cycle_number?: number;
+  recurring_from_sale_id?: string;
   created_at: string;
   updated_at: string;
   affiliate?: Affiliate;
@@ -170,7 +172,7 @@ export const useAffiliates = () => {
         .select(`
           *,
           affiliate:affiliates(*),
-          sale:affiliate_sales(*)
+          sale:affiliate_sales!sale_id(*)
         `)
         .order('created_at', { ascending: false });
 
