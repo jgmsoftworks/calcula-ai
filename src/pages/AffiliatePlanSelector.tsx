@@ -18,14 +18,14 @@ interface PlanData {
 
 const plans: PlanData[] = [
   {
-    name: 'Professional',
+    name: 'Professional Mensal',
     price: 49.90,
     billing: 'monthly',
     features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Sistema de Vitrine', 'Simulador de preços', '80 PDFs por mês'],
     icon: <Star className="h-5 w-5" />
   },
   {
-    name: 'Professional',
+    name: 'Professional Anual',
     price: 478.80,
     billing: 'yearly',
     popular: true,
@@ -33,14 +33,14 @@ const plans: PlanData[] = [
     icon: <Star className="h-5 w-5" />
   },
   {
-    name: 'Enterprise',
+    name: 'Enterprise Mensal',
     price: 89.90,
     billing: 'monthly',
     features: ['Tudo ilimitado', 'Sistema de Vitrine', 'Simulador de preços', 'Suporte prioritário', 'Recursos avançados'],
     icon: <Crown className="h-5 w-5" />
   },
   {
-    name: 'Enterprise',
+    name: 'Enterprise Anual',
     price: 838.80,
     billing: 'yearly',
     features: ['Tudo ilimitado', 'Sistema de Vitrine', 'Simulador de preços', 'Suporte prioritário', 'Recursos avançados'],
@@ -177,7 +177,7 @@ const AffiliatePlanSelector = () => {
             return (
               <Card 
                 key={index}
-                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-glow ${
+                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-glow flex flex-col h-full ${
                   plan.popular 
                     ? 'ring-2 ring-white/50 shadow-glow' 
                     : 'hover:shadow-xl'
@@ -216,7 +216,7 @@ const AffiliatePlanSelector = () => {
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent>
+                <CardContent className="flex-1">
                   <ul className="space-y-3">
                     {plan.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-2">
@@ -244,7 +244,7 @@ const AffiliatePlanSelector = () => {
                       </>
                     ) : (
                       <>
-                        Assinar {plan.name}
+                        Selecionar Plano
                         <Zap className="h-4 w-4 ml-2" />
                       </>
                     )}
