@@ -14,39 +14,36 @@ interface PlanData {
   popular?: boolean;
   features: string[];
   icon: React.ReactNode;
-  savings?: string;
 }
 
 const plans: PlanData[] = [
   {
     name: 'Professional',
-    price: 29,
+    price: 49.90,
     billing: 'monthly',
-    features: ['60 Receitas', '3 Markups', 'Movimentações', 'PDF Exports (80/mês)', 'Suporte Prioritário'],
+    features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Sistema de Vitrine', 'Simulador de preços', '80 PDFs por mês'],
     icon: <Star className="h-5 w-5" />
   },
   {
     name: 'Professional',
-    price: 290,
+    price: 478.80,
     billing: 'yearly',
     popular: true,
-    savings: '2 meses grátis',
-    features: ['60 Receitas', '3 Markups', 'Movimentações', 'PDF Exports (80/mês)', 'Suporte Prioritário'],
+    features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Sistema de Vitrine', 'Simulador de preços', '80 PDFs por mês'],
     icon: <Star className="h-5 w-5" />
   },
   {
     name: 'Enterprise',
-    price: 49,
+    price: 89.90,
     billing: 'monthly',
-    features: ['Receitas Ilimitadas', 'Markups Ilimitados', 'Movimentações', 'PDF Exports Ilimitados', 'Suporte VIP'],
+    features: ['Tudo ilimitado', 'Sistema de Vitrine', 'Simulador de preços', 'Suporte prioritário', 'Recursos avançados'],
     icon: <Crown className="h-5 w-5" />
   },
   {
     name: 'Enterprise',
-    price: 490,
+    price: 838.80,
     billing: 'yearly',
-    savings: '2 meses grátis',
-    features: ['Receitas Ilimitadas', 'Markups Ilimitados', 'Movimentações', 'PDF Exports Ilimitados', 'Suporte VIP'],
+    features: ['Tudo ilimitado', 'Sistema de Vitrine', 'Simulador de preços', 'Suporte prioritário', 'Recursos avançados'],
     icon: <Crown className="h-5 w-5" />
   }
 ];
@@ -124,9 +121,9 @@ const AffiliatePlanSelector = () => {
   const formatPrice = (price: number, billing: 'monthly' | 'yearly') => {
     const monthlyPrice = billing === 'yearly' ? price / 12 : price;
     return {
-      main: billing === 'yearly' ? `R$ ${monthlyPrice.toFixed(0)}` : `R$ ${price}`,
-      period: billing === 'yearly' ? '/mês' : '/mês',
-      total: billing === 'yearly' ? `Cobrado R$ ${price} anualmente` : ''
+      main: `R$ ${monthlyPrice.toFixed(2).replace('.', ',')}`,
+      period: '/mês',
+      total: billing === 'yearly' ? `Cobrado R$ ${price.toFixed(2).replace('.', ',')} anualmente` : ''
     };
   };
 
@@ -193,17 +190,10 @@ const AffiliatePlanSelector = () => {
                 )}
                 
                 <CardHeader className={plan.popular ? 'pt-12' : 'pt-6'}>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      {plan.icon}
-                      {plan.name}
-                    </CardTitle>
-                    {plan.savings && (
-                      <Badge variant="destructive" className="text-xs">
-                        {plan.savings}
-                      </Badge>
-                    )}
-                  </div>
+                  <CardTitle className="flex items-center gap-2">
+                    {plan.icon}
+                    {plan.name}
+                  </CardTitle>
                   
                   <div className="space-y-1">
                     <div className="flex items-baseline gap-1">
