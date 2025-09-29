@@ -46,7 +46,7 @@ export function AffiliatesLinks() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string>("");
-  const [selectedProduct, setSelectedProduct] = useState<'all' | 'professional_monthly' | 'professional_yearly' | 'enterprise_monthly' | 'enterprise_yearly'>('all');
+  const [selectedProduct, setSelectedProduct] = useState<'all'>('all');
 
   const handleCreateLink = async () => {
     if (!selectedAffiliate) {
@@ -59,7 +59,7 @@ export function AffiliatesLinks() {
     }
 
     try {
-      await createAffiliateLink(selectedAffiliate, selectedProduct);
+      await createAffiliateLink(selectedAffiliate, 'all');
       setIsDialogOpen(false);
       setSelectedAffiliate("");
       setSelectedProduct('all');
@@ -68,8 +68,8 @@ export function AffiliatesLinks() {
     }
   };
 
-  const copyToClipboard = async (linkCode: string, productType: string) => {
-    const url = generateAffiliateUrl(linkCode, productType);
+  const copyToClipboard = async (linkCode: string) => {
+    const url = generateAffiliateUrl(linkCode);
     try {
       await navigator.clipboard.writeText(url);
       toast({
@@ -114,7 +114,7 @@ export function AffiliatesLinks() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Criar Link de Afiliação</DialogTitle>
+                <DialogTitle>Criar Link Geral de Afiliado</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -132,23 +132,15 @@ export function AffiliatesLinks() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Plano Específico</label>
-                  <Select value={selectedProduct} onValueChange={(value: typeof selectedProduct) => setSelectedProduct(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os Planos</SelectItem>
-                      <SelectItem value="professional_monthly">Profissional Mensal - R$ 49,90/mês</SelectItem>
-                      <SelectItem value="professional_yearly">Profissional Anual - R$ 478,80/ano</SelectItem>
-                      <SelectItem value="enterprise_monthly">Empresarial Mensal - R$ 89,90/mês</SelectItem>
-                      <SelectItem value="enterprise_yearly">Empresarial Anual - R$ 838,80/ano</SelectItem>
-                    </SelectContent>
-                  </Select>
+                
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Link Geral:</strong> O cliente será direcionado para uma página onde poderá escolher entre os planos Professional e Enterprise (mensal ou anual).
+                  </p>
                 </div>
+                
                 <Button onClick={handleCreateLink} className="w-full">
-                  Criar Link
+                  Criar Link Geral
                 </Button>
               </div>
             </DialogContent>
@@ -187,13 +179,8 @@ export function AffiliatesLinks() {
                       {link.affiliate?.name || 'N/A'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {link.product_type === 'all' ? 'Todos' : 
-                         link.product_type === 'professional_monthly' ? 'Prof. Mensal' :
-                         link.product_type === 'professional_yearly' ? 'Prof. Anual' :
-                         link.product_type === 'enterprise_monthly' ? 'Emp. Mensal' :
-                         link.product_type === 'enterprise_yearly' ? 'Emp. Anual' :
-                         link.product_type}
+                      <Badge variant="default" className="bg-gradient-primary text-white">
+                        Link Geral
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -230,14 +217,14 @@ export function AffiliatesLinks() {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={() => copyToClipboard(link.link_code, link.product_type)}
+                          onClick={() => copyToClipboard(link.link_code)}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => window.open(generateAffiliateUrl(link.link_code, link.product_type), '_blank')}
+                          onClick={() => window.open(generateAffiliateUrl(link.link_code), '_blank')}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>

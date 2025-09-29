@@ -369,18 +369,9 @@ export const useAffiliates = () => {
       });
     }
   };
-  const generateAffiliateUrl = (linkCode: string, productType?: string) => {
+  const generateAffiliateUrl = (linkCode: string) => {
     const baseUrl = window.location.origin;
-    
-    // Se o productType não for 'all', gerar URL direta para checkout
-    if (productType && productType !== 'all') {
-      // Extrair planType e billing do productType
-      const [planType, billing] = productType.split('_');
-      return `${baseUrl}/checkout?ref=${linkCode}&plan=${planType}&billing=${billing}`;
-    }
-    
-    // Para 'all' ou sem productType específico, manter o comportamento atual
-    return `${baseUrl}/planos?ref=${linkCode}`;
+    return `${baseUrl}/affiliate/${linkCode}`;
   };
 
   // Carregar todos os dados

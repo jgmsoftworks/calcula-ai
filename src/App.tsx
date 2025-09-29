@@ -26,6 +26,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
+import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,7 +50,8 @@ const App = () => (
             <Route path="/auth/success" element={<AuthSuccess />} />
             <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/a/:code" element={<AffiliateRedirect />} />
+          <Route path="/ref/:code" element={<AffiliateRedirect />} />
+          <Route path="/affiliate/:code" element={<AffiliatePlanSelector />} />
             <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
             <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
             <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />

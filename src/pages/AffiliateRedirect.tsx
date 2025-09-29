@@ -16,8 +16,8 @@ const AffiliateRedirect = () => {
       
       document.cookie = `aff_code=${cookieValue}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
       
-      // Redirecionar para seletor de planos
-      navigate('/planos', { replace: true });
+      // Redirecionar para seletor de planos do afiliado
+      navigate(`/affiliate/${code}`, { replace: true });
     } else {
       // Se não tem código, vai direto pros planos
       navigate('/planos', { replace: true });
