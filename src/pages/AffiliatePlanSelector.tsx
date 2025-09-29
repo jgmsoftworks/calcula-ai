@@ -211,8 +211,13 @@ const AffiliatePlanSelector = () => {
                     )}
                   </div>
                   
-                  <CardDescription>
-                    {plan.billing === 'yearly' ? 'Plano Anual' : 'Plano Mensal'}
+                  <CardDescription className="space-y-1">
+                    <span>{plan.billing === 'yearly' ? 'Plano Anual' : 'Plano Mensal'}</span>
+                    {plan.billing === 'yearly' && (
+                      <div className="text-xs text-primary font-medium">
+                        💳 Pagamento único à vista
+                      </div>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 

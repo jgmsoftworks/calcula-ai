@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -122,6 +123,11 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     {pageInfo.description}
                   </p>
                 )}
+              </div>
+              
+              {/* Notification Center */}
+              <div className="flex items-center">
+                <NotificationCenter />
               </div>
             </div>
             
