@@ -629,6 +629,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         <SelectItem value="l">Litros (l)</SelectItem>
                         <SelectItem value="cx">Caixas (cx)</SelectItem>
                         <SelectItem value="pct">Pacotes (pct)</SelectItem>
+                        <SelectItem value="fardo">Fardo</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -571,6 +571,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                         <SelectItem value="cm">Centímetro (cm)</SelectItem>
                         <SelectItem value="cx">Caixa (cx)</SelectItem>
                         <SelectItem value="pct">Pacote (pct)</SelectItem>
+                        <SelectItem value="fardo">Fardo</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
