@@ -16,6 +16,7 @@ import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 import { Produto } from './CadastroProdutos';
+import { ModoUsoTab } from './ModoUsoTab';
 
 interface Fornecedor {
   id: string;
@@ -37,6 +38,13 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   const [showImageCropper, setShowImageCropper] = useState(false);
   const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [conversaoData, setConversaoData] = useState<{
+    unidade_compra: string;
+    quantidade_por_unidade: number;
+    unidade_uso_receitas: string;
+    custo_unitario_uso: number;
+  } | null>(null);
+  const [conversaoExistente, setConversaoExistente] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -84,7 +92,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         codigo_interno: product.codigo_interno || '',
         codigos_barras: Array.isArray(product.codigo_barras) && product.codigo_barras.length > 0 
           ? product.codigo_barras 
-          : [''], // Garantir que sempre tenha pelo menos um campo vazio
+          : [''],
         unidade: product.unidade as any,
         total_embalagem: product.total_embalagem || 1,
         custo_unitario: product.custo_unitario || 0,
@@ -106,13 +114,30 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       
       setSelectedImage(product.imagem_url || null);
       
-      // Formatar valores monetários - usar formatCurrencyFromDB para valores do banco
       setCurrencyInputs({
         custo_total: formatCurrencyFromDB(product.custo_total || 0),
         custo_unitario: formatCurrencyFromDB(product.custo_unitario || 0)
       });
+
+      // Carregar conversão existente
+      const loadConversao = async () => {
+        if (product.id && user) {
+          const { data: conversao } = await supabase
+            .from('produto_conversoes')
+            .select('*')
+            .eq('produto_id', product.id)
+            .eq('user_id', user.id)
+            .single();
+
+          if (conversao) {
+            setConversaoExistente(conversao);
+          }
+        }
+      };
+      
+      loadConversao();
     }
-  }, [product]);
+  }, [product, user]);
 
   const loadFornecedores = async () => {
     try {
@@ -301,6 +326,33 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         .eq('id', product!.id);
 
       if (error) throw error;
+
+      // Salvar ou atualizar conversão se houver dados
+      if (conversaoData && user) {
+        const conversaoPayload = {
+          produto_id: product!.id,
+          user_id: user.id,
+          ...conversaoData,
+          ativo: true
+        };
+
+        if (conversaoExistente) {
+          // Atualizar conversão existente
+          const { error: conversaoError } = await supabase
+            .from('produto_conversoes')
+            .update(conversaoPayload)
+            .eq('id', conversaoExistente.id);
+
+          if (conversaoError) throw conversaoError;
+        } else {
+          // Criar nova conversão
+          const { error: conversaoError } = await supabase
+            .from('produto_conversoes')
+            .insert([conversaoPayload]);
+
+          if (conversaoError) throw conversaoError;
+        }
+      }
       
       toast({ title: "Produto atualizado com sucesso!" });
       onSave();
@@ -575,9 +627,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
             {/* Abas */}
             <Tabs defaultValue="estoque" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-primary/10">
+              <TabsList className="grid w-full grid-cols-3 bg-primary/10">
                 <TabsTrigger value="estoque" className="data-[state=active]:bg-background data-[state=active]:text-primary">
                   Estoque e Custos
+                </TabsTrigger>
+                <TabsTrigger value="modo-uso" className="data-[state=active]:bg-background data-[state=active]:text-primary">
+                  Modo de Uso
                 </TabsTrigger>
                 <TabsTrigger value="rotulo" className="data-[state=active]:bg-background data-[state=active]:text-primary">
                   Histórico de Movimentação
@@ -689,6 +744,17 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                     />
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="modo-uso" className="space-y-4 p-4 bg-background/50 rounded-lg border">
+                <ModoUsoTab
+                  totalEmbalagem={formData.total_embalagem}
+                  custoTotal={formData.custo_total}
+                  custoUnitario={formData.custo_unitario}
+                  unidadeCompra={formData.unidade}
+                  onConversaoChange={setConversaoData}
+                  initialData={conversaoExistente}
+                />
               </TabsContent>
 
               <TabsContent value="rotulo" className="space-y-4 p-4 bg-background/50 rounded-lg border max-h-[400px] overflow-auto">

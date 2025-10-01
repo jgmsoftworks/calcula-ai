@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Ingrediente {
   id: string;
@@ -39,30 +40,62 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
   const [produtosDisponiveis, setProdutosDisponiveis] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadProdutos();
-    // Não carregamos ingredientes salvos pois agora trabalhamos apenas em memória
-    // Os ingredientes já vêm via props se estivermos editando uma receita existente
   }, []);
 
   const loadProdutos = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
-      const { data: produtos, error } = await supabase
+      // Buscar produtos com suas conversões (Modo de Uso)
+      const { data, error } = await supabase
         .from('produtos')
-        .select('id, nome, unidade, custo_medio, marcas')
+        .select(`
+          id,
+          nome,
+          marcas,
+          ativo,
+          produto_conversoes!inner (
+            unidade_uso_receitas,
+            custo_unitario_uso
+          )
+        `)
+        .eq('user_id', user.id)
         .eq('ativo', true)
         .order('nome');
 
       if (error) {
         console.error('Erro ao carregar produtos:', error);
+        toast({
+          title: "Erro ao carregar produtos",
+          description: "Tente novamente mais tarde",
+          variant: "destructive"
+        });
         return;
       }
 
-      setProdutosDisponiveis(produtos || []);
+      // Transformar os dados para o formato esperado
+      const produtosTransformados = (data || []).map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        marcas: p.marcas,
+        // Usar dados da conversão (Modo de Uso) ao invés dos dados diretos do produto
+        unidade: p.produto_conversoes[0]?.unidade_uso_receitas || 'un',
+        custo_medio: p.produto_conversoes[0]?.custo_unitario_uso || 0
+      }));
+
+      setProdutosDisponiveis(produtosTransformados);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
+      toast({
+        title: "Erro ao carregar produtos",
+        description: "Ocorreu um erro inesperado",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

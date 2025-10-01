@@ -13,6 +13,7 @@ import { Plus, Camera, X } from 'lucide-react';
 import { ImageCropper } from './ImageCropper';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
+import { ModoUsoTab } from './ModoUsoTab';
 
 interface Fornecedor {
   id: string;
@@ -47,6 +48,12 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
   const [showImageCropper, setShowImageCropper] = useState(false);
   const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [conversaoData, setConversaoData] = useState<{
+    unidade_compra: string;
+    quantidade_por_unidade: number;
+    unidade_uso_receitas: string;
+    custo_unitario_uso: number;
+  } | null>(null);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -227,6 +234,16 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
       return;
     }
 
+    // Validar se a conversão foi definida
+    if (!conversaoData) {
+      toast({
+        title: "Atenção",
+        description: "Por favor, defina o Modo de Uso do produto na aba correspondente",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -239,20 +256,36 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         total_embalagem: formData.total_embalagem,
         custo_unitario: formData.custo_unitario,
         custo_total: formData.custo_total,
-        custo_medio: formData.custo_unitario, // Mapear para custo_medio que existe na tabela
+        custo_medio: formData.custo_unitario,
         estoque_atual: formData.estoque_atual,
         estoque_minimo: formData.estoque_minimo,
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
-        imagem_url: selectedImage, // Adicionar a imagem selecionada
+        imagem_url: selectedImage,
         user_id: user?.id,
         ativo: formData.ativo
       };
 
-      const { error } = await supabase
+      const { data: produtoInserido, error } = await supabase
         .from('produtos')
-        .insert([payload]);
+        .insert([payload])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Inserir a conversão (Modo de Uso)
+      const conversaoPayload = {
+        produto_id: produtoInserido.id,
+        user_id: user!.id,
+        ...conversaoData,
+        ativo: true
+      };
+
+      const { error: conversaoError } = await supabase
+        .from('produto_conversoes')
+        .insert([conversaoPayload]);
+
+      if (conversaoError) throw conversaoError;
 
       toast({ title: "Produto cadastrado com sucesso!" });
       
@@ -262,8 +295,8 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
       // Reset form
       setFormData({
         nome: '',
-        marcas: [], // Mudança: resetar array
-        categorias: [], // Mudança: resetar array
+        marcas: [],
+        categorias: [],
         codigo_interno: '',
         codigos_barras: [''], // Resetar com um campo vazio
         unidade: 'un',
@@ -518,8 +551,8 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                 <TabsTrigger value="estoque" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                   Estoque e Custos
                 </TabsTrigger>
-                <TabsTrigger value="historico" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                  Histórico de Entradas
+                <TabsTrigger value="modo-uso" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                  Modo de Uso
                 </TabsTrigger>
               </TabsList>
 
@@ -628,11 +661,15 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                 </div>
               </TabsContent>
 
-              {/* Aba Histórico de Entradas */}
-              <TabsContent value="historico" className="space-y-4 mt-6">
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Histórico será exibido após o primeiro cadastro</p>
-                </div>
+              {/* Aba Modo de Uso */}
+              <TabsContent value="modo-uso" className="space-y-4 mt-6">
+                <ModoUsoTab
+                  totalEmbalagem={formData.total_embalagem}
+                  custoTotal={formData.custo_total}
+                  custoUnitario={formData.custo_unitario}
+                  unidadeCompra={formData.unidade}
+                  onConversaoChange={setConversaoData}
+                />
               </TabsContent>
             </Tabs>
 

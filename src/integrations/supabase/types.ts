@@ -1034,6 +1034,53 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_conversoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_unitario_uso: number
+          id: string
+          produto_id: string
+          quantidade_por_unidade: number
+          unidade_compra: string
+          unidade_uso_receitas: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_unitario_uso?: number
+          id?: string
+          produto_id: string
+          quantidade_por_unidade: number
+          unidade_compra: string
+          unidade_uso_receitas: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_unitario_uso?: number
+          id?: string
+          produto_id?: string
+          quantidade_por_unidade?: number
+          unidade_compra?: string
+          unidade_uso_receitas?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_conversoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean
