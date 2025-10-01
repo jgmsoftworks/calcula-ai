@@ -1042,6 +1042,7 @@ export type Database = {
           id: string
           produto_id: string
           quantidade_por_unidade: number
+          quantidade_unidade_uso: number
           unidade_compra: string
           unidade_uso_receitas: string
           updated_at: string
@@ -1054,6 +1055,7 @@ export type Database = {
           id?: string
           produto_id: string
           quantidade_por_unidade: number
+          quantidade_unidade_uso?: number
           unidade_compra: string
           unidade_uso_receitas: string
           updated_at?: string
@@ -1066,6 +1068,7 @@ export type Database = {
           id?: string
           produto_id?: string
           quantidade_por_unidade?: number
+          quantidade_unidade_uso?: number
           unidade_compra?: string
           unidade_uso_receitas?: string
           updated_at?: string

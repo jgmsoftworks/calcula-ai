@@ -15,10 +15,12 @@ interface ModoUsoTabProps {
     quantidade_por_unidade: number;
     unidade_uso_receitas: string;
     custo_unitario_uso: number;
+    quantidade_unidade_uso: number;
   }) => void;
   initialData?: {
     unidade_uso_receitas: string;
     custo_unitario_uso: number;
+    quantidade_unidade_uso: number;
   } | null;
 }
 
@@ -31,11 +33,26 @@ export const ModoUsoTab = ({
   initialData
 }: ModoUsoTabProps) => {
   const [unidadeUsoReceitas, setUnidadeUsoReceitas] = useState(initialData?.unidade_uso_receitas || unidadeCompra);
+  const [quantidadeUnidadeUso, setQuantidadeUnidadeUso] = useState(initialData?.quantidade_unidade_uso || 1);
   const [custoUnitarioUso, setCustoUnitarioUso] = useState(0);
+
+  // Verificar se as unidades são diferentes
+  const unidadesDiferentes = unidadeUsoReceitas !== unidadeCompra;
 
   // Calcular custo unitário de uso sempre que os valores mudarem
   useEffect(() => {
-    const custo = totalEmbalagem > 0 ? custoTotal / totalEmbalagem : 0;
+    let custo = 0;
+    
+    if (totalEmbalagem > 0) {
+      if (unidadesDiferentes && quantidadeUnidadeUso > 0) {
+        // Custo = Total / (Quantidade por Embalagem × Quantidade da Unidade)
+        custo = custoTotal / (totalEmbalagem * quantidadeUnidadeUso);
+      } else {
+        // Quando as unidades são iguais, divide apenas pela quantidade
+        custo = custoTotal / totalEmbalagem;
+      }
+    }
+    
     setCustoUnitarioUso(custo);
     
     // Notificar componente pai sobre a mudança
@@ -43,9 +60,10 @@ export const ModoUsoTab = ({
       unidade_compra: unidadeCompra,
       quantidade_por_unidade: totalEmbalagem,
       unidade_uso_receitas: unidadeUsoReceitas,
-      custo_unitario_uso: custo
+      custo_unitario_uso: custo,
+      quantidade_unidade_uso: unidadesDiferentes ? quantidadeUnidadeUso : 1
     });
-  }, [totalEmbalagem, custoTotal, unidadeCompra, unidadeUsoReceitas]);
+  }, [totalEmbalagem, custoTotal, unidadeCompra, unidadeUsoReceitas, quantidadeUnidadeUso, unidadesDiferentes]);
 
   return (
     <div className="space-y-6">
@@ -129,6 +147,28 @@ export const ModoUsoTab = ({
             </Select>
           </div>
 
+          {/* Campo condicional: quantidade da unidade de uso */}
+          {unidadesDiferentes && (
+            <div className="space-y-2">
+              <Label htmlFor="quantidade_unidade_uso" className="text-sm font-medium">
+                Quantas {unidadeUsoReceitas} tem em cada {unidadeCompra}? *
+              </Label>
+              <Input
+                id="quantidade_unidade_uso"
+                type="number"
+                value={quantidadeUnidadeUso}
+                onChange={(e) => setQuantidadeUnidadeUso(Number(e.target.value))}
+                className="h-12 border-2 border-primary/30 focus:border-primary"
+                min="0.01"
+                step="0.01"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Ex: Se cada {unidadeCompra} contém 500{unidadeUsoReceitas}, digite 500
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-sm font-medium">Custo por Unidade de Uso</Label>
             <div className="h-16 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border-2 border-primary/30 flex items-center justify-center">
@@ -143,9 +183,20 @@ export const ModoUsoTab = ({
 
           <div className="p-3 bg-background rounded border border-primary/20">
             <p className="text-xs text-muted-foreground">
-              <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} com {totalEmbalagem} {unidadeUsoReceitas} 
-              por {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
-              Cada {unidadeUsoReceitas} custará {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas.
+              {unidadesDiferentes ? (
+                <>
+                  <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} com {totalEmbalagem} unidades, 
+                  cada uma contendo {quantidadeUnidadeUso} {unidadeUsoReceitas}, 
+                  por {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
+                  Cada {unidadeUsoReceitas} custará {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas.
+                </>
+              ) : (
+                <>
+                  <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} com {totalEmbalagem} {unidadeUsoReceitas} 
+                  por {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
+                  Cada {unidadeUsoReceitas} custará {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas.
+                </>
+              )}
             </p>
           </div>
         </div>

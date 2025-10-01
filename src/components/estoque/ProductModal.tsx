@@ -43,6 +43,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     quantidade_por_unidade: number;
     unidade_uso_receitas: string;
     custo_unitario_uso: number;
+    quantidade_unidade_uso: number;
   } | null>(null);
   const [conversaoExistente, setConversaoExistente] = useState<any>(null);
   

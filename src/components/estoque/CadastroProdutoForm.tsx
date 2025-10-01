@@ -53,6 +53,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
     quantidade_por_unidade: number;
     unidade_uso_receitas: string;
     custo_unitario_uso: number;
+    quantidade_unidade_uso: number;
   } | null>(null);
 
   const { user } = useAuth();
