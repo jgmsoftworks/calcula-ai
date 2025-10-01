@@ -1677,22 +1677,28 @@ export type Database = {
       stripe_events: {
         Row: {
           created_at: string
+          error_message: string | null
           event_type: string
           id: string
+          processed: boolean | null
           processed_at: string
           stripe_event_id: string
         }
         Insert: {
           created_at?: string
+          error_message?: string | null
           event_type: string
           id?: string
+          processed?: boolean | null
           processed_at?: string
           stripe_event_id: string
         }
         Update: {
           created_at?: string
+          error_message?: string | null
           event_type?: string
           id?: string
+          processed?: boolean | null
           processed_at?: string
           stripe_event_id?: string
         }
