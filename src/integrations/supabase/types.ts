@@ -1954,6 +1954,7 @@ export type Database = {
         | "l"
         | "m"
         | "cm"
+        | "fardo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2084,7 +2085,19 @@ export const Constants = {
       app_role: ["owner", "admin", "hr_manager", "employee", "viewer"],
       tipo_movimentacao: ["entrada", "saida"],
       tipo_movimentacao_receita: ["entrada", "venda", "perdas", "brindes"],
-      unidade_medida: ["g", "kg", "ml", "L", "un", "cx", "pct", "l", "m", "cm"],
+      unidade_medida: [
+        "g",
+        "kg",
+        "ml",
+        "L",
+        "un",
+        "cx",
+        "pct",
+        "l",
+        "m",
+        "cm",
+        "fardo",
+      ],
     },
   },
 } as const

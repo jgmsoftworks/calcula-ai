@@ -17,7 +17,9 @@ import {
   Users,
   Sparkles,
   KeyRound,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +36,8 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
@@ -350,13 +354,20 @@ const Auth = () => {
                           </div>
                           <Input
                             id="password"
-                            type="password"
+                            type={showLoginPassword ? "text" : "password"}
                             placeholder="••••••••"
                             value={loginPassword}
                             onChange={(e) => setLoginPassword(e.target.value)}
-                            className="pl-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
+                            className="pl-12 pr-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
                             required
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowLoginPassword(!showLoginPassword)}
+                            className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -489,13 +500,20 @@ const Auth = () => {
                           </div>
                           <Input
                             id="signupPassword"
-                            type="password"
+                            type={showSignupPassword ? "text" : "password"}
                             placeholder="Mínimo 6 caracteres"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="pl-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
+                            className="pl-12 pr-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
                             required
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowSignupPassword(!showSignupPassword)}
+                            className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showSignupPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
                         </div>
                       </div>
                     </div>

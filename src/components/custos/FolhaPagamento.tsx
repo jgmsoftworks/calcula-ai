@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, User } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -306,6 +306,8 @@ export function FolhaPagamento() {
   // Calcular custo total do funcionário com base no formulário atual
   const calculateCustoTotalFormulario = () => {
     const salarioBase = parseCurrencyValue(formData.salario_base);
+    const adicional = parseFloat(formData.adicional) || 0;
+    const desconto = parseFloat(formData.desconto) || 0;
     
     const fgtsTotal = calculateItemValue(formData.fgts_percent, formData.fgts_valor, salarioBase);
     const inssTotal = calculateItemValue(formData.inss_percent, formData.inss_valor, salarioBase);
@@ -317,7 +319,7 @@ export function FolhaPagamento() {
     const planoTotal = calculateItemValue(formData.plano_saude_percent, formData.plano_saude_valor, salarioBase);
     const outrosTotal = calculateItemValue(formData.outros_percent, formData.outros_valor, salarioBase);
     
-    return Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
+    return Math.round((salarioBase + adicional - desconto + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
   };
 
   // Calcular custo por hora (baseado no custo total do funcionário)
@@ -428,6 +430,40 @@ export function FolhaPagamento() {
     setIsModalOpen(true);
   };
 
+  const handleDuplicate = (funcionario: Funcionario) => {
+    setEditingFuncionario(null); // Novo funcionário, não está editando
+    setFormData({
+      nome: '', // Nome vazio para ser preenchido pelo usuário
+      cargo: funcionario.cargo || '',
+      tipo_mao_obra: funcionario.tipo_mao_obra,
+      salario_base: formatCurrencyDisplay(funcionario.salario_base),
+      adicional: funcionario.adicional.toString(),
+      desconto: funcionario.desconto.toString(),
+      fgts_percent: funcionario.fgts_percent.toString().replace('.', ','),
+      fgts_valor: formatCurrencyDisplay(funcionario.fgts_valor),
+      inss_percent: funcionario.inss_percent.toString().replace('.', ','),
+      inss_valor: formatCurrencyDisplay(funcionario.inss_valor),
+      rat_percent: funcionario.rat_percent.toString().replace('.', ','),
+      rat_valor: formatCurrencyDisplay(funcionario.rat_valor),
+      ferias_percent: funcionario.ferias_percent.toString().replace('.', ','),
+      ferias_valor: formatCurrencyDisplay(funcionario.ferias_valor),
+      vale_transporte_percent: funcionario.vale_transporte_percent.toString().replace('.', ','),
+      vale_transporte_valor: formatCurrencyDisplay(funcionario.vale_transporte_valor),
+      vale_alimentacao_percent: funcionario.vale_alimentacao_percent.toString().replace('.', ','),
+      vale_alimentacao_valor: formatCurrencyDisplay(funcionario.vale_alimentacao_valor),
+      vale_refeicao_percent: funcionario.vale_refeicao_percent.toString().replace('.', ','),
+      vale_refeicao_valor: formatCurrencyDisplay(funcionario.vale_refeicao_valor),
+      plano_saude_percent: funcionario.plano_saude_percent.toString().replace('.', ','),
+      plano_saude_valor: formatCurrencyDisplay(funcionario.plano_saude_valor),
+      outros_percent: funcionario.outros_percent.toString().replace('.', ','),
+      outros_valor: formatCurrencyDisplay(funcionario.outros_valor),
+      horas_por_dia: formatDecimalNumber(funcionario.horas_por_dia) || '8',
+      dias_por_semana: formatDecimalNumber(funcionario.dias_por_semana) || '5',
+      semanas_por_mes: formatDecimalNumber(funcionario.semanas_por_mes) || '4,33'
+    });
+    setIsModalOpen(true);
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
@@ -472,6 +508,8 @@ export function FolhaPagamento() {
 
   const calculateCustoTotal = (funcionario: Funcionario) => {
     const salarioBase = funcionario.salario_base;
+    const adicional = funcionario.adicional || 0;
+    const desconto = funcionario.desconto || 0;
     
     const fgtsTotal = calculateItemValue(funcionario.fgts_percent.toString(), funcionario.fgts_valor.toString(), salarioBase);
     const inssTotal = calculateItemValue(funcionario.inss_percent.toString(), funcionario.inss_valor.toString(), salarioBase);
@@ -483,7 +521,7 @@ export function FolhaPagamento() {
     const planoTotal = calculateItemValue(funcionario.plano_saude_percent.toString(), funcionario.plano_saude_valor.toString(), salarioBase);
     const outrosTotal = calculateItemValue(funcionario.outros_percent.toString(), funcionario.outros_valor.toString(), salarioBase);
     
-    return Math.round((salarioBase + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
+    return Math.round((salarioBase + adicional - desconto + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
   };
 
   const getTotalFolha = () => {
@@ -786,6 +824,14 @@ export function FolhaPagamento() {
                         onClick={() => handleEdit(funcionario)}
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDuplicate(funcionario)}
+                        title="Duplicar funcionário"
+                      >
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"

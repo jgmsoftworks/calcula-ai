@@ -120,8 +120,28 @@ export const FornecedoresTabela = () => {
     setSelectedFornecedor(null);
   };
 
+  const formatCNPJ = (value: string) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '');
+    
+    // Aplica a máscara de CNPJ
+    if (numbers.length <= 14) {
+      return numbers
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2')
+        .replace(/(-\d{2})\d+?$/, '$1');
+    }
+    return numbers.slice(0, 14);
+  };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'cnpj_cpf') {
+      setFormData(prev => ({ ...prev, [field]: formatCNPJ(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

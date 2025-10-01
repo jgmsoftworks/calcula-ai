@@ -100,6 +100,19 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
   };
 
   const handleInputChange = (field: string, value: any) => {
+    // Validação especial para estoque_atual: permitir zero, mas não negativo
+    if (field === 'estoque_atual') {
+      const numValue = parseFloat(value);
+      if (numValue < 0) {
+        toast({
+          title: "Valor inválido",
+          description: "O estoque não pode ser negativo",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
       
