@@ -58,15 +58,14 @@ const AuthSuccess = () => {
       }
 
       if (data.user_exists) {
-        // Usuário já existe, fazer login automático via magic link
+        // Usuário já existe, redirecionar para login
         toast({
           title: '✅ Pagamento confirmado!',
-          description: 'Fazendo login automático...'
+          description: 'Redirecionando para login...'
         });
         
-        // Pequeno delay para mostrar a mensagem
         setTimeout(() => {
-          window.location.href = data.magic_link;
+          navigate(`/auth?email=${encodeURIComponent(data.customer_email)}&plan=${data.plan}`, { replace: true });
         }, 1500);
       } else {
         // Usuário não existe, mostrar formulário de cadastro
@@ -142,12 +141,22 @@ const AuthSuccess = () => {
 
       toast({
         title: '🎉 Conta criada com sucesso!',
-        description: 'Fazendo login automático...'
+        description: 'Fazendo login...'
       });
 
-      // Login automático via magic link
+      // Fazer login normal com as credenciais
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.customer_email,
+        password: formData.password
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      // Redirecionar após login bem-sucedido
       setTimeout(() => {
-        window.location.href = data.magic_link;
+        navigate(`/?welcome=true&plan=${data.plan}`, { replace: true });
       }, 1000);
 
     } catch (error) {

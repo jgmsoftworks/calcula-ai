@@ -38,20 +38,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setEmailVerified(!!session.user.email_confirmed_at);
           
           // Check if user is admin and create profile automatically if needed
+          // CRITICAL: Always use session.user.id to ensure data isolation
           setTimeout(async () => {
             try {
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('user_id', session.user.id)
+                .eq('user_id', session.user.id) // CRITICAL: Always use authenticated user's ID
                 .maybeSingle();
 
               if (!profile) {
-                // Create profile if it doesn't exist
+                // Create profile if it doesn't exist - only for this user
                 await supabase
                   .from('profiles')
                   .insert({
-                    user_id: session.user.id,
+                    user_id: session.user.id, // CRITICAL: Only insert for authenticated user
                     full_name: session.user.user_metadata?.full_name,
                     business_name: session.user.user_metadata?.business_name,
                     is_admin: false,

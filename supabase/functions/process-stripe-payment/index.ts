@@ -191,27 +191,10 @@ serve(async (req) => {
       logStep("Profile updated successfully", { userId: user.id, planType });
     }
 
-    // Gerar token de acesso para login automático
-    const { data: tokenData, error: tokenError } = await supabaseClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: customerEmail,
-      options: {
-        redirectTo: `${req.headers.get("origin")}/?welcome=true&plan=${planType}`
-      }
-    });
-
-    if (tokenError || !tokenData.properties?.action_link) {
-      logError(tokenError, "Failed to generate access token", { customerEmail });
-      throw new Error("Failed to generate login link");
-    }
-
-    // Extrair URL de login automático
-    const loginUrl = tokenData.properties.action_link;
-    
-    logStep("Generated login URL successfully", { 
+    // Login será feito no frontend usando credenciais normais
+    logStep("Profile setup completed successfully", { 
       userId: user.id, 
       planType,
-      hasLoginUrl: !!loginUrl,
       userExists
     });
 
@@ -223,7 +206,7 @@ serve(async (req) => {
       customer_name: customer.name,
       customer_email: customerEmail,
       plan: planType,
-      magic_link: loginUrl
+      needs_password: !userExists // Indica se precisa criar senha
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
