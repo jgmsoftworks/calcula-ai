@@ -239,10 +239,11 @@ export function FolhaPagamento() {
 
   // Função para converter valor formatado para número
   const parseCurrencyValue = (value: string): number => {
-    if (!value) return 0;
-    // Remove formatação e converte para número
-    const cleanValue = value.replace(/[^\d,]/g, '').replace(',', '.');
-    return cleanValue ? parseFloat(cleanValue) : 0;
+    if (!value || value === '') return 0;
+    // Remove pontos (separadores de milhar) e troca vírgula por ponto
+    const cleanValue = value.replace(/\./g, '').replace(',', '.');
+    const parsed = parseFloat(cleanValue);
+    return isNaN(parsed) ? 0 : parsed;
   };
 
   // Função para formatar porcentagem simples (sem formatação de milhares)
@@ -253,8 +254,9 @@ export function FolhaPagamento() {
 
   // Função para converter porcentagem para número
   const parsePercentValue = (value: string): number => {
-    if (!value) return 0;
-    const normalized = value.replace(',', '.');
+    if (!value || value === '') return 0;
+    // Remove pontos (se houver) e troca vírgula por ponto
+    const normalized = value.replace(/\./g, '').replace(',', '.');
     const number = parseFloat(normalized);
     return isNaN(number) ? 0 : Math.max(0, Math.min(999.99, number));
   };
@@ -332,29 +334,29 @@ export function FolhaPagamento() {
 
   // Handler para mudança em percentual
   const handlePercentChange = (key: string, value: string) => {
-    const parsed = parseInputValue(value);
-    const salarioBase = typeof formData.salario_base === 'string' ? parseInputValue(formData.salario_base) : formData.salario_base;
+    const parsed = parsePercentValue(value);
+    const salarioBase = parseCurrencyValue(formData.salario_base);
     const calculatedValue = Math.round((salarioBase * parsed / 100) * 100) / 100;
     
     const valorKey = key.replace('_percent', '_valor');
     setFormData({ 
       ...formData, 
-      [key]: parsed.toString(),
-      [valorKey]: calculatedValue > 0 ? calculatedValue.toString() : ''
+      [key]: value, // Mantém o valor formatado original
+      [valorKey]: calculatedValue > 0 ? formatCurrencyInput(calculatedValue) : ''
     });
   };
 
   // Handler para mudança em valor monetário
   const handleValueChange = (key: string, value: string) => {
-    const parsed = parseInputValue(value);
-    const salarioBase = typeof formData.salario_base === 'string' ? parseInputValue(formData.salario_base) : formData.salario_base;
+    const parsed = parseCurrencyValue(value);
+    const salarioBase = parseCurrencyValue(formData.salario_base);
     const calculatedPercent = salarioBase > 0 ? Math.round((parsed / salarioBase * 100) * 100) / 100 : 0;
     
     const percentKey = key.replace('_valor', '_percent');
     setFormData({ 
       ...formData, 
-      [key]: parsed.toString(),
-      [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString() : '0'
+      [key]: value, // Mantém o valor formatado original
+      [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString().replace('.', ',') : '0,00'
     });
   };
 
