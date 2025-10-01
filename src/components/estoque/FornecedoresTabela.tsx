@@ -124,16 +124,16 @@ export const FornecedoresTabela = () => {
     // Remove tudo que não é dígito
     const numbers = value.replace(/\D/g, '');
     
+    // Limita a 14 dígitos
+    const limitedNumbers = numbers.slice(0, 14);
+    
     // Aplica a máscara de CNPJ
-    if (numbers.length <= 14) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1/$2')
-        .replace(/(\d{4})(\d)/, '$1-$2')
-        .replace(/(-\d{2})\d+?$/, '$1');
-    }
-    return numbers.slice(0, 14);
+    return limitedNumbers
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
   };
 
   const handleInputChange = (field: string, value: string) => {
