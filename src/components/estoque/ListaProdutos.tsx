@@ -288,8 +288,12 @@ export const ListaProdutos = () => {
     switch (coluna.key) {
       case 'imagem':
         return (
-          <Avatar className="w-10 h-10">
-            <AvatarImage src={produto.imagem_url || ''} alt={produto.nome} />
+          <Avatar className="w-10 h-10 bg-muted">
+            <AvatarImage 
+              src={produto.imagem_url || ''} 
+              alt={produto.nome}
+              className="object-contain p-1"
+            />
             <AvatarFallback className="bg-primary/10 text-primary">
               {produto.nome.charAt(0).toUpperCase()}
             </AvatarFallback>

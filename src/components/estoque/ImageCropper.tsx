@@ -21,19 +21,18 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
     
-    // Dimensões fixas do crop: 256x256 pixels
-    const cropWidth = 256;
-    const cropHeight = 256;
+    // Calcula o tamanho do crop para ser o maior quadrado possível
+    const cropSize = Math.min(width, height);
     
     // Centraliza o crop na imagem
-    const x = Math.max(0, (width - cropWidth) / 2);
-    const y = Math.max(0, (height - cropHeight) / 2);
+    const x = (width - cropSize) / 2;
+    const y = (height - cropSize) / 2;
     
-    // Crop fixo de 264x197 pixels
+    // Crop quadrado (1:1) que pode ser movido mas mantém proporção
     const crop: Crop = {
       unit: 'px',
-      width: cropWidth,
-      height: cropHeight,
+      width: cropSize,
+      height: cropSize,
       x: x,
       y: y
     };
@@ -43,8 +42,8 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
       unit: 'px',
       x: x,
       y: y,
-      width: cropWidth,
-      height: cropHeight
+      width: cropSize,
+      height: cropSize
     });
   }, []);
 
@@ -63,19 +62,30 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
 
     if (!ctx) return;
 
-    canvas.width = crop.width;
-    canvas.height = crop.height;
+    // Tamanho final otimizado: 512x512px
+    const targetSize = 512;
+    canvas.width = targetSize;
+    canvas.height = targetSize;
 
+    // Preenche com fundo branco
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, targetSize, targetSize);
+
+    // Extrai a área do crop da imagem original
+    const cropWidth = crop.width * scaleX;
+    const cropHeight = crop.height * scaleY;
+
+    // Desenha a imagem cropada redimensionada para 512x512
     ctx.drawImage(
       image,
       crop.x * scaleX,
       crop.y * scaleY,
-      crop.width * scaleX,
-      crop.height * scaleY,
+      cropWidth,
+      cropHeight,
       0,
       0,
-      crop.width,
-      crop.height
+      targetSize,
+      targetSize
     );
 
     canvas.toBlob((blob) => {
@@ -87,7 +97,7 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
         };
         reader.readAsDataURL(blob);
       }
-    }, 'image/jpeg', 0.95);
+    }, 'image/jpeg', 0.9);
   }, [completedCrop, onCropComplete, onClose]);
 
   const handleCancel = () => {
@@ -102,8 +112,11 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <CropIcon className="w-5 h-5 text-primary" />
-            Ajustar Imagem
+            Ajustar Imagem (1:1)
           </DialogTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Selecione a área quadrada que deseja usar. A imagem será redimensionada para 512x512px mantendo a proporção.
+          </p>
         </DialogHeader>
         
         <div className="flex-1 flex items-center justify-center p-6 bg-muted/20 overflow-hidden">
@@ -111,21 +124,20 @@ export const ImageCropper = ({ imageSrc, isOpen, onClose, onCropComplete }: Imag
             <ReactCrop
               crop={crop}
               onChange={(c) => {
-                // Permite mover mas mantém o tamanho fixo
-                if (c.width !== 256 || c.height !== 256) {
-                  c.width = 256;
-                  c.height = 256;
-                }
+                // Mantém a proporção 1:1 (quadrada)
+                const size = Math.min(c.width, c.height);
+                c.width = size;
+                c.height = size;
                 setCrop(c);
               }}
               onComplete={(c) => {
-                // Garante que o tamanho seja mantido no completedCrop também
-                if (c.width !== 256 || c.height !== 256) {
-                  c.width = 256;
-                  c.height = 256;
-                }
+                // Garante proporção 1:1 no completedCrop
+                const size = Math.min(c.width, c.height);
+                c.width = size;
+                c.height = size;
                 setCompletedCrop(c);
               }}
+              aspect={1}
               className="w-full h-full"
             >
               <img
