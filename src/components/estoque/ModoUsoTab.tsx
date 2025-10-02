@@ -36,6 +36,14 @@ export const ModoUsoTab = ({
   const [quantidadeUnidadeUso, setQuantidadeUnidadeUso] = useState(initialData?.quantidade_unidade_uso || 1);
   const [custoUnitarioUso, setCustoUnitarioUso] = useState(0);
 
+  // Atualizar estado quando initialData mudar (ao carregar produto existente)
+  useEffect(() => {
+    if (initialData) {
+      setUnidadeUsoReceitas(initialData.unidade_uso_receitas || unidadeCompra);
+      setQuantidadeUnidadeUso(initialData.quantidade_unidade_uso || 1);
+    }
+  }, [initialData, unidadeCompra]);
+
   // Verificar se as unidades são diferentes
   const unidadesDiferentes = unidadeUsoReceitas !== unidadeCompra;
 

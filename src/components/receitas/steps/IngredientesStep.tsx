@@ -51,7 +51,7 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
 
     try {
       setLoading(true);
-      // Buscar produtos com suas conversões (Modo de Uso)
+      // Buscar produtos com suas conversões (Modo de Uso) usando LEFT JOIN
       const { data, error } = await supabase
         .from('produtos')
         .select(`
@@ -59,7 +59,9 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
           nome,
           marcas,
           ativo,
-          produto_conversoes!inner (
+          unidade,
+          custo_medio,
+          produto_conversoes (
             unidade_uso_receitas,
             custo_unitario_uso
           )
@@ -79,14 +81,21 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
       }
 
       // Transformar os dados para o formato esperado
-      const produtosTransformados = (data || []).map((p: any) => ({
-        id: p.id,
-        nome: p.nome,
-        marcas: p.marcas,
-        // Usar dados da conversão (Modo de Uso) ao invés dos dados diretos do produto
-        unidade: p.produto_conversoes[0]?.unidade_uso_receitas || 'un',
-        custo_medio: p.produto_conversoes[0]?.custo_unitario_uso || 0
-      }));
+      const produtosTransformados = (data || []).map((p: any) => {
+        // Verificar se existe conversão ativa
+        const conversao = p.produto_conversoes && p.produto_conversoes.length > 0 
+          ? p.produto_conversoes[0] 
+          : null;
+
+        return {
+          id: p.id,
+          nome: p.nome,
+          marcas: p.marcas,
+          // Se tem conversão, usar dados da conversão; senão, usar dados do produto
+          unidade: conversao?.unidade_uso_receitas || p.unidade,
+          custo_medio: conversao?.custo_unitario_uso || p.custo_medio || 0
+        };
+      });
 
       setProdutosDisponiveis(produtosTransformados);
     } catch (error) {

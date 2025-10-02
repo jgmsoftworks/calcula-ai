@@ -128,10 +128,25 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
             .select('*')
             .eq('produto_id', product.id)
             .eq('user_id', user.id)
+            .eq('ativo', true)
             .single();
 
           if (conversao) {
-            setConversaoExistente(conversao);
+            // Formatar dados de conversão para o formato esperado pelo ModoUsoTab
+            setConversaoExistente({
+              unidade_uso_receitas: conversao.unidade_uso_receitas,
+              custo_unitario_uso: conversao.custo_unitario_uso,
+              quantidade_unidade_uso: conversao.quantidade_unidade_uso
+            });
+            
+            // Também atualizar conversaoData para salvar corretamente
+            setConversaoData({
+              unidade_compra: conversao.unidade_compra,
+              quantidade_por_unidade: conversao.quantidade_por_unidade,
+              unidade_uso_receitas: conversao.unidade_uso_receitas,
+              custo_unitario_uso: conversao.custo_unitario_uso,
+              quantidade_unidade_uso: conversao.quantidade_unidade_uso
+            });
           }
         }
       };

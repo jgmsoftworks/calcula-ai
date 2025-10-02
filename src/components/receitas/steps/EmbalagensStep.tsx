@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface Embalagem {
   id: string;
@@ -27,24 +29,64 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
   const [searchTerm, setSearchTerm] = useState('');
   const [produtos, setProdutos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     carregarProdutos();
   }, []);
 
   const carregarProdutos = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     try {
+      // Buscar produtos com suas conversões (Modo de Uso) usando LEFT JOIN
       const { data, error } = await supabase
         .from('produtos')
-        .select('*')
+        .select(`
+          id,
+          nome,
+          marcas,
+          ativo,
+          unidade,
+          custo_medio,
+          produto_conversoes (
+            unidade_uso_receitas,
+            custo_unitario_uso
+          )
+        `)
+        .eq('user_id', user.id)
         .eq('ativo', true)
         .order('nome');
 
       if (error) throw error;
-      setProdutos(data || []);
+
+      // Transformar os dados para usar conversão quando disponível
+      const produtosTransformados = (data || []).map((p: any) => {
+        // Verificar se existe conversão ativa
+        const conversao = p.produto_conversoes && p.produto_conversoes.length > 0 
+          ? p.produto_conversoes[0] 
+          : null;
+
+        return {
+          id: p.id,
+          nome: p.nome,
+          marcas: p.marcas,
+          // Se tem conversão, usar dados da conversão; senão, usar dados do produto
+          unidade: conversao?.unidade_uso_receitas || p.unidade,
+          custo_medio: conversao?.custo_unitario_uso || p.custo_medio || 0
+        };
+      });
+
+      setProdutos(produtosTransformados);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
+      toast({
+        title: "Erro ao carregar produtos",
+        description: "Tente novamente mais tarde",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
