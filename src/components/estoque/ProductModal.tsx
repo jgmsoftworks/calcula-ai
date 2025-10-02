@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, X, Trash2, Plus } from 'lucide-react';
-import { ImageCropper } from './ImageCropper';
+import { resizeImageToSquare } from '@/lib/imageUtils';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
@@ -34,8 +34,6 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageSrc, setImageSrc] = useState<string>('');
-  const [showImageCropper, setShowImageCropper] = useState(false);
   const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [conversaoData, setConversaoData] = useState<{
@@ -231,21 +229,27 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     handleInputChange(field, numericValue);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImageSrc(e.target?.result as string);
-        setShowImageCropper(true);
+      reader.onload = async (e) => {
+        const originalImage = e.target?.result as string;
+        try {
+          // Converter automaticamente para 512x512px
+          const processedImage = await resizeImageToSquare(originalImage, 512, 0.9);
+          setSelectedImage(processedImage);
+        } catch (error) {
+          console.error('Erro ao processar imagem:', error);
+          toast({
+            title: "Erro ao processar imagem",
+            description: "Tente novamente com outra imagem",
+            variant: "destructive"
+          });
+        }
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleCropComplete = (croppedImage: string) => {
-    setSelectedImage(croppedImage);
-    setShowImageCropper(false);
   };
 
   const handleRemoveImage = () => {
@@ -596,9 +600,13 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         <div
                           key={index}
                           className="w-10 h-10 border rounded cursor-pointer hover:scale-110 transition-transform"
-                          onClick={() => {
-                            setImageSrc(image);
-                            setShowImageCropper(true);
+                          onClick={async () => {
+                            try {
+                              const processedImage = await resizeImageToSquare(image, 512, 0.9);
+                              setSelectedImage(processedImage);
+                            } catch (error) {
+                              console.error('Erro ao processar imagem sugerida:', error);
+                            }
                           }}
                         >
                           <img 
@@ -801,14 +809,6 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
             </div>
           </div>
         </form>
-
-        {/* Image Cropper Modal */}
-        <ImageCropper
-          imageSrc={imageSrc}
-          isOpen={showImageCropper}
-          onClose={() => setShowImageCropper(false)}
-          onCropComplete={handleCropComplete}
-        />
       </DialogContent>
     </Dialog>
   );
