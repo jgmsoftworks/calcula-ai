@@ -37,30 +37,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           setEmailVerified(!!session.user.email_confirmed_at);
           
-          // Check if user is admin and create profile automatically if needed
-          // CRITICAL: Always use session.user.id to ensure data isolation
+          // Check if user is admin using secure role system
+          // CRITICAL: Always use user_is_admin() function, never check profile.is_admin directly
           setTimeout(async () => {
             try {
+              // First ensure profile exists
               const { data: profile } = await supabase
                 .from('profiles')
-                .select('*')
-                .eq('user_id', session.user.id) // CRITICAL: Always use authenticated user's ID
+                .select('user_id')
+                .eq('user_id', session.user.id)
                 .maybeSingle();
 
               if (!profile) {
-                // Create profile if it doesn't exist - only for this user
+                // Create profile if it doesn't exist - trigger will initialize role
                 await supabase
                   .from('profiles')
                   .insert({
-                    user_id: session.user.id, // CRITICAL: Only insert for authenticated user
+                    user_id: session.user.id,
                     full_name: session.user.user_metadata?.full_name,
                     business_name: session.user.user_metadata?.business_name,
-                    is_admin: false,
                   });
+              }
+
+              // Use security definer function to check admin status
+              // This prevents privilege escalation attacks
+              const { data: isAdminData, error: adminError } = await supabase
+                .rpc('user_is_admin');
+
+              if (adminError) {
+                console.error('Error checking admin status:', adminError);
                 setIsAdmin(false);
               } else {
-                // Set admin status from existing profile
-                setIsAdmin(profile.is_admin || false);
+                setIsAdmin(isAdminData || false);
               }
             } catch (error) {
               console.error('Error handling profile:', error);
