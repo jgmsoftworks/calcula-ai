@@ -17,7 +17,7 @@ import { AdminActions } from "@/components/afiliados/AdminActions";
 import { useAffiliates } from "@/hooks/useAffiliates";
 
 export default function Afiliados() {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const { affiliatesStats } = useAffiliates();
 
@@ -28,9 +28,6 @@ export default function Afiliados() {
       </div>
     );
   }
-
-  // Verificar se é admin
-  const isAdmin = user?.email === 'jgmsoftworks@gmail.com';
   
   if (!user || !isAdmin) {
     return <Navigate to="/dashboard" replace />;

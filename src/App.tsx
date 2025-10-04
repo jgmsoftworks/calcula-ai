@@ -51,6 +51,7 @@ const App = () => (
             <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
             <Route path="/checkout" element={<Checkout />} />
           <Route path="/ref/:code" element={<AffiliateRedirect />} />
+          <Route path="/aff/:code" element={<AffiliateRedirect />} />
           <Route path="/affiliate/:code" element={<AffiliatePlanSelector />} />
             <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
             <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />

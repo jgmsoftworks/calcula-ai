@@ -7,6 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper logging function for debugging
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[AFFILIATE-CHECKOUT] ${step}${detailsStr}`);
+};
+
 // Preços padrão (fallback se não houver afiliado)
 const FALLBACK_PLAN_PRICES = {
   professional_monthly: "price_1SAL2dBnxFLGYBYfkowqS28X", // R$ 49,90
@@ -20,6 +26,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  logStep('Function started');
+
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -27,29 +35,27 @@ serve(async (req) => {
 
   try {
     const { planType, billing, affiliateCode, direct } = await req.json();
-    
-    console.log(`[AFFILIATE-CHECKOUT] Iniciando checkout - Plan: ${planType}_${billing}, Affiliate: ${affiliateCode}`);
+    logStep('Request received', { planType, billing, affiliateCode, direct });
     
     // Verificar se há cookie de afiliado para visitantes
     let affiliateCodeFromCookie = null;
     if (direct && !affiliateCode) {
-      // Se for checkout direto sem código de afiliado, verificar cookie
       const cookies = req.headers.get("cookie") || "";
       const affCookieMatch = cookies.match(/aff_code=([^;]+)/);
       if (affCookieMatch) {
         affiliateCodeFromCookie = affCookieMatch[1];
+        logStep('Affiliate code from cookie', { code: affiliateCodeFromCookie });
       }
     }
     
-    const finalAffiliateCode = affiliateCode || affiliateCodeFromCookie;
+    const effectiveAffiliateCode = affiliateCode || affiliateCodeFromCookie;
     let priceId = null;
     let affiliateId = null;
 
     // Se há código de afiliado, buscar o price ID específico
-    if (finalAffiliateCode) {
-      console.log(`[AFFILIATE-CHECKOUT] Buscando produto específico para afiliado: ${finalAffiliateCode}`);
+    if (effectiveAffiliateCode) {
+      logStep('Looking for affiliate products', { code: effectiveAffiliateCode });
       
-      // Buscar o link do afiliado e seus produtos
       const { data: linkData } = await supabaseClient
         .from('affiliate_links')
         .select(`
@@ -65,13 +71,13 @@ serve(async (req) => {
             )
           )
         `)
-        .eq('link_code', finalAffiliateCode)
+        .eq('link_code', effectiveAffiliateCode)
         .single();
 
       if (linkData?.affiliate) {
         affiliateId = linkData.affiliate.id;
+        logStep('Affiliate found', { affiliateId, name: linkData.affiliate.name });
         
-        // Encontrar o produto específico para este plano
         const affiliateProducts = linkData.affiliate.affiliate_stripe_products || [];
         const specificProduct = affiliateProducts.find(
           (p: any) => p.plan_type === planType && p.billing === billing && p.is_active
@@ -79,14 +85,18 @@ serve(async (req) => {
 
         if (specificProduct) {
           priceId = specificProduct.stripe_price_id;
-          console.log(`[AFFILIATE-CHECKOUT] Usando price ID específico do afiliado: ${priceId}`);
+          logStep('Using affiliate specific price', { priceId });
         }
 
         // Atualizar contador de cliques
         await supabaseClient
           .from('affiliate_links')
           .update({ clicks_count: (linkData.clicks_count || 0) + 1 })
-          .eq('link_code', finalAffiliateCode);
+          .eq('link_code', effectiveAffiliateCode);
+        
+        logStep('Click count updated');
+      } else {
+        logStep('Affiliate not found');
       }
     }
 
@@ -94,22 +104,30 @@ serve(async (req) => {
     if (!priceId) {
       const planKey = `${planType}_${billing}` as keyof typeof FALLBACK_PLAN_PRICES;
       priceId = FALLBACK_PLAN_PRICES[planKey];
-      console.log(`[AFFILIATE-CHECKOUT] Usando price ID padrão: ${priceId}`);
+      logStep('Using fallback price', { planKey, priceId });
     }
 
     if (!priceId) {
-      throw new Error("Plano inválido");
+      logStep('ERROR: No price ID found', { planType, billing });
+      throw new Error(`Plano inválido: ${planType}_${billing}`);
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Initialize Stripe
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      logStep('ERROR: STRIPE_SECRET_KEY not set');
+      throw new Error('STRIPE_SECRET_KEY not configured');
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
+    logStep('Stripe initialized');
 
-    // Para chamadas diretas (guest checkout), não verificar autenticação
-    let customerConfig = {};
+    // Configure customer based on authentication
+    let customerConfig: any = {};
     
     if (!direct) {
-      // Para chamadas autenticadas, usar email do usuário
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
         const token = authHeader.replace("Bearer ", "");
@@ -117,25 +135,31 @@ serve(async (req) => {
         const user = data.user;
         
         if (user?.email) {
-          // Verificar se já existe um customer no Stripe
+          logStep('User authenticated', { userId: user.id, email: user.email });
+          
+          // Check if customer already exists in Stripe
           const customers = await stripe.customers.list({ email: user.email, limit: 1 });
           if (customers.data.length > 0) {
             customerConfig = { customer: customers.data[0].id };
+            logStep('Existing Stripe customer found', { customerId: customers.data[0].id });
           } else {
             customerConfig = { customer_email: user.email };
+            logStep('New customer, will use email', { email: user.email });
           }
         }
       }
+    } else {
+      logStep('Direct checkout mode - customer will enter email in Stripe');
     }
 
     // Buscar cupom ativo para o afiliado
-    let discountConfig = {};
-    if (finalAffiliateCode && affiliateId) {
-      console.log(`[AFFILIATE-CHECKOUT] Buscando cupons ativos para afiliado: ${affiliateId}`);
+    let discountConfig: any = {};
+    if (effectiveAffiliateCode && affiliateId) {
+      logStep('Looking for affiliate coupons', { affiliateId });
       
       const { data: coupons } = await supabaseClient
         .from('affiliate_coupons')
-        .select('*')
+        .select('stripe_coupon_id, max_redemptions, times_redeemed, expires_at, discount_type, discount_value')
         .eq('affiliate_id', affiliateId)
         .eq('is_active', true)
         .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`)
@@ -143,51 +167,100 @@ serve(async (req) => {
 
       if (coupons && coupons.length > 0) {
         const coupon = coupons[0];
-        console.log(`[AFFILIATE-CHECKOUT] Cupom encontrado: ${coupon.stripe_coupon_id}`);
+        logStep('Coupon found', { 
+          couponId: coupon.stripe_coupon_id,
+          type: coupon.discount_type,
+          value: coupon.discount_value 
+        });
         
-        // Verificar se o cupom ainda não atingiu o limite de usos
+        // Verificar limite de usos
         if (!coupon.max_redemptions || coupon.times_redeemed < coupon.max_redemptions) {
-          discountConfig = {
-            discounts: [{
-              coupon: coupon.stripe_coupon_id
-            }]
-          };
-          console.log(`[AFFILIATE-CHECKOUT] Aplicando cupom: ${coupon.stripe_coupon_id}`);
+          // Validar cupom no Stripe antes de aplicar
+          try {
+            const stripeCoupon = await stripe.coupons.retrieve(coupon.stripe_coupon_id);
+            if (stripeCoupon && stripeCoupon.valid) {
+              discountConfig = {
+                discounts: [{ coupon: coupon.stripe_coupon_id }]
+              };
+              logStep('Coupon validated and will be applied', { couponId: coupon.stripe_coupon_id });
+            } else {
+              logStep('Coupon invalid in Stripe', { couponId: coupon.stripe_coupon_id });
+            }
+          } catch (error) {
+            logStep('Error validating coupon in Stripe', { 
+              error: error.message,
+              couponId: coupon.stripe_coupon_id 
+            });
+          }
         } else {
-          console.log(`[AFFILIATE-CHECKOUT] Cupom atingiu limite de usos: ${coupon.times_redeemed}/${coupon.max_redemptions}`);
+          logStep('Coupon reached redemption limit', { 
+            redeemed: coupon.times_redeemed,
+            max: coupon.max_redemptions 
+          });
         }
       } else {
-        console.log(`[AFFILIATE-CHECKOUT] Nenhum cupom ativo encontrado para afiliado: ${affiliateId}`);
+        logStep('No active coupons found for affiliate');
       }
     }
 
-    const session = await stripe.checkout.sessions.create({
-      line_items: [{
-        price: priceId,
-        quantity: 1,
-      }],
-      mode: "subscription",
-      success_url: `${req.headers.get("origin")}/auth/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/planos`,
-      metadata: {
-        affiliate_code: finalAffiliateCode || "",
-        affiliate_id: affiliateId || "",
-        plan_type: planType,
-        billing: billing,
-        is_affiliate_sale: finalAffiliateCode ? "true" : "false"
-      },
-      ...customerConfig,
-      ...discountConfig
+    // Create Stripe checkout session
+    logStep('Creating Stripe checkout session', { 
+      priceId,
+      hasCustomer: !!customerConfig.customer,
+      hasEmail: !!customerConfig.customer_email,
+      hasDiscount: !!discountConfig.discounts
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    console.error("Erro:", error);
+    try {
+      const session = await stripe.checkout.sessions.create({
+        line_items: [{
+          price: priceId,
+          quantity: 1,
+        }],
+        mode: "subscription",
+        success_url: `${req.headers.get("origin")}/auth/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.get("origin")}/planos`,
+        metadata: {
+          affiliate_code: effectiveAffiliateCode || "",
+          affiliate_id: affiliateId || "",
+          plan_type: planType,
+          billing: billing,
+          is_affiliate_sale: effectiveAffiliateCode ? "true" : "false"
+        },
+        ...customerConfig,
+        ...discountConfig
+      });
+
+      logStep('Checkout session created successfully', { 
+        sessionId: session.id,
+        url: session.url 
+      });
+
+      return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    } catch (stripeError: any) {
+      logStep('Stripe session creation failed', { 
+        error: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code,
+        param: stripeError.param
+      });
+      throw stripeError;
+    }
+  } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    logStep('ERROR in affiliate-checkout', { 
+      message: errorMessage,
+      type: error.type,
+      code: error.code
+    });
+    
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      details: error.type || 'unknown_error'
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

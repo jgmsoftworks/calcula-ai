@@ -62,7 +62,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               // Use security definer function to check admin status
               // This prevents privilege escalation attacks
               const { data: isAdminData, error: adminError } = await supabase
-                .rpc('user_is_admin');
+                .rpc('has_role_or_higher', { 
+                  required_role: 'admin',
+                  check_user_id: session.user.id 
+                });
 
               if (adminError) {
                 console.error('Error checking admin status:', adminError);

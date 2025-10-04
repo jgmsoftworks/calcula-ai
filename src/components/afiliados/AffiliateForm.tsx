@@ -96,6 +96,42 @@ export function AffiliateForm({ editingAffiliate, onSuccess }: AffiliateFormProp
       return;
     }
 
+    // Validar comissões
+    if (formData.commission_type === 'percentage') {
+      if (formData.commission_percentage < 1 || formData.commission_percentage > 50) {
+        toast({
+          title: "Erro",
+          description: "Comissão percentual deve estar entre 1% e 50%",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (formData.commission_percentage < 5) {
+        toast({
+          title: "Atenção",
+          description: "Comissão muito baixa pode desmotivar afiliados (recomendado: mínimo 5%)",
+          variant: "default"
+        });
+      }
+    } else {
+      if (formData.commission_fixed_amount < 0) {
+        toast({
+          title: "Erro",
+          description: "Valor da comissão não pode ser negativo",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (formData.commission_fixed_amount === 0) {
+        toast({
+          title: "Erro",
+          description: "Valor da comissão não pode ser zero",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     // Validar CPF/CNPJ se informado
     if (formData.document && !validateCPFCNPJ(formData.document)) {
       toast({
