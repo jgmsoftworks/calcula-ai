@@ -92,13 +92,20 @@ const AffiliatePlanSelector = () => {
     }
   };
 
+  const getPlanType = (planName: string): string => {
+    const name = planName.toLowerCase();
+    if (name.includes('professional')) return 'professional';
+    if (name.includes('enterprise')) return 'enterprise';
+    return 'professional'; // fallback
+  };
+
   const handleSelectPlan = async (plan: PlanData) => {
     setLoading(`${plan.name}_${plan.billing}`);
     
     try {
       const { data, error } = await supabase.functions.invoke('affiliate-checkout', {
         body: {
-          planType: plan.name.toLowerCase(),
+          planType: getPlanType(plan.name),
           billing: plan.billing,
           affiliateCode: code,
           direct: true

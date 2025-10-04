@@ -34,7 +34,23 @@ serve(async (req) => {
   );
 
   try {
-    const { planType, billing, affiliateCode, direct } = await req.json();
+    let { planType, billing, affiliateCode, direct } = await req.json();
+    
+    // Sanitizar planType: remover espaços e caracteres especiais
+    planType = planType?.trim().toLowerCase().replace(/[^a-z_]/g, '');
+    
+    // Validar planType
+    if (!['professional', 'enterprise'].includes(planType)) {
+      logStep('Invalid planType received, defaulting to professional', { originalPlanType: planType });
+      planType = 'professional';
+    }
+    
+    // Validar billing
+    if (!['monthly', 'yearly'].includes(billing)) {
+      logStep('Invalid billing received, defaulting to monthly', { originalBilling: billing });
+      billing = 'monthly';
+    }
+    
     logStep('Request received', { planType, billing, affiliateCode, direct });
     
     // Verificar se há cookie de afiliado para visitantes
