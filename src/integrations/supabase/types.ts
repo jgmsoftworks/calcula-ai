@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -511,6 +511,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      coupon_redemptions: {
+        Row: {
+          applied_at: string | null
+          coupon_id: string
+          id: string
+          plan_granted: string
+          trial_ends_at: string | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          coupon_id: string
+          id?: string
+          plan_granted: string
+          trial_ends_at?: string | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          coupon_id?: string
+          id?: string
+          plan_granted?: string
+          trial_ends_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "promotional_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       despesas_fixas: {
         Row: {
@@ -1330,6 +1365,54 @@ export type Database = {
         }
         Relationships: []
       }
+      promotional_coupons: {
+        Row: {
+          applies_to_plans: string[]
+          code: string
+          created_at: string | null
+          created_by: string | null
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_redemptions: number | null
+          times_redeemed: number | null
+          trial_days: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          applies_to_plans?: string[]
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_redemptions?: number | null
+          times_redeemed?: number | null
+          trial_days?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          applies_to_plans?: string[]
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: Database["public"]["Enums"]["discount_type"]
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_redemptions?: number | null
+          times_redeemed?: number | null
+          trial_days?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       receita_embalagens: {
         Row: {
           created_at: string
@@ -1991,6 +2074,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "hr_manager" | "employee" | "viewer"
+      discount_type: "trial_period" | "percentage" | "fixed"
       tipo_movimentacao: "entrada" | "saida"
       tipo_movimentacao_receita: "entrada" | "venda" | "perdas" | "brindes"
       unidade_medida:
@@ -2133,6 +2217,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "hr_manager", "employee", "viewer"],
+      discount_type: ["trial_period", "percentage", "fixed"],
       tipo_movimentacao: ["entrada", "saida"],
       tipo_movimentacao_receita: ["entrada", "venda", "perdas", "brindes"],
       unidade_medida: [
