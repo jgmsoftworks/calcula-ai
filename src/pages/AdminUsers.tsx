@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
+import { EditUserPlanModal } from '@/components/admin/EditUserPlanModal';
 
 interface UserProfile {
   id: string;
@@ -43,6 +44,7 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('all');
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
 
   const fetchUsers = async () => {
     if (!isAdmin) return;
@@ -310,7 +312,11 @@ const AdminUsers = () => {
                     <Eye className="h-4 w-4 mr-1" />
                     Ver
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingUser(user)}
+                  >
                     <Settings className="h-4 w-4 mr-1" />
                     Editar
                   </Button>
@@ -335,6 +341,16 @@ const AdminUsers = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de edição */}
+      {editingUser && (
+        <EditUserPlanModal
+          open={!!editingUser}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+          user={editingUser}
+          onSuccess={fetchUsers}
+        />
+      )}
     </div>
   );
 };
