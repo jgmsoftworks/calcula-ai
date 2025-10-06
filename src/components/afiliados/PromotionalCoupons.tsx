@@ -12,6 +12,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Percent, DollarSign, Calendar, Users, ToggleLeft, ToggleRight, Trash2, Search, Filter, Gift } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+const couponCodeSchema = z.string()
+  .min(3, 'Código deve ter no mínimo 3 caracteres')
+  .max(20, 'Código deve ter no máximo 20 caracteres')
+  .regex(/^[A-Z0-9_-]+$/, 'Apenas letras maiúsculas, números, _ e - são permitidos')
+  .transform(s => s.trim().toUpperCase());
 
 interface PromotionalCoupon {
   id: string;
@@ -98,10 +105,12 @@ export function PromotionalCoupons() {
   }, [coupons, searchTerm, statusFilter]);
 
   const handleCreateCoupon = async () => {
-    if (!formData.code) {
+    // Validate coupon code
+    const codeValidation = couponCodeSchema.safeParse(formData.code);
+    if (!codeValidation.success) {
       toast({
-        title: "Erro",
-        description: "Código do cupom é obrigatório",
+        title: "Erro no código",
+        description: codeValidation.error.errors[0].message,
         variant: "destructive"
       });
       return;
@@ -143,7 +152,7 @@ export function PromotionalCoupons() {
       const { error } = await supabase
         .from('promotional_coupons')
         .insert({
-          code: formData.code.trim().toUpperCase(),
+          code: codeValidation.data,
           discount_type: formData.discountType,
           trial_days: formData.discountType === 'trial_period' ? formData.trialDays : null,
           discount_value: formData.discountType !== 'trial_period' ? formData.discountValue : null,
@@ -311,9 +320,10 @@ export function PromotionalCoupons() {
                     onChange={(e) => setFormData({...formData, code: e.target.value})}
                     placeholder="Ex: TESTE30DIAS, BEMVINDO"
                     className="uppercase"
+                    maxLength={20}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Será convertido automaticamente para maiúsculas
+                    3-20 caracteres: letras maiúsculas, números, _ e -
                   </p>
                 </div>
 

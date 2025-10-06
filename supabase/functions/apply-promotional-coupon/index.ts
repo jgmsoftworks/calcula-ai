@@ -48,6 +48,19 @@ serve(async (req) => {
     }
 
     const normalizedCode = couponCode.trim().toUpperCase();
+    
+    // Validate coupon code format
+    if (!/^[A-Z0-9_-]{3,20}$/.test(normalizedCode)) {
+      logStep("Invalid coupon code format", { code: normalizedCode });
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Código do cupom inválido. Use apenas letras, números, _ e - (3-20 caracteres)" 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
     logStep("Validating coupon", { code: normalizedCode });
 
     // Buscar cupom promocional

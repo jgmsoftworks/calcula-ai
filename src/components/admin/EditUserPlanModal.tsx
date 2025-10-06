@@ -14,6 +14,11 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { z } from 'zod';
+
+const reasonSchema = z.string()
+  .min(10, 'Motivo deve ter no mínimo 10 caracteres')
+  .max(500, 'Motivo deve ter no máximo 500 caracteres');
 
 interface EditUserPlanModalProps {
   open: boolean;
@@ -50,10 +55,12 @@ export const EditUserPlanModal = ({ open, onOpenChange, user, onSuccess }: EditU
       return;
     }
 
-    if (!reason.trim()) {
+    // Validate reason
+    const reasonValidation = reasonSchema.safeParse(reason.trim());
+    if (!reasonValidation.success) {
       toast({
-        title: "Erro",
-        description: "Informe o motivo da alteração",
+        title: "Erro no motivo",
+        description: reasonValidation.error.errors[0].message,
         variant: "destructive",
       });
       return;
