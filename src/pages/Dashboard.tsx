@@ -29,6 +29,7 @@ import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { FinancialHealthScore } from '@/components/dashboard/FinancialHealthScore';
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
@@ -310,6 +311,11 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      {/* Financial Health Score - Only for regular users */}
+      {!isAdminView && (
+        <FinancialHealthScore />
+      )}
 
       {/* Main Content Grid */}
       <div className="grid gap-8 lg:grid-cols-3">
