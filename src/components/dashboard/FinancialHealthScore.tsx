@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { 
   TrendingUp, 
   Package, 
@@ -9,7 +10,8 @@ import {
   BarChart3, 
   CheckCircle2, 
   AlertCircle,
-  Info
+  Info,
+  Activity
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -330,9 +332,9 @@ export const FinancialHealthScore = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-center h-48">
+      <Card className="soft-card">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </CardContent>
@@ -341,96 +343,59 @@ export const FinancialHealthScore = () => {
   }
 
   return (
-    <Card className="col-span-full">
-      <CardHeader>
+    <Card className="soft-card">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Score de Saúde Financeira
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Activity className="h-5 w-5 text-primary" />
+            Score de Saúde
           </CardTitle>
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger>
-                <Info className="h-4 w-4 text-muted-foreground" />
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Info className="h-4 w-4" />
+                </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p className="text-sm">
-                  O Score analisa 5 pilares do seu negócio: margem de lucro, diversificação de produtos,
-                  consistência de custos, controle de estoque e precificação. Quanto maior o score, mais
-                  saudável está seu negócio financeiramente.
-                </p>
+                <p>Análise baseada em 5 pilares: margem de lucro, diversificação, consistência de custos, controle de estoque e precificação.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Score Geral */}
-        <div className="flex items-center justify-center gap-8 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
-          <div className="text-center">
-            <div className={`text-6xl font-bold ${getScoreColor(overallScore)}`}>
-              {overallScore}
-            </div>
-            <div className="text-sm text-muted-foreground mt-2">de 100 pontos</div>
+      <CardContent>
+        {/* Score Principal */}
+        <div className="text-center mb-6">
+          <div className={`text-6xl font-bold ${getScoreColor(overallScore)}`}>
+            {overallScore}
           </div>
-          <div className="text-center">
-            <Badge className={getStatusBadge(
-              overallScore >= 80 ? 'excellent' :
-              overallScore >= 60 ? 'good' :
-              overallScore >= 40 ? 'warning' : 'critical'
-            ).className}>
-              {getScoreLabel(overallScore)}
-            </Badge>
-            <div className="text-sm text-muted-foreground mt-2">Status Geral</div>
-          </div>
+          <p className="text-muted-foreground text-sm mt-1">de 100 pontos</p>
+          <Badge 
+            className="mt-3"
+            variant={overallScore >= 70 ? "default" : "secondary"}
+          >
+            {getScoreLabel(overallScore)}
+          </Badge>
         </div>
 
-        {/* Métricas Individuais */}
-        <div className="space-y-4">
+        {/* Métricas Resumidas */}
+        <div className="space-y-3">
           {metrics.map((metric) => (
-            <div key={metric.name} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    {metric.icon}
-                  </div>
-                  <div>
-                    <div className="font-medium">{metric.name}</div>
-                    <div className="text-sm text-muted-foreground">{metric.description}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-lg font-bold ${getScoreColor(metric.score)}`}>
-                    {metric.score}
-                  </span>
-                  <Badge className={getStatusBadge(metric.status).className}>
-                    {metric.status === 'excellent' ? <CheckCircle2 className="h-3 w-3 mr-1" /> : 
-                     metric.status === 'critical' ? <AlertCircle className="h-3 w-3 mr-1" /> : null}
-                    {metric.score >= 80 ? 'Ótimo' :
-                     metric.score >= 60 ? 'Bom' :
-                     metric.score >= 40 ? 'Regular' : 'Crítico'}
-                  </Badge>
-                </div>
+            <div key={metric.name} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <div className="text-muted-foreground">{metric.icon}</div>
+                <span className="font-medium">{metric.name}</span>
               </div>
-              <Progress value={metric.score} className="h-2" />
+              <div className="flex items-center gap-2">
+                <span className={`font-semibold ${getScoreColor(metric.score)}`}>
+                  {metric.score}
+                </span>
+                <Progress value={metric.score} className="h-1.5 w-16" />
+              </div>
             </div>
           ))}
         </div>
-
-        {/* Dicas de Melhoria */}
-        {overallScore < 80 && (
-          <div className="p-4 bg-muted/50 rounded-lg border border-primary/20">
-            <h4 className="font-medium mb-2 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Como melhorar seu score
-            </h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              {metrics.filter(m => m.score < 70).map(m => (
-                <li key={m.name}>• {m.name}: {m.description}</li>
-              ))}
-            </ul>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

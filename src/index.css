@@ -88,6 +88,11 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Dashboard Soft Design Tokens */
+    --spacing-dashboard: 2rem;
+    --card-radius-soft: 16px;
+    --shadow-soft-card: 0 2px 16px -4px hsl(220 13% 91% / 0.4);
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -245,6 +250,10 @@ All colors MUST be HSL.
 
 .transition-bounce {
   transition: var(--transition-bounce);
+}
+
+.soft-card {
+  @apply rounded-2xl shadow-[0_2px_16px_-4px_hsl(var(--muted)/0.3)] border-border/40;
 }
 
 /* Enhanced animations for auth page */
