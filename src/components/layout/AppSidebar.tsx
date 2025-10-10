@@ -40,11 +40,13 @@ const businessNavigationItems = [
   { title: 'Custos', url: '/custos', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Simulador', url: '/simulador', icon: DollarSign },
+  { title: 'Marketplace', url: '/marketplace', icon: Package },
   { title: 'Sugestões', url: '/sugestoes', icon: MessageSquare },
 ];
 
 const businessItems = [
   { title: 'Perfil de Negócio', url: '/perfil', icon: Building2 },
+  { title: 'Painel Fornecedor', url: '/meu-painel-fornecedor', icon: Store },
   { title: 'Planos', url: '/planos', icon: Crown },
 ];
 

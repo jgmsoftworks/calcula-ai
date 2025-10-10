@@ -28,6 +28,9 @@ import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
 import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotFound from "./pages/NotFound";
+import MarketplaceFornecedores from "./pages/MarketplaceFornecedores";
+import MeuPainelFornecedor from "./pages/MeuPainelFornecedor";
+import NotificacoesPainel from "./pages/NotificacoesPainel";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +70,9 @@ const App = () => (
                 <Route path="/planos" element={<AppLayout><Planos /></AppLayout>} />
                 <Route path="/sugestoes" element={<AppLayout><Sugestoes /></AppLayout>} />
                 <Route path="/perfil" element={<AppLayout><PerfilNegocio /></AppLayout>} />
+                <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
+                <Route path="/marketplace" element={<AppLayout><MarketplaceFornecedores /></AppLayout>} />
+                <Route path="/meu-painel-fornecedor" element={<AppLayout><MeuPainelFornecedor /></AppLayout>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
