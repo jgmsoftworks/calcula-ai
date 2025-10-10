@@ -437,6 +437,41 @@ export type Database = {
         }
         Relationships: []
       }
+      avaliacoes_fornecedores: {
+        Row: {
+          cliente_user_id: string
+          comentario: string | null
+          created_at: string | null
+          fornecedor_id: string
+          id: string
+          nota: number
+        }
+        Insert: {
+          cliente_user_id: string
+          comentario?: string | null
+          created_at?: string | null
+          fornecedor_id: string
+          id?: string
+          nota: number
+        }
+        Update: {
+          cliente_user_id?: string
+          comentario?: string | null
+          created_at?: string | null
+          fornecedor_id?: string
+          id?: string
+          nota?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_history: {
         Row: {
           backup_data: Json | null
@@ -830,13 +865,25 @@ export type Database = {
       fornecedores: {
         Row: {
           ativo: boolean
+          catalogo_url: string | null
+          cidade: string | null
           cnpj_cpf: string | null
           contato: string | null
           created_at: string
+          descricao: string | null
+          eh_fornecedor: boolean | null
           email: string | null
           endereco: string | null
+          entrega_disponivel: boolean | null
+          estado: string | null
+          formas_pagamento: string[] | null
+          horario_atendimento: Json | null
           id: string
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
           nome: string
+          raio_entrega_km: number | null
           representante: string | null
           telefone: string | null
           telefone_representante: string | null
@@ -845,13 +892,25 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          catalogo_url?: string | null
+          cidade?: string | null
           cnpj_cpf?: string | null
           contato?: string | null
           created_at?: string
+          descricao?: string | null
+          eh_fornecedor?: boolean | null
           email?: string | null
           endereco?: string | null
+          entrega_disponivel?: boolean | null
+          estado?: string | null
+          formas_pagamento?: string[] | null
+          horario_atendimento?: Json | null
           id?: string
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
           nome: string
+          raio_entrega_km?: number | null
           representante?: string | null
           telefone?: string | null
           telefone_representante?: string | null
@@ -860,13 +919,25 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          catalogo_url?: string | null
+          cidade?: string | null
           cnpj_cpf?: string | null
           contato?: string | null
           created_at?: string
+          descricao?: string | null
+          eh_fornecedor?: boolean | null
           email?: string | null
           endereco?: string | null
+          entrega_disponivel?: boolean | null
+          estado?: string | null
+          formas_pagamento?: string[] | null
+          horario_atendimento?: Json | null
           id?: string
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
           nome?: string
+          raio_entrega_km?: number | null
           representante?: string | null
           telefone?: string | null
           telefone_representante?: string | null
@@ -1101,6 +1172,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      orcamentos_fornecedores: {
+        Row: {
+          cliente_user_id: string
+          created_at: string | null
+          fornecedor_id: string
+          id: string
+          mensagem: string | null
+          produtos_solicitados: Json
+          respondido_at: string | null
+          resposta_fornecedor: string | null
+          status: string | null
+          valor_total: number | null
+          whatsapp_link: string | null
+        }
+        Insert: {
+          cliente_user_id: string
+          created_at?: string | null
+          fornecedor_id: string
+          id?: string
+          mensagem?: string | null
+          produtos_solicitados: Json
+          respondido_at?: string | null
+          resposta_fornecedor?: string | null
+          status?: string | null
+          valor_total?: number | null
+          whatsapp_link?: string | null
+        }
+        Update: {
+          cliente_user_id?: string
+          created_at?: string | null
+          fornecedor_id?: string
+          id?: string
+          mensagem?: string | null
+          produtos_solicitados?: Json
+          respondido_at?: string | null
+          resposta_fornecedor?: string | null
+          status?: string | null
+          valor_total?: number | null
+          whatsapp_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       produto_conversoes: {
         Row: {
@@ -1397,6 +1518,68 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: []
+      }
+      promocoes_fornecedores: {
+        Row: {
+          ativa: boolean | null
+          codigo_promocional: string | null
+          created_at: string | null
+          data_fim: string
+          data_inicio: string
+          desconto_fixo: number | null
+          desconto_percentual: number | null
+          descricao: string | null
+          fornecedor_id: string
+          id: string
+          max_uso: number | null
+          produtos_aplicaveis: string[] | null
+          titulo: string
+          updated_at: string | null
+          usos_realizados: number | null
+        }
+        Insert: {
+          ativa?: boolean | null
+          codigo_promocional?: string | null
+          created_at?: string | null
+          data_fim: string
+          data_inicio: string
+          desconto_fixo?: number | null
+          desconto_percentual?: number | null
+          descricao?: string | null
+          fornecedor_id: string
+          id?: string
+          max_uso?: number | null
+          produtos_aplicaveis?: string[] | null
+          titulo: string
+          updated_at?: string | null
+          usos_realizados?: number | null
+        }
+        Update: {
+          ativa?: boolean | null
+          codigo_promocional?: string | null
+          created_at?: string | null
+          data_fim?: string
+          data_inicio?: string
+          desconto_fixo?: number | null
+          desconto_percentual?: number | null
+          descricao?: string | null
+          fornecedor_id?: string
+          id?: string
+          max_uso?: number | null
+          produtos_aplicaveis?: string[] | null
+          titulo?: string
+          updated_at?: string | null
+          usos_realizados?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promocoes_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promotional_coupons: {
         Row: {
@@ -2065,6 +2248,10 @@ export type Database = {
           horas_por_dia: number
           tipo_mao_obra: string
         }[]
+      }
+      get_fornecedor_rating: {
+        Args: { fornecedor_uuid: string }
+        Returns: number
       }
       get_roadmap_vote_counts: {
         Args: Record<PropertyKey, never>
