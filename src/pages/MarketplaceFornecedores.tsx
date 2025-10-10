@@ -8,6 +8,7 @@ import { Search, MapPin, Star, Phone, MessageCircle, Package } from 'lucide-reac
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import SolicitarOrcamentoModal from '@/components/marketplace/SolicitarOrcamentoModal';
 
 interface Fornecedor {
   id: string;
@@ -41,6 +42,10 @@ export default function MarketplaceFornecedores() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cidadeFiltro, setCidadeFiltro] = useState('');
   const [cidades, setCidades] = useState<string[]>([]);
+  const [orcamentoModal, setOrcamentoModal] = useState<{ open: boolean; fornecedor: Fornecedor | null }>({
+    open: false,
+    fornecedor: null,
+  });
 
   useEffect(() => {
     fetchData();
@@ -102,14 +107,13 @@ export default function MarketplaceFornecedores() {
     }
   };
 
-  const solicitarOrcamento = async (fornecedorId: string) => {
+  const solicitarOrcamento = (fornecedor: Fornecedor) => {
     if (!user) {
       toast.error('Faça login para solicitar orçamentos');
       return;
     }
 
-    // Aqui abrirá um modal para solicitar orçamento
-    toast.info('Funcionalidade em desenvolvimento');
+    setOrcamentoModal({ open: true, fornecedor });
   };
 
   const contatarWhatsApp = (telefone: string, nome: string) => {
@@ -291,7 +295,7 @@ export default function MarketplaceFornecedores() {
 
                     <div className="flex gap-2 pt-2">
                       <Button
-                        onClick={() => solicitarOrcamento(fornecedor.id)}
+                        onClick={() => solicitarOrcamento(fornecedor)}
                         variant="default"
                         size="sm"
                         className="flex-1"
@@ -316,6 +320,16 @@ export default function MarketplaceFornecedores() {
           )}
         </div>
       </div>
+
+      {orcamentoModal.fornecedor && (
+        <SolicitarOrcamentoModal
+          open={orcamentoModal.open}
+          onOpenChange={(open) => setOrcamentoModal({ open, fornecedor: null })}
+          fornecedorId={orcamentoModal.fornecedor.id}
+          fornecedorNome={orcamentoModal.fornecedor.nome}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import CriarPromocaoModal from '@/components/marketplace/CriarPromocaoModal';
 
 interface FornecedorData {
   id: string;
@@ -54,6 +55,7 @@ export default function MeuPainelFornecedor() {
   const [promocoes, setPromocoes] = useState<Promocao[]>([]);
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [promocaoModalOpen, setPromocaoModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -301,7 +303,10 @@ export default function MeuPainelFornecedor() {
           <TabsContent value="promocoes" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Minhas Promoções</h2>
-              <Button>
+              <Button
+                size="sm"
+                onClick={() => setPromocaoModalOpen(true)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Promoção
               </Button>
@@ -432,6 +437,15 @@ export default function MeuPainelFornecedor() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {fornecedorData && (
+        <CriarPromocaoModal
+          open={promocaoModalOpen}
+          onOpenChange={setPromocaoModalOpen}
+          fornecedorId={fornecedorData.id}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }
