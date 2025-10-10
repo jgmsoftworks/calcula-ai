@@ -124,7 +124,7 @@ export default function MarketplaceFornecedores() {
       f.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       f.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchCidade = !cidadeFiltro || f.cidade === cidadeFiltro;
+    const matchCidade = !cidadeFiltro || cidadeFiltro === 'all' || f.cidade === cidadeFiltro;
 
     return matchSearch && matchCidade;
   });
@@ -171,7 +171,7 @@ export default function MarketplaceFornecedores() {
                   <SelectValue placeholder="Filtrar por cidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as cidades</SelectItem>
+                  <SelectItem value="all">Todas as cidades</SelectItem>
                   {cidades.map((cidade) => (
                     <SelectItem key={cidade} value={cidade}>
                       {cidade}
