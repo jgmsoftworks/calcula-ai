@@ -132,6 +132,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           if (conversao) {
             // Formatar dados de conversão para o formato esperado pelo ModoUsoTab
             setConversaoExistente({
+              id: conversao.id,
               unidade_uso_receitas: conversao.unidade_uso_receitas,
               custo_unitario_uso: conversao.custo_unitario_uso,
               quantidade_unidade_uso: conversao.quantidade_unidade_uso
