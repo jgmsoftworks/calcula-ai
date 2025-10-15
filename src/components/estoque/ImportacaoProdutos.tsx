@@ -26,30 +26,49 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
   const downloadTemplate = () => {
     const template = [
       {
-        nome: 'Exemplo Produto 1',
-        codigo_interno: 'PRD0001',
-        codigo_barras: '7891234567890',
-        categoria: 'Categoria Exemplo',
-        marcas: 'Marca Exemplo',
-        unidade: 'g',
-        estoque_atual: 100,
-        estoque_minimo: 10,
-        custo_total: 1550.00,
-        total_embalagem: 1,
-        status: 'Ativo'
+        'NOME': 'Farinha de Trigo',
+        'CODIGO PDV': 'FT001',
+        'CODIGO DE BARRAS': '7891234567890',
+        'CATEGORIA': 'Farinhas',
+        'MARCA': 'Marca Exemplo',
+        'UNIDADE DE MEDIDA': 'kg',
+        'TOTAL DENTRO DA EMBALAGEM': 5,
+        'CUSTO TOTAL': 45.50,
+        'ESTOQUE ATUAL': 10,
+        'ESTOQUE MINIMO': 2,
+        'UNIDADE MEDIDA (Conversão)': 'xícara',
+        'QUANTO DENTRO DE CADA': 140,
+        'STATUS': 'Ativo'
       },
       {
-        nome: 'Exemplo Produto 2',
-        codigo_interno: 'PRD0002',
-        codigo_barras: '7891234567891',
-        categoria: 'Outra Categoria',
-        marcas: 'Outra Marca',
-        unidade: 'kg',
-        estoque_atual: 50,
-        estoque_minimo: 5,
-        custo_total: 1287.50,
-        total_embalagem: 1,
-        status: 'Ativo'
+        'NOME': 'Açúcar Cristal',
+        'CODIGO PDV': 'AC001',
+        'CODIGO DE BARRAS': '7891234567891',
+        'CATEGORIA': 'Açúcares',
+        'MARCA': 'Outra Marca',
+        'UNIDADE DE MEDIDA': 'kg',
+        'TOTAL DENTRO DA EMBALAGEM': 1,
+        'CUSTO TOTAL': 8.90,
+        'ESTOQUE ATUAL': 20,
+        'ESTOQUE MINIMO': 5,
+        'UNIDADE MEDIDA (Conversão)': '',
+        'QUANTO DENTRO DE CADA': '',
+        'STATUS': 'Ativo'
+      },
+      {
+        'NOME': 'Leite Integral',
+        'CODIGO PDV': 'LI001',
+        'CODIGO DE BARRAS': '',
+        'CATEGORIA': 'Laticínios',
+        'MARCA': '',
+        'UNIDADE DE MEDIDA': 'l',
+        'TOTAL DENTRO DA EMBALAGEM': 1,
+        'CUSTO TOTAL': 5.50,
+        'ESTOQUE ATUAL': 15,
+        'ESTOQUE MINIMO': 3,
+        'UNIDADE MEDIDA (Conversão)': 'ml',
+        'QUANTO DENTRO DE CADA': 250,
+        'STATUS': 'Ativo'
       }
     ];
 
@@ -59,21 +78,32 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
     
     // Ajustar largura das colunas
     const wscols = [
-      { wch: 25 }, // nome
-      { wch: 15 }, // codigo_interno
-      { wch: 15 }, // codigo_barras
-      { wch: 20 }, // categoria
-      { wch: 15 }, // marcas
-      { wch: 10 }, // unidade
-      { wch: 12 }, // estoque_atual
-      { wch: 12 }, // estoque_minimo
-      { wch: 12 }, // custo_total
-      { wch: 15 }, // total_embalagem
-      { wch: 10 }  // status
+      { wch: 30 }, // NOME
+      { wch: 15 }, // CODIGO PDV
+      { wch: 18 }, // CODIGO DE BARRAS
+      { wch: 18 }, // CATEGORIA
+      { wch: 18 }, // MARCA
+      { wch: 20 }, // UNIDADE DE MEDIDA
+      { wch: 25 }, // TOTAL DENTRO DA EMBALAGEM
+      { wch: 15 }, // CUSTO TOTAL
+      { wch: 15 }, // ESTOQUE ATUAL
+      { wch: 16 }, // ESTOQUE MINIMO
+      { wch: 28 }, // UNIDADE MEDIDA (Conversão)
+      { wch: 22 }, // QUANTO DENTRO DE CADA
+      { wch: 12 }  // STATUS
     ];
     ws['!cols'] = wscols;
 
-    // Adicionar validação de dados para unidade (coluna F - índice 5)
+    // Formatar headers em negrito
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (!ws[address]) continue;
+      if (!ws[address].s) ws[address].s = {};
+      ws[address].s.font = { bold: true };
+    }
+
+    // Adicionar validação de dados para UNIDADE DE MEDIDA (coluna F)
     const unidadeValidation = {
       type: 'list',
       allowBlank: false,
@@ -81,7 +111,15 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
       error: 'Selecione uma unidade válida: g, kg, ml, l ou un'
     };
     
-    // Adicionar validação de dados para status (coluna K - índice 10) 
+    // Adicionar validação de dados para UNIDADE MEDIDA (Conversão) (coluna K)
+    const conversaoValidation = {
+      type: 'list',
+      allowBlank: true,
+      formula1: '"g,kg,ml,l,un,colher chá,colher sopa,xícara"',
+      error: 'Selecione uma unidade válida'
+    };
+    
+    // Adicionar validação de dados para STATUS (coluna M)
     const statusValidation = {
       type: 'list',
       allowBlank: false,
@@ -89,18 +127,21 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
       error: 'Selecione: Ativo ou Inativo'
     };
 
-    // Aplicar validações nas linhas de dados (linha 2 em diante, até linha 1000)
+    // Aplicar validações nas linhas de dados
     if (!ws['!dataValidation']) ws['!dataValidation'] = [];
     
-    // Validação para coluna unidade (F2:F1000)
     ws['!dataValidation'].push({
       sqref: 'F2:F1000',
       ...unidadeValidation
     });
     
-    // Validação para coluna status (K2:K1000)  
     ws['!dataValidation'].push({
       sqref: 'K2:K1000',
+      ...conversaoValidation
+    });
+    
+    ws['!dataValidation'].push({
+      sqref: 'M2:M1000',
       ...statusValidation
     });
 
@@ -110,6 +151,90 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
       title: "Modelo baixado",
       description: "O arquivo modelo_produtos.xlsx foi baixado com sucesso!"
     });
+  };
+
+  // Função auxiliar para buscar ou criar categoria
+  const getOrCreateCategoria = async (nomeCategoria: string, userId: string): Promise<string | null> => {
+    if (!nomeCategoria || nomeCategoria.trim() === '') return null;
+    
+    const nomeNormalizado = nomeCategoria.trim();
+    
+    try {
+      // Buscar categoria existente (case-insensitive)
+      const { data: existingCategoria } = await supabase
+        .from('categorias')
+        .select('id')
+        .eq('user_id', userId)
+        .ilike('nome', nomeNormalizado)
+        .maybeSingle();
+      
+      if (existingCategoria) {
+        return existingCategoria.id;
+      }
+      
+      // Criar nova categoria
+      const { data: newCategoria, error } = await supabase
+        .from('categorias')
+        .insert({
+          nome: nomeNormalizado,
+          user_id: userId,
+          ativo: true
+        })
+        .select('id')
+        .single();
+      
+      if (error) {
+        console.error('Erro ao criar categoria:', error);
+        return null;
+      }
+      
+      return newCategoria.id;
+    } catch (error) {
+      console.error('Erro ao processar categoria:', error);
+      return null;
+    }
+  };
+
+  // Função auxiliar para buscar ou criar marca
+  const getOrCreateMarca = async (nomeMarca: string, userId: string): Promise<string | null> => {
+    if (!nomeMarca || nomeMarca.trim() === '') return null;
+    
+    const nomeNormalizado = nomeMarca.trim();
+    
+    try {
+      // Buscar marca existente (case-insensitive)
+      const { data: existingMarca } = await supabase
+        .from('marcas')
+        .select('id')
+        .eq('user_id', userId)
+        .ilike('nome', nomeNormalizado)
+        .maybeSingle();
+      
+      if (existingMarca) {
+        return existingMarca.id;
+      }
+      
+      // Criar nova marca
+      const { data: newMarca, error } = await supabase
+        .from('marcas')
+        .insert({
+          nome: nomeNormalizado,
+          user_id: userId,
+          ativo: true
+        })
+        .select('id')
+        .single();
+      
+      if (error) {
+        console.error('Erro ao criar marca:', error);
+        return null;
+      }
+      
+      return newMarca.id;
+    } catch (error) {
+      console.error('Erro ao processar marca:', error);
+      return null;
+    }
   };
 
   const processFile = async (file: File) => {
@@ -137,68 +262,131 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i] as any;
-        const rowNumber = i + 2; // +2 porque começa na linha 2 (linha 1 é header)
+        const rowNumber = i + 2;
 
         try {
-          // Validações básicas
-          if (!row.nome) {
-            errors.push(`Linha ${rowNumber}: Nome é obrigatório`);
+          // Validações obrigatórias
+          if (!row['NOME'] || row['NOME'].toString().trim() === '') {
+            errors.push(`Linha ${rowNumber}: NOME é obrigatório`);
             continue;
           }
 
-          if (!row.unidade || !['g', 'kg', 'ml', 'l', 'un'].includes(row.unidade)) {
-            errors.push(`Linha ${rowNumber}: Unidade deve ser g, kg, ml, l ou un`);
+          if (!row['UNIDADE DE MEDIDA'] || !['g', 'kg', 'ml', 'l', 'un'].includes(row['UNIDADE DE MEDIDA'])) {
+            errors.push(`Linha ${rowNumber}: UNIDADE DE MEDIDA inválida (deve ser: g, kg, ml, l ou un)`);
             continue;
           }
 
-          if (row.status && !['Ativo', 'Inativo'].includes(row.status)) {
-            errors.push(`Linha ${rowNumber}: Status deve ser Ativo ou Inativo`);
+          const totalEmbalagem = Number(row['TOTAL DENTRO DA EMBALAGEM']);
+          if (!totalEmbalagem || totalEmbalagem <= 0) {
+            errors.push(`Linha ${rowNumber}: TOTAL DENTRO DA EMBALAGEM deve ser maior que zero`);
             continue;
           }
 
-          // Converter categorias para array se for string
-          let categorias = null;
-          if (row.categoria) {
-            categorias = typeof row.categoria === 'string' 
-              ? row.categoria.split(',').map((c: string) => c.trim())
-              : row.categoria;
+          // Validação de dados de conversão (ambos devem estar preenchidos ou ambos vazios)
+          const unidadeConversao = row['UNIDADE MEDIDA (Conversão)'];
+          const quantidadeConversao = row['QUANTO DENTRO DE CADA'];
+          
+          if ((unidadeConversao && !quantidadeConversao) || (!unidadeConversao && quantidadeConversao)) {
+            errors.push(`Linha ${rowNumber}: Dados de conversão incompletos (informe UNIDADE MEDIDA e QUANTO DENTRO DE CADA juntos)`);
+            continue;
           }
 
-          // Converter marcas para array se for string
-          let marcas = null;
-          if (row.marcas) {
-            marcas = typeof row.marcas === 'string'
-              ? row.marcas.split(',').map((m: string) => m.trim())
-              : row.marcas;
+          if (unidadeConversao && !['g', 'kg', 'ml', 'l', 'un', 'colher chá', 'colher sopa', 'xícara'].includes(unidadeConversao)) {
+            errors.push(`Linha ${rowNumber}: UNIDADE MEDIDA (Conversão) inválida`);
+            continue;
+          }
+
+          // Processar categoria
+          let categoriaId = null;
+          if (row['CATEGORIA'] && row['CATEGORIA'].toString().trim() !== '') {
+            categoriaId = await getOrCreateCategoria(row['CATEGORIA'].toString(), user.id);
+          }
+
+          // Processar marca
+          let marcaId = null;
+          if (row['MARCA'] && row['MARCA'].toString().trim() !== '') {
+            marcaId = await getOrCreateMarca(row['MARCA'].toString(), user.id);
+          }
+
+          // Calcular custos
+          const custoTotal = Number(row['CUSTO TOTAL']) || 0;
+          const estoqueAtual = Number(row['ESTOQUE ATUAL']) || 0;
+          const custoUnitario = totalEmbalagem > 0 ? custoTotal / totalEmbalagem : 0;
+          const custoMedio = estoqueAtual > 0 ? custoTotal / estoqueAtual : custoUnitario;
+
+          // Preparar arrays de categorias e marcas
+          const categoriasArray = categoriaId ? [categoriaId] : null;
+          const marcasArray = marcaId ? [marcaId] : null;
+
+          // Preparar código de barras como array se fornecido
+          let codigoBarrasArray = null;
+          if (row['CODIGO DE BARRAS'] && row['CODIGO DE BARRAS'].toString().trim() !== '') {
+            codigoBarrasArray = [row['CODIGO DE BARRAS'].toString().trim()];
           }
 
           const produto = {
-            nome: row.nome,
-            codigo_interno: row.codigo_interno || null,
-            codigo_barras: row.codigo_barras || null,
-            categoria: row.categoria || null,
-            categorias: categorias,
-            marcas: marcas,
-            unidade: row.unidade,
-            estoque_atual: Number(row.estoque_atual) || 0,
-            estoque_minimo: Number(row.estoque_minimo) || 0,
-            custo_total: Number(row.custo_total) || 0,
-            custo_unitario: row.estoque_atual && row.custo_total ? (Number(row.custo_total) / Number(row.estoque_atual)) : 0,
-            custo_medio: row.estoque_atual && row.custo_total ? (Number(row.custo_total) / Number(row.estoque_atual)) : 0,
-            total_embalagem: Number(row.total_embalagem) || 1,
-            ativo: row.status === 'Ativo' || row.status !== 'Inativo',
+            nome: row['NOME'].toString().trim(),
+            codigo_interno: row['CODIGO PDV'] ? row['CODIGO PDV'].toString().trim() : null,
+            codigo_barras: codigoBarrasArray,
+            categoria: row['CATEGORIA'] ? row['CATEGORIA'].toString().trim() : null,
+            categorias: categoriasArray,
+            marcas: marcasArray,
+            unidade: row['UNIDADE DE MEDIDA'],
+            total_embalagem: totalEmbalagem,
+            custo_total: custoTotal,
+            custo_unitario: custoUnitario,
+            custo_medio: custoMedio,
+            estoque_atual: estoqueAtual,
+            estoque_minimo: Number(row['ESTOQUE MINIMO']) || 0,
+            ativo: !row['STATUS'] || row['STATUS'] === 'Ativo',
             user_id: user.id
           };
 
-          const { error } = await supabase
+          // Inserir produto
+          const { data: produtoInserido, error: produtoError } = await supabase
             .from('produtos')
-            .insert(produto);
+            .insert(produto)
+            .select('id')
+            .single();
 
-          if (error) {
-            errors.push(`Linha ${rowNumber}: ${error.message}`);
-          } else {
-            successfulImports.push(produto);
+          if (produtoError) {
+            errors.push(`Linha ${rowNumber}: Erro ao inserir produto - ${produtoError.message}`);
+            continue;
           }
+
+          // Se há dados de conversão, inserir na tabela produto_conversoes
+          if (unidadeConversao && quantidadeConversao && produtoInserido) {
+            const quantidadeConversaoNum = Number(quantidadeConversao);
+            const custoUnitarioUso = quantidadeConversaoNum > 0 
+              ? custoUnitario / quantidadeConversaoNum 
+              : 0;
+
+            const { error: conversaoError } = await supabase
+              .from('produto_conversoes')
+              .insert({
+                produto_id: produtoInserido.id,
+                unidade_compra: row['UNIDADE DE MEDIDA'],
+                quantidade_por_unidade: totalEmbalagem,
+                unidade_uso_receitas: unidadeConversao,
+                quantidade_unidade_uso: quantidadeConversaoNum,
+                custo_unitario_uso: custoUnitarioUso,
+                user_id: user.id
+              });
+
+            if (conversaoError) {
+              // Rollback: deletar o produto criado
+              await supabase
+                .from('produtos')
+                .delete()
+                .eq('id', produtoInserido.id);
+              
+              errors.push(`Linha ${rowNumber}: Erro ao inserir conversão - ${conversaoError.message}`);
+              continue;
+            }
+          }
+
+          successfulImports.push(produto);
+
         } catch (error) {
           errors.push(`Linha ${rowNumber}: Erro inesperado - ${error}`);
         }
@@ -348,12 +536,15 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
           <div className="bg-muted p-4 rounded-lg">
             <h4 className="font-medium mb-2">Instruções:</h4>
             <ul className="text-sm space-y-1 text-muted-foreground">
-              <li>• O campo "nome" é obrigatório</li>
-              <li>• A unidade deve ser: g, kg, ml, l ou un (validação automática na planilha)</li>
-              <li>• O status deve ser: Ativo ou Inativo (validação automática na planilha)</li>
-              <li>• Categorias e marcas podem ser separadas por vírgula</li>
-              <li>• Preencha o custo_total (valor total em estoque), o custo unitário será calculado automaticamente</li>
-              <li>• Valores numéricos devem usar ponto como separador decimal</li>
+              <li>• <strong>Campos obrigatórios:</strong> NOME, UNIDADE DE MEDIDA, TOTAL DENTRO DA EMBALAGEM</li>
+              <li>• <strong>CODIGO PDV:</strong> Código interno do seu PDV/sistema (opcional)</li>
+              <li>• <strong>CATEGORIA e MARCA:</strong> Serão criadas automaticamente se não existirem</li>
+              <li>• <strong>UNIDADE DE MEDIDA:</strong> Deve ser g, kg, ml, l ou un (com validação automática)</li>
+              <li>• <strong>Dados de conversão (opcional):</strong> Se preencher UNIDADE MEDIDA (Conversão), deve preencher QUANTO DENTRO DE CADA também</li>
+              <li>• <strong>Unidades de conversão:</strong> g, kg, ml, l, un, colher chá, colher sopa, xícara</li>
+              <li>• <strong>STATUS:</strong> Ativo ou Inativo (com validação automática, padrão Ativo)</li>
+              <li>• <strong>Cálculos automáticos:</strong> Custo unitário e custo médio são calculados automaticamente</li>
+              <li>• <strong>Formato numérico:</strong> Use ponto como separador decimal (ex: 45.50)</li>
             </ul>
           </div>
         </CardContent>
