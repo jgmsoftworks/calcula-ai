@@ -48,7 +48,25 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      await signIn(loginEmail, loginPassword);
+      const { error } = await signIn(loginEmail, loginPassword);
+      
+      if (error) {
+        let errorMessage = "Verifique suas credenciais";
+        
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Email ou senha incorretos";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Por favor, confirme seu email antes de fazer login";
+        }
+        
+        toast({
+          title: "Erro no login",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta ao CalculaAi",
@@ -56,8 +74,8 @@ const Auth = () => {
       navigate('/');
     } catch (error: any) {
       toast({
-        title: "Erro no login",
-        description: error.message || "Verifique suas credenciais",
+        title: "Erro inesperado",
+        description: error.message || "Tente novamente",
         variant: "destructive",
       });
     } finally {
