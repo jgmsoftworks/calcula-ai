@@ -13,6 +13,7 @@ import {
   DollarSign,
   Store,
   Users,
+  Star,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -62,17 +63,38 @@ const adminItems = [
   { title: 'Configurações', url: '/admin-configuracoes', icon: Building2 },
 ];
 
+// Items for fornecedor users
+const fornecedorNavigationItems = [
+  { title: 'Dashboard', url: '/fornecedor-dashboard', icon: Home },
+  { title: 'Meu Painel', url: '/meu-painel-fornecedor', icon: Store },
+  { title: 'Orçamentos', url: '/fornecedor-orcamentos', icon: MessageSquare },
+  { title: 'Marketplace', url: '/marketplace', icon: Package },
+];
+
+const fornecedorItems = [
+  { title: 'Configurações', url: '/perfil', icon: Building2 },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { signOut, user, isAdmin } = useAuth();
+  const { signOut, user, isAdmin, isFornecedor } = useAuth();
   const { toast } = useToast();
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
 
-  // Select navigation items based on admin status
-  const navigationItems = isAdmin ? adminNavigationItems : businessNavigationItems;
-  const toolsItems = isAdmin ? adminItems : businessItems;
+  // Select navigation items based on role
+  const navigationItems = isAdmin 
+    ? adminNavigationItems 
+    : isFornecedor 
+      ? fornecedorNavigationItems 
+      : businessNavigationItems;
+      
+  const toolsItems = isAdmin 
+    ? adminItems 
+    : isFornecedor 
+      ? fornecedorItems 
+      : businessItems;
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -129,6 +151,13 @@ export function AppSidebar() {
                   </span>
                 </div>
               )}
+              {isFornecedor && (
+                <div className="mt-2 flex items-center justify-center">
+                  <span className="px-2 py-1 text-xs font-bold bg-green-600 text-white rounded-full shadow-glow">
+                    FORNECEDOR
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -138,7 +167,7 @@ export function AppSidebar() {
         {/* Main Navigation */}
         <SidebarGroup className="py-4">
           <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
-            {isAdmin ? 'Administração' : 'Navegação Principal'}
+            {isAdmin ? 'Administração' : isFornecedor ? 'Painel Fornecedor' : 'Navegação Principal'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -163,7 +192,7 @@ export function AppSidebar() {
         {/* Tools Section */}
         <SidebarGroup className="py-4">
           <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
-            {isAdmin ? 'Sistema' : 'Ferramentas de Negócio'}
+            {isAdmin ? 'Sistema' : isFornecedor ? 'Ferramentas' : 'Ferramentas de Negócio'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">

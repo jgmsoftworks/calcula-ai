@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   emailVerified: boolean;
   isAdmin: boolean;
+  isFornecedor: boolean;
   signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isFornecedor, setIsFornecedor] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -73,14 +75,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               } else {
                 setIsAdmin(isAdminData || false);
               }
+
+              // Check fornecedor status via RPC call
+              const { data: isFornecedorData, error: fornecedorError } = await supabase
+                .rpc('user_is_fornecedor', { check_user_id: session.user.id });
+
+              if (fornecedorError) {
+                console.error('Error checking fornecedor status:', fornecedorError);
+                setIsFornecedor(false);
+              } else {
+                setIsFornecedor(isFornecedorData || false);
+              }
             } catch (error) {
               console.error('Error handling profile:', error);
               setIsAdmin(false);
+              setIsFornecedor(false);
             }
           }, 0);
         } else {
           setEmailVerified(false);
           setIsAdmin(false);
+          setIsFornecedor(false);
         }
       }
     );
@@ -157,10 +172,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={{
       user,
-      session,
-      loading,
-      emailVerified,
-      isAdmin,
+    session,
+    loading,
+    emailVerified,
+    isAdmin,
+    isFornecedor,
       signUp,
       signIn,
       signInWithGoogle,

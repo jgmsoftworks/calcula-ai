@@ -31,6 +31,9 @@ import NotFound from "./pages/NotFound";
 import MarketplaceFornecedores from "./pages/MarketplaceFornecedores";
 import MeuPainelFornecedor from "./pages/MeuPainelFornecedor";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
+import FornecedorDashboard from "./pages/FornecedorDashboard";
+import FornecedorOrcamentos from "./pages/FornecedorOrcamentos";
+import FornecedorProtectedRoute from "./components/FornecedorProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +76,19 @@ const App = () => (
                 <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
                 <Route path="/marketplace" element={<AppLayout><MarketplaceFornecedores /></AppLayout>} />
                 <Route path="/meu-painel-fornecedor" element={<AppLayout><MeuPainelFornecedor /></AppLayout>} />
+                
+                {/* Fornecedor Routes */}
+                <Route path="/fornecedor-dashboard" element={
+                  <FornecedorProtectedRoute>
+                    <AppLayout><FornecedorDashboard /></AppLayout>
+                  </FornecedorProtectedRoute>
+                } />
+                <Route path="/fornecedor-orcamentos" element={
+                  <FornecedorProtectedRoute>
+                    <AppLayout><FornecedorOrcamentos /></AppLayout>
+                  </FornecedorProtectedRoute>
+                } />
+                
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

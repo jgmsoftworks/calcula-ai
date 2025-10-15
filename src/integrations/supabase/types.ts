@@ -2291,6 +2291,10 @@ export type Database = {
         Args: { affiliate_id: string }
         Returns: boolean
       }
+      user_is_fornecedor: {
+        Args: { check_user_id?: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:

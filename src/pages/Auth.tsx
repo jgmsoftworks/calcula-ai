@@ -19,7 +19,9 @@ import {
   KeyRound,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Store,
+  Phone
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +40,14 @@ const Auth = () => {
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  
+  // Fornecedor signup states
+  const [businessNameFornecedor, setBusinessNameFornecedor] = useState('');
+  const [cnpjFornecedor, setCnpjFornecedor] = useState('');
+  const [cidadeFornecedor, setCidadeFornecedor] = useState('');
+  const [emailFornecedor, setEmailFornecedor] = useState('');
+  const [passwordFornecedor, setPasswordFornecedor] = useState('');
+  const [telefoneFornecedor, setTelefoneFornecedor] = useState('');
 
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
@@ -183,6 +193,75 @@ const Auth = () => {
         description: error.message || "Tente novamente",
         variant: "destructive",
       });
+      setLoading(false);
+    }
+  };
+
+  const handleSignupFornecedor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // 1. Criar conta de usuário
+      const { error: authError } = await signUp(
+        emailFornecedor,
+        passwordFornecedor,
+        businessNameFornecedor
+      );
+      
+      if (authError) throw authError;
+
+      // Aguardar um pouco para garantir que o usuário foi criado
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 2. Buscar o usuário recém-criado
+      const { data: { user }, error: userError } = await import('@/integrations/supabase/client')
+        .then(m => m.supabase.auth.getUser());
+      
+      if (userError || !user) {
+        console.error('Erro ao obter usuário:', userError);
+        throw new Error('Erro ao obter dados do usuário');
+      }
+
+      // 3. Criar perfil de fornecedor
+      const { error: fornecedorError } = await import('@/integrations/supabase/client')
+        .then(m => m.supabase
+          .from('fornecedores')
+          .insert({
+            user_id: user.id,
+            nome: businessNameFornecedor,
+            cnpj_cpf: cnpjFornecedor,
+            cidade: cidadeFornecedor,
+            telefone: telefoneFornecedor,
+            email: emailFornecedor,
+            eh_fornecedor: true,
+            ativo: true,
+          }));
+
+      if (fornecedorError) {
+        console.error('Erro ao criar fornecedor:', fornecedorError);
+        throw fornecedorError;
+      }
+
+      toast({
+        title: "Cadastro realizado!",
+        description: "Verifique seu email para confirmar e acessar seu painel de fornecedor.",
+      });
+      
+      // Limpar formulário
+      setBusinessNameFornecedor('');
+      setCnpjFornecedor('');
+      setCidadeFornecedor('');
+      setEmailFornecedor('');
+      setPasswordFornecedor('');
+      setTelefoneFornecedor('');
+    } catch (error: any) {
+      toast({
+        title: "Erro no cadastro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
     }
   };
@@ -602,9 +681,136 @@ const Auth = () => {
                         </div>
                       )}
                     </div>
-                  </form>
-                </TabsContent>
-                </Tabs>
+              </form>
+            </TabsContent>
+
+            {/* Fornecedor Tab */}
+            <TabsContent value="fornecedor" className="animate-fade-in">
+              <form onSubmit={handleSignupFornecedor} className="space-y-6">
+                <div className="space-y-5">
+                  <div className="glass-panel p-4 rounded-xl space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="businessNameFornecedor" className="text-sm font-medium">
+                        Nome do Negócio *
+                      </label>
+                      <div className="relative">
+                        <Store className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <input
+                          id="businessNameFornecedor"
+                          type="text"
+                          placeholder="Distribuidora ABC Ltda"
+                          value={businessNameFornecedor}
+                          onChange={(e) => setBusinessNameFornecedor(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 glass-panel border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="cnpjFornecedor" className="text-sm font-medium">
+                          CNPJ/CPF
+                        </label>
+                        <input
+                          id="cnpjFornecedor"
+                          type="text"
+                          placeholder="00.000.000/0000-00"
+                          value={cnpjFornecedor}
+                          onChange={(e) => setCnpjFornecedor(e.target.value)}
+                          className="w-full px-4 py-2 glass-panel border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="cidadeFornecedor" className="text-sm font-medium">
+                          Cidade *
+                        </label>
+                        <input
+                          id="cidadeFornecedor"
+                          type="text"
+                          placeholder="São Paulo"
+                          value={cidadeFornecedor}
+                          onChange={(e) => setCidadeFornecedor(e.target.value)}
+                          className="w-full px-4 py-2 glass-panel border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="glass-panel p-4 rounded-xl space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="emailFornecedor" className="text-sm font-medium">
+                        Email *
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <input
+                          id="emailFornecedor"
+                          type="email"
+                          placeholder="contato@distribuidoraabc.com.br"
+                          value={emailFornecedor}
+                          onChange={(e) => setEmailFornecedor(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 glass-panel border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="passwordFornecedor" className="text-sm font-medium">
+                        Senha *
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <input
+                          id="passwordFornecedor"
+                          type="password"
+                          placeholder="Crie uma senha forte"
+                          value={passwordFornecedor}
+                          onChange={(e) => setPasswordFornecedor(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 glass-panel border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="telefoneFornecedor" className="text-sm font-medium">
+                        Telefone WhatsApp *
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <input
+                          id="telefoneFornecedor"
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          value={telefoneFornecedor}
+                          onChange={(e) => setTelefoneFornecedor(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 glass-panel border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-primary text-white py-3 rounded-xl font-semibold hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Cadastrando...' : 'Cadastrar como Fornecedor'}
+                </button>
+
+                <p className="text-sm text-center text-muted-foreground">
+                  Já tem conta? <button type="button" onClick={() => {}} className="text-primary font-medium hover:underline">Faça login</button>
+                </p>
+              </form>
+            </TabsContent>
+          </Tabs>
               )}
             </CardContent>
           </Card>
