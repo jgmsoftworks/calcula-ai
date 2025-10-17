@@ -1,74 +1,62 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  UserCheck, 
-  UserX, 
-  Crown, 
-  Calendar,
-  Mail,
-  Phone,
-  Building2,
-  RefreshCcw,
-  Eye,
-  Settings
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Search, Store, User, Crown, Building2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EditUserPlanModal } from '@/components/admin/EditUserPlanModal';
 
 interface UserProfile {
   id: string;
   user_id: string;
-  full_name: string;
-  business_name: string;
-  business_type: string;
+  full_name: string | null;
+  business_name: string | null;
   plan: string;
   created_at: string;
-  phone: string;
-  cnpj_cpf: string;
-  email?: string;
+  cnpj_cpf: string | null;
 }
 
-const AdminUsers = () => {
-  const { isAdmin } = useAuth();
+interface FornecedorStatus {
+  user_id: string;
+  eh_fornecedor: boolean;
+  fornecedor_id: string | null;
+}
+
+export default function AdminUsers() {
+  const { isAdmin, loading } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('all');
+  const [fornecedorStatus, setFornecedorStatus] = useState<Map<string, FornecedorStatus>>(new Map());
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<string>("all");
+  const [confirmAction, setConfirmAction] = useState<{
+    userId: string;
+    userName: string;
+    action: "add" | "remove";
+  } | null>(null);
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-
-  const fetchUsers = async () => {
-    if (!isAdmin) return;
-    
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "Erro ao carregar usuários",
-        description: "Tente novamente em alguns instantes",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (isAdmin) {
@@ -76,273 +64,303 @@ const AdminUsers = () => {
     }
   }, [isAdmin]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.cnpj_cpf?.includes(searchTerm);
-    
-    const matchesPlan = selectedPlan === 'all' || user.plan === selectedPlan;
-    
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+
+      // Fetch user profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, business_name, plan, created_at, cnpj_cpf")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      setUsers(profiles || []);
+
+      // Fetch fornecedor status for all users
+      const { data: fornecedores, error: fornecedoresError } = await supabase
+        .from("fornecedores")
+        .select("user_id, eh_fornecedor, id")
+        .eq("eh_fornecedor", true);
+
+      if (fornecedoresError) throw fornecedoresError;
+
+      const statusMap = new Map<string, FornecedorStatus>();
+      fornecedores?.forEach((f) => {
+        statusMap.set(f.user_id, {
+          user_id: f.user_id,
+          eh_fornecedor: f.eh_fornecedor,
+          fornecedor_id: f.id,
+        });
+      });
+
+      setFornecedorStatus(statusMap);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar usuários",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleToggleFornecedor = async (userId: string, currentStatus: boolean) => {
+    try {
+      setProcessingUserId(userId);
+
+      const { data, error } = await supabase.functions.invoke("admin-toggle-fornecedor-role", {
+        body: { userId, setAsFornecedor: !currentStatus },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: data.message,
+      });
+
+      // Refresh data
+      await fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao alterar status",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingUserId(null);
+      setConfirmAction(null);
+    }
+  };
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.cnpj_cpf?.includes(searchTerm);
+
+    const matchesPlan = selectedPlan === "all" || user.plan === selectedPlan;
+
     return matchesSearch && matchesPlan;
   });
 
   const getPlanBadge = (plan: string) => {
-    const planColors = {
-      free: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-      professional: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-      enterprise: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-    };
-    
-    const planNames = {
-      free: 'Gratuito',
-      professional: 'Professional',
-      enterprise: 'Enterprise'
+    const variants: Record<string, { variant: "default" | "secondary" | "outline"; label: string }> = {
+      free: { variant: "secondary", label: "Free" },
+      professional: { variant: "default", label: "Professional" },
+      enterprise: { variant: "outline", label: "Enterprise" },
     };
 
-    return (
-      <Badge className={planColors[plan as keyof typeof planColors] || planColors.free}>
-        {planNames[plan as keyof typeof planNames] || plan}
-      </Badge>
-    );
+    const planConfig = variants[plan] || { variant: "secondary", label: plan };
+    return <Badge variant={planConfig.variant}>{planConfig.label}</Badge>;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  const stats = [
-    {
-      title: 'Total de Usuários',
-      value: users.length.toString(),
-      description: 'Usuários registrados',
-      icon: Users,
-      color: 'text-primary',
-    },
-    {
-      title: 'Planos Profissionais',
-      value: users.filter(u => u.plan === 'professional').length.toString(),
-      description: 'Assinantes ativos',
-      icon: Crown,
-      color: 'text-blue-600',
-    },
-    {
-      title: 'Novos Este Mês',
-      value: users.filter(u => {
-        const userDate = new Date(u.created_at);
-        const now = new Date();
-        return userDate.getMonth() === now.getMonth() && userDate.getFullYear() === now.getFullYear();
-      }).length.toString(),
-      description: 'Cadastros recentes',
-      icon: UserCheck,
-      color: 'text-green-600',
-    },
-    {
-      title: 'Planos Gratuitos',
-      value: users.filter(u => u.plan === 'free').length.toString(),
-      description: 'Usuários gratuitos',
-      icon: UserX,
-      color: 'text-orange-600',
-    },
-  ];
-
-  if (!isAdmin) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <UserX className="h-16 w-16 mx-auto text-muted-foreground" />
-          <h2 className="text-2xl font-bold">Acesso Negado</h2>
-          <p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (loading) {
+  if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground">Carregando usuários...</p>
-        </div>
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Acesso negado. Apenas administradores podem acessar esta página.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent">
-            Gerenciamento de Usuários
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Administração central de todos os usuários do sistema
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
+          <p className="text-muted-foreground">
+            Gerencie permissões de fornecedores e status de usuários
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchUsers}
-            className="h-9"
-          >
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
-          <Button size="sm" className="h-9 bg-gradient-primary text-white shadow-glow">
-            <Eye className="h-4 w-4 mr-2" />
-            Relatório
-          </Button>
-        </div>
+        <Badge variant="outline">
+          {filteredUsers.length} usuário{filteredUsers.length !== 1 ? "s" : ""}
+        </Badge>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title} className="border-0 shadow-elegant">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      {stat.title}
-                    </p>
-                    <p className="text-3xl font-bold text-foreground">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {stat.description}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-gradient-to-r from-primary/20 to-secondary/20">
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Filters */}
-      <Card className="border-0 shadow-elegant">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome, empresa ou documento..."
+                  placeholder="Buscar por nome, negócio ou documento..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-10"
                 />
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-                className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-              >
-                <option value="all">Todos os planos</option>
-                <option value="free">Gratuito</option>
-                <option value="professional">Professional</option>
-                <option value="enterprise">Enterprise</option>
-              </select>
-            </div>
+            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filtrar por plano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os planos</SelectItem>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="enterprise">Enterprise</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Users List */}
-      <Card className="border-0 shadow-elegant">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Usuários ({filteredUsers.length})</span>
-          </CardTitle>
-          <CardDescription>
-            Lista completa de usuários cadastrados no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
-              <div 
-                key={user.id}
-                className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-start space-x-4 flex-1">
-                  <div className="p-2 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20">
-                    <Building2 className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="font-semibold text-foreground">
-                        {user.full_name || 'Nome não informado'}
-                      </h3>
-                      {getPlanBadge(user.plan || 'free')}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {user.business_name || 'Empresa não informada'}
-                    </p>
-                    <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-muted-foreground">
-                      {user.cnpj_cpf && (
-                        <div className="flex items-center space-x-1">
-                          <span>Doc: {user.cnpj_cpf}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>Desde {formatDate(user.created_at)}</span>
+      {loadingUsers ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredUsers.map((user) => {
+            const isFornecedor = fornecedorStatus.get(user.user_id)?.eh_fornecedor || false;
+            const isProcessing = processingUserId === user.user_id;
+
+            return (
+              <Card key={user.id}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-lg">
+                          {user.full_name || "Nome não informado"}
+                        </h3>
+                        {getPlanBadge(user.plan)}
+                      </div>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        {user.business_name && (
+                          <p className="flex items-center gap-2">
+                            <Building2 className="h-3 w-3" />
+                            {user.business_name}
+                          </p>
+                        )}
+                        {user.cnpj_cpf && <p>Doc: {user.cnpj_cpf}</p>}
+                        <p>Cadastro: {new Date(user.created_at).toLocaleDateString("pt-BR")}</p>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <Badge variant={isFornecedor ? "default" : "secondary"}>
+                          {isFornecedor ? (
+                            <>
+                              <Store className="h-3 w-3 mr-1" />
+                              Fornecedor
+                            </>
+                          ) : (
+                            <>
+                              <User className="h-3 w-3 mr-1" />
+                              Cliente
+                            </>
+                          )}
+                        </Badge>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingUser(user)}
+                      >
+                        <Crown className="h-4 w-4 mr-1" />
+                        Plano
+                      </Button>
+                      <Button
+                        variant={isFornecedor ? "destructive" : "default"}
+                        size="sm"
+                        disabled={isProcessing}
+                        onClick={() =>
+                          setConfirmAction({
+                            userId: user.user_id,
+                            userName: user.full_name || user.business_name || "este usuário",
+                            action: isFornecedor ? "remove" : "add",
+                          })
+                        }
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isFornecedor ? (
+                          "Remover Fornecedor"
+                        ) : (
+                          "Tornar Fornecedor"
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-1" />
-                    Ver
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setEditingUser(user)}
-                  >
-                    <Settings className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
-                </div>
-              </div>
-            ))}
+                </CardContent>
+              </Card>
+            );
+          })}
 
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Nenhum usuário encontrado
-                </h3>
-                <p className="text-muted-foreground">
-                  {searchTerm || selectedPlan !== 'all' 
-                    ? 'Tente ajustar os filtros de busca'
-                    : 'Nenhum usuário cadastrado no sistema'
-                  }
+          {filteredUsers.length === 0 && (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  Nenhum usuário encontrado com os filtros aplicados
                 </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
-      {/* Modal de edição */}
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar alteração</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.action === "add" ? (
+                <>
+                  Deseja transformar <strong>{confirmAction.userName}</strong> em fornecedor?
+                  <br />
+                  <br />
+                  Este usuário ganhará acesso ao painel de fornecedor e aparecerá no marketplace.
+                </>
+              ) : (
+                <>
+                  Deseja remover <strong>{confirmAction?.userName}</strong> da lista de fornecedores?
+                  <br />
+                  <br />
+                  Este usuário perderá acesso ao painel de fornecedor e será removido do marketplace.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmAction) {
+                  const currentStatus = confirmAction.action === "remove";
+                  handleToggleFornecedor(confirmAction.userId, currentStatus);
+                }
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de edição de plano */}
       {editingUser && (
         <EditUserPlanModal
           open={!!editingUser}
@@ -353,6 +371,4 @@ const AdminUsers = () => {
       )}
     </div>
   );
-};
-
-export default AdminUsers;
+}

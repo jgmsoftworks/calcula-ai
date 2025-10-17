@@ -405,9 +405,9 @@ const Auth = () => {
                   </form>
                 </div>
               ) : (
-                <Tabs defaultValue="login" className="space-y-8">
+                <Tabs defaultValue="login" className="space-y-8" data-tabs-container>
                   {/* Enhanced Tab List */}
-                  <TabsList className="grid w-full grid-cols-2 bg-gradient-glass border border-border/50 p-1.5 rounded-2xl h-14">
+                  <TabsList className="grid w-full grid-cols-3 bg-gradient-glass border border-border/50 p-1.5 rounded-2xl h-14">
                     <TabsTrigger 
                       value="login" 
                       className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
@@ -416,9 +416,16 @@ const Auth = () => {
                     </TabsTrigger>
                     <TabsTrigger 
                       value="signup" 
+                      data-value="signup"
                       className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
                     >
                       Criar conta
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="fornecedor"
+                      className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
+                    >
+                      Sou Fornecedor
                     </TabsTrigger>
                   </TabsList>
 

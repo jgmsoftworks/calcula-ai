@@ -59,6 +59,7 @@ const adminNavigationItems = [
 ];
 
 const adminItems = [
+  { title: 'Gerenciar Usuários', url: '/admin/usuarios', icon: Users },
   { title: 'Configurações', url: '/admin-configuracoes', icon: Building2 },
 ];
 

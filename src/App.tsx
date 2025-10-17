@@ -60,6 +60,8 @@ const App = () => (
           <Route path="/aff/:code" element={<AffiliateRedirect />} />
           <Route path="/affiliate/:code" element={<AffiliatePlanSelector />} />
             <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
+            <Route path="/admin/usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
+            <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
             <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
             <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
             <Route path="/reset-password" element={<ResetPassword />} />
