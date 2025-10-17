@@ -45,11 +45,10 @@ const businessNavigationItems = [
   { title: 'Sugestões', url: '/sugestoes', icon: MessageSquare },
 ];
 
-const businessItems = [
-  { title: 'Perfil de Negócio', url: '/perfil', icon: Building2 },
-  { title: 'Painel Fornecedor', url: '/meu-painel-fornecedor', icon: Store },
-  { title: 'Planos', url: '/planos', icon: Crown },
-];
+  const businessItems = [
+    { title: 'Perfil de Negócio', url: '/perfil', icon: Building2 },
+    { title: 'Planos', url: '/planos', icon: Crown },
+  ];
 
 // Items for admin users
 const adminNavigationItems = [
