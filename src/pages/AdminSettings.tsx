@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
+import { ImportReceitasExcel } from '@/components/admin/ImportReceitasExcel';
 
 const AdminSettings = () => {
   const { isAdmin } = useAuth();
@@ -289,6 +290,9 @@ const AdminSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Import Receitas */}
+      <ImportReceitasExcel />
 
       {/* System Health Status */}
       <Card className="border-0 shadow-elegant">

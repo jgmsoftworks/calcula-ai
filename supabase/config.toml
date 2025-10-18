@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sync-stripe-sales]
 verify_jwt = false
+
+[functions.import-receitas-excel]
+verify_jwt = true
