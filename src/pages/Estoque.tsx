@@ -37,9 +37,8 @@ const Estoque = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
-          <TabsTrigger value="importacao">Importação</TabsTrigger>
           <TabsTrigger value="lista">Lista</TabsTrigger>
           
           <PlanRestrictedArea requiredPlan="professional" feature="Movimentação de estoque" variant="tab">
@@ -77,10 +76,6 @@ const Estoque = () => {
 
         <TabsContent value="cadastro" className="space-y-4">
           <CadastroProdutoForm onProductCadastrado={handleProductCadastrado} />
-        </TabsContent>
-
-        <TabsContent value="importacao" className="space-y-4">
-          <ImportacaoProdutos onImportSuccess={handleProductCadastrado} />
         </TabsContent>
 
         <TabsContent value="lista" className="space-y-4">
