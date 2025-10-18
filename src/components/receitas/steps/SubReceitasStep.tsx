@@ -49,7 +49,7 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
     try {
       setLoading(true);
       
-      // Buscar receitas que têm markup "Sub-receitas"
+      // Buscar receitas que têm markup do tipo "sub-receitas"
       let query = supabase
         .from('receitas')
         .select(`
@@ -57,11 +57,10 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
           nome,
           rendimento_valor,
           rendimento_unidade,
-          markups!inner(nome)
+          markups!inner(tipo)
         `)
         .eq('user_id', user?.id)
-        .eq('markups.nome', 'sub-receitas')
-        .eq('status', 'finalizada');
+        .eq('markups.tipo', 'sub-receitas')
         
       // Não incluir a própria receita se estiver editando
       if (receitaId) {
@@ -179,8 +178,8 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
                 </div>
               ) : receitasFiltradas.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Nenhuma receita com markup "sub-receitas" encontrada</p>
-                  <p className="text-sm">Crie receitas e marque-as com o markup "sub-receitas"</p>
+                  <p>Nenhuma receita disponível como sub-receita</p>
+                  <p className="text-sm">Para uma receita aparecer aqui, ela precisa usar um markup do tipo "sub-receitas"</p>
                 </div>
               ) : (
                 receitasFiltradas.map((receita) => {
