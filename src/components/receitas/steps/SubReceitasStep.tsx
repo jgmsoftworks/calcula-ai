@@ -60,7 +60,7 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
           markups!inner(tipo)
         `)
         .eq('user_id', user?.id)
-        .eq('markups.tipo', 'sub-receitas')
+        .eq('markups.tipo', 'sub_receita')
         
       // Não incluir a própria receita se estiver editando
       if (receitaId) {
