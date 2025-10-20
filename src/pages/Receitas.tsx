@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit, Download, Package2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Trash2, Edit, Download, Package2, X, Search } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CriarReceitaModal } from '@/components/receitas/CriarReceitaModal';
+import { ReceitasFilters } from '@/components/receitas/ReceitasFilters';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { HistoricoReceitaModal } from '@/components/vitrine/HistoricoReceitaModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,6 +37,9 @@ interface Receita {
   preco_venda: number;
   margem_contribuicao: number;
   lucro_liquido: number;
+  markups?: {
+    tipo: string;
+  };
 }
 
 const Receitas = () => {
@@ -46,6 +50,15 @@ const Receitas = () => {
   const [editingReceitaId, setEditingReceitaId] = useState<string | null>(null);
   const [historicoModalOpen, setHistoricoModalOpen] = useState(false);
   const [selectedReceitaHistorico, setSelectedReceitaHistorico] = useState<{id: string, nome: string} | null>(null);
+  
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterTipo, setFilterTipo] = useState<'todas' | 'normal' | 'sub_receita'>('todas');
+  const [filterStatus, setFilterStatus] = useState<'todas' | 'finalizada' | 'rascunho'>('todas');
+  const [filterTipoProduto, setFilterTipoProduto] = useState<string>('todos');
+  const [filterRendimento, setFilterRendimento] = useState<'todas' | 'com' | 'sem'>('todas');
+  const [sortBy, setSortBy] = useState<'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo'>('recente');
+  
   const { user } = useAuth();
   const { toast } = useToast();
   const { hasAccess, checkLimit, planInfo, currentPlan } = usePlanLimits();
@@ -123,7 +136,7 @@ const Receitas = () => {
       }
 
       // Transformar os dados para incluir as contagens e custos
-      const receitasComContagens: Receita[] = receitasComDados.map((receita, index) => {
+      const receitasComContagens: Receita[] = receitasComDados.map((receita) => {
         const custoMateriaPrima = receita.receita_ingredientes?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
         const custoSubReceitas = receita.receita_sub_receitas?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
         const custoEmbalagens = receita.receita_embalagens?.reduce((sum: number, item: any) => sum + (Number(item.custo_total) || 0), 0) || 0;
@@ -162,6 +175,7 @@ const Receitas = () => {
           preco_venda: precoVenda,
           margem_contribuicao: margemContribuicao,
           lucro_liquido: lucroLiquido,
+          markups: receita.markups,
         };
       });
 
@@ -266,6 +280,94 @@ const Receitas = () => {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  // Extrair tipos de produto únicos
+  const tiposProduto = useMemo(() => {
+    const tipos = receitas
+      .map(r => r.tipo_produto)
+      .filter(tipo => tipo && tipo !== 'Tipo não definido');
+    return Array.from(new Set(tipos)).sort();
+  }, [receitas]);
+
+  // Filtrar e ordenar receitas
+  const receitasFiltradas = useMemo(() => {
+    let filtered = [...receitas];
+    
+    // Busca por nome
+    if (searchTerm) {
+      filtered = filtered.filter(r => 
+        r.nome.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Filtro por tipo (sub-receita vs normal)
+    if (filterTipo !== 'todas') {
+      filtered = filtered.filter(r => {
+        const isSubReceita = r.markups?.tipo === 'sub_receita';
+        return filterTipo === 'sub_receita' ? isSubReceita : !isSubReceita;
+      });
+    }
+    
+    // Filtro por status
+    if (filterStatus !== 'todas') {
+      filtered = filtered.filter(r => r.status === filterStatus);
+    }
+    
+    // Filtro por tipo de produto
+    if (filterTipoProduto !== 'todos') {
+      filtered = filtered.filter(r => r.tipo_produto === filterTipoProduto);
+    }
+    
+    // Filtro por rendimento
+    if (filterRendimento === 'com') {
+      filtered = filtered.filter(r => r.rendimento_valor && r.rendimento_valor > 0);
+    } else if (filterRendimento === 'sem') {
+      filtered = filtered.filter(r => !r.rendimento_valor || r.rendimento_valor === 0);
+    }
+    
+    // Ordenação
+    switch (sortBy) {
+      case 'recente':
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'antiga':
+        filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case 'a-z':
+        filtered.sort((a, b) => a.nome.localeCompare(b.nome));
+        break;
+      case 'z-a':
+        filtered.sort((a, b) => b.nome.localeCompare(a.nome));
+        break;
+      case 'maior-custo':
+        filtered.sort((a, b) => b.custo_total - a.custo_total);
+        break;
+      case 'menor-custo':
+        filtered.sort((a, b) => a.custo_total - b.custo_total);
+        break;
+    }
+    
+    return filtered;
+  }, [receitas, searchTerm, filterTipo, filterStatus, filterTipoProduto, filterRendimento, sortBy]);
+
+  // Verificar se há filtros ativos
+  const hasActiveFilters = 
+    searchTerm !== '' || 
+    filterTipo !== 'todas' || 
+    filterStatus !== 'todas' || 
+    filterTipoProduto !== 'todos' || 
+    filterRendimento !== 'todas' ||
+    sortBy !== 'recente';
+
+  // Limpar todos os filtros
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterTipo('todas');
+    setFilterStatus('todas');
+    setFilterTipoProduto('todos');
+    setFilterRendimento('todas');
+    setSortBy('recente');
   };
 
   const formatCurrency = (value: number) => {
@@ -1030,13 +1132,37 @@ const Receitas = () => {
         </Button>
       </div>
 
+      {/* Filtros */}
+      {!loading && receitas.length > 0 && (
+        <ReceitasFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filterTipo={filterTipo}
+          onFilterTipoChange={setFilterTipo}
+          filterStatus={filterStatus}
+          onFilterStatusChange={setFilterStatus}
+          filterTipoProduto={filterTipoProduto}
+          onFilterTipoProdutoChange={setFilterTipoProduto}
+          filterRendimento={filterRendimento}
+          onFilterRendimentoChange={setFilterRendimento}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          tiposProduto={tiposProduto}
+          totalReceitas={receitas.length}
+          receitasFiltradas={receitasFiltradas.length}
+          onClearFilters={handleClearFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
+      )}
+
       <div className="grid grid-cols-1 gap-4 w-full">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Carregando receitas...</p>
           </div>
         ) : receitas.length > 0 ? (
-          receitas.map((receita, index) => (
+          receitasFiltradas.length > 0 ? (
+            receitasFiltradas.map((receita, index) => (
             <Card key={receita.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -1186,6 +1312,25 @@ const Receitas = () => {
               </CardContent>
             </Card>
           ))
+          ) : (
+            <Card className="text-center py-12">
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="mx-auto w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Nenhuma receita encontrada</h3>
+                    <p className="text-muted-foreground">Tente ajustar os filtros ou limpar a busca</p>
+                  </div>
+                  <Button onClick={handleClearFilters} variant="outline" className="gap-2">
+                    <X className="h-4 w-4" />
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
         ) : (
           <Card className="text-center py-12">
             <CardContent>
