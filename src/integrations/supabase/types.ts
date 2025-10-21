@@ -2264,6 +2264,14 @@ export type Database = {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_users_auth_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          email: string
+          last_sign_in_at: string
+          user_id: string
+        }[]
+      }
       has_role_or_higher: {
         Args: {
           check_user_id?: string

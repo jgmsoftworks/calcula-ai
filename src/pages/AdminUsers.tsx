@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Store, User, Crown, Building2 } from "lucide-react";
+import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -36,6 +36,12 @@ interface UserProfile {
   cnpj_cpf: string | null;
 }
 
+interface UserAuthInfo {
+  user_id: string;
+  email: string;
+  last_sign_in_at: string | null;
+}
+
 interface FornecedorStatus {
   user_id: string;
   eh_fornecedor: boolean;
@@ -47,6 +53,7 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [fornecedorStatus, setFornecedorStatus] = useState<Map<string, FornecedorStatus>>(new Map());
+  const [authInfo, setAuthInfo] = useState<Map<string, UserAuthInfo>>(new Map());
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<string>("all");
@@ -77,6 +84,20 @@ export default function AdminUsers() {
       if (profilesError) throw profilesError;
 
       setUsers(profiles || []);
+
+      // Buscar informações de autenticação (email e último acesso)
+      const { data: authData, error: authError } = await supabase
+        .rpc('get_users_auth_info');
+
+      if (authError) {
+        console.error('Erro ao buscar informações de auth:', authError);
+      } else if (authData) {
+        const authMap = new Map<string, UserAuthInfo>();
+        authData.forEach((info: UserAuthInfo) => {
+          authMap.set(info.user_id, info);
+        });
+        setAuthInfo(authMap);
+      }
 
       // Fetch fornecedor status for all users
       const { data: fornecedores, error: fornecedoresError } = await supabase
@@ -137,16 +158,35 @@ export default function AdminUsers() {
   };
 
   const filteredUsers = users.filter((user) => {
+    const searchLower = searchTerm.toLowerCase();
+    const userAuth = authInfo.get(user.user_id);
     const matchesSearch =
       searchTerm === "" ||
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.cnpj_cpf?.includes(searchTerm);
+      user.full_name?.toLowerCase().includes(searchLower) ||
+      user.business_name?.toLowerCase().includes(searchLower) ||
+      user.cnpj_cpf?.includes(searchTerm) ||
+      userAuth?.email?.toLowerCase().includes(searchLower);
 
     const matchesPlan = selectedPlan === "all" || user.plan === selectedPlan;
 
     return matchesSearch && matchesPlan;
   });
+
+  const formatLastSignIn = (lastSignIn: string | null | undefined) => {
+    if (!lastSignIn) return 'Nunca acessou';
+    
+    const date = new Date(lastSignIn);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Hoje';
+    if (diffDays === 1) return 'Ontem';
+    if (diffDays < 7) return `há ${diffDays} dias`;
+    if (diffDays < 30) return `há ${Math.floor(diffDays / 7)} semanas`;
+    if (diffDays < 365) return `há ${Math.floor(diffDays / 30)} meses`;
+    return `há ${Math.floor(diffDays / 365)} anos`;
+  };
 
   const getPlanBadge = (plan: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline"; label: string }> = {
@@ -236,6 +276,7 @@ export default function AdminUsers() {
           {filteredUsers.map((user) => {
             const isFornecedor = fornecedorStatus.get(user.user_id)?.eh_fornecedor || false;
             const isProcessing = processingUserId === user.user_id;
+            const userAuth = authInfo.get(user.user_id);
 
             return (
               <Card key={user.id}>
@@ -249,6 +290,12 @@ export default function AdminUsers() {
                         {getPlanBadge(user.plan)}
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
+                        {userAuth?.email && (
+                          <p className="flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            {userAuth.email}
+                          </p>
+                        )}
                         {user.business_name && (
                           <p className="flex items-center gap-2">
                             <Building2 className="h-3 w-3" />
@@ -256,7 +303,16 @@ export default function AdminUsers() {
                           </p>
                         )}
                         {user.cnpj_cpf && <p>Doc: {user.cnpj_cpf}</p>}
-                        <p>Cadastro: {new Date(user.created_at).toLocaleDateString("pt-BR")}</p>
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <p className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Cadastro: {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                          <p className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Último acesso: {formatLastSignIn(userAuth?.last_sign_in_at)}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 pt-2">
                         <Badge variant={isFornecedor ? "default" : "secondary"}>

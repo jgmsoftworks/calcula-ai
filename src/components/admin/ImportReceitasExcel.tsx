@@ -34,8 +34,8 @@ export const ImportReceitasExcel = () => {
   const handleImport = async () => {
     if (!clientEmail || !selectedFile) {
       toast({
-        title: "Dados incompletos",
-        description: "Por favor, informe o email do cliente e selecione um arquivo",
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha o email do cliente e selecione um arquivo.",
         variant: "destructive",
       });
       return;
@@ -45,42 +45,32 @@ export const ImportReceitasExcel = () => {
     setResultado(null);
 
     try {
-      // Buscar user_id do cliente pelo email
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, plan')
-        .ilike('email_comercial', clientEmail)
-        .maybeSingle();
-
-      // Se não encontrou, buscar em auth.users
-      let clientUserId = profile?.user_id;
+      // Buscar o usuário usando a edge function que acessa auth.users
+      console.log('Buscando usuário com email:', clientEmail);
       
-      if (!clientUserId) {
-        const { data: authData } = await supabase.rpc('user_is_admin');
-        if (authData) {
-          // Admin pode buscar qualquer usuário
-          const { data: users } = await supabase
-            .from('profiles')
-            .select('user_id, full_name')
-            .limit(100);
-          
-          const matchedUser = users?.find(u => 
-            u.full_name?.toLowerCase().includes(clientEmail.toLowerCase())
-          );
-          
-          clientUserId = matchedUser?.user_id;
-        }
-      }
+      const { data: userInfo, error: userError } = await supabase.functions.invoke('get-user-by-email', {
+        body: { email: clientEmail }
+      });
 
-      if (!clientUserId) {
+      if (userError || !userInfo?.user_id) {
         toast({
           title: "Cliente não encontrado",
-          description: "Nenhum usuário encontrado com esse email",
+          description: userInfo?.message || userError?.message || "Não foi possível encontrar um cliente com este email.",
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
+
+      const clientUserId = userInfo.user_id;
+      const userName = userInfo.full_name || userInfo.business_name || userInfo.email;
+      
+      console.log('Usuário encontrado:', userName, '(ID:', clientUserId, ')');
+      
+      toast({
+        title: "Usuário encontrado",
+        description: `Iniciando importação para: ${userName}`,
+      });
 
       // Converter arquivo para base64
       const reader = new FileReader();
