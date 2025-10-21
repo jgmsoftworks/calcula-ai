@@ -262,9 +262,10 @@ export function FolhaPagamento() {
   };
 
   // Função para calcular valor baseado em lógica: se valor > 0, usa valor; senão usa %
-  const calculateItemValue = (percentValue: string, valorValue: string, salarioBase: number): number => {
-    const valor = parseCurrencyValue(valorValue);
-    const percent = parsePercentValue(percentValue);
+  const calculateItemValue = (percentValue: string | number, valorValue: string | number, salarioBase: number): number => {
+    // Se já é número, usa direto; se é string, faz parse
+    const valor = typeof valorValue === 'number' ? valorValue : parseCurrencyValue(valorValue);
+    const percent = typeof percentValue === 'number' ? percentValue : parsePercentValue(percentValue);
     
     if (valor > 0) {
       return valor; // Prioriza o valor em R$
@@ -513,15 +514,16 @@ export function FolhaPagamento() {
     const adicional = funcionario.adicional || 0;
     const desconto = funcionario.desconto || 0;
     
-    const fgtsTotal = calculateItemValue(funcionario.fgts_percent.toString(), funcionario.fgts_valor.toString(), salarioBase);
-    const inssTotal = calculateItemValue(funcionario.inss_percent.toString(), funcionario.inss_valor.toString(), salarioBase);
-    const ratTotal = calculateItemValue(funcionario.rat_percent.toString(), funcionario.rat_valor.toString(), salarioBase);
-    const feriasTotal = calculateItemValue(funcionario.ferias_percent.toString(), funcionario.ferias_valor.toString(), salarioBase);
-    const vtTotal = calculateItemValue(funcionario.vale_transporte_percent.toString(), funcionario.vale_transporte_valor.toString(), salarioBase);
-    const vaTotal = calculateItemValue(funcionario.vale_alimentacao_percent.toString(), funcionario.vale_alimentacao_valor.toString(), salarioBase);
-    const vrTotal = calculateItemValue(funcionario.vale_refeicao_percent.toString(), funcionario.vale_refeicao_valor.toString(), salarioBase);
-    const planoTotal = calculateItemValue(funcionario.plano_saude_percent.toString(), funcionario.plano_saude_valor.toString(), salarioBase);
-    const outrosTotal = calculateItemValue(funcionario.outros_percent.toString(), funcionario.outros_valor.toString(), salarioBase);
+    // Usa os valores numéricos diretamente, sem converter para string
+    const fgtsTotal = calculateItemValue(funcionario.fgts_percent, funcionario.fgts_valor, salarioBase);
+    const inssTotal = calculateItemValue(funcionario.inss_percent, funcionario.inss_valor, salarioBase);
+    const ratTotal = calculateItemValue(funcionario.rat_percent, funcionario.rat_valor, salarioBase);
+    const feriasTotal = calculateItemValue(funcionario.ferias_percent, funcionario.ferias_valor, salarioBase);
+    const vtTotal = calculateItemValue(funcionario.vale_transporte_percent, funcionario.vale_transporte_valor, salarioBase);
+    const vaTotal = calculateItemValue(funcionario.vale_alimentacao_percent, funcionario.vale_alimentacao_valor, salarioBase);
+    const vrTotal = calculateItemValue(funcionario.vale_refeicao_percent, funcionario.vale_refeicao_valor, salarioBase);
+    const planoTotal = calculateItemValue(funcionario.plano_saude_percent, funcionario.plano_saude_valor, salarioBase);
+    const outrosTotal = calculateItemValue(funcionario.outros_percent, funcionario.outros_valor, salarioBase);
     
     return Math.round((salarioBase + adicional - desconto + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
   };
