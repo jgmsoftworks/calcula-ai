@@ -79,6 +79,20 @@ export function FolhaPagamento() {
     dias_por_semana: '5',
     semanas_por_mes: '4,33'
   });
+  
+  // Rastrear qual campo foi editado por último (para recalcular quando salário base mudar)
+  const [lastEditedFields, setLastEditedFields] = useState<Record<string, 'percent' | 'valor'>>({
+    fgts: 'percent',
+    inss: 'percent',
+    rat: 'percent',
+    ferias: 'percent',
+    vale_transporte: 'percent',
+    vale_alimentacao: 'percent',
+    vale_refeicao: 'percent',
+    plano_saude: 'percent',
+    outros: 'percent'
+  });
+  
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -209,10 +223,10 @@ export function FolhaPagamento() {
   };
 
   const formatBrazilianNumber = (value: number | string) => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue) || numValue === 0) return '';
+    const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
+    if (isNaN(numValue) || numValue === 0) return '0,00'; // Retornar '0,00' ao invés de string vazia
     return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(numValue);
   };
@@ -295,7 +309,29 @@ export function FolhaPagamento() {
     // Formata como moeda brasileira
     const formattedValue = formatCurrencyInput(numberValue);
     
-    setFormData({ ...formData, salario_base: formattedValue });
+    // Atualizar salário base
+    const newFormData = { ...formData, salario_base: formattedValue };
+    
+    // Recalcular cada encargo baseado no lado que foi editado por último
+    Object.keys(lastEditedFields).forEach((encargoKey) => {
+      const wasPercent = lastEditedFields[encargoKey] === 'percent';
+      const percentKey = `${encargoKey}_percent`;
+      const valorKey = `${encargoKey}_valor`;
+      
+      if (wasPercent) {
+        // Se última edição foi %, recalcula o R$
+        const parsed = parsePercentValue(newFormData[percentKey as keyof typeof formData] as string);
+        const calculatedValue = Math.round((numberValue * parsed / 100) * 100) / 100;
+        newFormData[valorKey as keyof typeof formData] = calculatedValue > 0 ? formatCurrencyInput(calculatedValue) : '';
+      } else {
+        // Se última edição foi R$, recalcula a %
+        const parsed = parseCurrencyValue(newFormData[valorKey as keyof typeof formData] as string);
+        const calculatedPercent = numberValue > 0 ? Math.round((parsed / numberValue * 100) * 100) / 100 : 0;
+        newFormData[percentKey as keyof typeof formData] = calculatedPercent > 0 ? calculatedPercent.toString().replace('.', ',') : '0,00';
+      }
+    });
+    
+    setFormData(newFormData);
   };
 
   // Calcular horas totais por mês
@@ -340,9 +376,14 @@ export function FolhaPagamento() {
     const calculatedValue = Math.round((salarioBase * parsed / 100) * 100) / 100;
     
     const valorKey = key.replace('_percent', '_valor');
+    const encargoKey = key.replace('_percent', '');
+    
+    // Atualizar tracking
+    setLastEditedFields({ ...lastEditedFields, [encargoKey]: 'percent' });
+    
     setFormData({ 
       ...formData, 
-      [key]: value, // Mantém o valor formatado original
+      [key]: value,
       [valorKey]: calculatedValue > 0 ? formatCurrencyInput(calculatedValue) : ''
     });
   };
@@ -354,9 +395,14 @@ export function FolhaPagamento() {
     const calculatedPercent = salarioBase > 0 ? Math.round((parsed / salarioBase * 100) * 100) / 100 : 0;
     
     const percentKey = key.replace('_valor', '_percent');
+    const encargoKey = key.replace('_valor', '');
+    
+    // Atualizar tracking
+    setLastEditedFields({ ...lastEditedFields, [encargoKey]: 'valor' });
+    
     setFormData({ 
       ...formData, 
-      [key]: value, // Mantém o valor formatado original
+      [key]: value,
       [percentKey]: calculatedPercent > 0 ? calculatedPercent.toString().replace('.', ',') : '0,00'
     });
   };
@@ -397,6 +443,19 @@ export function FolhaPagamento() {
       dias_por_semana: '5',
       semanas_por_mes: '4,33'
     });
+    
+    // Resetar tracking para 'percent' como padrão
+    setLastEditedFields({
+      fgts: 'percent',
+      inss: 'percent',
+      rat: 'percent',
+      ferias: 'percent',
+      vale_transporte: 'percent',
+      vale_alimentacao: 'percent',
+      vale_refeicao: 'percent',
+      plano_saude: 'percent',
+      outros: 'percent'
+    });
   };
 
   const handleEdit = (funcionario: Funcionario) => {
@@ -430,6 +489,20 @@ export function FolhaPagamento() {
       dias_por_semana: formatDecimalNumber(funcionario.dias_por_semana) || '5',
       semanas_por_mes: formatDecimalNumber(funcionario.semanas_por_mes) || '4,33'
     });
+    
+    // Resetar tracking para 'percent' como padrão
+    setLastEditedFields({
+      fgts: 'percent',
+      inss: 'percent',
+      rat: 'percent',
+      ferias: 'percent',
+      vale_transporte: 'percent',
+      vale_alimentacao: 'percent',
+      vale_refeicao: 'percent',
+      plano_saude: 'percent',
+      outros: 'percent'
+    });
+    
     setIsModalOpen(true);
   };
 
@@ -636,43 +709,35 @@ export function FolhaPagamento() {
                   ].map((encargo) => (
                     <div key={encargo.label} className="grid grid-cols-[1fr_120px_140px] gap-4 items-center">
                       <Label className="text-primary font-medium">{encargo.label}</Label>
+                      
+                      {/* Campo de Porcentagem */}
                       <div className="relative">
                         <Input
                           type="text"
-                          key={`perc-${encargo.percentKey}-${formData[encargo.percentKey as keyof typeof formData]}`}
-                          defaultValue={formatBrazilianNumber(formData[encargo.percentKey as keyof typeof formData] as string)}
-                          onBlur={(e) => {
-                            const parsed = parseInputValue(e.target.value);
-                            handlePercentChange(encargo.percentKey, e.target.value);
-                            e.target.value = formatBrazilianNumber(parsed);
-                          }}
-                          placeholder="0"
+                          value={formData[encargo.percentKey as keyof typeof formData]}
+                          onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
+                          onKeyDown={handleInputKeyDown}
+                          onWheel={handleInputWheel}
+                          placeholder="0,00"
                           className="pr-6"
                           autoComplete="off"
-                          autoCapitalize="off"
-                          autoCorrect="off"
-                          spellCheck="false"
                         />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                       </div>
+                      
+                      {/* Campo de Valor */}
                       <div className="relative">
                         <Input
                           type="text"
-                          key={`valor-${encargo.valorKey}-${formData[encargo.valorKey as keyof typeof formData]}`}
-                          defaultValue={formatBrazilianNumber(formData[encargo.valorKey as keyof typeof formData] as string)}
-                          onBlur={(e) => {
-                            const parsed = parseInputValue(e.target.value);
-                            handleValueChange(encargo.valorKey, e.target.value);
-                            e.target.value = formatBrazilianNumber(parsed);
-                          }}
-                          placeholder="0"
+                          value={formData[encargo.valorKey as keyof typeof formData]}
+                          onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
+                          onKeyDown={handleInputKeyDown}
+                          onWheel={handleInputWheel}
+                          placeholder="0,00"
                           className="pl-8"
                           autoComplete="off"
-                          autoCapitalize="off"
-                          autoCorrect="off"
-                          spellCheck="false"
                         />
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                       </div>
                     </div>
                   ))}
