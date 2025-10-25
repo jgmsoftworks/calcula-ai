@@ -110,6 +110,55 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
     }
   };
   
+  // Listener para mudanças em produto_conversoes
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('produto-conversoes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'produto_conversoes'
+        },
+        () => {
+          loadProdutos();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Listener para mudanças em produtos
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('produtos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'produtos',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          loadProdutos();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+  
   const adicionarIngrediente = (produto: Produto) => {
     const novoIngrediente: Ingrediente = {
       id: Date.now().toString(),

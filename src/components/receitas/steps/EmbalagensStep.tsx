@@ -92,6 +92,55 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
     }
   };
 
+  // Listener para mudanças em produto_conversoes
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('produto-conversoes-changes-embalagens')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'produto_conversoes'
+        },
+        () => {
+          carregarProdutos();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Listener para mudanças em produtos
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('produtos-changes-embalagens')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'produtos',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          carregarProdutos();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const adicionarEmbalagem = (produto: any) => {
     const novaEmbalagem: Embalagem = {
       id: Date.now().toString(),
