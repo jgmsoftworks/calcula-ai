@@ -1992,7 +1992,7 @@ export type Database = {
           accessed_at: string | null
           action: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           record_id: string | null
           sensitive_fields: string[] | null
           table_name: string
@@ -2003,7 +2003,7 @@ export type Database = {
           accessed_at?: string | null
           action: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           record_id?: string | null
           sensitive_fields?: string[] | null
           table_name: string
@@ -2014,7 +2014,7 @@ export type Database = {
           accessed_at?: string | null
           action?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           record_id?: string | null
           sensitive_fields?: string[] | null
           table_name?: string
@@ -2211,24 +2211,12 @@ export type Database = {
         Args: { check_user_id: string }
         Returns: number
       }
-      create_system_backup: {
-        Args: { backup_type?: string }
-        Returns: string
-      }
-      generate_affiliate_link_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_codigo_interno: {
-        Args: { user_uuid: string }
-        Returns: string
-      }
-      get_backup_data: {
-        Args: { backup_id: string }
-        Returns: Json
-      }
+      create_system_backup: { Args: { backup_type?: string }; Returns: string }
+      generate_affiliate_link_code: { Args: never; Returns: string }
+      generate_codigo_interno: { Args: { user_uuid: string }; Returns: string }
+      get_backup_data: { Args: { backup_id: string }; Returns: Json }
       get_employee_basic_info: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           business_name: string
           business_type: string
@@ -2239,7 +2227,7 @@ export type Database = {
         }[]
       }
       get_employee_summary: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           ativo: boolean
           cargo: string
@@ -2254,7 +2242,7 @@ export type Database = {
         Returns: number
       }
       get_roadmap_vote_counts: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           roadmap_item_id: string
           vote_count: number
@@ -2265,7 +2253,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_users_auth_info: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           email: string
           last_sign_in_at: string
@@ -2279,30 +2267,18 @@ export type Database = {
         }
         Returns: boolean
       }
-      increment_pdf_count: {
-        Args: { user_uuid: string }
-        Returns: undefined
-      }
+      increment_pdf_count: { Args: { user_uuid: string }; Returns: undefined }
       initialize_user_filters: {
         Args: { user_uuid: string }
         Returns: undefined
       }
-      reset_monthly_pdf_counter: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      user_is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      reset_monthly_pdf_counter: { Args: never; Returns: undefined }
+      user_is_admin: { Args: never; Returns: boolean }
       user_is_affiliate_owner: {
         Args: { affiliate_id: string }
         Returns: boolean
       }
-      user_is_fornecedor: {
-        Args: { check_user_id?: string }
-        Returns: boolean
-      }
+      user_is_fornecedor: { Args: { check_user_id?: string }; Returns: boolean }
     }
     Enums: {
       app_role:
