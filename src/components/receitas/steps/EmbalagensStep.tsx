@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,31 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Função para sincronizar custos das embalagens existentes
+  const sincronizarCustosEmbalagens = useCallback((produtosAtualizados: any[]) => {
+    const custosPorProduto = new Map(
+      produtosAtualizados.map(p => [p.id, { custo_medio: p.custo_medio, unidade: p.unidade }])
+    );
+    
+    const embalagensAtualizadas = embalagens.map(emb => {
+      const custoAtualizado = custosPorProduto.get(emb.produto_id);
+      if (custoAtualizado && custoAtualizado.custo_medio !== emb.custo_unitario) {
+        console.log(`🔄 Sincronizando custo de "${emb.nome}": R$ ${emb.custo_unitario} → R$ ${custoAtualizado.custo_medio}`);
+        return {
+          ...emb,
+          custo_unitario: custoAtualizado.custo_medio,
+          unidade: custoAtualizado.unidade,
+          custo_total: emb.quantidade * custoAtualizado.custo_medio
+        };
+      }
+      return emb;
+    });
+    
+    if (JSON.stringify(embalagensAtualizadas) !== JSON.stringify(embalagens)) {
+      onEmbalagensChange(embalagensAtualizadas);
+    }
+  }, [embalagens, onEmbalagensChange]);
 
   useEffect(() => {
     carregarProdutos();
@@ -80,6 +105,9 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
       });
 
       setProdutos(produtosTransformados);
+      
+      // Sincronizar custos das embalagens existentes
+      sincronizarCustosEmbalagens(produtosTransformados);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
       toast({
@@ -92,9 +120,11 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
     }
   };
 
-  // Listener para mudanças em produto_conversoes
+  // Listener para mudanças em produto_conversoes - apenas para produtos usados na receita
   useEffect(() => {
-    if (!user) return;
+    if (!user || embalagens.length === 0) return;
+    
+    const produtoIds = embalagens.map(emb => emb.produto_id);
     
     const channel = supabase
       .channel('produto-conversoes-changes-embalagens')
@@ -103,9 +133,11 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'produto_conversoes'
+          table: 'produto_conversoes',
+          filter: `produto_id=in.(${produtoIds.join(',')})`
         },
         () => {
+          console.log('🔔 Detectada atualização em embalagem usada na receita');
           carregarProdutos();
         }
       )
@@ -114,11 +146,13 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, embalagens]);
 
-  // Listener para mudanças em produtos
+  // Listener para mudanças em produtos - apenas para produtos usados na receita
   useEffect(() => {
-    if (!user) return;
+    if (!user || embalagens.length === 0) return;
+    
+    const produtoIds = embalagens.map(emb => emb.produto_id);
     
     const channel = supabase
       .channel('produtos-changes-embalagens')
@@ -128,9 +162,10 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
           event: 'UPDATE',
           schema: 'public',
           table: 'produtos',
-          filter: `user_id=eq.${user.id}`
+          filter: `id=in.(${produtoIds.join(',')})AND(user_id=eq.${user.id})`
         },
         () => {
+          console.log('🔔 Detectada atualização em embalagem usada na receita');
           carregarProdutos();
         }
       )
@@ -139,9 +174,21 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, embalagens]);
 
   const adicionarEmbalagem = (produto: any) => {
+    // Verificação robusta de duplicação
+    const jaExiste = embalagens.some(item => item.produto_id === produto.id);
+    
+    if (jaExiste) {
+      toast({
+        title: "Embalagem já adicionada",
+        description: `"${produto.nome}" já está na lista de embalagens`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const novaEmbalagem: Embalagem = {
       id: Date.now().toString(),
       produto_id: produto.id,

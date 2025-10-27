@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,31 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Função para sincronizar custos dos ingredientes existentes
+  const sincronizarCustosIngredientes = useCallback((produtosAtualizados: Produto[]) => {
+    const custosPorProduto = new Map(
+      produtosAtualizados.map(p => [p.id, { custo_medio: p.custo_medio, unidade: p.unidade }])
+    );
+    
+    const ingredientesAtualizados = ingredientes.map(ing => {
+      const custoAtualizado = custosPorProduto.get(ing.produto_id);
+      if (custoAtualizado && custoAtualizado.custo_medio !== ing.custo_unitario) {
+        console.log(`🔄 Sincronizando custo de "${ing.nome}": R$ ${ing.custo_unitario} → R$ ${custoAtualizado.custo_medio}`);
+        return {
+          ...ing,
+          custo_unitario: custoAtualizado.custo_medio,
+          unidade: custoAtualizado.unidade,
+          custo_total: ing.quantidade * custoAtualizado.custo_medio
+        };
+      }
+      return ing;
+    });
+    
+    if (JSON.stringify(ingredientesAtualizados) !== JSON.stringify(ingredientes)) {
+      onIngredientesChange(ingredientesAtualizados);
+    }
+  }, [ingredientes, onIngredientesChange]);
 
   useEffect(() => {
     loadProdutos();
@@ -98,6 +123,9 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
       });
 
       setProdutosDisponiveis(produtosTransformados);
+      
+      // Sincronizar custos dos ingredientes existentes
+      sincronizarCustosIngredientes(produtosTransformados);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
       toast({
@@ -110,9 +138,11 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
     }
   };
   
-  // Listener para mudanças em produto_conversoes
+  // Listener para mudanças em produto_conversoes - apenas para produtos usados na receita
   useEffect(() => {
-    if (!user) return;
+    if (!user || ingredientes.length === 0) return;
+    
+    const produtoIds = ingredientes.map(ing => ing.produto_id);
     
     const channel = supabase
       .channel('produto-conversoes-changes')
@@ -121,9 +151,11 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'produto_conversoes'
+          table: 'produto_conversoes',
+          filter: `produto_id=in.(${produtoIds.join(',')})`
         },
         () => {
+          console.log('🔔 Detectada atualização em produto usado na receita');
           loadProdutos();
         }
       )
@@ -132,11 +164,13 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, ingredientes]);
 
-  // Listener para mudanças em produtos
+  // Listener para mudanças em produtos - apenas para produtos usados na receita
   useEffect(() => {
-    if (!user) return;
+    if (!user || ingredientes.length === 0) return;
+    
+    const produtoIds = ingredientes.map(ing => ing.produto_id);
     
     const channel = supabase
       .channel('produtos-changes')
@@ -146,9 +180,10 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
           event: 'UPDATE',
           schema: 'public',
           table: 'produtos',
-          filter: `user_id=eq.${user.id}`
+          filter: `id=in.(${produtoIds.join(',')})AND(user_id=eq.${user.id})`
         },
         () => {
+          console.log('🔔 Detectada atualização em produto usado na receita');
           loadProdutos();
         }
       )
@@ -157,9 +192,21 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, ingredientes]);
   
   const adicionarIngrediente = (produto: Produto) => {
+    // Verificação robusta de duplicação
+    const jaExiste = ingredientes.some(item => item.produto_id === produto.id);
+    
+    if (jaExiste) {
+      toast({
+        title: "Ingrediente já adicionado",
+        description: `"${produto.nome}" já está na lista de ingredientes`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const novoIngrediente: Ingrediente = {
       id: Date.now().toString(),
       produto_id: produto.id,
