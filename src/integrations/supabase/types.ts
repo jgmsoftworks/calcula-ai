@@ -1868,6 +1868,7 @@ export type Database = {
           imagem_url: string | null
           markup_id: string | null
           nome: string
+          numero_sequencial: number
           observacoes: string | null
           peso_unitario: number | null
           preco_venda: number | null
@@ -1887,6 +1888,7 @@ export type Database = {
           imagem_url?: string | null
           markup_id?: string | null
           nome: string
+          numero_sequencial: number
           observacoes?: string | null
           peso_unitario?: number | null
           preco_venda?: number | null
@@ -1906,6 +1908,7 @@ export type Database = {
           imagem_url?: string | null
           markup_id?: string | null
           nome?: string
+          numero_sequencial?: number
           observacoes?: string | null
           peso_unitario?: number | null
           preco_venda?: number | null

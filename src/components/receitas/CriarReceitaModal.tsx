@@ -490,7 +490,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
               }
               return 0;
             })()
-          })
+          } as any)
           .select()
           .single();
 

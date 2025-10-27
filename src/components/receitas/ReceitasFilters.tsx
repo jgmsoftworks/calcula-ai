@@ -15,8 +15,8 @@ interface ReceitasFiltersProps {
   onFilterTipoProdutoChange: (value: string) => void;
   filterRendimento: 'todas' | 'com' | 'sem';
   onFilterRendimentoChange: (value: 'todas' | 'com' | 'sem') => void;
-  sortBy: 'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo';
-  onSortByChange: (value: 'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo') => void;
+  sortBy: 'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo' | 'numero-asc' | 'numero-desc';
+  onSortByChange: (value: 'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo' | 'numero-asc' | 'numero-desc') => void;
   tiposProduto: string[];
   totalReceitas: number;
   receitasFiltradas: number;
@@ -125,6 +125,8 @@ export const ReceitasFilters = ({
             <SelectValue placeholder="Ordenar por" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="numero-asc">Por Número (Crescente)</SelectItem>
+            <SelectItem value="numero-desc">Por Número (Decrescente)</SelectItem>
             <SelectItem value="recente">Mais Recentes</SelectItem>
             <SelectItem value="antiga">Mais Antigas</SelectItem>
             <SelectItem value="a-z">A-Z</SelectItem>

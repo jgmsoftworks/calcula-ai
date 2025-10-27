@@ -16,6 +16,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 interface Receita {
   id: string;
+  numero_sequencial: number;
   nome: string;
   tempo_preparo_total: number;
   tempo_preparo_mao_obra: number;
@@ -57,7 +58,7 @@ const Receitas = () => {
   const [filterStatus, setFilterStatus] = useState<'todas' | 'finalizada' | 'rascunho'>('todas');
   const [filterTipoProduto, setFilterTipoProduto] = useState<string>('todos');
   const [filterRendimento, setFilterRendimento] = useState<'todas' | 'com' | 'sem'>('todas');
-  const [sortBy, setSortBy] = useState<'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo'>('recente');
+  const [sortBy, setSortBy] = useState<'recente' | 'antiga' | 'a-z' | 'z-a' | 'maior-custo' | 'menor-custo' | 'numero-asc' | 'numero-desc'>('numero-asc');
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -81,7 +82,7 @@ const Receitas = () => {
           markups(nome, tipo)
         `)
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('numero_sequencial', { ascending: true });
 
       if (receitasError) {
         console.error('Erro ao carregar receitas:', receitasError);
@@ -328,6 +329,12 @@ const Receitas = () => {
     
     // Ordenação
     switch (sortBy) {
+      case 'numero-asc':
+        filtered.sort((a, b) => a.numero_sequencial - b.numero_sequencial);
+        break;
+      case 'numero-desc':
+        filtered.sort((a, b) => b.numero_sequencial - a.numero_sequencial);
+        break;
       case 'recente':
         filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
@@ -358,7 +365,7 @@ const Receitas = () => {
     filterStatus !== 'todas' || 
     filterTipoProduto !== 'todos' || 
     filterRendimento !== 'todas' ||
-    sortBy !== 'recente';
+    sortBy !== 'numero-asc';
 
   // Limpar todos os filtros
   const handleClearFilters = () => {
@@ -367,7 +374,7 @@ const Receitas = () => {
     setFilterStatus('todas');
     setFilterTipoProduto('todos');
     setFilterRendimento('todas');
-    setSortBy('recente');
+    setSortBy('numero-asc');
   };
 
   const formatCurrency = (value: number) => {
@@ -1169,7 +1176,7 @@ const Receitas = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <span className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-semibold">
-                        {index + 1}
+                        {receita.numero_sequencial}
                       </span>
                       <CardTitle className="text-lg">{receita.nome}</CardTitle>
                     </div>
