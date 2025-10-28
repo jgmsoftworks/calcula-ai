@@ -70,6 +70,70 @@ const Receitas = () => {
     }
   }, [user?.id]);
 
+  // Listener para atualizar lista quando ingredientes/embalagens/sub-receitas/mao-obra mudam
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    console.log('🔔 Configurando listeners de realtime para receitas');
+    
+    const channel = supabase
+      .channel('receitas-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'receita_ingredientes'
+        },
+        (payload) => {
+          console.log('🔄 Ingrediente atualizado, recarregando receitas...', payload);
+          loadReceitas();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'receita_embalagens'
+        },
+        (payload) => {
+          console.log('🔄 Embalagem atualizada, recarregando receitas...', payload);
+          loadReceitas();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'receita_sub_receitas'
+        },
+        (payload) => {
+          console.log('🔄 Sub-receita atualizada, recarregando receitas...', payload);
+          loadReceitas();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'receita_mao_obra'
+        },
+        (payload) => {
+          console.log('🔄 Mão de obra atualizada, recarregando receitas...', payload);
+          loadReceitas();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      console.log('🔕 Removendo listeners de realtime');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const loadReceitas = async () => {
     try {
       setLoading(true);
