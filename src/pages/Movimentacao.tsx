@@ -375,8 +375,7 @@ const Movimentacao = () => {
       // Processar cada item do carrinho
       for (const item of carrinho) {
         // 1. Criar registro em movimentacoes_pdv
-        // @ts-ignore - Tipos do Supabase sendo regenerados
-        const { error: pdvError } = await supabase.from('movimentacoes_pdv').insert({
+        const { error: pdvError } = await (supabase.from('movimentacoes_pdv') as any).insert({
           origem: item.origem,
           tipo: item.tipo,
           produto_id: item.produto_id,
@@ -435,8 +434,7 @@ const Movimentacao = () => {
           }
 
           // 3. Criar registro em movimentacoes (compatibilidade)
-          // @ts-ignore - Tipos do Supabase sendo regenerados
-          await supabase.from('movimentacoes').insert({
+          await (supabase.from('movimentacoes') as any).insert({
             produto_id: item.produto_id,
             quantidade: item.quantidade,
             custo_unitario: item.valor_unitario,
@@ -464,8 +462,7 @@ const Movimentacao = () => {
           }
 
           // Criar registro em movimentacoes_receitas
-          // @ts-ignore - Tipos do Supabase sendo regenerados
-          await supabase.from('movimentacoes_receitas').insert({
+          await (supabase.from('movimentacoes_receitas') as any).insert({
             receita_id: item.receita_id!,
             tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
             quantidade: item.quantidade,
