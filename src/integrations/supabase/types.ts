@@ -1090,6 +1090,78 @@ export type Database = {
           },
         ]
       }
+      movimentacoes_pdv: {
+        Row: {
+          created_at: string | null
+          data_movimentacao: string
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          funcionario_id: string | null
+          funcionario_nome: string | null
+          id: string
+          motivo: string
+          nome_item: string
+          numero_comanda: string | null
+          observacao: string | null
+          origem: string
+          produto_id: string | null
+          quantidade: number
+          receita_id: string | null
+          tipo: string
+          unidade: string
+          updated_at: string | null
+          user_id: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_movimentacao: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
+          id?: string
+          motivo: string
+          nome_item: string
+          numero_comanda?: string | null
+          observacao?: string | null
+          origem: string
+          produto_id?: string | null
+          quantidade: number
+          receita_id?: string | null
+          tipo: string
+          unidade: string
+          updated_at?: string | null
+          user_id: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Update: {
+          created_at?: string | null
+          data_movimentacao?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
+          id?: string
+          motivo?: string
+          nome_item?: string
+          numero_comanda?: string | null
+          observacao?: string | null
+          origem?: string
+          produto_id?: string | null
+          quantidade?: number
+          receita_id?: string | null
+          tipo?: string
+          unidade?: string
+          updated_at?: string | null
+          user_id?: string
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: []
+      }
       movimentacoes_receitas: {
         Row: {
           created_at: string
@@ -2217,6 +2289,7 @@ export type Database = {
       create_system_backup: { Args: { backup_type?: string }; Returns: string }
       generate_affiliate_link_code: { Args: never; Returns: string }
       generate_codigo_interno: { Args: { user_uuid: string }; Returns: string }
+      gerar_numero_comanda: { Args: { p_user_id: string }; Returns: string }
       get_backup_data: { Args: { backup_id: string }; Returns: Json }
       get_employee_basic_info: {
         Args: never
