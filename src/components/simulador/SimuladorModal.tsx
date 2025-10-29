@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { NumericInputPtBr } from "@/components/ui/numeric-input-ptbr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -235,13 +236,11 @@ export function SimuladorModal({ receita, open, onOpenChange }: SimuladorModalPr
                             <Label htmlFor={`preco-${cenario.id}`} className="text-xs">
                               Preço de Venda
                             </Label>
-                            <Input
-                              id={`preco-${cenario.id}`}
-                              type="number"
-                              step="0.01"
-                              min="0"
+                            <NumericInputPtBr
+                              tipo="valor"
+                              min={0}
                               value={cenario.preco}
-                              onChange={(e) => atualizarCenario(cenario.id, 'preco', Number(e.target.value))}
+                              onChange={(valor) => atualizarCenario(cenario.id, 'preco', valor)}
                               className="text-sm"
                             />
                           </div>
@@ -249,12 +248,11 @@ export function SimuladorModal({ receita, open, onOpenChange }: SimuladorModalPr
                             <Label htmlFor={`quantidade-${cenario.id}`} className="text-xs">
                               Quantidade
                             </Label>
-                            <Input
-                              id={`quantidade-${cenario.id}`}
-                              type="number"
-                              min="1"
+                            <NumericInputPtBr
+                              tipo="quantidade_un"
+                              min={1}
                               value={cenario.quantidade}
-                              onChange={(e) => atualizarCenario(cenario.id, 'quantidade', Number(e.target.value))}
+                              onChange={(valor) => atualizarCenario(cenario.id, 'quantidade', valor)}
                               className="text-sm"
                             />
                           </div>

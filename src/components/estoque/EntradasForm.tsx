@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -337,30 +338,24 @@ export const EntradasForm = () => {
               {/* Quantidade */}
               <div className="space-y-2">
                 <Label htmlFor="quantidade" className="text-sm font-medium">Quantidade *</Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={novoItem.quantidade || ''}
-                  onChange={(e) => setNovoItem(prev => ({ ...prev, quantidade: parseFloat(e.target.value) || 0 }))}
+                <NumericInputPtBr
+                  tipo="quantidade_continua"
+                  min={0.01}
+                  value={novoItem.quantidade}
+                  onChange={(valor) => setNovoItem(prev => ({ ...prev, quantidade: valor }))}
                   className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="0"
                 />
               </div>
 
               {/* Custo Total */}
               <div className="space-y-2">
                 <Label htmlFor="custo_total" className="text-sm font-medium">Custo Total (R$) *</Label>
-                <Input
-                  id="custo_total"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={novoItem.custo_total || ''}
-                  onChange={(e) => setNovoItem(prev => ({ ...prev, custo_total: parseFloat(e.target.value) || 0 }))}
+                <NumericInputPtBr
+                  tipo="valor"
+                  min={0}
+                  value={novoItem.custo_total}
+                  onChange={(valor) => setNovoItem(prev => ({ ...prev, custo_total: valor }))}
                   className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="0,00"
                 />
               </div>
 

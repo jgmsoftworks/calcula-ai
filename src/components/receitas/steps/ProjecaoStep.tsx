@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Package, TrendingUp, Plus, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -212,12 +213,11 @@ export function ProjecaoStep({
               <div>
                 <Label className="text-sm">Tempo de Preparo Total</Label>
                 <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={tempoPreparoTotal || ''}
-                    onChange={(e) => setTempoPreparoTotal(parseInt(e.target.value) || 0)}
+                  <NumericInputPtBr
+                    tipo="quantidade_un"
+                    min={0}
+                    value={tempoPreparoTotal}
+                    onChange={(valor) => setTempoPreparoTotal(valor)}
                     className="flex-1"
                   />
                   <Select value={tempoPreparoUnidade} onValueChange={setTempoPreparoUnidade}>

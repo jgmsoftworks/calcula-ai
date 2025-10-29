@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
@@ -174,22 +175,18 @@ export default function CriarPromocaoModal({
 
             <div>
               <Label htmlFor="desconto">Valor do Desconto *</Label>
-              <Input
-                id="desconto"
-                type="number"
-                step="0.01"
-                min="0"
+              <NumericInputPtBr
+                tipo={tipoDesconto === 'percentual' ? 'percentual' : 'valor'}
+                min={0}
                 max={tipoDesconto === 'percentual' ? 100 : undefined}
                 value={tipoDesconto === 'percentual' ? descontoPercentual : descontoFixo}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
+                onChange={(valor) => {
                   if (tipoDesconto === 'percentual') {
-                    setDescontoPercentual(value);
+                    setDescontoPercentual(valor);
                   } else {
-                    setDescontoFixo(value);
+                    setDescontoFixo(valor);
                   }
                 }}
-                required
               />
             </div>
           </div>
@@ -254,12 +251,11 @@ export default function CriarPromocaoModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="maxUso">Limite de Usos (opcional)</Label>
-              <Input
-                id="maxUso"
-                type="number"
-                min="1"
-                value={maxUso || ''}
-                onChange={(e) => setMaxUso(e.target.value ? parseInt(e.target.value) : undefined)}
+              <NumericInputPtBr
+                tipo="quantidade_un"
+                min={1}
+                value={maxUso || 0}
+                onChange={(valor) => setMaxUso(valor > 0 ? valor : undefined)}
                 placeholder="Ilimitado"
               />
             </div>

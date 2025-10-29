@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInputPtBr } from "@/components/ui/numeric-input-ptbr";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -245,13 +246,11 @@ export function EntradasReceitas() {
             {/* Quantidade */}
             <div className="space-y-2">
               <Label htmlFor="quantidade">Quantidade Produzida *</Label>
-              <Input
-                id="quantidade"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.quantidade}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantidade: e.target.value }))}
+              <NumericInputPtBr
+                tipo="quantidade_continua"
+                min={0}
+                value={parseFloat(formData.quantidade) || 0}
+                onChange={(valor) => setFormData(prev => ({ ...prev, quantidade: valor.toString() }))}
                 placeholder="Ex: 10"
               />
             </div>
@@ -279,13 +278,11 @@ export function EntradasReceitas() {
             {/* Custo Unitário */}
             <div className="space-y-2">
               <Label htmlFor="custo_unitario">Custo Unitário (R$)</Label>
-              <Input
-                id="custo_unitario"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.custo_unitario}
-                onChange={(e) => setFormData(prev => ({ ...prev, custo_unitario: e.target.value }))}
+              <NumericInputPtBr
+                tipo="valor"
+                min={0}
+                value={parseFloat(formData.custo_unitario) || 0}
+                onChange={(valor) => setFormData(prev => ({ ...prev, custo_unitario: valor.toString() }))}
                 placeholder="Ex: 5.50"
               />
             </div>
@@ -293,13 +290,11 @@ export function EntradasReceitas() {
             {/* Quantidade Mínima */}
             <div className="space-y-2">
               <Label htmlFor="quantidade_minima">Estoque Mínimo</Label>
-              <Input
-                id="quantidade_minima"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.quantidade_minima}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantidade_minima: e.target.value }))}
+              <NumericInputPtBr
+                tipo="quantidade_continua"
+                min={0}
+                value={parseFloat(formData.quantidade_minima) || 0}
+                onChange={(valor) => setFormData(prev => ({ ...prev, quantidade_minima: valor.toString() }))}
                 placeholder="Ex: 5"
               />
             </div>

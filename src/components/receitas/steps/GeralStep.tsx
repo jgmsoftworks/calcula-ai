@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Upload, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -198,29 +199,26 @@ export function GeralStep({
                       />
                     </TableCell>
                     <TableCell className="py-2">
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          value={item.tempo}
-                          onChange={(e) => atualizarConservacao(item.id, 'tempo', parseInt(e.target.value) || 0)}
-                          onFocus={(e) => e.target.select()}
-                          className="w-10 h-8 text-xs px-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          style={{ MozAppearance: 'textfield' }}
-                        />
-                        <Select 
-                          value={item.unidade_tempo} 
-                          onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
-                        >
-                          <SelectTrigger className="w-16 h-8 text-xs px-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="horas">horas</SelectItem>
-                            <SelectItem value="dias">dias</SelectItem>
-                            <SelectItem value="meses">meses</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <NumericInputPtBr
+                        tipo="quantidade_un"
+                        min={0}
+                        value={item.tempo}
+                        onChange={(valor) => atualizarConservacao(item.id, 'tempo', valor)}
+                        className="w-10 h-8 text-xs px-1"
+                      />
+                      <Select 
+                        value={item.unidade_tempo} 
+                        onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
+                      >
+                        <SelectTrigger className="w-16 h-8 text-xs px-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="horas">horas</SelectItem>
+                          <SelectItem value="dias">dias</SelectItem>
+                          <SelectItem value="meses">meses</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))}

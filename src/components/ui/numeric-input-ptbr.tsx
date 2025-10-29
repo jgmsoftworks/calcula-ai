@@ -31,7 +31,8 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
     
     // Formatar para exibição baseado no tipo
     const formatForDisplay = (num: number): string => {
-      if (isNaN(num) || (num === 0 && !isFocused)) return '';
+      if (isNaN(num)) return '';
+      if (num === 0 && !isFocused) return '';
       
       switch (tipo) {
         case 'valor':

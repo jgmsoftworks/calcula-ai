@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -670,26 +671,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   {/* Total na Embalagem */}
                   <div className="space-y-2">
                     <Label htmlFor="total_embalagem" className="text-sm font-medium">Total na Embalagem</Label>
-                    <Input
-                      id="total_embalagem"
-                      type="number"
-                      min="1"
-                      value={formData.total_embalagem === 0 ? '' : formData.total_embalagem}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '') {
-                          handleInputChange('total_embalagem', 0);
-                        } else {
-                          const numValue = parseInt(value);
-                          handleInputChange('total_embalagem', numValue >= 0 ? numValue : 0);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // Garante valor mínimo 1 quando sair do campo
-                        if (!e.target.value || parseInt(e.target.value) < 1) {
-                          handleInputChange('total_embalagem', 1);
-                        }
-                      }}
+                    <NumericInputPtBr
+                      tipo="quantidade_un"
+                      min={1}
+                      value={formData.total_embalagem}
+                      onChange={(valor) => handleInputChange('total_embalagem', valor)}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
@@ -744,13 +730,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   {/* Quantidade em Estoque */}
                   <div className="space-y-2">
                     <Label htmlFor="estoque_atual" className="text-sm font-medium">Quantidade em Estoque</Label>
-                    <Input
-                      id="estoque_atual"
-                      type="number"
-                      min="0"
-                      step="0.01"
+                    <NumericInputPtBr
+                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
+                      min={0}
                       value={formData.estoque_atual}
-                      onChange={(e) => handleInputChange('estoque_atual', parseFloat(e.target.value) || 0)}
+                      onChange={(valor) => handleInputChange('estoque_atual', valor)}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
@@ -758,13 +742,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   {/* Estoque Mínimo */}
                   <div className="space-y-2">
                     <Label htmlFor="estoque_minimo" className="text-sm font-medium">Estoque Mínimo</Label>
-                    <Input
-                      id="estoque_minimo"
-                      type="number"
-                      min="0"
-                      step="0.01"
+                    <NumericInputPtBr
+                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
+                      min={0}
                       value={formData.estoque_minimo}
-                      onChange={(e) => handleInputChange('estoque_minimo', parseFloat(e.target.value) || 0)}
+                      onChange={(valor) => handleInputChange('estoque_minimo', valor)}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>

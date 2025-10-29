@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumericInputPtBr } from "@/components/ui/numeric-input-ptbr";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -106,30 +107,26 @@ export function AffiliateSystemSettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="default_commission_percentage">Percentual Padrão (%)</Label>
-                <Input
-                  id="default_commission_percentage"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
+                <NumericInputPtBr
+                  tipo="percentual"
+                  min={0}
+                  max={100}
                   value={settings.default_commission_percentage}
-                  onChange={(e) => setSettings({
+                  onChange={(valor) => setSettings({
                     ...settings,
-                    default_commission_percentage: parseFloat(e.target.value) || 0
+                    default_commission_percentage: valor
                   })}
                 />
               </div>
               <div>
                 <Label htmlFor="default_commission_fixed_amount">Valor Fixo Padrão (R$)</Label>
-                <Input
-                  id="default_commission_fixed_amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <NumericInputPtBr
+                  tipo="valor"
+                  min={0}
                   value={settings.default_commission_fixed_amount}
-                  onChange={(e) => setSettings({
+                  onChange={(valor) => setSettings({
                     ...settings,
-                    default_commission_fixed_amount: parseFloat(e.target.value) || 0
+                    default_commission_fixed_amount: valor
                   })}
                 />
               </div>
@@ -144,29 +141,27 @@ export function AffiliateSystemSettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="cookie_tracking_period_days">Período de Cookie (dias)</Label>
-                <Input
-                  id="cookie_tracking_period_days"
-                  type="number"
-                  min="1"
-                  max="365"
+                <NumericInputPtBr
+                  tipo="quantidade_un"
+                  min={1}
+                  max={365}
                   value={settings.cookie_tracking_period_days}
-                  onChange={(e) => setSettings({
+                  onChange={(valor) => setSettings({
                     ...settings,
-                    cookie_tracking_period_days: parseInt(e.target.value) || 30
+                    cookie_tracking_period_days: valor
                   })}
                 />
               </div>
               <div>
                 <Label htmlFor="grace_period_days">Período de Carência (dias)</Label>
-                <Input
-                  id="grace_period_days"
-                  type="number"
-                  min="0"
-                  max="90"
+                <NumericInputPtBr
+                  tipo="quantidade_un"
+                  min={0}
+                  max={90}
                   value={settings.grace_period_days}
-                  onChange={(e) => setSettings({
+                  onChange={(valor) => setSettings({
                     ...settings,
-                    grace_period_days: parseInt(e.target.value) || 7
+                    grace_period_days: valor
                   })}
                 />
               </div>
@@ -181,15 +176,13 @@ export function AffiliateSystemSettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="min_payout_amount">Valor Mínimo para Saque (R$)</Label>
-                <Input
-                  id="min_payout_amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <NumericInputPtBr
+                  tipo="valor"
+                  min={0}
                   value={settings.min_payout_amount}
-                  onChange={(e) => setSettings({
+                  onChange={(valor) => setSettings({
                     ...settings,
-                    min_payout_amount: parseFloat(e.target.value) || 50
+                    min_payout_amount: valor
                   })}
                 />
               </div>
@@ -229,14 +222,13 @@ export function AffiliateSystemSettings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="max_clicks_per_hour">Máx. Cliques por Hora</Label>
-                    <Input
-                      id="max_clicks_per_hour"
-                      type="number"
-                      min="1"
+                    <NumericInputPtBr
+                      tipo="quantidade_un"
+                      min={1}
                       value={settings.max_clicks_per_hour}
-                      onChange={(e) => setSettings({
+                      onChange={(valor) => setSettings({
                         ...settings,
-                        max_clicks_per_hour: parseInt(e.target.value) || 100
+                        max_clicks_per_hour: valor
                       })}
                     />
                   </div>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -876,13 +877,11 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              type="number"
-              step="0.1"
-              min="0"
-              placeholder="Ex: 500"
-              value={pesoUnitario}
-              onChange={handlePesoUnitarioChange}
+            <NumericInputPtBr
+              tipo="quantidade_continua"
+              min={0}
+              value={parseFloat(pesoUnitario) || 0}
+              onChange={(valor) => setPesoUnitario(valor.toString())}
               className="text-lg font-medium"
             />
           </CardContent>

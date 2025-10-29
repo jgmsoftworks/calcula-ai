@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
@@ -161,15 +162,12 @@ export const ModoUsoTab = ({
               <Label htmlFor="quantidade_unidade_uso" className="text-sm font-medium">
                 Quantas {unidadeUsoReceitas} tem em cada {unidadeCompra}? *
               </Label>
-              <Input
-                id="quantidade_unidade_uso"
-                type="number"
+              <NumericInputPtBr
+                tipo="quantidade_continua"
+                min={0.01}
                 value={quantidadeUnidadeUso}
-                onChange={(e) => setQuantidadeUnidadeUso(Number(e.target.value))}
+                onChange={(valor) => setQuantidadeUnidadeUso(valor)}
                 className="h-12 border-2 border-primary/30 focus:border-primary"
-                min="0.01"
-                step="0.01"
-                required
               />
               <p className="text-xs text-muted-foreground">
                 Ex: Se cada {unidadeCompra} contém 500{unidadeUsoReceitas}, digite 500

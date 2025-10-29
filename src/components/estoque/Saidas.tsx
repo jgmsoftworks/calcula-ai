@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -223,16 +224,13 @@ export const Saidas = () => {
                     </span>
                   )}
                 </Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  step="0.001"
-                  min="0.001"
-                  max={selectedProduto?.estoque_atual || undefined}
-                  value={formData.quantidade}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantidade: e.target.value }))}
+                <NumericInputPtBr
+                  tipo="quantidade_continua"
+                  min={0.001}
+                  max={selectedProduto?.estoque_atual}
+                  value={parseFloat(formData.quantidade) || 0}
+                  onChange={(valor) => setFormData(prev => ({ ...prev, quantidade: valor.toString() }))}
                   placeholder="Ex: 2.500"
-                  required
                 />
               </div>
 

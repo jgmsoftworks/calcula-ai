@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -389,46 +390,36 @@ export const EncargosVenda = () => {
                   
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                      <div className="relative w-20">
-                        <Input
-                          type="text"
-                          value={encargo.valor_percentual || ''}
-                          onChange={(e) => {
-                            const valor = parseFloat(e.target.value) || 0;
-                            setEncargos(prev => 
-                              prev.map(item => 
-                                item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item
-                              )
-                            );
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          onBlur={(e) => {
-                            const valor = parseFloat(e.target.value) || 0;
-                            atualizarValorPercentual(encargo.nome, valor);
-                          }}
-                          className="text-center h-8 text-sm pr-6 border-border focus:border-primary"
-                          placeholder="0"
-                        />
-                        <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
-                      </div>
+                      <NumericInputPtBr
+                        tipo="percentual"
+                        min={0}
+                        max={100}
+                        value={encargo.valor_percentual}
+                        onChange={(valor) => {
+                          setEncargos(prev => 
+                            prev.map(item => 
+                              item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item
+                            )
+                          );
+                        }}
+                        onBlur={() => atualizarValorPercentual(encargo.nome, encargo.valor_percentual)}
+                        className="text-center h-8 text-sm w-20 border-border focus:border-primary"
+                      />
                       
-                      <div className="relative w-24">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
-                        <Input
-                          type="text"
-                          value={formatarMoeda(encargo.valor_fixo)}
-                          onChange={(e) => {
-                            const { formattedValue, numberValue } = handleValueChange(e.target.value, encargo.nome);
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          onBlur={(e) => {
-                            const valorLimpo = limparFormatacao(e.target.value);
-                            atualizarValorFixo(encargo.nome, valorLimpo);
-                          }}
-                          className="text-center h-8 text-sm pl-7 border-border focus:border-primary"
-                          placeholder="0,00"
-                        />
-                      </div>
+                      <NumericInputPtBr
+                        tipo="valor"
+                        min={0}
+                        value={encargo.valor_fixo}
+                        onChange={(valor) => {
+                          setEncargos(prev => 
+                            prev.map(item => 
+                              item.nome === encargo.nome ? { ...item, valor_fixo: valor } : item
+                            )
+                          );
+                        }}
+                        onBlur={() => atualizarValorFixo(encargo.nome, encargo.valor_fixo)}
+                        className="text-center h-8 text-sm w-24 border-border focus:border-primary"
+                      />
                     </div>
 
                     {categoria === 'outros' && (

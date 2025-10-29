@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInputPtBr } from "@/components/ui/numeric-input-ptbr";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -364,12 +365,11 @@ export function PromotionalCoupons() {
                 {formData.discountType === 'trial_period' ? (
                   <div>
                     <Label htmlFor="trialDays">Dias de Teste Grátis *</Label>
-                    <Input
-                      id="trialDays"
-                      type="number"
-                      min="1"
+                    <NumericInputPtBr
+                      tipo="quantidade_un"
+                      min={1}
                       value={formData.trialDays}
-                      onChange={(e) => setFormData({...formData, trialDays: parseInt(e.target.value) || 0})}
+                      onChange={(valor) => setFormData({...formData, trialDays: valor})}
                     />
                   </div>
                 ) : (
@@ -377,14 +377,12 @@ export function PromotionalCoupons() {
                     <Label htmlFor="discountValue">
                       Valor do Desconto * {formData.discountType === 'percentage' ? '(%)' : '(R$)'}
                     </Label>
-                    <Input
-                      id="discountValue"
-                      type="number"
-                      min="0"
+                    <NumericInputPtBr
+                      tipo={formData.discountType === 'percentage' ? 'percentual' : 'valor'}
+                      min={0}
                       max={formData.discountType === 'percentage' ? 100 : undefined}
-                      step={formData.discountType === 'percentage' ? 1 : 0.01}
-                      value={formData.discountValue || ''}
-                      onChange={(e) => setFormData({...formData, discountValue: parseFloat(e.target.value) || 0})}
+                      value={formData.discountValue}
+                      onChange={(valor) => setFormData({...formData, discountValue: valor})}
                     />
                   </div>
                 )}
@@ -418,12 +416,11 @@ export function PromotionalCoupons() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="maxRedemptions">Máximo de Usos</Label>
-                    <Input
-                      id="maxRedemptions"
-                      type="number"
-                      min="1"
-                      value={formData.maxRedemptions}
-                      onChange={(e) => setFormData({...formData, maxRedemptions: e.target.value})}
+                    <NumericInputPtBr
+                      tipo="quantidade_un"
+                      min={1}
+                      value={parseInt(formData.maxRedemptions) || 0}
+                      onChange={(valor) => setFormData({...formData, maxRedemptions: valor.toString()})}
                       placeholder="Deixe vazio para ilimitado"
                     />
                   </div>

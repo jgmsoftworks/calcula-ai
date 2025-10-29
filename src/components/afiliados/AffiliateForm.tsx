@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInputPtBr } from "@/components/ui/numeric-input-ptbr";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAffiliates } from "@/hooks/useAffiliates";
@@ -251,26 +252,22 @@ export function AffiliateForm({ editingAffiliate, onSuccess }: AffiliateFormProp
         {formData.commission_type === 'percentage' ? (
           <div>
             <Label htmlFor="commission_percentage">Percentual de Comissão (%)</Label>
-            <Input
-              id="commission_percentage"
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
+            <NumericInputPtBr
+              tipo="percentual"
+              min={0}
+              max={100}
               value={formData.commission_percentage}
-              onChange={(e) => setFormData({ ...formData, commission_percentage: parseFloat(e.target.value) || 0 })}
+              onChange={(valor) => setFormData({ ...formData, commission_percentage: valor })}
             />
           </div>
         ) : (
           <div>
             <Label htmlFor="commission_fixed_amount">Valor Fixo da Comissão (R$)</Label>
-            <Input
-              id="commission_fixed_amount"
-              type="number"
-              min="0"
-              step="0.01"
+            <NumericInputPtBr
+              tipo="valor"
+              min={0}
               value={formData.commission_fixed_amount}
-              onChange={(e) => setFormData({ ...formData, commission_fixed_amount: parseFloat(e.target.value) || 0 })}
+              onChange={(valor) => setFormData({ ...formData, commission_fixed_amount: valor })}
             />
           </div>
         )}

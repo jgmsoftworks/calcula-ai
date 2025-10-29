@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -324,12 +325,11 @@ export function EmbalagensStep({ receitaId, embalagens, onEmbalagensChange }: Em
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                        <NumericInputPtBr
+                          tipo="quantidade_continua"
+                          min={0}
                           value={embalagem.quantidade}
-                          onChange={(e) => atualizarQuantidade(embalagem.id, parseFloat(e.target.value) || 0)}
+                          onChange={(valor) => atualizarQuantidade(embalagem.id, valor)}
                           className="w-20"
                         />
                       </TableCell>

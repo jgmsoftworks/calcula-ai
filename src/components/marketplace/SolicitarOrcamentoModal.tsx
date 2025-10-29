@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -166,14 +167,12 @@ export default function SolicitarOrcamentoModal({
                   </div>
                   
                   <div>
-                    <Input
-                      type="number"
-                      placeholder="Qtd"
-                      min="1"
-                      step="0.01"
+                    <NumericInputPtBr
+                      tipo="quantidade_continua"
+                      min={1}
                       value={produto.quantidade}
-                      onChange={(e) => updateProduto(index, 'quantidade', parseFloat(e.target.value) || 1)}
-                      required
+                      onChange={(valor) => updateProduto(index, 'quantidade', valor)}
+                      placeholder="Qtd"
                     />
                   </div>
                   

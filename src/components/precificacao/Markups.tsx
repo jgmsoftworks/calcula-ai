@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -934,16 +935,15 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                    <NumericInputPtBr
+                      tipo="percentual"
+                      min={0}
+                      max={100}
                       value={bloco.lucroDesejado}
-                      onChange={(e) => atualizarBloco(bloco.id, 'lucroDesejado', parseFloat(e.target.value) || 0)}
+                      onChange={(valor) => atualizarBloco(bloco.id, 'lucroDesejado', valor)}
                       className="font-bold"
                       style={{ color: 'hsl(var(--accent))' }}
                     />
-                    <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>%</span>
                   </div>
                 </div>
               </div>

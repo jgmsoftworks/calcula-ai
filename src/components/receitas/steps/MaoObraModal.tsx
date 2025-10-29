@@ -3,6 +3,7 @@ import { Plus, Trash2, Edit, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
@@ -181,13 +182,11 @@ export function MaoObraModal({ isOpen, onClose, onMaoObraUpdated, existingMaoObr
 
                 <div>
                   <Label>Tempo</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    placeholder="0"
-                    value={tempo}
-                    onChange={(e) => setTempo(e.target.value)}
+                  <NumericInputPtBr
+                    tipo="quantidade_continua"
+                    min={0}
+                    value={parseFloat(tempo) || 0}
+                    onChange={(valor) => setTempo(valor.toString())}
                   />
                 </div>
 

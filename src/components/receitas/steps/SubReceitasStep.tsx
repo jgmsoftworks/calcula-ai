@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -248,12 +249,11 @@ export function SubReceitasStep({ receitaId, subReceitas, onSubReceitasChange }:
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                        <NumericInputPtBr
+                          tipo="quantidade_continua"
+                          min={0}
                           value={subReceita.quantidade}
-                          onChange={(e) => atualizarQuantidade(subReceita.id, parseFloat(e.target.value) || 0)}
+                          onChange={(valor) => atualizarQuantidade(subReceita.id, valor)}
                           className="w-20"
                         />
                       </TableCell>

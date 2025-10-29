@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInputPtBr } from "@/components/ui/numeric-input-ptbr";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -303,13 +304,11 @@ export function SaidasReceitas() {
             {/* Quantidade */}
             <div className="space-y-2">
               <Label htmlFor="quantidade">Quantidade *</Label>
-              <Input
-                id="quantidade"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.quantidade}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantidade: e.target.value }))}
+              <NumericInputPtBr
+                tipo="quantidade_continua"
+                min={0}
+                value={parseFloat(formData.quantidade) || 0}
+                onChange={(valor) => setFormData(prev => ({ ...prev, quantidade: valor.toString() }))}
                 placeholder="Ex: 5"
               />
             </div>
@@ -318,13 +317,11 @@ export function SaidasReceitas() {
             {formData.tipo === 'venda' && (
               <div className="space-y-2">
                 <Label htmlFor="preco_venda">Preço de Venda Unitário (R$)</Label>
-                <Input
-                  id="preco_venda"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.preco_venda}
-                  onChange={(e) => setFormData(prev => ({ ...prev, preco_venda: e.target.value }))}
+                <NumericInputPtBr
+                  tipo="valor"
+                  min={0}
+                  value={parseFloat(formData.preco_venda) || 0}
+                  onChange={(valor) => setFormData(prev => ({ ...prev, preco_venda: valor.toString() }))}
                   placeholder="Ex: 15.00"
                 />
               </div>
