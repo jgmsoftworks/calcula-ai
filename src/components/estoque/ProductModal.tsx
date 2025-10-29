@@ -711,7 +711,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   
                   {/* Custo Total em Estoque (calculado) */}
                   <div className="space-y-2">
-                    <Label htmlFor="custo_total_estoque" className="text-sm font-medium text-foreground">Custo Total em Estoque (R$)</Label>
+                    <Label htmlFor="custo_total_estoque" className="text-sm font-medium text-foreground">Valor Total em Estoque (R$)</Label>
                     <Input
                       id="custo_total_estoque"
                       type="text"

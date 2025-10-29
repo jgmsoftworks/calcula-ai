@@ -88,7 +88,7 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start">
+          <PopoverContent className="w-80 p-0 max-h-[320px]" align="start">
             <Command>
               <CommandInput
                 placeholder="Buscar marcas..."
@@ -106,7 +106,7 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
                   </button>
                 </div>
               </CommandEmpty>
-              <CommandGroup>
+              <CommandGroup className="max-h-[240px] overflow-y-auto">
                 {availableOptions.map((marca) => (
                   <CommandItem
                     key={marca.id}
@@ -116,16 +116,18 @@ export const MarcasSelector = ({ selectedMarcas, onMarcasChange }: MarcasSelecto
                     {marca.nome}
                   </CommandItem>
                 ))}
-                {availableOptions.length > 0 && (
+              </CommandGroup>
+              {availableOptions.length > 0 && (
+                <div className="border-t bg-background sticky bottom-0 p-1">
                   <CommandItem
                     onSelect={() => setShowModal(true)}
-                    className="cursor-pointer py-3 text-base border-t mt-2 pt-3 text-primary font-medium"
+                    className="cursor-pointer py-3 text-base text-primary font-medium justify-center"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Criar nova marca
                   </CommandItem>
-                )}
-              </CommandGroup>
+                </div>
+              )}
             </Command>
           </PopoverContent>
         </Popover>

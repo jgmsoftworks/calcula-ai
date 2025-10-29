@@ -168,40 +168,38 @@ export const ListaProdutos = () => {
   const exportToExcel = () => {
     try {
       // Preparar dados para exportação
-      const dadosExportacao = filteredProdutos.map(produto => ({
-        nome: produto.nome,
-        categoria: produto.categorias ? produto.categorias.join(', ') : '',
-        marca: produto.marcas ? produto.marcas.join(', ') : '',
-        codigo_interno: produto.codigo_interno || '',
-        codigo_barras: produto.codigo_barras || '',
-        unidade: produto.unidade,
-        estoque_atual: produto.estoque_atual,
-        estoque_minimo: produto.estoque_minimo,
-        custo_total: produto.custo_total || 0,
-        custo_unitario: produto.custo_unitario || 0,
-        total_embalagem: produto.total_embalagem || 1,
-        status: produto.ativo ? 'Ativo' : 'Inativo'
-      }));
+    const dadosExportacao = filteredProdutos.map(produto => ({
+      nome: produto.nome,
+      categoria: produto.categorias ? produto.categorias.join(', ') : '',
+      marca: produto.marcas ? produto.marcas.join(', ') : '',
+      codigo_interno: produto.codigo_interno || '',
+      codigo_barras: produto.codigo_barras || '',
+      unidade: produto.unidade,
+      estoque_atual: produto.estoque_atual,
+      estoque_minimo: produto.estoque_minimo,
+      custo_total: produto.custo_total || 0,
+      custo_unitario: produto.custo_unitario || 0,
+      status: produto.ativo ? 'Ativo' : 'Inativo'
+    }));
 
       // Criar workbook
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(dadosExportacao);
 
       // Configurar largura das colunas
-      const colWidths = [
-        { wch: 30 }, // nome
-        { wch: 20 }, // categoria
-        { wch: 15 }, // marca
-        { wch: 15 }, // codigo_interno
-        { wch: 15 }, // codigo_barras
-        { wch: 10 }, // unidade
-        { wch: 12 }, // estoque_atual
-        { wch: 12 }, // estoque_minimo
-        { wch: 12 }, // custo_total
-        { wch: 12 }, // custo_unitario
-        { wch: 15 }, // total_embalagem
-        { wch: 10 }  // status
-      ];
+    const colWidths = [
+      { wch: 30 }, // nome
+      { wch: 20 }, // categoria
+      { wch: 15 }, // marca
+      { wch: 15 }, // codigo_interno
+      { wch: 15 }, // codigo_barras
+      { wch: 10 }, // unidade
+      { wch: 12 }, // estoque_atual
+      { wch: 12 }, // estoque_minimo
+      { wch: 12 }, // custo_total
+      { wch: 12 }, // custo_unitario
+      { wch: 10 }  // status
+    ];
       ws['!cols'] = colWidths;
 
       // Adicionar planilha ao workbook
