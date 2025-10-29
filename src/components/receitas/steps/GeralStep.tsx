@@ -198,28 +198,30 @@ export function GeralStep({
                         className="w-16 h-8 text-sm px-2"
                       />
                     </TableCell>
-                    <TableCell className="py-2">
-                      <NumericInputPtBr
-                        tipo="quantidade_un"
-                        min={0}
-                        value={item.tempo}
-                        onChange={(valor) => atualizarConservacao(item.id, 'tempo', valor)}
-                        className="w-12 h-8 text-sm px-2"
-                      />
-                      <Select 
-                        value={item.unidade_tempo} 
-                        onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
-                      >
-                        <SelectTrigger className="w-16 h-8 text-sm px-2">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="horas">horas</SelectItem>
-                          <SelectItem value="dias">dias</SelectItem>
-                          <SelectItem value="meses">meses</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
+              <TableCell className="py-2">
+                <div className="flex items-center gap-1">
+                  <NumericInputPtBr
+                    tipo="quantidade_un"
+                    min={0}
+                    value={item.tempo}
+                    onChange={(valor) => atualizarConservacao(item.id, 'tempo', valor)}
+                    className="w-12 h-8 text-sm px-2"
+                  />
+                  <Select 
+                    value={item.unidade_tempo} 
+                    onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
+                  >
+                    <SelectTrigger className="w-16 h-8 text-sm px-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="horas">horas</SelectItem>
+                      <SelectItem value="dias">dias</SelectItem>
+                      <SelectItem value="meses">meses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
