@@ -18,6 +18,7 @@ import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 import { Produto } from './CadastroProdutos';
 import { ModoUsoTab } from './ModoUsoTab';
+import { formatters } from '@/lib/formatters';
 
 interface Fornecedor {
   id: string;
@@ -194,31 +195,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-      
-      // Calcular custo unitário automaticamente quando custo_total ou total_embalagem mudar
-      if (field === 'custo_total' || field === 'total_embalagem') {
-        const custoTotal = field === 'custo_total' ? value : updated.custo_total;
-        const totalEmbalagem = field === 'total_embalagem' ? value : updated.total_embalagem;
-        
-        if (custoTotal > 0 && totalEmbalagem > 0) {
-          updated.custo_unitario = custoTotal / totalEmbalagem;
-          setCurrencyInputs(prev => ({
-            ...prev,
-            custo_unitario: (updated.custo_unitario).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          }));
-        } else {
-          updated.custo_unitario = 0;
-          setCurrencyInputs(prev => ({
-            ...prev,
-            custo_unitario: ''
-          }));
-        }
-      }
-      
-      return updated;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleCurrencyChange = (field: string, formattedValue: string) => {
@@ -321,9 +298,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
         unidade: formData.unidade,
-        total_embalagem: formData.total_embalagem,
+        total_embalagem: 1,
         custo_unitario: formData.custo_unitario,
-        custo_total: formData.custo_total,
+        custo_total: formData.estoque_atual * formData.custo_unitario,
         custo_medio: formData.custo_unitario,
         estoque_atual: formData.estoque_atual,
         estoque_minimo: formData.estoque_minimo,
@@ -660,94 +637,87 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 <TabsTrigger value="modo-uso" className="data-[state=active]:bg-background data-[state=active]:text-primary">
                   Modo de Uso
                 </TabsTrigger>
-                <TabsTrigger value="rotulo" className="data-[state=active]:bg-background data-[state=active]:text-primary">
+                <TabsTrigger value="historico" className="data-[state=active]:bg-background data-[state=active]:text-primary">
                   Histórico de Movimentação
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="estoque" className="space-y-4 p-4 bg-background/50 rounded-lg border">
-                {/* Primeira linha: Total na Embalagem, Unidade de Medida, Custo Total */}
-                <div className="grid grid-cols-3 gap-6">
-                  {/* Total na Embalagem */}
-                  <div className="space-y-2">
-                    <Label htmlFor="total_embalagem" className="text-sm font-medium">Total na Embalagem</Label>
-                    <NumericInputPtBr
-                      tipo="quantidade_un"
-                      min={1}
-                      value={formData.total_embalagem}
-                      onChange={(valor) => handleInputChange('total_embalagem', valor)}
-                      className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
-                    />
-                  </div>
-
+                {/* Primeira linha: Unidade de Medida, Custo Unitário */}
+                <div className="grid grid-cols-2 gap-6">
                   {/* Unidade de Medida */}
                   <div className="space-y-2">
-                    <Label htmlFor="unidade" className="text-sm font-medium">Unidade de Medida</Label>
-                    <Select value={formData.unidade} onValueChange={(value) => handleInputChange('unidade', value)}>
-                      <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary">
+                    <Label htmlFor="unidade" className="text-sm font-medium text-foreground">Unidade de Medida</Label>
+                    <Select
+                      value={formData.unidade}
+                      onValueChange={(value) => handleInputChange('unidade', value)}
+                    >
+                      <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="un">Unidade (un.)</SelectItem>
-                        <SelectItem value="g">Gramas (g)</SelectItem>
-                        <SelectItem value="kg">Quilogramas (kg)</SelectItem>
-                        <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                        <SelectItem value="l">Litros (l)</SelectItem>
-                        <SelectItem value="cx">Caixas (cx)</SelectItem>
-                        <SelectItem value="pct">Pacotes (pct)</SelectItem>
-                        <SelectItem value="fardo">Fardo</SelectItem>
+                        <SelectItem value="K">Quilo (K)</SelectItem>
+                        <SelectItem value="g">Grama (g)</SelectItem>
+                        <SelectItem value="FD">Fardo (FD)</SelectItem>
+                        <SelectItem value="l">Litro (l)</SelectItem>
+                        <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                        <SelectItem value="m">Metro (m)</SelectItem>
+                        <SelectItem value="cm">Centímetro (cm)</SelectItem>
+                        <SelectItem value="cx">Caixa (cx)</SelectItem>
+                        <SelectItem value="pct">Pacote (pct)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* Custo Total */}
+                  
+                  {/* Custo Unitário */}
                   <div className="space-y-2">
-                    <Label htmlFor="custo_total" className="text-sm font-medium">Custo Total (R$)</Label>
-                    <Input
-                      id="custo_total"
-                      value={currencyInputs.custo_total}
-                      onChange={(e) => handleCurrencyChange('custo_total', e.target.value)}
+                    <Label htmlFor="custo_unitario" className="text-sm font-medium text-foreground">Custo Unitário (R$)</Label>
+                    <NumericInputPtBr
+                      tipo="valor"
+                      value={formData.custo_unitario}
+                      onChange={(valor) => handleInputChange('custo_unitario', valor)}
+                      min={0}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
-                      placeholder="R$ 0,00"
                     />
                   </div>
                 </div>
 
-                {/* Segunda linha: Custo Unitário, Quantidade em Estoque, Estoque Mínimo */}
+                {/* Segunda linha: Quantidade em Estoque, Estoque Mínimo, Custo Total em Estoque */}
                 <div className="grid grid-cols-3 gap-6">
-                  {/* Custo Unitário */}
-                  <div className="space-y-2">
-                    <Label htmlFor="custo_unitario" className="text-sm font-medium">Custo Unitário (R$)</Label>
-                    <Input
-                      id="custo_unitario"
-                      value={currencyInputs.custo_unitario}
-                      readOnly
-                      className="h-12 border-2 border-primary/30 text-base px-4 rounded-lg bg-primary/5 text-center"
-                      placeholder="R$ 0,00"
-                    />
-                  </div>
-
                   {/* Quantidade em Estoque */}
                   <div className="space-y-2">
-                    <Label htmlFor="estoque_atual" className="text-sm font-medium">Quantidade em Estoque</Label>
+                    <Label htmlFor="estoque_atual" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
                     <NumericInputPtBr
-                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
-                      min={0}
+                      tipo={formData.unidade === 'un' || formData.unidade === 'FD' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_atual}
                       onChange={(valor) => handleInputChange('estoque_atual', valor)}
+                      min={0}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
 
                   {/* Estoque Mínimo */}
                   <div className="space-y-2">
-                    <Label htmlFor="estoque_minimo" className="text-sm font-medium">Estoque Mínimo</Label>
+                    <Label htmlFor="estoque_minimo" className="text-sm font-medium text-foreground">Estoque Mínimo</Label>
                     <NumericInputPtBr
-                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
-                      min={0}
+                      tipo={formData.unidade === 'un' || formData.unidade === 'FD' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_minimo}
                       onChange={(valor) => handleInputChange('estoque_minimo', valor)}
+                      min={0}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                    />
+                  </div>
+                  
+                  {/* Custo Total em Estoque (calculado) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="custo_total_estoque" className="text-sm font-medium text-foreground">Custo Total em Estoque (R$)</Label>
+                    <Input
+                      id="custo_total_estoque"
+                      type="text"
+                      value={formatters.valor(formData.estoque_atual * formData.custo_unitario)}
+                      readOnly
+                      className="h-12 border-2 border-muted text-base px-4 rounded-lg text-center bg-muted/50 cursor-not-allowed font-medium text-primary"
                     />
                   </div>
                 </div>
@@ -764,7 +734,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                 />
               </TabsContent>
 
-              <TabsContent value="rotulo" className="space-y-4 p-4 bg-background/50 rounded-lg border max-h-[400px] overflow-auto">
+              <TabsContent value="historico" className="space-y-4 p-4 bg-background/50 rounded-lg border max-h-[400px] overflow-auto">
                 {product && <HistoricoMovimentacoes produtoId={product.id} />}
               </TabsContent>
             </Tabs>
