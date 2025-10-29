@@ -11,6 +11,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { formatters } from '@/lib/formatters';
 
 interface FaturamentoHistorico {
   id: string;
@@ -205,12 +207,11 @@ export function MediaFaturamento() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="valor-faturamento">Valor do Faturamento</Label>
-              <Input
-                id="valor-faturamento"
-                type="text"
-                value={novoFaturamento.valor}
-                onChange={(e) => handleValueChange(e.target.value)}
-                placeholder="0,00"
+              <NumericInputPtBr
+                tipo="valor"
+                value={parseInputValue(novoFaturamento.valor)}
+                onChange={(valor) => setNovoFaturamento({ ...novoFaturamento, valor: formatCurrencyInput(valor) })}
+                min={0}
               />
             </div>
 
@@ -277,7 +278,7 @@ export function MediaFaturamento() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Média Mensal</p>
               <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                {formatCurrency(mediaFaturamento)}
+                {formatters.valor(mediaFaturamento)}
               </p>
             </div>
           </div>
@@ -294,7 +295,7 @@ export function MediaFaturamento() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-green-700 dark:text-green-300">Total do Período</p>
               <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                {formatCurrency(totalFaturamento)}
+                {formatters.valor(totalFaturamento)}
               </p>
             </div>
           </div>
@@ -337,7 +338,7 @@ export function MediaFaturamento() {
                     />
                     <ChartTooltip 
                       content={<ChartTooltipContent />}
-                      formatter={(value: number) => [formatCurrency(value), "Faturamento"]}
+                      formatter={(value: number) => [formatters.valor(value), "Faturamento"]}
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
@@ -384,7 +385,7 @@ export function MediaFaturamento() {
                         {format(faturamento.mes, "MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {formatCurrency(faturamento.valor)}
+                        {formatters.valor(faturamento.valor)}
                       </p>
                     </div>
                   </div>

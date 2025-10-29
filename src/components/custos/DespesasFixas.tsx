@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { CategoriasDespesasModal } from './CategoriasDespesasModal';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { formatters } from '@/lib/formatters';
 
 interface DespesaFixa {
   id: string;
@@ -281,9 +283,9 @@ export function DespesasFixas() {
           <div className="mb-4 p-2 bg-primary/5 rounded border">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Total Geral:</span>
-              <span className="text-sm font-bold text-primary">
-                {formatCurrency(getTotalDespesas())}
-              </span>
+               <span className="text-sm font-bold text-primary">
+                 {formatters.valor(getTotalDespesas())}
+               </span>
             </div>
           </div>
           <div className="space-y-2">
@@ -297,10 +299,10 @@ export function DespesasFixas() {
                     : 'hover:bg-muted/50 text-muted-foreground'
                 }`}
               >
-                <div className="flex justify-between items-center">
-                  <span>{categoria.nome}</span>
-                  <span className="text-xs">{formatCurrency(getTotalByCategoria(categoria.id))}</span>
-                </div>
+                 <div className="flex justify-between items-center">
+                   <span>{categoria.nome}</span>
+                   <span className="text-xs">{formatters.valor(getTotalByCategoria(categoria.id))}</span>
+                 </div>
               </button>
             ))}
           </div>
@@ -326,15 +328,15 @@ export function DespesasFixas() {
                   }
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold text-primary">
-                  {selectedCategory 
-                    ? formatCurrency(getTotalByCategoria(selectedCategory))
-                    : formatCurrency(getTotalDespesas())
-                  }
-                </p>
-              </div>
+               <div className="text-right">
+                 <p className="text-sm text-muted-foreground">Total</p>
+                 <p className="text-2xl font-bold text-primary">
+                   {selectedCategory 
+                     ? formatters.valor(getTotalByCategoria(selectedCategory))
+                     : formatters.valor(getTotalDespesas())
+                   }
+                 </p>
+               </div>
             </div>
           </CardHeader>
           
@@ -388,7 +390,7 @@ export function DespesasFixas() {
                           )}
                         </div>
                       </TableCell>
-                       <TableCell className="font-semibold text-lg">{formatCurrency(despesa.valor)}</TableCell>
+                       <TableCell className="font-semibold text-lg">{formatters.valor(despesa.valor)}</TableCell>
                        <TableCell className="text-right">
                          <div className="flex justify-end gap-1">
                            <Button
@@ -440,11 +442,11 @@ export function DespesasFixas() {
             </div>
             <div>
               <Label htmlFor="valor">Valor</Label>
-              <Input
-                id="valor"
-                value={formData.valor}
-                onChange={(e) => handleValueChange(e.target.value)}
-                placeholder="0,00"
+              <NumericInputPtBr
+                tipo="valor"
+                value={parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0}
+                onChange={(valor) => setFormData({ ...formData, valor: formatCurrencyInput(valor) })}
+                min={0}
                 className="mt-1"
               />
             </div>

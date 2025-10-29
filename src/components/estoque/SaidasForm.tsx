@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TrendingDown, Plus, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { formatters } from '@/lib/formatters';
 
 interface Produto {
   id: string;
@@ -261,15 +263,12 @@ export const SaidasForm = () => {
               {/* Quantidade */}
               <div className="space-y-2">
                 <Label htmlFor="quantidade" className="text-sm font-medium">Quantidade *</Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={novoItem.quantidade || ''}
-                  onChange={(e) => setNovoItem(prev => ({ ...prev, quantidade: parseFloat(e.target.value) || 0 }))}
+                <NumericInputPtBr
+                  tipo="quantidade_continua"
+                  value={novoItem.quantidade}
+                  onChange={(valor) => setNovoItem(prev => ({ ...prev, quantidade: valor }))}
+                  min={0.01}
                   className="border-2 border-primary/30 focus:border-primary"
-                  placeholder="0"
                 />
               </div>
 
@@ -333,7 +332,7 @@ export const SaidasForm = () => {
                               <div className="text-sm text-muted-foreground">({item.produto_unidade})</div>
                             </div>
                           </TableCell>
-                          <TableCell>{item.quantidade.toFixed(2)}</TableCell>
+                          <TableCell>{formatters.quantidadeContinua(item.quantidade)}</TableCell>
                           <TableCell>
                             {item.motivo === 'venda' && 'Venda'}
                             {item.motivo === 'uso_interno' && 'Uso Interno'}
@@ -344,7 +343,7 @@ export const SaidasForm = () => {
                             {item.motivo === 'ajuste' && 'Ajuste de Estoque'}
                             {item.motivo === 'outro' && 'Outro'}
                           </TableCell>
-                          <TableCell>{item.estoque_disponivel.toFixed(2)} {item.produto_unidade}</TableCell>
+                          <TableCell>{formatters.quantidadeContinua(item.estoque_disponivel)} {item.produto_unidade}</TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"

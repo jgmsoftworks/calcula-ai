@@ -14,6 +14,8 @@ import { resizeImageToSquare } from '@/lib/imageUtils';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { ModoUsoTab } from './ModoUsoTab';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { formatters } from '@/lib/formatters';
 
 interface Fornecedor {
   id: string;
@@ -582,13 +584,12 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                   
                   <div className="space-y-2">
                     <Label htmlFor="custo_unitario" className="text-sm font-medium text-foreground">Custo Unitário (R$)</Label>
-                    <Input
-                      id="custo_unitario"
-                      type="text"
-                      value={currencyInputs.custo_unitario}
-                      onChange={(e) => handleCurrencyChange('custo_unitario', e.target.value)}
+                    <NumericInputPtBr
+                      tipo="valor"
+                      value={formData.custo_unitario}
+                      onChange={(valor) => handleInputChange('custo_unitario', valor)}
+                      min={0}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
-                      placeholder="R$ 0,00"
                     />
                   </div>
                 </div>
@@ -596,24 +597,22 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="estoque_atual" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
-                    <Input
-                      id="estoque_atual"
-                      type="number"
-                      min="0"
+                    <NumericInputPtBr
+                      tipo={formData.unidade === 'un' || formData.unidade === 'FD' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_atual}
-                      onChange={(e) => handleInputChange('estoque_atual', parseInt(e.target.value) || 0)}
+                      onChange={(valor) => handleInputChange('estoque_atual', valor)}
+                      min={0}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="estoque_minimo" className="text-sm font-medium text-foreground">Estoque Mínimo</Label>
-                    <Input
-                      id="estoque_minimo"
-                      type="number"
-                      min="0"
+                    <NumericInputPtBr
+                      tipo={formData.unidade === 'un' || formData.unidade === 'FD' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_minimo}
-                      onChange={(e) => handleInputChange('estoque_minimo', parseInt(e.target.value) || 0)}
+                      onChange={(valor) => handleInputChange('estoque_minimo', valor)}
+                      min={0}
                       className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
                     />
                   </div>
@@ -623,7 +622,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                     <Input
                       id="custo_total_estoque"
                       type="text"
-                      value={`R$ ${(formData.estoque_atual * formData.custo_unitario).toFixed(2)}`}
+                      value={formatters.valor(formData.estoque_atual * formData.custo_unitario)}
                       readOnly
                       className="h-12 border-2 border-muted text-base px-4 rounded-lg text-center bg-muted/50 cursor-not-allowed font-medium text-primary"
                     />

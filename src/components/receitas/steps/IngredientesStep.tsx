@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { formatters } from '@/lib/formatters';
 
 interface Ingrediente {
   id: string;
@@ -284,9 +286,9 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
                   <div key={produto.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
                     <div>
                       <p className="font-medium">{produto.nome}</p>
-                      <p className="text-sm text-muted-foreground">
-                        R$ {produto.custo_medio.toFixed(2)} / {produto.unidade}
-                      </p>
+                       <p className="text-sm text-muted-foreground">
+                         {formatters.valor(produto.custo_medio)} / {produto.unidade}
+                       </p>
                       {produto.marcas && produto.marcas.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {produto.marcas.map((marca, index) => (
@@ -316,9 +318,9 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-base">Ingredientes da Receita</CardTitle>
-              <Badge variant="secondary">
-                Total: R$ {custoTotalIngredientes.toFixed(2)}
-              </Badge>
+               <Badge variant="secondary">
+                 Total: {formatters.valor(custoTotalIngredientes)}
+               </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -343,9 +345,9 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
                        <TableCell>
                          <div>
                            <p className="font-medium text-sm">{ingrediente.nome}</p>
-                           <p className="text-xs text-muted-foreground">
-                             R$ {ingrediente.custo_unitario.toFixed(2)} / {ingrediente.unidade}
-                           </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatters.valor(ingrediente.custo_unitario)} / {ingrediente.unidade}
+                            </p>
                            {ingrediente.marcas && ingrediente.marcas.length > 0 && (
                              <div className="flex flex-wrap gap-1 mt-1">
                                {ingrediente.marcas.map((marca, index) => (
@@ -357,19 +359,18 @@ export function IngredientesStep({ receitaId, ingredientes, onIngredientesChange
                            )}
                          </div>
                        </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={ingrediente.quantidade}
-                          onChange={(e) => atualizarQuantidade(ingrediente.id, parseFloat(e.target.value) || 0)}
-                          className="w-20"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium">R$ {ingrediente.custo_total.toFixed(2)}</p>
-                      </TableCell>
+                       <TableCell>
+                         <NumericInputPtBr
+                           tipo="quantidade_continua"
+                           value={ingrediente.quantidade}
+                           onChange={(valor) => atualizarQuantidade(ingrediente.id, valor)}
+                           min={0}
+                           className="w-24"
+                         />
+                       </TableCell>
+                       <TableCell>
+                         <p className="font-medium">{formatters.valor(ingrediente.custo_total)}</p>
+                       </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
