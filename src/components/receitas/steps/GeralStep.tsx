@@ -179,38 +179,38 @@ export function GeralStep({
           <CardContent className="pt-0 pb-4 px-4">
             <Table>
               <TableHeader>
-                <TableRow className="h-12">
-                  <TableHead className="text-sm py-3">Descrição</TableHead>
-                  <TableHead className="text-sm py-3">Temp. °C</TableHead>
-                  <TableHead className="text-sm py-3">Tempo</TableHead>
+                <TableRow className="h-10">
+                  <TableHead className="text-sm py-2">Descrição</TableHead>
+                  <TableHead className="text-sm py-2">Temp. °C</TableHead>
+                  <TableHead className="text-sm py-2">Tempo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {conservacao.map((item) => (
-                  <TableRow key={item.id} className="h-16">
-                    <TableCell className="font-medium text-sm py-3">{item.descricao}</TableCell>
-                    <TableCell className="py-3">
+                  <TableRow key={item.id} className="h-14">
+                    <TableCell className="font-medium text-sm py-2">{item.descricao}</TableCell>
+                    <TableCell className="py-2">
                       <Input
                         value={item.temperatura}
                         onChange={(e) => handleTemperaturaChange(item.id, e.target.value)}
                         onBlur={(e) => handleTemperaturaBlur(item.id, e.target.value)}
                         onFocus={(e) => e.target.select()}
-                        className="w-20 h-10 text-sm px-2"
+                        className="w-16 h-8 text-sm px-2"
                       />
                     </TableCell>
-                    <TableCell className="py-3">
+                    <TableCell className="py-2">
                       <NumericInputPtBr
                         tipo="quantidade_un"
                         min={0}
                         value={item.tempo}
                         onChange={(valor) => atualizarConservacao(item.id, 'tempo', valor)}
-                        className="w-16 h-10 text-sm px-2"
+                        className="w-12 h-8 text-sm px-2"
                       />
                       <Select 
                         value={item.unidade_tempo} 
                         onValueChange={(value) => atualizarConservacao(item.id, 'unidade_tempo', value)}
                       >
-                        <SelectTrigger className="w-20 h-10 text-sm px-2">
+                        <SelectTrigger className="w-16 h-8 text-sm px-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -223,7 +223,7 @@ export function GeralStep({
                   </TableRow>
                 ))}
               </TableBody>
-              </Table>
+            </Table>
           </CardContent>
         </Card>
       </div>

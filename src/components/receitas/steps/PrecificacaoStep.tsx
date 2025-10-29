@@ -798,29 +798,29 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Ingredientes</span>
-              <Badge variant="outline">R$ {custoIngredientes.toFixed(2)}</Badge>
+              <Badge variant="outline">{formatters.valor(custoIngredientes)}</Badge>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Sub-receitas</span>
-              <Badge variant="outline">R$ {custoSubReceitas.toFixed(2)}</Badge>
+              <Badge variant="outline">{formatters.valor(custoSubReceitas)}</Badge>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Embalagens</span>
-              <Badge variant="outline">R$ {custoEmbalagens.toFixed(2)}</Badge>
+              <Badge variant="outline">{formatters.valor(custoEmbalagens)}</Badge>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Mão de Obra</span>
-              <Badge variant="outline">R$ {valorTotalMaoObra.toFixed(2)}</Badge>
+              <Badge variant="outline">{formatters.valor(valorTotalMaoObra)}</Badge>
             </div>
             
             <hr className="my-3" />
             
             <div className="flex justify-between items-center">
               <span className="font-medium">Custo Total</span>
-              <Badge className="text-base font-bold">R$ {custoTotal.toFixed(2)}</Badge>
+              <Badge className="text-base font-bold">{formatters.valor(custoTotal)}</Badge>
             </div>
           </div>
 
@@ -987,20 +987,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                 {encargosDetalhados[markup.id] && (
                   <>
                     <div>• Média de faturamento: R$ {encargosDetalhados[markup.id].mediaFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    <div>• Gasto sobre faturamento: {encargosDetalhados[markup.id].gastoSobreFaturamentoCalculado.toFixed(2)}%</div>
+                    <div>• Gasto sobre faturamento: {formatters.percentual(encargosDetalhados[markup.id].gastoSobreFaturamentoCalculado)}</div>
                     
                     <div className="font-medium mt-3">Encargos sobre venda:</div>
                     <div className="pl-2 space-y-1">
-                      <div>• Impostos: {encargosDetalhados[markup.id].impostos.toFixed(2)}%</div>
-                      <div>• Taxas de meios de pagamento: {encargosDetalhados[markup.id].taxas.toFixed(2)}%</div>
-                      <div>• Comissões e plataformas: {encargosDetalhados[markup.id].comissoes.toFixed(2)}%</div>
-                      <div>• Outros: {encargosDetalhados[markup.id].outros.toFixed(2)}%</div>
-                      <div className="font-medium">• Adicional RS: R$ {(encargosDetalhados[markup.id].valorEmReal || 0).toFixed(2)}</div>
+                      <div>• Impostos: {formatters.percentual(encargosDetalhados[markup.id].impostos)}</div>
+                      <div>• Taxas de meios de pagamento: {formatters.percentual(encargosDetalhados[markup.id].taxas)}</div>
+                      <div>• Comissões e plataformas: {formatters.percentual(encargosDetalhados[markup.id].comissoes)}</div>
+                      <div>• Outros: {formatters.percentual(encargosDetalhados[markup.id].outros)}</div>
+                      <div className="font-medium">• Adicional RS: {formatters.valor(encargosDetalhados[markup.id].valorEmReal || 0)}</div>
                     </div>
                     
                     <div className="font-medium mt-3">Resultado:</div>
-                    <div>• Lucro desejado sobre venda: {encargosDetalhados[markup.id].lucroDesejado?.toFixed(2)}%</div>
-                    <div>• Markup ideal: {encargosDetalhados[markup.id].markupIdeal?.toFixed(4)}</div>
+                    <div>• Lucro desejado sobre venda: {formatters.percentual(encargosDetalhados[markup.id].lucroDesejado)}</div>
+                    <div>• Markup ideal: {encargosDetalhados[markup.id].markupIdeal?.toFixed(4).replace('.', ',')}</div>
                   </>
                 )}
                 
@@ -1058,7 +1058,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         <div className="text-center p-3 bg-background rounded-lg border">
                           <p className="text-sm text-muted-foreground mb-1">
                             Sugestão de Preço 
-                            <span className="text-xs ml-1">(adicional RS {(encargosDetalhados[markup.id]?.valorEmReal || 0).toFixed(2)})</span>
+                            <span className="text-xs ml-1">(adicional RS {formatters.valor(encargosDetalhados[markup.id]?.valorEmReal || 0)})</span>
                           </p>
                         <p className="text-lg font-bold text-primary">
                           {new Intl.NumberFormat('pt-BR', {
