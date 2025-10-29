@@ -108,15 +108,6 @@ export const ModoUsoTab = ({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Custo Total</Label>
-            <Input
-              value={custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              readOnly
-              className="h-10 bg-muted text-center font-medium"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Custo Unitário (Compra)</Label>
             <Input
               value={custoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

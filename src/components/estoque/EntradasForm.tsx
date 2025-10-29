@@ -191,35 +191,11 @@ export const EntradasForm = () => {
             estoque_atual: novoEstoque,
             custo_medio: novoCustoMedio,
             custo_total: novoCustoTotal,
-            custo_unitario: item.custo_unitario // ✅ Atualizar com último custo de entrada
+            custo_unitario: item.custo_unitario
           })
           .eq('id', item.produto_id);
 
         if (updateError) throw updateError;
-
-        // Atualizar também o custo_unitario_uso na conversão (se existir)
-        const { data: conversao } = await supabase
-          .from('produto_conversoes')
-          .select('*')
-          .eq('produto_id', item.produto_id)
-          .eq('ativo', true)
-          .maybeSingle();
-
-        if (conversao) {
-          // Recalcular custo_unitario_uso baseado no novo custo_unitario
-          let novoCustoUnitarioUso = item.custo_unitario;
-          
-          if (conversao.unidade_uso_receitas !== conversao.unidade_compra && conversao.quantidade_unidade_uso > 0) {
-            novoCustoUnitarioUso = item.custo_unitario / (conversao.quantidade_por_unidade * conversao.quantidade_unidade_uso);
-          } else {
-            novoCustoUnitarioUso = item.custo_unitario / conversao.quantidade_por_unidade;
-          }
-          
-          await supabase
-            .from('produto_conversoes')
-            .update({ custo_unitario_uso: novoCustoUnitarioUso })
-            .eq('id', conversao.id);
-        }
       }
 
       toast({ title: "Entradas registradas com sucesso!" });
