@@ -14,6 +14,8 @@ import Afiliados from "./pages/Afiliados";
 import AuthStripeComplete from "./pages/AuthStripeComplete";
 import ResetPassword from "./pages/ResetPassword";
 import Estoque from "./pages/Estoque";
+import Movimentacao from "./pages/Movimentacao";
+import Fornecedores from "./pages/Fornecedores";
 import Vitrine from "./pages/Vitrine";
 import Custos from "./pages/Custos";
 import Precificacao from "./pages/Precificacao";
@@ -66,8 +68,10 @@ const App = () => (
             <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
             <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-                <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
-                <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
+          <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
+          <Route path="/movimentacao" element={<AppLayout><Movimentacao /></AppLayout>} />
+          <Route path="/fornecedores" element={<AppLayout><Fornecedores /></AppLayout>} />
+          <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
                 <Route path="/vitrine" element={<AppLayout><Vitrine /></AppLayout>} />
                 <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />
                 <Route path="/precificacao" element={<AppLayout><Precificacao /></AppLayout>} />
