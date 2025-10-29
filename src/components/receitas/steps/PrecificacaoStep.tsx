@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatters } from '@/lib/formatters';
 
 interface Ingrediente {
   id: string;
@@ -830,7 +831,7 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                   {rendimentoUnidade === 'grama' ? 'Custo por Grama' : 'Custo por Unidade'}
                 </Label>
                 <p className="text-lg font-bold text-primary">
-                  R$ {custoUnitario.toFixed(4)}
+                  {formatters.valor(custoUnitario)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Baseado no rendimento: {rendimentoValor} {unidadesRendimento.find(u => u.value === rendimentoUnidade)?.label}

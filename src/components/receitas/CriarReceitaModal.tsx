@@ -163,9 +163,9 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
     imagemReceita: '',
     passosPreparo: [{ id: '1', ordem: 1, descricao: '' }],
     conservacao: [
-      { id: '1', descricao: 'Congelado', temperatura: '-18°C', tempo: 6, unidade_tempo: 'meses' },
-      { id: '2', descricao: 'Refrigerado', temperatura: '4°C', tempo: 3, unidade_tempo: 'dias' },
-      { id: '3', descricao: 'Ambiente', temperatura: '20°C', tempo: 2, unidade_tempo: 'horas' },
+      { id: '1', descricao: 'Congelado', temperatura: '', tempo: 0, unidade_tempo: 'meses' },
+      { id: '2', descricao: 'Refrigerado', temperatura: '', tempo: 0, unidade_tempo: 'dias' },
+      { id: '3', descricao: 'Ambiente', temperatura: '', tempo: 0, unidade_tempo: 'horas' },
     ],
     // Dados da precificação
     markupSelecionado: null,
