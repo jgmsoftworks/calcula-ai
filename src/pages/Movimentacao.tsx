@@ -608,13 +608,11 @@ const Movimentacao = () => {
 
         {/* Carrinho - Desktop sempre visível, tablet toggle */}
         <div className={`
-          fixed lg:relative right-0 z-20
-          top-[137px] lg:top-auto bottom-0 lg:bottom-auto
+          fixed lg:relative inset-y-0 lg:inset-y-auto right-0 z-20
           transform transition-transform duration-300
           lg:transform-none lg:block
           ${carrinhoAberto ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-          w-80 xl:w-96 flex-shrink-0
-          h-[calc(100vh-137px)] lg:h-full
+          w-80 xl:w-96 flex-shrink-0 h-full
         `}>
           <CarrinhoLateral
             carrinho={carrinho}
