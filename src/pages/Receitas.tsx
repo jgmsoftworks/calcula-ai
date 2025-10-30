@@ -67,6 +67,13 @@ const Receitas = () => {
   const { toast } = useToast();
   const { hasAccess, checkLimit, planInfo, currentPlan } = usePlanLimits();
 
+  // Memoizar função de download do PDF
+  const handleDownloadPreviewPDF = useCallback(() => {
+    if (selectedReceitaPreview?.id) {
+      downloadReceita(selectedReceitaPreview.id);
+    }
+  }, [selectedReceitaPreview?.id]);
+
   useEffect(() => {
     if (user?.id) {
       loadReceitas();
@@ -1455,7 +1462,7 @@ const Receitas = () => {
             onOpenChange={setPreviewModalOpen}
             receitaId={selectedReceitaPreview.id}
             receitaNome={selectedReceitaPreview.nome}
-            onDownloadPDF={useCallback(() => downloadReceita(selectedReceitaPreview.id), [selectedReceitaPreview.id])}
+            onDownloadPDF={handleDownloadPreviewPDF}
           />
         )}
 
