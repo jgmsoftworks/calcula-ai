@@ -17,13 +17,13 @@ export function ChipsCategoria({ categorias, categoriaAtiva, onSelectCategoria }
             variant={categoriaAtiva === categoria ? 'default' : 'outline'}
             size="sm"
             onClick={() => onSelectCategoria(categoria)}
-            className="rounded-full"
+            className="rounded-full flex-shrink-0"
           >
             {categoria}
           </Button>
         ))}
       </div>
-      <ScrollBar orientation="horizontal" />
+      <ScrollBar orientation="horizontal" className="h-2" />
     </ScrollArea>
   );
 }

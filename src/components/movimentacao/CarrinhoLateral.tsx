@@ -38,8 +38,9 @@ export function CarrinhoLateral({
   const subtotal = carrinho.reduce((sum, item) => sum + item.valor_total, 0);
 
   return (
-    <div className="w-full lg:w-80 border-r flex flex-col h-full bg-background">
-      <div className="p-4 border-b">
+    <div className="h-full border-r flex flex-col bg-background">
+      {/* Cabeçalho - Fixo no topo */}
+      <div className="p-4 border-b flex-shrink-0">
         <h2 className="font-bold text-lg">
           {tipoMovimentacao ? (
             tipoMovimentacao === 'entrada' ? '📥 ENTRADA' : '📤 SAÍDA'
@@ -52,41 +53,45 @@ export function CarrinhoLateral({
         </p>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-2">
-          {carrinho.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              Carrinho vazio
-            </div>
-          ) : (
-            carrinho.map((item) => (
-              <div key={item.id} className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {formatters.quantidadeContinua(item.quantidade)} × {item.nome}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.unidade} • {formatters.valor(item.valor_unitario)}
-                  </p>
-                  <p className="text-sm font-bold text-primary mt-1">
-                    {formatters.valor(item.valor_total)}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => onRemoverItem(item.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+      {/* Lista de Itens - ScrollArea com altura flex */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-2">
+            {carrinho.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                Carrinho vazio
               </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+            ) : (
+              carrinho.map((item) => (
+                <div key={item.id} className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {formatters.quantidadeContinua(item.quantidade)} × {item.nome}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.unidade} • {formatters.valor(item.valor_unitario)}
+                    </p>
+                    <p className="text-sm font-bold text-primary mt-1">
+                      {formatters.valor(item.valor_total)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onRemoverItem(item.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
 
-      <div className="p-4 border-t space-y-3">
+      {/* Rodapé com Total e Botões - Fixo no fim */}
+      <div className="p-4 border-t space-y-3 flex-shrink-0 bg-background">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Subtotal:</span>

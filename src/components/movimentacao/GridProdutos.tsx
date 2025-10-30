@@ -35,13 +35,14 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => onSelectProduto(produto)}
         >
-          <CardContent className="p-3 flex items-center gap-3">
-            {/* Imagem pequena à esquerda */}
+          <CardContent className="p-3 flex items-center gap-3 min-h-[88px]">
+            {/* Imagem pequena à esquerda - Fixed size */}
             <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted">
               {produto.imagem_url ? (
                 <img
                   src={produto.imagem_url}
                   alt={produto.nome}
+                  loading="lazy"
                   className="object-cover w-full h-full"
                 />
               ) : (

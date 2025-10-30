@@ -307,3 +307,50 @@ All colors MUST be HSL.
     0 0 20px hsl(var(--accent) / 0.3),
     0 0 40px hsl(var(--accent) / 0.2);
 }
+
+/* ===== MOVIMENTAÇÃO PDV - SCROLL CUSTOMIZADO ===== */
+
+/* Scrollbar estilizada para webkit (Chrome, Safari, Edge) */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Scroll horizontal nas categorias */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 3px;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevenir zoom duplo-clique em mobile */
+@media (max-width: 768px) {
+  button, input, select, textarea {
+    touch-action: manipulation;
+  }
+}

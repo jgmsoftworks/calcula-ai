@@ -46,6 +46,7 @@ const Movimentacao = () => {
   // Estado global
   const [origem, setOrigem] = useState<'estoque' | 'vitrine' | null>(null);
   const [modalOrigemAberto, setModalOrigemAberto] = useState(true);
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
 
   // Catálogo e filtros
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -120,6 +121,21 @@ const Movimentacao = () => {
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [carrinho]);
+
+  // Travar scroll quando modais abrem
+  useEffect(() => {
+    const modalAberto = modalTipoAberto || modalEntradaAberto || modalSaidaAberto || modalFinalizacaoAberto;
+    
+    if (modalAberto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [modalTipoAberto, modalEntradaAberto, modalSaidaAberto, modalFinalizacaoAberto]);
 
   const carregarDados = async () => {
     if (!user) return;
@@ -529,9 +545,9 @@ const Movimentacao = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="border-b p-4 flex items-center gap-4">
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Header - Sticky no topo */}
+      <div className="sticky top-0 z-20 bg-background border-b p-4 flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -561,8 +577,8 @@ const Movimentacao = () => {
         </Button>
       </div>
 
-      {/* Chips de Categoria */}
-      <div className="border-b p-4">
+      {/* Barra de Categorias - Sticky abaixo do header */}
+      <div className="sticky top-[73px] z-10 bg-background border-b p-4">
         <ChipsCategoria
           categorias={categorias}
           categoriaAtiva={categoriaAtiva}
@@ -570,30 +586,58 @@ const Movimentacao = () => {
         />
       </div>
 
-      {/* Conteúdo Principal */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Carrinho */}
-        <CarrinhoLateral
-          carrinho={carrinho}
-          tipoMovimentacao={tipoMovimentacao}
-          onRemoverItem={handleRemoverItem}
-          onLimpar={handleLimparCarrinho}
-          onFinalizar={handleFinalizar}
-        />
+      {/* Conteúdo Principal - Altura fixa calculada */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Botão toggle para tablet/mobile */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="lg:hidden fixed bottom-4 right-4 z-30 h-12 w-12 rounded-full shadow-lg"
+          onClick={() => setCarrinhoAberto(!carrinhoAberto)}
+        >
+          🛒 <span className="ml-1 text-xs">{carrinho.length}</span>
+        </Button>
 
-        {/* Grid de Produtos */}
-        <div className="flex-1 overflow-auto p-6">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              Carregando...
-            </div>
-          ) : (
-            <GridProdutos
-              produtos={produtosFiltrados}
-              origem={origem}
-              onSelectProduto={handleSelectProduto}
-            />
-          )}
+        {/* Overlay para tablet quando carrinho aberto */}
+        {carrinhoAberto && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/50 z-10"
+            onClick={() => setCarrinhoAberto(false)}
+          />
+        )}
+
+        {/* Carrinho - Desktop sempre visível, tablet toggle */}
+        <div className={`
+          fixed lg:relative inset-y-0 right-0 z-20
+          transform transition-transform duration-300
+          lg:transform-none lg:block
+          ${carrinhoAberto ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+          w-80 xl:w-96 flex-shrink-0
+        `}>
+          <CarrinhoLateral
+            carrinho={carrinho}
+            tipoMovimentacao={tipoMovimentacao}
+            onRemoverItem={handleRemoverItem}
+            onLimpar={handleLimparCarrinho}
+            onFinalizar={handleFinalizar}
+          />
+        </div>
+
+        {/* Grid de Produtos - Scroll vertical único */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="p-6 max-w-5xl mx-auto">
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                Carregando...
+              </div>
+            ) : (
+              <GridProdutos
+                produtos={produtosFiltrados}
+                origem={origem}
+                onSelectProduto={handleSelectProduto}
+              />
+            )}
+          </div>
         </div>
       </div>
 
