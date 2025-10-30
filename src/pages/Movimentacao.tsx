@@ -230,7 +230,16 @@ const Movimentacao = () => {
 
   const handleSelectProduto = (produto: Produto) => {
     setProdutoSelecionado(produto);
-    setModalTipoAberto(true);
+    
+    // Se carrinho já tem tipo definido, pular seleção de tipo
+    if (tipoMovimentacao === 'entrada') {
+      setModalEntradaAberto(true);
+    } else if (tipoMovimentacao === 'saida') {
+      setModalSaidaAberto(true);
+    } else {
+      // Carrinho vazio, perguntar tipo
+      setModalTipoAberto(true);
+    }
   };
 
   const handleSelectTipo = (tipo: 'entrada' | 'saida') => {

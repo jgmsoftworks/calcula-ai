@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Save } from 'lucide-react';
-import { format } from 'date-fns';
 
 interface Funcionario {
   id: string;
@@ -53,7 +53,6 @@ export function ModalFinalizacao({
   const [funcionarioId, setFuncionarioId] = useState('');
   const [motivo, setMotivo] = useState('');
   const [motivoOutro, setMotivoOutro] = useState('');
-  const [dataMovimentacao, setDataMovimentacao] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [observacao, setObservacao] = useState('');
 
   useEffect(() => {
@@ -61,7 +60,6 @@ export function ModalFinalizacao({
       setFuncionarioId('');
       setMotivo('');
       setMotivoOutro('');
-      setDataMovimentacao(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
       setObservacao('');
     }
   }, [open]);
@@ -101,20 +99,20 @@ export function ModalFinalizacao({
       funcionario_id: funcionarioId,
       funcionario_nome: funcionario.nome,
       motivo: motivo === 'Outro' ? motivoOutro : motivo,
-      data_movimentacao: new Date(dataMovimentacao),
+      data_movimentacao: new Date(),
       observacao: observacao || undefined,
       imprimir,
     });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent className="sm:max-w-[500px]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Finalizar Movimentação</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-2 py-2">
           <div className="space-y-2">
             <Label>Quem realizou? *</Label>
             <Select value={funcionarioId} onValueChange={setFuncionarioId}>
@@ -139,24 +137,18 @@ export function ModalFinalizacao({
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Motivo *</Label>
+          <div className="space-y-1">
+            <Label>Motivo da Movimentação *</Label>
             <RadioGroup value={motivo} onValueChange={setMotivo}>
-              <div className="space-y-2">
-                {MOTIVOS.map((m) => (
-                  <div key={m} className="flex items-center space-x-2">
-                    <RadioGroupItem value={m} id={`motivo-${m}`} />
-                    <Label htmlFor={`motivo-${m}`} className="font-normal cursor-pointer">
-                      {m}
-                    </Label>
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Outro" id="motivo-outro" />
-                  <Label htmlFor="motivo-outro" className="font-normal cursor-pointer">
-                    Outro
-                  </Label>
+              {MOTIVOS.map((m) => (
+                <div key={m} className="flex items-center space-x-2">
+                  <RadioGroupItem value={m} id={m} />
+                  <Label htmlFor={m} className="cursor-pointer">{m}</Label>
                 </div>
+              ))}
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Outro" id="outro" />
+                <Label htmlFor="outro" className="cursor-pointer">Outro</Label>
               </div>
             </RadioGroup>
 
@@ -171,11 +163,12 @@ export function ModalFinalizacao({
           </div>
 
           <div className="space-y-2">
-            <Label>Data/Hora</Label>
+            <Label>Data e Hora</Label>
             <Input
-              type="datetime-local"
-              value={dataMovimentacao}
-              onChange={(e) => setDataMovimentacao(e.target.value)}
+              type="text"
+              value={format(new Date(), "dd/MM/yyyy HH:mm")}
+              readOnly
+              className="bg-muted"
             />
           </div>
 
@@ -190,20 +183,14 @@ export function ModalFinalizacao({
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleConfirm(false)}
-            className="w-full sm:w-auto"
-          >
-            <Save className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={() => handleConfirm(false)}>
             Somente Salvar
           </Button>
-          <Button onClick={() => handleConfirm(true)} className="w-full sm:w-auto">
-            <Printer className="h-4 w-4 mr-2" />
+          <Button onClick={() => handleConfirm(true)}>
             Emitir Comanda e Salvar
           </Button>
         </DialogFooter>

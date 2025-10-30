@@ -46,11 +46,11 @@ export function ModalSaidaDetalhes({
   const valorTotal = quantidade * valorUnitario;
 
   useEffect(() => {
-    if (open) {
+    if (open && produto) {
       setQuantidade(0);
       setObservacao('');
     }
-  }, [open]);
+  }, [open, produto?.id]);
 
   const handleConfirm = () => {
     if (quantidade <= 0) {
@@ -84,8 +84,8 @@ export function ModalSaidaDetalhes({
   if (!produto) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px]">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent className="sm:max-w-[450px]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>SAÍDA - {produto.nome}</DialogTitle>
         </DialogHeader>

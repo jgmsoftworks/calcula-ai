@@ -28,15 +28,16 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div className="space-y-2">
       {produtos.map((produto) => (
         <Card
           key={produto.id}
-          className="cursor-pointer hover:shadow-lg transition-shadow"
+          className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => onSelectProduto(produto)}
         >
-          <CardContent className="p-4">
-            <div className="aspect-square relative mb-3 rounded-md overflow-hidden bg-muted">
+          <CardContent className="p-3 flex items-center gap-3">
+            {/* Imagem pequena à esquerda */}
+            <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted">
               {produto.imagem_url ? (
                 <img
                   src={produto.imagem_url}
@@ -44,25 +45,26 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-4xl">
+                <div className="flex items-center justify-center h-full text-2xl">
                   📦
                 </div>
               )}
             </div>
             
-            <h3 className="font-medium text-sm mb-2 line-clamp-2 min-h-[2.5rem]">
-              {produto.nome}
-            </h3>
-            
-            <div className="space-y-1">
+            {/* Informações do produto */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-sm mb-1 truncate">
+                {produto.nome}
+              </h3>
               <p className="text-lg font-bold text-primary">
                 {formatters.valor(origem === 'estoque' ? produto.custo_unitario : (produto.preco_venda || 0))}
               </p>
-              
-              <Badge variant="secondary" className="text-xs">
-                Estoque: {formatters.quantidadeContinua(produto.estoque_atual)} {produto.unidade}
-              </Badge>
             </div>
+            
+            {/* Badge de estoque à direita */}
+            <Badge variant="secondary" className="text-xs flex-shrink-0">
+              {formatters.quantidadeContinua(produto.estoque_atual)} {produto.unidade}
+            </Badge>
           </CardContent>
         </Card>
       ))}

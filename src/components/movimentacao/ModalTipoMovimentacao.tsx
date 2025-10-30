@@ -16,8 +16,8 @@ export function ModalTipoMovimentacao({
   onClose,
 }: ModalTipoMovimentacaoProps) {
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px]">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent className="sm:max-w-[400px]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-center">Movimentação: {nomeProduto}</DialogTitle>
         </DialogHeader>
