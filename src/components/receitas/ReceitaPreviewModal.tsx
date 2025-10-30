@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Printer, AlertCircle, ImageIcon } from 'lucide-react';
+import { X, Download, AlertCircle, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ interface ReceitaPreviewModalProps {
   onOpenChange: (open: boolean) => void;
   receitaId: string;
   receitaNome: string;
+  onDownloadPDF: () => void;
 }
 
 interface ReceitaCompleta {
@@ -42,7 +43,7 @@ interface ReceitaCompleta {
   };
 }
 
-export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome }: ReceitaPreviewModalProps) {
+export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome, onDownloadPDF }: ReceitaPreviewModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -154,8 +155,8 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
     };
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = () => {
+    onDownloadPDF();
   };
 
   const formatDate = (dateString: string) => {
@@ -251,10 +252,10 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
               
               {/* Botões de ação */}
               <div className="flex gap-2 flex-shrink-0 no-print">
-                <Button variant="outline" onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-2" />
-                  Imprimir
-                </Button>
+              <Button variant="outline" onClick={handleDownloadPDF}>
+                <Download className="h-4 w-4 mr-2" />
+                Baixar PDF
+              </Button>
                 <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
                   <X className="h-4 w-4" />
                 </Button>
@@ -330,8 +331,8 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
                       <TableBody>
                         {ingredientes.map(ing => (
                           <TableRow key={ing.id}>
-                            <TableCell className="font-medium">
-                              {ing.produto_nome}
+                      <TableCell className="font-medium">
+                        {ing.nome}
                               {(!ing.custo_unitario || ing.custo_unitario === 0) && (
                                 <Badge variant="destructive" className="ml-2">Sem custo</Badge>
                               )}
@@ -379,8 +380,8 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
                       </TableHeader>
                       <TableBody>
                         {subReceitas.map(sub => (
-                          <TableRow key={sub.id}>
-                            <TableCell className="font-medium">{sub.sub_receita_nome}</TableCell>
+                    <TableRow key={sub.id}>
+                      <TableCell className="font-medium">{sub.nome}</TableCell>
                             <TableCell className="text-right">
                               {formatters.quantidadeContinua(sub.quantidade)}
                             </TableCell>
@@ -424,8 +425,8 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
                       </TableHeader>
                       <TableBody>
                         {embalagens.map(emb => (
-                          <TableRow key={emb.id}>
-                            <TableCell className="font-medium">{emb.produto_nome}</TableCell>
+                    <TableRow key={emb.id}>
+                      <TableCell className="font-medium">{emb.nome}</TableCell>
                             <TableCell className="text-right">
                               {formatters.quantidadeContinua(emb.quantidade)}
                             </TableCell>

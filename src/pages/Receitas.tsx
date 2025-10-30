@@ -1448,14 +1448,15 @@ const Receitas = () => {
       />
 
       {/* Modal de Preview */}
-      {selectedReceitaPreview && (
-        <ReceitaPreviewModal
-          open={previewModalOpen}
-          onOpenChange={setPreviewModalOpen}
-          receitaId={selectedReceitaPreview.id}
-          receitaNome={selectedReceitaPreview.nome}
-        />
-      )}
+        {selectedReceitaPreview && (
+          <ReceitaPreviewModal
+            open={previewModalOpen}
+            onOpenChange={setPreviewModalOpen}
+            receitaId={selectedReceitaPreview.id}
+            receitaNome={selectedReceitaPreview.nome}
+            onDownloadPDF={() => downloadReceita(selectedReceitaPreview.id)}
+          />
+        )}
 
       {/* Modal de Histórico da Vitrine */}
       {selectedReceitaHistorico && (
