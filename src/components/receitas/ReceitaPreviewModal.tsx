@@ -85,24 +85,21 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
       const { data: ingredientesData } = await supabase
         .from('receita_ingredientes')
         .select('*')
-        .eq('receita_id', receitaId)
-        .order('ordem');
+        .eq('receita_id', receitaId);
       setIngredientes(ingredientesData || []);
 
       // Buscar sub-receitas
       const { data: subReceitasData } = await supabase
         .from('receita_sub_receitas')
         .select('*')
-        .eq('receita_id', receitaId)
-        .order('ordem');
+        .eq('receita_id', receitaId);
       setSubReceitas(subReceitasData || []);
 
       // Buscar embalagens
       const { data: embalagensData } = await supabase
         .from('receita_embalagens')
         .select('*')
-        .eq('receita_id', receitaId)
-        .order('ordem');
+        .eq('receita_id', receitaId);
       setEmbalagens(embalagensData || []);
 
       // Buscar mão de obra
