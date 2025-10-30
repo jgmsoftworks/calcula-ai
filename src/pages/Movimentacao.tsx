@@ -71,14 +71,6 @@ const Movimentacao = () => {
   const [loading, setLoading] = useState(false);
   const [perfil, setPerfil] = useState<any>(null);
 
-  // Bloquear scroll da página inteira
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
   // Carregar dados quando origem for selecionada
   useEffect(() => {
     if (origem && user) {
