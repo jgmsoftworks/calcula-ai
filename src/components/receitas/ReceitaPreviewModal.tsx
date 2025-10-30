@@ -229,6 +229,16 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
       
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[95vw] h-[90vh] overflow-hidden flex flex-col p-0">
+          {/* Botão fechar customizado */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="absolute right-4 top-4 z-50 no-print"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          
           {/* Cabeçalho fixo */}
           <DialogHeader className="sticky top-0 bg-background z-[5] border-b pb-4 pt-6 px-6 flex-shrink-0">
             <div className="flex items-start gap-4">
@@ -246,7 +256,7 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
               )}
               
               {/* Info principal */}
-              <div className="flex-1 min-w-0 pr-8">
+              <div className="flex-1 min-w-0 pr-12">
                 <DialogTitle className="text-2xl truncate">{receita.nome}</DialogTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge variant={receita.status === 'finalizada' ? 'default' : 'outline'}>
