@@ -230,7 +230,7 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[95vw] h-[90vh] overflow-hidden flex flex-col">
           {/* Cabeçalho fixo */}
-          <DialogHeader className="sticky top-0 bg-background z-10 border-b pb-4 flex-shrink-0">
+          <DialogHeader className="sticky top-0 bg-background z-10 border-b pb-4 flex-shrink-0 pr-12">
             <div className="flex items-start gap-4">
               {/* Foto da receita */}
               {receita.imagem_url ? (
@@ -247,7 +247,7 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
               
               {/* Info principal */}
               <div className="flex-1 min-w-0">
-                <DialogTitle className="text-2xl truncate">{receita.nome}</DialogTitle>
+                <DialogTitle className="text-2xl truncate pr-4">{receita.nome}</DialogTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge variant={receita.status === 'finalizada' ? 'default' : 'outline'}>
                     {receita.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
@@ -267,18 +267,19 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
                 <p className="text-sm text-muted-foreground mt-2">
                   Criada: {formatDate(receita.created_at)} | Atualizada: {formatDate(receita.updated_at)}
                 </p>
-              </div>
-              
-              {/* Botões de ação */}
-              <div className="flex gap-2 flex-shrink-0 no-print">
-              <Button 
-                variant="outline" 
-                onClick={handleDownloadPDF}
-                disabled={isDownloading}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? 'Gerando...' : 'Baixar PDF'}
-              </Button>
+                
+                {/* Botão de ação abaixo das informações */}
+                <div className="mt-3 no-print">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleDownloadPDF}
+                    disabled={isDownloading}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isDownloading ? 'Gerando...' : 'Baixar PDF'}
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogHeader>
