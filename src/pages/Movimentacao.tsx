@@ -609,7 +609,7 @@ const Movimentacao = () => {
         {/* Overlay para tablet quando carrinho aberto */}
         {carrinhoAberto && (
           <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-10"
+            className="lg:hidden fixed inset-0 bg-black/50 z-[15]"
             onClick={() => setCarrinhoAberto(false)}
           />
         )}
@@ -634,7 +634,7 @@ const Movimentacao = () => {
 
         {/* Grid de Produtos - Scroll vertical único */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="p-6 max-w-5xl mx-auto">
+          <div className="p-6 max-w-5xl mx-auto lg:mr-[384px] xl:mr-[432px]">
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 Carregando...
