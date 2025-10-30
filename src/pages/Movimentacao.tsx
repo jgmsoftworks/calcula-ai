@@ -509,7 +509,7 @@ const Movimentacao = () => {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header Fixo */}
-      <header className="sticky top-0 z-30 bg-background border-b">
+      <header className="sticky top-0 z-30 bg-background border-b shadow-sm">
         <div className="flex items-center gap-3 p-4">
           <Button
             variant="ghost"
@@ -564,7 +564,7 @@ const Movimentacao = () => {
         </div>
 
         {/* Categorias */}
-        <div className="border-t px-4 py-3">
+        <div className="border-t px-4 py-3 bg-background">
           <ChipsCategoria
             categorias={categorias}
             categoriaAtiva={categoriaAtiva}
@@ -574,9 +574,9 @@ const Movimentacao = () => {
       </header>
 
       {/* Conteúdo Principal */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative z-0">
         {/* Grid de Produtos */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative z-0">
           <div className="container max-w-7xl mx-auto p-4 lg:p-6">
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -593,7 +593,7 @@ const Movimentacao = () => {
         </main>
 
         {/* Carrinho Desktop - Fixo à direita */}
-        <aside className="hidden lg:block w-96 border-l bg-card overflow-hidden">
+        <aside className="hidden lg:block w-96 border-l bg-card overflow-hidden relative z-10">
           <CarrinhoLateral
             carrinho={carrinho}
             tipoMovimentacao={tipoMovimentacao}
