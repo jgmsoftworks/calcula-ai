@@ -28,7 +28,7 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+    <div className="space-y-2">
       {produtos.map((produto) => (
         <Card
           key={produto.id}
