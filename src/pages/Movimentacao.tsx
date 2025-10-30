@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, RefreshCw, Search } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Search, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ModalOrigemSelecao } from '@/components/movimentacao/ModalOrigemSelecao';
 import { ChipsCategoria } from '@/components/movimentacao/ChipsCategoria';
@@ -15,6 +15,7 @@ import { ModalEntradaDetalhes } from '@/components/movimentacao/ModalEntradaDeta
 import { ModalSaidaDetalhes } from '@/components/movimentacao/ModalSaidaDetalhes';
 import { ModalFinalizacao } from '@/components/movimentacao/ModalFinalizacao';
 import { imprimirComanda } from '@/components/movimentacao/ComandaImpressao';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface Produto {
   id: string;
@@ -43,7 +44,7 @@ const Movimentacao = () => {
   const navigate = useNavigate();
   const inputBuscaRef = useRef<HTMLInputElement>(null);
 
-  // Estado global
+  // Estados principais
   const [origem, setOrigem] = useState<'estoque' | 'vitrine' | null>(null);
   const [modalOrigemAberto, setModalOrigemAberto] = useState(true);
   const [carrinhoAberto, setCarrinhoAberto] = useState(false);
@@ -54,7 +55,7 @@ const Movimentacao = () => {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todas');
   const [textoBusca, setTextoBusca] = useState('');
 
-  // Carrinho
+  // Carrinho e movimentação
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
   const [tipoMovimentacao, setTipoMovimentacao] = useState<'entrada' | 'saida' | null>(null);
 
@@ -71,14 +72,6 @@ const Movimentacao = () => {
   const [loading, setLoading] = useState(false);
   const [perfil, setPerfil] = useState<any>(null);
 
-  // Bloquear scroll da página inteira
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
   // Carregar dados quando origem for selecionada
   useEffect(() => {
     if (origem && user) {
@@ -86,20 +79,15 @@ const Movimentacao = () => {
     }
   }, [origem, user]);
 
-  // Carregar categorias quando produtos mudarem
+  // Extrair categorias dos produtos
   useEffect(() => {
     if (produtos.length > 0) {
       const cats = new Set<string>();
-      
       produtos.forEach(p => {
         if (origem === 'estoque') {
           p.categorias?.forEach(c => cats.add(c));
-        } else {
-          // Para vitrine, podemos usar tipo_produto (se tiver na estrutura)
-          // Por ora, deixar simples
         }
       });
-      
       setCategorias(['Todas', ...Array.from(cats).sort()]);
     }
   }, [produtos, origem]);
@@ -111,14 +99,12 @@ const Movimentacao = () => {
         e.preventDefault();
         inputBuscaRef.current?.focus();
       }
-      
       if (e.ctrlKey && e.key === 'p') {
         e.preventDefault();
         if (carrinho.length > 0) {
           setModalFinalizacaoAberto(true);
         }
       }
-      
       if (e.key === 'Escape') {
         setModalTipoAberto(false);
         setModalEntradaAberto(false);
@@ -130,27 +116,12 @@ const Movimentacao = () => {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [carrinho]);
 
-  // Travar scroll quando modais abrem
-  useEffect(() => {
-    const modalAberto = modalTipoAberto || modalEntradaAberto || modalSaidaAberto || modalFinalizacaoAberto;
-    
-    if (modalAberto) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [modalTipoAberto, modalEntradaAberto, modalSaidaAberto, modalFinalizacaoAberto]);
-
   const carregarDados = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      // Carregar perfil do tenant
+      // Carregar perfil
       const { data: perfilData } = await supabase
         .from('profiles')
         .select('business_name, cnpj_cpf')
@@ -177,7 +148,7 @@ const Movimentacao = () => {
       
       setFuncionarios(funcData || []);
 
-      // Carregar produtos baseado na origem
+      // Carregar produtos
       if (origem === 'estoque') {
         const { data: prodData } = await supabase
           .from('produtos')
@@ -193,7 +164,6 @@ const Movimentacao = () => {
           .select('id, nome, imagem_url, preco_venda')
           .eq('user_id', user.id);
         
-        // Carregar estoque de receitas
         const { data: estoqueData } = await supabase
           .from('estoque_receitas')
           .select('receita_id, quantidade_atual')
@@ -227,7 +197,6 @@ const Movimentacao = () => {
   const produtosFiltrados = useMemo(() => {
     let resultado = produtos;
     
-    // Filtro de categoria
     if (categoriaAtiva !== 'Todas') {
       resultado = resultado.filter(p =>
         origem === 'estoque' 
@@ -236,7 +205,6 @@ const Movimentacao = () => {
       );
     }
     
-    // Filtro de busca
     if (textoBusca.trim()) {
       const termo = textoBusca.toLowerCase();
       resultado = resultado.filter(p =>
@@ -255,13 +223,11 @@ const Movimentacao = () => {
   const handleSelectProduto = (produto: Produto) => {
     setProdutoSelecionado(produto);
     
-    // Se carrinho já tem tipo definido, pular seleção de tipo
     if (tipoMovimentacao === 'entrada') {
       setModalEntradaAberto(true);
     } else if (tipoMovimentacao === 'saida') {
       setModalSaidaAberto(true);
     } else {
-      // Carrinho vazio, perguntar tipo
       setModalTipoAberto(true);
     }
   };
@@ -269,7 +235,6 @@ const Movimentacao = () => {
   const handleSelectTipo = (tipo: 'entrada' | 'saida') => {
     setModalTipoAberto(false);
     
-    // Validar se carrinho está vazio ou compatível
     if (carrinho.length > 0 && tipoMovimentacao !== tipo) {
       toast({
         title: 'Tipo incompatível',
@@ -296,7 +261,6 @@ const Movimentacao = () => {
   }) => {
     if (!produtoSelecionado) return;
     
-    // Verificar duplicata
     if (carrinho.find(item => (origem === 'estoque' ? item.produto_id : item.receita_id) === produtoSelecionado.id)) {
       toast({
         title: 'Produto já adicionado',
@@ -337,7 +301,6 @@ const Movimentacao = () => {
   }) => {
     if (!produtoSelecionado) return;
     
-    // Verificar duplicata
     if (carrinho.find(item => (origem === 'estoque' ? item.produto_id : item.receita_id) === produtoSelecionado.id)) {
       toast({
         title: 'Produto já adicionado',
@@ -398,17 +361,14 @@ const Movimentacao = () => {
     
     setLoading(true);
     try {
-      // Gerar número da comanda
       const { data: comandaNum } = await supabase.rpc('gerar_numero_comanda', {
         p_user_id: user.id
       });
       
       const numeroComanda = comandaNum || '#0001';
 
-      // Processar cada item do carrinho
       for (const item of carrinho) {
-        // 1. Criar registro em movimentacoes_pdv
-        const { error: pdvError } = await (supabase.from('movimentacoes_pdv') as any).insert({
+        await (supabase.from('movimentacoes_pdv') as any).insert({
           origem: item.origem,
           tipo: item.tipo,
           produto_id: item.produto_id,
@@ -427,7 +387,6 @@ const Movimentacao = () => {
           fornecedor_nome: item.fornecedor_nome,
         });
 
-        // 2. Atualizar estoque e custos
         if (origem === 'estoque' && item.produto_id) {
           const { data: produto } = await supabase
             .from('produtos')
@@ -466,7 +425,6 @@ const Movimentacao = () => {
             }
           }
 
-          // 3. Criar registro em movimentacoes (compatibilidade)
           await (supabase.from('movimentacoes') as any).insert({
             produto_id: item.produto_id,
             quantidade: item.quantidade,
@@ -476,7 +434,6 @@ const Movimentacao = () => {
             data: data.data_movimentacao.toISOString().split('T')[0],
           });
         } else if (origem === 'vitrine' && item.receita_id) {
-          // Atualizar estoque de receitas
           const { data: estoqueReceita } = await supabase
             .from('estoque_receitas')
             .select('quantidade_atual')
@@ -494,7 +451,6 @@ const Movimentacao = () => {
               .eq('receita_id', item.receita_id);
           }
 
-          // Criar registro em movimentacoes_receitas
           await (supabase.from('movimentacoes_receitas') as any).insert({
             receita_id: item.receita_id!,
             tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
@@ -507,7 +463,6 @@ const Movimentacao = () => {
         }
       }
 
-      // Imprimir comanda se solicitado
       if (data.imprimir && perfil) {
         imprimirComanda({
           numeroComanda,
@@ -528,7 +483,6 @@ const Movimentacao = () => {
         description: `Comanda ${numeroComanda} registrada`,
       });
 
-      // Limpar carrinho e recarregar dados
       handleLimparCarrinho();
       setModalFinalizacaoAberto(false);
       carregarDados();
@@ -553,91 +507,80 @@ const Movimentacao = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      {/* Header - Sticky no topo */}
-      <div className="sticky top-0 z-20 bg-background border-b p-4 flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header Fixo */}
+      <header className="sticky top-0 z-30 bg-background border-b">
+        <div className="flex items-center gap-3 p-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
 
-        <div className="flex-1 max-w-md relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            ref={inputBuscaRef}
-            placeholder="Buscar produto ou código de barras..."
-            value={textoBusca}
-            onChange={(e) => setTextoBusca(e.target.value)}
-            className="pl-10"
-          />
+          <div className="flex-1 max-w-md relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={inputBuscaRef}
+              placeholder="Buscar produto..."
+              value={textoBusca}
+              onChange={(e) => setTextoBusca(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={carregarDados}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+
+          {/* Botão carrinho mobile */}
+          <Sheet open={carrinhoAberto} onOpenChange={setCarrinhoAberto}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="lg:hidden relative">
+                <ShoppingCart className="h-5 w-5" />
+                {carrinho.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {carrinho.length}
+                  </span>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-96 p-0">
+              <CarrinhoLateral
+                carrinho={carrinho}
+                tipoMovimentacao={tipoMovimentacao}
+                onRemoverItem={handleRemoverItem}
+                onLimpar={handleLimparCarrinho}
+                onFinalizar={handleFinalizar}
+              />
+            </SheetContent>
+          </Sheet>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={carregarDados}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
-
-      {/* Barra de Categorias - Sticky abaixo do header */}
-      <div className="sticky top-[73px] z-10 bg-background border-b p-4">
-        <ChipsCategoria
-          categorias={categorias}
-          categoriaAtiva={categoriaAtiva}
-          onSelectCategoria={setCategoriaAtiva}
-        />
-      </div>
-
-      {/* Conteúdo Principal - Altura fixa calculada */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Botão toggle para tablet/mobile */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="lg:hidden fixed bottom-4 right-4 z-30 h-12 w-12 rounded-full shadow-lg"
-          onClick={() => setCarrinhoAberto(!carrinhoAberto)}
-        >
-          🛒 <span className="ml-1 text-xs">{carrinho.length}</span>
-        </Button>
-
-        {/* Overlay para tablet quando carrinho aberto */}
-        {carrinhoAberto && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-[15]"
-            onClick={() => setCarrinhoAberto(false)}
-          />
-        )}
-
-        {/* Carrinho - Desktop sempre visível, tablet toggle */}
-        <div className={`
-          fixed lg:relative top-[137px] bottom-0 lg:top-auto lg:bottom-auto right-0 z-20
-          transform transition-transform duration-300
-          lg:transform-none lg:block
-          ${carrinhoAberto ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-          w-80 xl:w-96 flex-shrink-0
-          h-[calc(100vh-137px)] lg:h-full
-        `}>
-          <CarrinhoLateral
-            carrinho={carrinho}
-            tipoMovimentacao={tipoMovimentacao}
-            onRemoverItem={handleRemoverItem}
-            onLimpar={handleLimparCarrinho}
-            onFinalizar={handleFinalizar}
+        {/* Categorias */}
+        <div className="border-t px-4 py-3">
+          <ChipsCategoria
+            categorias={categorias}
+            categoriaAtiva={categoriaAtiva}
+            onSelectCategoria={setCategoriaAtiva}
           />
         </div>
+      </header>
 
-        {/* Grid de Produtos - Scroll vertical único */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="p-6 max-w-5xl mx-auto lg:mr-[384px] xl:mr-[432px]">
+      {/* Conteúdo Principal */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Grid de Produtos */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="container max-w-7xl mx-auto p-4 lg:p-6">
             {loading ? (
               <div className="flex items-center justify-center h-64">
-                Carregando...
+                <div className="text-muted-foreground">Carregando...</div>
               </div>
             ) : (
               <GridProdutos
@@ -647,7 +590,18 @@ const Movimentacao = () => {
               />
             )}
           </div>
-        </div>
+        </main>
+
+        {/* Carrinho Desktop - Fixo à direita */}
+        <aside className="hidden lg:block w-96 border-l bg-card overflow-hidden">
+          <CarrinhoLateral
+            carrinho={carrinho}
+            tipoMovimentacao={tipoMovimentacao}
+            onRemoverItem={handleRemoverItem}
+            onLimpar={handleLimparCarrinho}
+            onFinalizar={handleFinalizar}
+          />
+        </aside>
       </div>
 
       {/* Modais */}

@@ -1,8 +1,9 @@
+import { formatters } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, X } from 'lucide-react';
-import { formatters } from '@/lib/formatters';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, ShoppingCart, X } from 'lucide-react';
 
 export interface ItemCarrinho {
   id: string;
@@ -35,99 +36,121 @@ export function CarrinhoLateral({
   onLimpar,
   onFinalizar,
 }: CarrinhoLateralProps) {
-  const subtotal = carrinho.reduce((sum, item) => sum + item.valor_total, 0);
+  const subtotal = carrinho.reduce((acc, item) => acc + item.valor_total, 0);
 
   return (
-    <div className="h-full border-r flex flex-col bg-background">
-      {/* Cabeçalho - Fixo no topo */}
-      <div className="p-4 border-b flex-shrink-0">
-        <h2 className="font-bold text-lg">
-          {tipoMovimentacao ? (
-            tipoMovimentacao === 'entrada' ? '📥 ENTRADA' : '📤 SAÍDA'
-          ) : (
-            'CARRINHO'
+    <div className="h-full flex flex-col bg-card">
+      {/* Header */}
+      <div className="p-4 border-b space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Carrinho
+          </h2>
+          {tipoMovimentacao && (
+            <Badge variant={tipoMovimentacao === 'entrada' ? 'default' : 'secondary'}>
+              {tipoMovimentacao === 'entrada' ? 'Entrada' : 'Saída'}
+            </Badge>
           )}
-        </h2>
+        </div>
         <p className="text-sm text-muted-foreground">
           {carrinho.length} {carrinho.length === 1 ? 'item' : 'itens'}
         </p>
       </div>
 
-      {/* Lista de Itens - ScrollArea com altura flex */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-3 space-y-1.5">
-            {carrinho.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                Carrinho vazio
-              </div>
-            ) : (
-              carrinho.map((item) => (
-                <div key={item.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/50">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {formatters.quantidadeContinua(item.quantidade)} × {item.nome}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.unidade} • {formatters.valor(item.valor_unitario)}
-                    </p>
-                    <p className="text-sm font-bold text-primary mt-1">
-                      {formatters.valor(item.valor_total)}
-                    </p>
+      {/* Lista de Itens */}
+      <ScrollArea className="flex-1">
+        {carrinho.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
+            <ShoppingCart className="h-16 w-16 mb-4 opacity-20" />
+            <p className="font-medium">Carrinho vazio</p>
+            <p className="text-sm mt-1">Adicione produtos para começar</p>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {carrinho.map((item, index) => (
+              <div key={item.id}>
+                {index > 0 && <Separator className="my-3" />}
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm line-clamp-2 leading-tight">
+                        {item.nome}
+                      </h4>
+                      {item.fornecedor_nome && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Fornecedor: {item.fornecedor_nome}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={() => onRemoverItem(item.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onRemoverItem(item.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {formatters.quantidadeContinua(item.quantidade)} {item.unidade} × {formatters.valor(item.valor_unitario)}
+                    </span>
+                    <span className="font-semibold">
+                      {formatters.valor(item.valor_total)}
+                    </span>
+                  </div>
+
+                  {item.observacao && (
+                    <p className="text-xs text-muted-foreground italic">
+                      Obs: {item.observacao}
+                    </p>
+                  )}
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
-        </ScrollArea>
-      </div>
+        )}
+      </ScrollArea>
 
-      {/* Rodapé com Total e Botões - Fixo no fim */}
-      <div className="p-3 border-t space-y-2 flex-shrink-0 bg-background">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Subtotal:</span>
-            <span className="font-medium">{formatters.valor(subtotal)}</span>
+      {/* Footer */}
+      {carrinho.length > 0 && (
+        <div className="border-t p-4 space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-medium">{formatters.valor(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Total</span>
+              <span className="text-2xl font-bold text-primary">
+                {formatters.valor(subtotal)}
+              </span>
+            </div>
           </div>
-          <Separator />
-          <div className="flex justify-between text-lg font-bold">
-            <span>Total:</span>
-            <span className="text-primary">{formatters.valor(subtotal)}</span>
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={onFinalizar}
-            disabled={carrinho.length === 0}
-          >
-            Finalizar
-          </Button>
-          
-          <div className="flex gap-2">
+          <div className="space-y-2">
+            <Button 
+              onClick={onFinalizar}
+              className="w-full"
+              size="lg"
+            >
+              Finalizar ({carrinho.length})
+            </Button>
+            
             <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
               onClick={onLimpar}
-              disabled={carrinho.length === 0}
+              variant="outline"
+              className="w-full"
+              size="sm"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Limpar
+              Limpar Carrinho
             </Button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
