@@ -296,14 +296,6 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
                         <p className="text-lg font-bold">{formatters.percentual(custos.margem)}</p>
                       </div>
                     </div>
-                    {receita.markups && (
-                      <div className="mt-4 pt-4 border-t">
-                        <p className="text-sm text-muted-foreground">
-                          Markup aplicado: <span className="font-medium">{receita.markups.nome}</span> 
-                          ({receita.markups.tipo === 'percentual' ? formatters.percentual(receita.markups.markup_aplicado) : formatters.valor(receita.markups.markup_aplicado)})
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )}
