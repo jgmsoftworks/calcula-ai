@@ -20,6 +20,7 @@ const getPageInfo = (pathname: string): { title: string; description: string; } 
   const pageMap: Record<string, { title: string; description: string; }> = {
     '/': { title: 'Dashboard Executivo', description: 'Indicadores estratégicos e performance do seu negócio' },
     '/estoque': { title: 'Gestão de Estoque', description: 'Controle produtos, fornecedores e movimentações' },
+    '/movimentacao': { title: 'Movimentações', description: 'Gestão rápida de entradas e saídas' },
     '/custos': { title: 'Centro de Custos', description: 'Controle financeiro completo: despesas, folha e encargos operacionais' },
     '/precificacao': { title: 'Estratégia de Preços', description: 'Defina preços competitivos com margem de lucro otimizada' },
     '/perfil': { title: 'Perfil do Negócio', description: 'Informações e configurações da empresa' }

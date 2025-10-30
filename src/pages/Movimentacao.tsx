@@ -507,18 +507,10 @@ const Movimentacao = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header Fixo */}
-      <header className="sticky top-0 z-30 bg-background border-b shadow-sm">
+    <div className="h-full flex flex-col bg-background">
+      {/* Barra de ferramentas */}
+      <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
         <div className="flex items-center gap-3 p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-
           <div className="flex-1 max-w-md relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -571,12 +563,12 @@ const Movimentacao = () => {
             onSelectCategoria={setCategoriaAtiva}
           />
         </div>
-      </header>
+      </div>
 
       {/* Conteúdo Principal */}
-      <div className="flex-1 flex overflow-hidden relative z-0">
+      <div className="flex-1 flex overflow-hidden">
         {/* Grid de Produtos */}
-        <main className="flex-1 overflow-y-auto relative z-0">
+        <main className="flex-1 overflow-y-auto">
           <div className="container max-w-7xl mx-auto p-4 lg:p-6">
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -593,7 +585,7 @@ const Movimentacao = () => {
         </main>
 
         {/* Carrinho Desktop - Fixo à direita */}
-        <aside className="hidden lg:block w-96 border-l bg-card overflow-hidden relative z-10">
+        <aside className="hidden lg:block w-96 border-l bg-card overflow-y-auto">
           <CarrinhoLateral
             carrinho={carrinho}
             tipoMovimentacao={tipoMovimentacao}
