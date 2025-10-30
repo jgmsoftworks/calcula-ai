@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Edit, Download, Package2, X, Search } from 'lucide-react';
+import { Plus, Trash2, Edit, Download, Package2, X, Search, Eye } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { CriarReceitaModal } from '@/components/receitas/CriarReceitaModal';
 import { ReceitasFilters } from '@/components/receitas/ReceitasFilters';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { HistoricoReceitaModal } from '@/components/vitrine/HistoricoReceitaModal';
+import { ReceitaPreviewModal } from '@/components/receitas/ReceitaPreviewModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +52,8 @@ const Receitas = () => {
   const [editingReceitaId, setEditingReceitaId] = useState<string | null>(null);
   const [historicoModalOpen, setHistoricoModalOpen] = useState(false);
   const [selectedReceitaHistorico, setSelectedReceitaHistorico] = useState<{id: string, nome: string} | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [selectedReceitaPreview, setSelectedReceitaPreview] = useState<{id: string, nome: string} | null>(null);
   
   // Estados de filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -269,6 +272,11 @@ const Receitas = () => {
   const handleHistoricoVitrine = (receita: Receita) => {
     setSelectedReceitaHistorico({ id: receita.id, nome: receita.nome });
     setHistoricoModalOpen(true);
+  };
+
+  const handlePreviewReceita = (receita: Receita) => {
+    setSelectedReceitaPreview({ id: receita.id, nome: receita.nome });
+    setPreviewModalOpen(true);
   };
 
   const handleNovaReceita = async () => {
@@ -1280,6 +1288,16 @@ const Receitas = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handlePreviewReceita(receita)}
+                      className="gap-2"
+                      title="Visualizar receita completa"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Preview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleEditReceita(receita.id)}
                       className="gap-2"
                     >
@@ -1428,6 +1446,16 @@ const Receitas = () => {
         onOpenChange={handleModalClose}
         receitaId={editingReceitaId}
       />
+
+      {/* Modal de Preview */}
+      {selectedReceitaPreview && (
+        <ReceitaPreviewModal
+          open={previewModalOpen}
+          onOpenChange={setPreviewModalOpen}
+          receitaId={selectedReceitaPreview.id}
+          receitaNome={selectedReceitaPreview.nome}
+        />
+      )}
 
       {/* Modal de Histórico da Vitrine */}
       {selectedReceitaHistorico && (
