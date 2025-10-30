@@ -56,14 +56,14 @@ export function CarrinhoLateral({
       {/* Lista de Itens - ScrollArea com altura flex */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-4 space-y-2">
+          <div className="p-3 space-y-1.5">
             {carrinho.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 Carrinho vazio
               </div>
             ) : (
               carrinho.map((item) => (
-                <div key={item.id} className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                <div key={item.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/50">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
                       {formatters.quantidadeContinua(item.quantidade)} × {item.nome}
@@ -91,7 +91,7 @@ export function CarrinhoLateral({
       </div>
 
       {/* Rodapé com Total e Botões - Fixo no fim */}
-      <div className="p-4 border-t space-y-3 flex-shrink-0 bg-background">
+      <div className="p-3 border-t space-y-2 flex-shrink-0 bg-background">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Subtotal:</span>
