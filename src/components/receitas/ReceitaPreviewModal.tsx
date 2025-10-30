@@ -289,42 +289,6 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
           {/* Conteúdo rolável */}
           <ScrollArea className="flex-1 pr-4 print-container">
             <div className="space-y-6 py-4">
-              {/* Bloco 1: Custos & Preços */}
-              {(
-                <Card className="print-block">
-                  <CardHeader>
-                    <CardTitle>💰 Custos & Preços</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Custo Total</p>
-                        <p className="text-lg font-bold">{formatters.valor(custos.custoTotal)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Custo por Unidade</p>
-                        <p className="text-lg font-bold">{formatters.valor(custos.custoUnitario)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Custo Mão de Obra</p>
-                        <p className="text-lg font-bold">{formatters.valor(receita.custo_mao_obra || 0)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Custo Embalagens</p>
-                        <p className="text-lg font-bold">{formatters.valor(custos.subtotalEmbalagens)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Preço Sugerido</p>
-                        <p className="text-lg font-bold">{formatters.valor(receita.preco_venda || 0)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Margem</p>
-                        <p className="text-lg font-bold">{formatters.percentual(custos.margem)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Bloco 2: Ingredientes */}
               {ingredientes.length > 0 && (
