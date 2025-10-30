@@ -110,7 +110,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         
         <div className="flex-1 flex flex-col min-h-screen">
           {/* Header */}
-          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
             <div className="h-16 flex items-center px-4 lg:px-6">
               <SidebarTrigger className="lg:hidden" />
               

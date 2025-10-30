@@ -509,7 +509,7 @@ const Movimentacao = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Barra de ferramentas */}
-      <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
+      <div className="sticky top-0 z-10 bg-background border-b shadow-sm">
         <div className="flex items-center gap-3 p-4">
           <div className="flex-1 max-w-md relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
