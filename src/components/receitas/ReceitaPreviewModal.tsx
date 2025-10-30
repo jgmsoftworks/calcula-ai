@@ -228,9 +228,9 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
       `}</style>
       
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-[95vw] h-[90vh] overflow-hidden flex flex-col p-0">
           {/* Cabeçalho fixo */}
-          <DialogHeader className="sticky top-0 bg-background z-10 border-b pb-4 flex-shrink-0 pr-12">
+          <DialogHeader className="sticky top-0 bg-background z-[5] border-b pb-4 pt-6 px-6 flex-shrink-0">
             <div className="flex items-start gap-4">
               {/* Foto da receita */}
               {receita.imagem_url ? (
@@ -246,8 +246,8 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
               )}
               
               {/* Info principal */}
-              <div className="flex-1 min-w-0">
-                <DialogTitle className="text-2xl truncate pr-4">{receita.nome}</DialogTitle>
+              <div className="flex-1 min-w-0 pr-8">
+                <DialogTitle className="text-2xl truncate">{receita.nome}</DialogTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge variant={receita.status === 'finalizada' ? 'default' : 'outline'}>
                     {receita.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
@@ -285,8 +285,8 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
           </DialogHeader>
           
           {/* Conteúdo rolável */}
-          <ScrollArea className="flex-1 pr-4 print-container">
-            <div className="space-y-6 py-4">
+          <ScrollArea className="flex-1 print-container px-6">
+            <div className="space-y-6 py-4 pr-2">
 
               {/* Bloco 2: Ingredientes */}
               {ingredientes.length > 0 && (
