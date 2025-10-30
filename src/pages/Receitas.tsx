@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Trash2, Edit, Download, Package2, X, Search, Eye } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
@@ -1450,11 +1450,12 @@ const Receitas = () => {
       {/* Modal de Preview */}
         {selectedReceitaPreview && (
           <ReceitaPreviewModal
+            key={selectedReceitaPreview.id}
             open={previewModalOpen}
             onOpenChange={setPreviewModalOpen}
             receitaId={selectedReceitaPreview.id}
             receitaNome={selectedReceitaPreview.nome}
-            onDownloadPDF={() => downloadReceita(selectedReceitaPreview.id)}
+            onDownloadPDF={useCallback(() => downloadReceita(selectedReceitaPreview.id), [selectedReceitaPreview.id])}
           />
         )}
 

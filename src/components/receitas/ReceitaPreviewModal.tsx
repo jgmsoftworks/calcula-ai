@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Download, AlertCircle, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,21 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
   const [embalagens, setEmbalagens] = useState<any[]>([]);
   const [maoObra, setMaoObra] = useState<any[]>([]);
   const [passosPreparo, setPassosPreparo] = useState<any[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Limpar estado quando modal fecha
+  useEffect(() => {
+    if (!open) {
+      setReceita(null);
+      setIngredientes([]);
+      setSubReceitas([]);
+      setEmbalagens([]);
+      setMaoObra([]);
+      setPassosPreparo([]);
+      setLoading(true);
+      setIsDownloading(false);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open && user?.id) {
@@ -152,9 +167,16 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
     };
   };
 
-  const handleDownloadPDF = () => {
-    onDownloadPDF();
-  };
+  const handleDownloadPDF = useCallback(async () => {
+    if (isDownloading) return;
+    
+    setIsDownloading(true);
+    try {
+      await onDownloadPDF();
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [isDownloading, onDownloadPDF]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -249,9 +271,13 @@ export function ReceitaPreviewModal({ open, onOpenChange, receitaId, receitaNome
               
               {/* Botões de ação */}
               <div className="flex gap-2 flex-shrink-0 no-print">
-              <Button variant="outline" onClick={handleDownloadPDF}>
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+              >
                 <Download className="h-4 w-4 mr-2" />
-                Baixar PDF
+                {isDownloading ? 'Gerando...' : 'Baixar PDF'}
               </Button>
                 <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
                   <X className="h-4 w-4" />
