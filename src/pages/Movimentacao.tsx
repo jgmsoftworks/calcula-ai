@@ -369,27 +369,36 @@ const Movimentacao = () => {
       const numeroComanda = comandaNum || '#0001';
 
       for (const item of carrinho) {
+        // Construir objeto apenas com campos válidos (sem strings vazias)
+        const movimentacaoPdv: any = {
+          user_id: user.id,
+          origem: item.origem,
+          tipo: item.tipo,
+          nome_item: item.nome,
+          quantidade: item.quantidade,
+          unidade: item.unidade,
+          valor_unitario: item.valor_unitario,
+          valor_total: item.valor_total,
+          motivo: data.motivo,
+          observacao: item.observacao || data.observacao,
+          data_movimentacao: data.data_movimentacao.toISOString(),
+        };
+
+        // Adicionar campos UUID apenas se tiverem valor válido
+        if (item.produto_id) movimentacaoPdv.produto_id = item.produto_id;
+        if (item.receita_id) movimentacaoPdv.receita_id = item.receita_id;
+        if (data.funcionario_id) {
+          movimentacaoPdv.funcionario_id = data.funcionario_id;
+          movimentacaoPdv.funcionario_nome = data.funcionario_nome;
+        }
+        if (item.fornecedor_id) {
+          movimentacaoPdv.fornecedor_id = item.fornecedor_id;
+          movimentacaoPdv.fornecedor_nome = item.fornecedor_nome;
+        }
+
         const { data: pdvData, error: pdvError } = await supabase
           .from('movimentacoes_pdv')
-          .insert({
-            user_id: user.id,
-            origem: item.origem,
-            tipo: item.tipo,
-            produto_id: item.produto_id,
-            receita_id: item.receita_id,
-            nome_item: item.nome,
-            quantidade: item.quantidade,
-            unidade: item.unidade,
-            valor_unitario: item.valor_unitario,
-            valor_total: item.valor_total,
-            funcionario_id: data.funcionario_id,
-            funcionario_nome: data.funcionario_nome,
-            motivo: data.motivo,
-            observacao: item.observacao || data.observacao,
-            data_movimentacao: data.data_movimentacao.toISOString(),
-            fornecedor_id: item.fornecedor_id,
-            fornecedor_nome: item.fornecedor_nome,
-          })
+          .insert(movimentacaoPdv)
           .select()
           .single();
 
