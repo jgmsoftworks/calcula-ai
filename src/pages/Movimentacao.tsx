@@ -369,24 +369,36 @@ const Movimentacao = () => {
       const numeroComanda = comandaNum || '#0001';
 
       for (const item of carrinho) {
-        await (supabase.from('movimentacoes_pdv') as any).insert({
-          origem: item.origem,
-          tipo: item.tipo,
-          produto_id: item.produto_id,
-          receita_id: item.receita_id,
-          nome_item: item.nome,
-          quantidade: item.quantidade,
-          unidade: item.unidade,
-          valor_unitario: item.valor_unitario,
-          valor_total: item.valor_total,
-          funcionario_id: data.funcionario_id,
-          funcionario_nome: data.funcionario_nome,
-          motivo: data.motivo,
-          observacao: item.observacao || data.observacao,
-          data_movimentacao: data.data_movimentacao.toISOString(),
-          fornecedor_id: item.fornecedor_id,
-          fornecedor_nome: item.fornecedor_nome,
-        });
+        const { data: pdvData, error: pdvError } = await supabase
+          .from('movimentacoes_pdv')
+          .insert({
+            user_id: user.id,
+            origem: item.origem,
+            tipo: item.tipo,
+            produto_id: item.produto_id,
+            receita_id: item.receita_id,
+            nome_item: item.nome,
+            quantidade: item.quantidade,
+            unidade: item.unidade,
+            valor_unitario: item.valor_unitario,
+            valor_total: item.valor_total,
+            funcionario_id: data.funcionario_id,
+            funcionario_nome: data.funcionario_nome,
+            motivo: data.motivo,
+            observacao: item.observacao || data.observacao,
+            data_movimentacao: data.data_movimentacao.toISOString(),
+            fornecedor_id: item.fornecedor_id,
+            fornecedor_nome: item.fornecedor_nome,
+          })
+          .select()
+          .single();
+
+        if (pdvError) {
+          console.error('❌ Erro ao inserir movimentação PDV:', pdvError);
+          throw new Error(`Falha ao registrar movimentação PDV: ${pdvError.message}`);
+        }
+
+        console.log('✅ Movimentação PDV registrada:', pdvData.id);
 
         if (origem === 'estoque' && item.produto_id) {
           const { data: produto } = await supabase
