@@ -384,14 +384,14 @@ const Movimentacao = () => {
           data_movimentacao: data.data_movimentacao.toISOString(),
         };
 
-        // Adicionar campos UUID apenas se tiverem valor válido
-        if (item.produto_id) movimentacaoPdv.produto_id = item.produto_id;
-        if (item.receita_id) movimentacaoPdv.receita_id = item.receita_id;
-        if (data.funcionario_id) {
+        // Adicionar campos UUID apenas se tiverem valor válido (não vazio)
+        if (item.produto_id && item.produto_id.trim()) movimentacaoPdv.produto_id = item.produto_id;
+        if (item.receita_id && item.receita_id.trim()) movimentacaoPdv.receita_id = item.receita_id;
+        if (data.funcionario_id && data.funcionario_id.trim()) {
           movimentacaoPdv.funcionario_id = data.funcionario_id;
           movimentacaoPdv.funcionario_nome = data.funcionario_nome;
         }
-        if (item.fornecedor_id) {
+        if (item.fornecedor_id && item.fornecedor_id.trim()) {
           movimentacaoPdv.fornecedor_id = item.fornecedor_id;
           movimentacaoPdv.fornecedor_nome = item.fornecedor_nome;
         }

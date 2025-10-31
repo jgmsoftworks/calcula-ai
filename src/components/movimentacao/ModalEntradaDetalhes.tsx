@@ -54,7 +54,7 @@ export function ModalEntradaDetalhes({
     if (open && produto) {
       setQuantidade(0);
       setCustoUnitario(0);
-      setFornecedorId('');
+      setFornecedorId(undefined);
       setObservacao('');
     }
   }, [open, produto?.id]);
