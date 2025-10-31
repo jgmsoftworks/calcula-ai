@@ -196,6 +196,27 @@ export const EntradasForm = () => {
           .eq('id', item.produto_id);
 
         if (updateError) throw updateError;
+
+        // Recalcular custo_unitario_uso na tabela produto_conversoes
+        const { data: conversao, error: convError } = await supabase
+          .from('produto_conversoes')
+          .select('quantidade_unidade_uso')
+          .eq('produto_id', item.produto_id)
+          .eq('ativo', true)
+          .maybeSingle();
+
+        if (!convError && conversao && conversao.quantidade_unidade_uso > 0) {
+          const novoCustoUnitarioUso = item.custo_unitario / conversao.quantidade_unidade_uso;
+          
+          await supabase
+            .from('produto_conversoes')
+            .update({ 
+              custo_unitario_uso: novoCustoUnitarioUso,
+              updated_at: new Date().toISOString()
+            })
+            .eq('produto_id', item.produto_id)
+            .eq('ativo', true);
+        }
       }
 
       toast({ title: "Entradas registradas com sucesso!" });

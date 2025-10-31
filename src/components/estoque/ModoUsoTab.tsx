@@ -52,14 +52,12 @@ export const ModoUsoTab = ({
   useEffect(() => {
     let custo = 0;
     
-    if (totalEmbalagem > 0) {
-      if (unidadesDiferentes && quantidadeUnidadeUso > 0) {
-        // Custo = Total / (Quantidade por Embalagem × Quantidade da Unidade)
-        custo = custoTotal / (totalEmbalagem * quantidadeUnidadeUso);
-      } else {
-        // Quando as unidades são iguais, divide apenas pela quantidade
-        custo = custoTotal / totalEmbalagem;
-      }
+    if (unidadesDiferentes && quantidadeUnidadeUso > 0) {
+      // Custo por Unidade de Uso = Custo Unitário ÷ Fator de Conversão
+      custo = custoUnitario / quantidadeUnidadeUso;
+    } else {
+      // Quando as unidades são iguais, Fator = 1
+      custo = custoUnitario;
     }
     
     setCustoUnitarioUso(custo);
@@ -81,6 +79,15 @@ export const ModoUsoTab = ({
         <AlertDescription className="text-sm text-muted-foreground">
           <strong>Modo de Uso:</strong> Defina como este produto será usado nas receitas. 
           Por exemplo, se você compra em "fardo", mas usa em "pacotes" nas receitas.
+        </AlertDescription>
+      </Alert>
+
+      <Alert className="bg-blue-50 border-blue-200">
+        <InfoIcon className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-sm text-blue-800">
+          <strong>Como funciona:</strong> O custo por unidade de uso é calculado a partir do{' '}
+          <strong>Custo Unitário</strong> e do Fator de conversão.{' '}
+          Ex: se 1 un = 100 g, custo por g = custo unitário ÷ 100.
         </AlertDescription>
       </Alert>
 
@@ -182,16 +189,19 @@ export const ModoUsoTab = ({
             <p className="text-xs text-muted-foreground">
               {unidadesDiferentes ? (
                 <>
-                  <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} com {totalEmbalagem} unidades, 
-                  cada uma contendo {quantidadeUnidadeUso} {unidadeUsoReceitas}, 
-                  por {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
-                  Cada {unidadeUsoReceitas} custará {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas.
+                  <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} por{' '}
+                  {custoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
+                  Cada {unidadeCompra} contém {quantidadeUnidadeUso} {unidadeUsoReceitas}. 
+                  Portanto, cada {unidadeUsoReceitas} custará{' '}
+                  {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas 
+                  (R$ {custoUnitario.toFixed(2)} ÷ {quantidadeUnidadeUso}).
                 </>
               ) : (
                 <>
-                  <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} com {totalEmbalagem} {unidadeUsoReceitas} 
-                  por {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
-                  Cada {unidadeUsoReceitas} custará {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas.
+                  <strong>Exemplo:</strong> Você compra 1 {unidadeCompra} por{' '}
+                  {custoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. 
+                  Como a unidade de uso é a mesma, cada {unidadeUsoReceitas} custará{' '}
+                  {custoUnitarioUso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} nas receitas.
                 </>
               )}
             </p>
