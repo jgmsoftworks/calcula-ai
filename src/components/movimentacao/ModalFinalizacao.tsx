@@ -50,14 +50,14 @@ export function ModalFinalizacao({
   onClose,
 }: ModalFinalizacaoProps) {
   const { toast } = useToast();
-  const [funcionarioId, setFuncionarioId] = useState<string>();
+  const [funcionarioId, setFuncionarioId] = useState('');
   const [motivo, setMotivo] = useState('');
   const [motivoOutro, setMotivoOutro] = useState('');
   const [observacao, setObservacao] = useState('');
 
   useEffect(() => {
     if (open) {
-      setFuncionarioId(undefined);
+      setFuncionarioId('');
       setMotivo('');
       setMotivoOutro('');
       setObservacao('');

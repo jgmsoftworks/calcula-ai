@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { toBrasiliaDateString } from '@/lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, RefreshCw, Search, ShoppingCart } from 'lucide-react';
@@ -274,19 +273,17 @@ const Movimentacao = () => {
     const novoItem: ItemCarrinho = {
       id: Date.now().toString(),
       origem: origem!,
-      ...(origem === 'estoque' && produtoSelecionado.id ? { produto_id: produtoSelecionado.id } : {}),
-      ...(origem === 'vitrine' && produtoSelecionado.id ? { receita_id: produtoSelecionado.id } : {}),
+      produto_id: origem === 'estoque' ? produtoSelecionado.id : undefined,
+      receita_id: origem === 'vitrine' ? produtoSelecionado.id : undefined,
       nome: produtoSelecionado.nome,
       quantidade: data.quantidade,
       unidade: produtoSelecionado.unidade,
       valor_unitario: data.custoUnitario,
       valor_total: data.custoTotal,
       tipo: 'entrada',
-      ...(data.fornecedor_id && data.fornecedor_id.trim() ? {
-        fornecedor_id: data.fornecedor_id,
-        fornecedor_nome: data.fornecedor_nome
-      } : {}),
-      ...(data.observacao && data.observacao.trim() ? { observacao: data.observacao } : {}),
+      fornecedor_id: data.fornecedor_id,
+      fornecedor_nome: data.fornecedor_nome,
+      observacao: data.observacao,
     };
     
     setCarrinho([...carrinho, novoItem]);
@@ -371,74 +368,24 @@ const Movimentacao = () => {
       const numeroComanda = comandaNum || '#0001';
 
       for (const item of carrinho) {
-        // Log para debug
-        console.log('📦 Item do carrinho:', {
-          produto_id: item.produto_id,
-          receita_id: item.receita_id,
-          fornecedor_id: item.fornecedor_id
-        });
-
-        // Construir objeto base
-        const movimentacaoPdv: any = {
-          user_id: user.id,
+        await (supabase.from('movimentacoes_pdv') as any).insert({
           origem: item.origem,
           tipo: item.tipo,
+          produto_id: item.produto_id,
+          receita_id: item.receita_id,
           nome_item: item.nome,
           quantidade: item.quantidade,
           unidade: item.unidade,
           valor_unitario: item.valor_unitario,
           valor_total: item.valor_total,
+          funcionario_id: data.funcionario_id,
+          funcionario_nome: data.funcionario_nome,
           motivo: data.motivo,
+          observacao: item.observacao || data.observacao,
           data_movimentacao: data.data_movimentacao.toISOString(),
-        };
-
-        // Adicionar observação se existir
-        const obs = item.observacao || data.observacao;
-        if (obs && obs.trim()) {
-          movimentacaoPdv.observacao = obs;
-        }
-
-        // Adicionar produto_id se for estoque
-        if (item.produto_id && typeof item.produto_id === 'string' && item.produto_id.trim()) {
-          movimentacaoPdv.produto_id = item.produto_id;
-        }
-
-        // Adicionar receita_id se for vitrine
-        if (item.receita_id && typeof item.receita_id === 'string' && item.receita_id.trim()) {
-          movimentacaoPdv.receita_id = item.receita_id;
-        }
-
-        // Adicionar funcionário se informado
-        if (data.funcionario_id && typeof data.funcionario_id === 'string' && data.funcionario_id.trim()) {
-          movimentacaoPdv.funcionario_id = data.funcionario_id;
-          if (data.funcionario_nome) {
-            movimentacaoPdv.funcionario_nome = data.funcionario_nome;
-          }
-        }
-
-        // Adicionar fornecedor se informado
-        if (item.fornecedor_id && typeof item.fornecedor_id === 'string' && item.fornecedor_id.trim()) {
-          movimentacaoPdv.fornecedor_id = item.fornecedor_id;
-          if (item.fornecedor_nome) {
-            movimentacaoPdv.fornecedor_nome = item.fornecedor_nome;
-          }
-        }
-
-        console.log('📤 Objeto a ser inserido:', movimentacaoPdv);
-
-        const { data: pdvData, error: pdvError } = await supabase
-          .from('movimentacoes_pdv')
-          .insert(movimentacaoPdv)
-          .select()
-          .single();
-
-        if (pdvError) {
-          console.error('❌ Erro ao inserir movimentação PDV:', pdvError);
-          console.error('❌ Dados enviados:', movimentacaoPdv);
-          throw new Error(`Falha ao registrar movimentação PDV: ${pdvError.message}`);
-        }
-
-        console.log('✅ Movimentação PDV registrada:', pdvData.id);
+          fornecedor_id: item.fornecedor_id,
+          fornecedor_nome: item.fornecedor_nome,
+        });
 
         if (origem === 'estoque' && item.produto_id) {
           const { data: produto } = await supabase
@@ -478,27 +425,14 @@ const Movimentacao = () => {
             }
           }
 
-          const { data: movData, error: movError } = await supabase
-            .from('movimentacoes')
-            .insert({
-              user_id: user.id,
-              tipo: item.tipo,
-              produto_id: item.produto_id,
-              quantidade: item.quantidade,
-              custo_unitario: item.valor_unitario,
-              fornecedor_id: item.fornecedor_id,
-              observacao: item.observacao || data.observacao,
-              data: toBrasiliaDateString(data.data_movimentacao),
-            })
-            .select()
-            .single();
-
-          if (movError) {
-            console.error('❌ Erro ao inserir movimentação:', movError);
-            throw new Error(`Falha ao registrar movimentação: ${movError.message}`);
-          }
-
-          console.log('✅ Movimentação registrada:', movData.id);
+          await (supabase.from('movimentacoes') as any).insert({
+            produto_id: item.produto_id,
+            quantidade: item.quantidade,
+            custo_unitario: item.valor_unitario,
+            fornecedor_id: item.fornecedor_id,
+            observacao: item.observacao || data.observacao,
+            data: data.data_movimentacao.toISOString().split('T')[0],
+          });
         } else if (origem === 'vitrine' && item.receita_id) {
           const { data: estoqueReceita } = await supabase
             .from('estoque_receitas')
@@ -517,27 +451,15 @@ const Movimentacao = () => {
               .eq('receita_id', item.receita_id);
           }
 
-          const { data: movReceitaData, error: movReceitaError } = await supabase
-            .from('movimentacoes_receitas')
-            .insert({
-              user_id: user.id,
-              receita_id: item.receita_id!,
-              tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
-              quantidade: item.quantidade,
-              custo_unitario: item.valor_unitario,
-              preco_venda: item.tipo === 'saida' ? item.valor_unitario : 0,
-              data: toBrasiliaDateString(data.data_movimentacao),
-              observacao: item.observacao || data.observacao,
-            })
-            .select()
-            .single();
-
-          if (movReceitaError) {
-            console.error('❌ Erro ao inserir movimentação de receita:', movReceitaError);
-            throw new Error(`Falha ao registrar movimentação de receita: ${movReceitaError.message}`);
-          }
-
-          console.log('✅ Movimentação de receita registrada:', movReceitaData.id);
+          await (supabase.from('movimentacoes_receitas') as any).insert({
+            receita_id: item.receita_id!,
+            tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
+            quantidade: item.quantidade,
+            custo_unitario: item.valor_unitario,
+            preco_venda: item.tipo === 'saida' ? item.valor_unitario : 0,
+            data: data.data_movimentacao.toISOString().split('T')[0],
+            observacao: item.observacao || data.observacao,
+          });
         }
       }
 
