@@ -274,17 +274,19 @@ const Movimentacao = () => {
     const novoItem: ItemCarrinho = {
       id: Date.now().toString(),
       origem: origem!,
-      produto_id: origem === 'estoque' ? produtoSelecionado.id : undefined,
-      receita_id: origem === 'vitrine' ? produtoSelecionado.id : undefined,
+      ...(origem === 'estoque' && produtoSelecionado.id ? { produto_id: produtoSelecionado.id } : {}),
+      ...(origem === 'vitrine' && produtoSelecionado.id ? { receita_id: produtoSelecionado.id } : {}),
       nome: produtoSelecionado.nome,
       quantidade: data.quantidade,
       unidade: produtoSelecionado.unidade,
       valor_unitario: data.custoUnitario,
       valor_total: data.custoTotal,
       tipo: 'entrada',
-      fornecedor_id: data.fornecedor_id,
-      fornecedor_nome: data.fornecedor_nome,
-      observacao: data.observacao,
+      ...(data.fornecedor_id && data.fornecedor_id.trim() ? {
+        fornecedor_id: data.fornecedor_id,
+        fornecedor_nome: data.fornecedor_nome
+      } : {}),
+      ...(data.observacao && data.observacao.trim() ? { observacao: data.observacao } : {}),
     };
     
     setCarrinho([...carrinho, novoItem]);
@@ -369,7 +371,14 @@ const Movimentacao = () => {
       const numeroComanda = comandaNum || '#0001';
 
       for (const item of carrinho) {
-        // Construir objeto apenas com campos válidos (sem strings vazias)
+        // Log para debug
+        console.log('📦 Item do carrinho:', {
+          produto_id: item.produto_id,
+          receita_id: item.receita_id,
+          fornecedor_id: item.fornecedor_id
+        });
+
+        // Construir objeto base
         const movimentacaoPdv: any = {
           user_id: user.id,
           origem: item.origem,
@@ -380,21 +389,42 @@ const Movimentacao = () => {
           valor_unitario: item.valor_unitario,
           valor_total: item.valor_total,
           motivo: data.motivo,
-          observacao: item.observacao || data.observacao,
           data_movimentacao: data.data_movimentacao.toISOString(),
         };
 
-        // Adicionar campos UUID apenas se tiverem valor válido (não vazio)
-        if (item.produto_id && item.produto_id.trim()) movimentacaoPdv.produto_id = item.produto_id;
-        if (item.receita_id && item.receita_id.trim()) movimentacaoPdv.receita_id = item.receita_id;
-        if (data.funcionario_id && data.funcionario_id.trim()) {
+        // Adicionar observação se existir
+        const obs = item.observacao || data.observacao;
+        if (obs && obs.trim()) {
+          movimentacaoPdv.observacao = obs;
+        }
+
+        // Adicionar produto_id se for estoque
+        if (item.produto_id && typeof item.produto_id === 'string' && item.produto_id.trim()) {
+          movimentacaoPdv.produto_id = item.produto_id;
+        }
+
+        // Adicionar receita_id se for vitrine
+        if (item.receita_id && typeof item.receita_id === 'string' && item.receita_id.trim()) {
+          movimentacaoPdv.receita_id = item.receita_id;
+        }
+
+        // Adicionar funcionário se informado
+        if (data.funcionario_id && typeof data.funcionario_id === 'string' && data.funcionario_id.trim()) {
           movimentacaoPdv.funcionario_id = data.funcionario_id;
-          movimentacaoPdv.funcionario_nome = data.funcionario_nome;
+          if (data.funcionario_nome) {
+            movimentacaoPdv.funcionario_nome = data.funcionario_nome;
+          }
         }
-        if (item.fornecedor_id && item.fornecedor_id.trim()) {
+
+        // Adicionar fornecedor se informado
+        if (item.fornecedor_id && typeof item.fornecedor_id === 'string' && item.fornecedor_id.trim()) {
           movimentacaoPdv.fornecedor_id = item.fornecedor_id;
-          movimentacaoPdv.fornecedor_nome = item.fornecedor_nome;
+          if (item.fornecedor_nome) {
+            movimentacaoPdv.fornecedor_nome = item.fornecedor_nome;
+          }
         }
+
+        console.log('📤 Objeto a ser inserido:', movimentacaoPdv);
 
         const { data: pdvData, error: pdvError } = await supabase
           .from('movimentacoes_pdv')
@@ -404,6 +434,7 @@ const Movimentacao = () => {
 
         if (pdvError) {
           console.error('❌ Erro ao inserir movimentação PDV:', pdvError);
+          console.error('❌ Dados enviados:', movimentacaoPdv);
           throw new Error(`Falha ao registrar movimentação PDV: ${pdvError.message}`);
         }
 
