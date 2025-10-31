@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { toBrasiliaDateString } from '@/lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, RefreshCw, Search, ShoppingCart } from 'lucide-react';
@@ -425,14 +426,27 @@ const Movimentacao = () => {
             }
           }
 
-          await (supabase.from('movimentacoes') as any).insert({
-            produto_id: item.produto_id,
-            quantidade: item.quantidade,
-            custo_unitario: item.valor_unitario,
-            fornecedor_id: item.fornecedor_id,
-            observacao: item.observacao || data.observacao,
-            data: data.data_movimentacao.toISOString().split('T')[0],
-          });
+          const { data: movData, error: movError } = await supabase
+            .from('movimentacoes')
+            .insert({
+              user_id: user.id,
+              tipo: item.tipo,
+              produto_id: item.produto_id,
+              quantidade: item.quantidade,
+              custo_unitario: item.valor_unitario,
+              fornecedor_id: item.fornecedor_id,
+              observacao: item.observacao || data.observacao,
+              data: toBrasiliaDateString(data.data_movimentacao),
+            })
+            .select()
+            .single();
+
+          if (movError) {
+            console.error('❌ Erro ao inserir movimentação:', movError);
+            throw new Error(`Falha ao registrar movimentação: ${movError.message}`);
+          }
+
+          console.log('✅ Movimentação registrada:', movData.id);
         } else if (origem === 'vitrine' && item.receita_id) {
           const { data: estoqueReceita } = await supabase
             .from('estoque_receitas')
@@ -451,15 +465,27 @@ const Movimentacao = () => {
               .eq('receita_id', item.receita_id);
           }
 
-          await (supabase.from('movimentacoes_receitas') as any).insert({
-            receita_id: item.receita_id!,
-            tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
-            quantidade: item.quantidade,
-            custo_unitario: item.valor_unitario,
-            preco_venda: item.tipo === 'saida' ? item.valor_unitario : 0,
-            data: data.data_movimentacao.toISOString().split('T')[0],
-            observacao: item.observacao || data.observacao,
-          });
+          const { data: movReceitaData, error: movReceitaError } = await supabase
+            .from('movimentacoes_receitas')
+            .insert({
+              user_id: user.id,
+              receita_id: item.receita_id!,
+              tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
+              quantidade: item.quantidade,
+              custo_unitario: item.valor_unitario,
+              preco_venda: item.tipo === 'saida' ? item.valor_unitario : 0,
+              data: toBrasiliaDateString(data.data_movimentacao),
+              observacao: item.observacao || data.observacao,
+            })
+            .select()
+            .single();
+
+          if (movReceitaError) {
+            console.error('❌ Erro ao inserir movimentação de receita:', movReceitaError);
+            throw new Error(`Falha ao registrar movimentação de receita: ${movReceitaError.message}`);
+          }
+
+          console.log('✅ Movimentação de receita registrada:', movReceitaData.id);
         }
       }
 
