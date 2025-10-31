@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { formatBrasiliaDate } from '@/lib/dateUtils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface Movimentacao {
   id: string;
@@ -78,28 +79,6 @@ export const HistoricoEntradas = ({ produtoId }: HistoricoEntradasProps) => {
 
   useEffect(() => {
     loadHistorico();
-
-    // Configurar listener para mudanças em tempo real
-    const channel = supabase
-      .channel(`entradas-produto-${produtoId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'movimentacoes',
-          filter: `produto_id=eq.${produtoId}`
-        },
-        (payload) => {
-          console.log('📡 Mudança detectada em entradas:', payload);
-          loadHistorico();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [produtoId, user, limite]);
 
   const handleFiltrar = () => {
@@ -169,7 +148,7 @@ export const HistoricoEntradas = ({ produtoId }: HistoricoEntradasProps) => {
               movimentacoes.map((mov) => (
                 <TableRow key={mov.id}>
                   <TableCell>
-                    {formatBrasiliaDate(mov.data, 'dd/MM/yyyy')}
+                    {format(new Date(mov.data), 'dd/MM/yyyy', { locale: ptBR })}
                   </TableCell>
                   <TableCell>
                     {mov.fornecedores?.nome || '-'}

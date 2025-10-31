@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, History, TrendingUp, TrendingDown } from 'lucide-react';
-import { formatBrasiliaDate } from '@/lib/dateUtils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface Movimentacao {
   id: string;
@@ -35,27 +36,6 @@ export const HistoricoLista = () => {
 
   useEffect(() => {
     loadMovimentacoes();
-
-    // Configurar listener para mudanças em tempo real
-    const channel = supabase
-      .channel('movimentacoes-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'movimentacoes'
-        },
-        (payload) => {
-          console.log('📡 Mudança detectada na tabela movimentacoes:', payload);
-          loadMovimentacoes(); // Recarregar dados
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const loadMovimentacoes = async () => {
@@ -97,7 +77,7 @@ export const HistoricoLista = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      return formatBrasiliaDate(dateString, 'dd/MM/yyyy HH:mm');
+      return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
     } catch {
       return dateString;
     }
