@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { formatBrasiliaDate } from '@/lib/dateUtils';
 
 interface Movimentacao {
   id: string;
@@ -125,6 +124,28 @@ export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProp
 
   useEffect(() => {
     loadHistorico();
+
+    // Configurar listener para mudanças em tempo real
+    const channel = supabase
+      .channel(`movimentacoes-produto-${produtoId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'movimentacoes',
+          filter: `produto_id=eq.${produtoId}`
+        },
+        (payload) => {
+          console.log('📡 Mudança detectada para produto:', payload);
+          loadHistorico();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [produtoId, user, limite]);
 
   const handleFiltrar = () => {
@@ -229,7 +250,7 @@ export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProp
               movimentacoes.map((mov) => (
                 <TableRow key={mov.id} className="h-8">
                   <TableCell className="text-xs p-2">
-                    {format(new Date(mov.data), 'dd/MM/yy', { locale: ptBR })}
+                    {formatBrasiliaDate(mov.data, 'dd/MM/yy')}
                   </TableCell>
                   <TableCell className="text-xs p-2">
                     <Badge 

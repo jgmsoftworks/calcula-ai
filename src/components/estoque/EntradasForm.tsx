@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TrendingUp, Plus, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getBrasiliaDate, toBrasiliaDateString } from '@/lib/dateUtils';
 
 interface Produto {
   id: string;
@@ -34,7 +35,7 @@ interface ItemEntrada {
 
 export const EntradasForm = () => {
   const [fornecedor_id, setFornecedorId] = useState('');
-  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [data, setData] = useState(toBrasiliaDateString(getBrasiliaDate()));
   const [observacao, setObservacao] = useState('');
   const [itensEntrada, setItensEntrada] = useState<ItemEntrada[]>([]);
   
@@ -148,10 +149,17 @@ export const EntradasForm = () => {
 
     setLoading(true);
     try {
+      toast({
+        title: "Registrando entradas...",
+        description: `Processando ${itensEntrada.length} item(ns)`,
+      });
+
       // Registrar todos os movimentos
-      for (const item of itensEntrada) {
-        // Registrar movimento de entrada
-        const { error: movError } = await supabase
+      for (let index = 0; index < itensEntrada.length; index++) {
+        const item = itensEntrada[index];
+
+        // 1. PRIMEIRO: Registrar movimento de entrada
+        const { data: movData, error: movError } = await supabase
           .from('movimentacoes')
           .insert([{
             produto_id: item.produto_id,
@@ -162,18 +170,32 @@ export const EntradasForm = () => {
             data: data,
             observacao: observacao || null,
             user_id: user?.id
-          }]);
+          }])
+          .select()
+          .single();
 
-        if (movError) throw movError;
+        if (movError || !movData) {
+          console.error('❌ Erro ao inserir movimentação:', movError);
+          throw new Error(`Falha ao registrar movimentação do produto ${item.produto_nome}: ${movError?.message}`);
+        }
 
-        // Atualizar estoque do produto
+        console.log('✅ Movimentação registrada:', movData.id);
+
+        // 2. DEPOIS: Atualizar estoque do produto
         const { data: produto, error: prodError } = await supabase
           .from('produtos')
           .select('estoque_atual, custo_medio')
           .eq('id', item.produto_id)
           .single();
 
-        if (prodError) throw prodError;
+        if (prodError) {
+          // Se falhar, deletar a movimentação criada
+          await supabase
+            .from('movimentacoes')
+            .delete()
+            .eq('id', movData.id);
+          throw new Error(`Falha ao buscar dados do produto: ${prodError.message}`);
+        }
 
         const novoEstoque = (produto.estoque_atual || 0) + item.quantidade;
         
@@ -195,9 +217,18 @@ export const EntradasForm = () => {
           })
           .eq('id', item.produto_id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          // Se falhar, deletar a movimentação criada
+          await supabase
+            .from('movimentacoes')
+            .delete()
+            .eq('id', movData.id);
+          throw new Error(`Falha ao atualizar estoque: ${updateError.message}`);
+        }
 
-        // Recalcular custo_unitario_uso na tabela produto_conversoes
+        console.log('✅ Estoque atualizado para produto:', item.produto_id);
+
+        // 3. Recalcular custo_unitario_uso na tabela produto_conversoes
         const { data: conversao, error: convError } = await supabase
           .from('produto_conversoes')
           .select('quantidade_unidade_uso')
@@ -217,14 +248,24 @@ export const EntradasForm = () => {
             .eq('produto_id', item.produto_id)
             .eq('ativo', true);
         }
+
+        // Feedback de progresso
+        toast({
+          title: `✅ Item ${index + 1}/${itensEntrada.length} registrado`,
+          description: item.produto_nome,
+          duration: 2000
+        });
       }
 
-      toast({ title: "Entradas registradas com sucesso!" });
+      toast({ 
+        title: "✅ Entradas registradas com sucesso!",
+        description: `${itensEntrada.length} item(ns) processado(s)`,
+      });
       
       // Reset form
       setItensEntrada([]);
       setFornecedorId('');
-      setData(new Date().toISOString().split('T')[0]);
+      setData(toBrasiliaDateString(getBrasiliaDate()));
       setObservacao('');
       setNovoItem({
         produto_id: '',

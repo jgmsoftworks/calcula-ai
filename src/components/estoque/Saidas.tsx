@@ -10,8 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { getBrasiliaDate, toBrasiliaDateString, formatBrasiliaDate } from '@/lib/dateUtils';
 
 interface Produto {
   id: string;
@@ -42,7 +41,7 @@ export const Saidas = () => {
     produto_id: '',
     quantidade: '',
     observacao: '',
-    data: format(new Date(), 'yyyy-MM-dd')
+    data: toBrasiliaDateString(getBrasiliaDate())
   });
 
   const { user } = useAuth();
@@ -171,7 +170,7 @@ export const Saidas = () => {
         produto_id: '',
         quantidade: '',
         observacao: '',
-        data: format(new Date(), 'yyyy-MM-dd')
+        data: toBrasiliaDateString(getBrasiliaDate())
       });
 
       // Recarregar dados
@@ -284,7 +283,7 @@ export const Saidas = () => {
                 {saidas.map((saida) => (
                   <TableRow key={saida.id}>
                     <TableCell>
-                      {format(new Date(saida.data), 'dd/MM/yyyy', { locale: ptBR })}
+                      {formatBrasiliaDate(saida.data, 'dd/MM/yyyy')}
                     </TableCell>
                     <TableCell>
                       {saida.produtos.nome} ({saida.produtos.unidade})
