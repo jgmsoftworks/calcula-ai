@@ -1305,7 +1305,7 @@ export type Database = {
           quantidade_por_unidade: number
           quantidade_unidade_uso: number
           unidade_compra: string
-          unidade_uso_receitas: Database["public"]["Enums"]["unidade_medida"]
+          unidade_uso_receitas: string
           updated_at: string
           user_id: string
         }
@@ -1318,7 +1318,7 @@ export type Database = {
           quantidade_por_unidade: number
           quantidade_unidade_uso?: number
           unidade_compra: string
-          unidade_uso_receitas: Database["public"]["Enums"]["unidade_medida"]
+          unidade_uso_receitas: string
           updated_at?: string
           user_id: string
         }
@@ -1331,7 +1331,7 @@ export type Database = {
           quantidade_por_unidade?: number
           quantidade_unidade_uso?: number
           unidade_compra?: string
-          unidade_uso_receitas?: Database["public"]["Enums"]["unidade_medida"]
+          unidade_uso_receitas?: string
           updated_at?: string
           user_id?: string
         }
@@ -1711,7 +1711,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade: Database["public"]["Enums"]["unidade_medida"]
+          unidade: string
           updated_at: string
         }
         Insert: {
@@ -1723,7 +1723,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade: Database["public"]["Enums"]["unidade_medida"]
+          unidade: string
           updated_at?: string
         }
         Update: {
@@ -1735,7 +1735,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           receita_id?: string
-          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          unidade?: string
           updated_at?: string
         }
         Relationships: [
@@ -1759,7 +1759,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade: Database["public"]["Enums"]["unidade_medida"]
+          unidade: string
           updated_at: string
         }
         Insert: {
@@ -1772,7 +1772,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade: Database["public"]["Enums"]["unidade_medida"]
+          unidade: string
           updated_at?: string
         }
         Update: {
@@ -1785,7 +1785,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           receita_id?: string
-          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          unidade?: string
           updated_at?: string
         }
         Relationships: [
@@ -2369,7 +2369,7 @@ export type Database = {
       tipo_movimentacao_receita: "entrada" | "venda" | "perdas" | "brindes"
       unidade_medida:
         | "g"
-        | "K"
+        | "kg"
         | "ml"
         | "L"
         | "un"
@@ -2378,7 +2378,7 @@ export type Database = {
         | "l"
         | "m"
         | "cm"
-        | "FD"
+        | "fardo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2519,7 +2519,7 @@ export const Constants = {
       tipo_movimentacao_receita: ["entrada", "venda", "perdas", "brindes"],
       unidade_medida: [
         "g",
-        "K",
+        "kg",
         "ml",
         "L",
         "un",
@@ -2528,7 +2528,7 @@ export const Constants = {
         "l",
         "m",
         "cm",
-        "FD",
+        "fardo",
       ],
     },
   },
