@@ -1304,7 +1304,7 @@ export type Database = {
           produto_id: string
           quantidade_por_unidade: number
           quantidade_unidade_uso: number
-          unidade_compra: string
+          unidade_compra: Database["public"]["Enums"]["unidade_medida"]
           unidade_uso_receitas: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
           user_id: string
@@ -1317,7 +1317,7 @@ export type Database = {
           produto_id: string
           quantidade_por_unidade: number
           quantidade_unidade_uso?: number
-          unidade_compra: string
+          unidade_compra: Database["public"]["Enums"]["unidade_medida"]
           unidade_uso_receitas: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id: string
@@ -1330,7 +1330,7 @@ export type Database = {
           produto_id?: string
           quantidade_por_unidade?: number
           quantidade_unidade_uso?: number
-          unidade_compra?: string
+          unidade_compra?: Database["public"]["Enums"]["unidade_medida"]
           unidade_uso_receitas?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string
@@ -2349,6 +2349,10 @@ export type Database = {
         Returns: undefined
       }
       reset_monthly_pdf_counter: { Args: never; Returns: undefined }
+      update_produto_unidade: {
+        Args: { p_produto_id: string; p_unidade: string }
+        Returns: undefined
+      }
       user_is_admin: { Args: never; Returns: boolean }
       user_is_affiliate_owner: {
         Args: { affiliate_id: string }
@@ -2375,7 +2379,6 @@ export type Database = {
         | "un"
         | "cx"
         | "pct"
-        | "l"
         | "m"
         | "cm"
         | "FD"
@@ -2517,19 +2520,7 @@ export const Constants = {
       discount_type: ["trial_period", "percentage", "fixed"],
       tipo_movimentacao: ["entrada", "saida"],
       tipo_movimentacao_receita: ["entrada", "venda", "perdas", "brindes"],
-      unidade_medida: [
-        "g",
-        "K",
-        "ml",
-        "L",
-        "un",
-        "cx",
-        "pct",
-        "l",
-        "m",
-        "cm",
-        "FD",
-      ],
+      unidade_medida: ["g", "K", "ml", "L", "un", "cx", "pct", "m", "cm", "FD"],
     },
   },
 } as const
