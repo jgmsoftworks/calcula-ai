@@ -9,6 +9,7 @@ import { GeralStep } from './steps/GeralStep';
 import { ProjecaoStep } from './steps/ProjecaoStep';
 import { PrecificacaoStep } from './steps/PrecificacaoStep';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
@@ -525,7 +526,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
               produto_id: ing.produto_id,
               nome: ing.nome,
               quantidade: ing.quantidade,
-              unidade: ing.unidade,
+              unidade: ing.unidade as Database['public']['Enums']['unidade_medida'],
               custo_unitario: ing.custo_unitario,
               custo_total: ing.custo_total,
               marcas: ing.marcas
@@ -582,7 +583,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
               produto_id: emb.produto_id,
               nome: emb.nome,
               quantidade: emb.quantidade,
-              unidade: emb.unidade,
+              unidade: emb.unidade as Database['public']['Enums']['unidade_medida'],
               custo_unitario: emb.custo_unitario,
               custo_total: emb.custo_total
             }))

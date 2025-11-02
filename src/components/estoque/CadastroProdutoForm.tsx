@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Plus, Camera, X } from 'lucide-react';
 import { resizeImageToSquare } from '@/lib/imageUtils';
@@ -278,7 +279,11 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
 
       const { error: conversaoError } = await supabase
         .from('produto_conversoes')
-        .insert([conversaoPayload]);
+        .insert([{
+          ...conversaoPayload,
+          unidade_compra: conversaoPayload.unidade_compra as Database['public']['Enums']['unidade_medida'],
+          unidade_uso_receitas: conversaoPayload.unidade_uso_receitas as Database['public']['Enums']['unidade_medida']
+        }]);
 
       if (conversaoError) throw conversaoError;
 

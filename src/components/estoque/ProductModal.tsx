@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, X, Trash2, Plus } from 'lucide-react';
 import { resizeImageToSquare } from '@/lib/imageUtils';
@@ -339,7 +340,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           // Atualizar conversão existente
           const { error: conversaoError } = await supabase
             .from('produto_conversoes')
-            .update(conversaoPayload)
+            .update({
+              ...conversaoPayload,
+              unidade_compra: conversaoPayload.unidade_compra as Database['public']['Enums']['unidade_medida'],
+              unidade_uso_receitas: conversaoPayload.unidade_uso_receitas as Database['public']['Enums']['unidade_medida']
+            })
             .eq('id', conversaoExistente.id);
 
           if (conversaoError) throw conversaoError;
@@ -347,7 +352,11 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           // Criar nova conversão
           const { error: conversaoError } = await supabase
             .from('produto_conversoes')
-            .insert([conversaoPayload]);
+            .insert([{
+              ...conversaoPayload,
+              unidade_compra: conversaoPayload.unidade_compra as Database['public']['Enums']['unidade_medida'],
+              unidade_uso_receitas: conversaoPayload.unidade_uso_receitas as Database['public']['Enums']['unidade_medida']
+            }]);
 
           if (conversaoError) throw conversaoError;
         }
