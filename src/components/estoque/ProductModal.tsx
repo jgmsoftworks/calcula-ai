@@ -76,7 +76,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     categorias: [] as string[],
     codigo_interno: '',
     codigos_barras: [] as string[], // Array de códigos de barras
-    unidade: 'un' as const,
+    unidade: 'un' as Database['public']['Enums']['unidade_medida'],
     total_embalagem: 1,
     custo_unitario: 0,
     custo_total: 0,
@@ -117,7 +117,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         codigos_barras: Array.isArray(product.codigo_barras) && product.codigo_barras.length > 0 
           ? product.codigo_barras 
           : [''],
-        unidade: product.unidade as any,
+        unidade: normalizeUnidade(product.unidade),
         total_embalagem: product.total_embalagem || 1,
         custo_unitario: product.custo_unitario || 0,
         custo_total: product.custo_total || 0,
@@ -373,15 +373,15 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
         imagem_url: selectedImage,
         ativo: formData.ativo,
-        rotulo_porcao: formData.rotulo_porcao.trim() || null,
-        rotulo_kcal: formData.rotulo_kcal || null,
-        rotulo_carb: formData.rotulo_carb || null,
-        rotulo_prot: formData.rotulo_prot || null,
-        rotulo_gord_total: formData.rotulo_gord_total || null,
-        rotulo_gord_sat: formData.rotulo_gord_sat || null,
-        rotulo_gord_trans: formData.rotulo_gord_trans || null,
-        rotulo_fibra: formData.rotulo_fibra || null,
-        rotulo_sodio: formData.rotulo_sodio || null
+        rotulo_porcao: formData.rotulo_porcao?.trim() || null,
+        rotulo_kcal: formData.rotulo_kcal > 0 ? formData.rotulo_kcal : null,
+        rotulo_carb: formData.rotulo_carb > 0 ? formData.rotulo_carb : null,
+        rotulo_prot: formData.rotulo_prot > 0 ? formData.rotulo_prot : null,
+        rotulo_gord_total: formData.rotulo_gord_total > 0 ? formData.rotulo_gord_total : null,
+        rotulo_gord_sat: formData.rotulo_gord_sat > 0 ? formData.rotulo_gord_sat : null,
+        rotulo_gord_trans: formData.rotulo_gord_trans > 0 ? formData.rotulo_gord_trans : null,
+        rotulo_fibra: formData.rotulo_fibra > 0 ? formData.rotulo_fibra : null,
+        rotulo_sodio: formData.rotulo_sodio > 0 ? formData.rotulo_sodio : null
       };
 
       const { error } = await supabase
