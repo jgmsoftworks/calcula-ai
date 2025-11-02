@@ -354,7 +354,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     }
 
     setLoading(true);
-    let payload: any;
+    let payload: Database['public']['Tables']['produtos']['Update'];
     try {
       payload = {
         nome: formData.nome.trim(),
@@ -366,7 +366,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           const filtered = formData.codigos_barras.filter(c => c.trim());
           return filtered.length > 0 ? filtered : null;
         })(),
-        unidade: normalizeUnidade(formData.unidade),
+        unidade: normalizeUnidade(formData.unidade) as Database['public']['Enums']['unidade_medida'],
         total_embalagem: Number(formData.total_embalagem) || 1,
         custo_unitario: Number(formData.custo_unitario),
         custo_medio: Number(formData.custo_unitario),
@@ -770,7 +770,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         <SelectItem value="K">Quilo (K)</SelectItem>
                         <SelectItem value="g">Grama (g)</SelectItem>
                         <SelectItem value="FD">Fardo (FD)</SelectItem>
-                        <SelectItem value="l">Litro (l)</SelectItem>
+                        <SelectItem value="L">Litro (L)</SelectItem>
                         <SelectItem value="ml">Mililitro (ml)</SelectItem>
                         <SelectItem value="m">Metro (m)</SelectItem>
                         <SelectItem value="cm">Centímetro (cm)</SelectItem>
