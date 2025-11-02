@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
@@ -282,9 +282,34 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validações
     if (!formData.nome.trim()) {
       toast({
         title: "Nome é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.unidade) {
+      toast({
+        title: "Unidade de medida é obrigatória",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isNaN(formData.custo_unitario) || formData.custo_unitario < 0) {
+      toast({
+        title: "Custo unitário inválido",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isNaN(formData.estoque_atual) || formData.estoque_atual < 0) {
+      toast({
+        title: "Estoque atual inválido",
         variant: "destructive"
       });
       return;
@@ -296,18 +321,16 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         nome: formData.nome,
         marcas: formData.marcas.length > 0 ? formData.marcas : null,
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
+        categoria: formData.categorias.length > 0 ? formData.categorias[0] : null, // Compatibilidade com schema antigo
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
-        unidade: formData.unidade,
-        total_embalagem: 1,
-        custo_unitario: formData.custo_unitario,
-        custo_total: formData.estoque_atual * formData.custo_unitario,
-        custo_medio: formData.custo_unitario,
-        estoque_atual: formData.estoque_atual,
-        estoque_minimo: formData.estoque_minimo,
+        unidade: formData.unidade as Database['public']['Enums']['unidade_medida'],
+        custo_unitario: Number(formData.custo_unitario),
+        custo_medio: Number(formData.custo_unitario),
+        estoque_atual: Number(formData.estoque_atual),
+        estoque_minimo: Number(formData.estoque_minimo),
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
         imagem_url: selectedImage,
-        user_id: user?.id,
         ativo: formData.ativo,
         rotulo_porcao: formData.rotulo_porcao.trim() || null,
         rotulo_kcal: formData.rotulo_kcal || null,
@@ -325,7 +348,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         .update(payload)
         .eq('id', product!.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar produto:', error);
+        throw error;
+      }
 
       // Salvar ou atualizar conversão se houver dados
       if (conversaoData && user) {
@@ -430,6 +456,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
               </Button>
             </div>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulário de edição de produto com informações de estoque, custos e histórico de movimentações
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col h-full overflow-hidden">
