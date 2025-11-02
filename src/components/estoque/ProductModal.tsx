@@ -21,6 +21,28 @@ import { Produto } from './CadastroProdutos';
 import { ModoUsoTab } from './ModoUsoTab';
 import { formatters } from '@/lib/formatters';
 
+// Função para normalizar valores legados de unidade_medida
+const normalizeUnidade = (unidade: string): Database['public']['Enums']['unidade_medida'] => {
+  const mapping: Record<string, Database['public']['Enums']['unidade_medida']> = {
+    'kg': 'K',
+    'fardo': 'FD',
+    'l': 'L',
+    // Valores já válidos
+    'g': 'g',
+    'K': 'K',
+    'ml': 'ml',
+    'L': 'L',
+    'un': 'un',
+    'cx': 'cx',
+    'pct': 'pct',
+    'm': 'm',
+    'cm': 'cm',
+    'FD': 'FD'
+  };
+  
+  return mapping[unidade] || 'un'; // fallback para 'un' se não encontrar
+};
+
 interface Fornecedor {
   id: string;
   nome: string;
@@ -343,7 +365,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           const filtered = formData.codigos_barras.filter(c => c.trim());
           return filtered.length > 0 ? filtered : null;
         })(),
-        unidade: formData.unidade as Database['public']['Enums']['unidade_medida'],
+        unidade: normalizeUnidade(formData.unidade),
         custo_unitario: Number(formData.custo_unitario),
         custo_medio: Number(formData.custo_unitario),
         estoque_atual: Number(formData.estoque_atual),

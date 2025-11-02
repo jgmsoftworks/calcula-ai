@@ -18,6 +18,28 @@ import { ModoUsoTab } from './ModoUsoTab';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { formatters } from '@/lib/formatters';
 
+// Função para normalizar valores legados de unidade_medida
+const normalizeUnidade = (unidade: string): Database['public']['Enums']['unidade_medida'] => {
+  const mapping: Record<string, Database['public']['Enums']['unidade_medida']> = {
+    'kg': 'K',
+    'fardo': 'FD',
+    'l': 'L',
+    // Valores já válidos
+    'g': 'g',
+    'K': 'K',
+    'ml': 'ml',
+    'L': 'L',
+    'un': 'un',
+    'cx': 'cx',
+    'pct': 'pct',
+    'm': 'm',
+    'cm': 'cm',
+    'FD': 'FD'
+  };
+  
+  return mapping[unidade] || 'un'; // fallback para 'un' se não encontrar
+};
+
 interface Fornecedor {
   id: string;
   nome: string;
@@ -248,7 +270,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
-        unidade: formData.unidade,
+        unidade: normalizeUnidade(formData.unidade),
         total_embalagem: 1,
         custo_unitario: formData.custo_unitario,
         custo_total: formData.estoque_atual * formData.custo_unitario,
