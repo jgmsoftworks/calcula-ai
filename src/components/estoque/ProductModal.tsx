@@ -21,28 +21,6 @@ import { Produto } from './CadastroProdutos';
 import { ModoUsoTab } from './ModoUsoTab';
 import { formatters } from '@/lib/formatters';
 
-// Função para normalizar valores legados de unidade_medida
-const normalizeUnidade = (unidade: string): Database['public']['Enums']['unidade_medida'] => {
-  const mapping: Record<string, Database['public']['Enums']['unidade_medida']> = {
-    'kg': 'K',
-    'fardo': 'FD',
-    'l': 'L',
-    // Valores já válidos
-    'g': 'g',
-    'K': 'K',
-    'ml': 'ml',
-    'L': 'L',
-    'un': 'un',
-    'cx': 'cx',
-    'pct': 'pct',
-    'm': 'm',
-    'cm': 'cm',
-    'FD': 'FD'
-  };
-  
-  return mapping[unidade] || 'un'; // fallback para 'un' se não encontrar
-};
-
 interface Fornecedor {
   id: string;
   nome: string;
@@ -117,7 +95,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         codigos_barras: Array.isArray(product.codigo_barras) && product.codigo_barras.length > 0 
           ? product.codigo_barras 
           : [''],
-        unidade: normalizeUnidade(product.unidade),
+        unidade: product.unidade as Database['public']['Enums']['unidade_medida'],
         total_embalagem: product.total_embalagem || 1,
         custo_unitario: product.custo_unitario || 0,
         custo_total: product.custo_total || 0,
@@ -366,8 +344,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           const filtered = formData.codigos_barras.filter(c => c.trim());
           return filtered.length > 0 ? filtered : null;
         })(),
-        // unidade
-        unidade: normalizeUnidade(formData.unidade),
+        unidade: formData.unidade,
         total_embalagem: Number(formData.total_embalagem) || 1,
         custo_unitario: Number(formData.custo_unitario),
         custo_medio: Number(formData.custo_unitario),
@@ -768,10 +745,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="un">Unidade (un.)</SelectItem>
-                        <SelectItem value="K">Quilo (K)</SelectItem>
+                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
                         <SelectItem value="g">Grama (g)</SelectItem>
-                        <SelectItem value="FD">Fardo (FD)</SelectItem>
-                        <SelectItem value="L">Litro (L)</SelectItem>
+                        <SelectItem value="fardo">Fardo</SelectItem>
+                        <SelectItem value="l">Litro (l)</SelectItem>
                         <SelectItem value="ml">Mililitro (ml)</SelectItem>
                         <SelectItem value="m">Metro (m)</SelectItem>
                         <SelectItem value="cm">Centímetro (cm)</SelectItem>
@@ -800,7 +777,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   <div className="space-y-2">
                     <Label htmlFor="estoque_atual" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
                     <NumericInputPtBr
-                      tipo={formData.unidade === 'un' || formData.unidade === 'FD' ? 'quantidade_un' : 'quantidade_continua'}
+                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_atual}
                       onChange={(valor) => handleInputChange('estoque_atual', valor)}
                       min={0}
@@ -812,7 +789,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   <div className="space-y-2">
                     <Label htmlFor="estoque_minimo" className="text-sm font-medium text-foreground">Estoque Mínimo</Label>
                     <NumericInputPtBr
-                      tipo={formData.unidade === 'un' || formData.unidade === 'FD' ? 'quantidade_un' : 'quantidade_continua'}
+                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_minimo}
                       onChange={(valor) => handleInputChange('estoque_minimo', valor)}
                       min={0}
