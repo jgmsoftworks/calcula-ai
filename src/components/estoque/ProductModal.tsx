@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
+import { Database, TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, X, Trash2, Plus } from 'lucide-react';
 import { resizeImageToSquare } from '@/lib/imageUtils';
@@ -332,7 +332,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     }
 
     setLoading(true);
-    let payload: Database['public']['Tables']['produtos']['Update'];
+    let payload: TablesUpdate<'produtos'>;
     try {
       payload = {
         nome: formData.nome.trim(),
