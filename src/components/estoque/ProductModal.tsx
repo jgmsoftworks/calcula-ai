@@ -354,8 +354,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     }
 
     setLoading(true);
+    let payload: any;
     try {
-      const payload = {
+      payload = {
         nome: formData.nome.trim(),
         marcas: formData.marcas.length > 0 ? formData.marcas : null,
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
@@ -366,8 +367,10 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           return filtered.length > 0 ? filtered : null;
         })(),
         unidade: normalizeUnidade(formData.unidade),
+        total_embalagem: Number(formData.total_embalagem) || 1,
         custo_unitario: Number(formData.custo_unitario),
         custo_medio: Number(formData.custo_unitario),
+        custo_total: Number(formData.custo_total) || 0,
         estoque_atual: Number(formData.estoque_atual),
         estoque_minimo: Number(formData.estoque_minimo),
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
@@ -433,9 +436,37 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       onSave();
       onClose();
     } catch (error: any) {
+      console.error('❌ ERRO DETALHADO AO ATUALIZAR PRODUTO:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        payload: payload
+      });
+      
+      const errorMessage = (() => {
+        if (error.message?.includes('duplicate') || error.code === '23505') {
+          if (error.message?.includes('codigo_interno')) {
+            return "Já existe um produto com esse código interno";
+          }
+          return "Já existe um produto com esse nome";
+        }
+        if (error.code === '42804') {
+          return `Erro de tipo de dados: ${error.message}`;
+        }
+        if (error.code === '23502') {
+          const field = error.message?.match(/column "(.+?)"/)?.[1] || 'desconhecido';
+          return `Campo obrigatório não preenchido: ${field}`;
+        }
+        if (error.message?.includes('unidade_medida')) {
+          return `Erro na unidade de medida. Verifique se a unidade está correta.`;
+        }
+        return error.message || "Erro desconhecido ao atualizar produto";
+      })();
+      
       toast({
         title: "Erro ao atualizar produto",
-        description: error.message?.includes('duplicate') ? "Já existe um produto com esse nome" : "Tente novamente",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
