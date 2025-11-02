@@ -2374,23 +2374,14 @@ export type Database = {
       unidade_medida:
         | "un"
         | "g"
-        | "G"
         | "kg"
-        | "K"
         | "ml"
-        | "ML"
         | "l"
-        | "L"
         | "cx"
-        | "CX"
         | "pct"
-        | "PCT"
         | "fardo"
-        | "FD"
         | "m"
-        | "M"
         | "cm"
-        | "CM"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2532,23 +2523,14 @@ export const Constants = {
       unidade_medida: [
         "un",
         "g",
-        "G",
         "kg",
-        "K",
         "ml",
-        "ML",
         "l",
-        "L",
         "cx",
-        "CX",
         "pct",
-        "PCT",
         "fardo",
-        "FD",
         "m",
-        "M",
         "cm",
-        "CM",
       ],
     },
   },
