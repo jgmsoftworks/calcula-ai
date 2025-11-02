@@ -366,7 +366,8 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
           const filtered = formData.codigos_barras.filter(c => c.trim());
           return filtered.length > 0 ? filtered : null;
         })(),
-        // unidade será atualizada via RPC separadamente
+        // unidade
+        unidade: normalizeUnidade(formData.unidade),
         total_embalagem: Number(formData.total_embalagem) || 1,
         custo_unitario: Number(formData.custo_unitario),
         custo_medio: Number(formData.custo_unitario),
@@ -395,17 +396,6 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       if (error) {
         console.error('Erro ao atualizar produto:', error);
         throw error;
-      }
-
-      // Atualizar unidade via RPC com cast explícito
-      const { error: unidadeError } = await supabase.rpc('update_produto_unidade', {
-        p_produto_id: product!.id,
-        p_unidade: normalizeUnidade(formData.unidade)
-      });
-
-      if (unidadeError) {
-        console.error('Erro ao atualizar unidade:', unidadeError);
-        throw unidadeError;
       }
 
       // Salvar ou atualizar conversão se houver dados
