@@ -88,7 +88,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   useEffect(() => {
     if (product) {
       setFormData({
-        nome: product.nome,
+        nome: product.nome?.trim() || '',
         marcas: product.marcas || [],
         categorias: product.categorias || [],
         codigo_interno: product.codigo_interno || '',
@@ -196,7 +196,23 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Normalizar campos de texto removendo espaços extras
+    if (field === 'nome' || field === 'codigo_interno' || field === 'rotulo_porcao') {
+      value = typeof value === 'string' ? value.trim() : value;
+    }
+    
+    if (field === 'custo_unitario' || field === 'estoque_atual' || field === 'estoque_minimo') {
+      value = Number(value) || 0;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'custo_unitario' || field === 'estoque_atual' ? {
+        custo_total: (field === 'custo_unitario' ? value : prev.custo_unitario) * 
+                     (field === 'estoque_atual' ? value : prev.estoque_atual)
+      } : {})
+    }));
   };
 
   const handleCurrencyChange = (field: string, formattedValue: string) => {
@@ -318,12 +334,15 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     setLoading(true);
     try {
       const payload = {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         marcas: formData.marcas.length > 0 ? formData.marcas : null,
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
-        categoria: formData.categorias.length > 0 ? formData.categorias[0] : null, // Compatibilidade com schema antigo
-        codigo_interno: formData.codigo_interno || null,
-        codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
+        categoria: formData.categorias.length > 0 ? formData.categorias[0] : null,
+        codigo_interno: formData.codigo_interno?.trim() || null,
+        codigo_barras: (() => {
+          const filtered = formData.codigos_barras.filter(c => c.trim());
+          return filtered.length > 0 ? filtered : null;
+        })(),
         unidade: formData.unidade as Database['public']['Enums']['unidade_medida'],
         custo_unitario: Number(formData.custo_unitario),
         custo_medio: Number(formData.custo_unitario),
