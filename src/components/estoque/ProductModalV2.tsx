@@ -36,6 +36,7 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
     custo_total: ''
   });
   const [conversaoData, setConversaoData] = useState<any>(null);
+  const [novoCodigo, setNovoCodigo] = useState('');
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -162,6 +163,28 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleAdicionarCodigo = () => {
+    const codigo = novoCodigo.trim();
+    if (!codigo) return;
+    
+    if (formData.codigos_barras?.includes(codigo)) {
+      toast({
+        title: "Código duplicado",
+        description: "Este código de barras já foi adicionado",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    handleInputChange('codigos_barras', [...(formData.codigos_barras || []), codigo]);
+    setNovoCodigo('');
+  };
+
+  const handleRemoverCodigo = (index: number) => {
+    const novosCodigos = formData.codigos_barras.filter((_: any, idx: number) => idx !== index);
+    handleInputChange('codigos_barras', novosCodigos);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -375,6 +398,43 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
               />
             </div>
 
+            <div className="col-span-2 space-y-2">
+              <Label>Códigos de Barras</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={novoCodigo}
+                  onChange={(e) => setNovoCodigo(e.target.value)}
+                  placeholder="Digite o código de barras"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAdicionarCodigo();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={handleAdicionarCodigo}>
+                  Adicionar
+                </Button>
+              </div>
+              {formData.codigos_barras?.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {formData.codigos_barras.map((codigo: string, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between bg-secondary/20 p-2 rounded">
+                      <span className="text-sm font-mono">{codigo}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoverCodigo(idx)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Marca</Label>
               <MarcasSelector
@@ -446,13 +506,13 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="un">Unidade (un)</SelectItem>
-                      <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                      <SelectItem value="kg">Quilo (kg)</SelectItem>
                       <SelectItem value="g">Grama (g)</SelectItem>
                       <SelectItem value="l">Litro (l)</SelectItem>
                       <SelectItem value="ml">Mililitro (ml)</SelectItem>
                       <SelectItem value="cx">Caixa (cx)</SelectItem>
                       <SelectItem value="pct">Pacote (pct)</SelectItem>
-                      <SelectItem value="fardo">Fardo</SelectItem>
+                      <SelectItem value="fardo">Fardo (fd)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -480,6 +540,15 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
                     tipo="quantidade_continua"
                     value={formData.estoque_minimo}
                     onChange={(val) => handleInputChange('estoque_minimo', val)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Valor Total em Estoque</Label>
+                  <Input
+                    value={formatCurrencyFromDB((formData.custo_unitario || 0) * (formData.estoque_atual || 0))}
+                    disabled
+                    className="bg-secondary/20"
                   />
                 </div>
               </div>
