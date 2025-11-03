@@ -332,47 +332,65 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     }
 
     setLoading(true);
-    let payload: TablesUpdate<'produtos'>;
     try {
-      payload = {
-        nome: formData.nome.trim(),
-        marcas: formData.marcas.length > 0 ? formData.marcas : null,
-        categorias: formData.categorias.length > 0 ? formData.categorias : null,
-        categoria: formData.categorias.length > 0 ? formData.categorias[0] : null,
-        codigo_interno: formData.codigo_interno?.trim() || null,
-        codigo_barras: (() => {
-          const filtered = formData.codigos_barras.filter(c => c.trim());
-          return filtered.length > 0 ? filtered : null;
-        })(),
-        unidade: formData.unidade,
-        total_embalagem: Number(formData.total_embalagem) || 1,
-        custo_unitario: Number(formData.custo_unitario),
-        custo_medio: Number(formData.custo_unitario),
-        custo_total: Number(formData.custo_total) || 0,
-        estoque_atual: Number(formData.estoque_atual),
-        estoque_minimo: Number(formData.estoque_minimo),
-        fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
-        imagem_url: selectedImage,
-        ativo: formData.ativo,
-        rotulo_porcao: formData.rotulo_porcao?.trim() || null,
-        rotulo_kcal: formData.rotulo_kcal > 0 ? formData.rotulo_kcal : null,
-        rotulo_carb: formData.rotulo_carb > 0 ? formData.rotulo_carb : null,
-        rotulo_prot: formData.rotulo_prot > 0 ? formData.rotulo_prot : null,
-        rotulo_gord_total: formData.rotulo_gord_total > 0 ? formData.rotulo_gord_total : null,
-        rotulo_gord_sat: formData.rotulo_gord_sat > 0 ? formData.rotulo_gord_sat : null,
-        rotulo_gord_trans: formData.rotulo_gord_trans > 0 ? formData.rotulo_gord_trans : null,
-        rotulo_fibra: formData.rotulo_fibra > 0 ? formData.rotulo_fibra : null,
-        rotulo_sodio: formData.rotulo_sodio > 0 ? formData.rotulo_sodio : null
-      };
+      // ✅ Validar unidade antes de enviar
+      const UNIDADES_VALIDAS = ['un', 'g', 'kg', 'ml', 'l', 'cx', 'pct', 'fardo', 'm', 'cm'] as const;
+      
+      if (!UNIDADES_VALIDAS.includes(formData.unidade as any)) {
+        toast({
+          title: "Unidade inválida",
+          description: "Escolha uma unidade da lista disponível.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
 
-      const { error } = await supabase
-        .from('produtos')
-        .update(payload)
-        .eq('id', product!.id);
+      // ✅ Construir payload otimizado
+      const codigosBarrasFiltrados = formData.codigos_barras.filter(c => c.trim());
+      
+      // Usar RPC com cast explícito para contornar limitação do Supabase
+      const { data, error } = await supabase.rpc('update_produto_with_cast', {
+        p_id: product!.id,
+        p_nome: formData.nome.trim(),
+        p_marcas: formData.marcas.length > 0 ? formData.marcas : null,
+        p_categorias: formData.categorias.length > 0 ? formData.categorias : null,
+        p_categoria: formData.categorias.length > 0 ? formData.categorias[0] : null,
+        p_codigo_interno: formData.codigo_interno?.trim() || null,
+        p_codigo_barras: codigosBarrasFiltrados.length > 0 ? codigosBarrasFiltrados : null,
+        p_unidade: formData.unidade,
+        p_total_embalagem: Number(formData.total_embalagem) || 1,
+        p_custo_unitario: Number(formData.custo_unitario),
+        p_custo_medio: Number(formData.custo_unitario),
+        p_custo_total: Number(formData.custo_total) || 0,
+        p_estoque_atual: Number(formData.estoque_atual),
+        p_estoque_minimo: Number(formData.estoque_minimo),
+        p_fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
+        p_imagem_url: selectedImage,
+        p_ativo: formData.ativo,
+        // ✅ Campos nutricionais: null quando vazios
+        p_rotulo_porcao: formData.rotulo_porcao?.trim() || null,
+        p_rotulo_kcal: formData.rotulo_kcal || null,
+        p_rotulo_carb: formData.rotulo_carb || null,
+        p_rotulo_prot: formData.rotulo_prot || null,
+        p_rotulo_gord_total: formData.rotulo_gord_total || null,
+        p_rotulo_gord_sat: formData.rotulo_gord_sat || null,
+        p_rotulo_gord_trans: formData.rotulo_gord_trans || null,
+        p_rotulo_fibra: formData.rotulo_fibra || null,
+        p_rotulo_sodio: formData.rotulo_sodio || null
+      }) as { data: any; error: any };
 
       if (error) {
-        console.error('Erro ao atualizar produto:', error);
+        console.error('Erro RPC:', error);
         throw error;
+      }
+
+      // Verificar se a função RPC retornou erro
+      if (data && !data.success) {
+        console.error('Erro na função RPC:', data);
+        const rpcError = new Error(data.error || 'Erro ao atualizar produto');
+        (rpcError as any).code = data.code;
+        throw rpcError;
       }
 
       // Salvar ou atualizar conversão se houver dados
@@ -418,27 +436,47 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         message: error.message,
         code: error.code,
         details: error.details,
-        hint: error.hint,
-        payload: payload
+        hint: error.hint
       });
       
+      // ✅ Mensagens de erro específicas e claras
       const errorMessage = (() => {
+        // Erro 42804: problema de tipo
+        if (error.code === '42804') {
+          if (error.message?.includes('unidade')) {
+            return "Unidade inválida. Escolha um valor da lista (kg, l, un, etc.).";
+          }
+          return `Tipo de dado inválido: ${error.message}`;
+        }
+        
+        // Erro 23505: duplicidade
         if (error.message?.includes('duplicate') || error.code === '23505') {
           if (error.message?.includes('codigo_interno')) {
-            return "Já existe um produto com esse código interno";
+            return "Já existe um produto com esse código interno.";
           }
-          return "Já existe um produto com esse nome";
+          if (error.message?.includes('nome')) {
+            return "Já existe um produto com esse nome.";
+          }
+          return "Já existe um produto com esses dados.";
         }
-        if (error.code === '42804') {
-          return `Erro de tipo de dados: ${error.message}`;
-        }
+        
+        // Erro 23502: campo obrigatório
         if (error.code === '23502') {
           const field = error.message?.match(/column "(.+?)"/)?.[1] || 'desconhecido';
-          return `Campo obrigatório não preenchido: ${field}`;
+          const fieldNames: Record<string, string> = {
+            'nome': 'Nome do produto',
+            'unidade': 'Unidade de medida',
+            'user_id': 'Identificação de usuário',
+            'custo_unitario': 'Custo unitário'
+          };
+          return `Campo obrigatório não preenchido: ${fieldNames[field] || field}`;
         }
-        if (error.message?.includes('unidade_medida')) {
-          return `Erro na unidade de medida. Verifique se a unidade está correta.`;
+
+        // Erro 22P02: valor inválido para enum
+        if (error.code === '22P02' && error.message?.includes('unidade_medida')) {
+          return "Unidade de medida inválida. Escolha um valor válido da lista.";
         }
+        
         return error.message || "Erro desconhecido ao atualizar produto";
       })();
       

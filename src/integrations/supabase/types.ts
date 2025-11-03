@@ -2353,6 +2353,37 @@ export type Database = {
         Args: { p_produto_id: string; p_unidade: string }
         Returns: undefined
       }
+      update_produto_with_cast: {
+        Args: {
+          p_ativo: boolean
+          p_categoria: string
+          p_categorias: string[]
+          p_codigo_barras: string[]
+          p_codigo_interno: string
+          p_custo_medio: number
+          p_custo_total: number
+          p_custo_unitario: number
+          p_estoque_atual: number
+          p_estoque_minimo: number
+          p_fornecedor_ids: string[]
+          p_id: string
+          p_imagem_url: string
+          p_marcas: string[]
+          p_nome: string
+          p_rotulo_carb: number
+          p_rotulo_fibra: number
+          p_rotulo_gord_sat: number
+          p_rotulo_gord_total: number
+          p_rotulo_gord_trans: number
+          p_rotulo_kcal: number
+          p_rotulo_porcao: string
+          p_rotulo_prot: number
+          p_rotulo_sodio: number
+          p_total_embalagem: number
+          p_unidade: string
+        }
+        Returns: Json
+      }
       user_is_admin: { Args: never; Returns: boolean }
       user_is_affiliate_owner: {
         Args: { affiliate_id: string }
