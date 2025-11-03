@@ -586,8 +586,8 @@ const Movimentacao = () => {
       {/* Conteúdo Principal - 100% da tela */}
       <div className="flex-1 flex overflow-hidden">
         {/* Grid de Produtos */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="w-full p-3 lg:p-4">
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto p-3 lg:p-4" style={{ maxHeight: '325px' }}>
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-muted-foreground">Carregando...</div>

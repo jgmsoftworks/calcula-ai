@@ -31,7 +31,7 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 auto-rows-fr">
       {produtos.map((produto) => {
         const valor = origem === 'estoque' ? produto.custo_unitario : produto.preco_venda;
         const semEstoque = produto.estoque_atual <= 0;
@@ -40,12 +40,12 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
         return (
           <Card 
             key={produto.id}
-            className="cursor-pointer hover:shadow-xl hover:border-primary/50 transition-all duration-200 group"
+            className="cursor-pointer hover:shadow-xl hover:border-primary/50 transition-all duration-200 group h-[300px] flex flex-col"
             onClick={() => onSelectProduto(produto)}
           >
-            <CardContent className="p-0">
-              {/* Imagem mais compacta com aspect 4:3 */}
-              <div className="aspect-[4/3] relative bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
+            <CardContent className="p-0 h-full flex flex-col">
+              {/* Imagem mais compacta com altura fixa */}
+              <div className="h-[180px] relative bg-gradient-to-br from-muted to-muted/50 overflow-hidden flex-shrink-0">
                 {produto.imagem_url ? (
                   <img
                     src={produto.imagem_url}
@@ -70,8 +70,8 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
               </div>
 
               {/* Informações compactas */}
-              <div className="p-3 space-y-2">
-                <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] leading-tight">
+              <div className="flex-1 p-3 space-y-2 flex flex-col justify-between">
+                <h3 className="font-semibold text-sm line-clamp-3 leading-tight">
                   {produto.nome}
                 </h3>
                 
