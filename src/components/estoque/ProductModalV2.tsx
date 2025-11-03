@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
-import { Trash2, Camera, X, Plus } from 'lucide-react';
+import { Trash2, Camera, X } from 'lucide-react';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
@@ -31,7 +31,12 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
   const [formData, setFormData] = useState<any>({});
   const [originalData, setOriginalData] = useState<any>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [currencyInputs, setCurrencyInputs] = useState({
+    custo_unitario: '',
+    custo_total: ''
+  });
   const [conversaoData, setConversaoData] = useState<any>(null);
+  const [novoCodigo, setNovoCodigo] = useState('');
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -43,7 +48,7 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         marcas: product.marcas || [],
         categorias: product.categorias || [],
         codigo_interno: product.codigo_interno || '',
-        codigos_barras: product.codigo_barras && product.codigo_barras.length > 0 ? product.codigo_barras : [''],
+        codigos_barras: product.codigo_barras || [],
         unidade: product.unidade,
         total_embalagem: product.total_embalagem || 1,
         custo_unitario: product.custo_unitario || 0,
@@ -66,6 +71,11 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       setFormData(initialData);
       setOriginalData(initialData);
       setSelectedImage(product.imagem_url || null);
+      
+      setCurrencyInputs({
+        custo_unitario: formatCurrencyFromDB(product.custo_unitario || 0),
+        custo_total: formatCurrencyFromDB(product.custo_total || 0)
+      });
 
       loadConversao(product.id);
     }
@@ -96,6 +106,16 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
     }
   };
 
+  const formatCurrency = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (!numbers) return '';
+    const amount = parseFloat(numbers) / 100;
+    return amount.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  };
+
   const formatCurrencyFromDB = (value: number) => {
     return value.toLocaleString('pt-BR', {
       style: 'currency',
@@ -103,11 +123,26 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
     });
   };
 
+  const parseCurrency = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return parseFloat(numbers) / 100 || 0;
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev: any) => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleCurrencyChange = (field: string, formattedValue: string) => {
+    setCurrencyInputs(prev => ({
+      ...prev,
+      [field]: formatCurrency(formattedValue)
+    }));
+    
+    const numericValue = parseCurrency(formattedValue);
+    handleInputChange(field, numericValue);
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +166,20 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
   };
 
   const handleAdicionarCodigo = () => {
-    handleInputChange('codigos_barras', [...(formData.codigos_barras || []), '']);
+    const codigo = novoCodigo.trim();
+    if (!codigo) return;
+    
+    if (formData.codigos_barras?.includes(codigo)) {
+      toast({
+        title: "Código duplicado",
+        description: "Este código de barras já foi adicionado",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    handleInputChange('codigos_barras', [...(formData.codigos_barras || []), codigo]);
+    setNovoCodigo('');
   };
 
   const handleRemoverCodigo = (index: number) => {
@@ -331,156 +379,129 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Seção Superior - Campos Básicos e Imagem */}
-          <div className="flex gap-6">
-            {/* Campos Básicos */}
-            <div className="flex-1 space-y-4">
-              {/* Nome */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Nome</Label>
-                <Input
-                  value={formData.nome}
-                  onChange={(e) => handleInputChange('nome', e.target.value)}
-                  required
-                  className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
-                />
-              </div>
-
-              {/* Marca e Categoria lado a lado */}
-              <div className="flex gap-6">
-                <div className="flex-1 space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Marca</Label>
-                  <MarcasSelector
-                    selectedMarcas={formData.marcas}
-                    onMarcasChange={(marcas) => handleInputChange('marcas', marcas)}
-                  />
-                </div>
-
-                <div className="flex-1 space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Categoria</Label>
-                  <CategoriasSelector
-                    selectedCategorias={formData.categorias}
-                    onCategoriasChange={(cats) => handleInputChange('categorias', cats)}
-                  />
-                </div>
-              </div>
-
-              {/* Códigos */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Código Interno</Label>
-                  <Input
-                    value={formData.codigo_interno}
-                    onChange={(e) => handleInputChange('codigo_interno', e.target.value)}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
-                  />
-                </div>
-                
-                {/* Códigos de Barras Múltiplos */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Códigos de Barras</Label>
-                  <div className="space-y-2">
-                    {formData.codigos_barras?.map((codigo: string, index: number) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          value={codigo}
-                          onChange={(e) => {
-                            const newCodigos = [...formData.codigos_barras];
-                            newCodigos[index] = e.target.value;
-                            handleInputChange('codigos_barras', newCodigos);
-                          }}
-                          className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg flex-1"
-                          placeholder={`Código de barras ${index + 1}`}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoverCodigo(index)}
-                          className="h-12 px-3 border-destructive/40 text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAdicionarCodigo}
-                      className="h-10 w-full border-primary/40 text-primary hover:bg-primary/10"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar mais Códigos de Barras
-                    </Button>
-                  </div>
-                </div>
-              </div>
+          {/* Campos Básicos */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={formData.nome}
+                onChange={(e) => handleInputChange('nome', e.target.value)}
+                required
+              />
             </div>
 
-            {/* Área de Imagem */}
-            <div className="w-64 flex flex-col items-center">
-              <div className="w-[256px] h-[256px] border-2 border-dashed border-primary/40 rounded-xl bg-muted/50 flex flex-col items-center justify-center mb-4 relative overflow-hidden cursor-pointer hover:bg-primary/10 transition-colors"
-                   onClick={() => !selectedImage && document.getElementById('image-upload-v2')?.click()}>
+            <div className="space-y-2">
+              <Label>Código Interno</Label>
+              <Input
+                value={formData.codigo_interno}
+                onChange={(e) => handleInputChange('codigo_interno', e.target.value)}
+              />
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label>Códigos de Barras</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={novoCodigo}
+                  onChange={(e) => setNovoCodigo(e.target.value)}
+                  placeholder="Digite o código de barras"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAdicionarCodigo();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={handleAdicionarCodigo}>
+                  Adicionar
+                </Button>
+              </div>
+              {formData.codigos_barras?.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {formData.codigos_barras.map((codigo: string, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between bg-secondary/20 p-2 rounded">
+                      <span className="text-sm font-mono">{codigo}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoverCodigo(idx)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Marca</Label>
+              <MarcasSelector
+                selectedMarcas={formData.marcas}
+                onMarcasChange={(marcas) => handleInputChange('marcas', marcas)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <CategoriasSelector
+                selectedCategorias={formData.categorias}
+                onCategoriasChange={(cats) => handleInputChange('categorias', cats)}
+              />
+            </div>
+          </div>
+
+          {/* Imagem */}
+          <div className="space-y-2">
+            <Label>Imagem do Produto</Label>
+            <div className="flex gap-4 items-center">
+              <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center relative cursor-pointer"
+                   onClick={() => document.getElementById('image-upload-v2')?.click()}>
                 {selectedImage ? (
-                  <div className="w-full h-full relative bg-white rounded-lg">
-                    <img 
-                      src={selectedImage} 
-                      alt="Produto" 
-                      className="w-full h-full object-contain p-2"
-                    />
+                  <div className="relative w-full h-full">
+                    <img src={selectedImage} alt="Produto" className="w-full h-full object-contain p-2" />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedImage(null);
                       }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <Camera className="w-12 h-12 text-primary/50 mb-2" />
-                    <span className="text-sm text-primary/70">Sem foto</span>
-                    <span className="text-xs text-muted-foreground">Clique para adicionar</span>
-                  </>
+                  <Camera className="w-8 h-8 text-muted-foreground" />
                 )}
-                <input
-                  id="image-upload-v2"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
               </div>
+              <input
+                id="image-upload-v2"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
             </div>
           </div>
 
           {/* Tabs */}
           <Tabs defaultValue="estoque">
-            <TabsList className="grid w-full grid-cols-3 bg-primary/10">
-              <TabsTrigger value="estoque" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                Estoque e Custos
-              </TabsTrigger>
-              <TabsTrigger value="modo" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                Modo de Uso
-              </TabsTrigger>
-              <TabsTrigger value="historico" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                Histórico
-              </TabsTrigger>
+            <TabsList>
+              <TabsTrigger value="estoque">Estoque e Custos</TabsTrigger>
+              <TabsTrigger value="modo">Modo de Uso</TabsTrigger>
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="estoque" className="space-y-4 mt-6">
+            <TabsContent value="estoque" className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Unidade</Label>
+                  <Label>Unidade</Label>
                   <Select 
                     value={formData.unidade}
                     onValueChange={(val) => handleInputChange('unidade', val)}
                   >
-                    <SelectTrigger className="h-12 border-2 border-primary/30 focus:border-primary text-base rounded-lg">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -497,42 +518,37 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Custo Unitário</Label>
-                  <NumericInputPtBr
-                    tipo="valor"
-                    value={formData.custo_unitario}
-                    onChange={(valor) => handleInputChange('custo_unitario', valor)}
-                    min={0}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                  <Label>Custo Unitário</Label>
+                  <Input
+                    value={currencyInputs.custo_unitario}
+                    onChange={(e) => handleCurrencyChange('custo_unitario', e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Estoque Atual</Label>
+                  <Label>Estoque Atual</Label>
                   <NumericInputPtBr
                     tipo="quantidade_continua"
                     value={formData.estoque_atual}
                     onChange={(val) => handleInputChange('estoque_atual', val)}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Estoque Mínimo</Label>
+                  <Label>Estoque Mínimo</Label>
                   <NumericInputPtBr
                     tipo="quantidade_continua"
                     value={formData.estoque_minimo}
                     onChange={(val) => handleInputChange('estoque_minimo', val)}
-                    className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Valor Total em Estoque</Label>
+                  <Label>Valor Total em Estoque</Label>
                   <Input
                     value={formatCurrencyFromDB((formData.custo_unitario || 0) * (formData.estoque_atual || 0))}
                     disabled
-                    className="h-12 border-2 border-primary/30 text-base px-4 rounded-lg bg-secondary/20"
+                    className="bg-secondary/20"
                   />
                 </div>
               </div>
@@ -555,19 +571,10 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
           </Tabs>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              className="px-8 h-12 border-2 border-primary/30 text-primary hover:bg-primary/10"
-            >
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8 h-12"
-            >
+            <Button type="submit" disabled={loading}>
               {loading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </div>
