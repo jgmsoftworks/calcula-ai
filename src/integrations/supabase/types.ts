@@ -2403,14 +2403,14 @@ export type Database = {
       tipo_movimentacao: "entrada" | "saida"
       tipo_movimentacao_receita: "entrada" | "venda" | "perdas" | "brindes"
       unidade_medida:
-        | "un"
         | "g"
-        | "kg"
+        | "k"
         | "ml"
         | "l"
+        | "un"
         | "cx"
         | "pct"
-        | "fardo"
+        | "fd"
         | "m"
         | "cm"
     }
@@ -2551,18 +2551,7 @@ export const Constants = {
       discount_type: ["trial_period", "percentage", "fixed"],
       tipo_movimentacao: ["entrada", "saida"],
       tipo_movimentacao_receita: ["entrada", "venda", "perdas", "brindes"],
-      unidade_medida: [
-        "un",
-        "g",
-        "kg",
-        "ml",
-        "l",
-        "cx",
-        "pct",
-        "fardo",
-        "m",
-        "cm",
-      ],
+      unidade_medida: ["g", "k", "ml", "l", "un", "cx", "pct", "fd", "m", "cm"],
     },
   },
 } as const

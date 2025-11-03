@@ -340,7 +340,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     setLoading(true);
     try {
       // ✅ Validar unidade antes de enviar
-      const UNIDADES_VALIDAS = ['un', 'g', 'kg', 'ml', 'l', 'cx', 'pct', 'fardo', 'm', 'cm'] as const;
+      const UNIDADES_VALIDAS = ['un', 'g', 'k', 'ml', 'l', 'cx', 'pct', 'fd', 'm', 'cm'] as const;
       
       if (!UNIDADES_VALIDAS.includes(formData.unidade as any)) {
         toast({
@@ -796,9 +796,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="un">Unidade (un.)</SelectItem>
-                        <SelectItem value="kg">Quilo (k)</SelectItem>
+                        <SelectItem value="k">Quilo (k)</SelectItem>
                         <SelectItem value="g">Grama (g)</SelectItem>
-                        <SelectItem value="fardo">Fardo</SelectItem>
+                        <SelectItem value="fd">Fardo (fd)</SelectItem>
                         <SelectItem value="l">Litro (l)</SelectItem>
                         <SelectItem value="ml">Mililitro (ml)</SelectItem>
                         <SelectItem value="m">Metro (m)</SelectItem>
@@ -828,7 +828,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   <div className="space-y-2">
                     <Label htmlFor="estoque_atual" className="text-sm font-medium text-foreground">Quantidade em Estoque</Label>
                     <NumericInputPtBr
-                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
+                      tipo={formData.unidade === 'un' || formData.unidade === 'fd' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_atual}
                       onChange={(valor) => handleInputChange('estoque_atual', valor)}
                       min={0}
@@ -840,7 +840,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                   <div className="space-y-2">
                     <Label htmlFor="estoque_minimo" className="text-sm font-medium text-foreground">Estoque Mínimo</Label>
                     <NumericInputPtBr
-                      tipo={formData.unidade === 'un' || formData.unidade === 'fardo' ? 'quantidade_un' : 'quantidade_continua'}
+                      tipo={formData.unidade === 'un' || formData.unidade === 'fd' ? 'quantidade_un' : 'quantidade_continua'}
                       value={formData.estoque_minimo}
                       onChange={(valor) => handleInputChange('estoque_minimo', valor)}
                       min={0}

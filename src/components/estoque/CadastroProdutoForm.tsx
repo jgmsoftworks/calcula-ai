@@ -574,9 +574,9 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="un">Unidade (un.)</SelectItem>
-                        <SelectItem value="kg">Quilo (k)</SelectItem>
+                        <SelectItem value="k">Quilo (k)</SelectItem>
                         <SelectItem value="g">Grama (g)</SelectItem>
-                        <SelectItem value="fardo">Fardo</SelectItem>
+                        <SelectItem value="fd">Fardo (fd)</SelectItem>
                         <SelectItem value="l">Litro (l)</SelectItem>
                         <SelectItem value="ml">Mililitro (ml)</SelectItem>
                         <SelectItem value="m">Metro (m)</SelectItem>

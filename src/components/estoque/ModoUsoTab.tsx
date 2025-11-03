@@ -142,12 +142,12 @@ export const ModoUsoTab = ({
               <SelectContent>
                 <SelectItem value="un">Unidade (un.)</SelectItem>
                 <SelectItem value="g">Gramas (g)</SelectItem>
-                <SelectItem value="kg">Quilo (k)</SelectItem>
+                <SelectItem value="k">Quilo (k)</SelectItem>
                 <SelectItem value="ml">Mililitros (ml)</SelectItem>
                 <SelectItem value="l">Litros (l)</SelectItem>
                 <SelectItem value="cx">Caixas (cx)</SelectItem>
                 <SelectItem value="pct">Pacotes (pct)</SelectItem>
-                <SelectItem value="fardo">Fardo</SelectItem>
+                <SelectItem value="fd">Fardo (fd)</SelectItem>
                 <SelectItem value="m">Metro (m)</SelectItem>
                 <SelectItem value="cm">Centímetro (cm)</SelectItem>
               </SelectContent>
