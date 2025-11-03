@@ -82,7 +82,6 @@ export function useHistoricoMovimentacoes(options: UseHistoricoOptions) {
           .order('created_at', { ascending: false })
           .limit(limite);
 
-        // Aplicar filtros
         if (produtoId) {
           query = query.eq('produto_id', produtoId);
         }
@@ -136,7 +135,6 @@ export function useHistoricoMovimentacoes(options: UseHistoricoOptions) {
           .order('created_at', { ascending: false })
           .limit(limite);
 
-        // Aplicar filtros
         if (receitaId) {
           query = query.eq('receita_id', receitaId);
         }
@@ -187,6 +185,7 @@ export function useHistoricoMovimentacoes(options: UseHistoricoOptions) {
     if (autoLoad && user) {
       loadMovimentacoes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, limite, produtoId, receitaId, origem, autoLoad]);
 
   return {
