@@ -508,7 +508,8 @@ const Movimentacao = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="max-w-[1350px] mx-auto w-full">
+      <div className="h-full flex flex-col bg-background">
       {/* Barra de ferramentas modernizada */}
       <div className="sticky top-0 z-10 bg-gradient-to-r from-background via-background/95 to-background border-b shadow-md">
         <div className="flex items-center gap-3 p-3 w-full">
@@ -647,6 +648,7 @@ const Movimentacao = () => {
         onConfirm={handleConfirmFinalizar}
         onClose={() => setModalFinalizacaoAberto(false)}
       />
+      </div>
     </div>
   );
 };
