@@ -17,7 +17,7 @@ export function ChipsCategoria({ categorias, categoriaAtiva, onSelectCategoria }
             variant={categoriaAtiva === categoria ? 'default' : 'outline'}
             size="sm"
             onClick={() => onSelectCategoria(categoria)}
-            className="rounded-full flex-shrink-0"
+            className="rounded-full flex-shrink-0 px-4 font-medium shadow-sm hover:shadow-md transition-shadow"
           >
             {categoria}
           </Button>

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, RefreshCw, Search, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ModalOrigemSelecao } from '@/components/movimentacao/ModalOrigemSelecao';
@@ -508,36 +509,53 @@ const Movimentacao = () => {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Barra de ferramentas */}
-      <div className="sticky top-0 z-10 bg-background border-b shadow-sm">
-        <div className="flex items-center gap-3 p-4">
-          <div className="flex-1 max-w-md relative">
+      {/* Barra de ferramentas modernizada */}
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-background via-background/95 to-background border-b shadow-md">
+        <div className="flex items-center gap-3 p-3 w-full">
+          {/* Badge de Tipo de Movimentação */}
+          {tipoMovimentacao && (
+            <Badge 
+              variant={tipoMovimentacao === 'entrada' ? 'default' : 'destructive'} 
+              className="text-sm px-4 py-2 flex-shrink-0"
+            >
+              {tipoMovimentacao === 'entrada' ? 'ENTRADA' : 'SAÍDA'}
+            </Badge>
+          )}
+          
+          {/* Busca mais larga */}
+          <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={inputBuscaRef}
-              placeholder="Buscar produto..."
+              placeholder="Buscar produto... (Ctrl+F)"
               value={textoBusca}
               onChange={(e) => setTextoBusca(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-10"
             />
           </div>
-
-          <Button
-            variant="ghost"
+          
+          {/* Contador de produtos */}
+          <Badge variant="outline" className="px-3 flex-shrink-0 hidden sm:flex">
+            {produtosFiltrados.length} produtos
+          </Badge>
+          
+          {/* Botões de ação */}
+          <Button 
+            variant="ghost" 
             size="icon"
             onClick={carregarDados}
             disabled={loading}
           >
             <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
-
-          {/* Botão carrinho mobile */}
+          
+          {/* Badge carrinho mobile */}
           <Sheet open={carrinhoAberto} onOpenChange={setCarrinhoAberto}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="lg:hidden relative">
+              <Button variant="outline" size="icon" className="lg:hidden relative flex-shrink-0">
                 <ShoppingCart className="h-5 w-5" />
                 {carrinho.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                     {carrinho.length}
                   </span>
                 )}
@@ -555,8 +573,8 @@ const Movimentacao = () => {
           </Sheet>
         </div>
 
-        {/* Categorias */}
-        <div className="border-t px-4 py-3 bg-background">
+        {/* Categorias fixas */}
+        <div className="border-t bg-muted/30 backdrop-blur-sm px-4 py-2">
           <ChipsCategoria
             categorias={categorias}
             categoriaAtiva={categoriaAtiva}
@@ -565,11 +583,11 @@ const Movimentacao = () => {
         </div>
       </div>
 
-      {/* Conteúdo Principal */}
+      {/* Conteúdo Principal - 100% da tela */}
       <div className="flex-1 flex overflow-hidden">
         {/* Grid de Produtos */}
         <main className="flex-1 overflow-y-auto">
-          <div className="container max-w-7xl mx-auto p-4 lg:p-6">
+          <div className="w-full p-3 lg:p-4">
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-muted-foreground">Carregando...</div>
@@ -584,8 +602,8 @@ const Movimentacao = () => {
           </div>
         </main>
 
-        {/* Carrinho Desktop - Fixo à direita */}
-        <aside className="hidden lg:block w-96 border-l bg-card overflow-y-auto">
+        {/* Carrinho Desktop - Mais compacto */}
+        <aside className="hidden lg:block w-80 border-l bg-card overflow-y-auto">
           <CarrinhoLateral
             carrinho={carrinho}
             tipoMovimentacao={tipoMovimentacao}
