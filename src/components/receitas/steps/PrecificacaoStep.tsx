@@ -321,10 +321,10 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         markup_id: markupId,
       };
       
-      // Para sub-receitas, sempre salvar o preço calculado
-      if (markupSelecionadoData?.tipo === 'sub_receita' && precoCalculado > 0) {
-        updateData.preco_venda = precoCalculado;
-        console.log('💾 Preparando para salvar preço de sub-receita:', precoCalculado);
+      // Para sub-receitas, sempre salvar o preço exato (custo unitário sem arredondamento)
+      if (markupSelecionadoData?.tipo === 'sub_receita' && custoUnitario > 0) {
+        updateData.preco_venda = custoUnitario; // Usa custo exato para markup 1.0000
+        console.log('💾 Preparando para salvar preço exato de sub-receita:', custoUnitario);
       } else {
         console.log('📋 Markup normal: preço não incluído no salvamento automático');
       }
@@ -897,14 +897,22 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             <Input
               type="text"
               placeholder="R$ 0,00"
-              value={precoVenda}
+              value={markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' 
+                ? custoUnitario.toLocaleString('pt-BR', { 
+                    style: 'currency', 
+                    currency: 'BRL',
+                    minimumFractionDigits: 4,
+                    maximumFractionDigits: 4
+                  })
+                : precoVenda
+              }
               onChange={handlePrecoVendaChange}
               disabled={markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita'}
               className={`text-lg font-medium ${markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' ? 'bg-muted cursor-not-allowed' : ''}`}
             />
             {markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' && (
               <p className="text-xs text-muted-foreground mt-1">
-                Preço definido automaticamente pelo markup de sub-receitas. Selecione outro markup para editar.
+                Preço definido automaticamente pelo markup de sub-receitas (sem lucro)
               </p>
             )}
           </CardContent>
@@ -966,9 +974,10 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               index === self.findIndex(m => m.nome === markup.nome)
             ).map((markup) => {
               // Calculate markup atingido based on entered price - use only unit cost from yield
-              const markupAtingido = precoNumerico > 0 && custoUnitario > 0 
-                ? precoNumerico / custoUnitario 
-                : 0;
+              // Para sub-receitas, sempre garantir markup 1.0000
+              const markupAtingido = markup.tipo === 'sub_receita' 
+                ? 1.0000
+                : (precoNumerico > 0 && custoUnitario > 0 ? precoNumerico / custoUnitario : 0);
               // Calculate suggested price: unit cost × markup da categoria + additional value in R$
               const markupDaCategoria = encargosDetalhados[markup.id]?.markupIdeal || markup.markup_ideal;
               const precoSugerido = (custoUnitario * markupDaCategoria) + (encargosDetalhados[markup.id]?.valorEmReal || 0);
