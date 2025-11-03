@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -52,7 +52,7 @@ export function useHistoricoMovimentacoes(options: UseHistoricoOptions) {
   const [limite, setLimite] = useState(50);
   const [hasMore, setHasMore] = useState(false);
 
-  const loadMovimentacoes = async (filtros?: Filtros) => {
+  const loadMovimentacoes = useCallback(async (filtros?: Filtros) => {
     if (!user) return;
     
     setLoading(true);
@@ -170,23 +170,22 @@ export function useHistoricoMovimentacoes(options: UseHistoricoOptions) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, limite, origem, produtoId, receitaId]);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     setLimite(prev => prev + 50);
-  };
+  }, []);
 
-  const refresh = (filtros?: Filtros) => {
+  const refresh = useCallback((filtros?: Filtros) => {
     setLimite(50);
     loadMovimentacoes(filtros);
-  };
+  }, [loadMovimentacoes]);
 
   useEffect(() => {
     if (autoLoad && user) {
       loadMovimentacoes();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, limite, produtoId, receitaId, origem, autoLoad]);
+  }, [autoLoad, user, loadMovimentacoes]);
 
   return {
     movimentacoes,
