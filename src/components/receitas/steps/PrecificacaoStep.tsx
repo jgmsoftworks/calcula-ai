@@ -965,22 +965,22 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
             {markups.filter((markup, index, self) => 
               index === self.findIndex(m => m.nome === markup.nome)
             ).map((markup) => {
-              // Calculate markup based on entered price - use only unit cost from yield
-              const markupFinal = precoNumerico > 0 ? precoNumerico / custoUnitario : 0;
+              // Calculate markup atingido based on entered price - use only unit cost from yield
+              const markupAtingido = precoNumerico > 0 && custoUnitario > 0 
+                ? precoNumerico / custoUnitario 
+                : 0;
               // Calculate suggested price: unit cost × markup da categoria + additional value in R$
               const markupDaCategoria = encargosDetalhados[markup.id]?.markupIdeal || markup.markup_ideal;
               const precoSugerido = (custoUnitario * markupDaCategoria) + (encargosDetalhados[markup.id]?.valorEmReal || 0);
               
-              // Debug logs - TEMPORARY
-              console.log('DEBUG - Cálculo Sugestão de Preço (CORRIGIDO):', {
-                custoUnitario,
-                markupDaCategoria,
-                markupIdealDB: markup.markup_ideal,
-                valorEmReal: encargosDetalhados[markup.id]?.valorEmReal || 0,
-                calculoBase: custoUnitario * markupDaCategoria,
-                precoSugerido,
-                markupFinal: markupFinal.toFixed(4),
+              // Debug logs para verificar os valores
+              console.log('🔍 DEBUG Markup Atingido:', {
+                precoVenda,
                 precoNumerico,
+                custoUnitario,
+                custoTotal,
+                rendimentoValor,
+                markupAtingido: markupAtingido.toFixed(4),
                 markupNome: markup.nome
               });
               
@@ -1084,9 +1084,20 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         </div>
                         
                         <div className="text-center p-3 bg-background rounded-lg border">
-                          <p className="text-sm text-muted-foreground mb-1">Markup Final</p>
-                          <p className="text-lg font-bold text-secondary">
-                            {markupFinal > 0 ? `${markupFinal.toLocaleString('pt-BR', { 
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-sm text-muted-foreground mb-1 cursor-help">
+                                Markup Atingido ℹ️
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Markup que você está atingindo com o preço de venda atual de {formatCurrency(precoVenda)}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <p className="text-lg font-bold text-primary">
+                            {markupAtingido > 0 ? `${markupAtingido.toLocaleString('pt-BR', { 
                               minimumFractionDigits: 4, 
                               maximumFractionDigits: 4 
                             })}` : markupDaCategoria ? `${markupDaCategoria.toLocaleString('pt-BR', { 
