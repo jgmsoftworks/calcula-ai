@@ -603,7 +603,7 @@ const Movimentacao = () => {
         </main>
 
         {/* Carrinho Desktop - Mais compacto */}
-        <aside className="hidden lg:block w-80 border-l bg-card overflow-y-auto">
+        <aside className="hidden lg:block w-80 border-l bg-card overflow-y-auto" style={{ maxHeight: '640px' }}>
           <CarrinhoLateral
             carrinho={carrinho}
             tipoMovimentacao={tipoMovimentacao}
