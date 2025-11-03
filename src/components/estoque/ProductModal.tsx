@@ -388,6 +388,14 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         payload.unidade = formData.unidade;
       }
 
+      // ✅ Logs temporários para verificação (REMOVER após validação)
+      console.log('=== DEBUG PRODUTO UPDATE ===');
+      console.log('unidadeOriginal:', unidadeOriginal);
+      console.log('formData.unidade:', formData.unidade);
+      console.log('unidade mudou?', formData.unidade !== unidadeOriginal);
+      console.log('payload enviado:', JSON.stringify(payload, null, 2));
+      console.log('===========================');
+
       const { error } = await supabase
         .from('produtos')
         .update(payload)
