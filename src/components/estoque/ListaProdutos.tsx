@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Search, Trash2, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { ProductModal } from './ProductModal';
+import { ProductModalV2 } from './ProductModalV2';
 import { Produto } from './CadastroProdutos';
 import { ListaConfiguracoes, ColunaConfig } from './ListaConfiguracoes';
 import { ImportacaoProdutos } from './ImportacaoProdutos';
@@ -539,8 +539,8 @@ export const ListaProdutos = () => {
         </CardContent>
       </Card>
 
-      {/* Modal de Edição */}
-      <ProductModal
+      {/* Modal de Edição V2 */}
+      <ProductModalV2
         isOpen={isModalOpen}
         onClose={closeModal}
         product={selectedProduct}
