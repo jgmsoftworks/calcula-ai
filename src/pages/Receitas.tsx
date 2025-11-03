@@ -1372,7 +1372,7 @@ const Receitas = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground mb-1">Custo M.O.</p>
                     <p className="font-medium text-orange-600">{formatCurrency(receita.custo_mao_obra)}</p>
@@ -1380,6 +1380,10 @@ const Receitas = () => {
                   <div>
                     <p className="text-muted-foreground mb-1">Custo Matéria-Prima</p>
                     <p className="font-medium text-blue-600">{formatCurrency(receita.custo_materia_prima)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Custo Embalagem</p>
+                    <p className="font-medium text-amber-600">{formatCurrency(receita.custo_embalagens)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-1">Custo Total</p>
