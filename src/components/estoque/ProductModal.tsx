@@ -78,6 +78,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     custo_unitario: ''
   });
 
+  // ✅ Rastrear unidade original para enviar somente se mudou
+  const [unidadeOriginal, setUnidadeOriginal] = useState<string>('');
+
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -113,6 +116,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         rotulo_fibra: product.rotulo_fibra || 0,
         rotulo_sodio: product.rotulo_sodio || 0
       });
+      
+      // ✅ Guardar unidade original
+      setUnidadeOriginal(product.unidade);
       
       setSelectedImage(product.imagem_url || null);
       
@@ -349,48 +355,47 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       // ✅ Construir payload otimizado
       const codigosBarrasFiltrados = formData.codigos_barras.filter(c => c.trim());
       
-      // Usar RPC com cast explícito para contornar limitação do Supabase
-      const { data, error } = await supabase.rpc('update_produto_with_cast', {
-        p_id: product!.id,
-        p_nome: formData.nome.trim(),
-        p_marcas: formData.marcas.length > 0 ? formData.marcas : null,
-        p_categorias: formData.categorias.length > 0 ? formData.categorias : null,
-        p_categoria: formData.categorias.length > 0 ? formData.categorias[0] : null,
-        p_codigo_interno: formData.codigo_interno?.trim() || null,
-        p_codigo_barras: codigosBarrasFiltrados.length > 0 ? codigosBarrasFiltrados : null,
-        p_unidade: formData.unidade,
-        p_total_embalagem: Number(formData.total_embalagem) || 1,
-        p_custo_unitario: Number(formData.custo_unitario),
-        p_custo_medio: Number(formData.custo_unitario),
-        p_custo_total: Number(formData.custo_total) || 0,
-        p_estoque_atual: Number(formData.estoque_atual),
-        p_estoque_minimo: Number(formData.estoque_minimo),
-        p_fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
-        p_imagem_url: selectedImage,
-        p_ativo: formData.ativo,
+      const payload: any = {
+        nome: formData.nome.trim(),
+        marcas: formData.marcas.length > 0 ? formData.marcas : null,
+        categorias: formData.categorias.length > 0 ? formData.categorias : null,
+        categoria: formData.categorias.length > 0 ? formData.categorias[0] : null,
+        codigo_interno: formData.codigo_interno?.trim() || null,
+        codigo_barras: codigosBarrasFiltrados.length > 0 ? codigosBarrasFiltrados : null,
+        total_embalagem: Number(formData.total_embalagem) || 1,
+        custo_unitario: Number(formData.custo_unitario),
+        custo_medio: Number(formData.custo_unitario),
+        custo_total: Number(formData.custo_total) || 0,
+        estoque_atual: Number(formData.estoque_atual),
+        estoque_minimo: Number(formData.estoque_minimo),
+        fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
+        imagem_url: selectedImage,
+        ativo: formData.ativo,
         // ✅ Campos nutricionais: null quando vazios
-        p_rotulo_porcao: formData.rotulo_porcao?.trim() || null,
-        p_rotulo_kcal: formData.rotulo_kcal || null,
-        p_rotulo_carb: formData.rotulo_carb || null,
-        p_rotulo_prot: formData.rotulo_prot || null,
-        p_rotulo_gord_total: formData.rotulo_gord_total || null,
-        p_rotulo_gord_sat: formData.rotulo_gord_sat || null,
-        p_rotulo_gord_trans: formData.rotulo_gord_trans || null,
-        p_rotulo_fibra: formData.rotulo_fibra || null,
-        p_rotulo_sodio: formData.rotulo_sodio || null
-      }) as { data: any; error: any };
+        rotulo_porcao: formData.rotulo_porcao?.trim() || null,
+        rotulo_kcal: formData.rotulo_kcal || null,
+        rotulo_carb: formData.rotulo_carb || null,
+        rotulo_prot: formData.rotulo_prot || null,
+        rotulo_gord_total: formData.rotulo_gord_total || null,
+        rotulo_gord_sat: formData.rotulo_gord_sat || null,
+        rotulo_gord_trans: formData.rotulo_gord_trans || null,
+        rotulo_fibra: formData.rotulo_fibra || null,
+        rotulo_sodio: formData.rotulo_sodio || null
+      };
 
-      if (error) {
-        console.error('Erro RPC:', error);
-        throw error;
+      // ✅ SÓ INCLUI UNIDADE SE O USUÁRIO MUDOU
+      if (formData.unidade !== unidadeOriginal) {
+        payload.unidade = formData.unidade;
       }
 
-      // Verificar se a função RPC retornou erro
-      if (data && !data.success) {
-        console.error('Erro na função RPC:', data);
-        const rpcError = new Error(data.error || 'Erro ao atualizar produto');
-        (rpcError as any).code = data.code;
-        throw rpcError;
+      const { error } = await supabase
+        .from('produtos')
+        .update(payload)
+        .eq('id', product!.id);
+
+      if (error) {
+        console.error('Erro ao atualizar produto:', error);
+        throw error;
       }
 
       // Salvar ou atualizar conversão se houver dados
