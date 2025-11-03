@@ -485,13 +485,13 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="un">Unidade (un)</SelectItem>
-                      <SelectItem value="kg">Quilo (k)</SelectItem>
+                      <SelectItem value="k">Quilo (k)</SelectItem>
                       <SelectItem value="g">Grama (g)</SelectItem>
                       <SelectItem value="l">Litro (l)</SelectItem>
                       <SelectItem value="ml">Mililitro (ml)</SelectItem>
                       <SelectItem value="cx">Caixa (cx)</SelectItem>
                       <SelectItem value="pct">Pacote (pct)</SelectItem>
-                      <SelectItem value="fardo">Fardo (fd)</SelectItem>
+                      <SelectItem value="fd">Fardo (fd)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

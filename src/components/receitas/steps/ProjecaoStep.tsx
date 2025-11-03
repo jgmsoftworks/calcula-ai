@@ -86,7 +86,7 @@ export function ProjecaoStep({
   const unidadesRendimento = [
     { value: 'unidade', label: 'Unidade (UN)' },
     { value: 'grama', label: 'Grama (G)' },
-    { value: 'quilo', label: 'Quilo (K)' },
+    { value: 'k', label: 'Quilo (K)' },
     { value: 'litro', label: 'Litro (L)' },
     { value: 'mililitro', label: 'Mililitro (ML)' },
   ];
