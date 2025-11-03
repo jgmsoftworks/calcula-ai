@@ -784,7 +784,7 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[895px] h-[810px] max-w-none flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             {existingReceitaId ? 'Editar Receita' : 'Criar Nova Receita'}
@@ -821,12 +821,12 @@ export function CriarReceitaModal({ open, onOpenChange, receitaId: existingRecei
         </div>
 
         {/* Step Content */}
-        <div className="min-h-[400px]">
+        <div className="flex-1 overflow-y-auto px-1">
           {renderCurrentStep()}
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center pt-6 border-t">
+        <div className="flex justify-between items-center pt-4 pb-2 border-t mt-4 flex-shrink-0">
           <Button
             variant="outline"
             onClick={handlePrevious}
