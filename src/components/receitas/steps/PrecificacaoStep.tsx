@@ -795,6 +795,13 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
   const custoUnitario = custoTotal / (parseFloat(rendimentoValor) || 1);
   
   const precoNumerico = getNumericValue(precoVenda);
+  
+  // Para sub-receitas, usar custo exato nos cálculos (sem arredondamento)
+  const markupSelecionadoObj = markups.find(m => m.id === markupSelecionado);
+  const precoParaCalculos = markupSelecionadoObj?.tipo === 'sub_receita' 
+    ? custoUnitario  // Usa valor exato (0.010185...) para garantir markup 1.0000
+    : precoNumerico; // Usa valor do input formatado
+  
   const pesoNumerico = parseFloat(pesoUnitario) || 0;
   const precoKg = (precoNumerico && pesoNumerico) 
     ? new Intl.NumberFormat('pt-BR', {
@@ -901,14 +908,14 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                 ? custoUnitario.toLocaleString('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL',
-                    minimumFractionDigits: 4,
-                    maximumFractionDigits: 4
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                   })
                 : precoVenda
               }
               onChange={handlePrecoVendaChange}
               disabled={markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita'}
-              className={`text-lg font-medium ${markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' ? 'bg-muted cursor-not-allowed' : ''}`}
+              className={`text-lg font-medium ${markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' ? 'bg-muted cursor-not-allowed text-primary font-bold' : ''}`}
             />
             {markups.find(m => m.id === markupSelecionado)?.tipo === 'sub_receita' && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -994,21 +1001,21 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
               });
               
               // Calculate profit metrics using unit cost (not affected by unit weight)
-              const lucroBrutoUnitario = precoNumerico - custoUnitario;
+              const lucroBrutoUnitario = precoParaCalculos - custoUnitario;
               
               // Lucro Líquido Real = Preço - (Custo + Encargos reais)
               // Usar o "Valor em real" da configuração do markup em vez do preço inserido pelo usuário
               const valorEmRealConfigurado = encargosDetalhados[markup.id]?.valorEmReal || 0;
-              const valorParaCalculo = valorEmRealConfigurado > 0 ? valorEmRealConfigurado : precoNumerico;
+              const valorParaCalculo = valorEmRealConfigurado > 0 ? valorEmRealConfigurado : precoParaCalculos;
               const gastosSobreFaturamento = (markup.gasto_sobre_faturamento || 0) / 100 * valorParaCalculo;
               const encargosSobreVenda = (markup.encargos_sobre_venda || 0) / 100 * valorParaCalculo;
               const encargosReaisTotal = gastosSobreFaturamento + encargosSobreVenda;
-              const lucroLiquidoReal = precoNumerico - custoUnitario - encargosReaisTotal;
-              const faturamentoBruto = precoNumerico;
+              const lucroLiquidoReal = precoParaCalculos - custoUnitario - encargosReaisTotal;
+              const faturamentoBruto = precoParaCalculos;
               
               // Calculate percentages
-              const lucroBrutoPercent = precoNumerico > 0 ? (lucroBrutoUnitario / precoNumerico) * 100 : 0;
-              const lucroLiquidoPercent = precoNumerico > 0 ? (lucroLiquidoReal / precoNumerico) * 100 : 0;
+              const lucroBrutoPercent = precoParaCalculos > 0 ? (lucroBrutoUnitario / precoParaCalculos) * 100 : 0;
+              const lucroLiquidoPercent = precoParaCalculos > 0 ? (lucroLiquidoReal / precoParaCalculos) * 100 : 0;
 
               const isSelected = markupSelecionado === markup.id;
 
