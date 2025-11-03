@@ -667,7 +667,44 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     });
   };
 
-  const removerBloco = (id: string) => {
+  const removerBloco = async (id: string) => {
+    if (!user?.id) return;
+
+    // Buscar o markup no banco para pegar o UUID real
+    const blocoParaRemover = blocos.find(b => b.id === id);
+    if (!blocoParaRemover) return;
+
+    const { data: markupParaDeletar } = await supabase
+      .from('markups')
+      .select('id, nome')
+      .eq('user_id', user.id)
+      .eq('nome', blocoParaRemover.nome)
+      .maybeSingle();
+    
+    if (markupParaDeletar) {
+      // Buscar receitas afetadas
+      const { data: receitasAfetadas } = await supabase
+        .from('receitas')
+        .select('id, nome')
+        .eq('user_id', user.id)
+        .eq('markup_id', markupParaDeletar.id);
+      
+      // Limpar markup_id das receitas afetadas
+      if (receitasAfetadas && receitasAfetadas.length > 0) {
+        await supabase
+          .from('receitas')
+          .update({ markup_id: null })
+          .eq('user_id', user.id)
+          .eq('markup_id', markupParaDeletar.id);
+        
+        toast({
+          title: "Markup removido",
+          description: `${receitasAfetadas.length} receita(s) foram atualizadas e não têm mais markup selecionado.`,
+        });
+      }
+    }
+    
+    // Remover do estado local e salvar
     const novosBlocos = blocos.filter(bloco => bloco.id !== id);
     setBlocos(novosBlocos);
     salvarBlocos(novosBlocos);

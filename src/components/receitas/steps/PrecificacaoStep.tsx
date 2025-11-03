@@ -551,7 +551,34 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
         }
 
         if (data?.markup_id) {
-          setMarkupSelecionado(data.markup_id);
+          // Validar se o markup ainda existe
+          const { data: markupExiste } = await supabase
+            .from('markups')
+            .select('id')
+            .eq('id', data.markup_id)
+            .eq('user_id', user.id)
+            .eq('ativo', true)
+            .maybeSingle();
+          
+          if (markupExiste) {
+            setMarkupSelecionado(data.markup_id);
+          } else {
+            // Markup foi deletado, limpar
+            console.warn('⚠️ Markup selecionado não existe mais, limpando...');
+            await supabase
+              .from('receitas')
+              .update({ markup_id: null })
+              .eq('id', receitaId)
+              .eq('user_id', user.id);
+            
+            setMarkupSelecionado('');
+            
+            toast({
+              title: "Markup removido",
+              description: "O markup selecionado foi removido. Selecione um novo markup.",
+              variant: "destructive",
+            });
+          }
         }
         
         if (data?.preco_venda && data.preco_venda > 0) {
@@ -628,8 +655,22 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
           table: 'markups',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('🔔 [RECEITAS] Real-time update nos markups:', payload);
+          
+          // Se um markup foi deletado, verificar se era o selecionado
+          if (payload.eventType === 'DELETE' && payload.old) {
+            const deletedMarkupId = (payload.old as any).id;
+            if (markupSelecionado === deletedMarkupId) {
+              console.warn('⚠️ Markup selecionado foi deletado em tempo real');
+              setMarkupSelecionado('');
+              toast({
+                title: "Markup removido",
+                description: "O markup selecionado foi removido. Selecione um novo markup.",
+                variant: "destructive",
+              });
+            }
+          }
           
           // Forçar recarregamento dos markups
           setMarkupsLoaded(false);
