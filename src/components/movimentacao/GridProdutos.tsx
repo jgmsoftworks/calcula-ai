@@ -40,7 +40,7 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
         return (
           <Card 
             key={produto.id}
-            className="cursor-pointer hover:shadow-xl hover:border-primary/50 transition-all duration-200 group h-[300px] flex flex-col"
+            className="cursor-pointer hover:shadow-xl hover:border-primary/50 transition-all duration-200 group w-[200px] h-[300px] flex flex-col"
             onClick={() => onSelectProduto(produto)}
           >
             <CardContent className="p-0 h-full flex flex-col">
