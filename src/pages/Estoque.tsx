@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CadastroProdutoForm } from '@/components/estoque/CadastroProdutoForm';
 import { ListaProdutos } from '@/components/estoque/ListaProdutos';
-import { HistoricoLista } from '@/components/estoque/HistoricoLista';
+import { Historico } from '@/components/estoque/Historico';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { ProductCounter } from '@/components/estoque/ProductCounter';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
@@ -57,7 +57,7 @@ const Estoque = () => {
 
         <TabsContent value="historico" className="space-y-4">
           <PlanRestrictedArea requiredPlan="professional" feature="Histórico completo de movimentações">
-            <HistoricoLista />
+            <Historico />
           </PlanRestrictedArea>
         </TabsContent>
       </Tabs>
