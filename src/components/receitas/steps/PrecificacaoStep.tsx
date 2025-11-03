@@ -1084,19 +1084,8 @@ export function PrecificacaoStep({ receitaData, receitaId, onReceitaDataChange }
                         </div>
                         
                         <div className="text-center p-3 bg-background rounded-lg border">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <p className="text-sm text-muted-foreground mb-1 cursor-help">
-                                Markup Atingido ℹ️
-                              </p>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Markup que você está atingindo com o preço de venda atual de {formatCurrency(precoVenda)}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <p className="text-lg font-bold text-primary">
+                          <p className="text-sm text-muted-foreground mb-1">Markup Atingido</p>
+                          <p className="text-lg font-bold text-secondary">
                             {markupAtingido > 0 ? `${markupAtingido.toLocaleString('pt-BR', { 
                               minimumFractionDigits: 4, 
                               maximumFractionDigits: 4 
