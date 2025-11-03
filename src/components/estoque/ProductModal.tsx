@@ -796,7 +796,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="un">Unidade (un.)</SelectItem>
-                        <SelectItem value="kg">Quilograma (kg)</SelectItem>
+                        <SelectItem value="kg">Quilo (k)</SelectItem>
                         <SelectItem value="g">Grama (g)</SelectItem>
                         <SelectItem value="fardo">Fardo</SelectItem>
                         <SelectItem value="l">Litro (l)</SelectItem>

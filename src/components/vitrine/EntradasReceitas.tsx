@@ -264,7 +264,7 @@ export function EntradasReceitas() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unidades">Unidades</SelectItem>
-                  <SelectItem value="kg">Quilogramas (kg)</SelectItem>
+                  <SelectItem value="kg">Quilo (k)</SelectItem>
                   <SelectItem value="g">Gramas (g)</SelectItem>
                   <SelectItem value="l">Litros (l)</SelectItem>
                   <SelectItem value="ml">Mililitros (ml)</SelectItem>
