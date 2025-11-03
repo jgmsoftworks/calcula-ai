@@ -31,7 +31,7 @@ export function GridProdutos({ produtos, origem, onSelectProduto }: GridProdutos
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 auto-rows-fr">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-2 auto-rows-fr">
       {produtos.map((produto) => {
         const valor = origem === 'estoque' ? produto.custo_unitario : produto.preco_venda;
         const semEstoque = produto.estoque_atual <= 0;
