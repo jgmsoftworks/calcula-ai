@@ -132,9 +132,23 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
   };
 
   const handleInputChange = (field: string, value: any) => {
+    // Lista de campos que devem ser sempre números
+    const numericFields = [
+      'custo_unitario', 'custo_total', 'estoque_atual', 
+      'estoque_minimo', 'total_embalagem',
+      'rotulo_kcal', 'rotulo_carb', 'rotulo_prot',
+      'rotulo_gord_total', 'rotulo_gord_sat', 
+      'rotulo_gord_trans', 'rotulo_fibra', 'rotulo_sodio'
+    ];
+    
+    // Se é campo numérico, converter para número
+    const finalValue = numericFields.includes(field) 
+      ? toSafeNumber(value, 0) 
+      : value;
+    
     setFormData((prev: any) => ({
       ...prev,
-      [field]: value
+      [field]: finalValue
     }));
   };
 
@@ -211,25 +225,41 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         payload.unidade = formData.unidade as Database['public']['Enums']['unidade_medida'];
       }
       
-      if (formData.custo_unitario !== originalData.custo_unitario) {
-        payload.custo_unitario = toSafeNumber(formData.custo_unitario, 0);
-        payload.custo_medio = toSafeNumber(formData.custo_unitario, 0);
+      // Comparar números normalizados
+      const custoAtual = toSafeNumber(formData.custo_unitario, 0);
+      const custoOriginal = toSafeNumber(originalData.custo_unitario, 0);
+      
+      if (custoAtual !== custoOriginal) {
+        payload.custo_unitario = custoAtual;
+        payload.custo_medio = custoAtual;
       }
 
-      if (formData.custo_total !== originalData.custo_total) {
-        payload.custo_total = toSafeNumber(formData.custo_total, 0);
+      const custoTotalAtual = toSafeNumber(formData.custo_total, 0);
+      const custoTotalOriginal = toSafeNumber(originalData.custo_total, 0);
+      
+      if (custoTotalAtual !== custoTotalOriginal) {
+        payload.custo_total = custoTotalAtual;
       }
       
-      if (formData.estoque_atual !== originalData.estoque_atual) {
-        payload.estoque_atual = toSafeNumber(formData.estoque_atual, 0);
+      const estoqueAtual = toSafeNumber(formData.estoque_atual, 0);
+      const estoqueOriginal = toSafeNumber(originalData.estoque_atual, 0);
+      
+      if (estoqueAtual !== estoqueOriginal) {
+        payload.estoque_atual = estoqueAtual;
       }
       
-      if (formData.estoque_minimo !== originalData.estoque_minimo) {
-        payload.estoque_minimo = toSafeNumber(formData.estoque_minimo, 0);
+      const estoqueMinimoAtual = toSafeNumber(formData.estoque_minimo, 0);
+      const estoqueMinimoOriginal = toSafeNumber(originalData.estoque_minimo, 0);
+      
+      if (estoqueMinimoAtual !== estoqueMinimoOriginal) {
+        payload.estoque_minimo = estoqueMinimoAtual;
       }
 
-      if (formData.total_embalagem !== originalData.total_embalagem) {
-        payload.total_embalagem = toSafeNumber(formData.total_embalagem, 1);
+      const totalEmbalagemAtual = toSafeNumber(formData.total_embalagem, 1);
+      const totalEmbalagemOriginal = toSafeNumber(originalData.total_embalagem, 1);
+      
+      if (totalEmbalagemAtual !== totalEmbalagemOriginal) {
+        payload.total_embalagem = totalEmbalagemAtual;
       }
       
       if (selectedImage !== originalData.imagem_url) {
@@ -248,8 +278,16 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       ];
       
       rotuloFields.forEach(field => {
-        if (formData[field] !== originalData[field]) {
-          payload[field] = formData[field] || null;
+        const valorAtual = field.startsWith('rotulo_') && field !== 'rotulo_porcao'
+          ? toSafeNumber(formData[field], 0)
+          : formData[field];
+          
+        const valorOriginal = field.startsWith('rotulo_') && field !== 'rotulo_porcao'
+          ? toSafeNumber(originalData[field], 0)
+          : originalData[field];
+        
+        if (valorAtual !== valorOriginal) {
+          payload[field] = valorAtual || null;
         }
       });
 
