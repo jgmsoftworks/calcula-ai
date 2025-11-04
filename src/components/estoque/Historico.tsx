@@ -28,9 +28,9 @@ export const Historico = () => {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   
   const [filtros, setFiltros] = useState({
-    produto_id: '',
-    tipo: '',
-    fornecedor_id: '',
+    produto_id: 'todos',
+    tipo: 'todos',
+    fornecedor_id: 'todos',
     data_inicial: '',
     data_final: ''
   });
@@ -77,9 +77,9 @@ export const Historico = () => {
   const handleFiltrar = () => {
     const filtrosAtivos: any = {};
     
-    if (filtros.produto_id) filtrosAtivos.produto_id = filtros.produto_id;
-    if (filtros.tipo) filtrosAtivos.tipo = filtros.tipo;
-    if (filtros.fornecedor_id) filtrosAtivos.fornecedor_id = filtros.fornecedor_id;
+    if (filtros.produto_id && filtros.produto_id !== 'todos') filtrosAtivos.produto_id = filtros.produto_id;
+    if (filtros.tipo && filtros.tipo !== 'todos') filtrosAtivos.tipo = filtros.tipo;
+    if (filtros.fornecedor_id && filtros.fornecedor_id !== 'todos') filtrosAtivos.fornecedor_id = filtros.fornecedor_id;
     if (filtros.data_inicial) filtrosAtivos.data_inicial = filtros.data_inicial;
     if (filtros.data_final) filtrosAtivos.data_final = filtros.data_final;
     
@@ -88,16 +88,16 @@ export const Historico = () => {
 
   const clearFilters = () => {
     setFiltros({
-      produto_id: '',
-      tipo: '',
-      fornecedor_id: '',
+      produto_id: 'todos',
+      tipo: 'todos',
+      fornecedor_id: 'todos',
       data_inicial: '',
       data_final: ''
     });
     refresh();
   };
 
-  const hasActiveFilters = Object.values(filtros).some(v => v !== '');
+  const hasActiveFilters = Object.values(filtros).some(v => v !== '' && v !== 'todos');
 
   const exportToCsv = () => {
     if (movimentacoes.length === 0) {
@@ -171,7 +171,7 @@ export const Historico = () => {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 {produtos.map(p => (
                   <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                 ))}
@@ -186,7 +186,7 @@ export const Historico = () => {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="entrada">Entrada</SelectItem>
                 <SelectItem value="saida">Saída</SelectItem>
               </SelectContent>
@@ -200,7 +200,7 @@ export const Historico = () => {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 {fornecedores.map(f => (
                   <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                 ))}

@@ -15,7 +15,7 @@ interface HistoricoMovimentacoesProps {
 
 export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProps) => {
   const [filtros, setFiltros] = useState({
-    tipo: '',
+    tipo: 'todos',
     data_inicial: '',
     data_final: ''
   });
@@ -28,7 +28,7 @@ export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProp
   const handleFiltrar = () => {
     const filtrosAtivos: any = {};
     
-    if (filtros.tipo) filtrosAtivos.tipo = filtros.tipo;
+    if (filtros.tipo && filtros.tipo !== 'todos') filtrosAtivos.tipo = filtros.tipo;
     if (filtros.data_inicial) filtrosAtivos.data_inicial = filtros.data_inicial;
     if (filtros.data_final) filtrosAtivos.data_final = filtros.data_final;
     
@@ -63,7 +63,7 @@ export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProp
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="entrada">Entrada</SelectItem>
               <SelectItem value="saida">Saída</SelectItem>
             </SelectContent>
