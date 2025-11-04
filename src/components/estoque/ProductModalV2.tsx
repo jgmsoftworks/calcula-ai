@@ -132,9 +132,9 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
   };
 
   const handleInputChange = (field: string, value: any) => {
-    // Lista de campos que devem ser sempre números
+    // Lista de campos que devem ser sempre números (REMOVIDO custo_unitario - tem handler dedicado)
     const numericFields = [
-      'custo_unitario', 'custo_total', 'estoque_atual', 
+      'custo_total', 'estoque_atual', 
       'estoque_minimo', 'total_embalagem',
       'rotulo_kcal', 'rotulo_carb', 'rotulo_prot',
       'rotulo_gord_total', 'rotulo_gord_sat', 
@@ -149,6 +149,24 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
     setFormData((prev: any) => ({
       ...prev,
       [field]: finalValue
+    }));
+  };
+
+  // ✅ NOVO: Handler dedicado e isolado para custo_unitario
+  const handleCustoUnitarioChange = (valor: number) => {
+    // Garantir que é sempre número válido
+    const custoValidado = toSafeNumber(valor, 0);
+    
+    console.log('[CUSTO_UNITARIO] Mudança detectada:', {
+      valorRecebido: valor,
+      valorValidado: custoValidado,
+      tipo: typeof custoValidado
+    });
+    
+    // Atualizar formData com valor garantidamente numérico
+    setFormData((prev) => ({
+      ...prev,
+      custo_unitario: custoValidado
     }));
   };
 
@@ -192,6 +210,19 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       return;
     }
 
+    // ✅ NOVO: Validação específica para custo_unitario antes de enviar
+    const custoValidacao = toSafeNumber(formData.custo_unitario, 0);
+    if (isNaN(custoValidacao) || !isFinite(custoValidacao)) {
+      toast({
+        title: "Erro de validação",
+        description: "Custo unitário com valor inválido. Por favor, verifique.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('[VALIDAÇÃO] Custo unitário validado:', custoValidacao);
+
     setLoading(true);
     try {
       // ✅ CONSTRUIR PAYLOAD POR DIFF (só campos que mudaram)
@@ -225,13 +256,27 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         payload.unidade = formData.unidade as Database['public']['Enums']['unidade_medida'];
       }
       
-      // Comparar números normalizados
-      const custoAtual = toSafeNumber(formData.custo_unitario, 0);
-      const custoOriginal = toSafeNumber(originalData.custo_unitario, 0);
-      
-      if (custoAtual !== custoOriginal) {
-        payload.custo_unitario = custoAtual;
-        payload.custo_medio = custoAtual;
+      // ✅ NOVO: Lógica reconstruída do zero para custo_unitario
+      const custoUnitarioAtual = toSafeNumber(formData.custo_unitario, 0);
+      const custoUnitarioOriginal = toSafeNumber(originalData.custo_unitario, 0);
+
+      console.log('[CUSTO_UNITARIO] Comparação para update:', {
+        atual: custoUnitarioAtual,
+        original: custoUnitarioOriginal,
+        mudou: custoUnitarioAtual !== custoUnitarioOriginal,
+        tipoAtual: typeof custoUnitarioAtual,
+        tipoOriginal: typeof custoUnitarioOriginal
+      });
+
+      // Só adiciona ao payload se REALMENTE mudou
+      if (custoUnitarioAtual !== custoUnitarioOriginal) {
+        payload.custo_unitario = custoUnitarioAtual;
+        payload.custo_medio = custoUnitarioAtual;
+        
+        console.log('[CUSTO_UNITARIO] Adicionado ao payload:', {
+          custo_unitario: payload.custo_unitario,
+          custo_medio: payload.custo_medio
+        });
       }
 
       const custoTotalAtual = toSafeNumber(formData.custo_total, 0);
@@ -570,15 +615,25 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
                   </Select>
                 </div>
 
+                {/* ✅ NOVO: Campo Custo Unitário com handler dedicado */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Custo Unitário</Label>
+                  <Label className="text-sm font-medium text-foreground">
+                    Custo Unitário
+                  </Label>
                   <NumericInputPtBr
                     tipo="valor"
-                    value={formData.custo_unitario}
-                    onChange={(valor) => handleInputChange('custo_unitario', valor)}
+                    value={toSafeNumber(formData.custo_unitario, 0)}
+                    onChange={handleCustoUnitarioChange}
                     min={0}
                     className="h-12 border-2 border-primary/30 focus:border-primary text-base px-4 rounded-lg text-center"
+                    placeholder="R$ 0,00"
                   />
+                  {/* Debug: Mostrar valor atual durante desenvolvimento */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <span className="text-xs text-muted-foreground">
+                      Valor: {formData.custo_unitario} (tipo: {typeof formData.custo_unitario})
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-2">
