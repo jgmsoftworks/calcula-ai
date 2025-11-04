@@ -370,6 +370,8 @@ const Movimentacao = () => {
 
       for (const item of carrinho) {
         await (supabase.from('movimentacoes_pdv') as any).insert({
+          user_id: user.id,
+          numero_comanda: numeroComanda,
           origem: item.origem,
           tipo: item.tipo,
           produto_id: item.produto_id,
@@ -427,6 +429,8 @@ const Movimentacao = () => {
           }
 
           await (supabase.from('movimentacoes') as any).insert({
+            user_id: user.id,
+            tipo: item.tipo,
             produto_id: item.produto_id,
             quantidade: item.quantidade,
             custo_unitario: item.valor_unitario,
@@ -453,6 +457,7 @@ const Movimentacao = () => {
           }
 
           await (supabase.from('movimentacoes_receitas') as any).insert({
+            user_id: user.id,
             receita_id: item.receita_id!,
             tipo: item.tipo === 'entrada' ? 'entrada' : 'venda',
             quantidade: item.quantidade,
