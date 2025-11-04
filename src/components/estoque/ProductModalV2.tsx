@@ -178,9 +178,9 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         payload.codigo_barras = filtrados.length > 0 ? filtrados : null;
       }
       
-      // ✅ UNIDADE: SÓ ENVIA SE MUDOU
+      // ✅ UNIDADE: SÓ ENVIA SE MUDOU (com cast correto para o ENUM)
       if (formData.unidade !== originalData.unidade) {
-        payload.unidade = formData.unidade;
+        payload.unidade = formData.unidade as Database['public']['Enums']['unidade_medida'];
       }
       
       if (formData.custo_unitario !== originalData.custo_unitario) {
