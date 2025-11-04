@@ -303,7 +303,7 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-8">
             <DialogTitle className="text-2xl font-bold text-primary">
               Editar Produto
             </DialogTitle>
