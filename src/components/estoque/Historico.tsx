@@ -281,10 +281,10 @@ export const Historico = () => {
                     </TableCell>
                     <TableCell>{getTipoBadge(mov.tipo)}</TableCell>
                     <TableCell className="font-medium">{mov.produtos?.nome || '-'}</TableCell>
-                    <TableCell>{mov.quantidade.toFixed(3)}</TableCell>
+                    <TableCell>{mov.quantidade ? mov.quantidade.toFixed(3) : '0.000'}</TableCell>
                     <TableCell>{mov.produtos?.unidade || '-'}</TableCell>
-                    <TableCell>R$ {mov.custo_unitario.toFixed(2)}</TableCell>
-                    <TableCell>R$ {(mov.quantidade * mov.custo_unitario).toFixed(2)}</TableCell>
+                    <TableCell>R$ {mov.custo_unitario ? mov.custo_unitario.toFixed(2) : '0.00'}</TableCell>
+                    <TableCell>R$ {(mov.quantidade && mov.custo_unitario) ? (mov.quantidade * mov.custo_unitario).toFixed(2) : '0.00'}</TableCell>
                     <TableCell>{mov.fornecedores?.nome || '-'}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{mov.observacao || '-'}</TableCell>
                   </TableRow>

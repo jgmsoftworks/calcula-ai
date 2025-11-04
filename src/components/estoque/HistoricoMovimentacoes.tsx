@@ -136,9 +136,9 @@ export const HistoricoMovimentacoes = ({ produtoId }: HistoricoMovimentacoesProp
                     {formatTimeBrasilia(mov.created_at)}
                   </TableCell>
                   <TableCell>{getTipoBadge(mov.tipo)}</TableCell>
-                  <TableCell className="text-xs">{mov.quantidade.toFixed(3)}</TableCell>
-                  <TableCell className="text-xs">R$ {mov.custo_unitario.toFixed(2)}</TableCell>
-                  <TableCell className="text-xs">R$ {(mov.quantidade * mov.custo_unitario).toFixed(2)}</TableCell>
+                  <TableCell className="text-xs">{mov.quantidade ? mov.quantidade.toFixed(3) : '0.000'}</TableCell>
+                  <TableCell className="text-xs">R$ {mov.custo_unitario ? mov.custo_unitario.toFixed(2) : '0.00'}</TableCell>
+                  <TableCell className="text-xs">R$ {(mov.quantidade && mov.custo_unitario) ? (mov.quantidade * mov.custo_unitario).toFixed(2) : '0.00'}</TableCell>
                   <TableCell className="text-xs">{mov.fornecedores?.nome || '-'}</TableCell>
                   <TableCell className="text-xs max-w-[150px] truncate">{mov.observacao || '-'}</TableCell>
                 </TableRow>
