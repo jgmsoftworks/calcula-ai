@@ -19,7 +19,7 @@ import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 import { Produto } from './CadastroProdutos';
 import { ModoUsoTab } from './ModoUsoTab';
-import { formatters } from '@/lib/formatters';
+import { formatters, toSafeNumber } from '@/lib/formatters';
 
 interface Fornecedor {
   id: string;
@@ -208,7 +208,7 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     }
     
     if (field === 'custo_unitario' || field === 'estoque_atual' || field === 'estoque_minimo') {
-      value = Number(value) || 0;
+      value = toSafeNumber(value, 0);
     }
     
     setFormData(prev => ({
@@ -362,12 +362,12 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         categoria: formData.categorias.length > 0 ? formData.categorias[0] : null,
         codigo_interno: formData.codigo_interno?.trim() || null,
         codigo_barras: codigosBarrasFiltrados.length > 0 ? codigosBarrasFiltrados : null,
-        total_embalagem: Number(formData.total_embalagem) || 1,
-        custo_unitario: Number(formData.custo_unitario),
-        custo_medio: Number(formData.custo_unitario),
-        custo_total: Number(formData.custo_total) || 0,
-        estoque_atual: Number(formData.estoque_atual),
-        estoque_minimo: Number(formData.estoque_minimo),
+        total_embalagem: toSafeNumber(formData.total_embalagem, 1),
+        custo_unitario: toSafeNumber(formData.custo_unitario, 0),
+        custo_medio: toSafeNumber(formData.custo_unitario, 0),
+        custo_total: toSafeNumber(formData.custo_total, 0),
+        estoque_atual: toSafeNumber(formData.estoque_atual, 0),
+        estoque_minimo: toSafeNumber(formData.estoque_minimo, 0),
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
         imagem_url: selectedImage,
         ativo: formData.ativo,

@@ -16,7 +16,7 @@ import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { ModoUsoTab } from './ModoUsoTab';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
-import { formatters } from '@/lib/formatters';
+import { formatters, toSafeNumber } from '@/lib/formatters';
 
 interface Fornecedor {
   id: string;
@@ -250,11 +250,11 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
         unidade: formData.unidade,
         total_embalagem: 1,
-        custo_unitario: formData.custo_unitario,
-        custo_total: formData.estoque_atual * formData.custo_unitario,
-        custo_medio: formData.custo_unitario,
-        estoque_atual: formData.estoque_atual,
-        estoque_minimo: formData.estoque_minimo,
+        custo_unitario: toSafeNumber(formData.custo_unitario, 0),
+        custo_total: toSafeNumber(formData.estoque_atual, 0) * toSafeNumber(formData.custo_unitario, 0),
+        custo_medio: toSafeNumber(formData.custo_unitario, 0),
+        estoque_atual: toSafeNumber(formData.estoque_atual, 0),
+        estoque_minimo: toSafeNumber(formData.estoque_minimo, 0),
         fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
         imagem_url: selectedImage,
         user_id: user?.id,

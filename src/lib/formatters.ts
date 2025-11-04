@@ -41,6 +41,27 @@ export const parsePtBrNumber = (value: string | number): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+/**
+ * Converte qualquer valor para número válido para o banco
+ * Garante que nunca retorna NaN, null ou undefined
+ */
+export const toSafeNumber = (value: any, defaultValue: number = 0): number => {
+  // Se já é número válido, retorna
+  if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+    return value;
+  }
+  
+  // Se é string, tenta converter
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^\d,.-]/g, '').replace(',', '.');
+    const parsed = parseFloat(cleaned);
+    return !isNaN(parsed) && isFinite(parsed) ? parsed : defaultValue;
+  }
+  
+  // Para qualquer outro caso (null, undefined, etc)
+  return defaultValue;
+};
+
 // Validador por tipo
 export const validateNumericInput = (
   value: number,

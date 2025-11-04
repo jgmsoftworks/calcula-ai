@@ -99,9 +99,13 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
       
       setDisplayValue(filtered);
       
-      // Callback com valor numérico
+      // Callback com valor numérico (sempre válido)
       const numericValue = parseInput(filtered);
-      onChange(numericValue);
+      if (!isNaN(numericValue) && isFinite(numericValue)) {
+        onChange(numericValue);
+      } else {
+        onChange(0); // Fallback seguro
+      }
     };
 
     const handleFocus = () => {

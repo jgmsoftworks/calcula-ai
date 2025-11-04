@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toSafeNumber } from '@/lib/formatters';
 
 interface Produto {
   id: string;
@@ -105,7 +106,7 @@ export const Saidas = () => {
       return;
     }
 
-    const quantidade = parseFloat(formData.quantidade);
+    const quantidade = toSafeNumber(formData.quantidade, 0);
 
     if (quantidade <= 0) {
       toast({

@@ -18,6 +18,7 @@ import { ModoUsoTab } from './ModoUsoTab';
 import { HistoricoMovimentacoes } from './HistoricoMovimentacoes';
 import { Produto } from './CadastroProdutos';
 import { resizeImageToSquare } from '@/lib/imageUtils';
+import { toSafeNumber } from '@/lib/formatters';
 
 interface ProductModalV2Props {
   isOpen: boolean;
@@ -26,10 +27,36 @@ interface ProductModalV2Props {
   onSave: () => void;
 }
 
+interface FormDataType {
+  nome: string;
+  marcas: string[];
+  categorias: string[];
+  codigo_interno: string;
+  codigos_barras: string[];
+  unidade: Database['public']['Enums']['unidade_medida'];
+  total_embalagem: number;
+  custo_unitario: number;
+  custo_total: number;
+  estoque_atual: number;
+  estoque_minimo: number;
+  fornecedor_ids: string[];
+  ativo: boolean;
+  imagem_url: string | null;
+  rotulo_porcao: string;
+  rotulo_kcal: number;
+  rotulo_carb: number;
+  rotulo_prot: number;
+  rotulo_gord_total: number;
+  rotulo_gord_sat: number;
+  rotulo_gord_trans: number;
+  rotulo_fibra: number;
+  rotulo_sodio: number;
+}
+
 export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModalV2Props) => {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<any>({});
-  const [originalData, setOriginalData] = useState<any>({});
+  const [formData, setFormData] = useState<FormDataType>({} as FormDataType);
+  const [originalData, setOriginalData] = useState<FormDataType>({} as FormDataType);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [conversaoData, setConversaoData] = useState<any>(null);
 
@@ -38,29 +65,30 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
 
   useEffect(() => {
     if (product) {
-      const initialData = {
+      const initialData: FormDataType = {
         nome: product.nome || '',
         marcas: product.marcas || [],
         categorias: product.categorias || [],
         codigo_interno: product.codigo_interno || '',
         codigos_barras: product.codigo_barras && product.codigo_barras.length > 0 ? product.codigo_barras : [''],
-        unidade: product.unidade,
-        total_embalagem: product.total_embalagem || 1,
-        custo_unitario: product.custo_unitario || 0,
-        custo_total: product.custo_total || 0,
-        estoque_atual: product.estoque_atual || 0,
-        estoque_minimo: product.estoque_minimo || 0,
+        unidade: product.unidade as Database['public']['Enums']['unidade_medida'],
+        total_embalagem: toSafeNumber(product.total_embalagem, 1),
+        custo_unitario: toSafeNumber(product.custo_unitario, 0),
+        custo_total: toSafeNumber(product.custo_total, 0),
+        estoque_atual: toSafeNumber(product.estoque_atual, 0),
+        estoque_minimo: toSafeNumber(product.estoque_minimo, 0),
         fornecedor_ids: product.fornecedor_ids || [],
         ativo: product.ativo,
+        imagem_url: product.imagem_url || null,
         rotulo_porcao: product.rotulo_porcao || '',
-        rotulo_kcal: product.rotulo_kcal || 0,
-        rotulo_carb: product.rotulo_carb || 0,
-        rotulo_prot: product.rotulo_prot || 0,
-        rotulo_gord_total: product.rotulo_gord_total || 0,
-        rotulo_gord_sat: product.rotulo_gord_sat || 0,
-        rotulo_gord_trans: product.rotulo_gord_trans || 0,
-        rotulo_fibra: product.rotulo_fibra || 0,
-        rotulo_sodio: product.rotulo_sodio || 0
+        rotulo_kcal: toSafeNumber(product.rotulo_kcal, 0),
+        rotulo_carb: toSafeNumber(product.rotulo_carb, 0),
+        rotulo_prot: toSafeNumber(product.rotulo_prot, 0),
+        rotulo_gord_total: toSafeNumber(product.rotulo_gord_total, 0),
+        rotulo_gord_sat: toSafeNumber(product.rotulo_gord_sat, 0),
+        rotulo_gord_trans: toSafeNumber(product.rotulo_gord_trans, 0),
+        rotulo_fibra: toSafeNumber(product.rotulo_fibra, 0),
+        rotulo_sodio: toSafeNumber(product.rotulo_sodio, 0)
       };
       
       setFormData(initialData);
@@ -184,16 +212,24 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       }
       
       if (formData.custo_unitario !== originalData.custo_unitario) {
-        payload.custo_unitario = Number(formData.custo_unitario);
-        payload.custo_medio = Number(formData.custo_unitario);
+        payload.custo_unitario = toSafeNumber(formData.custo_unitario, 0);
+        payload.custo_medio = toSafeNumber(formData.custo_unitario, 0);
+      }
+
+      if (formData.custo_total !== originalData.custo_total) {
+        payload.custo_total = toSafeNumber(formData.custo_total, 0);
       }
       
       if (formData.estoque_atual !== originalData.estoque_atual) {
-        payload.estoque_atual = Number(formData.estoque_atual);
+        payload.estoque_atual = toSafeNumber(formData.estoque_atual, 0);
       }
       
       if (formData.estoque_minimo !== originalData.estoque_minimo) {
-        payload.estoque_minimo = Number(formData.estoque_minimo);
+        payload.estoque_minimo = toSafeNumber(formData.estoque_minimo, 0);
+      }
+
+      if (formData.total_embalagem !== originalData.total_embalagem) {
+        payload.total_embalagem = toSafeNumber(formData.total_embalagem, 1);
       }
       
       if (selectedImage !== originalData.imagem_url) {
