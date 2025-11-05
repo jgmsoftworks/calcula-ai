@@ -1,6 +1,7 @@
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { resizeImageToSquare } from '@/lib/imageUtils';
 
 export interface Produto {
   id: string;
@@ -178,6 +179,86 @@ export function useEstoque() {
     return true;
   };
 
+  const uploadImagemProduto = async (file: File, produtoId: string): Promise<string | null> => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return null;
+    }
+
+    try {
+      console.log('📸 [UPLOAD] Iniciando compressão da imagem...');
+      
+      // Criar data URL do arquivo
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Comprimir imagem para 512x512, JPEG, qualidade 0.9
+      const compressedDataUrl = await resizeImageToSquare(dataUrl, 512, 0.9);
+      
+      // Converter data URL para blob
+      const response = await fetch(compressedDataUrl);
+      const blob = await response.blob();
+      
+      const fileSizeKB = (blob.size / 1024).toFixed(2);
+      console.log(`📸 [UPLOAD] Imagem comprimida: ${fileSizeKB} KB`);
+
+      // Nome do arquivo: userId/produtoId.jpg
+      const filePath = `${user.id}/${produtoId}.jpg`;
+
+      // Upload para Storage
+      const { error: uploadError } = await supabase.storage
+        .from('produtos-fotos')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true, // Sobrescrever se já existir
+        });
+
+      if (uploadError) {
+        console.error('❌ [UPLOAD] Erro:', uploadError);
+        toast.error('Erro ao fazer upload da imagem');
+        return null;
+      }
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('produtos-fotos')
+        .getPublicUrl(filePath);
+
+      console.log('✅ [UPLOAD] Sucesso! URL:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ [UPLOAD] Erro ao processar imagem:', error);
+      toast.error('Erro ao processar imagem');
+      return null;
+    }
+  };
+
+  const deleteImagemProduto = async (produtoId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const filePath = `${user.id}/${produtoId}.jpg`;
+      
+      const { error } = await supabase.storage
+        .from('produtos-fotos')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Erro ao deletar imagem:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar imagem:', error);
+      return false;
+    }
+  };
+
   const fetchHistoricoProduto = async (produtoId: string) => {
     if (!user) return [];
 
@@ -203,5 +284,7 @@ export function useEstoque() {
     updateProduto,
     deleteProduto,
     fetchHistoricoProduto,
+    uploadImagemProduto,
+    deleteImagemProduto,
   };
 }

@@ -38,8 +38,10 @@ interface ProdutoFormProps {
 }
 
 export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoFormProps) {
-  const { gerarCodigoInterno, createProduto, updateProduto } = useEstoque();
+  const { gerarCodigoInterno, createProduto, updateProduto, uploadImagemProduto } = useEstoque();
   const [saving, setSaving] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // Ensure all values are valid before setting as defaults
   const defaultValues = produto ? {
@@ -120,6 +122,10 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
         console.log('✅ [RESET] Executando reset com formData:', formData);
         reset(formData);
         
+        // Carregar preview da imagem existente
+        setImagePreview(produto.imagem_url || null);
+        setSelectedImageFile(null);
+        
         // Verificar se dados foram setados corretamente
         setTimeout(() => {
           console.log('🎯 [VERIFICAÇÃO] Após reset - imagem_url:', watch('imagem_url'));
@@ -131,6 +137,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
         console.log('➕ [NOVO] Criando novo produto');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         reset(defaultValues);
+        setImagePreview(null);
+        setSelectedImageFile(null);
         loadCodigoInterno();
       }
     }
@@ -154,16 +162,41 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
     setSaving(true);
 
-    const result = produto
-      ? await updateProduto(produto.id, data)
-      : await createProduto(data);
+    try {
+      // Primeiro criar/atualizar o produto (sem imagem)
+      const produtoData = { ...data };
+      delete produtoData.imagem_url; // Remover imagem_url temporariamente
 
-    setSaving(false);
+      const result = produto
+        ? await updateProduto(produto.id, produtoData)
+        : await createProduto(produtoData);
 
-    if (result) {
+      if (!result) {
+        setSaving(false);
+        return;
+      }
+
+      // Se há arquivo de imagem selecionado, fazer upload
+      if (selectedImageFile) {
+        console.log('📸 [SUBMIT] Fazendo upload da imagem...');
+        const imageUrl = await uploadImagemProduto(selectedImageFile, result.id);
+        
+        if (imageUrl) {
+          // Atualizar produto com URL da imagem
+          await updateProduto(result.id, { imagem_url: imageUrl });
+          console.log('✅ [SUBMIT] Imagem salva com sucesso!');
+        }
+      }
+
+      setSaving(false);
       reset();
+      setImagePreview(null);
+      setSelectedImageFile(null);
       onOpenChange(false);
       onSuccess();
+    } catch (error) {
+      console.error('❌ [SUBMIT] Erro ao salvar produto:', error);
+      setSaving(false);
     }
   };
 
@@ -178,10 +211,6 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
           <DialogTitle>
             {produto ? 'Editar Produto' : 'Criar Produto'}
           </DialogTitle>
-          {/* INDICADOR VISUAL - SE VOCÊ VER ISSO, VERSÃO 04:35 CARREGOU! */}
-          <div className="bg-green-500 text-white p-4 rounded-lg font-bold text-center mt-2 text-lg">
-            ✅ VERSÃO 04:35 CARREGADA - CAMPO DE FOTO ATIVO
-          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -195,45 +224,58 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsList>
 
             <TabsContent value="estoque" className="space-y-4 mt-4">
-              {/* CAMPO DE FOTO - SUPER DESTACADO COM BORDA VERDE - VERSÃO 04:35 */}
-              <div className="border-4 border-green-500 rounded-lg p-6 bg-green-50 dark:bg-green-950/30">
-                <div className="text-xl font-bold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
-                  📸 CAMPO DE FOTO DO PRODUTO (VERSÃO 04:35)
+              {/* CAMPO DE FOTO - STORAGE + COMPRESSÃO */}
+              <div className="border-2 border-primary/20 rounded-lg p-6 bg-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">📸</span>
+                  <Label htmlFor="imagem" className="text-base font-semibold">
+                    Foto do Produto
+                  </Label>
                 </div>
-                <Label htmlFor="imagem" className="text-base font-semibold text-green-800 dark:text-green-300">
-                  Selecione uma imagem do produto
-                </Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  A imagem será comprimida automaticamente para otimizar o armazenamento (512x512px, JPEG).
+                </p>
                 <Input
                   id="imagem"
                   type="file"
                   accept="image/*"
-                  className="mt-3 cursor-pointer border-2 border-green-500 bg-white dark:bg-background h-12 text-base"
+                  className="mt-2 cursor-pointer"
                   onChange={(e) => {
-                    console.log('📸 [FILE INPUT] Evento onChange disparado - VERSÃO 04:35');
                     const file = e.target.files?.[0];
                     if (file) {
-                      console.log('📸 [FILE] Arquivo selecionado:', file.name, file.size, 'bytes');
+                      console.log('📸 [FILE] Arquivo selecionado:', file.name, (file.size / 1024).toFixed(2), 'KB');
+                      setSelectedImageFile(file);
+                      
+                      // Criar preview local
                       const reader = new FileReader();
                       reader.onloadend = () => {
-                        const base64 = reader.result as string;
-                        console.log('📸 [BASE64] Tamanho:', base64.length, 'caracteres');
-                        setValue('imagem_url', base64);
-                        console.log('📸 [SET] imagem_url atualizada no formulário');
-                      };
-                      reader.onerror = () => {
-                        console.error('❌ [IMAGEM] Erro ao ler arquivo');
+                        setImagePreview(reader.result as string);
                       };
                       reader.readAsDataURL(file);
                     }
                   }}
                 />
-                {watch('imagem_url') && (
-                  <div className="mt-4 p-3 bg-white dark:bg-background rounded-lg border-2 border-green-500">
-                    <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">✅ Preview da Imagem:</p>
+                {imagePreview && (
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold">Preview:</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setImagePreview(null);
+                          setSelectedImageFile(null);
+                          setValue('imagem_url', null);
+                        }}
+                      >
+                        Remover
+                      </Button>
+                    </div>
                     <img 
-                      src={watch('imagem_url') || ''} 
+                      src={imagePreview} 
                       alt="Preview do produto" 
-                      className="w-64 h-64 object-cover rounded-lg border-4 border-green-500 shadow-lg"
+                      className="w-48 h-48 object-cover rounded-lg border-2 border-primary/30"
                     />
                   </div>
                 )}
