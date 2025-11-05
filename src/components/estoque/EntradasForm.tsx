@@ -166,36 +166,72 @@ export const EntradasForm = () => {
 
         if (movError) throw movError;
 
-        // Atualizar estoque do produto
+        // ✅ BUSCAR PRODUTO COMPLETO PARA USAR NA RPC
         const { data: produto, error: prodError } = await supabase
           .from('produtos')
-          .select('estoque_atual, custo_medio')
+          .select('*')
           .eq('id', item.produto_id)
           .single();
 
         if (prodError) throw prodError;
 
+        // Calcular novos valores
         const novoEstoque = (produto.estoque_atual || 0) + item.quantidade;
         
-        // Calcular novo custo médio
         const valorEstoqueAtual = (produto.estoque_atual || 0) * (produto.custo_medio || 0);
         const valorEntrada = item.quantidade * item.custo_unitario;
-        const novoCustoMedio = novoEstoque > 0 ? (valorEstoqueAtual + valorEntrada) / novoEstoque : item.custo_unitario;
+        const novoCustoMedio = novoEstoque > 0 
+          ? (valorEstoqueAtual + valorEntrada) / novoEstoque 
+          : item.custo_unitario;
 
-        // Atualizar custo total baseado no novo custo médio
         const novoCustoTotal = novoEstoque * novoCustoMedio;
 
-        const { error: updateError } = await supabase
-          .from('produtos')
-          .update({ 
-            estoque_atual: novoEstoque,
-            custo_medio: novoCustoMedio,
-            custo_total: novoCustoTotal,
-            custo_unitario: item.custo_unitario
-          })
-          .eq('id', item.produto_id);
+        console.log('[ENTRADA] Calculando novos valores:', {
+          estoqueAnterior: produto.estoque_atual,
+          quantidadeEntrada: item.quantidade,
+          novoEstoque,
+          custoMedioAnterior: produto.custo_medio,
+          novoCustoMedio,
+          novoCustoTotal
+        });
 
-        if (updateError) throw updateError;
+        // ✅ USAR RPC PARA ATUALIZAR COM CAST CORRETO
+        const { error: updateError } = await supabase
+          .rpc('update_produto_with_cast', {
+            p_id: item.produto_id,
+            p_nome: produto.nome,
+            p_marcas: produto.marcas,
+            p_categorias: produto.categorias,
+            p_categoria: produto.categoria,
+            p_codigo_interno: produto.codigo_interno,
+            p_codigo_barras: produto.codigo_barras,
+            p_unidade: produto.unidade, // ✅ RPC fará o cast
+            p_total_embalagem: produto.total_embalagem ?? 1,
+            p_custo_unitario: item.custo_unitario, // ✅ Atualiza com custo da entrada
+            p_custo_medio: novoCustoMedio, // ✅ Novo custo médio calculado
+            p_custo_total: novoCustoTotal, // ✅ Novo custo total
+            p_estoque_atual: novoEstoque, // ✅ Estoque incrementado
+            p_estoque_minimo: produto.estoque_minimo ?? 0,
+            p_fornecedor_ids: produto.fornecedor_ids,
+            p_imagem_url: produto.imagem_url,
+            p_ativo: produto.ativo ?? true,
+            p_rotulo_porcao: produto.rotulo_porcao,
+            p_rotulo_kcal: produto.rotulo_kcal,
+            p_rotulo_carb: produto.rotulo_carb,
+            p_rotulo_prot: produto.rotulo_prot,
+            p_rotulo_gord_total: produto.rotulo_gord_total,
+            p_rotulo_gord_sat: produto.rotulo_gord_sat,
+            p_rotulo_gord_trans: produto.rotulo_gord_trans,
+            p_rotulo_fibra: produto.rotulo_fibra,
+            p_rotulo_sodio: produto.rotulo_sodio
+          });
+
+        if (updateError) {
+          console.error('[ENTRADA] Erro ao atualizar produto via RPC:', updateError);
+          throw updateError;
+        }
+
+        console.log('[ENTRADA] Estoque atualizado com sucesso via RPC');
 
         // Recalcular custo_unitario_uso na tabela produto_conversoes
         const { data: conversao, error: convError } = await supabase

@@ -146,10 +146,32 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       ? toSafeNumber(value, 0) 
       : value;
     
-    setFormData((prev: any) => ({
-      ...prev,
-      [field]: finalValue
-    }));
+    setFormData((prev: any) => {
+      const novoFormData = {
+        ...prev,
+        [field]: finalValue
+      };
+      
+      // ✅ RECALCULAR CUSTO_TOTAL AUTOMATICAMENTE
+      if (field === 'custo_unitario' || field === 'estoque_atual') {
+        const custoUnit = field === 'custo_unitario' 
+          ? finalValue 
+          : toSafeNumber(prev.custo_unitario, 0);
+        const estoque = field === 'estoque_atual' 
+          ? finalValue 
+          : toSafeNumber(prev.estoque_atual, 0);
+        
+        novoFormData.custo_total = custoUnit * estoque;
+        
+        console.log('[AUTO-CALC] Custo total recalculado:', {
+          custo_unitario: custoUnit,
+          estoque_atual: estoque,
+          custo_total: novoFormData.custo_total
+        });
+      }
+      
+      return novoFormData;
+    });
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,12 +320,49 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         return;
       }
 
-      const { error } = await supabase
-        .from('produtos')
-        .update(payload)
-        .eq('id', product!.id);
+      // ✅ USAR RPC COM CAST EXPLÍCITO
+      // Preparar todos os campos (atuais + alterações)
+      const custoFinal = payload.custo_unitario ?? formData.custo_unitario ?? 0;
+      const produtoCompleto = {
+        p_id: product!.id,
+        p_nome: payload.nome ?? formData.nome,
+        p_marcas: payload.marcas ?? formData.marcas ?? null,
+        p_categorias: payload.categorias ?? formData.categorias ?? null,
+        p_categoria: (payload.categoria ?? (formData.categorias && formData.categorias.length > 0 ? formData.categorias[0] : null)) ?? null,
+        p_codigo_interno: payload.codigo_interno ?? formData.codigo_interno ?? null,
+        p_codigo_barras: payload.codigo_barras ?? formData.codigos_barras ?? null,
+        p_unidade: payload.unidade ?? formData.unidade, // String será convertida para enum na RPC
+        p_total_embalagem: payload.total_embalagem ?? formData.total_embalagem ?? 1,
+        p_custo_unitario: custoFinal,
+        p_custo_medio: custoFinal, // Usar mesmo valor do custo unitário
+        p_custo_total: payload.custo_total ?? (custoFinal * (payload.estoque_atual ?? formData.estoque_atual)), // ✅ RECALCULA AUTOMATICAMENTE
+        p_estoque_atual: payload.estoque_atual ?? formData.estoque_atual ?? 0,
+        p_estoque_minimo: payload.estoque_minimo ?? formData.estoque_minimo ?? 0,
+        p_fornecedor_ids: formData.fornecedor_ids ?? null,
+        p_imagem_url: payload.imagem_url ?? formData.imagem_url ?? null,
+        p_ativo: payload.ativo ?? formData.ativo ?? true,
+        p_rotulo_porcao: payload.rotulo_porcao ?? formData.rotulo_porcao ?? null,
+        p_rotulo_kcal: payload.rotulo_kcal ?? formData.rotulo_kcal ?? null,
+        p_rotulo_carb: payload.rotulo_carb ?? formData.rotulo_carb ?? null,
+        p_rotulo_prot: payload.rotulo_prot ?? formData.rotulo_prot ?? null,
+        p_rotulo_gord_total: payload.rotulo_gord_total ?? formData.rotulo_gord_total ?? null,
+        p_rotulo_gord_sat: payload.rotulo_gord_sat ?? formData.rotulo_gord_sat ?? null,
+        p_rotulo_gord_trans: payload.rotulo_gord_trans ?? formData.rotulo_gord_trans ?? null,
+        p_rotulo_fibra: payload.rotulo_fibra ?? formData.rotulo_fibra ?? null,
+        p_rotulo_sodio: payload.rotulo_sodio ?? formData.rotulo_sodio ?? null
+      };
 
-      if (error) throw error;
+      console.log('[RPC] Chamando update_produto_with_cast:', produtoCompleto);
+
+      const { error } = await supabase
+        .rpc('update_produto_with_cast', produtoCompleto);
+
+      if (error) {
+        console.error('[RPC] Erro ao atualizar produto:', error);
+        throw error;
+      }
+
+      console.log('[RPC] Produto atualizado com sucesso');
 
       // Salvar conversão se houver
       if (conversaoData && user) {
@@ -334,9 +393,16 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       onSave();
       onClose();
     } catch (error: any) {
-      const errorMessage = error.code === '42804' 
-        ? "Erro de tipo de dados. Verifique os campos." 
-        : error.message || "Erro ao atualizar produto";
+      console.error('[ERRO] Falha ao atualizar produto:', error);
+      
+      let errorMessage = error.message || "Erro ao atualizar produto";
+      
+      // Mensagens específicas para erros conhecidos
+      if (error.code === '42804') {
+        errorMessage = "Erro de tipo de dados. Verifique a unidade de medida.";
+      } else if (error.message?.includes('success')) {
+        errorMessage = "Falha na operação: " + error.message;
+      }
       
       toast({
         title: "Erro ao atualizar produto",
