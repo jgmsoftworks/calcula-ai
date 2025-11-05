@@ -44,7 +44,9 @@ export function ListaProdutos() {
       unidade: unidadeFiltro || undefined,
       abaixoMinimo,
     });
-    setProdutos(data);
+    if (data) {
+      setProdutos(data as unknown as Produto[]);
+    }
     setLoading(false);
   };
 

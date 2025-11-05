@@ -25,7 +25,7 @@ export function CategoriasModal({ open, onOpenChange }: CategoriasModalProps) {
 
   const loadCategorias = async () => {
     const data = await fetchCategorias();
-    setCategorias(data);
+    setCategorias(data as Categoria[]);
   };
 
   useEffect(() => {

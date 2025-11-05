@@ -24,7 +24,7 @@ export function CategoriasSelector({ value, onChange }: CategoriasSelectorProps)
 
   const loadCategorias = async () => {
     const data = await fetchCategorias();
-    setCategorias(data);
+    setCategorias(data as { id: string; nome: string }[]);
   };
 
   useEffect(() => {

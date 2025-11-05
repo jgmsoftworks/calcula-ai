@@ -189,10 +189,10 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Custo Unitário *</Label>
                   <NumericInputPtBr
+                    tipo="valor"
                     value={custo_unitario}
                     onChange={(v) => setValue('custo_unitario', v)}
                     placeholder="0,00"
-                    isCurrency
                   />
                 </div>
 
@@ -210,6 +210,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Estoque Atual *</Label>
                   <NumericInputPtBr
+                    tipo="quantidade_continua"
                     value={estoque_atual}
                     onChange={(v) => setValue('estoque_atual', v)}
                     placeholder="0"
@@ -219,6 +220,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Estoque Mínimo</Label>
                   <NumericInputPtBr
+                    tipo="quantidade_continua"
                     value={watch('estoque_minimo') || 0}
                     onChange={(v) => setValue('estoque_minimo', v)}
                     placeholder="0"
@@ -258,6 +260,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Fator de Conversão</Label>
                   <NumericInputPtBr
+                    tipo="quantidade_continua"
                     value={fator_conversao || 0}
                     onChange={(v) => setValue('fator_conversao', v || null)}
                     placeholder="Ex: 24"

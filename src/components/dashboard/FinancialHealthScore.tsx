@@ -96,20 +96,14 @@ export const FinancialHealthScore = () => {
         }
       }
 
-      // 2. Diversificação de Produtos
-      const { data: produtos } = await supabase
-        .from('produtos')
-        .select('id, categorias')
-        .eq('user_id', user.id)
-        .eq('ativo', true);
+      // 2. Diversificação de Produtos - TEMPORARIAMENTE DESABILITADO
+      // (Sistema de estoque foi reconstruído, esta métrica será reimplementada)
+      let diversificacaoScore = 70;
+      let diversificacaoStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
+      let diversificacaoDesc = 'Análise temporariamente indisponível';
 
-      let diversificacaoScore = 0;
-      let diversificacaoStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'critical';
-      let diversificacaoDesc = 'Sem produtos cadastrados';
-
-      if (produtos && produtos.length > 0) {
-        const categorias = new Set(produtos.flatMap(p => p.categorias || []));
-        const numCategorias = categorias.size;
+      if (false) {
+        const numCategorias = 0;
 
         if (numCategorias >= 5) {
           diversificacaoScore = 100;
@@ -130,27 +124,14 @@ export const FinancialHealthScore = () => {
         }
       }
 
-      // 3. Consistência de Custos (variação < 20% = bom)
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: movimentacoes } = await supabase
-        .from('movimentacoes')
-        .select('produto_id, custo_unitario, tipo')
-        .eq('user_id', user.id)
-        .eq('tipo', 'entrada')
-        .gte('data', sevenDaysAgo);
+      // 3. Consistência de Custos - TEMPORARIAMENTE DESABILITADO
+      // (Sistema de estoque foi reconstruído, esta métrica será reimplementada)
+      let consistenciaScore = 70;
+      let consistenciaStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
+      let consistenciaDesc = 'Análise temporariamente indisponível';
 
-      let consistenciaScore = 0;
-      let consistenciaStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'critical';
-      let consistenciaDesc = 'Sem dados de movimentação';
-
-      if (movimentacoes && movimentacoes.length > 0) {
+      if (false) {
         const produtosCustos: Record<string, number[]> = {};
-        movimentacoes.forEach(mov => {
-          if (!produtosCustos[mov.produto_id]) {
-            produtosCustos[mov.produto_id] = [];
-          }
-          produtosCustos[mov.produto_id].push(mov.custo_unitario);
-        });
 
         const variacoes = Object.values(produtosCustos)
           .filter(custos => custos.length >= 2)
@@ -187,39 +168,13 @@ export const FinancialHealthScore = () => {
         }
       }
 
-      // 4. Controle de Estoque
-      const { data: estoque } = await supabase
-        .from('produtos')
-        .select('estoque_atual, estoque_minimo')
-        .eq('user_id', user.id)
-        .eq('ativo', true);
+      // 4. Controle de Estoque - TEMPORARIAMENTE DESABILITADO
+      // (Sistema de estoque foi reconstruído, esta métrica será reimplementada)
+      let estoqueScore = 70;
+      let estoqueStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
+      let estoqueDesc = 'Análise temporariamente indisponível';
 
-      let estoqueScore = 0;
-      let estoqueStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'critical';
-      let estoqueDesc = 'Sem controle de estoque';
-
-      if (estoque && estoque.length > 0) {
-        const produtosBaixos = estoque.filter(p => p.estoque_atual <= p.estoque_minimo).length;
-        const percentualBaixo = (produtosBaixos / estoque.length) * 100;
-
-        if (percentualBaixo === 0) {
-          estoqueScore = 100;
-          estoqueStatus = 'excellent';
-          estoqueDesc = 'Todos os produtos com estoque adequado';
-        } else if (percentualBaixo <= 10) {
-          estoqueScore = 80;
-          estoqueStatus = 'good';
-          estoqueDesc = `${produtosBaixos} produto(s) com estoque baixo`;
-        } else if (percentualBaixo <= 25) {
-          estoqueScore = 60;
-          estoqueStatus = 'warning';
-          estoqueDesc = `${produtosBaixos} produto(s) precisam reabastecimento`;
-        } else {
-          estoqueScore = 40;
-          estoqueStatus = 'critical';
-          estoqueDesc = `${produtosBaixos} produto(s) críticos - reabasteça urgente`;
-        }
-      }
+      // Código desabilitado - será reimplementado
 
       // 5. Otimização de Precificação
       const { data: receitasSemPreco } = await supabase

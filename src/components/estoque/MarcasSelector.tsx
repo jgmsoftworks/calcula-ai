@@ -24,7 +24,7 @@ export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
 
   const loadMarcas = async () => {
     const data = await fetchMarcas();
-    setMarcas(data);
+    setMarcas(data as { id: string; nome: string }[]);
   };
 
   useEffect(() => {

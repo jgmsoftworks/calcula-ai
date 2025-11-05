@@ -25,7 +25,7 @@ export function MarcasModal({ open, onOpenChange }: MarcasModalProps) {
 
   const loadMarcas = async () => {
     const data = await fetchMarcas();
-    setMarcas(data);
+    setMarcas(data as Marca[]);
   };
 
   useEffect(() => {
