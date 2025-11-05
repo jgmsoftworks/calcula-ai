@@ -13,12 +13,12 @@ import AuthSuccess from "./pages/AuthSuccess";
 import Afiliados from "./pages/Afiliados";
 import AuthStripeComplete from "./pages/AuthStripeComplete";
 import ResetPassword from "./pages/ResetPassword";
-import Vitrine from "./pages/Vitrine";
+// import Vitrine from "./pages/Vitrine"; // Temporariamente desabilitado
 import Custos from "./pages/Custos";
 import Precificacao from "./pages/Precificacao";
 import Estoque from "./pages/Estoque";
 import Movimentacao from "./pages/Movimentacao";
-import Receitas from "./pages/Receitas";
+// import Receitas from "./pages/Receitas"; // Temporariamente desabilitado
 import Simulador from "./pages/Simulador";
 import Planos from "./pages/Planos";
 import Sugestoes from "./pages/Sugestoes";
@@ -69,8 +69,11 @@ const App = () => (
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
           <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
           <Route path="/movimentacao" element={<AppLayout><Movimentacao /></AppLayout>} />
-          <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
-                <Route path="/vitrine" element={<AppLayout><Vitrine /></AppLayout>} />
+          {/* Temporariamente desabilitado - aguardando migração completa */}
+          {/* <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} /> */}
+          {/* <Route path="/vitrine" element={<AppLayout><Vitrine /></AppLayout>} /> */}
+          <Route path="/receitas" element={<AppLayout><div className="p-8 text-center"><h1 className="text-2xl font-bold">Em Manutenção</h1><p className="text-muted-foreground mt-2">Esta funcionalidade está sendo atualizada.</p></div></AppLayout>} />
+          <Route path="/vitrine" element={<AppLayout><div className="p-8 text-center"><h1 className="text-2xl font-bold">Em Manutenção</h1><p className="text-muted-foreground mt-2">Esta funcionalidade está sendo atualizada.</p></div></AppLayout>} />
                 <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />
                 <Route path="/precificacao" element={<AppLayout><Precificacao /></AppLayout>} />
                 <Route path="/simulador" element={<AppLayout><Simulador /></AppLayout>} />
