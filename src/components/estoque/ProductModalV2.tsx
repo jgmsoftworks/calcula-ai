@@ -320,8 +320,9 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         return;
       }
 
-      // ✅ Validar e normalizar unidade antes de enviar
-      const UNIDADES_VALIDAS = ['un', 'g', 'k', 'ml', 'l', 'cx', 'pct', 'fd', 'm', 'cm'] as const;
+      // ✅ Valores do enum unidade_medida no banco (SEMPRE MINÚSCULAS)
+      // Sincronizado com: SELECT enumlabel FROM pg_enum WHERE enumtypid = 'unidade_medida'::regtype
+      const UNIDADES_VALIDAS = ['cm', 'cx', 'fd', 'g', 'k', 'l', 'm', 'ml', 'pct', 'un'] as const;
       const unidadeNormalizada = formData.unidade.toLowerCase();
       
       if (!UNIDADES_VALIDAS.includes(unidadeNormalizada as any)) {
@@ -422,7 +423,7 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       // Mensagens específicas para erros conhecidos
       if (error.message?.includes('invalid input value for enum') || 
           error.message?.includes('unidade_medida')) {
-        errorMessage = "Unidade de medida inválida. Use valores: un, g, k, ml, l, cx, pct, fd, m, cm";
+        errorMessage = "Unidade de medida inválida. Use valores: cm, cx, fd, g, k, l, m, ml, pct, un";
       } else if (error.code === '42804') {
         errorMessage = "Erro de tipo de dados. Verifique a unidade de medida.";
       } else if (error.message?.includes('success')) {
@@ -649,14 +650,16 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="un">Unidade (un)</SelectItem>
-                      <SelectItem value="k">Quilo (k)</SelectItem>
-                      <SelectItem value="g">Grama (g)</SelectItem>
-                      <SelectItem value="l">Litro (l)</SelectItem>
-                      <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                      <SelectItem value="cm">Centímetro (cm)</SelectItem>
                       <SelectItem value="cx">Caixa (cx)</SelectItem>
-                      <SelectItem value="pct">Pacote (pct)</SelectItem>
                       <SelectItem value="fd">Fardo (fd)</SelectItem>
+                      <SelectItem value="g">Grama (g)</SelectItem>
+                      <SelectItem value="k">Quilo (k)</SelectItem>
+                      <SelectItem value="l">Litro (l)</SelectItem>
+                      <SelectItem value="m">Metro (m)</SelectItem>
+                      <SelectItem value="ml">Mililitro (ml)</SelectItem>
+                      <SelectItem value="pct">Pacote (pct)</SelectItem>
+                      <SelectItem value="un">Unidade (un)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

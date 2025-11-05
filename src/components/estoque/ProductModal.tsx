@@ -333,8 +333,9 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
 
     setLoading(true);
     try {
-      // ✅ Validar e normalizar unidade antes de enviar
-      const UNIDADES_VALIDAS = ['un', 'g', 'k', 'ml', 'l', 'cx', 'pct', 'fd', 'm', 'cm'] as const;
+      // ✅ Valores do enum unidade_medida no banco (SEMPRE MINÚSCULAS)
+      // Sincronizado com: SELECT enumlabel FROM pg_enum WHERE enumtypid = 'unidade_medida'::regtype
+      const UNIDADES_VALIDAS = ['cm', 'cx', 'fd', 'g', 'k', 'l', 'm', 'ml', 'pct', 'un'] as const;
       const unidadeNormalizada = formData.unidade.toLowerCase();
       
       if (!UNIDADES_VALIDAS.includes(unidadeNormalizada as any)) {
@@ -803,16 +804,16 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="un">Unidade (un.)</SelectItem>
-                        <SelectItem value="k">Quilo (k)</SelectItem>
-                        <SelectItem value="g">Grama (g)</SelectItem>
-                        <SelectItem value="fd">Fardo (fd)</SelectItem>
-                        <SelectItem value="l">Litro (l)</SelectItem>
-                        <SelectItem value="ml">Mililitro (ml)</SelectItem>
-                        <SelectItem value="m">Metro (m)</SelectItem>
                         <SelectItem value="cm">Centímetro (cm)</SelectItem>
                         <SelectItem value="cx">Caixa (cx)</SelectItem>
+                        <SelectItem value="fd">Fardo (fd)</SelectItem>
+                        <SelectItem value="g">Grama (g)</SelectItem>
+                        <SelectItem value="k">Quilo (k)</SelectItem>
+                        <SelectItem value="l">Litro (l)</SelectItem>
+                        <SelectItem value="m">Metro (m)</SelectItem>
+                        <SelectItem value="ml">Mililitro (ml)</SelectItem>
                         <SelectItem value="pct">Pacote (pct)</SelectItem>
+                        <SelectItem value="un">Unidade (un)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
