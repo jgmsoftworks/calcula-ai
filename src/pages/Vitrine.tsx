@@ -4,7 +4,6 @@ import { PlanRestrictedArea } from "@/components/planos/PlanRestrictedArea";
 import { EstoqueReceitas } from "@/components/vitrine/EstoqueReceitas";
 import { EntradasReceitas } from "@/components/vitrine/EntradasReceitas";
 import { SaidasReceitas } from "@/components/vitrine/SaidasReceitas";
-import { HistoricoReceitas } from "@/components/vitrine/HistoricoReceitas";
 
 export default function Vitrine() {
   const [activeTab, setActiveTab] = useState("estoque");
@@ -28,7 +27,7 @@ export default function Vitrine() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="estoque" className="flex items-center gap-2">
               📦 Estoque
             </TabsTrigger>
@@ -37,9 +36,6 @@ export default function Vitrine() {
             </TabsTrigger>
             <TabsTrigger value="saidas" className="flex items-center gap-2">
               📤 Saídas
-            </TabsTrigger>
-            <TabsTrigger value="historico" className="flex items-center gap-2">
-              📊 Histórico
             </TabsTrigger>
           </TabsList>
 
@@ -53,10 +49,6 @@ export default function Vitrine() {
 
           <TabsContent value="saidas">
             <SaidasReceitas />
-          </TabsContent>
-
-          <TabsContent value="historico">
-            <HistoricoReceitas />
           </TabsContent>
         </Tabs>
       </div>
