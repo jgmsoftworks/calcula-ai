@@ -1,6 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Eye, AlertCircle, Download, Upload } from 'lucide-react';
+import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,7 @@ import { useExportProdutos } from '@/hooks/useExportProdutos';
 import { formatters } from '@/lib/formatters';
 
 export function ListaProdutos() {
-  const { fetchProdutos } = useEstoque();
+  const { fetchProdutos, deleteProduto } = useEstoque();
   const { exportarProdutos } = useExportProdutos();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,15 @@ export function ListaProdutos() {
   const handleImportSuccess = () => {
     setImportModalOpen(false);
     loadProdutos();
+  };
+
+  const handleDelete = async (produto: Produto) => {
+    if (confirm(`Tem certeza que deseja remover o produto "${produto.nome}"?`)) {
+      const success = await deleteProduto(produto.id);
+      if (success) {
+        loadProdutos();
+      }
+    }
   };
 
   return (
@@ -232,6 +241,13 @@ export function ListaProdutos() {
                           onClick={() => handleEdit(produto)}
                         >
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(produto)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
