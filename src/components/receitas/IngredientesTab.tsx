@@ -82,7 +82,16 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
           <TableBody>
             {receita.ingredientes.map((ingrediente) => (
               <TableRow key={ingrediente.id}>
-                <TableCell>{ingrediente.nome}</TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{ingrediente.nome}</div>
+                    {ingrediente.marcas && ingrediente.marcas.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        R$ {ingrediente.custo_unitario.toFixed(2)} / {ingrediente.marcas[0]}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">{ingrediente.quantidade}</TableCell>
                 <TableCell className="text-right">R$ {ingrediente.custo_unitario.toFixed(2)}</TableCell>
                 <TableCell className="text-right">R$ {ingrediente.custo_total.toFixed(2)}</TableCell>

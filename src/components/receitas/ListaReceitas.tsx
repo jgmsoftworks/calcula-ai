@@ -7,16 +7,16 @@ import { Plus, Search, Loader2 } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { ReceitaCard } from './ReceitaCard';
 import { ReceitaForm } from './ReceitaForm';
-import type { Receita } from '@/types/receitas';
+import type { ReceitaComDados } from '@/types/receitas';
 
 export function ListaReceitas() {
   const { fetchReceitas, loading } = useReceitas();
-  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
-  const [editingReceita, setEditingReceita] = useState<Receita | null>(null);
+  const [editingReceita, setEditingReceita] = useState<ReceitaComDados | null>(null);
 
   useEffect(() => {
     loadReceitas();
@@ -32,7 +32,7 @@ export function ListaReceitas() {
     setReceitas(data);
   };
 
-  const handleEdit = (receita: Receita) => {
+  const handleEdit = (receita: ReceitaComDados) => {
     setEditingReceita(receita);
     setShowForm(true);
   };

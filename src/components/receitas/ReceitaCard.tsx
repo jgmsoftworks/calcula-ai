@@ -1,9 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Download, Eye, Store } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
-import type { Receita } from '@/types/receitas';
+import type { ReceitaComDados } from '@/types/receitas';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +17,8 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface ReceitaCardProps {
-  receita: Receita;
-  onEdit: (receita: Receita) => void;
+  receita: ReceitaComDados;
+  onEdit: (receita: ReceitaComDados) => void;
   onDelete: () => void;
 }
 
@@ -30,76 +30,152 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
     if (success) onDelete();
   };
 
+  const custoTotal = (receita.custo_ingredientes || 0) + 
+                     (receita.custo_embalagens || 0) + 
+                     (receita.custo_mao_obra || 0) + 
+                     (receita.custo_sub_receitas || 0);
+
+  const margem = receita.preco_venda - custoTotal;
+  const margemPercentual = custoTotal > 0 ? (margem / receita.preco_venda) * 100 : 0;
+
   return (
-    <Card className="group hover:shadow-lg transition-shadow">
-      <CardContent className="p-4 space-y-3">
-        <div className="aspect-square relative overflow-hidden rounded-lg bg-muted">
-          {receita.imagem_url ? (
-            <img
-              src={receita.imagem_url}
-              alt={receita.nome}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              Sem imagem
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold truncate">{receita.nome}</h3>
-            <Badge variant={receita.status === 'finalizada' ? 'default' : 'secondary'}>
-              {receita.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
-            </Badge>
-          </div>
-
-          {receita.tipo_produto && (
-            <p className="text-sm text-muted-foreground">{receita.tipo_produto}</p>
-          )}
-
-          <div className="pt-2 space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Preço:</span>
-              <span className="font-medium">
-                R$ {receita.preco_venda.toFixed(2)}
-              </span>
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex gap-6">
+          {/* Número sequencial */}
+          <div className="flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+              <span className="text-2xl font-bold">{receita.numero_sequencial}</span>
             </div>
           </div>
-        </div>
 
-        <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => onEdit(receita)}
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            Editar
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja excluir a receita "{receita.nome}"? Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {/* Conteúdo */}
+          <div className="flex-1 space-y-4">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  {receita.tipo_produto && (
+                    <Badge className="bg-purple-500 text-white">
+                      {receita.tipo_produto}
+                    </Badge>
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold mb-1">{receita.nome}</h3>
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span>Sub-receitas: {receita.total_sub_receitas || 0}</span>
+                  <span>Rendimento: {receita.rendimento_valor || 0} {receita.rendimento_unidade || 'un'}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={receita.status === 'finalizada' ? 'default' : 'secondary'}>
+                  {receita.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
+                </Badge>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" title="Baixar">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Preview">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(receita)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Vitrine">
+                    <Store className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir a receita "{receita.nome}"? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid de informações - 3 linhas */}
+            <div className="space-y-3">
+              {/* Linha 1 - Contadores */}
+              <div className="grid grid-cols-5 gap-3">
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Tempo Total</div>
+                  <div className="font-semibold">{receita.tempo_preparo_total || 0} min</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Tempo M.O.</div>
+                  <div className="font-semibold">{receita.tempo_preparo_mao_obra || 0} min</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Ingredientes</div>
+                  <div className="font-semibold">{receita.total_ingredientes || 0}</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Sub-receitas</div>
+                  <div className="font-semibold">{receita.total_sub_receitas || 0}</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Embalagens</div>
+                  <div className="font-semibold">{receita.total_embalagens || 0}</div>
+                </div>
+              </div>
+
+              {/* Linha 2 - Custos */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Custo M.O.</div>
+                  <div className="font-semibold">R$ {(receita.custo_mao_obra || 0).toFixed(2)}</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Custo Matéria-Prima</div>
+                  <div className="font-semibold">R$ {(receita.custo_ingredientes || 0).toFixed(2)}</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Custo Embalagem</div>
+                  <div className="font-semibold">R$ {(receita.custo_embalagens || 0).toFixed(2)}</div>
+                </div>
+                <div className="text-center p-2 bg-primary text-primary-foreground rounded">
+                  <div className="text-xs">Custo Total</div>
+                  <div className="font-semibold">R$ {custoTotal.toFixed(2)}</div>
+                </div>
+              </div>
+
+              {/* Linha 3 - Rentabilidade */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Preço Venda</div>
+                  <div className="font-semibold">R$ {receita.preco_venda.toFixed(2)}</div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Margem Contribuição</div>
+                  <div className={`font-semibold ${margem > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    R$ {margem.toFixed(2)}
+                  </div>
+                </div>
+                <div className="text-center p-2 bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">Lucro Líquido</div>
+                  <div className={`font-semibold ${margemPercentual > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {margemPercentual.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

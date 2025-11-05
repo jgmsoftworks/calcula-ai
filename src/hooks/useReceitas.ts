@@ -38,7 +38,16 @@ export function useReceitas() {
     try {
       let query = supabase
         .from('receitas')
-        .select('*')
+        .select(`
+          *,
+          total_ingredientes:receita_ingredientes(count),
+          total_embalagens:receita_embalagens(count),
+          total_sub_receitas:receita_sub_receitas(count),
+          ingredientes:receita_ingredientes(custo_total),
+          embalagens:receita_embalagens(custo_total),
+          mao_obra:receita_mao_obra(valor_total),
+          sub_receitas:receita_sub_receitas(custo_total)
+        `)
         .eq('user_id', user.id)
         .order('numero_sequencial', { ascending: false });
 
@@ -57,7 +66,20 @@ export function useReceitas() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Receita[];
+
+      // Transform data to include calculated fields
+      const receitasComDados = (data || []).map((receita: any) => ({
+        ...receita,
+        total_ingredientes: receita.total_ingredientes?.[0]?.count || 0,
+        total_embalagens: receita.total_embalagens?.[0]?.count || 0,
+        total_sub_receitas: receita.total_sub_receitas?.[0]?.count || 0,
+        custo_ingredientes: receita.ingredientes?.reduce((sum: number, i: any) => sum + (i.custo_total || 0), 0) || 0,
+        custo_embalagens: receita.embalagens?.reduce((sum: number, e: any) => sum + (e.custo_total || 0), 0) || 0,
+        custo_mao_obra: receita.mao_obra?.reduce((sum: number, m: any) => sum + (m.valor_total || 0), 0) || 0,
+        custo_sub_receitas: receita.sub_receitas?.reduce((sum: number, s: any) => sum + (s.custo_total || 0), 0) || 0,
+      }));
+
+      return receitasComDados;
     } catch (error: any) {
       console.error('Erro ao buscar receitas:', error);
       toast.error('Erro ao carregar receitas');

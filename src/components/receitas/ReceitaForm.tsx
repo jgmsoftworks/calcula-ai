@@ -2,17 +2,15 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReceitas } from '@/hooks/useReceitas';
 import { IngredientesTab } from './IngredientesTab';
+import { SubReceitasTab } from './SubReceitasTab';
 import { EmbalagensTa } from './EmbalagensTa';
-import { PrepareTab } from './PrepareTab';
+import { GeralTab } from './GeralTab';
+import { ProjecaoTab } from './ProjecaoTab';
 import { PrecificacaoTab } from './PrecificacaoTab';
 import type { Receita, ReceitaCompleta } from '@/types/receitas';
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ReceitaFormProps {
   receita: Receita | null;
@@ -20,8 +18,8 @@ interface ReceitaFormProps {
 }
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
-  const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
-  const [activeTab, setActiveTab] = useState('basico');
+  const { createReceita, updateReceita, fetchReceitaCompleta, loading } = useReceitas();
+  const [activeTab, setActiveTab] = useState('ingredientes');
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
@@ -30,9 +28,33 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     rendimento_unidade: 'un',
     observacoes: '',
     status: 'rascunho' as 'rascunho' | 'finalizada',
+    preco_venda: 0,
+    markup_id: null as string | null,
+    peso_unitario: 0,
+    tempo_preparo_total: 0,
+    tempo_preparo_mao_obra: 0,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const tabs = ['ingredientes', 'sub-receitas', 'embalagens', 'geral', 'projecao', 'precificacao'];
+  const currentTabIndex = tabs.indexOf(activeTab);
+
+  const handleFormChange = (field: string, value: any) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  const handlePrevious = () => {
+    if (currentTabIndex > 0) {
+      setActiveTab(tabs[currentTabIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentTabIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentTabIndex + 1]);
+    }
+  };
 
   useEffect(() => {
     if (receita) {
@@ -44,6 +66,11 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         rendimento_unidade: receita.rendimento_unidade || 'un',
         observacoes: receita.observacoes || '',
         status: receita.status,
+        preco_venda: receita.preco_venda || 0,
+        markup_id: receita.markup_id,
+        peso_unitario: receita.peso_unitario || 0,
+        tempo_preparo_total: receita.tempo_preparo_total || 0,
+        tempo_preparo_mao_obra: receita.tempo_preparo_mao_obra || 0,
       });
       setImagePreview(receita.imagem_url);
     }
@@ -73,17 +100,10 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       return;
     }
 
-    let savedReceita: any;
-
     if (receita) {
       await updateReceita(receita.id, formData);
-      savedReceita = { id: receita.id };
     } else {
-      savedReceita = await createReceita(formData);
-    }
-
-    if (savedReceita && imageFile) {
-      await uploadImagemReceita(imageFile, savedReceita.id);
+      await createReceita(formData);
     }
 
     onClose();
@@ -97,137 +117,14 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="basico">Dados Básicos</TabsTrigger>
-            <TabsTrigger value="ingredientes">Ingredientes</TabsTrigger>
-            <TabsTrigger value="embalagens">Embalagens</TabsTrigger>
-            <TabsTrigger value="preparo">Modo de Preparo</TabsTrigger>
-            <TabsTrigger value="precificacao">Precificação</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="ingredientes">1 Ingredientes</TabsTrigger>
+            <TabsTrigger value="sub-receitas">2 Sub-receitas</TabsTrigger>
+            <TabsTrigger value="embalagens">3 Embalagens</TabsTrigger>
+            <TabsTrigger value="geral">4 Geral</TabsTrigger>
+            <TabsTrigger value="projecao">5 Projeção</TabsTrigger>
+            <TabsTrigger value="precificacao">6 Precificação</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="basico" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome da Receita *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  placeholder="Ex: Bolo de Chocolate"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tipo">Tipo de Produto</Label>
-                <Select
-                  value={formData.tipo_produto}
-                  onValueChange={(value) => setFormData({ ...formData, tipo_produto: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doce">Doce</SelectItem>
-                    <SelectItem value="salgado">Salgado</SelectItem>
-                    <SelectItem value="bebida">Bebida</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="rendimento">Rendimento</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="rendimento"
-                    type="number"
-                    value={formData.rendimento_valor}
-                    onChange={(e) => setFormData({ ...formData, rendimento_valor: Number(e.target.value) })}
-                    placeholder="0"
-                  />
-                  <Select
-                    value={formData.rendimento_unidade}
-                    onValueChange={(value) => setFormData({ ...formData, rendimento_unidade: value })}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="un">Unidades</SelectItem>
-                      <SelectItem value="kg">Kg</SelectItem>
-                      <SelectItem value="g">Gramas</SelectItem>
-                      <SelectItem value="l">Litros</SelectItem>
-                      <SelectItem value="ml">ML</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: 'rascunho' | 'finalizada') => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rascunho">Rascunho</SelectItem>
-                    <SelectItem value="finalizada">Finalizada</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="observacoes">Observações</Label>
-                <Textarea
-                  id="observacoes"
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                  placeholder="Observações sobre a receita..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label>Imagem da Receita</Label>
-                <div className="flex items-center gap-4">
-                  {imagePreview && (
-                    <div className="relative w-32 h-32">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
-                        onClick={() => {
-                          setImageFile(null);
-                          setImagePreview(null);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                  <label className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent">
-                      <Upload className="h-4 w-4" />
-                      <span>Escolher imagem</span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
 
           <TabsContent value="ingredientes">
             {receita && receitaCompleta ? (
@@ -235,6 +132,16 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 Salve os dados básicos primeiro para adicionar ingredientes
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="sub-receitas">
+            {receita && receitaCompleta ? (
+              <SubReceitasTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Salve os dados básicos primeiro para adicionar sub-receitas
               </div>
             )}
           </TabsContent>
@@ -249,19 +156,42 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="preparo">
+          <TabsContent value="geral">
             {receita && receitaCompleta ? (
-              <PrepareTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
+              <GeralTab
+                receita={receitaCompleta}
+                formData={formData}
+                onFormChange={handleFormChange}
+                onUpdate={loadReceitaCompleta}
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro para adicionar o modo de preparo
+                Salve os dados básicos primeiro
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="projecao">
+            {receita && receitaCompleta ? (
+              <ProjecaoTab
+                receita={receitaCompleta}
+                formData={formData}
+                onFormChange={handleFormChange}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Salve os dados básicos primeiro
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="precificacao">
             {receita && receitaCompleta ? (
-              <PrecificacaoTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
+              <PrecificacaoTab
+                receita={receitaCompleta}
+                formData={formData}
+                onFormChange={handleFormChange}
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 Salve os dados básicos primeiro para definir a precificação
@@ -270,13 +200,24 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-between items-center pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentTabIndex === 0}
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Anterior
+          </Button>
+
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+
+          <Button onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Salvar
+            {currentTabIndex === tabs.length - 1 ? 'Atualizar Receita' : 'Próximo'}
+            {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-2" />}
           </Button>
         </div>
       </DialogContent>

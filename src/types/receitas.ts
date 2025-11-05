@@ -81,3 +81,13 @@ export interface ReceitaCompleta extends Receita {
   mao_obra: ReceitaMaoObra[];
   markup?: any;
 }
+
+export interface ReceitaComDados extends Receita {
+  total_ingredientes?: number;
+  total_embalagens?: number;
+  total_sub_receitas?: number;
+  custo_ingredientes?: number;
+  custo_embalagens?: number;
+  custo_mao_obra?: number;
+  custo_sub_receitas?: number;
+}
