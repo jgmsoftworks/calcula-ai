@@ -167,7 +167,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Unidade de Compra *</Label>
                   <Select
-                    value={watch('unidade_compra')}
+                    value={watch('unidade_compra') || 'un'}
                     onValueChange={(v) => setValue('unidade_compra', v)}
                   >
                     <SelectTrigger>
