@@ -308,6 +308,73 @@ export function useReceitas() {
     }
   };
 
+  const uploadImagemPasso = async (file: File, receitaId: string, passoId: string) => {
+    if (!user) return null;
+
+    try {
+      const reader = new FileReader();
+      const imageDataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const resizedImage = await resizeImageToSquare(imageDataUrl, 512, 0.8);
+      
+      const blob = await fetch(resizedImage).then(r => r.blob());
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/receitas/${receitaId}/passos/${passoId}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('receitas-images')
+        .upload(fileName, blob, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('receitas-images')
+        .getPublicUrl(fileName);
+
+      await supabase
+        .from('receita_passos_preparo')
+        .update({ imagem_url: publicUrl })
+        .eq('id', passoId);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error('Erro ao fazer upload da imagem do passo:', error);
+      toast.error('Erro ao fazer upload da imagem');
+      return null;
+    }
+  };
+
+  const deleteImagemPasso = async (receitaId: string, passoId: string) => {
+    if (!user) return false;
+
+    try {
+      const { data: passo } = await supabase
+        .from('receita_passos_preparo')
+        .select('imagem_url')
+        .eq('id', passoId)
+        .single();
+
+      if (passo?.imagem_url) {
+        const fileName = passo.imagem_url.split('/').slice(-5).join('/');
+        await supabase.storage.from('receitas-images').remove([fileName]);
+      }
+
+      await supabase
+        .from('receita_passos_preparo')
+        .update({ imagem_url: null })
+        .eq('id', passoId);
+
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao deletar imagem do passo:', error);
+      return false;
+    }
+  };
+
   return {
     loading,
     gerarNumeroSequencial,
@@ -318,6 +385,8 @@ export function useReceitas() {
     deleteReceita,
     uploadImagemReceita,
     deleteImagemReceita,
+    uploadImagemPasso,
+    deleteImagemPasso,
     calcularCustoTotal,
   };
 }

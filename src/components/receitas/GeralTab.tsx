@@ -59,33 +59,73 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="nome">Nome da Receita *</Label>
-          <Input
-            id="nome"
-            value={formData.nome || ''}
-            onChange={(e) => onFormChange('nome', e.target.value)}
-            placeholder="Nome da receita"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tipo_produto">Tipo de Produto</Label>
-          <Input
-            id="tipo_produto"
-            value={formData.tipo_produto || ''}
-            onChange={(e) => onFormChange('tipo_produto', e.target.value)}
-            placeholder="Ex: MASSA, DOCE, SALGADO"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="nome">Nome da Receita *</Label>
+        <Input
+          id="nome"
+          value={formData.nome || ''}
+          onChange={(e) => onFormChange('nome', e.target.value)}
+          placeholder="Nome da receita"
+          required
+        />
       </div>
 
-      {/* Seção de Conservação */}
-      <div className="space-y-3">
-        <Label>Conservação</Label>
-        <div className="space-y-3 border rounded-lg p-4">
+      {/* Imagem e Conservação lado a lado */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Bloco esquerdo - Upload de Imagem */}
+        <div className="space-y-2 border rounded-lg p-4 flex flex-col items-center justify-center min-h-[400px]">
+          <h3 className="text-lg font-semibold mb-2">Imagem da Receita</h3>
+          {receita?.imagem_url ? (
+            <div className="relative w-full h-64">
+              <img
+                src={receita.imagem_url}
+                alt={receita.nome}
+                className="w-full h-full object-cover rounded-lg"
+              />
+              <Button
+                variant="destructive"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={async () => {
+                  const { useReceitas } = await import('@/hooks/useReceitas');
+                  const { deleteImagemReceita } = useReceitas();
+                  await deleteImagemReceita(receita.id);
+                  onUpdate();
+                }}
+              >
+                Remover
+              </Button>
+            </div>
+          ) : (
+            <div className="w-full h-64 border-2 border-dashed rounded-lg flex items-center justify-center">
+              <label className="cursor-pointer text-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const { useReceitas } = await import('@/hooks/useReceitas');
+                      const { uploadImagemReceita } = useReceitas();
+                      await uploadImagemReceita(file, receita.id);
+                      onUpdate();
+                    }
+                  }}
+                />
+                <div className="text-muted-foreground">
+                  <p className="font-semibold">Clique para adicionar imagem</p>
+                  <p className="text-sm">PNG, JPG até 5MB</p>
+                </div>
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Bloco direito - Conservação */}
+        <div className="space-y-4 border rounded-lg p-4">
+          <h3 className="text-lg font-semibold">Conservação</h3>
+          <div className="space-y-3">
           {/* Congelado */}
           <div className="grid grid-cols-[120px_1fr_1fr_100px] gap-3 items-center">
             <Label className="text-sm font-medium">Congelado</Label>
@@ -225,6 +265,7 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
                 <SelectItem value="meses">meses</SelectItem>
               </SelectContent>
             </Select>
+          </div>
           </div>
         </div>
       </div>

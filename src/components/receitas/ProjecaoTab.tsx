@@ -31,6 +31,16 @@ export function ProjecaoTab({ receita, formData, onFormChange }: ProjecaoTabProp
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="tipo_produto">Tipo de Produto</Label>
+        <Input
+          id="tipo_produto"
+          value={formData.tipo_produto || ''}
+          onChange={(e) => onFormChange('tipo_produto', e.target.value)}
+          placeholder="Ex: Bolo, Torta, Pão..."
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="peso_unitario">Peso Unitário (g)</Label>
@@ -92,16 +102,6 @@ export function ProjecaoTab({ receita, formData, onFormChange }: ProjecaoTabProp
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          value={formData.observacoes || ''}
-          onChange={(e) => onFormChange('observacoes', e.target.value)}
-          placeholder="Observações sobre a receita..."
-          rows={4}
-        />
-      </div>
 
       <div className="grid grid-cols-3 gap-4">
         <Card>

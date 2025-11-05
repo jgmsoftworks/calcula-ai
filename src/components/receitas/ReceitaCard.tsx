@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Download, Eye, Store } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
+import { gerarPDFReceita } from '@/lib/pdfGenerator';
+import { toast } from 'sonner';
 import type { ReceitaComDados } from '@/types/receitas';
 import {
   AlertDialog,
@@ -23,11 +25,24 @@ interface ReceitaCardProps {
 }
 
 export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
-  const { deleteReceita } = useReceitas();
+  const { deleteReceita, fetchReceitaCompleta } = useReceitas();
 
   const handleDelete = async () => {
     const success = await deleteReceita(receita.id);
     if (success) onDelete();
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const receitaCompleta = await fetchReceitaCompleta(receita.id);
+      if (receitaCompleta) {
+        await gerarPDFReceita(receitaCompleta);
+        toast.success('PDF gerado com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    }
   };
 
   const custoTotal = (receita.custo_ingredientes || 0) + 
@@ -72,7 +87,12 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                   {receita.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
                 </Badge>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" title="Baixar">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    title="Baixar Receita"
+                    onClick={handleDownloadPDF}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" title="Preview">
