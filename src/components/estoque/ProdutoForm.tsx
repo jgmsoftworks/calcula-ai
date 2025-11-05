@@ -27,6 +27,7 @@ import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
+import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
 
 interface ProdutoFormProps {
   produto?: Produto;
@@ -332,14 +333,11 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="un">UN</SelectItem>
-                          <SelectItem value="kg">KG</SelectItem>
-                          <SelectItem value="g">G</SelectItem>
-                          <SelectItem value="l">L</SelectItem>
-                          <SelectItem value="ml">ML</SelectItem>
-                          <SelectItem value="cx">CX</SelectItem>
-                          <SelectItem value="pc">PC</SelectItem>
-                          <SelectItem value="fd">FD</SelectItem>
+                          {UNIDADES_VALIDAS.map((unidade) => (
+                            <SelectItem key={unidade} value={unidade}>
+                              {UNIDADES_LABELS[unidade]}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -409,11 +407,11 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhuma</SelectItem>
-                      <SelectItem value="un">UN</SelectItem>
-                      <SelectItem value="kg">KG</SelectItem>
-                      <SelectItem value="g">G</SelectItem>
-                      <SelectItem value="l">L</SelectItem>
-                      <SelectItem value="ml">ML</SelectItem>
+                      {UNIDADES_VALIDAS.map((unidade) => (
+                        <SelectItem key={unidade} value={unidade}>
+                          {UNIDADES_LABELS[unidade]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
