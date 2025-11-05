@@ -34,14 +34,14 @@ export function ListaProdutos() {
   
   // Filtros
   const [search, setSearch] = useState('');
-  const [unidadeFiltro, setUnidadeFiltro] = useState<string>('');
+  const [unidadeFiltro, setUnidadeFiltro] = useState<string>('todas');
   const [abaixoMinimo, setAbaixoMinimo] = useState(false);
 
   const loadProdutos = async () => {
     setLoading(true);
     const data = await fetchProdutos({
       search: search || undefined,
-      unidade: unidadeFiltro || undefined,
+      unidade: unidadeFiltro !== 'todas' ? unidadeFiltro : undefined,
       abaixoMinimo,
     });
     if (data) {
@@ -82,7 +82,7 @@ export function ListaProdutos() {
               <SelectValue placeholder="Todas as unidades" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas</SelectItem>
+              <SelectItem value="todas">Todas</SelectItem>
               <SelectItem value="un">UN</SelectItem>
               <SelectItem value="kg">KG</SelectItem>
               <SelectItem value="g">G</SelectItem>
