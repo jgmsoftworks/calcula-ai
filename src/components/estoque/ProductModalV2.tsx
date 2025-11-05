@@ -320,6 +320,20 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         return;
       }
 
+      // ✅ Validar e normalizar unidade antes de enviar
+      const UNIDADES_VALIDAS = ['un', 'g', 'k', 'ml', 'l', 'cx', 'pct', 'fd', 'm', 'cm'] as const;
+      const unidadeNormalizada = formData.unidade.toLowerCase();
+      
+      if (!UNIDADES_VALIDAS.includes(unidadeNormalizada as any)) {
+        toast({
+          title: "Unidade inválida",
+          description: `Use valores: ${UNIDADES_VALIDAS.join(', ')}`,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
       // ✅ USAR RPC COM CAST EXPLÍCITO
       // Preparar todos os campos (atuais + alterações)
       const custoFinal = payload.custo_unitario ?? formData.custo_unitario ?? 0;
@@ -331,7 +345,7 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         p_categoria: (payload.categoria ?? (formData.categorias && formData.categorias.length > 0 ? formData.categorias[0] : null)) ?? null,
         p_codigo_interno: payload.codigo_interno ?? formData.codigo_interno ?? null,
         p_codigo_barras: payload.codigo_barras ?? formData.codigos_barras ?? null,
-        p_unidade: payload.unidade ?? formData.unidade, // String será convertida para enum na RPC
+        p_unidade: unidadeNormalizada, // ✅ Usar valor normalizado (minúsculas)
         p_total_embalagem: payload.total_embalagem ?? formData.total_embalagem ?? 1,
         p_custo_unitario: custoFinal,
         p_custo_medio: custoFinal, // Usar mesmo valor do custo unitário
@@ -354,12 +368,20 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
 
       console.log('[RPC] Chamando update_produto_with_cast:', produtoCompleto);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .rpc('update_produto_with_cast', produtoCompleto);
 
       if (error) {
-        console.error('[RPC] Erro ao atualizar produto:', error);
+        console.error('[RPC] Erro HTTP ao atualizar produto:', error);
         throw error;
+      }
+
+      // ✅ VERIFICAR data.success (RPC retorna JSON)
+      const resultado = data as any;
+      if (!resultado || resultado.success === false) {
+        const errorMsg = resultado?.error || "Erro desconhecido ao salvar produto";
+        console.error('[RPC] Erro retornado pela RPC:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       console.log('[RPC] Produto atualizado com sucesso');
@@ -398,7 +420,10 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       let errorMessage = error.message || "Erro ao atualizar produto";
       
       // Mensagens específicas para erros conhecidos
-      if (error.code === '42804') {
+      if (error.message?.includes('invalid input value for enum') || 
+          error.message?.includes('unidade_medida')) {
+        errorMessage = "Unidade de medida inválida. Use valores: un, g, k, ml, l, cx, pct, fd, m, cm";
+      } else if (error.code === '42804') {
         errorMessage = "Erro de tipo de dados. Verifique a unidade de medida.";
       } else if (error.message?.includes('success')) {
         errorMessage = "Falha na operação: " + error.message;
