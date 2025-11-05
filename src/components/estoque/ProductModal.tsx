@@ -78,9 +78,6 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
     custo_unitario: ''
   });
 
-  // ✅ Rastrear unidade original para enviar somente se mudou
-  const [unidadeOriginal, setUnidadeOriginal] = useState<string>('');
-
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -116,9 +113,6 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         rotulo_fibra: product.rotulo_fibra || 0,
         rotulo_sodio: product.rotulo_sodio || 0
       });
-      
-      // ✅ Guardar unidade original
-      setUnidadeOriginal(product.unidade);
       
       setSelectedImage(product.imagem_url || null);
       
@@ -383,28 +377,51 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
         rotulo_sodio: formData.rotulo_sodio || null
       };
 
-      // ✅ SÓ INCLUI UNIDADE SE O USUÁRIO MUDOU
-      if (formData.unidade !== unidadeOriginal) {
-        payload.unidade = formData.unidade;
-      }
+      // ✅ USAR RPC PARA GARANTIR CAST CORRETO
+      // Preparar todos os campos necessários (atuais + alterações)
+      const custoFinal = toSafeNumber(payload.custo_unitario ?? formData.custo_unitario, 0);
+      const estoqueAtual = toSafeNumber(payload.estoque_atual ?? formData.estoque_atual, 0);
+      
+      const produtoCompleto = {
+        p_id: product!.id,
+        p_nome: payload.nome ?? formData.nome,
+        p_marcas: payload.marcas ?? (formData.marcas.length > 0 ? formData.marcas : null),
+        p_categorias: payload.categorias ?? (formData.categorias.length > 0 ? formData.categorias : null),
+        p_categoria: payload.categoria ?? (formData.categorias.length > 0 ? formData.categorias[0] : null),
+        p_codigo_interno: payload.codigo_interno ?? formData.codigo_interno ?? null,
+        p_codigo_barras: payload.codigo_barras ?? (codigosBarrasFiltrados.length > 0 ? codigosBarrasFiltrados : null),
+        p_unidade: payload.unidade ?? formData.unidade, // RPC fará cast para enum
+        p_total_embalagem: toSafeNumber(payload.total_embalagem ?? formData.total_embalagem, 1),
+        p_custo_unitario: custoFinal,
+        p_custo_medio: custoFinal, // Usar mesmo valor do custo unitário
+        p_custo_total: custoFinal * estoqueAtual, // ✅ RECALCULA AUTOMATICAMENTE
+        p_estoque_atual: estoqueAtual,
+        p_estoque_minimo: toSafeNumber(payload.estoque_minimo ?? formData.estoque_minimo, 0),
+        p_fornecedor_ids: formData.fornecedor_id ? [formData.fornecedor_id] : null,
+        p_imagem_url: selectedImage ?? null,
+        p_ativo: payload.ativo ?? formData.ativo,
+        p_rotulo_porcao: payload.rotulo_porcao ?? formData.rotulo_porcao ?? null,
+        p_rotulo_kcal: payload.rotulo_kcal ?? formData.rotulo_kcal ?? null,
+        p_rotulo_carb: payload.rotulo_carb ?? formData.rotulo_carb ?? null,
+        p_rotulo_prot: payload.rotulo_prot ?? formData.rotulo_prot ?? null,
+        p_rotulo_gord_total: payload.rotulo_gord_total ?? formData.rotulo_gord_total ?? null,
+        p_rotulo_gord_sat: payload.rotulo_gord_sat ?? formData.rotulo_gord_sat ?? null,
+        p_rotulo_gord_trans: payload.rotulo_gord_trans ?? formData.rotulo_gord_trans ?? null,
+        p_rotulo_fibra: payload.rotulo_fibra ?? formData.rotulo_fibra ?? null,
+        p_rotulo_sodio: payload.rotulo_sodio ?? formData.rotulo_sodio ?? null
+      };
 
-      // ✅ Logs temporários para verificação (REMOVER após validação)
-      console.log('=== DEBUG PRODUTO UPDATE ===');
-      console.log('unidadeOriginal:', unidadeOriginal);
-      console.log('formData.unidade:', formData.unidade);
-      console.log('unidade mudou?', formData.unidade !== unidadeOriginal);
-      console.log('payload enviado:', JSON.stringify(payload, null, 2));
-      console.log('===========================');
+      console.log('[RPC] Chamando update_produto_with_cast:', produtoCompleto);
 
       const { error } = await supabase
-        .from('produtos')
-        .update(payload)
-        .eq('id', product!.id);
+        .rpc('update_produto_with_cast', produtoCompleto);
 
       if (error) {
-        console.error('Erro ao atualizar produto:', error);
+        console.error('[RPC] Erro ao atualizar produto:', error);
         throw error;
       }
+
+      console.log('[RPC] Produto atualizado com sucesso');
 
       // Salvar ou atualizar conversão se houver dados
       if (conversaoData && user) {
@@ -445,53 +462,32 @@ export const ProductModal = ({ isOpen, onClose, product, onSave }: ProductModalP
       onSave();
       onClose();
     } catch (error: any) {
-      console.error('❌ ERRO DETALHADO AO ATUALIZAR PRODUTO:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
+      console.error('[ERRO] Falha ao atualizar produto:', error);
       
-      // ✅ Mensagens de erro específicas e claras
-      const errorMessage = (() => {
-        // Erro 42804: problema de tipo
-        if (error.code === '42804') {
-          if (error.message?.includes('unidade')) {
-            return "Unidade inválida. Escolha um valor da lista (kg, l, un, etc.).";
-          }
-          return `Tipo de dado inválido: ${error.message}`;
+      let errorMessage = error.message || "Erro ao atualizar produto";
+      
+      // Mensagens específicas para erros conhecidos
+      if (error.code === '42804') {
+        errorMessage = "Erro de tipo de dados. Verifique a unidade de medida.";
+      } else if (error.code === '23505') {
+        if (error.message?.includes('codigo_interno')) {
+          errorMessage = "Já existe um produto com esse código interno.";
+        } else if (error.message?.includes('nome')) {
+          errorMessage = "Já existe um produto com esse nome.";
+        } else {
+          errorMessage = "Já existe um produto com esses dados.";
         }
-        
-        // Erro 23505: duplicidade
-        if (error.message?.includes('duplicate') || error.code === '23505') {
-          if (error.message?.includes('codigo_interno')) {
-            return "Já existe um produto com esse código interno.";
-          }
-          if (error.message?.includes('nome')) {
-            return "Já existe um produto com esse nome.";
-          }
-          return "Já existe um produto com esses dados.";
-        }
-        
-        // Erro 23502: campo obrigatório
-        if (error.code === '23502') {
-          const field = error.message?.match(/column "(.+?)"/)?.[1] || 'desconhecido';
-          const fieldNames: Record<string, string> = {
-            'nome': 'Nome do produto',
-            'unidade': 'Unidade de medida',
-            'user_id': 'Identificação de usuário',
-            'custo_unitario': 'Custo unitário'
-          };
-          return `Campo obrigatório não preenchido: ${fieldNames[field] || field}`;
-        }
-
-        // Erro 22P02: valor inválido para enum
-        if (error.code === '22P02' && error.message?.includes('unidade_medida')) {
-          return "Unidade de medida inválida. Escolha um valor válido da lista.";
-        }
-        
-        return error.message || "Erro desconhecido ao atualizar produto";
-      })();
+      } else if (error.code === '23502') {
+        const field = error.message?.match(/column "(.+?)"/)?.[1] || 'desconhecido';
+        const fieldNames: Record<string, string> = {
+          'nome': 'Nome do produto',
+          'unidade': 'Unidade de medida',
+          'custo_unitario': 'Custo unitário'
+        };
+        errorMessage = `Campo obrigatório não preenchido: ${fieldNames[field] || field}`;
+      } else if (error.code === '22P02' && error.message?.includes('unidade_medida')) {
+        errorMessage = "Unidade de medida inválida. Escolha um valor válido da lista.";
+      }
       
       toast({
         title: "Erro ao atualizar produto",
