@@ -9,13 +9,6 @@ export default function Estoque() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gradient-primary">📦 Estoque</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie seus produtos e matérias-primas
-        </p>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="produtos">Lista de Produtos</TabsTrigger>
