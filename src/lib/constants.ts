@@ -1,5 +1,18 @@
-// ✅ Valores do enum unidade_medida no banco (SEMPRE MINÚSCULAS)
-// Sincronizado com: SELECT enumlabel FROM pg_enum WHERE enumtypid = 'unidade_medida'::regtype
+/**
+ * ✅ IMPORTANTE: Estes valores são sincronizados com o enum unidade_medida do banco.
+ * 
+ * Para verificar os valores no banco:
+ * SELECT enumlabel FROM pg_enum WHERE enumtypid = 'unidade_medida'::regtype ORDER BY enumlabel;
+ * 
+ * Últimas verificações:
+ * - 05/11/2025: Confirmado que todos os valores são minúsculos
+ * - Arquivos que usam estas constantes:
+ *   • ProductModalV2.tsx
+ *   • CadastroProdutoForm.tsx
+ *   • ImportacaoProdutos.tsx
+ *   • ModoUsoTab.tsx
+ *   • EntradasForm.tsx
+ */
 export const UNIDADES_VALIDAS = ['cm', 'cx', 'fd', 'g', 'k', 'l', 'm', 'ml', 'pct', 'un'] as const;
 
 export type UnidadeMedida = typeof UNIDADES_VALIDAS[number];

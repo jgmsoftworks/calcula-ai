@@ -196,7 +196,7 @@ export const EntradasForm = () => {
         });
 
         // ✅ USAR RPC PARA ATUALIZAR COM CAST CORRETO
-        const { error: updateError } = await supabase
+        const { data: updateData, error: updateError } = await supabase
           .rpc('update_produto_with_cast', {
             p_id: item.produto_id,
             p_nome: produto.nome,
@@ -229,6 +229,12 @@ export const EntradasForm = () => {
         if (updateError) {
           console.error('[ENTRADA] Erro ao atualizar produto via RPC:', updateError);
           throw updateError;
+        }
+
+        // Verificar data.success
+        const resultado = updateData as any;
+        if (!resultado || resultado.success === false) {
+          throw new Error(resultado?.error || "Erro ao atualizar estoque do produto");
         }
 
         console.log('[ENTRADA] Estoque atualizado com sucesso via RPC');

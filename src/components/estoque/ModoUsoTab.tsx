@@ -5,6 +5,7 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
+import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
 
 interface ModoUsoTabProps {
   totalEmbalagem: number;
@@ -140,16 +141,11 @@ export const ModoUsoTab = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="un">Unidade (un.)</SelectItem>
-                <SelectItem value="g">Gramas (g)</SelectItem>
-                <SelectItem value="k">Quilo (k)</SelectItem>
-                <SelectItem value="ml">Mililitros (ml)</SelectItem>
-                <SelectItem value="l">Litros (l)</SelectItem>
-                <SelectItem value="cx">Caixas (cx)</SelectItem>
-                <SelectItem value="pct">Pacotes (pct)</SelectItem>
-                <SelectItem value="fd">Fardo (fd)</SelectItem>
-                <SelectItem value="m">Metro (m)</SelectItem>
-                <SelectItem value="cm">Centímetro (cm)</SelectItem>
+                {UNIDADES_VALIDAS.map(unidade => (
+                  <SelectItem key={unidade} value={unidade}>
+                    {UNIDADES_LABELS[unidade]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
