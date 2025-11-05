@@ -1,4 +1,5 @@
-// REBUILD FORCED: 2025-01-05 04:20 - Photo field with enhanced visibility
+// VERSION: 2025-01-05-04:30 - CRITICAL FIX: Photo field + Complete data loading + Force rebuild
+// TIMESTAMP: 04:30 - All fields must load when editing product
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Settings2 } from 'lucide-react';
@@ -78,12 +79,31 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     ? custo_unitario / fator_conversao
     : 0;
 
+  // Log de versão para confirmar que nova versão foi carregada
+  useEffect(() => {
+    console.log('🚀 [PRODUTO FORM] Versão 2025-01-05-04:30 carregada com sucesso!');
+    console.log('📋 [VERSÃO] Foto field + Complete data loading implementados');
+  }, []);
+
   // Reset form when produto changes or modal opens
   useEffect(() => {
+    console.log('🔵 [MODAL] Modal state changed - Open:', open, 'Produto:', produto?.nome || 'NOVO');
+    
     if (open) {
       if (produto) {
-        console.log('🔄 [PRODUTO] Carregando produto para edição:', produto.nome);
-        console.log('📸 [IMAGEM] Tem imagem?', produto.imagem_url ? 'SIM' : 'NÃO');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📦 [EDITAR] Carregando dados do produto');
+        console.log('🏷️ [NOME]:', produto.nome);
+        console.log('🔢 [CODIGO INTERNO]:', produto.codigo_interno);
+        console.log('📸 [IMAGEM URL]:', produto.imagem_url || 'SEM IMAGEM');
+        console.log('🏭 [MARCAS]:', produto.marcas);
+        console.log('📂 [CATEGORIAS]:', produto.categorias);
+        console.log('📦 [UNIDADE COMPRA]:', produto.unidade_compra);
+        console.log('💰 [CUSTO UNITARIO]:', produto.custo_unitario);
+        console.log('📊 [ESTOQUE ATUAL]:', produto.estoque_atual);
+        console.log('⚠️ [ESTOQUE MINIMO]:', produto.estoque_minimo);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
         const formData = {
           ...produto,
           unidade_compra: (produto.unidade_compra && produto.unidade_compra.trim() !== '') 
@@ -93,14 +113,25 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             ? produto.unidade_uso 
             : null,
         };
+        
+        console.log('✅ [RESET] Executando reset com formData:', formData);
         reset(formData);
+        
+        // Verificar se dados foram setados corretamente
+        setTimeout(() => {
+          console.log('🎯 [VERIFICAÇÃO] Após reset - imagem_url:', watch('imagem_url'));
+          console.log('🎯 [VERIFICAÇÃO] Após reset - nome:', watch('nome'));
+          console.log('🎯 [VERIFICAÇÃO] Após reset - codigo_interno:', watch('codigo_interno'));
+        }, 100);
       } else {
-        console.log('➕ [PRODUTO] Novo produto - limpando formulário');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('➕ [NOVO] Criando novo produto');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         reset(defaultValues);
         loadCodigoInterno();
       }
     }
-  }, [open, produto, reset]);
+  }, [open, produto, reset, watch]);
 
   const loadCodigoInterno = async () => {
     const codigo = await gerarCodigoInterno();
@@ -134,7 +165,11 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog 
+      open={open} 
+      onOpenChange={onOpenChange}
+      key={produto?.id || 'new-product'}
+    >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
