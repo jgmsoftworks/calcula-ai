@@ -65,13 +65,21 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
 
   useEffect(() => {
     if (product) {
+      console.log('[DEBUG MODAL] Produto recebido:', {
+        id: product.id,
+        nome: product.nome,
+        unidade_original: product.unidade,
+        marcas: product.marcas,
+        categorias: product.categorias
+      });
+      
       const initialData: FormDataType = {
         nome: product.nome || '',
         marcas: product.marcas || [],
         categorias: product.categorias || [],
         codigo_interno: product.codigo_interno || '',
         codigos_barras: product.codigo_barras && product.codigo_barras.length > 0 ? product.codigo_barras : [''],
-        unidade: product.unidade as Database['public']['Enums']['unidade_medida'],
+        unidade: (product.unidade?.toLowerCase() || 'un') as Database['public']['Enums']['unidade_medida'],
         total_embalagem: toSafeNumber(product.total_embalagem, 1),
         custo_unitario: toSafeNumber(product.custo_unitario, 0),
         custo_total: toSafeNumber(product.custo_total, 0),
@@ -90,6 +98,13 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         rotulo_fibra: toSafeNumber(product.rotulo_fibra, 0),
         rotulo_sodio: toSafeNumber(product.rotulo_sodio, 0)
       };
+      
+      console.log('[DEBUG MODAL] FormData inicializado:', {
+        unidade: initialData.unidade,
+        custo_unitario: initialData.custo_unitario,
+        marcas: initialData.marcas,
+        categorias: initialData.categorias
+      });
       
       setFormData(initialData);
       setOriginalData(initialData);
@@ -141,10 +156,12 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
       'rotulo_gord_trans', 'rotulo_fibra', 'rotulo_sodio'
     ];
     
-    // Se é campo numérico, converter para número
-    const finalValue = numericFields.includes(field) 
-      ? toSafeNumber(value, 0) 
-      : value;
+    // Se é unidade, normalizar para minúsculas
+    const finalValue = field === 'unidade' 
+      ? (value as string).toLowerCase()
+      : numericFields.includes(field) 
+        ? toSafeNumber(value, 0) 
+        : value;
     
     setFormData((prev: any) => {
       const novoFormData = {
@@ -242,10 +259,8 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         payload.codigo_barras = filtrados.length > 0 ? filtrados : null;
       }
       
-      // ✅ UNIDADE: SÓ ENVIA SE MUDOU (com cast correto para o ENUM)
-      if (formData.unidade !== originalData.unidade) {
-        payload.unidade = formData.unidade as Database['public']['Enums']['unidade_medida'];
-      }
+      // NOTA: Unidade sempre deve ser enviada ao RPC para fazer cast correto do ENUM
+      // Não aplicamos a regra de "só enviar se mudou" para este campo
       
       // Comparar números normalizados
       const custoAtual = toSafeNumber(formData.custo_unitario, 0);
@@ -320,12 +335,10 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         return;
       }
 
-      // ✅ Valores do enum unidade_medida no banco (SEMPRE MINÚSCULAS)
-      // Sincronizado com: SELECT enumlabel FROM pg_enum WHERE enumtypid = 'unidade_medida'::regtype
+      // ✅ VALIDAÇÃO DE UNIDADE (já está normalizada desde o início)
       const UNIDADES_VALIDAS = ['cm', 'cx', 'fd', 'g', 'k', 'l', 'm', 'ml', 'pct', 'un'] as const;
-      const unidadeNormalizada = formData.unidade.toLowerCase();
       
-      if (!UNIDADES_VALIDAS.includes(unidadeNormalizada as any)) {
+      if (!UNIDADES_VALIDAS.includes(formData.unidade as any)) {
         toast({
           title: "Unidade inválida",
           description: `Use valores: ${UNIDADES_VALIDAS.join(', ')}`,
@@ -346,7 +359,7 @@ export const ProductModalV2 = ({ isOpen, onClose, product, onSave }: ProductModa
         p_categoria: (payload.categoria ?? (formData.categorias && formData.categorias.length > 0 ? formData.categorias[0] : null)) ?? null,
         p_codigo_interno: payload.codigo_interno ?? formData.codigo_interno ?? null,
         p_codigo_barras: payload.codigo_barras ?? formData.codigos_barras ?? null,
-        p_unidade: unidadeNormalizada, // ✅ Usar valor normalizado (minúsculas)
+        p_unidade: formData.unidade, // Já está normalizado desde o início // ✅ Usar valor normalizado (minúsculas)
         p_total_embalagem: payload.total_embalagem ?? formData.total_embalagem ?? 1,
         p_custo_unitario: custoFinal,
         p_custo_medio: custoFinal, // Usar mesmo valor do custo unitário
