@@ -33,7 +33,7 @@ export function HistoricoGeral() {
   // Filtros
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [tipoFiltro, setTipoFiltro] = useState<string>('');
+  const [tipoFiltro, setTipoFiltro] = useState<string>('todos');
   const [responsavelFiltro, setResponsavelFiltro] = useState('');
 
   const loadHistorico = async () => {
@@ -41,7 +41,7 @@ export function HistoricoGeral() {
     const data = await fetchHistoricoGeral({
       dataInicio: dataInicio || undefined,
       dataFim: dataFim || undefined,
-      tipo: tipoFiltro ? (tipoFiltro as 'entrada' | 'saida') : undefined,
+      tipo: tipoFiltro !== 'todos' ? (tipoFiltro as 'entrada' | 'saida') : undefined,
       responsavel: responsavelFiltro || undefined,
     });
     setMovimentacoes(data);
@@ -82,7 +82,7 @@ export function HistoricoGeral() {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="entrada">Entrada</SelectItem>
                 <SelectItem value="saida">Saída</SelectItem>
               </SelectContent>
