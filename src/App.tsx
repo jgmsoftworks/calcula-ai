@@ -16,6 +16,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Vitrine from "./pages/Vitrine";
 import Custos from "./pages/Custos";
 import Precificacao from "./pages/Precificacao";
+import Estoque from "./pages/Estoque";
+import Movimentacao from "./pages/Movimentacao";
 import Receitas from "./pages/Receitas";
 import Simulador from "./pages/Simulador";
 import Planos from "./pages/Planos";
@@ -65,6 +67,8 @@ const App = () => (
             <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
             <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+          <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
+          <Route path="/movimentacao" element={<AppLayout><Movimentacao /></AppLayout>} />
           <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
                 <Route path="/vitrine" element={<AppLayout><Vitrine /></AppLayout>} />
                 <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />

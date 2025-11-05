@@ -35,6 +35,8 @@ import { useToast } from '@/hooks/use-toast';
 // Items for regular business users
 const businessNavigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
+  { title: 'Estoque', url: '/estoque', icon: Package },
+  { title: 'Movimentação', url: '/movimentacao', icon: TrendingUp },
   { title: 'Receitas', url: '/receitas', icon: ChefHat },
   { title: 'Vitrine', url: '/vitrine', icon: Store },
   { title: 'Custos', url: '/custos', icon: TrendingUp },
