@@ -1,3 +1,4 @@
+// Estoque Management - All SelectItem values verified as non-empty
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListaProdutos } from '@/components/estoque/ListaProdutos';

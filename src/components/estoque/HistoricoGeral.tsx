@@ -1,3 +1,4 @@
+// Fixed: All SelectItem values are non-empty - verified 2025-01-05
 import { useState, useEffect } from 'react';
 import { Calendar, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';

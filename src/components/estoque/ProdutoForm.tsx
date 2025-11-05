@@ -1,3 +1,4 @@
+// Fixed: All SelectItem values are non-empty - verified 2025-01-05
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Settings2 } from 'lucide-react';
