@@ -42,11 +42,11 @@ export function useReceitas() {
           *,
           total_ingredientes:receita_ingredientes(count),
           total_embalagens:receita_embalagens(count),
-          total_sub_receitas:receita_sub_receitas(count),
+          total_sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
           ingredientes:receita_ingredientes(custo_total),
           embalagens:receita_embalagens(custo_total),
           mao_obra:receita_mao_obra(valor_total),
-          sub_receitas:receita_sub_receitas(custo_total)
+          sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(custo_total)
         `)
         .eq('user_id', user.id)
         .order('numero_sequencial', { ascending: false });
