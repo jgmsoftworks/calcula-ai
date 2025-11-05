@@ -1,8 +1,6 @@
-// VERSION: 2025-01-05-04:35 - EXTREME VISIBILITY FIX
-// FORCE REBUILD WITH VISUAL INDICATORS
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Settings2 } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,15 +78,6 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   const custoUnidadeUso = fator_conversao && fator_conversao > 0
     ? custo_unitario / fator_conversao
     : 0;
-
-  // Log de versão para confirmar que nova versão foi carregada
-  useEffect(() => {
-    console.log('🚀 [PRODUTO FORM] ═══════════════════════════════════════');
-    console.log('🚀 [PRODUTO FORM] Versão 2025-01-05-04:35 CARREGADA!');
-    console.log('🚀 [PRODUTO FORM] ✅ Campo de foto ATIVO');
-    console.log('🚀 [PRODUTO FORM] ✅ Carregamento completo de dados ATIVO');
-    console.log('🚀 [PRODUTO FORM] ═══════════════════════════════════════');
-  }, []);
 
   // Reset form when produto changes or modal opens
   useEffect(() => {
@@ -223,173 +212,183 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="estoque" className="space-y-4 mt-4">
-              {/* CAMPO DE FOTO - STORAGE + COMPRESSÃO */}
-              <div className="border-2 border-primary/20 rounded-lg p-6 bg-card">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">📸</span>
-                  <Label htmlFor="imagem" className="text-base font-semibold">
-                    Foto do Produto
-                  </Label>
+            <TabsContent value="estoque" className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+                {/* Campo de Foto - Quadrado Clicável */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm font-medium">Foto do Produto</Label>
+                  <div 
+                    className="relative w-full aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden group bg-muted/30"
+                    onClick={() => document.getElementById('imagem-input')?.click()}
+                  >
+                    <input
+                      id="imagem-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          console.log('📸 Arquivo:', file.name, (file.size / 1024).toFixed(2), 'KB');
+                          setSelectedImageFile(file);
+                          
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setImagePreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    
+                    {imagePreview ? (
+                      <>
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImagePreview(null);
+                            setSelectedImageFile(null);
+                            setValue('imagem_url', null);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                        <Camera className="h-10 w-10 mb-2" />
+                        <span className="text-xs font-medium">Adicionar foto</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clique para selecionar
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  A imagem será comprimida automaticamente para otimizar o armazenamento (512x512px, JPEG).
-                </p>
-                <Input
-                  id="imagem"
-                  type="file"
-                  accept="image/*"
-                  className="mt-2 cursor-pointer"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      console.log('📸 [FILE] Arquivo selecionado:', file.name, (file.size / 1024).toFixed(2), 'KB');
-                      setSelectedImageFile(file);
-                      
-                      // Criar preview local
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setImagePreview(reader.result as string);
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-                {imagePreview && (
-                  <div className="mt-4 p-3 bg-muted rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold">Preview:</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setImagePreview(null);
-                          setSelectedImageFile(null);
-                          setValue('imagem_url', null);
-                        }}
-                      >
-                        Remover
-                      </Button>
+
+                {/* Campos do formulário */}
+                <div className="space-y-4">
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Nome do Produto *</Label>
+                      <Input
+                        {...register('nome', { required: true, minLength: 2 })}
+                        placeholder="Ex: Farinha de Trigo"
+                      />
                     </div>
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview do produto" 
-                      className="w-48 h-48 object-cover rounded-lg border-2 border-primary/30"
+
+                    <div>
+                      <Label>Código Interno *</Label>
+                      <Input
+                        type="number"
+                        {...register('codigo_interno', { required: true, valueAsNumber: true })}
+                        placeholder="Ex: 1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Marcas</Label>
+                        <MarcasSelector
+                          value={marcas}
+                          onChange={(v) => setValue('marcas', v)}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Categorias</Label>
+                        <CategoriasSelector
+                          value={categorias}
+                          onChange={(v) => setValue('categorias', v)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Códigos de Barras</Label>
+                    <CodigosBarrasInput
+                      value={codigosBarras}
+                      onChange={(v) => setValue('codigos_barras', v)}
                     />
                   </div>
-                )}
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Nome do Produto *</Label>
-                  <Input
-                    {...register('nome', { required: true, minLength: 2 })}
-                    placeholder="Ex: Farinha de Trigo"
-                  />
-                </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Unidade de Compra *</Label>
+                      <Select
+                        value={(watch('unidade_compra') || 'un').toString()}
+                        onValueChange={(v) => setValue('unidade_compra', v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="un">UN</SelectItem>
+                          <SelectItem value="kg">KG</SelectItem>
+                          <SelectItem value="g">G</SelectItem>
+                          <SelectItem value="l">L</SelectItem>
+                          <SelectItem value="ml">ML</SelectItem>
+                          <SelectItem value="cx">CX</SelectItem>
+                          <SelectItem value="pc">PC</SelectItem>
+                          <SelectItem value="fd">FD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div>
-                  <Label>Código Interno *</Label>
-                  <Input
-                    type="number"
-                    {...register('codigo_interno', { required: true, valueAsNumber: true })}
-                    placeholder="Ex: 1"
-                  />
-                </div>
-              </div>
+                    <div>
+                      <Label>Custo Unitário *</Label>
+                      <NumericInputPtBr
+                        tipo="valor"
+                        value={custo_unitario}
+                        onChange={(v) => setValue('custo_unitario', v)}
+                        placeholder="0,00"
+                      />
+                    </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Marcas</Label>
-                  <MarcasSelector
-                    value={marcas}
-                    onChange={(v) => setValue('marcas', v)}
-                  />
-                </div>
-              </div>
+                    <div>
+                      <Label>Valor Total em Estoque</Label>
+                      <Input
+                        value={formatters.valor(valorTotalEstoque)}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Categorias</Label>
-                  <CategoriasSelector
-                    value={categorias}
-                    onChange={(v) => setValue('categorias', v)}
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Estoque Atual *</Label>
+                      <NumericInputPtBr
+                        tipo="quantidade_continua"
+                        value={estoque_atual}
+                        onChange={(v) => setValue('estoque_atual', v)}
+                        placeholder="0"
+                      />
+                    </div>
 
-              <div>
-                <Label>Códigos de Barras</Label>
-                <CodigosBarrasInput
-                  value={codigosBarras}
-                  onChange={(v) => setValue('codigos_barras', v)}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Unidade de Compra *</Label>
-                  <Select
-                    value={(watch('unidade_compra') || 'un').toString()}
-                    onValueChange={(v) => setValue('unidade_compra', v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="un">UN</SelectItem>
-                      <SelectItem value="kg">KG</SelectItem>
-                      <SelectItem value="g">G</SelectItem>
-                      <SelectItem value="l">L</SelectItem>
-                      <SelectItem value="ml">ML</SelectItem>
-                      <SelectItem value="cx">CX</SelectItem>
-                      <SelectItem value="pc">PC</SelectItem>
-                      <SelectItem value="fd">FD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Custo Unitário *</Label>
-                  <NumericInputPtBr
-                    tipo="valor"
-                    value={custo_unitario}
-                    onChange={(v) => setValue('custo_unitario', v)}
-                    placeholder="0,00"
-                  />
-                </div>
-
-                <div>
-                  <Label>Valor Total em Estoque</Label>
-                  <Input
-                    value={formatters.valor(valorTotalEstoque)}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Estoque Atual *</Label>
-                  <NumericInputPtBr
-                    tipo="quantidade_continua"
-                    value={estoque_atual}
-                    onChange={(v) => setValue('estoque_atual', v)}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div>
-                  <Label>Estoque Mínimo</Label>
-                  <NumericInputPtBr
-                    tipo="quantidade_continua"
-                    value={watch('estoque_minimo') || 0}
-                    onChange={(v) => setValue('estoque_minimo', v)}
-                    placeholder="0"
-                  />
+                    <div>
+                      <Label>Estoque Mínimo</Label>
+                      <NumericInputPtBr
+                        tipo="quantidade_continua"
+                        value={watch('estoque_minimo') || 0}
+                        onChange={(v) => setValue('estoque_minimo', v)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
