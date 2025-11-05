@@ -1,4 +1,3 @@
-// @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';

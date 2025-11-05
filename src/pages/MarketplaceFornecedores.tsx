@@ -92,10 +92,10 @@ export default function MarketplaceFornecedores() {
       setFornecedores(fornecedoresComRating);
       setPromocoes(promocoesData as any || []);
 
-      // Extrair cidades únicas - filtrar strings vazias também
+      // Extrair cidades únicas
       const cidadesUnicas = [...new Set(fornecedoresComRating
         .map(f => f.cidade)
-        .filter(c => c && c.trim() !== '')
+        .filter(Boolean)
       )] as string[];
       setCidades(cidadesUnicas);
 

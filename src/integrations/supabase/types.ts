@@ -580,39 +580,6 @@ export type Database = {
         }
         Relationships: []
       }
-      comprovantes: {
-        Row: {
-          created_at: string
-          data_hora: string
-          id: string
-          numero: number
-          observacao: string | null
-          responsavel: string
-          tipo: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          data_hora?: string
-          id?: string
-          numero: number
-          observacao?: string | null
-          responsavel: string
-          tipo: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          data_hora?: string
-          id?: string
-          numero?: number
-          observacao?: string | null
-          responsavel?: string
-          tipo?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       coupon_redemptions: {
         Row: {
           applied_at: string | null
@@ -733,6 +700,56 @@ export type Database = {
           valor_percentual?: number | null
         }
         Relationships: []
+      }
+      estoque_receitas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_unitario_medio: number | null
+          data_ultima_movimentacao: string | null
+          id: string
+          quantidade_atual: number
+          quantidade_minima: number | null
+          receita_id: string
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_unitario_medio?: number | null
+          data_ultima_movimentacao?: string | null
+          id?: string
+          quantidade_atual?: number
+          quantidade_minima?: number | null
+          receita_id: string
+          unidade?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_unitario_medio?: number | null
+          data_ultima_movimentacao?: string | null
+          id?: string
+          quantidade_atual?: number
+          quantidade_minima?: number | null
+          receita_id?: string
+          unidade?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_estoque_receitas_receita"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       folha_pagamento: {
         Row: {
@@ -1018,65 +1035,50 @@ export type Database = {
       }
       movimentacoes: {
         Row: {
-          comprovante_id: string | null
           created_at: string
-          custo_aplicado: number | null
           custo_unitario: number | null
-          data_hora: string
+          data: string
+          fornecedor_id: string | null
           id: string
-          motivo: string | null
           observacao: string | null
-          origem: string | null
           produto_id: string
           quantidade: number
-          responsavel: string | null
-          subtotal: number | null
-          tipo: string
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
           updated_at: string
           user_id: string
         }
         Insert: {
-          comprovante_id?: string | null
           created_at?: string
-          custo_aplicado?: number | null
           custo_unitario?: number | null
-          data_hora?: string
+          data?: string
+          fornecedor_id?: string | null
           id?: string
-          motivo?: string | null
           observacao?: string | null
-          origem?: string | null
           produto_id: string
           quantidade: number
-          responsavel?: string | null
-          subtotal?: number | null
-          tipo: string
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
           updated_at?: string
           user_id: string
         }
         Update: {
-          comprovante_id?: string | null
           created_at?: string
-          custo_aplicado?: number | null
           custo_unitario?: number | null
-          data_hora?: string
+          data?: string
+          fornecedor_id?: string | null
           id?: string
-          motivo?: string | null
           observacao?: string | null
-          origem?: string | null
           produto_id?: string
           quantidade?: number
-          responsavel?: string | null
-          subtotal?: number | null
-          tipo?: string
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_movimentacoes_comprovante"
-            columns: ["comprovante_id"]
+            foreignKeyName: "movimentacoes_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
             isOneToOne: false
-            referencedRelation: "comprovantes"
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
           {
@@ -1084,6 +1086,128 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacoes_pdv: {
+        Row: {
+          created_at: string | null
+          data_movimentacao: string
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          funcionario_id: string | null
+          funcionario_nome: string | null
+          id: string
+          motivo: string
+          nome_item: string
+          numero_comanda: string | null
+          observacao: string | null
+          origem: string
+          produto_id: string | null
+          quantidade: number
+          receita_id: string | null
+          tipo: string
+          unidade: string
+          updated_at: string | null
+          user_id: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_movimentacao: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
+          id?: string
+          motivo: string
+          nome_item: string
+          numero_comanda?: string | null
+          observacao?: string | null
+          origem: string
+          produto_id?: string | null
+          quantidade: number
+          receita_id?: string | null
+          tipo: string
+          unidade: string
+          updated_at?: string | null
+          user_id: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Update: {
+          created_at?: string | null
+          data_movimentacao?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
+          id?: string
+          motivo?: string
+          nome_item?: string
+          numero_comanda?: string | null
+          observacao?: string | null
+          origem?: string
+          produto_id?: string | null
+          quantidade?: number
+          receita_id?: string | null
+          tipo?: string
+          unidade?: string
+          updated_at?: string | null
+          user_id?: string
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: []
+      }
+      movimentacoes_receitas: {
+        Row: {
+          created_at: string
+          custo_unitario: number | null
+          data: string
+          id: string
+          observacao: string | null
+          preco_venda: number | null
+          quantidade: number
+          receita_id: string
+          tipo: Database["public"]["Enums"]["tipo_movimentacao_receita"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number | null
+          data?: string
+          id?: string
+          observacao?: string | null
+          preco_venda?: number | null
+          quantidade: number
+          receita_id: string
+          tipo: Database["public"]["Enums"]["tipo_movimentacao_receita"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number | null
+          data?: string
+          id?: string
+          observacao?: string | null
+          preco_venda?: number | null
+          quantidade?: number
+          receita_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao_receita"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_movimentacoes_receitas_receita"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
             referencedColumns: ["id"]
           },
         ]
@@ -1171,61 +1295,150 @@ export type Database = {
           },
         ]
       }
-      produtos: {
+      produto_conversoes: {
         Row: {
           ativo: boolean
-          categorias: string[] | null
-          codigo_interno: number
-          codigos_barras: string[] | null
           created_at: string
-          custo_unitario: number
-          estoque_atual: number
-          estoque_minimo: number
-          fator_conversao: number | null
+          custo_unitario_uso: number
           id: string
-          imagem_url: string | null
-          marcas: string[] | null
-          nome: string
-          unidade_compra: string
-          unidade_uso: string | null
+          produto_id: string
+          quantidade_por_unidade: number
+          quantidade_unidade_uso: number
+          unidade_compra: Database["public"]["Enums"]["unidade_medida"]
+          unidade_uso_receitas: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
           user_id: string
         }
         Insert: {
           ativo?: boolean
-          categorias?: string[] | null
-          codigo_interno: number
-          codigos_barras?: string[] | null
           created_at?: string
-          custo_unitario?: number
-          estoque_atual?: number
-          estoque_minimo?: number
-          fator_conversao?: number | null
+          custo_unitario_uso?: number
           id?: string
-          imagem_url?: string | null
-          marcas?: string[] | null
-          nome: string
-          unidade_compra?: string
-          unidade_uso?: string | null
+          produto_id: string
+          quantidade_por_unidade: number
+          quantidade_unidade_uso?: number
+          unidade_compra: Database["public"]["Enums"]["unidade_medida"]
+          unidade_uso_receitas: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id: string
         }
         Update: {
           ativo?: boolean
-          categorias?: string[] | null
-          codigo_interno?: number
-          codigos_barras?: string[] | null
           created_at?: string
-          custo_unitario?: number
+          custo_unitario_uso?: number
+          id?: string
+          produto_id?: string
+          quantidade_por_unidade?: number
+          quantidade_unidade_uso?: number
+          unidade_compra?: Database["public"]["Enums"]["unidade_medida"]
+          unidade_uso_receitas?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_conversoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          categorias: string[] | null
+          codigo_barras: string[] | null
+          codigo_interno: string | null
+          created_at: string
+          custo_medio: number
+          custo_total: number | null
+          custo_unitario: number | null
+          estoque_atual: number
+          estoque_minimo: number | null
+          fornecedor_ids: string[] | null
+          id: string
+          imagem_url: string | null
+          marcas: string[] | null
+          nome: string
+          rotulo_carb: number | null
+          rotulo_fibra: number | null
+          rotulo_gord_sat: number | null
+          rotulo_gord_total: number | null
+          rotulo_gord_trans: number | null
+          rotulo_kcal: number | null
+          rotulo_porcao: string | null
+          rotulo_prot: number | null
+          rotulo_sodio: number | null
+          sku: string | null
+          total_embalagem: number | null
+          unidade: Database["public"]["Enums"]["unidade_medida"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          categorias?: string[] | null
+          codigo_barras?: string[] | null
+          codigo_interno?: string | null
+          created_at?: string
+          custo_medio?: number
+          custo_total?: number | null
+          custo_unitario?: number | null
           estoque_atual?: number
-          estoque_minimo?: number
-          fator_conversao?: number | null
+          estoque_minimo?: number | null
+          fornecedor_ids?: string[] | null
+          id?: string
+          imagem_url?: string | null
+          marcas?: string[] | null
+          nome: string
+          rotulo_carb?: number | null
+          rotulo_fibra?: number | null
+          rotulo_gord_sat?: number | null
+          rotulo_gord_total?: number | null
+          rotulo_gord_trans?: number | null
+          rotulo_kcal?: number | null
+          rotulo_porcao?: string | null
+          rotulo_prot?: number | null
+          rotulo_sodio?: number | null
+          sku?: string | null
+          total_embalagem?: number | null
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          categorias?: string[] | null
+          codigo_barras?: string[] | null
+          codigo_interno?: string | null
+          created_at?: string
+          custo_medio?: number
+          custo_total?: number | null
+          custo_unitario?: number | null
+          estoque_atual?: number
+          estoque_minimo?: number | null
+          fornecedor_ids?: string[] | null
           id?: string
           imagem_url?: string | null
           marcas?: string[] | null
           nome?: string
-          unidade_compra?: string
-          unidade_uso?: string | null
+          rotulo_carb?: number | null
+          rotulo_fibra?: number | null
+          rotulo_gord_sat?: number | null
+          rotulo_gord_total?: number | null
+          rotulo_gord_trans?: number | null
+          rotulo_kcal?: number | null
+          rotulo_porcao?: string | null
+          rotulo_prot?: number | null
+          rotulo_sodio?: number | null
+          sku?: string | null
+          total_embalagem?: number | null
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
           user_id?: string
         }
@@ -1498,6 +1711,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
         }
         Insert: {
@@ -1509,6 +1723,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
         }
         Update: {
@@ -1520,6 +1735,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           receita_id?: string
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
         }
         Relationships: [
@@ -1543,6 +1759,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade: Database["public"]["Enums"]["unidade_medida"]
           updated_at: string
         }
         Insert: {
@@ -1555,6 +1772,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
         }
         Update: {
@@ -1567,6 +1785,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           receita_id?: string
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
           updated_at?: string
         }
         Relationships: [
@@ -1960,6 +2179,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_produto: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_configurations: {
         Row: {
           configuration: Json
@@ -2039,15 +2288,8 @@ export type Database = {
       }
       create_system_backup: { Args: { backup_type?: string }; Returns: string }
       generate_affiliate_link_code: { Args: never; Returns: string }
+      generate_codigo_interno: { Args: { user_uuid: string }; Returns: string }
       gerar_numero_comanda: { Args: { p_user_id: string }; Returns: string }
-      gerar_proximo_codigo_interno: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
-      gerar_proximo_numero_comprovante: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
       get_backup_data: { Args: { backup_id: string }; Returns: Json }
       get_employee_basic_info: {
         Args: never
@@ -2107,6 +2349,41 @@ export type Database = {
         Returns: undefined
       }
       reset_monthly_pdf_counter: { Args: never; Returns: undefined }
+      update_produto_unidade: {
+        Args: { p_produto_id: string; p_unidade: string }
+        Returns: undefined
+      }
+      update_produto_with_cast: {
+        Args: {
+          p_ativo: boolean
+          p_categoria: string
+          p_categorias: string[]
+          p_codigo_barras: string[]
+          p_codigo_interno: string
+          p_custo_medio: number
+          p_custo_total: number
+          p_custo_unitario: number
+          p_estoque_atual: number
+          p_estoque_minimo: number
+          p_fornecedor_ids: string[]
+          p_id: string
+          p_imagem_url: string
+          p_marcas: string[]
+          p_nome: string
+          p_rotulo_carb: number
+          p_rotulo_fibra: number
+          p_rotulo_gord_sat: number
+          p_rotulo_gord_total: number
+          p_rotulo_gord_trans: number
+          p_rotulo_kcal: number
+          p_rotulo_porcao: string
+          p_rotulo_prot: number
+          p_rotulo_sodio: number
+          p_total_embalagem: number
+          p_unidade: string
+        }
+        Returns: Json
+      }
       user_is_admin: { Args: never; Returns: boolean }
       user_is_affiliate_owner: {
         Args: { affiliate_id: string }
@@ -2124,6 +2401,18 @@ export type Database = {
         | "fornecedor"
       discount_type: "trial_period" | "percentage" | "fixed"
       tipo_movimentacao: "entrada" | "saida"
+      tipo_movimentacao_receita: "entrada" | "venda" | "perdas" | "brindes"
+      unidade_medida:
+        | "g"
+        | "k"
+        | "ml"
+        | "l"
+        | "un"
+        | "cx"
+        | "pct"
+        | "fd"
+        | "m"
+        | "cm"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2261,6 +2550,8 @@ export const Constants = {
       ],
       discount_type: ["trial_period", "percentage", "fixed"],
       tipo_movimentacao: ["entrada", "saida"],
+      tipo_movimentacao_receita: ["entrada", "venda", "perdas", "brindes"],
+      unidade_medida: ["g", "k", "ml", "l", "un", "cx", "pct", "fd", "m", "cm"],
     },
   },
 } as const

@@ -37,6 +37,7 @@ const businessNavigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
   { title: 'Estoque', url: '/estoque', icon: Package },
   { title: 'Movimentação', url: '/movimentacao', icon: TrendingUp },
+  { title: 'Fornecedores', url: '/fornecedores', icon: Users },
   { title: 'Receitas', url: '/receitas', icon: ChefHat },
   { title: 'Vitrine', url: '/vitrine', icon: Store },
   { title: 'Custos', url: '/custos', icon: TrendingUp },

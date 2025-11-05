@@ -124,7 +124,7 @@ export function AffiliatesLinks() {
                       <SelectValue placeholder="Selecione um afiliado" />
                     </SelectTrigger>
                     <SelectContent>
-                      {affiliates.filter(a => a.status === 'active' && a.id && a.id.trim() !== '').map(affiliate => (
+                      {affiliates.filter(a => a.status === 'active').map(affiliate => (
                         <SelectItem key={affiliate.id} value={affiliate.id}>
                           {affiliate.name} ({affiliate.email})
                         </SelectItem>

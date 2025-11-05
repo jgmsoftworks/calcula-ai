@@ -1,4 +1,3 @@
-// @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -137,7 +136,6 @@ export const useDashboardData = () => {
           .lte('created_at', previousDateRange.end.toISOString()),
 
         // Produtos ativos
-        // @ts-ignore - Tabela em migração
         supabase
           .from('produtos')
           .select('id, created_at, categorias')
@@ -159,7 +157,6 @@ export const useDashboardData = () => {
           .eq('ativo', true),
 
         // Categorias para distribuição
-        // @ts-ignore - Tabela em migração
         supabase
           .from('produtos')
           .select('categorias')
