@@ -83,6 +83,7 @@ export function MovimentacaoModal({
     onAddToCart({
       produto_id: produto.id,
       produto_nome: produto.nome,
+      imagem_url: produto.imagem_url,
       tipo,
       motivo,
       quantidade,

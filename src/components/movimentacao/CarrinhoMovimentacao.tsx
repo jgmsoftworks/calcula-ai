@@ -61,9 +61,10 @@ export function CarrinhoMovimentacao({ carrinho, onCarrinhoChange }: any) {
 
     setFinalizing(true);
     const items = carrinho.map((item: any) => ({
-      produto_id: item.id,
-      produto_nome: item.nome,
+      produto_id: item.produto_id,
+      produto_nome: item.produto_nome,
       tipo: item.tipo,
+      motivo: item.motivo,
       quantidade: item.quantidade,
       custo_aplicado: item.custo_aplicado,
       subtotal: item.subtotal,
@@ -109,7 +110,7 @@ export function CarrinhoMovimentacao({ carrinho, onCarrinhoChange }: any) {
         <div className="space-y-2 max-h-[400px] overflow-y-auto">
           {carrinho.map((item: any, index: number) => (
             <ItemCarrinho
-              key={`${item.id}-${index}`}
+              key={`${item.produto_id}-${index}`}
               item={item}
               onRemove={() => handleRemoveItem(index)}
             />
