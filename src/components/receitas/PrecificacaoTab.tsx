@@ -21,10 +21,29 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
 
   useEffect(() => {
     const calcularCustoTotal = () => {
-      const custoIngredientes = receita.ingredientes.reduce((sum, i) => sum + i.custo_total, 0);
-      const custoEmbalagens = receita.embalagens.reduce((sum, e) => sum + e.custo_total, 0);
+      const custoIngredientes = receita.ingredientes.reduce((sum, i) => {
+        if (!i.produto) return sum;
+        const custoUnitario = i.produto.unidade_uso 
+          ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
+          : i.produto.custo_unitario;
+        return sum + (custoUnitario * i.quantidade);
+      }, 0);
+      
+      const custoEmbalagens = receita.embalagens.reduce((sum, e) => {
+        if (!e.produto) return sum;
+        const custoUnitario = e.produto.unidade_uso 
+          ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
+          : e.produto.custo_unitario;
+        return sum + (custoUnitario * e.quantidade);
+      }, 0);
+      
       const custoMaoObra = receita.mao_obra.reduce((sum, m) => sum + m.valor_total, 0);
-      const custoSubReceitas = receita.sub_receitas.reduce((sum, s) => sum + s.custo_total, 0);
+      
+      const custoSubReceitas = receita.sub_receitas.reduce((sum, s) => {
+        if (!s.sub_receita) return sum;
+        return sum + (s.sub_receita.preco_venda * s.quantidade);
+      }, 0);
+      
       return custoIngredientes + custoEmbalagens + custoMaoObra + custoSubReceitas;
     };
 
@@ -176,13 +195,25 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Ingredientes:</span>
             <span className="font-medium">
-              R$ {receita.ingredientes.reduce((sum, i) => sum + i.custo_total, 0).toFixed(2)}
+              R$ {receita.ingredientes.reduce((sum, i) => {
+                if (!i.produto) return sum;
+                const custoUnitario = i.produto.unidade_uso 
+                  ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
+                  : i.produto.custo_unitario;
+                return sum + (custoUnitario * i.quantidade);
+              }, 0).toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Embalagens:</span>
             <span className="font-medium">
-              R$ {receita.embalagens.reduce((sum, e) => sum + e.custo_total, 0).toFixed(2)}
+              R$ {receita.embalagens.reduce((sum, e) => {
+                if (!e.produto) return sum;
+                const custoUnitario = e.produto.unidade_uso 
+                  ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
+                  : e.produto.custo_unitario;
+                return sum + (custoUnitario * e.quantidade);
+              }, 0).toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between text-sm">
@@ -194,7 +225,10 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Sub-receitas:</span>
             <span className="font-medium">
-              R$ {receita.sub_receitas.reduce((sum, s) => sum + s.custo_total, 0).toFixed(2)}
+              R$ {receita.sub_receitas.reduce((sum, s) => {
+                if (!s.sub_receita) return sum;
+                return sum + (s.sub_receita.preco_venda * s.quantidade);
+              }, 0).toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between pt-2 border-t font-bold">

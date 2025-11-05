@@ -17,18 +17,10 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
 
   const handleAddIngrediente = async (produto: any, quantidade: number) => {
     try {
-      const custoUnitario = produto.custo_unitario_uso || produto.custo_unitario;
-      const unidade = produto.unidade_uso_final || produto.unidade_compra;
-      
       const { error } = await supabase.from('receita_ingredientes').insert({
         receita_id: receita.id,
         produto_id: produto.id,
-        nome: produto.nome,
-        marcas: produto.marcas,
         quantidade,
-        unidade,
-        custo_unitario: custoUnitario,
-        custo_total: custoUnitario * quantidade,
       });
 
       if (error) throw error;
@@ -56,7 +48,13 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
     }
   };
 
-  const total = receita.ingredientes.reduce((sum, ing) => sum + ing.custo_total, 0);
+  const total = receita.ingredientes.reduce((sum, ing) => {
+    if (!ing.produto) return sum;
+    const custoUnitario = ing.produto.unidade_uso 
+      ? ing.produto.custo_unitario / (ing.produto.fator_conversao || 1)
+      : ing.produto.custo_unitario;
+    return sum + (custoUnitario * ing.quantidade);
+  }, 0);
 
   return (
     <div className="space-y-4">
@@ -85,40 +83,50 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {receita.ingredientes.map((ingrediente) => (
-              <TableRow key={ingrediente.id}>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{ingrediente.nome}</div>
-                    {ingrediente.marcas && ingrediente.marcas.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        Marca: {ingrediente.marcas.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">{ingrediente.quantidade}</TableCell>
-                <TableCell className="text-right">{(ingrediente as any).unidade || 'un'}</TableCell>
-                <TableCell className="text-right">
-                  <div className="text-sm">R$ {ingrediente.custo_unitario.toFixed(4)}/{(ingrediente as any).unidade || 'un'}</div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="font-medium">R$ {ingrediente.custo_total.toFixed(2)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {ingrediente.quantidade} × R$ {ingrediente.custo_unitario.toFixed(4)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveIngrediente(ingrediente.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {receita.ingredientes.map((ingrediente) => {
+              if (!ingrediente.produto) return null;
+              
+              const unidade = ingrediente.produto.unidade_uso || ingrediente.produto.unidade_compra;
+              const custoUnitario = ingrediente.produto.unidade_uso 
+                ? ingrediente.produto.custo_unitario / (ingrediente.produto.fator_conversao || 1)
+                : ingrediente.produto.custo_unitario;
+              const custoTotal = custoUnitario * ingrediente.quantidade;
+
+              return (
+                <TableRow key={ingrediente.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{ingrediente.produto.nome}</div>
+                      {ingrediente.produto.marcas && ingrediente.produto.marcas.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          Marca: {ingrediente.produto.marcas.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">{ingrediente.quantidade}</TableCell>
+                  <TableCell className="text-right">{unidade}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="text-sm">R$ {custoUnitario.toFixed(4)}/{unidade}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="font-medium">R$ {custoTotal.toFixed(2)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {ingrediente.quantidade} × R$ {custoUnitario.toFixed(4)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveIngrediente(ingrediente.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             <TableRow>
               <TableCell colSpan={4} className="text-right font-semibold">Total:</TableCell>
               <TableCell className="text-right font-semibold">R$ {total.toFixed(2)}</TableCell>

@@ -43,10 +43,19 @@ export function useReceitas() {
           total_ingredientes:receita_ingredientes(count),
           total_embalagens:receita_embalagens(count),
           total_sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
-          ingredientes:receita_ingredientes(custo_total),
-          embalagens:receita_embalagens(custo_total),
+          ingredientes:receita_ingredientes(
+            quantidade,
+            produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+          ),
+          embalagens:receita_embalagens(
+            quantidade,
+            produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+          ),
           mao_obra:receita_mao_obra(valor_total),
-          sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(custo_total)
+          sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
+            quantidade,
+            sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda)
+          )
         `)
         .eq('user_id', user.id)
         .order('numero_sequencial', { ascending: false });
@@ -68,16 +77,44 @@ export function useReceitas() {
       if (error) throw error;
 
       // Transform data to include calculated fields
-      const receitasComDados = (data || []).map((receita: any) => ({
-        ...receita,
-        total_ingredientes: receita.total_ingredientes?.[0]?.count || 0,
-        total_embalagens: receita.total_embalagens?.[0]?.count || 0,
-        total_sub_receitas: receita.total_sub_receitas?.[0]?.count || 0,
-        custo_ingredientes: receita.ingredientes?.reduce((sum: number, i: any) => sum + (i.custo_total || 0), 0) || 0,
-        custo_embalagens: receita.embalagens?.reduce((sum: number, e: any) => sum + (e.custo_total || 0), 0) || 0,
-        custo_mao_obra: receita.mao_obra?.reduce((sum: number, m: any) => sum + (m.valor_total || 0), 0) || 0,
-        custo_sub_receitas: receita.sub_receitas?.reduce((sum: number, s: any) => sum + (s.custo_total || 0), 0) || 0,
-      }));
+      const receitasComDados = (data || []).map((receita: any) => {
+        // Calcular custo de ingredientes dinamicamente
+        const custoIngredientes = receita.ingredientes?.reduce((sum: number, i: any) => {
+          if (!i.produto) return sum;
+          const unidade = i.produto.unidade_uso || i.produto.unidade_compra;
+          const custoUnitario = i.produto.unidade_uso 
+            ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
+            : i.produto.custo_unitario;
+          return sum + (custoUnitario * i.quantidade);
+        }, 0) || 0;
+
+        // Calcular custo de embalagens dinamicamente
+        const custoEmbalagens = receita.embalagens?.reduce((sum: number, e: any) => {
+          if (!e.produto) return sum;
+          const unidade = e.produto.unidade_uso || e.produto.unidade_compra;
+          const custoUnitario = e.produto.unidade_uso 
+            ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
+            : e.produto.custo_unitario;
+          return sum + (custoUnitario * e.quantidade);
+        }, 0) || 0;
+
+        // Calcular custo de sub-receitas dinamicamente
+        const custoSubReceitas = receita.sub_receitas?.reduce((sum: number, s: any) => {
+          if (!s.sub_receita) return sum;
+          return sum + (s.sub_receita.preco_venda * s.quantidade);
+        }, 0) || 0;
+
+        return {
+          ...receita,
+          total_ingredientes: receita.total_ingredientes?.[0]?.count || 0,
+          total_embalagens: receita.total_embalagens?.[0]?.count || 0,
+          total_sub_receitas: receita.total_sub_receitas?.[0]?.count || 0,
+          custo_ingredientes: custoIngredientes,
+          custo_embalagens: custoEmbalagens,
+          custo_mao_obra: receita.mao_obra?.reduce((sum: number, m: any) => sum + (m.valor_total || 0), 0) || 0,
+          custo_sub_receitas: custoSubReceitas,
+        };
+      });
 
       return receitasComDados;
     } catch (error: any) {
@@ -104,10 +141,39 @@ export function useReceitas() {
       if (receitaError) throw receitaError;
 
       const [ingredientes, embalagens, passos, subReceitas, maoObra] = await Promise.all([
-        supabase.from('receita_ingredientes').select('*').eq('receita_id', id),
-        supabase.from('receita_embalagens').select('*').eq('receita_id', id),
+        supabase.from('receita_ingredientes').select(`
+          *,
+          produto:produtos(
+            id,
+            nome,
+            marcas,
+            custo_unitario,
+            unidade_compra,
+            unidade_uso,
+            fator_conversao
+          )
+        `).eq('receita_id', id),
+        supabase.from('receita_embalagens').select(`
+          *,
+          produto:produtos(
+            id,
+            nome,
+            custo_unitario,
+            unidade_compra,
+            unidade_uso,
+            fator_conversao
+          )
+        `).eq('receita_id', id),
         supabase.from('receita_passos_preparo').select('*').eq('receita_id', id).order('ordem'),
-        supabase.from('receita_sub_receitas').select('*').eq('receita_id', id),
+        supabase.from('receita_sub_receitas').select(`
+          *,
+          sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(
+            id,
+            nome,
+            preco_venda,
+            rendimento_unidade
+          )
+        `).eq('receita_id', id),
         supabase.from('receita_mao_obra').select('*').eq('receita_id', id),
       ]);
 
@@ -118,7 +184,7 @@ export function useReceitas() {
         passos: passos.data || [],
         sub_receitas: subReceitas.data || [],
         mao_obra: maoObra.data || [],
-      } as ReceitaCompleta;
+      } as any as ReceitaCompleta;
     } catch (error: any) {
       console.error('Erro ao buscar receita completa:', error);
       toast.error('Erro ao carregar receita');
@@ -289,17 +355,47 @@ export function useReceitas() {
 
     try {
       const [ingredientes, embalagens, maoObra, subReceitas] = await Promise.all([
-        supabase.from('receita_ingredientes').select('custo_total').eq('receita_id', receitaId),
-        supabase.from('receita_embalagens').select('custo_total').eq('receita_id', receitaId),
+        supabase.from('receita_ingredientes').select(`
+          quantidade,
+          produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+        `).eq('receita_id', receitaId),
+        supabase.from('receita_embalagens').select(`
+          quantidade,
+          produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+        `).eq('receita_id', receitaId),
         supabase.from('receita_mao_obra').select('valor_total').eq('receita_id', receitaId),
-        supabase.from('receita_sub_receitas').select('custo_total').eq('receita_id', receitaId),
+        supabase.from('receita_sub_receitas').select(`
+          quantidade,
+          sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda)
+        `).eq('receita_id', receitaId),
       ]);
 
+      const custoIngredientes = ingredientes.data?.reduce((sum, i: any) => {
+        if (!i.produto) return sum;
+        const custoUnitario = i.produto.unidade_uso 
+          ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
+          : i.produto.custo_unitario;
+        return sum + (custoUnitario * i.quantidade);
+      }, 0) || 0;
+
+      const custoEmbalagens = embalagens.data?.reduce((sum, e: any) => {
+        if (!e.produto) return sum;
+        const custoUnitario = e.produto.unidade_uso 
+          ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
+          : e.produto.custo_unitario;
+        return sum + (custoUnitario * e.quantidade);
+      }, 0) || 0;
+
+      const custoSubReceitas = subReceitas.data?.reduce((sum, s: any) => {
+        if (!s.sub_receita) return sum;
+        return sum + (s.sub_receita.preco_venda * s.quantidade);
+      }, 0) || 0;
+
       const total = 
-        (ingredientes.data?.reduce((sum, i) => sum + (i.custo_total || 0), 0) || 0) +
-        (embalagens.data?.reduce((sum, e) => sum + (e.custo_total || 0), 0) || 0) +
+        custoIngredientes +
+        custoEmbalagens +
         (maoObra.data?.reduce((sum, m) => sum + (m.valor_total || 0), 0) || 0) +
-        (subReceitas.data?.reduce((sum, s) => sum + (s.custo_total || 0), 0) || 0);
+        custoSubReceitas;
 
       return total;
     } catch (error: any) {

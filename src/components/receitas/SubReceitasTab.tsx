@@ -47,11 +47,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
       const { error } = await supabase.from('receita_sub_receitas').insert({
         receita_id: receita.id,
         sub_receita_id: subReceita.id,
-        nome: subReceita.nome,
-        unidade: subReceita.rendimento_unidade || 'un',
         quantidade: 1,
-        custo_unitario: subReceita.preco_venda,
-        custo_total: subReceita.preco_venda,
       });
 
       if (error) throw error;
@@ -83,15 +79,9 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
 
   const handleUpdateQuantidade = async (id: string, quantidade: number) => {
     try {
-      const subReceita = receita.sub_receitas.find(sr => sr.id === id);
-      if (!subReceita) return;
-
       const { error } = await supabase
         .from('receita_sub_receitas')
-        .update({
-          quantidade,
-          custo_total: subReceita.custo_unitario * quantidade,
-        })
+        .update({ quantidade })
         .eq('id', id);
 
       if (error) throw error;
@@ -102,7 +92,10 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
     }
   };
 
-  const total = receita.sub_receitas.reduce((sum, sr) => sum + sr.custo_total, 0);
+  const total = receita.sub_receitas.reduce((sum, sr) => {
+    if (!sr.sub_receita) return sum;
+    return sum + (sr.sub_receita.preco_venda * sr.quantidade);
+  }, 0);
 
   return (
     <div className="space-y-4">
@@ -166,33 +159,40 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {receita.sub_receitas.map((subReceita) => (
-                <TableRow key={subReceita.id}>
-                  <TableCell>{subReceita.nome}</TableCell>
-                  <TableCell>{subReceita.unidade}</TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      value={subReceita.quantidade}
-                      onChange={(e) => handleUpdateQuantidade(subReceita.id, Number(e.target.value))}
-                      className="w-20 text-right"
-                      min="0"
-                      step="0.01"
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">R$ {subReceita.custo_unitario.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">R$ {subReceita.custo_total.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveSubReceita(subReceita.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {receita.sub_receitas.map((subReceita) => {
+                if (!subReceita.sub_receita) return null;
+                
+                const custoTotal = subReceita.sub_receita.preco_venda * subReceita.quantidade;
+                const unidade = subReceita.sub_receita.rendimento_unidade || 'un';
+
+                return (
+                  <TableRow key={subReceita.id}>
+                    <TableCell>{subReceita.sub_receita.nome}</TableCell>
+                    <TableCell>{unidade}</TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={subReceita.quantidade}
+                        onChange={(e) => handleUpdateQuantidade(subReceita.id, Number(e.target.value))}
+                        className="w-20 text-right"
+                        min="0"
+                        step="0.01"
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">R$ {subReceita.sub_receita.preco_venda.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveSubReceita(subReceita.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

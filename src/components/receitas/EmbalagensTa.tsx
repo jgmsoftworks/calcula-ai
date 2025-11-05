@@ -17,17 +17,10 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
 
   const handleAddEmbalagem = async (produto: any, quantidade: number) => {
     try {
-      const custoUnitario = produto.custo_unitario_uso || produto.custo_unitario;
-      const unidade = produto.unidade_uso_final || produto.unidade_compra;
-      
       const { error } = await supabase.from('receita_embalagens').insert({
         receita_id: receita.id,
         produto_id: produto.id,
-        nome: produto.nome,
         quantidade,
-        unidade,
-        custo_unitario: custoUnitario,
-        custo_total: custoUnitario * quantidade,
       });
 
       if (error) throw error;
@@ -55,7 +48,13 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
     }
   };
 
-  const total = receita.embalagens.reduce((sum, emb) => sum + emb.custo_total, 0);
+  const total = receita.embalagens.reduce((sum, emb) => {
+    if (!emb.produto) return sum;
+    const custoUnitario = emb.produto.unidade_uso 
+      ? emb.produto.custo_unitario / (emb.produto.fator_conversao || 1)
+      : emb.produto.custo_unitario;
+    return sum + (custoUnitario * emb.quantidade);
+  }, 0);
 
   return (
     <div className="space-y-4">
@@ -84,31 +83,41 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {receita.embalagens.map((embalagem) => (
-              <TableRow key={embalagem.id}>
-                <TableCell>{embalagem.nome}</TableCell>
-                <TableCell className="text-right">{embalagem.quantidade}</TableCell>
-                <TableCell className="text-right">{(embalagem as any).unidade || 'un'}</TableCell>
-                <TableCell className="text-right">
-                  <div className="text-sm">R$ {embalagem.custo_unitario.toFixed(4)}/{(embalagem as any).unidade || 'un'}</div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="font-medium">R$ {embalagem.custo_total.toFixed(2)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {embalagem.quantidade} × R$ {embalagem.custo_unitario.toFixed(4)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveEmbalagem(embalagem.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {receita.embalagens.map((embalagem) => {
+              if (!embalagem.produto) return null;
+              
+              const unidade = embalagem.produto.unidade_uso || embalagem.produto.unidade_compra;
+              const custoUnitario = embalagem.produto.unidade_uso 
+                ? embalagem.produto.custo_unitario / (embalagem.produto.fator_conversao || 1)
+                : embalagem.produto.custo_unitario;
+              const custoTotal = custoUnitario * embalagem.quantidade;
+
+              return (
+                <TableRow key={embalagem.id}>
+                  <TableCell>{embalagem.produto.nome}</TableCell>
+                  <TableCell className="text-right">{embalagem.quantidade}</TableCell>
+                  <TableCell className="text-right">{unidade}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="text-sm">R$ {custoUnitario.toFixed(4)}/{unidade}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="font-medium">R$ {custoTotal.toFixed(2)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {embalagem.quantidade} × R$ {custoUnitario.toFixed(4)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveEmbalagem(embalagem.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             <TableRow>
               <TableCell colSpan={4} className="text-right font-semibold">Total:</TableCell>
               <TableCell className="text-right font-semibold">R$ {total.toFixed(2)}</TableCell>

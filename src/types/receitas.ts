@@ -23,21 +23,31 @@ export interface ReceitaIngrediente {
   id: string;
   receita_id: string;
   produto_id: string;
-  nome: string;
-  marcas: string[] | null;
   quantidade: number;
-  custo_unitario: number;
-  custo_total: number;
+  produto?: {
+    id: string;
+    nome: string;
+    marcas: string[] | null;
+    custo_unitario: number;
+    unidade_compra: string;
+    unidade_uso: string | null;
+    fator_conversao: number | null;
+  };
 }
 
 export interface ReceitaEmbalagem {
   id: string;
   receita_id: string;
   produto_id: string;
-  nome: string;
   quantidade: number;
-  custo_unitario: number;
-  custo_total: number;
+  produto?: {
+    id: string;
+    nome: string;
+    custo_unitario: number;
+    unidade_compra: string;
+    unidade_uso: string | null;
+    fator_conversao: number | null;
+  };
 }
 
 export interface ReceitaPasso {
@@ -52,11 +62,13 @@ export interface ReceitaSubReceita {
   id: string;
   receita_id: string;
   sub_receita_id: string;
-  nome: string;
-  unidade: string;
   quantidade: number;
-  custo_unitario: number;
-  custo_total: number;
+  sub_receita?: {
+    id: string;
+    nome: string;
+    preco_venda: number;
+    rendimento_unidade: string | null;
+  };
 }
 
 export interface ReceitaMaoObra {

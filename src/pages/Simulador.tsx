@@ -63,16 +63,22 @@ export default function Simulador() {
       // Calcular custos para cada receita
       const receitasComCustos = await Promise.all(
         receitasData.map(async (receita) => {
-          // Custo ingredientes
+          // Custo ingredientes com JOIN
           const { data: ingredientes } = await supabase
             .from('receita_ingredientes')
-            .select('custo_total')
+            .select(`
+              quantidade,
+              produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+            `)
             .eq('receita_id', receita.id);
 
-          // Custo embalagens
+          // Custo embalagens com JOIN
           const { data: embalagens } = await supabase
             .from('receita_embalagens')
-            .select('custo_total')
+            .select(`
+              quantidade,
+              produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+            `)
             .eq('receita_id', receita.id);
 
           // Custo mão de obra
@@ -81,16 +87,38 @@ export default function Simulador() {
             .select('valor_total')
             .eq('receita_id', receita.id);
 
-          // Custo sub-receitas
+          // Custo sub-receitas com JOIN
           const { data: subReceitas } = await supabase
             .from('receita_sub_receitas')
-            .select('custo_total')
+            .select(`
+              quantidade,
+              sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda)
+            `)
             .eq('receita_id', receita.id);
 
-          const custo_ingredientes = ingredientes?.reduce((acc, item) => acc + (Number(item.custo_total) || 0), 0) || 0;
-          const custo_embalagens = embalagens?.reduce((acc, item) => acc + (Number(item.custo_total) || 0), 0) || 0;
+          const custo_ingredientes = ingredientes?.reduce((acc, item: any) => {
+            if (!item.produto) return acc;
+            const custoUnitario = item.produto.unidade_uso 
+              ? item.produto.custo_unitario / (item.produto.fator_conversao || 1)
+              : item.produto.custo_unitario;
+            return acc + (custoUnitario * item.quantidade);
+          }, 0) || 0;
+
+          const custo_embalagens = embalagens?.reduce((acc, item: any) => {
+            if (!item.produto) return acc;
+            const custoUnitario = item.produto.unidade_uso 
+              ? item.produto.custo_unitario / (item.produto.fator_conversao || 1)
+              : item.produto.custo_unitario;
+            return acc + (custoUnitario * item.quantidade);
+          }, 0) || 0;
+
           const custo_mao_obra = maoObra?.reduce((acc, item) => acc + (Number(item.valor_total) || 0), 0) || 0;
-          const custo_sub_receitas = subReceitas?.reduce((acc, item) => acc + (Number(item.custo_total) || 0), 0) || 0;
+          
+          const custo_sub_receitas = subReceitas?.reduce((acc, item: any) => {
+            if (!item.sub_receita) return acc;
+            return acc + (item.sub_receita.preco_venda * item.quantidade);
+          }, 0) || 0;
+
           const custo_total = custo_ingredientes + custo_embalagens + custo_mao_obra + custo_sub_receitas;
 
           return {

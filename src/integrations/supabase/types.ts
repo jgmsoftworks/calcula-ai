@@ -1491,41 +1491,36 @@ export type Database = {
       receita_embalagens: {
         Row: {
           created_at: string
-          custo_total: number | null
-          custo_unitario: number | null
           id: string
-          nome: string
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
-          custo_total?: number | null
-          custo_unitario?: number | null
           id?: string
-          nome: string
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          custo_total?: number | null
-          custo_unitario?: number | null
           id?: string
-          nome?: string
           produto_id?: string
           quantidade?: number
           receita_id?: string
-          unidade?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "receita_embalagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receita_embalagens_receita_id_fkey"
             columns: ["receita_id"]
@@ -1538,44 +1533,36 @@ export type Database = {
       receita_ingredientes: {
         Row: {
           created_at: string
-          custo_total: number | null
-          custo_unitario: number | null
           id: string
-          marcas: string[] | null
-          nome: string
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
-          custo_total?: number | null
-          custo_unitario?: number | null
           id?: string
-          marcas?: string[] | null
-          nome: string
           produto_id: string
           quantidade: number
           receita_id: string
-          unidade?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          custo_total?: number | null
-          custo_unitario?: number | null
           id?: string
-          marcas?: string[] | null
-          nome?: string
           produto_id?: string
           quantidade?: number
           receita_id?: string
-          unidade?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "receita_ingredientes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receita_ingredientes_receita_id_fkey"
             columns: ["receita_id"]
@@ -1668,38 +1655,26 @@ export type Database = {
       receita_sub_receitas: {
         Row: {
           created_at: string
-          custo_total: number | null
-          custo_unitario: number | null
           id: string
-          nome: string
           quantidade: number
           receita_id: string
           sub_receita_id: string
-          unidade: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          custo_total?: number | null
-          custo_unitario?: number | null
           id?: string
-          nome: string
           quantidade: number
           receita_id: string
           sub_receita_id: string
-          unidade: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          custo_total?: number | null
-          custo_unitario?: number | null
           id?: string
-          nome?: string
           quantidade?: number
           receita_id?: string
           sub_receita_id?: string
-          unidade?: string
           updated_at?: string
         }
         Relationships: [
