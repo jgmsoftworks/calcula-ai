@@ -39,19 +39,26 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   const { gerarCodigoInterno, createProduto, updateProduto } = useEstoque();
   const [saving, setSaving] = useState(false);
   
+  // Ensure all values are valid before setting as defaults
+  const defaultValues = produto ? {
+    ...produto,
+    unidade_compra: produto.unidade_compra || 'un',
+    unidade_uso: produto.unidade_uso || null,
+  } : {
+    codigo_interno: 0,
+    codigos_barras: [],
+    marcas: [],
+    categorias: [],
+    unidade_compra: 'un',
+    custo_unitario: 0,
+    estoque_atual: 0,
+    estoque_minimo: 0,
+    unidade_uso: null,
+    fator_conversao: null,
+  };
+  
   const { register, handleSubmit, setValue, watch, reset } = useForm<Partial<Produto>>({
-    defaultValues: produto || {
-      codigo_interno: 0,
-      codigos_barras: [],
-      marcas: [],
-      categorias: [],
-      unidade_compra: 'un',
-      custo_unitario: 0,
-      estoque_atual: 0,
-      estoque_minimo: 0,
-      unidade_uso: null,
-      fator_conversao: null,
-    },
+    defaultValues,
   });
 
   const codigosBarras = watch('codigos_barras') || [];
@@ -66,11 +73,20 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     ? custo_unitario / fator_conversao
     : 0;
 
+  // Reset form when produto changes or modal opens
   useEffect(() => {
-    if (open && !produto) {
-      loadCodigoInterno();
+    if (open) {
+      if (produto) {
+        reset({
+          ...produto,
+          unidade_compra: produto.unidade_compra || 'un',
+          unidade_uso: produto.unidade_uso || null,
+        });
+      } else {
+        loadCodigoInterno();
+      }
     }
-  }, [open]);
+  }, [open, produto]);
 
   const loadCodigoInterno = async () => {
     const codigo = await gerarCodigoInterno();
@@ -168,7 +184,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Unidade de Compra *</Label>
                   <Select
-                    value={watch('unidade_compra') || 'un'}
+                    value={(watch('unidade_compra') || 'un').toString()}
                     onValueChange={(v) => setValue('unidade_compra', v)}
                   >
                     <SelectTrigger>
