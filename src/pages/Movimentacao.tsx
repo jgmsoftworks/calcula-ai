@@ -34,6 +34,13 @@ export default function Movimentacao() {
   };
 
   const handleAddToCart = (item: any) => {
+    // Validar item antes de adicionar ao carrinho
+    if (!item.produto_id) {
+      console.error('❌ Item sem produto_id:', item);
+      return;
+    }
+
+    console.log('✅ Item adicionado ao carrinho:', item);
     setCarrinho([...carrinho, item]);
     setModalOpen(false);
   };

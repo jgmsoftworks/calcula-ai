@@ -66,12 +66,23 @@ export function MovimentacaoModal({
       return;
     }
 
+    // Validar se produto tem ID válido
+    if (!produto?.id) {
+      console.error('❌ Produto sem ID:', produto);
+      return;
+    }
+
+    console.log('✅ Adicionando ao carrinho:', {
+      produto_id: produto.id,
+      produto_nome: produto.nome,
+      tipo,
+      motivo,
+      quantidade,
+    });
+
     onAddToCart({
       produto_id: produto.id,
       produto_nome: produto.nome,
-      codigo_interno: produto.codigo_interno,
-      imagem_url: produto.imagem_url,
-      estoque_atual: produto.estoque_atual,
       tipo,
       motivo,
       quantidade,

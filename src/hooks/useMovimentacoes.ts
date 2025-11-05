@@ -103,6 +103,19 @@ export function useMovimentacoes() {
 
       // 3. Criar movimentações e atualizar estoque
       for (const item of items) {
+        console.log('📝 Inserindo movimentação:', {
+          produto_id: item.produto_id,
+          produto_nome: item.produto_nome,
+          tipo: item.tipo,
+          motivo: item.motivo,
+          quantidade: item.quantidade,
+        });
+
+        if (!item.produto_id) {
+          console.error('❌ ERRO: produto_id é null/undefined para item:', item);
+          throw new Error(`Item sem produto_id: ${item.produto_nome}`);
+        }
+
         // Criar movimentação
         const { error: movError } = await supabase.from('movimentacoes').insert({
           user_id: user.id,
