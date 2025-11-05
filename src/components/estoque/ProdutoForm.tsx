@@ -1,5 +1,5 @@
-// VERSION: 2025-01-05-04:30 - CRITICAL FIX: Photo field + Complete data loading + Force rebuild
-// TIMESTAMP: 04:30 - All fields must load when editing product
+// VERSION: 2025-01-05-04:35 - EXTREME VISIBILITY FIX
+// FORCE REBUILD WITH VISUAL INDICATORS
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Settings2 } from 'lucide-react';
@@ -81,8 +81,11 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
   // Log de versão para confirmar que nova versão foi carregada
   useEffect(() => {
-    console.log('🚀 [PRODUTO FORM] Versão 2025-01-05-04:30 carregada com sucesso!');
-    console.log('📋 [VERSÃO] Foto field + Complete data loading implementados');
+    console.log('🚀 [PRODUTO FORM] ═══════════════════════════════════════');
+    console.log('🚀 [PRODUTO FORM] Versão 2025-01-05-04:35 CARREGADA!');
+    console.log('🚀 [PRODUTO FORM] ✅ Campo de foto ATIVO');
+    console.log('🚀 [PRODUTO FORM] ✅ Carregamento completo de dados ATIVO');
+    console.log('🚀 [PRODUTO FORM] ═══════════════════════════════════════');
   }, []);
 
   // Reset form when produto changes or modal opens
@@ -175,6 +178,10 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
           <DialogTitle>
             {produto ? 'Editar Produto' : 'Criar Produto'}
           </DialogTitle>
+          {/* INDICADOR VISUAL - SE VOCÊ VER ISSO, VERSÃO 04:35 CARREGOU! */}
+          <div className="bg-green-500 text-white p-4 rounded-lg font-bold text-center mt-2 text-lg">
+            ✅ VERSÃO 04:35 CARREGADA - CAMPO DE FOTO ATIVO
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -188,26 +195,30 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsList>
 
             <TabsContent value="estoque" className="space-y-4 mt-4">
-              {/* CAMPO DE FOTO - DESTACADO E COM DEBUG - 2025-01-05 */}
-              <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  📸 Foto do Produto
+              {/* CAMPO DE FOTO - SUPER DESTACADO COM BORDA VERDE - VERSÃO 04:35 */}
+              <div className="border-4 border-green-500 rounded-lg p-6 bg-green-50 dark:bg-green-950/30">
+                <div className="text-xl font-bold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+                  📸 CAMPO DE FOTO DO PRODUTO (VERSÃO 04:35)
+                </div>
+                <Label htmlFor="imagem" className="text-base font-semibold text-green-800 dark:text-green-300">
+                  Selecione uma imagem do produto
                 </Label>
-                <p className="text-xs text-muted-foreground mb-3 mt-1">
-                  Selecione uma imagem para identificar visualmente este produto
-                </p>
                 <Input
+                  id="imagem"
                   type="file"
                   accept="image/*"
-                  className="cursor-pointer border-primary/40"
+                  className="mt-3 cursor-pointer border-2 border-green-500 bg-white dark:bg-background h-12 text-base"
                   onChange={(e) => {
-                    console.log('📸 [FILE INPUT] Arquivo selecionado:', e.target.files?.[0]?.name);
+                    console.log('📸 [FILE INPUT] Evento onChange disparado - VERSÃO 04:35');
                     const file = e.target.files?.[0];
                     if (file) {
+                      console.log('📸 [FILE] Arquivo selecionado:', file.name, file.size, 'bytes');
                       const reader = new FileReader();
                       reader.onloadend = () => {
-                        console.log('✅ [IMAGEM] Imagem carregada com sucesso, salvando no formulário');
-                        setValue('imagem_url', reader.result as string);
+                        const base64 = reader.result as string;
+                        console.log('📸 [BASE64] Tamanho:', base64.length, 'caracteres');
+                        setValue('imagem_url', base64);
+                        console.log('📸 [SET] imagem_url atualizada no formulário');
                       };
                       reader.onerror = () => {
                         console.error('❌ [IMAGEM] Erro ao ler arquivo');
@@ -217,12 +228,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                   }}
                 />
                 {watch('imagem_url') && (
-                  <div className="mt-4">
-                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                  <div className="mt-4 p-3 bg-white dark:bg-background rounded-lg border-2 border-green-500">
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">✅ Preview da Imagem:</p>
                     <img 
                       src={watch('imagem_url') || ''} 
                       alt="Preview do produto" 
-                      className="w-48 h-48 object-cover rounded-lg border-2 border-primary shadow-lg"
+                      className="w-64 h-64 object-cover rounded-lg border-4 border-green-500 shadow-lg"
                     />
                   </div>
                 )}
