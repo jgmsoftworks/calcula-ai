@@ -1,3 +1,4 @@
+// Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Eye, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
