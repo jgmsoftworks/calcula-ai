@@ -295,25 +295,21 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label>Marcas</Label>
-                        <MarcasSelector
-                          value={marcas}
-                          onChange={(v) => setValue('marcas', v)}
-                        />
-                      </div>
+                      <Label>Marcas</Label>
+                      <MarcasSelector
+                        value={marcas}
+                        onChange={(v) => setValue('marcas', v)}
+                      />
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label>Categorias</Label>
-                        <CategoriasSelector
-                          value={categorias}
-                          onChange={(v) => setValue('categorias', v)}
-                        />
-                      </div>
+                      <Label>Categorias</Label>
+                      <CategoriasSelector
+                        value={categorias}
+                        onChange={(v) => setValue('categorias', v)}
+                      />
                     </div>
                   </div>
 
