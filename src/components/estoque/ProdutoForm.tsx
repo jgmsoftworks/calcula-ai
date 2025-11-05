@@ -1,4 +1,4 @@
-// Fixed: All SelectItem values are non-empty - verified 2025-01-05
+// REBUILD FORCED: 2025-01-05 04:20 - Photo field with enhanced visibility
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Settings2 } from 'lucide-react';
@@ -82,6 +82,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   useEffect(() => {
     if (open) {
       if (produto) {
+        console.log('🔄 [PRODUTO] Carregando produto para edição:', produto.nome);
+        console.log('📸 [IMAGEM] Tem imagem?', produto.imagem_url ? 'SIM' : 'NÃO');
         const formData = {
           ...produto,
           unidade_compra: (produto.unidade_compra && produto.unidade_compra.trim() !== '') 
@@ -93,6 +95,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
         };
         reset(formData);
       } else {
+        console.log('➕ [PRODUTO] Novo produto - limpando formulário');
         reset(defaultValues);
         loadCodigoInterno();
       }
@@ -150,28 +153,41 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsList>
 
             <TabsContent value="estoque" className="space-y-4 mt-4">
-              <div>
-                <Label>Foto do Produto</Label>
+              {/* CAMPO DE FOTO - DESTACADO E COM DEBUG - 2025-01-05 */}
+              <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  📸 Foto do Produto
+                </Label>
+                <p className="text-xs text-muted-foreground mb-3 mt-1">
+                  Selecione uma imagem para identificar visualmente este produto
+                </p>
                 <Input
                   type="file"
                   accept="image/*"
+                  className="cursor-pointer border-primary/40"
                   onChange={(e) => {
+                    console.log('📸 [FILE INPUT] Arquivo selecionado:', e.target.files?.[0]?.name);
                     const file = e.target.files?.[0];
                     if (file) {
                       const reader = new FileReader();
                       reader.onloadend = () => {
+                        console.log('✅ [IMAGEM] Imagem carregada com sucesso, salvando no formulário');
                         setValue('imagem_url', reader.result as string);
+                      };
+                      reader.onerror = () => {
+                        console.error('❌ [IMAGEM] Erro ao ler arquivo');
                       };
                       reader.readAsDataURL(file);
                     }
                   }}
                 />
                 {watch('imagem_url') && (
-                  <div className="mt-2">
+                  <div className="mt-4">
+                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
                     <img 
                       src={watch('imagem_url') || ''} 
-                      alt="Preview" 
-                      className="w-32 h-32 object-cover rounded-md border"
+                      alt="Preview do produto" 
+                      className="w-48 h-48 object-cover rounded-lg border-2 border-primary shadow-lg"
                     />
                   </div>
                 )}
