@@ -241,13 +241,14 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 <div>
                   <Label>Unidade de Uso</Label>
                   <Select
-                    value={watch('unidade_uso') || undefined}
-                    onValueChange={(v) => setValue('unidade_uso', v)}
+                    value={watch('unidade_uso') || 'none'}
+                    onValueChange={(v) => setValue('unidade_uso', v === 'none' ? null : v)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       <SelectItem value="un">UN</SelectItem>
                       <SelectItem value="kg">KG</SelectItem>
                       <SelectItem value="g">G</SelectItem>
