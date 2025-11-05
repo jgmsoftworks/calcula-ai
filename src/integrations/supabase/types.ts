@@ -1024,6 +1024,7 @@ export type Database = {
           custo_unitario: number | null
           data_hora: string
           id: string
+          motivo: string | null
           observacao: string | null
           origem: string | null
           produto_id: string
@@ -1041,6 +1042,7 @@ export type Database = {
           custo_unitario?: number | null
           data_hora?: string
           id?: string
+          motivo?: string | null
           observacao?: string | null
           origem?: string | null
           produto_id: string
@@ -1058,6 +1060,7 @@ export type Database = {
           custo_unitario?: number | null
           data_hora?: string
           id?: string
+          motivo?: string | null
           observacao?: string | null
           origem?: string | null
           produto_id?: string

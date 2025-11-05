@@ -7,6 +7,7 @@ export interface ItemCarrinho {
   produto_id: string;
   produto_nome: string;
   tipo: 'entrada' | 'saida';
+  motivo: string;
   quantidade: number;
   custo_aplicado: number;
   subtotal: number;
@@ -102,6 +103,7 @@ export function useMovimentacoes() {
           comprovante_id: comprovante.id,
           produto_id: item.produto_id,
           tipo: item.tipo,
+          motivo: item.motivo,
           quantidade: item.quantidade,
           custo_aplicado: item.custo_aplicado,
           subtotal: item.subtotal,
