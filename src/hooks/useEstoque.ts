@@ -1,4 +1,3 @@
-// @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -102,10 +101,13 @@ export function useEstoque() {
       return null;
     }
 
+    // Remove user_id do data se existir (será adicionado abaixo)
+    const { user_id, ...produtoData } = data as any;
+
     const { data: produto, error } = await supabase
       .from('produtos')
       .insert({
-        ...data,
+        ...produtoData,
         user_id: user.id,
       })
       .select()

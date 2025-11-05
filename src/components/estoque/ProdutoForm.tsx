@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Settings2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,6 +104,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
   const onSubmit = async (data: Partial<Produto>) => {
     if (!data.nome || data.nome.length < 2) {
+      return;
+    }
+
+    // Validação crítica: unidade_compra nunca pode ser vazio
+    if (!data.unidade_compra || data.unidade_compra.trim() === '') {
+      toast.error('Unidade de compra é obrigatória');
       return;
     }
 

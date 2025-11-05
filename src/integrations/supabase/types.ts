@@ -523,6 +523,33 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categorias_despesas_fixas: {
         Row: {
           ativo: boolean
@@ -549,6 +576,39 @@ export type Database = {
           id?: string
           nome?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      comprovantes: {
+        Row: {
+          created_at: string
+          data_hora: string
+          id: string
+          numero: number
+          observacao: string | null
+          responsavel: string
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_hora?: string
+          id?: string
+          numero: number
+          observacao?: string | null
+          responsavel: string
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_hora?: string
+          id?: string
+          numero?: number
+          observacao?: string | null
+          responsavel?: string
+          tipo?: string
           user_id?: string
         }
         Relationships: []
@@ -869,6 +929,33 @@ export type Database = {
         }
         Relationships: []
       }
+      marcas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       markups: {
         Row: {
           ativo: boolean
@@ -928,6 +1015,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      movimentacoes: {
+        Row: {
+          comprovante_id: string | null
+          created_at: string
+          custo_unitario: number | null
+          data_hora: string
+          id: string
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          responsavel: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comprovante_id?: string | null
+          created_at?: string
+          custo_unitario?: number | null
+          data_hora?: string
+          id?: string
+          observacao?: string | null
+          produto_id: string
+          quantidade: number
+          responsavel?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comprovante_id?: string | null
+          created_at?: string
+          custo_unitario?: number | null
+          data_hora?: string
+          id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          responsavel?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_movimentacoes_comprovante"
+            columns: ["comprovante_id"]
+            isOneToOne: false
+            referencedRelation: "comprovantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1011,6 +1158,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      produtos: {
+        Row: {
+          ativo: boolean
+          categorias: string[] | null
+          codigo_interno: number
+          codigos_barras: string[] | null
+          created_at: string
+          custo_unitario: number
+          estoque_atual: number
+          estoque_minimo: number
+          fator_conversao: number | null
+          id: string
+          marcas: string[] | null
+          nome: string
+          unidade_compra: string
+          unidade_uso: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          categorias?: string[] | null
+          codigo_interno: number
+          codigos_barras?: string[] | null
+          created_at?: string
+          custo_unitario?: number
+          estoque_atual?: number
+          estoque_minimo?: number
+          fator_conversao?: number | null
+          id?: string
+          marcas?: string[] | null
+          nome: string
+          unidade_compra?: string
+          unidade_uso?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          categorias?: string[] | null
+          codigo_interno?: number
+          codigos_barras?: string[] | null
+          created_at?: string
+          custo_unitario?: number
+          estoque_atual?: number
+          estoque_minimo?: number
+          fator_conversao?: number | null
+          id?: string
+          marcas?: string[] | null
+          nome?: string
+          unidade_compra?: string
+          unidade_uso?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1821,6 +2025,10 @@ export type Database = {
       create_system_backup: { Args: { backup_type?: string }; Returns: string }
       generate_affiliate_link_code: { Args: never; Returns: string }
       gerar_numero_comanda: { Args: { p_user_id: string }; Returns: string }
+      gerar_proximo_codigo_interno: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       get_backup_data: { Args: { backup_id: string }; Returns: Json }
       get_employee_basic_info: {
         Args: never
