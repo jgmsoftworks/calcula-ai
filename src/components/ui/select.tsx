@@ -117,7 +117,10 @@ const SelectItem = React.forwardRef<
 >(({ className, children, value, ...props }, ref) => {
   // Defensive check to prevent empty string values
   if (!value || value === '') {
-    console.error('SelectItem received empty value, using fallback');
+    // Log warning but don't pollute console in production
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('SelectItem received empty value, skipping render');
+    }
     return null;
   }
   

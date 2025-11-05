@@ -185,7 +185,7 @@ export function AffiliatesReports() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Afiliados</SelectItem>
-              {affiliates.map(affiliate => (
+              {affiliates.filter(a => a.id && a.id.trim() !== '').map(affiliate => (
                 <SelectItem key={affiliate.id} value={affiliate.id}>
                   {affiliate.name}
                 </SelectItem>

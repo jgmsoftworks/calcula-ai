@@ -42,8 +42,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   // Ensure all values are valid before setting as defaults
   const defaultValues = produto ? {
     ...produto,
-    unidade_compra: produto.unidade_compra || 'un',
-    unidade_uso: produto.unidade_uso || null,
+    unidade_compra: (produto.unidade_compra && produto.unidade_compra.trim() !== '') 
+      ? produto.unidade_compra 
+      : 'un',
+    unidade_uso: (produto.unidade_uso && produto.unidade_uso.trim() !== '') 
+      ? produto.unidade_uso 
+      : null,
   } : {
     codigo_interno: 0,
     codigos_barras: [],
@@ -79,8 +83,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
       if (produto) {
         reset({
           ...produto,
-          unidade_compra: produto.unidade_compra || 'un',
-          unidade_uso: produto.unidade_uso || null,
+          unidade_compra: (produto.unidade_compra && produto.unidade_compra.trim() !== '') 
+            ? produto.unidade_compra 
+            : 'un',
+          unidade_uso: (produto.unidade_uso && produto.unidade_uso.trim() !== '') 
+            ? produto.unidade_uso 
+            : null,
         });
       } else {
         loadCodigoInterno();
