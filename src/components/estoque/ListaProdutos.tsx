@@ -1,6 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Eye, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Eye, AlertCircle, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,19 +19,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { ProdutoForm } from './ProdutoForm';
+import { ImportProdutosExcel } from './ImportProdutosExcel';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
+import { useExportProdutos } from '@/hooks/useExportProdutos';
 import { formatters } from '@/lib/formatters';
 
 export function ListaProdutos() {
   const { fetchProdutos } = useEstoque();
+  const { exportarProdutos } = useExportProdutos();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   
   // Filtros
   const [search, setSearch] = useState('');
@@ -63,6 +73,11 @@ export function ListaProdutos() {
   const handleCreate = () => {
     setProdutoSelecionado(undefined);
     setModalOpen(true);
+  };
+
+  const handleImportSuccess = () => {
+    setImportModalOpen(false);
+    loadProdutos();
   };
 
   return (
@@ -107,10 +122,18 @@ export function ListaProdutos() {
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             Criar Produto
+          </Button>
+          <Button onClick={exportarProdutos} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar Excel
+          </Button>
+          <Button onClick={() => setImportModalOpen(true)} variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Importar Excel
           </Button>
         </div>
       </Card>
@@ -226,6 +249,15 @@ export function ListaProdutos() {
         onOpenChange={setModalOpen}
         onSuccess={loadProdutos}
       />
+
+      <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar Produtos via Excel</DialogTitle>
+          </DialogHeader>
+          <ImportProdutosExcel onSuccess={handleImportSuccess} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
