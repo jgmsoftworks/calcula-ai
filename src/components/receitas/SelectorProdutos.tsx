@@ -30,7 +30,20 @@ export function SelectorProdutos({ onSelect, onClose }: SelectorProdutosProps) {
 
   const handleSelect = () => {
     if (selectedProduto && quantidade > 0) {
-      onSelect(selectedProduto, quantidade);
+      // Calcular custo por unidade de uso
+      const unidadeParaUsar = selectedProduto.unidade_uso || selectedProduto.unidade_compra;
+      const fatorConversao = selectedProduto.fator_conversao || 1;
+      
+      const custoUnitarioUso = selectedProduto.unidade_uso && selectedProduto.fator_conversao
+        ? selectedProduto.custo_unitario / fatorConversao
+        : selectedProduto.custo_unitario;
+      
+      // Passar dados convertidos
+      onSelect({
+        ...selectedProduto,
+        custo_unitario_uso: custoUnitarioUso,
+        unidade_uso_final: unidadeParaUsar
+      }, quantidade);
       onClose();
     }
   };
@@ -98,6 +111,11 @@ export function SelectorProdutos({ onSelect, onClose }: SelectorProdutosProps) {
                 <h3 className="font-semibold">{selectedProduto.nome}</h3>
                 <p className="text-sm text-muted-foreground">
                   R$ {selectedProduto.custo_unitario.toFixed(2)} / {selectedProduto.unidade_compra}
+                  {selectedProduto.unidade_uso && selectedProduto.unidade_uso !== selectedProduto.unidade_compra && (
+                    <span className="text-primary font-medium ml-2">
+                      → R$ {(selectedProduto.custo_unitario / (selectedProduto.fator_conversao || 1)).toFixed(4)} / {selectedProduto.unidade_uso}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

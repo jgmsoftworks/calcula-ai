@@ -1498,6 +1498,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade: string | null
           updated_at: string
         }
         Insert: {
@@ -1509,6 +1510,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade?: string | null
           updated_at?: string
         }
         Update: {
@@ -1520,6 +1522,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           receita_id?: string
+          unidade?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1543,6 +1546,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade: string | null
           updated_at: string
         }
         Insert: {
@@ -1555,6 +1559,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           receita_id: string
+          unidade?: string | null
           updated_at?: string
         }
         Update: {
@@ -1567,6 +1572,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           receita_id?: string
+          unidade?: string | null
           updated_at?: string
         }
         Relationships: [

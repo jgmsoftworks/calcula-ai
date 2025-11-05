@@ -17,14 +17,18 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
 
   const handleAddIngrediente = async (produto: any, quantidade: number) => {
     try {
+      const custoUnitario = produto.custo_unitario_uso || produto.custo_unitario;
+      const unidade = produto.unidade_uso_final || produto.unidade_compra;
+      
       const { error } = await supabase.from('receita_ingredientes').insert({
         receita_id: receita.id,
         produto_id: produto.id,
         nome: produto.nome,
         marcas: produto.marcas,
         quantidade,
-        custo_unitario: produto.custo_unitario,
-        custo_total: produto.custo_unitario * quantidade,
+        unidade,
+        custo_unitario: custoUnitario,
+        custo_total: custoUnitario * quantidade,
       });
 
       if (error) throw error;
@@ -74,6 +78,7 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
             <TableRow>
               <TableHead>Produto</TableHead>
               <TableHead className="text-right">Quantidade</TableHead>
+              <TableHead className="text-right">Unidade</TableHead>
               <TableHead className="text-right">Custo Unit.</TableHead>
               <TableHead className="text-right">Custo Total</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -87,14 +92,22 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
                     <div className="font-medium">{ingrediente.nome}</div>
                     {ingrediente.marcas && ingrediente.marcas.length > 0 && (
                       <div className="text-xs text-muted-foreground">
-                        R$ {ingrediente.custo_unitario.toFixed(2)} / {ingrediente.marcas[0]}
+                        Marca: {ingrediente.marcas.join(', ')}
                       </div>
                     )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">{ingrediente.quantidade}</TableCell>
-                <TableCell className="text-right">R$ {ingrediente.custo_unitario.toFixed(2)}</TableCell>
-                <TableCell className="text-right">R$ {ingrediente.custo_total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{(ingrediente as any).unidade || 'un'}</TableCell>
+                <TableCell className="text-right">
+                  <div className="text-sm">R$ {ingrediente.custo_unitario.toFixed(4)}/{(ingrediente as any).unidade || 'un'}</div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="font-medium">R$ {ingrediente.custo_total.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {ingrediente.quantidade} × R$ {ingrediente.custo_unitario.toFixed(4)}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"
@@ -107,7 +120,7 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
               </TableRow>
             ))}
             <TableRow>
-              <TableCell colSpan={3} className="text-right font-semibold">Total:</TableCell>
+              <TableCell colSpan={4} className="text-right font-semibold">Total:</TableCell>
               <TableCell className="text-right font-semibold">R$ {total.toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>

@@ -17,13 +17,17 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
 
   const handleAddEmbalagem = async (produto: any, quantidade: number) => {
     try {
+      const custoUnitario = produto.custo_unitario_uso || produto.custo_unitario;
+      const unidade = produto.unidade_uso_final || produto.unidade_compra;
+      
       const { error } = await supabase.from('receita_embalagens').insert({
         receita_id: receita.id,
         produto_id: produto.id,
         nome: produto.nome,
         quantidade,
-        custo_unitario: produto.custo_unitario,
-        custo_total: produto.custo_unitario * quantidade,
+        unidade,
+        custo_unitario: custoUnitario,
+        custo_total: custoUnitario * quantidade,
       });
 
       if (error) throw error;
@@ -73,6 +77,7 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
             <TableRow>
               <TableHead>Embalagem</TableHead>
               <TableHead className="text-right">Quantidade</TableHead>
+              <TableHead className="text-right">Unidade</TableHead>
               <TableHead className="text-right">Custo Unit.</TableHead>
               <TableHead className="text-right">Custo Total</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -83,8 +88,16 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
               <TableRow key={embalagem.id}>
                 <TableCell>{embalagem.nome}</TableCell>
                 <TableCell className="text-right">{embalagem.quantidade}</TableCell>
-                <TableCell className="text-right">R$ {embalagem.custo_unitario.toFixed(2)}</TableCell>
-                <TableCell className="text-right">R$ {embalagem.custo_total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{(embalagem as any).unidade || 'un'}</TableCell>
+                <TableCell className="text-right">
+                  <div className="text-sm">R$ {embalagem.custo_unitario.toFixed(4)}/{(embalagem as any).unidade || 'un'}</div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="font-medium">R$ {embalagem.custo_total.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {embalagem.quantidade} × R$ {embalagem.custo_unitario.toFixed(4)}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"
@@ -97,7 +110,7 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
               </TableRow>
             ))}
             <TableRow>
-              <TableCell colSpan={3} className="text-right font-semibold">Total:</TableCell>
+              <TableCell colSpan={4} className="text-right font-semibold">Total:</TableCell>
               <TableCell className="text-right font-semibold">R$ {total.toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
