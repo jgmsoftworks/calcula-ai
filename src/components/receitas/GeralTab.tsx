@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -77,6 +79,153 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
             onChange={(e) => onFormChange('tipo_produto', e.target.value)}
             placeholder="Ex: MASSA, DOCE, SALGADO"
           />
+        </div>
+      </div>
+
+      {/* Seção de Conservação */}
+      <div className="space-y-3">
+        <Label>Conservação</Label>
+        <div className="space-y-3 border rounded-lg p-4">
+          {/* Congelado */}
+          <div className="grid grid-cols-[120px_1fr_1fr_100px] gap-3 items-center">
+            <Label className="text-sm font-medium">Congelado</Label>
+            <div className="space-y-1">
+              <Label htmlFor="temp_congelado" className="text-xs text-muted-foreground">Temp. °C</Label>
+              <NumericInputPtBr
+                id="temp_congelado"
+                tipo="quantidade_continua"
+                value={formData.conservacao?.congelado?.temperatura || 0}
+                onChange={(value) => onFormChange('conservacao', {
+                  ...formData.conservacao,
+                  congelado: { ...formData.conservacao?.congelado, temperatura: value }
+                })}
+                placeholder="-18"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="tempo_congelado" className="text-xs text-muted-foreground">Tempo</Label>
+              <NumericInputPtBr
+                id="tempo_congelado"
+                tipo="quantidade_un"
+                value={formData.conservacao?.congelado?.tempo || 0}
+                onChange={(value) => onFormChange('conservacao', {
+                  ...formData.conservacao,
+                  congelado: { ...formData.conservacao?.congelado, tempo: value }
+                })}
+                placeholder="90"
+              />
+            </div>
+            <Select
+              value={formData.conservacao?.congelado?.unidade || 'dias'}
+              onValueChange={(value) => onFormChange('conservacao', {
+                ...formData.conservacao,
+                congelado: { ...formData.conservacao?.congelado, unidade: value }
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="horas">horas</SelectItem>
+                <SelectItem value="dias">dias</SelectItem>
+                <SelectItem value="meses">meses</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Refrigerado */}
+          <div className="grid grid-cols-[120px_1fr_1fr_100px] gap-3 items-center">
+            <Label className="text-sm font-medium">Refrigerado</Label>
+            <div className="space-y-1">
+              <Label htmlFor="temp_refrigerado" className="text-xs text-muted-foreground">Temp. °C</Label>
+              <NumericInputPtBr
+                id="temp_refrigerado"
+                tipo="quantidade_continua"
+                value={formData.conservacao?.refrigerado?.temperatura || 0}
+                onChange={(value) => onFormChange('conservacao', {
+                  ...formData.conservacao,
+                  refrigerado: { ...formData.conservacao?.refrigerado, temperatura: value }
+                })}
+                placeholder="3"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="tempo_refrigerado" className="text-xs text-muted-foreground">Tempo</Label>
+              <NumericInputPtBr
+                id="tempo_refrigerado"
+                tipo="quantidade_un"
+                value={formData.conservacao?.refrigerado?.tempo || 0}
+                onChange={(value) => onFormChange('conservacao', {
+                  ...formData.conservacao,
+                  refrigerado: { ...formData.conservacao?.refrigerado, tempo: value }
+                })}
+                placeholder="15"
+              />
+            </div>
+            <Select
+              value={formData.conservacao?.refrigerado?.unidade || 'dias'}
+              onValueChange={(value) => onFormChange('conservacao', {
+                ...formData.conservacao,
+                refrigerado: { ...formData.conservacao?.refrigerado, unidade: value }
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="horas">horas</SelectItem>
+                <SelectItem value="dias">dias</SelectItem>
+                <SelectItem value="meses">meses</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Ambiente */}
+          <div className="grid grid-cols-[120px_1fr_1fr_100px] gap-3 items-center">
+            <Label className="text-sm font-medium">Ambiente</Label>
+            <div className="space-y-1">
+              <Label htmlFor="temp_ambiente" className="text-xs text-muted-foreground">Temp. °C</Label>
+              <NumericInputPtBr
+                id="temp_ambiente"
+                tipo="quantidade_continua"
+                value={formData.conservacao?.ambiente?.temperatura || 0}
+                onChange={(value) => onFormChange('conservacao', {
+                  ...formData.conservacao,
+                  ambiente: { ...formData.conservacao?.ambiente, temperatura: value }
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="tempo_ambiente" className="text-xs text-muted-foreground">Tempo</Label>
+              <NumericInputPtBr
+                id="tempo_ambiente"
+                tipo="quantidade_un"
+                value={formData.conservacao?.ambiente?.tempo || 0}
+                onChange={(value) => onFormChange('conservacao', {
+                  ...formData.conservacao,
+                  ambiente: { ...formData.conservacao?.ambiente, tempo: value }
+                })}
+                placeholder="0"
+              />
+            </div>
+            <Select
+              value={formData.conservacao?.ambiente?.unidade || 'horas'}
+              onValueChange={(value) => onFormChange('conservacao', {
+                ...formData.conservacao,
+                ambiente: { ...formData.conservacao?.ambiente, unidade: value }
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="horas">horas</SelectItem>
+                <SelectItem value="dias">dias</SelectItem>
+                <SelectItem value="meses">meses</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

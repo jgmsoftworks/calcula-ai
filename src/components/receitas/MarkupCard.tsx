@@ -2,33 +2,47 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info, Check } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface MarkupCardProps {
   markup: any;
   custoTotal: number;
+  precoVenda: number;
   isSelected: boolean;
   onSelect: () => void;
 }
 
-export function MarkupCard({ markup, custoTotal, isSelected, onSelect }: MarkupCardProps) {
+export function MarkupCard({ markup, custoTotal, precoVenda, isSelected, onSelect }: MarkupCardProps) {
   const [expanded, setExpanded] = useState(isSelected);
 
-  const precoSugerido = custoTotal * markup.markup_aplicado;
-  const lucroBruto = precoSugerido - custoTotal;
-  const margemBruta = custoTotal > 0 ? (lucroBruto / precoSugerido) * 100 : 0;
+  // Sugestão de preço = custo × markup ideal (para atingir margem desejada)
+  const precoSugerido = custoTotal * markup.markup_ideal;
   
+  // Markup aplicado = preço atual / custo (o que está sendo praticado)
+  const markupAplicado = custoTotal > 0 ? precoVenda / custoTotal : 0;
+  
+  // Lucro bruto baseado no PREÇO ATUAL digitado
+  const lucroBruto = precoVenda - custoTotal;
+  const margemBruta = precoVenda > 0 ? (lucroBruto / precoVenda) * 100 : 0;
+  
+  // Lucro líquido = lucro bruto × margem de lucro configurada
   const lucroLiquido = lucroBruto * (markup.margem_lucro / 100);
-  const margemLiquida = precoSugerido > 0 ? (lucroLiquido / precoSugerido) * 100 : 0;
+  const margemLiquida = precoVenda > 0 ? (lucroLiquido / precoVenda) * 100 : 0;
 
   return (
-    <Card className={isSelected ? 'border-primary' : ''}>
+    <Card className={cn(
+      "transition-all duration-200",
+      isSelected 
+        ? 'border-primary border-2 bg-primary/5 shadow-lg shadow-primary/20' 
+        : 'hover:border-muted-foreground/20'
+    )}>
       <CardHeader className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -65,7 +79,12 @@ export function MarkupCard({ markup, custoTotal, isSelected, onSelect }: MarkupC
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{markup.tipo}</Badge>
             <Badge variant="secondary">{markup.periodo} meses</Badge>
-            {isSelected && <Badge className="bg-primary">Selecionado</Badge>}
+            {isSelected && (
+              <Badge className="bg-primary text-primary-foreground font-semibold flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Selecionado
+              </Badge>
+            )}
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </div>
         </div>
@@ -95,7 +114,7 @@ export function MarkupCard({ markup, custoTotal, isSelected, onSelect }: MarkupC
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {markup.markup_aplicado.toFixed(2)}
+                  {markupAplicado.toFixed(2)}
                 </p>
               </CardContent>
             </Card>

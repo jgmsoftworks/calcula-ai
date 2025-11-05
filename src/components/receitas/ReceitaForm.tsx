@@ -33,6 +33,11 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     peso_unitario: 0,
     tempo_preparo_total: 0,
     tempo_preparo_mao_obra: 0,
+    conservacao: {
+      congelado: { temperatura: 0, tempo: 0, unidade: 'dias' },
+      refrigerado: { temperatura: 0, tempo: 0, unidade: 'dias' },
+      ambiente: { temperatura: 0, tempo: 0, unidade: 'horas' }
+    },
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -71,6 +76,11 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         peso_unitario: receita.peso_unitario || 0,
         tempo_preparo_total: receita.tempo_preparo_total || 0,
         tempo_preparo_mao_obra: receita.tempo_preparo_mao_obra || 0,
+        conservacao: receita.conservacao || {
+          congelado: { temperatura: 0, tempo: 0, unidade: 'dias' },
+          refrigerado: { temperatura: 0, tempo: 0, unidade: 'dias' },
+          ambiente: { temperatura: 0, tempo: 0, unidade: 'horas' }
+        },
       });
       setImagePreview(receita.imagem_url);
     }

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkupCard } from './MarkupCard';
@@ -31,11 +31,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
     setCustoTotal(calcularCustoTotal());
   }, [receita]);
 
-  useEffect(() => {
-    loadMarkups();
-  }, [user]);
-
-  const loadMarkups = async () => {
+  const loadMarkups = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -51,13 +47,46 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
       console.error('Erro ao carregar markups:', error);
       toast.error('Erro ao carregar markups');
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadMarkups();
+  }, [loadMarkups]);
+
+  // Real-time updates para markups
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('🔄 Configurando real-time updates para markups');
+    
+    const channel = supabase
+      .channel('receita-markups-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'markups',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 Markup atualizado em tempo real:', payload);
+          loadMarkups();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Desconectando real-time updates de markups');
+      supabase.removeChannel(channel);
+    };
+  }, [user, loadMarkups]);
 
   const handleSelectMarkup = (markupId: string) => {
     const markup = markups.find(m => m.id === markupId);
     if (!markup) return;
 
-    const precoVenda = custoTotal * markup.markup_aplicado;
+    const precoVenda = custoTotal * markup.markup_ideal;
     onFormChange('markup_id', markupId);
     onFormChange('preco_venda', precoVenda);
   };
@@ -77,14 +106,12 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              type="number"
-              value={formData.preco_venda || ''}
-              onChange={(e) => onFormChange('preco_venda', Number(e.target.value))}
-              className="text-2xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto bg-transparent"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
+            <NumericInputPtBr
+              tipo="valor"
+              value={formData.preco_venda || 0}
+              onChange={(value) => onFormChange('preco_venda', value)}
+              className="text-2xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto bg-transparent focus:ring-0"
+              placeholder="R$ 0,00"
             />
           </CardContent>
         </Card>
@@ -131,6 +158,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
                 key={markup.id}
                 markup={markup}
                 custoTotal={custoTotal}
+                precoVenda={formData.preco_venda || 0}
                 isSelected={formData.markup_id === markup.id}
                 onSelect={() => handleSelectMarkup(markup.id)}
               />
