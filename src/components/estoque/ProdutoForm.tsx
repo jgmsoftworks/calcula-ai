@@ -82,7 +82,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   useEffect(() => {
     if (open) {
       if (produto) {
-        reset({
+        const formData = {
           ...produto,
           unidade_compra: (produto.unidade_compra && produto.unidade_compra.trim() !== '') 
             ? produto.unidade_compra 
@@ -90,12 +90,14 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
           unidade_uso: (produto.unidade_uso && produto.unidade_uso.trim() !== '') 
             ? produto.unidade_uso 
             : null,
-        });
+        };
+        reset(formData);
       } else {
+        reset(defaultValues);
         loadCodigoInterno();
       }
     }
-  }, [open, produto]);
+  }, [open, produto, reset]);
 
   const loadCodigoInterno = async () => {
     const codigo = await gerarCodigoInterno();
@@ -148,6 +150,33 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsList>
 
             <TabsContent value="estoque" className="space-y-4 mt-4">
+              <div>
+                <Label>Foto do Produto</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setValue('imagem_url', reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                {watch('imagem_url') && (
+                  <div className="mt-2">
+                    <img 
+                      src={watch('imagem_url') || ''} 
+                      alt="Preview" 
+                      className="w-32 h-32 object-cover rounded-md border"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Nome do Produto *</Label>

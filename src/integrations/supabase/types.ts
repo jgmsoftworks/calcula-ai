@@ -1171,6 +1171,7 @@ export type Database = {
           estoque_minimo: number
           fator_conversao: number | null
           id: string
+          imagem_url: string | null
           marcas: string[] | null
           nome: string
           unidade_compra: string
@@ -1189,6 +1190,7 @@ export type Database = {
           estoque_minimo?: number
           fator_conversao?: number | null
           id?: string
+          imagem_url?: string | null
           marcas?: string[] | null
           nome: string
           unidade_compra?: string
@@ -1207,6 +1209,7 @@ export type Database = {
           estoque_minimo?: number
           fator_conversao?: number | null
           id?: string
+          imagem_url?: string | null
           marcas?: string[] | null
           nome?: string
           unidade_compra?: string

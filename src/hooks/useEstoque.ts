@@ -16,6 +16,7 @@ export interface Produto {
   estoque_minimo: number;
   unidade_uso: string | null;
   fator_conversao: number | null;
+  imagem_url: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
