@@ -80,12 +80,18 @@ export function useMovimentacoes() {
       // 2. Criar comprovante
       const numeroComprovante = await gerarNumeroComprovante();
 
+      // Determinar tipo do comprovante baseado nos itens
+      const tiposUnicos = [...new Set(items.map(item => item.tipo))];
+      const tipoComprovante = tiposUnicos.length === 1 
+        ? tiposUnicos[0]  // Se todos forem do mesmo tipo, usar esse tipo
+        : 'entrada';       // Se misturado, usar entrada como padrão
+
       const { data: comprovante, error: comprovanteError } = await supabase
         .from('comprovantes')
         .insert({
           user_id: user.id,
           numero: numeroComprovante,
-          tipo: 'movimentacao',
+          tipo: tipoComprovante,
           responsavel: responsavel.trim(),
           observacao: observacao?.trim() || null,
           data_hora: new Date().toISOString(),
