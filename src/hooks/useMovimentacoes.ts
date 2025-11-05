@@ -84,6 +84,7 @@ export function useMovimentacoes() {
         .insert({
           user_id: user.id,
           numero: numeroComprovante,
+          tipo: 'movimentacao',
           responsavel: responsavel.trim(),
           observacao: observacao?.trim() || null,
           data_hora: new Date().toISOString(),
@@ -124,9 +125,15 @@ export function useMovimentacoes() {
               ? produtoAtual.estoque_atual + item.quantidade
               : produtoAtual.estoque_atual - item.quantidade;
 
+          // Se for ENTRADA, atualizar o custo_unitario do produto com o novo valor
+          const updateData: any = { estoque_atual: novoEstoque };
+          if (item.tipo === 'entrada') {
+            updateData.custo_unitario = item.custo_aplicado;
+          }
+
           const { error: updateError } = await supabase
             .from('produtos')
-            .update({ estoque_atual: novoEstoque })
+            .update(updateData)
             .eq('id', item.produto_id);
 
           if (updateError) throw updateError;

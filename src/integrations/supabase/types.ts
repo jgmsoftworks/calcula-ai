@@ -1020,13 +1020,16 @@ export type Database = {
         Row: {
           comprovante_id: string | null
           created_at: string
+          custo_aplicado: number | null
           custo_unitario: number | null
           data_hora: string
           id: string
           observacao: string | null
+          origem: string | null
           produto_id: string
           quantidade: number
           responsavel: string | null
+          subtotal: number | null
           tipo: string
           updated_at: string
           user_id: string
@@ -1034,13 +1037,16 @@ export type Database = {
         Insert: {
           comprovante_id?: string | null
           created_at?: string
+          custo_aplicado?: number | null
           custo_unitario?: number | null
           data_hora?: string
           id?: string
           observacao?: string | null
+          origem?: string | null
           produto_id: string
           quantidade: number
           responsavel?: string | null
+          subtotal?: number | null
           tipo: string
           updated_at?: string
           user_id: string
@@ -1048,13 +1054,16 @@ export type Database = {
         Update: {
           comprovante_id?: string | null
           created_at?: string
+          custo_aplicado?: number | null
           custo_unitario?: number | null
           data_hora?: string
           id?: string
           observacao?: string | null
+          origem?: string | null
           produto_id?: string
           quantidade?: number
           responsavel?: string | null
+          subtotal?: number | null
           tipo?: string
           updated_at?: string
           user_id?: string
@@ -2029,6 +2038,10 @@ export type Database = {
       generate_affiliate_link_code: { Args: never; Returns: string }
       gerar_numero_comanda: { Args: { p_user_id: string }; Returns: string }
       gerar_proximo_codigo_interno: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      gerar_proximo_numero_comprovante: {
         Args: { p_user_id: string }
         Returns: number
       }
