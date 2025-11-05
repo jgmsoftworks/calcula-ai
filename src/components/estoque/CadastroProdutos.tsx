@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Power, Plus } from 'lucide-react';
-import { ProductModal } from './ProductModal';
+import { ProductModalV2 } from './ProductModalV2';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 
@@ -262,7 +262,7 @@ export const CadastroProdutos = () => {
         </CardContent>
       </Card>
 
-      <ProductModal
+      <ProductModalV2
         isOpen={isModalOpen}
         onClose={closeModal}
         product={selectedProduct}

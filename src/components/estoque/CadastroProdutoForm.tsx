@@ -17,6 +17,7 @@ import { CategoriasSelector } from './CategoriasSelector';
 import { ModoUsoTab } from './ModoUsoTab';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { formatters, toSafeNumber } from '@/lib/formatters';
+import { UNIDADES_VALIDAS, UNIDADES_LABELS, normalizarUnidade, isUnidadeValida } from '@/lib/constants';
 
 interface Fornecedor {
   id: string;
@@ -221,6 +222,18 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
       return;
     }
 
+    // ✅ Validar e normalizar unidade antes de enviar
+    const unidadeNormalizada = normalizarUnidade(formData.unidade);
+    
+    if (!isUnidadeValida(unidadeNormalizada)) {
+      toast({
+        title: "Unidade inválida",
+        description: `Use valores: ${UNIDADES_VALIDAS.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Aviso não bloqueante: estoque > 0 mas custo_unitario = 0
     if (formData.estoque_atual > 0 && formData.custo_unitario === 0) {
       toast({
@@ -248,7 +261,7 @@ export const CadastroProdutoForm = ({ onProductCadastrado }: CadastroProdutoForm
         categorias: formData.categorias.length > 0 ? formData.categorias : null,
         codigo_interno: formData.codigo_interno || null,
         codigo_barras: formData.codigos_barras.length > 0 ? formData.codigos_barras.filter(c => c.trim()) : null,
-        unidade: formData.unidade,
+        unidade: unidadeNormalizada,
         total_embalagem: 1,
         custo_unitario: toSafeNumber(formData.custo_unitario, 0),
         custo_total: toSafeNumber(formData.estoque_atual, 0) * toSafeNumber(formData.custo_unitario, 0),

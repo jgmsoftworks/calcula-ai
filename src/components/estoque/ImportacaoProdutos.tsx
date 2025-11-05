@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import * as XLSX from 'xlsx';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { UNIDADES_VALIDAS } from '@/lib/constants';
 
 interface ImportacaoProdutosProps {
   onImportSuccess?: () => void;
@@ -31,7 +32,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         'CODIGO DE BARRAS': '7891234567890',
         'CATEGORIA': 'Farinhas',
         'MARCA': 'Marca Exemplo',
-        'UNIDADE DE MEDIDA': 'kg',
+        'UNIDADE DE MEDIDA': 'k',
         'TOTAL DENTRO DA EMBALAGEM': 5,
         'CUSTO TOTAL': 45.50,
         'ESTOQUE ATUAL': 10,
@@ -46,7 +47,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
         'CODIGO DE BARRAS': '7891234567891',
         'CATEGORIA': 'Açúcares',
         'MARCA': 'Outra Marca',
-        'UNIDADE DE MEDIDA': 'kg',
+        'UNIDADE DE MEDIDA': 'k',
         'TOTAL DENTRO DA EMBALAGEM': 1,
         'CUSTO TOTAL': 8.90,
         'ESTOQUE ATUAL': 20,
@@ -107,8 +108,8 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
     const unidadeValidation = {
       type: 'list',
       allowBlank: false,
-      formula1: '"g,kg,ml,l,un"',
-      error: 'Selecione uma unidade válida: g, kg, ml, l ou un'
+      formula1: `"${UNIDADES_VALIDAS.join(',')}"`,
+      error: `Selecione uma unidade válida: ${UNIDADES_VALIDAS.join(', ')}`
     };
     
     // Adicionar validação de dados para UNIDADE MEDIDA (Conversão) (coluna K)
@@ -271,8 +272,10 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             continue;
           }
 
-          if (!row['UNIDADE DE MEDIDA'] || !['g', 'kg', 'ml', 'l', 'un'].includes(row['UNIDADE DE MEDIDA'])) {
-            errors.push(`Linha ${rowNumber}: UNIDADE DE MEDIDA inválida (deve ser: g, kg, ml, l ou un)`);
+          // ✅ Validar unidade (normalizada para minúsculas)
+          const unidadeNormalizada = row['UNIDADE DE MEDIDA']?.toString().toLowerCase();
+          if (!unidadeNormalizada || !UNIDADES_VALIDAS.includes(unidadeNormalizada as any)) {
+            errors.push(`Linha ${rowNumber}: UNIDADE DE MEDIDA inválida (deve ser: ${UNIDADES_VALIDAS.join(', ')})`);
             continue;
           }
 
@@ -291,7 +294,9 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             continue;
           }
 
-          if (unidadeConversao && !['g', 'kg', 'ml', 'l', 'un', 'colher chá', 'colher sopa', 'xícara'].includes(unidadeConversao)) {
+          // ✅ Validar unidades de conversão permitidas (estendidas para conversões especiais)
+          const unidadesConversaoValidas = [...UNIDADES_VALIDAS, 'colher chá', 'colher sopa', 'xícara'];
+          if (unidadeConversao && !unidadesConversaoValidas.includes(unidadeConversao.toLowerCase())) {
             errors.push(`Linha ${rowNumber}: UNIDADE MEDIDA (Conversão) inválida`);
             continue;
           }
@@ -331,7 +336,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
             categoria: row['CATEGORIA'] ? row['CATEGORIA'].toString().trim() : null,
             categorias: categoriasArray,
             marcas: marcasArray,
-            unidade: row['UNIDADE DE MEDIDA'],
+            unidade: unidadeNormalizada, // ✅ Usar unidade normalizada (minúscula)
             total_embalagem: totalEmbalagem,
             custo_total: custoTotal,
             custo_unitario: custoUnitario,
@@ -365,7 +370,7 @@ export const ImportacaoProdutos = ({ onImportSuccess }: ImportacaoProdutosProps)
               .from('produto_conversoes')
               .insert({
                 produto_id: produtoInserido.id,
-                unidade_compra: row['UNIDADE DE MEDIDA'],
+                unidade_compra: unidadeNormalizada, // ✅ Usar unidade normalizada
                 quantidade_por_unidade: totalEmbalagem,
                 unidade_uso_receitas: unidadeConversao,
                 quantidade_unidade_uso: quantidadeConversaoNum,
