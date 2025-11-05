@@ -37,7 +37,7 @@ export function gerarModeloProdutos() {
       codigos_barras: '',
       marcas: 'Marca B,Marca C',
       categorias: 'Açúcares',
-      unidade_compra: 'KG',
+      unidade_compra: 'K',
       unidade_uso: 'G',
       fator_conversao: 1000,
       custo_unitario: 12.00,
