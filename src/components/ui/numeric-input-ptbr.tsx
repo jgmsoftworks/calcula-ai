@@ -28,6 +28,9 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
     const [displayValue, setDisplayValue] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const { toast } = useToast();
+
+    // ✅ Proteção para valor inicial undefined/null
+    const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
     
     // Formatar para exibição baseado no tipo
     const formatForDisplay = (num: number): string => {
@@ -73,9 +76,9 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
     // Atualizar display quando value mudar de fora
     useEffect(() => {
       if (!isFocused) {
-        setDisplayValue(formatForDisplay(value));
+        setDisplayValue(formatForDisplay(safeValue));
       }
-    }, [value, isFocused, tipo]);
+    }, [safeValue, isFocused, tipo]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;
@@ -111,11 +114,11 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
     const handleFocus = () => {
       setIsFocused(true);
       // Ao focar, mostrar apenas os dígitos + vírgula (sem formatação)
-      if (value === 0) {
+      if (safeValue === 0) {
         setDisplayValue('');
       } else {
         // Mostrar valor sem formatação de milhares
-        const unformatted = String(value).replace('.', ',');
+        const unformatted = String(safeValue).replace('.', ',');
         setDisplayValue(unformatted);
       }
     };

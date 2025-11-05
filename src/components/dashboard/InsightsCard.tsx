@@ -23,18 +23,9 @@ export const InsightsCard = () => {
     const fetchInsights = async () => {
       try {
         const [
-          { data: allProducts },
           { data: unpricedRecipes },
           { data: lowMarginRecipes }
         ] = await Promise.all([
-          // Produtos com estoque crítico
-          supabase
-            .from('produtos')
-            .select('id, estoque_atual, estoque_minimo')
-            .eq('user_id', user.id)
-            .eq('ativo', true)
-            .limit(100),
-          
           // Receitas sem precificação
           supabase
             .from('receitas')
@@ -54,19 +45,8 @@ export const InsightsCard = () => {
 
         const newInsights: Insight[] = [];
 
-        // Estoque crítico - filtrar localmente
-        const lowStockProducts = allProducts?.filter(p => 
-          p.estoque_atual < (p.estoque_minimo || 0)
-        ) || [];
-        
-        if (lowStockProducts.length > 0) {
-          newInsights.push({
-            type: 'critical',
-            icon: <AlertCircle className="h-4 w-4" />,
-            message: 'produtos com estoque crítico',
-            count: lowStockProducts.length
-          });
-        }
+        // Estoque crítico - TEMPORARIAMENTE DESABILITADO
+        // (Sistema de estoque foi reconstruído, esta verificação será reimplementada)
 
         // Sem precificação
         if (unpricedRecipes && unpricedRecipes.length > 0) {

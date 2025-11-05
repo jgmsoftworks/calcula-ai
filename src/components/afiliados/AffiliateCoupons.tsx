@@ -312,7 +312,7 @@ export function AffiliateCoupons() {
                       <SelectValue placeholder="Selecione um afiliado" />
                     </SelectTrigger>
                     <SelectContent>
-                      {affiliates.filter(a => a.status === 'active').map(affiliate => (
+                      {affiliates.filter(a => a.status === 'active' && a.id && a.id.trim() !== '').map(affiliate => (
                         <SelectItem key={affiliate.id} value={affiliate.id}>
                           {affiliate.name} ({affiliate.email})
                         </SelectItem>
