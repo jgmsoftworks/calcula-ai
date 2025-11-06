@@ -24,16 +24,42 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
     if (!user || !search.trim()) return;
 
     try {
+      // Buscar o markup de sub-receitas ativo do usuário
+      const { data: markupData, error: markupError } = await supabase
+        .from('markups')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('tipo', 'sub_receita')
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (markupError) throw markupError;
+
+      // Se não houver markup de sub-receitas configurado
+      if (!markupData) {
+        toast.error('Nenhum markup de sub-receitas configurado. Configure na aba Precificação.');
+        setReceitas([]);
+        setShowResults(false);
+        return;
+      }
+
+      // Buscar APENAS receitas vinculadas ao markup de sub-receitas
       const { data, error } = await supabase
         .from('receitas')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'finalizada')
+        .eq('markup_id', markupData.id)
         .neq('id', receita.id)
         .ilike('nome', `%${search}%`)
         .limit(10);
 
       if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        toast.info('Nenhuma sub-receita encontrada. Vincule receitas ao markup de sub-receitas.');
+      }
+      
       setReceitas((data || []) as any[]);
       setShowResults(true);
     } catch (error: any) {
