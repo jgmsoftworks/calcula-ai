@@ -301,6 +301,19 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         }
     }
     
+    // Garantir que sub-receita sempre tenha valores calculados
+    if (!novosCalculatedMarkups.has('subreceita-fixo')) {
+        console.log('✅ Adicionando valores padrão para sub-receita');
+        novosCalculatedMarkups.set('subreceita-fixo', {
+            gastoSobreFaturamento: 0,
+            impostos: 0,
+            taxasMeiosPagamento: 0,
+            comissoesPlataformas: 0,
+            outros: 0,
+            valorEmReal: 0
+        });
+    }
+    
     if (novosCalculatedMarkups.size > 0) {
         setCalculatedMarkups(novosCalculatedMarkups);
         console.log('✅ Configurações salvas aplicadas com sucesso para todos os blocos!');
@@ -466,10 +479,22 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
       for (const bloco of uniqueBlocos) {
         const calculated = calculatedMarkups.get(bloco.id);
-        if (!calculated) {
+        
+        // ✅ NOVA LÓGICA: Para sub-receita, sempre usar markup 1.0 mesmo sem calculated
+        if (!calculated && bloco.id !== 'subreceita-fixo') {
           console.log(`⚠️ [SALVAR MARKUPS] Valores calculados não encontrados para ${bloco.nome}`);
           continue;
         }
+        
+        // Para sub-receita, garantir valores padrão se não houver calculated
+        const calculatedFinal = calculated || {
+          gastoSobreFaturamento: 0,
+          impostos: 0,
+          taxasMeiosPagamento: 0,
+          comissoesPlataformas: 0,
+          outros: 0,
+          valorEmReal: 0
+        };
 
         // Buscar configuração salva para este bloco
         const configKey = `checkbox-states-${bloco.id}`;
@@ -503,7 +528,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         }
 
         // Calcular markup ideal correto baseado nos valores atualizados
-        const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
+        const totalEncargos = calculatedFinal.gastoSobreFaturamento + calculatedFinal.impostos + calculatedFinal.taxasMeiosPagamento + calculatedFinal.comissoesPlataformas + calculatedFinal.outros;
         const totalPercentuais = totalEncargos + bloco.lucroDesejado;
         
         // Sub-receita sempre tem markup 1.0 (sem lucro)
@@ -517,11 +542,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           tipo: bloco.id === 'subreceita-fixo' ? 'sub_receita' : (bloco.nome.toLowerCase().includes('sub') ? 'sub_receita' : 'normal'),
           periodo: bloco.periodo,
           margem_lucro: bloco.lucroDesejado,
-          gasto_sobre_faturamento: calculated.gastoSobreFaturamento,
-          encargos_sobre_venda: calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros,
+          gasto_sobre_faturamento: calculatedFinal.gastoSobreFaturamento,
+          encargos_sobre_venda: calculatedFinal.impostos + calculatedFinal.taxasMeiosPagamento + calculatedFinal.comissoesPlataformas + calculatedFinal.outros,
           markup_ideal: markupIdealCorreto,
           markup_aplicado: markupIdealCorreto,
-          preco_sugerido: calculated.valorEmReal,
+          preco_sugerido: calculatedFinal.valorEmReal,
           despesas_fixas_selecionadas: despesasFixasSelecionadas,
           folha_pagamento_selecionada: folhaPagamentoSelecionada,
           encargos_venda_selecionados: encargosVendaSelecionados,
@@ -531,12 +556,12 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         console.log(`💾 [SALVAR MARKUPS] Salvando ${bloco.nome}:`, {
           ...markupData,
           detalhesCalculados: {
-            gastoSobreFaturamento: calculated.gastoSobreFaturamento,
-            impostos: calculated.impostos,
-            taxasMeiosPagamento: calculated.taxasMeiosPagamento,
-            comissoesPlataformas: calculated.comissoesPlataformas,
-            outros: calculated.outros,
-            valorEmReal: calculated.valorEmReal
+            gastoSobreFaturamento: calculatedFinal.gastoSobreFaturamento,
+            impostos: calculatedFinal.impostos,
+            taxasMeiosPagamento: calculatedFinal.taxasMeiosPagamento,
+            comissoesPlataformas: calculatedFinal.comissoesPlataformas,
+            outros: calculatedFinal.outros,
+            valorEmReal: calculatedFinal.valorEmReal
           }
         });
 
@@ -547,12 +572,12 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         // Salvar configuração individual para o tooltip
         const configIndividual = {
           periodo: bloco.periodo,
-          gastoSobreFaturamento: calculated.gastoSobreFaturamento,
-          impostos: calculated.impostos,
-          taxas: calculated.taxasMeiosPagamento,
-          comissoes: calculated.comissoesPlataformas,
-          outros: calculated.outros,
-          valorEmReal: calculated.valorEmReal,
+          gastoSobreFaturamento: calculatedFinal.gastoSobreFaturamento,
+          impostos: calculatedFinal.impostos,
+          taxas: calculatedFinal.taxasMeiosPagamento,
+          comissoes: calculatedFinal.comissoesPlataformas,
+          outros: calculatedFinal.outros,
+          valorEmReal: calculatedFinal.valorEmReal,
           // ✅ CORREÇÃO: Incluir lucroDesejado e markupIdeal na configuração individual
           lucroDesejado: bloco.lucroDesejado,
           markupIdeal: markupIdealCorreto
@@ -568,12 +593,12 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         if (blocoIndex >= 0) {
           configBlocosAtualizados[blocoIndex] = {
             ...configBlocosAtualizados[blocoIndex],
-            gastoSobreFaturamento: calculated.gastoSobreFaturamento,
-            impostos: calculated.impostos,
-            taxasMeiosPagamento: calculated.taxasMeiosPagamento,
-            comissoesPlataformas: calculated.comissoesPlataformas,
-            outros: calculated.outros,
-            valorEmReal: calculated.valorEmReal
+            gastoSobreFaturamento: calculatedFinal.gastoSobreFaturamento,
+            impostos: calculatedFinal.impostos,
+            taxasMeiosPagamento: calculatedFinal.taxasMeiosPagamento,
+            comissoesPlataformas: calculatedFinal.comissoesPlataformas,
+            outros: calculatedFinal.outros,
+            valorEmReal: calculatedFinal.valorEmReal
           };
         }
       }
