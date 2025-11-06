@@ -505,7 +505,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         // Calcular markup ideal correto baseado nos valores atualizados
         const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
         const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-        const markupIdealCorreto = totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.25;
+        
+        // Sub-receita sempre tem markup 1.0 (sem lucro)
+        const markupIdealCorreto = bloco.id === 'subreceita-fixo' 
+          ? 1.0 
+          : (totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.0);
 
         const markupData = {
           user_id: user.id,
