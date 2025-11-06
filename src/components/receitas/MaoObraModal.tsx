@@ -62,13 +62,13 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate }: MaoObr
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('folha_pagamento')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('tipo_mao_obra', 'mao_obra_direta')
-        .eq('ativo', true)
-        .order('nome');
+    const { data, error } = await supabase
+      .from('folha_pagamento')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('tipo_mao_obra', 'direta')
+      .eq('ativo', true)
+      .order('nome');
 
       if (error) throw error;
       setFuncionarios(data || []);
