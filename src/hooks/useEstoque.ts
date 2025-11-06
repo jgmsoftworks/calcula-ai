@@ -94,7 +94,12 @@ export function useEstoque() {
       );
     }
 
-    return produtos;
+    // Retorna novos objetos com dados limpos
+    return produtos.map(p => ({
+      ...p,
+      nome: String(p.nome || '').trim(),
+      unidade_compra: String(p.unidade_compra || '').toLowerCase(),
+    }));
   };
 
   const createProduto = async (data: Partial<Produto>) => {

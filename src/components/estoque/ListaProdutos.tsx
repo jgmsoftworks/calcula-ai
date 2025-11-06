@@ -47,11 +47,11 @@ export function ListaProdutos() {
   const [search, setSearch] = useState('');
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>('todas');
   const [abaixoMinimo, setAbaixoMinimo] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadProdutos = async (forceRefresh = false) => {
     setLoading(true);
     if (forceRefresh) {
-      // Limpa o estado antes de buscar novamente
       setProdutos([]);
     }
     const data = await fetchProdutos({
@@ -60,12 +60,20 @@ export function ListaProdutos() {
       abaixoMinimo,
     });
     if (data) {
-      setProdutos(data as unknown as Produto[]);
+      // Cria NOVOS objetos para quebrar referências em cache
+      const novosProdutos = data.map(p => ({
+        ...p,
+        nome: String(p.nome || '').trim(),
+        unidade_compra: String(p.unidade_compra || '').toLowerCase(),
+      }));
+      setProdutos(novosProdutos as unknown as Produto[]);
     }
     setLoading(false);
   };
 
   const handleForceRefresh = () => {
+    setProdutos([]);
+    setRefreshKey(prev => prev + 1);
     loadProdutos(true);
   };
 
@@ -194,7 +202,7 @@ export function ListaProdutos() {
                 const estoqueAbaixo = produto.estoque_minimo && produto.estoque_atual < produto.estoque_minimo;
 
                 return (
-                  <TableRow key={produto.id}>
+                  <TableRow key={`${produto.id}-${refreshKey}`}>
                     <TableCell className="font-mono">{produto.codigo_interno}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
