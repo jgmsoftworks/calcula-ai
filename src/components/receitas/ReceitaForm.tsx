@@ -124,7 +124,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent 
-        className="w-[1852px] h-[810px] flex flex-col p-0 overflow-hidden"
+        className="w-[1852px] h-[810px] max-w-none flex flex-col p-0 overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 py-4 border-b shrink-0">
