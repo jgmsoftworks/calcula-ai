@@ -202,13 +202,13 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
               Preço de Venda (R$/un.)
             </CardTitle>
           </CardHeader>
-          <CardContent className="min-h-[4.5rem] flex items-center">
+          <CardContent>
             <NumericInputPtBr
               tipo="valor"
               value={formData.preco_venda || 0}
               onChange={(value) => onFormChange('preco_venda', value)}
-              className="text-4xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto w-full bg-transparent focus:ring-0 focus-visible:ring-0 text-right tabular-nums placeholder:text-4xl placeholder:text-blue-400/40"
-              placeholder="0,00"
+              className="text-4xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto bg-transparent focus:ring-0"
+              placeholder="R$ 0,00"
             />
           </CardContent>
         </Card>
@@ -219,12 +219,12 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
               Peso Unitário (g)
             </CardTitle>
           </CardHeader>
-          <CardContent className="min-h-[4.5rem] flex items-center">
+          <CardContent>
             <NumericInputPtBr
               tipo="quantidade_continua"
               value={formData.peso_unitario || 0}
               onChange={(value) => onFormChange('peso_unitario', value)}
-              className="text-4xl font-bold text-primary border-0 p-0 h-auto w-full bg-transparent focus:ring-0 focus-visible:ring-0 text-right tabular-nums placeholder:text-4xl placeholder:text-primary/40"
+              className="text-4xl font-bold text-primary border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
               placeholder="0"
             />
           </CardContent>
@@ -236,8 +236,8 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
               Preço por KG
             </CardTitle>
           </CardHeader>
-          <CardContent className="min-h-[4.5rem] flex items-center justify-end">
-            <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+          <CardContent>
+            <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
               R$ {formatBRL(precoKg)}
             </p>
           </CardContent>
