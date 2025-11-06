@@ -127,6 +127,26 @@ export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
             Arquivo selecionado: {arquivo.name}
           </p>
         )}
+        
+        <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-3">
+          <p className="font-medium text-sm">Campos obrigatórios (marcados com *):</p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+            <li><strong>codigo_interno*</strong>: Código único do produto (número)</li>
+            <li><strong>nome*</strong>: Nome do produto</li>
+            <li><strong>unidade_compra*</strong>: Unidade (cm, cx, fd, g, k, l, m, ml, pct, un)</li>
+            <li><strong>custo_unitario*</strong>: Custo (número decimal)</li>
+            <li><strong>estoque_atual*</strong>: Quantidade em estoque (número)</li>
+          </ul>
+          <p className="font-medium text-sm mt-3">Campos opcionais:</p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+            <li><strong>codigos_barras</strong>: Códigos de barras separados por vírgula</li>
+            <li><strong>marcas</strong>: Marcas separadas por vírgula</li>
+            <li><strong>categorias</strong>: Categorias separadas por vírgula</li>
+            <li><strong>estoque_minimo</strong>: Quantidade mínima desejada</li>
+            <li><strong>unidade_uso</strong>: Unidade para receitas (quando diferente da compra)</li>
+            <li><strong>fator_conversao</strong>: Fator de conversão entre unidades</li>
+          </ul>
+        </div>
       </div>
 
       {/* Botão Importar */}

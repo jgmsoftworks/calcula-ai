@@ -8,42 +8,51 @@ const corsHeaders = {
 };
 
 interface ProdutoRow {
-  nome: string;
-  codigo_interno?: string;
+  'codigo_interno*': number;
+  'nome*': string;
   codigos_barras?: string;
   marcas?: string;
   categorias?: string;
-  unidade_compra: string;
+  'unidade_compra*': string;
+  'custo_unitario*': number;
+  'estoque_atual*': number;
+  estoque_minimo?: number;
   unidade_uso?: string;
   fator_conversao?: number;
-  custo_unitario: number;
-  estoque_atual: number;
-  estoque_minimo: number;
 }
 
-const UNIDADES_VALIDAS = ['UN', 'KG', 'G', 'L', 'ML', 'CX', 'PC', 'FD'];
+const UNIDADES_VALIDAS = ['CM', 'CX', 'FD', 'G', 'K', 'L', 'M', 'ML', 'PCT', 'UN'];
 
 function validarLinha(row: any, lineNumber: number): string[] {
   const erros: string[] = [];
 
-  if (!row.nome || String(row.nome).trim() === '') {
+  // Validar codigo_interno obrigatório
+  if (!row['codigo_interno*'] || isNaN(Number(row['codigo_interno*'])) || Number(row['codigo_interno*']) <= 0) {
+    erros.push(`Linha ${lineNumber}: Código interno é obrigatório e deve ser um número positivo`);
+  }
+
+  if (!row['nome*'] || String(row['nome*']).trim() === '') {
     erros.push(`Linha ${lineNumber}: Nome é obrigatório`);
   }
 
-  if (!row.unidade_compra || !UNIDADES_VALIDAS.includes(String(row.unidade_compra).toUpperCase())) {
+  const unidadeCompra = String(row['unidade_compra*'] || '').toUpperCase();
+  if (!unidadeCompra || !UNIDADES_VALIDAS.includes(unidadeCompra)) {
     erros.push(`Linha ${lineNumber}: Unidade de compra inválida (use: ${UNIDADES_VALIDAS.join(', ')})`);
   }
 
-  if (isNaN(Number(row.custo_unitario)) || Number(row.custo_unitario) < 0) {
+  if (isNaN(Number(row['custo_unitario*'])) || Number(row['custo_unitario*']) < 0) {
     erros.push(`Linha ${lineNumber}: Custo unitário inválido`);
   }
 
-  if (isNaN(Number(row.estoque_atual)) || Number(row.estoque_atual) < 0) {
+  if (isNaN(Number(row['estoque_atual*'])) || Number(row['estoque_atual*']) < 0) {
     erros.push(`Linha ${lineNumber}: Estoque atual inválido`);
   }
 
-  if (isNaN(Number(row.estoque_minimo)) || Number(row.estoque_minimo) < 0) {
-    erros.push(`Linha ${lineNumber}: Estoque mínimo inválido`);
+  // estoque_minimo agora é OPCIONAL
+  if (row.estoque_minimo !== undefined && row.estoque_minimo !== null && row.estoque_minimo !== '') {
+    if (isNaN(Number(row.estoque_minimo)) || Number(row.estoque_minimo) < 0) {
+      erros.push(`Linha ${lineNumber}: Estoque mínimo inválido (quando informado, deve ser numérico)`);
+    }
   }
 
   if (row.fator_conversao && !row.unidade_uso) {
@@ -96,17 +105,6 @@ serve(async (req) => {
     const marcasSet = new Set<string>();
     const categoriasSet = new Set<string>();
 
-    // Obter próximo código interno
-    const { data: ultimoProduto } = await supabaseClient
-      .from('produtos')
-      .select('codigo_interno')
-      .eq('user_id', user.id)
-      .order('codigo_interno', { ascending: false })
-      .limit(1)
-      .single();
-
-    let proximoCodigo = ultimoProduto ? ultimoProduto.codigo_interno + 1 : 1;
-
     // Processar cada linha
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -137,21 +135,23 @@ serve(async (req) => {
       categorias.forEach(c => categoriasSet.add(c));
 
       // Criar produto
-      const codigoInterno = row.codigo_interno ? Number(row.codigo_interno) : proximoCodigo++;
+      const codigoInterno = Number(row['codigo_interno*']);
 
       const produto = {
         user_id: user.id,
-        nome: String(row.nome).trim(),
+        nome: String(row['nome*']).trim(),
         codigo_interno: codigoInterno,
         codigos_barras: codigosBarras,
         marcas: marcas,
         categorias: categorias,
-        unidade_compra: String(row.unidade_compra).toUpperCase(),
+        unidade_compra: String(row['unidade_compra*']).toUpperCase(),
         unidade_uso: row.unidade_uso ? String(row.unidade_uso).toUpperCase() : null,
         fator_conversao: row.fator_conversao ? Number(row.fator_conversao) : null,
-        custo_unitario: Number(row.custo_unitario),
-        estoque_atual: Number(row.estoque_atual),
-        estoque_minimo: Number(row.estoque_minimo),
+        custo_unitario: Number(row['custo_unitario*']),
+        estoque_atual: Number(row['estoque_atual*']),
+        estoque_minimo: row.estoque_minimo !== undefined && row.estoque_minimo !== null && row.estoque_minimo !== '' 
+          ? Number(row.estoque_minimo) 
+          : 0,
         ativo: true
       };
 
