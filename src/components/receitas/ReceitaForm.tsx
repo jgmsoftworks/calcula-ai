@@ -123,12 +123,16 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent 
+        className="w-[1852px] h-[810px] flex flex-col p-0 overflow-hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle>{receita ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4 space-y-4">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="ingredientes">1 Ingredientes</TabsTrigger>
             <TabsTrigger value="sub-receitas">2 Sub-receitas</TabsTrigger>
@@ -211,8 +215,9 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             )}
           </TabsContent>
         </Tabs>
+      </div>
 
-        <div className="flex justify-between items-center pt-4 border-t">
+      <div className="flex justify-between items-center px-6 py-4 border-t shrink-0 bg-background">
           <Button
             variant="outline"
             onClick={handlePrevious}
