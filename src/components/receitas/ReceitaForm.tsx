@@ -131,91 +131,95 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           <DialogTitle>{receita ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4 space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="ingredientes">1 Ingredientes</TabsTrigger>
-            <TabsTrigger value="sub-receitas">2 Sub-receitas</TabsTrigger>
-            <TabsTrigger value="embalagens">3 Embalagens</TabsTrigger>
-            <TabsTrigger value="geral">4 Geral</TabsTrigger>
-            <TabsTrigger value="projecao">5 Projeção</TabsTrigger>
-            <TabsTrigger value="precificacao">6 Precificação</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          {/* TabsList FIXA - fora da área de scroll */}
+          <div className="px-6 py-4 border-b shrink-0 bg-background">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="ingredientes">1 Ingredientes</TabsTrigger>
+              <TabsTrigger value="sub-receitas">2 Sub-receitas</TabsTrigger>
+              <TabsTrigger value="embalagens">3 Embalagens</TabsTrigger>
+              <TabsTrigger value="geral">4 Geral</TabsTrigger>
+              <TabsTrigger value="projecao">5 Projeção</TabsTrigger>
+              <TabsTrigger value="precificacao">6 Precificação</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="ingredientes">
-            {receita && receitaCompleta ? (
-              <IngredientesTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro para adicionar ingredientes
-              </div>
-            )}
-          </TabsContent>
+          {/* Área de SCROLL - só o conteúdo */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <TabsContent value="ingredientes" className="mt-0">
+              {receita && receitaCompleta ? (
+                <IngredientesTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Salve os dados básicos primeiro para adicionar ingredientes
+                </div>
+              )}
+            </TabsContent>
 
-          <TabsContent value="sub-receitas">
-            {receita && receitaCompleta ? (
-              <SubReceitasTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro para adicionar sub-receitas
-              </div>
-            )}
-          </TabsContent>
+            <TabsContent value="sub-receitas" className="mt-0">
+              {receita && receitaCompleta ? (
+                <SubReceitasTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Salve os dados básicos primeiro para adicionar sub-receitas
+                </div>
+              )}
+            </TabsContent>
 
-          <TabsContent value="embalagens">
-            {receita && receitaCompleta ? (
-              <EmbalagensTa receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro para adicionar embalagens
-              </div>
-            )}
-          </TabsContent>
+            <TabsContent value="embalagens" className="mt-0">
+              {receita && receitaCompleta ? (
+                <EmbalagensTa receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Salve os dados básicos primeiro para adicionar embalagens
+                </div>
+              )}
+            </TabsContent>
 
-          <TabsContent value="geral">
-            {receita && receitaCompleta ? (
-              <GeralTab
-                receita={receitaCompleta}
-                formData={formData}
-                onFormChange={handleFormChange}
-                onUpdate={loadReceitaCompleta}
-              />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro
-              </div>
-            )}
-          </TabsContent>
+            <TabsContent value="geral" className="mt-0">
+              {receita && receitaCompleta ? (
+                <GeralTab
+                  receita={receitaCompleta}
+                  formData={formData}
+                  onFormChange={handleFormChange}
+                  onUpdate={loadReceitaCompleta}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Salve os dados básicos primeiro
+                </div>
+              )}
+            </TabsContent>
 
-          <TabsContent value="projecao">
-            {receita && receitaCompleta ? (
-              <ProjecaoTab
-                receita={receitaCompleta}
-                formData={formData}
-                onFormChange={handleFormChange}
-              />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro
-              </div>
-            )}
-          </TabsContent>
+            <TabsContent value="projecao" className="mt-0">
+              {receita && receitaCompleta ? (
+                <ProjecaoTab
+                  receita={receitaCompleta}
+                  formData={formData}
+                  onFormChange={handleFormChange}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Salve os dados básicos primeiro
+                </div>
+              )}
+            </TabsContent>
 
-          <TabsContent value="precificacao">
-            {receita && receitaCompleta ? (
-              <PrecificacaoTab
-                receita={receitaCompleta}
-                formData={formData}
-                onFormChange={handleFormChange}
-              />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Salve os dados básicos primeiro para definir a precificação
-              </div>
-            )}
-          </TabsContent>
+            <TabsContent value="precificacao" className="mt-0">
+              {receita && receitaCompleta ? (
+                <PrecificacaoTab
+                  receita={receitaCompleta}
+                  formData={formData}
+                  onFormChange={handleFormChange}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Salve os dados básicos primeiro para definir a precificação
+                </div>
+              )}
+            </TabsContent>
+          </div>
         </Tabs>
-      </div>
 
       <div className="flex justify-between items-center px-6 py-4 border-t shrink-0 bg-background">
           <Button

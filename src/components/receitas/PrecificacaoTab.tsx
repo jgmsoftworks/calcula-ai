@@ -207,7 +207,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
               tipo="valor"
               value={formData.preco_venda || 0}
               onChange={(value) => onFormChange('preco_venda', value)}
-              className="text-2xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto bg-transparent focus:ring-0"
+              className="text-4xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto bg-transparent focus:ring-0"
               placeholder="R$ 0,00"
             />
           </CardContent>
@@ -224,7 +224,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
               tipo="quantidade_continua"
               value={formData.peso_unitario || 0}
               onChange={(value) => onFormChange('peso_unitario', value)}
-              className="text-2xl font-bold text-primary border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
+              className="text-4xl font-bold text-primary border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
               placeholder="0"
             />
           </CardContent>
@@ -237,7 +237,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
               R$ {formatBRL(precoKg)}
             </p>
           </CardContent>
