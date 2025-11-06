@@ -76,7 +76,19 @@ export function MarkupCard({
         }
         
         if (data?.configuration) {
-          setDetalhes(data.configuration as unknown as MarkupDetalhado);
+          const config = data.configuration as unknown as MarkupDetalhado;
+          
+          // Verificar se faltam campos e completar com dados do markup base
+          if (config.lucroDesejado === undefined || config.markupIdeal === undefined) {
+            console.log('⚠️ Dados incompletos no tooltip, usando dados do markup base');
+            setDetalhes({
+              ...config,
+              lucroDesejado: config.lucroDesejado ?? markup.margem_lucro,
+              markupIdeal: config.markupIdeal ?? markup.markup_ideal
+            });
+          } else {
+            setDetalhes(config);
+          }
         }
       } catch (error) {
         console.error('Erro ao carregar detalhes:', error);
@@ -84,7 +96,7 @@ export function MarkupCard({
     };
     
     carregarDetalhes();
-  }, [user, markup.nome]);
+  }, [user, markup.nome, markup.margem_lucro, markup.markup_ideal]);
 
   // Real-time updates para detalhes do markup
   useEffect(() => {
