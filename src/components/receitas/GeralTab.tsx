@@ -67,6 +67,13 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
     try {
       setUploadingImage(true);
       
+      // 0. Obter user_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+      
       // 1. Redimensionar imagem para 512x512
       const resizedImage = await resizeImageToSquare(
         URL.createObjectURL(file),
@@ -78,8 +85,8 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
       const response = await fetch(resizedImage);
       const blob = await response.blob();
       
-      // 3. Upload para Supabase Storage
-      const fileName = `${receita.id}-${Date.now()}.jpg`;
+      // 3. Upload para Supabase Storage (com user_id no path)
+      const fileName = `${user.id}/${receita.id}-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from('receitas-images')
         .upload(fileName, blob, {
@@ -114,88 +121,65 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
   };
 
   return (
-    <div className="grid grid-cols-[300px_1fr] gap-6">
-      {/* COLUNA ESQUERDA: Upload de Imagem */}
-      <div className="space-y-4">
-        <Label>Imagem da Receita</Label>
-        <div className="relative aspect-square bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors">
-          {imagePreview || receita?.imagem_url ? (
-            <>
-              <img 
-                src={imagePreview || receita?.imagem_url} 
-                alt="Imagem da receita"
-                className="w-full h-full object-cover"
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                className="absolute bottom-2 right-2"
-                onClick={() => document.getElementById('image-upload')?.click()}
-                disabled={uploadingImage}
+    <div className="space-y-6">
+      {/* SEÇÃO 1: Imagem + Conservação lado a lado */}
+      <div className="grid grid-cols-[300px_1fr] gap-6">
+        {/* Upload de Imagem */}
+        <div className="space-y-2">
+          <Label>Imagem da Receita</Label>
+          <div className="relative aspect-square bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors">
+            {imagePreview || receita?.imagem_url ? (
+              <>
+                <img 
+                  src={imagePreview || receita?.imagem_url} 
+                  alt="Imagem da receita"
+                  className="w-full h-full object-cover"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-2 right-2"
+                  onClick={() => document.getElementById('image-upload')?.click()}
+                  disabled={uploadingImage}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Alterar
+                </Button>
+              </>
+            ) : (
+              <label 
+                htmlFor="image-upload"
+                className="flex flex-col items-center justify-center h-full cursor-pointer p-4 text-center"
               >
-                <Camera className="h-4 w-4 mr-2" />
-                Alterar
-              </Button>
-            </>
-          ) : (
-            <label 
-              htmlFor="image-upload"
-              className="flex flex-col items-center justify-center h-full cursor-pointer p-4 text-center"
-            >
-              <Camera className="h-12 w-12 mb-2 text-muted-foreground" />
-              <span className="text-sm font-medium">Clique para adicionar</span>
-              <span className="text-xs text-muted-foreground mt-1">
-                A imagem será redimensionada automaticamente
-              </span>
-            </label>
-          )}
-          
-          <input
-            id="image-upload"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImageUpload(file);
-            }}
-            disabled={uploadingImage}
-          />
-          
-          {uploadingImage && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* COLUNA DIREITA: Formulário */}
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="nome">Nome da Receita *</Label>
-            <Input
-              id="nome"
-              value={formData.nome || ''}
-              onChange={(e) => onFormChange('nome', e.target.value)}
-              placeholder="Nome da receita"
-              required
+                <Camera className="h-12 w-12 mb-2 text-muted-foreground" />
+                <span className="text-sm font-medium">Clique para adicionar</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  A imagem será redimensionada automaticamente
+                </span>
+              </label>
+            )}
+            
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file);
+              }}
+              disabled={uploadingImage}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tipo_produto">Tipo de Produto</Label>
-            <Input
-              id="tipo_produto"
-              value={formData.tipo_produto || ''}
-              onChange={(e) => onFormChange('tipo_produto', e.target.value)}
-              placeholder="Ex: MASSA, DOCE, SALGADO"
-            />
+            
+            {uploadingImage && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Seção de Conservação */}
+        {/* Conservação */}
         <div className="space-y-3">
           <Label>Conservação</Label>
           <div className="space-y-4 border rounded-lg p-4">
@@ -338,60 +322,85 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label>Passos de Preparo</Label>
-          <div className="space-y-3">
-            {receita?.passos.map((passo, index) => (
-              <div key={passo.id} className="flex gap-3 items-start border rounded-lg p-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm whitespace-pre-wrap">{passo.descricao}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemovePasso(passo.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+      {/* SEÇÃO 2: Nome da Receita (largura total) */}
+      <div className="space-y-2">
+        <Label htmlFor="nome">Nome da Receita *</Label>
+        <Input
+          id="nome"
+          value={formData.nome || ''}
+          onChange={(e) => onFormChange('nome', e.target.value)}
+          placeholder="Nome da receita"
+          required
+        />
+      </div>
+
+      {/* SEÇÃO 3: Tipo de Produto (largura total) */}
+      <div className="space-y-2">
+        <Label htmlFor="tipo_produto">Tipo de Produto</Label>
+        <Input
+          id="tipo_produto"
+          value={formData.tipo_produto || ''}
+          onChange={(e) => onFormChange('tipo_produto', e.target.value)}
+          placeholder="Ex: MASSA, DOCE, SALGADO"
+        />
+      </div>
+
+      {/* SEÇÃO 4: Modo de Preparo (largura total) */}
+      <div className="space-y-2">
+        <Label>Passos de Preparo</Label>
+        <div className="space-y-3">
+          {receita?.passos.map((passo, index) => (
+            <div key={passo.id} className="flex gap-3 items-start border rounded-lg p-4">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+                {index + 1}
               </div>
-            ))}
-
-            <div className="space-y-2">
-              <Textarea
-                value={novoPasso}
-                onChange={(e) => setNovoPasso(e.target.value)}
-                placeholder="Descreva o próximo passo..."
-                rows={3}
-              />
-              <Button onClick={handleAddPasso} disabled={!novoPasso.trim()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Passo
+              <div className="flex-1">
+                <p className="text-sm whitespace-pre-wrap">{passo.descricao}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemovePasso(passo.id)}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
+          ))}
+
+          <div className="space-y-2">
+            <Textarea
+              value={novoPasso}
+              onChange={(e) => setNovoPasso(e.target.value)}
+              placeholder="Descreva o próximo passo..."
+              rows={3}
+            />
+            <Button onClick={handleAddPasso} disabled={!novoPasso.trim()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Passo
+            </Button>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="observacoes">Observações</Label>
-          <Textarea
-            id="observacoes"
-            value={formData.observacoes || ''}
-            onChange={(e) => onFormChange('observacoes', e.target.value)}
-            placeholder="Observações gerais sobre a receita..."
-            rows={4}
-          />
-        </div>
+      {/* SEÇÃO 5: Observações (largura total) */}
+      <div className="space-y-2">
+        <Label htmlFor="observacoes">Observações</Label>
+        <Textarea
+          id="observacoes"
+          value={formData.observacoes || ''}
+          onChange={(e) => onFormChange('observacoes', e.target.value)}
+          placeholder="Observações gerais sobre a receita..."
+          rows={4}
+        />
       </div>
     </div>
   );
