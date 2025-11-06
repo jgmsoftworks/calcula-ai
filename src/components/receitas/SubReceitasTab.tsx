@@ -34,7 +34,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
         .limit(10);
 
       if (error) throw error;
-      setReceitas((data || []) as Receita[]);
+      setReceitas((data || []) as any[]);
       setShowResults(true);
     } catch (error: any) {
       console.error('Erro ao buscar receitas:', error);

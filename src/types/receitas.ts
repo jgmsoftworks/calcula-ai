@@ -3,10 +3,12 @@ export interface Receita {
   user_id: string;
   numero_sequencial: number;
   nome: string;
-  tipo_produto: string | null;
+  tipo_produto?: { id: string; nome: string } | null;
+  tipo_produto_id?: string | null;
   rendimento_valor: number | null;
   rendimento_unidade: string | null;
   tempo_preparo_total: number;
+  tempo_preparo_unidade?: string | null;
   tempo_preparo_mao_obra: number;
   conservacao: any;
   observacoes: string | null;

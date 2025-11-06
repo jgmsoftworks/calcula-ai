@@ -209,14 +209,18 @@ export function useReceitas() {
         .from('receitas')
         .insert([{
           nome: data.nome || '',
-          tipo_produto: data.tipo_produto || null,
+          tipo_produto_id: data.tipo_produto_id || null,
           rendimento_valor: data.rendimento_valor || null,
           rendimento_unidade: data.rendimento_unidade || null,
           observacoes: data.observacoes || null,
           status: data.status || 'rascunho',
           preco_venda: data.preco_venda || 0,
-          tempo_preparo_total: 0,
+          tempo_preparo_total: data.tempo_preparo_total || 0,
+          tempo_preparo_unidade: data.tempo_preparo_unidade || 'minutos',
           tempo_preparo_mao_obra: 0,
+          peso_unitario: data.peso_unitario || null,
+          conservacao: data.conservacao || null,
+          markup_id: data.markup_id || null,
           user_id: user.id,
           numero_sequencial: numeroSequencial,
         }])
@@ -241,9 +245,12 @@ export function useReceitas() {
 
     setLoading(true);
     try {
+      // Remover campos que são JOINs e não devem ser atualizados
+      const { tipo_produto, ...updateData } = data;
+      
       const { error } = await supabase
         .from('receitas')
-        .update(data)
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', user.id);
 

@@ -336,17 +336,6 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
         />
       </div>
 
-      {/* SEÇÃO 3: Tipo de Produto (largura total) */}
-      <div className="space-y-2">
-        <Label htmlFor="tipo_produto">Tipo de Produto</Label>
-        <Input
-          id="tipo_produto"
-          value={formData.tipo_produto || ''}
-          onChange={(e) => onFormChange('tipo_produto', e.target.value)}
-          placeholder="Ex: MASSA, DOCE, SALGADO"
-        />
-      </div>
-
       {/* SEÇÃO 3: Modo de Preparo (largura total) */}
       <div className="space-y-2">
         <Label>Passos de Preparo</Label>

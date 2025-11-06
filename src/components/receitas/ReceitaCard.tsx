@@ -55,9 +55,9 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  {receita.tipo_produto && (
+                  {receita.tipo_produto?.nome && (
                     <Badge className="bg-purple-500 text-white">
-                      {receita.tipo_produto}
+                      {receita.tipo_produto.nome}
                     </Badge>
                   )}
                 </div>

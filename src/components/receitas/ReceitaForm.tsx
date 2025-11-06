@@ -23,7 +23,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
-    tipo_produto: '',
+    tipo_produto_id: null as string | null,
     rendimento_valor: 0,
     rendimento_unidade: 'un',
     observacoes: '',
@@ -32,6 +32,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     markup_id: null as string | null,
     peso_unitario: 0,
     tempo_preparo_total: 0,
+    tempo_preparo_unidade: 'minutos' as string,
     tempo_preparo_mao_obra: 0,
     conservacao: {
       congelado: { temperatura: 0, tempo: 0, unidade: 'dias' },
@@ -66,7 +67,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       loadReceitaCompleta();
       setFormData({
         nome: receita.nome,
-        tipo_produto: receita.tipo_produto || '',
+        tipo_produto_id: receita.tipo_produto_id || null,
         rendimento_valor: receita.rendimento_valor || 0,
         rendimento_unidade: receita.rendimento_unidade || 'un',
         observacoes: receita.observacoes || '',
@@ -75,6 +76,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         markup_id: receita.markup_id,
         peso_unitario: receita.peso_unitario || 0,
         tempo_preparo_total: receita.tempo_preparo_total || 0,
+        tempo_preparo_unidade: receita.tempo_preparo_unidade || 'minutos',
         tempo_preparo_mao_obra: receita.tempo_preparo_mao_obra || 0,
         conservacao: receita.conservacao || {
           congelado: { temperatura: 0, tempo: 0, unidade: 'dias' },
