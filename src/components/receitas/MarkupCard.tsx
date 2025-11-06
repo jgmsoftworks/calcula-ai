@@ -160,29 +160,29 @@ export function MarkupCard({
                         </div>
                         
                         <div className="text-muted-foreground">Gastos sobre faturamento:</div>
-                        <div className="font-medium text-right">{formatNumber(detalhes.gastoSobreFaturamento, 2)}%</div>
+                        <div className="font-medium text-right">{formatNumber(detalhes.gastoSobreFaturamento ?? 0, 2)}%</div>
                         
                         <div className="text-muted-foreground">Impostos:</div>
-                        <div className="font-medium text-right">{formatNumber(detalhes.impostos, 2)}%</div>
+                        <div className="font-medium text-right">{formatNumber(detalhes.impostos ?? 0, 2)}%</div>
                         
                         <div className="text-muted-foreground">Taxas de meios de pagamento:</div>
-                        <div className="font-medium text-right">{formatNumber(detalhes.taxas, 2)}%</div>
+                        <div className="font-medium text-right">{formatNumber(detalhes.taxas ?? 0, 2)}%</div>
                         
                         <div className="text-muted-foreground">Comissões e plataformas:</div>
-                        <div className="font-medium text-right">{formatNumber(detalhes.comissoes, 2)}%</div>
+                        <div className="font-medium text-right">{formatNumber(detalhes.comissoes ?? 0, 2)}%</div>
                         
                         <div className="text-muted-foreground">Outros:</div>
-                        <div className="font-medium text-right">{formatNumber(detalhes.outros, 2)}%</div>
+                        <div className="font-medium text-right">{formatNumber(detalhes.outros ?? 0, 2)}%</div>
                         
                         <div className="text-muted-foreground">Valor em real:</div>
-                        <div className="font-medium text-right">R$ {formatBRL(detalhes.valorEmReal)}</div>
+                        <div className="font-medium text-right">R$ {formatBRL(detalhes.valorEmReal ?? 0)}</div>
                         
                         <div className="text-muted-foreground">Lucro desejado sobre vendas:</div>
-                        <div className="font-medium text-right">{formatNumber(detalhes.lucroDesejado, 2)}%</div>
+                        <div className="font-medium text-right">{formatNumber(detalhes.lucroDesejado ?? 0, 2)}%</div>
                         
                         <div className="font-semibold text-primary pt-2 border-t">Markup Ideal:</div>
                         <div className="font-bold text-primary text-right pt-2 border-t">
-                          {formatNumber(detalhes.markupIdeal, 4)}
+                          {formatNumber(detalhes.markupIdeal ?? 0, 4)}
                         </div>
                       </div>
                     ) : (
