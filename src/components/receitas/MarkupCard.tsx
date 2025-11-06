@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 
 interface MarkupCardProps {
   markup: any;
@@ -79,16 +80,16 @@ export function MarkupCard({
                       <div>Últimos {markup.periodo} meses</div>
                       
                       <div>Gasto sobre Faturamento:</div>
-                      <div>{markup.gasto_sobre_faturamento.toFixed(2)}%</div>
+                      <div>{formatNumber(markup.gasto_sobre_faturamento, 2)}%</div>
                       
                       <div>Encargos sobre Venda:</div>
-                      <div>{markup.encargos_sobre_venda.toFixed(2)}%</div>
+                      <div>{formatNumber(markup.encargos_sobre_venda, 2)}%</div>
                       
                       <div>Lucro Desejado:</div>
-                      <div>{markup.margem_lucro.toFixed(2)}%</div>
+                      <div>{formatNumber(markup.margem_lucro, 2)}%</div>
                       
                       <div className="font-semibold">Markup Ideal:</div>
-                      <div className="font-semibold">{markup.markup_ideal.toFixed(2)}</div>
+                      <div className="font-semibold">{formatNumber(markup.markup_ideal, 4)}</div>
                     </div>
                   </div>
                 </TooltipContent>
@@ -120,7 +121,7 @@ export function MarkupCard({
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {markup.markup_ideal.toFixed(2)}
+                  {formatNumber(markup.markup_ideal, 4)}
                 </p>
               </CardContent>
             </Card>
@@ -133,7 +134,7 @@ export function MarkupCard({
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {markupAplicado.toFixed(2)}
+                  {formatNumber(markupAplicado, 4)}
                 </p>
               </CardContent>
             </Card>
@@ -146,7 +147,7 @@ export function MarkupCard({
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  R$ {precoSugerido.toFixed(2)}
+                  R$ {formatBRL(precoSugerido)}
                 </p>
               </CardContent>
             </Card>
@@ -156,23 +157,23 @@ export function MarkupCard({
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <span className="font-medium">Lucro Bruto (un.)</span>
               <div className="text-right">
-                <span className="font-bold text-green-600">R$ {lucroBruto.toFixed(2)}</span>
-                <span className="text-muted-foreground ml-2">({margemBruta.toFixed(1)}%)</span>
+                <span className="font-bold text-green-600">R$ {formatBRL(lucroBruto)}</span>
+                <span className="text-muted-foreground ml-2">({formatNumber(margemBruta, 1)}%)</span>
               </div>
             </div>
 
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <span className="font-medium">Lucro Líq. Real (un.)</span>
               <div className="text-right">
-                <span className="font-bold text-green-600">R$ {lucroLiquido.toFixed(2)}</span>
-                <span className="text-muted-foreground ml-2">({margemLiquida.toFixed(1)}%)</span>
+                <span className="font-bold text-green-600">R$ {formatBRL(lucroLiquido)}</span>
+                <span className="text-muted-foreground ml-2">({formatNumber(margemLiquida, 1)}%)</span>
               </div>
             </div>
 
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <span className="font-medium">Faturamento Bruto (total)</span>
               <div className="text-right">
-                <span className="font-bold">R$ {precoSugerido.toFixed(2)}</span>
+                <span className="font-bold">R$ {formatBRL(precoSugerido)}</span>
                 <span className="text-muted-foreground ml-2">(100%)</span>
               </div>
             </div>

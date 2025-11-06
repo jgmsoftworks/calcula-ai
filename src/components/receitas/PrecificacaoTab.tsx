@@ -5,6 +5,7 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkupCard } from './MarkupCard';
+import { formatBRL } from '@/lib/formatters';
 import { toast } from 'sonner';
 import type { ReceitaCompleta } from '@/types/receitas';
 
@@ -74,13 +75,13 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('markups')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('tipo', 'sub-receitas')
-        .eq('ativo', true)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('markups')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('tipo', 'sub_receita')
+      .eq('ativo', true)
+      .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       
@@ -172,23 +173,23 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
         <CardContent className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Ingredientes:</span>
-            <span className="font-medium">R$ {custoIngredientes.toFixed(2)}</span>
+            <span className="font-medium">R$ {formatBRL(custoIngredientes)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Embalagens:</span>
-            <span className="font-medium">R$ {custoEmbalagens.toFixed(2)}</span>
+            <span className="font-medium">R$ {formatBRL(custoEmbalagens)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Mão de Obra:</span>
-            <span className="font-medium">R$ {custoMaoObra.toFixed(2)}</span>
+            <span className="font-medium">R$ {formatBRL(custoMaoObra)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Sub-receitas:</span>
-            <span className="font-medium">R$ {custoSubReceitas.toFixed(2)}</span>
+            <span className="font-medium">R$ {formatBRL(custoSubReceitas)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t font-bold">
             <span>Total:</span>
-            <span className="text-primary">R$ {custoTotal.toFixed(2)}</span>
+            <span className="text-primary">R$ {formatBRL(custoTotal)}</span>
           </div>
         </CardContent>
       </Card>
@@ -237,7 +238,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              R$ {precoKg.toFixed(2)}
+              R$ {formatBRL(precoKg)}
             </p>
           </CardContent>
         </Card>

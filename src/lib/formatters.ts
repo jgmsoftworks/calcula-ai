@@ -26,6 +26,21 @@ export const formatters = {
     }).format(num)
 };
 
+// Formatação brasileira simplificada
+export const formatBRL = (value: number): string => {
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+export const formatNumber = (value: number, decimals: number = 2): string => {
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+};
+
 // Parser universal pt-BR → número
 export const parsePtBrNumber = (value: string | number): number => {
   if (typeof value === 'number') return value;
