@@ -1,6 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -48,8 +48,12 @@ export function ListaProdutos() {
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>('todas');
   const [abaixoMinimo, setAbaixoMinimo] = useState(false);
 
-  const loadProdutos = async () => {
+  const loadProdutos = async (forceRefresh = false) => {
     setLoading(true);
+    if (forceRefresh) {
+      // Limpa o estado antes de buscar novamente
+      setProdutos([]);
+    }
     const data = await fetchProdutos({
       search: search || undefined,
       unidade: unidadeFiltro !== 'todas' ? unidadeFiltro : undefined,
@@ -59,6 +63,10 @@ export function ListaProdutos() {
       setProdutos(data as unknown as Produto[]);
     }
     setLoading(false);
+  };
+
+  const handleForceRefresh = () => {
+    loadProdutos(true);
   };
 
   useEffect(() => {
@@ -135,6 +143,10 @@ export function ListaProdutos() {
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             Criar Produto
+          </Button>
+          <Button onClick={handleForceRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Recarregar Dados
           </Button>
           <Button onClick={exportarProdutos} variant="outline">
             <Download className="h-4 w-4 mr-2" />
