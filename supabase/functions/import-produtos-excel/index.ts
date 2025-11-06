@@ -21,7 +21,7 @@ interface ProdutoRow {
   fator_conversao?: number;
 }
 
-const UNIDADES_VALIDAS = ['CM', 'CX', 'FD', 'G', 'K', 'L', 'M', 'ML', 'PCT', 'UN'];
+const UNIDADES_VALIDAS = ['cm', 'cx', 'fd', 'g', 'k', 'l', 'm', 'ml', 'pct', 'un'];
 
 function validarLinha(row: any, lineNumber: number): string[] {
   const erros: string[] = [];
@@ -35,7 +35,7 @@ function validarLinha(row: any, lineNumber: number): string[] {
     erros.push(`Linha ${lineNumber}: Nome é obrigatório`);
   }
 
-  const unidadeCompra = String(row['unidade_compra*'] || '').toUpperCase();
+  const unidadeCompra = String(row['unidade_compra*'] || '').toLowerCase();
   if (!unidadeCompra || !UNIDADES_VALIDAS.includes(unidadeCompra)) {
     erros.push(`Linha ${lineNumber}: Unidade de compra inválida (use: ${UNIDADES_VALIDAS.join(', ')})`);
   }
@@ -139,13 +139,13 @@ serve(async (req) => {
 
       const produto = {
         user_id: user.id,
-        nome: String(row['nome*']).trim(),
+        nome: String(row['nome*']).trim().replace(/\s*0+\s*$/, ''),
         codigo_interno: codigoInterno,
         codigos_barras: codigosBarras,
         marcas: marcas,
         categorias: categorias,
-        unidade_compra: String(row['unidade_compra*']).toUpperCase(),
-        unidade_uso: row.unidade_uso ? String(row.unidade_uso).toUpperCase() : null,
+        unidade_compra: String(row['unidade_compra*']).toLowerCase(),
+        unidade_uso: row.unidade_uso ? String(row.unidade_uso).toLowerCase() : null,
         fator_conversao: row.fator_conversao ? Number(row.fator_conversao) : null,
         custo_unitario: Number(row['custo_unitario*']),
         estoque_atual: Number(row['estoque_atual*']),
