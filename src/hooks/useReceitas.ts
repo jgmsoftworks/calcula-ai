@@ -40,6 +40,7 @@ export function useReceitas() {
         .from('receitas')
         .select(`
           *,
+          tipo_produto:tipos_produto(id, nome),
           total_ingredientes:receita_ingredientes(count),
           total_embalagens:receita_embalagens(count),
           total_sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
@@ -133,7 +134,10 @@ export function useReceitas() {
     try {
       const { data: receita, error: receitaError } = await supabase
         .from('receitas')
-        .select('*')
+        .select(`
+          *,
+          tipo_produto:tipos_produto(id, nome)
+        `)
         .eq('id', id)
         .eq('user_id', user.id)
         .single();

@@ -1711,7 +1711,9 @@ export type Database = {
           status: string | null
           tempo_preparo_mao_obra: number | null
           tempo_preparo_total: number | null
+          tempo_preparo_unidade: string | null
           tipo_produto: string | null
+          tipo_produto_id: string | null
           updated_at: string
           user_id: string
         }
@@ -1731,7 +1733,9 @@ export type Database = {
           status?: string | null
           tempo_preparo_mao_obra?: number | null
           tempo_preparo_total?: number | null
+          tempo_preparo_unidade?: string | null
           tipo_produto?: string | null
+          tipo_produto_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1751,7 +1755,9 @@ export type Database = {
           status?: string | null
           tempo_preparo_mao_obra?: number | null
           tempo_preparo_total?: number | null
+          tempo_preparo_unidade?: string | null
           tipo_produto?: string | null
+          tipo_produto_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1761,6 +1767,13 @@ export type Database = {
             columns: ["markup_id"]
             isOneToOne: false
             referencedRelation: "markups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receitas_tipo_produto_id_fkey"
+            columns: ["tipo_produto_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_produto"
             referencedColumns: ["id"]
           },
         ]
@@ -1937,6 +1950,30 @@ export type Database = {
           title?: string
           updated_at?: string
           urgency?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tipos_produto: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

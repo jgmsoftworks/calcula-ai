@@ -142,9 +142,13 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {formData.peso_unitario || 0}
-            </p>
+            <NumericInputPtBr
+              tipo="quantidade_continua"
+              value={formData.peso_unitario || 0}
+              onChange={(value) => onFormChange('peso_unitario', value)}
+              className="text-2xl font-bold text-primary border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
+              placeholder="0"
+            />
           </CardContent>
         </Card>
 

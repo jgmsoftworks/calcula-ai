@@ -347,7 +347,7 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
         />
       </div>
 
-      {/* SEÇÃO 4: Modo de Preparo (largura total) */}
+      {/* SEÇÃO 3: Modo de Preparo (largura total) */}
       <div className="space-y-2">
         <Label>Passos de Preparo</Label>
         <div className="space-y-3">
@@ -391,7 +391,7 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
         </div>
       </div>
 
-      {/* SEÇÃO 5: Observações (largura total) */}
+      {/* SEÇÃO 4: Observações (largura total) */}
       <div className="space-y-2">
         <Label htmlFor="observacoes">Observações</Label>
         <Textarea
