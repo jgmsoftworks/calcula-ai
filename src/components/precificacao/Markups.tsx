@@ -316,12 +316,26 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     const carregarBlocos = async () => {
       try {
         const config = await loadConfiguration('markups_blocos');
+        let blocosCarregados: MarkupBlock[] = [];
+        
         if (config && Array.isArray(config)) {
-          setBlocos(config as unknown as MarkupBlock[]);
-          console.log('📦 Blocos carregados:', config.length);
+          blocosCarregados = config as unknown as MarkupBlock[];
         }
+        
+        // ✅ GARANTIR que o bloco de sub-receita esteja sempre presente
+        const temSubreceita = blocosCarregados.some(b => b.id === 'subreceita-fixo');
+        
+        if (!temSubreceita) {
+          // Adicionar bloco de sub-receita ao início da lista
+          blocosCarregados = [blocoSubreceita, ...blocosCarregados];
+        }
+        
+        setBlocos(blocosCarregados);
+        console.log('📦 Blocos carregados:', blocosCarregados.length);
       } catch (error) {
         console.error('Erro ao carregar blocos:', error);
+        // Em caso de erro, garantir que pelo menos o bloco de sub-receita existe
+        setBlocos([blocoSubreceita]);
       }
     };
     carregarBlocos();
@@ -496,7 +510,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         const markupData = {
           user_id: user.id,
           nome: bloco.nome,
-          tipo: bloco.nome.toLowerCase().includes('sub') ? 'sub_receita' : 'normal',
+          tipo: bloco.id === 'subreceita-fixo' ? 'sub_receita' : (bloco.nome.toLowerCase().includes('sub') ? 'sub_receita' : 'normal'),
           periodo: bloco.periodo,
           margem_lucro: bloco.lucroDesejado,
           gasto_sobre_faturamento: calculated.gastoSobreFaturamento,
@@ -670,6 +684,16 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const removerBloco = async (id: string) => {
     if (!user?.id) return;
 
+    // ✅ PROTEÇÃO: Não permitir deletar o bloco de sub-receita
+    if (id === 'subreceita-fixo') {
+      toast({
+        title: "Operação não permitida",
+        description: "O bloco de sub-receita não pode ser removido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Buscar o markup no banco para pegar o UUID real
     const blocoParaRemover = blocos.find(b => b.id === id);
     if (!blocoParaRemover) return;
@@ -788,74 +812,110 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       </div>
 
       {/* Bloco Subreceita - Sempre fixo */}
-      <Card className="border-primary bg-primary/5">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Subreceita
-            </CardTitle>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p><strong>Atenção:</strong> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em receitas.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
-              <div className="text-2xl font-bold text-primary">0%</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
-              <div className="text-2xl font-bold text-primary">0%</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
-              <div className="text-2xl font-bold text-primary">0%</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
-              <div className="text-2xl font-bold text-primary">0%</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
-              <div className="text-2xl font-bold text-primary">0%</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
-              <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>{formatCurrency(0)}</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
-              <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>0%</div>
-            </div>
-          </div>
-          
-          <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
-            <div className="flex items-center justify-between">
-              <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
-              <div className="text-3xl font-bold text-primary">
-                {(() => {
-                  const calculatedSubreceita = calculatedMarkups.get('subreceita-fixo');
-                  const markupIdealSubreceita = calculatedSubreceita ? calcularMarkupIdealParaExibicao(blocoSubreceita, calculatedSubreceita) : 1;
-                  return markupIdealSubreceita.toFixed(4).replace('.', ',');
-                })()}
+      {(() => {
+        // Buscar o bloco de sub-receita do array
+        const blocoSub = blocos.find(b => b.id === 'subreceita-fixo');
+        if (!blocoSub) return null;
+        
+        const calculated = calculatedMarkups.get('subreceita-fixo');
+        const markupIdealSubreceita = calculated 
+          ? calcularMarkupIdealParaExibicao(blocoSub, calculated) 
+          : 1;
+        
+        return (
+          <Card className="border-primary bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
+                    <Calculator className="h-5 w-5" />
+                    Subreceita
+                  </CardTitle>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p><strong>Atenção:</strong> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em receitas.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                
+                {/* ✅ ADICIONAR botão de configuração */}
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => abrirConfiguracaoCompleta('subreceita-fixo')}
+                  className="h-8 px-3 flex items-center gap-1"
+                >
+                  <Settings className="h-3 w-3" />
+                  Configurar
+                </Button>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
+                  <div className="text-2xl font-bold text-primary">
+                    {calculated ? formatPercentage(calculated.gastoSobreFaturamento) : '0,00'}%
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
+                  <div className="text-2xl font-bold text-primary">
+                    {calculated ? formatPercentage(calculated.impostos) : '0,00'}%
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
+                  <div className="text-2xl font-bold text-primary">
+                    {calculated ? formatPercentage(calculated.taxasMeiosPagamento) : '0,00'}%
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
+                  <div className="text-2xl font-bold text-primary">
+                    {calculated ? formatPercentage(calculated.comissoesPlataformas) : '0,00'}%
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
+                  <div className="text-2xl font-bold text-primary">
+                    {calculated ? formatPercentage(calculated.outros) : '0,00'}%
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
+                  <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>
+                    {calculated ? formatCurrency(calculated.valorEmReal) : formatCurrency(0)}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
+                  <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>
+                    {blocoSub.lucroDesejado}%
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
+                  <div className="text-3xl font-bold text-primary">
+                    {markupIdealSubreceita.toFixed(4).replace('.', ',')}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Blocos do usuário */}
-      {blocos.map((bloco) => {
+      {blocos.filter(b => b.id !== 'subreceita-fixo').map((bloco) => {
         const calculated = calculatedMarkups.get(bloco.id);
         const hasCalculated = calculated !== undefined;
         const markupIdeal = hasCalculated ? calcularMarkupIdealParaExibicao(bloco, calculated) : 1;
