@@ -130,9 +130,28 @@ export function MarkupCard({
   // Valor em Real do bloco (taxa fixa por venda)
   const valorEmRealBloco = detalhes?.valorEmReal ?? 0;
   
-  // Sugestão de preço = (custo × markup ideal) + valor em real
-  const precoParcial = custoTotal * markup.markup_ideal;
-  const precoSugerido = precoParcial + valorEmRealBloco;
+  // Pegar os percentuais do bloco
+  const totalPercentuais = (detalhes?.gastoSobreFaturamento ?? 0) + 
+                          (detalhes?.impostos ?? 0) + 
+                          (detalhes?.taxas ?? 0) + 
+                          (detalhes?.comissoes ?? 0) + 
+                          (detalhes?.outros ?? 0) + 
+                          (detalhes?.lucroDesejado ?? markup.margem_lucro);
+
+  let precoSugerido: number;
+  let baseCalculo: number;
+
+  // CASO 1: COM "Valor em Real" → usar fórmula que garante % exato
+  if (valorEmRealBloco > 0) {
+    baseCalculo = custoTotal + valorEmRealBloco;
+    const divisor = 1 - (totalPercentuais / 100);
+    precoSugerido = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+  } 
+  // CASO 2: SEM "Valor em Real" → usar fórmula tradicional do markup
+  else {
+    baseCalculo = custoTotal;
+    precoSugerido = custoTotal * markup.markup_ideal;
+  }
   
   // Markup aplicado = preço atual / custo (o que está sendo praticado)
   const markupAplicado = custoTotal > 0 ? precoVenda / custoTotal : 0;
@@ -141,8 +160,18 @@ export function MarkupCard({
   const lucroBruto = precoVenda - custoTotal;
   const margemBruta = precoVenda > 0 ? (lucroBruto / precoVenda) * 100 : 0;
   
-  // Lucro líquido = lucro bruto × margem de lucro configurada
-  const lucroLiquido = lucroBruto * (markup.margem_lucro / 100);
+  // Calcular lucro líquido considerando TODOS os custos indiretos
+  const gastosReais = precoVenda * ((detalhes?.gastoSobreFaturamento ?? 0) / 100);
+  const impostosReais = precoVenda * ((detalhes?.impostos ?? 0) / 100);
+  const taxasReais = precoVenda * ((detalhes?.taxas ?? 0) / 100);
+  const comissoesReais = precoVenda * ((detalhes?.comissoes ?? 0) / 100);
+  const outrosReais = precoVenda * ((detalhes?.outros ?? 0) / 100);
+
+  const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
+  const custosDirectosCompletos = custoTotal + valorEmRealBloco;
+
+  // Lucro líquido REAL = Preço - Custos Diretos - Custos Indiretos
+  const lucroLiquido = precoVenda - custosDirectosCompletos - totalCustosIndiretos;
   const margemLiquida = precoVenda > 0 ? (lucroLiquido / precoVenda) * 100 : 0;
 
   return (
@@ -279,9 +308,34 @@ export function MarkupCard({
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   R$ {formatBRL(precoSugerido)}
                 </p>
-                {valorEmRealBloco > 0 && (
+                {valorEmRealBloco > 0 ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xs text-muted-foreground cursor-help">
+                          Base R$ {formatBRL(baseCalculo)} ÷ {formatNumber(1 - (totalPercentuais/100), 4)}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-sm">
+                        <div className="space-y-2 text-sm">
+                          <p className="font-semibold">Cálculo do Preço Sugerido:</p>
+                          <p>Base = Custo (R$ {formatBRL(custoTotal)}) + Fixo (R$ {formatBRL(valorEmRealBloco)})</p>
+                          <p>Base = R$ {formatBRL(baseCalculo)}</p>
+                          <p>Percentuais = {formatNumber(totalPercentuais, 2)}%</p>
+                          <p className="font-semibold text-primary">
+                            Preço = Base ÷ (1 - {formatNumber(totalPercentuais/100, 4)})
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Fórmula que garante {formatNumber(detalhes?.lucroDesejado ?? markup.margem_lucro, 1)}% 
+                            de lucro líquido sobre o preço final
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
                   <p className="text-xs text-muted-foreground">
-                    (R$ {formatBRL(precoParcial)} + R$ {formatBRL(valorEmRealBloco)})
+                    (R$ {formatBRL(custoTotal)} × {formatNumber(markup.markup_ideal, 4)})
                   </p>
                 )}
               </CardContent>
@@ -298,10 +352,34 @@ export function MarkupCard({
             </div>
 
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-              <span className="font-medium">Lucro Líq. Real (un.)</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="font-medium cursor-help flex items-center gap-1">
+                      Lucro Líquido Real (un.)
+                      <Info className="h-3 w-3" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">
+                      Lucro após descontar todos os custos diretos (R$ {formatBRL(custosDirectosCompletos)}) 
+                      e indiretos (R$ {formatBRL(totalCustosIndiretos)})
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <div className="text-right">
-                <span className="font-bold text-green-600">R$ {formatBRL(lucroLiquido)}</span>
-                <span className="text-muted-foreground ml-2">({formatNumber(margemLiquida, 1)}%)</span>
+                <span className={cn(
+                  "font-bold",
+                  margemLiquida >= (detalhes?.lucroDesejado ?? markup.margem_lucro) 
+                    ? "text-green-600" 
+                    : "text-orange-600"
+                )}>
+                  R$ {formatBRL(lucroLiquido)}
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  ({formatNumber(margemLiquida, 1)}%)
+                </span>
               </div>
             </div>
 
