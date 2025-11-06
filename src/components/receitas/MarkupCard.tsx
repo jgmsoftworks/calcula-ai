@@ -127,8 +127,12 @@ export function MarkupCard({
     };
   }, [user, markup.id, markup.nome]);
 
-  // Sugestão de preço = custo × markup ideal (para atingir margem desejada)
-  const precoSugerido = custoTotal * markup.markup_ideal;
+  // Valor em Real do bloco (taxa fixa por venda)
+  const valorEmRealBloco = detalhes?.valorEmReal ?? 0;
+  
+  // Sugestão de preço = (custo × markup ideal) + valor em real
+  const precoParcial = custoTotal * markup.markup_ideal;
+  const precoSugerido = precoParcial + valorEmRealBloco;
   
   // Markup aplicado = preço atual / custo (o que está sendo praticado)
   const markupAplicado = custoTotal > 0 ? precoVenda / custoTotal : 0;
@@ -271,10 +275,15 @@ export function MarkupCard({
                   Sugestão de Preço
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-1">
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   R$ {formatBRL(precoSugerido)}
                 </p>
+                {valorEmRealBloco > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    (R$ {formatBRL(precoParcial)} + R$ {formatBRL(valorEmRealBloco)})
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
