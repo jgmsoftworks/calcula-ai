@@ -372,7 +372,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       
       debounceRef.current = setTimeout(() => {
         salvarMarkupsNoBanco(blocos);
-      }, 1000);
+      }, 300); // ✅ REDUZIDO: de 1000ms para 300ms
     }
   }, [calculatedMarkups, blocos, user?.id]);
 
@@ -394,12 +394,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          // Ignorar se estamos salvando para evitar loops infinitos
-          if (isMarkupSaving.current) {
-            console.log('⏸️ Ignorando real-time update durante salvamento para evitar loop');
-            return;
-          }
-          
           console.log('🔔 Real-time update recebida:', payload);
           
           // Verificar se é uma mudança relacionada aos nossos dados
@@ -416,12 +410,18 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
             // Invalidar cache para forçar recarregamento
             invalidateCache();
             
-            // Usar timeout maior para evitar conflitos
-            setTimeout(() => {
-              if (!isMarkupSaving.current) {
-                carregarConfiguracoesSalvas();
-              }
-            }, 2000);
+            // ✅ NOVO: Aguardar salvamento atual terminar antes de recarregar
+            if (isMarkupSaving.current) {
+              console.log('⏸️ Aguardando salvamento terminar...');
+              const checkInterval = setInterval(() => {
+                if (!isMarkupSaving.current) {
+                  clearInterval(checkInterval);
+                  carregarConfiguracoesSalvas();
+                }
+              }, 100);
+            } else {
+              carregarConfiguracoesSalvas();
+            }
           }
         }
       )
@@ -463,19 +463,32 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       isMarkupSaving.current = true;
       console.log('💾 [SALVAR MARKUPS] Iniciando salvamento no banco...', blocos.length);
       
-      // Primeiro, deletar todos os markups existentes do usuário
-      await supabase
+      // ✅ NOVO: Buscar markups existentes no banco
+      const { data: markupsExistentes } = await supabase
         .from('markups')
-        .delete()
+        .select('id, nome')
         .eq('user_id', user.id);
 
-      // Depois, inserir apenas os markups únicos atuais
+      const nomesNovos = new Set(blocos.map(b => b.nome));
+      const markupsParaDeletar = markupsExistentes?.filter(
+        m => !nomesNovos.has(m.nome)
+      ) || [];
+
+      // ✅ DELETAR apenas markups que foram removidos da lista
+      if (markupsParaDeletar.length > 0) {
+        const idsParaDeletar = markupsParaDeletar.map(m => m.id);
+        await supabase
+          .from('markups')
+          .delete()
+          .in('id', idsParaDeletar);
+        
+        console.log('🗑️ Markups removidos:', markupsParaDeletar.map(m => m.nome));
+      }
+
+      // ✅ UPSERT individual para cada markup (evita sumiço temporário)
       const uniqueBlocos = blocos.filter((bloco, index, self) => 
         index === self.findIndex(b => b.nome === bloco.nome)
       );
-
-      // Preparar configurações atualizadas para sincronizar com user_configurations
-      const configBlocosAtualizados = [...blocos];
 
       for (const bloco of uniqueBlocos) {
         const calculated = calculatedMarkups.get(bloco.id);
@@ -553,7 +566,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           ativo: true
         };
 
-        console.log(`💾 [SALVAR MARKUPS] Salvando ${bloco.nome}:`, {
+        console.log(`💾 [SALVAR MARKUPS] Salvando/atualizando ${bloco.nome}:`, {
           ...markupData,
           detalhesCalculados: {
             gastoSobreFaturamento: calculatedFinal.gastoSobreFaturamento,
@@ -565,9 +578,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           }
         });
 
+        // ✅ UPSERT: INSERT com ON CONFLICT UPDATE
         await supabase
           .from('markups')
-          .insert(markupData);
+          .upsert(markupData, {
+            onConflict: 'user_id,nome',
+            ignoreDuplicates: false
+          });
 
         // Salvar configuração individual para o tooltip
         const configIndividual = {
