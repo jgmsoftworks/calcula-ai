@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileDown, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileDown, Upload, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { gerarModeloProdutos } from '@/lib/excelTemplates';
 import * as XLSX from 'xlsx';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface ResultadoImportacao {
   produtos_criados: number;
@@ -15,10 +20,41 @@ interface ResultadoImportacao {
   erros: string[];
 }
 
+// Traduz mensagens de erro técnicas para linguagem amigável
+function traduzirErro(erroTecnico: string): string {
+  const linha = erroTecnico.match(/Linha (\d+):/)?.[1] || '?';
+  
+  if (erroTecnico.includes('duplicate key value violates unique constraint')) {
+    if (erroTecnico.includes('codigo_interno')) {
+      return `Linha ${linha}: Código interno já existe no seu estoque`;
+    }
+  }
+  
+  if (erroTecnico.includes('violates check constraint')) {
+    return `Linha ${linha}: Valor inválido em um dos campos obrigatórios`;
+  }
+  
+  if (erroTecnico.includes('not-null constraint')) {
+    return `Linha ${linha}: Campo obrigatório não preenchido`;
+  }
+  
+  if (erroTecnico.includes('invalid input syntax')) {
+    return `Linha ${linha}: Formato de número inválido (use ponto como decimal)`;
+  }
+  
+  if (erroTecnico.includes('unidade de compra inválida')) {
+    return erroTecnico; // já está amigável
+  }
+  
+  // Se não reconhecer, retorna uma versão simplificada
+  return `Linha ${linha}: ${erroTecnico.split(':').slice(1).join(':').trim()}`;
+}
+
 export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
+  const [errosAbertos, setErrosAbertos] = useState(false);
 
   const handleBaixarModelo = () => {
     try {
@@ -186,17 +222,33 @@ export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
           )}
           
           {resultado.erros && resultado.erros.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                <span>{resultado.erros.length} erro(s) encontrado(s):</span>
-              </div>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                {resultado.erros.map((erro, index) => (
-                  <li key={index}>{erro}</li>
-                ))}
-              </ul>
-            </div>
+            <Collapsible open={errosAbertos} onOpenChange={setErrosAbertos}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between p-2 h-auto text-destructive hover:text-destructive"
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {resultado.erros.length} erro(s) encontrado(s)
+                    </span>
+                  </div>
+                  {errosAbertos ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-1">
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5 pl-2">
+                  {resultado.erros.map((erro, index) => (
+                    <li key={index}>{traduzirErro(erro)}</li>
+                  ))}
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </div>
       )}
