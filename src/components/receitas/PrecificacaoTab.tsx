@@ -18,6 +18,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
   const [markups, setMarkups] = useState<any[]>([]);
+  const [markupSubReceita, setMarkupSubReceita] = useState<any | null>(null);
 
   useEffect(() => {
     const calcularCustoTotal = () => {
@@ -58,6 +59,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
         .from('markups')
         .select('*')
         .eq('user_id', user.id)
+        .eq('tipo', 'normal')
         .eq('ativo', true);
 
       if (error) throw error;
@@ -68,9 +70,30 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
     }
   }, [user]);
 
+  const loadMarkupSubReceita = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('markups')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('tipo', 'sub-receitas')
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      setMarkupSubReceita(data);
+    } catch (error: any) {
+      console.error('Erro ao carregar markup de sub-receitas:', error);
+    }
+  }, [user]);
+
   useEffect(() => {
     loadMarkups();
-  }, [loadMarkups]);
+    loadMarkupSubReceita();
+  }, [loadMarkups, loadMarkupSubReceita]);
 
   // Real-time updates para markups
   useEffect(() => {
@@ -91,6 +114,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
         (payload) => {
           console.log('🔔 Markup atualizado em tempo real:', payload);
           loadMarkups();
+          loadMarkupSubReceita();
         }
       )
       .subscribe();
@@ -99,10 +123,11 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
       console.log('🔌 Desconectando real-time updates de markups');
       supabase.removeChannel(channel);
     };
-  }, [user, loadMarkups]);
+  }, [user, loadMarkups, loadMarkupSubReceita]);
 
   const handleSelectMarkup = (markupId: string) => {
-    const markup = markups.find(m => m.id === markupId);
+    const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
+    const markup = allMarkups.find(m => m.id === markupId);
     if (!markup) return;
 
     const precoVenda = custoTotal * markup.markup_ideal;
@@ -114,9 +139,61 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
     ? (custoTotal / formData.peso_unitario) * 1000 
     : 0;
 
+  const custoIngredientes = receita.ingredientes.reduce((sum, i) => {
+    if (!i.produto) return sum;
+    const custoUnitario = i.produto.unidade_uso 
+      ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
+      : i.produto.custo_unitario;
+    return sum + (custoUnitario * i.quantidade);
+  }, 0);
+  
+  const custoEmbalagens = receita.embalagens.reduce((sum, e) => {
+    if (!e.produto) return sum;
+    const custoUnitario = e.produto.unidade_uso 
+      ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
+      : e.produto.custo_unitario;
+    return sum + (custoUnitario * e.quantidade);
+  }, 0);
+  
+  const custoMaoObra = receita.mao_obra.reduce((sum, m) => sum + m.valor_total, 0);
+  
+  const custoSubReceitas = receita.sub_receitas.reduce((sum, s) => {
+    if (!s.sub_receita) return sum;
+    return sum + (s.sub_receita.preco_venda * s.quantidade);
+  }, 0);
+
   return (
     <div className="space-y-6">
-      {/* Cards no topo */}
+      {/* Resumo de Custos no topo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Resumo de Custos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Ingredientes:</span>
+            <span className="font-medium">R$ {custoIngredientes.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Embalagens:</span>
+            <span className="font-medium">R$ {custoEmbalagens.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Mão de Obra:</span>
+            <span className="font-medium">R$ {custoMaoObra.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Sub-receitas:</span>
+            <span className="font-medium">R$ {custoSubReceitas.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between pt-2 border-t font-bold">
+            <span>Total:</span>
+            <span className="text-primary">R$ {custoTotal.toFixed(2)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cards no meio */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-blue-50 dark:bg-blue-950">
           <CardHeader className="pb-3">
@@ -170,12 +247,26 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Markups Configurados</h3>
         
-        {markups.length === 0 ? (
+        {markups.length === 0 && !markupSubReceita ? (
           <div className="text-center py-8 text-muted-foreground border rounded-lg">
             Nenhum markup configurado. Vá para a aba Precificação para criar markups.
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Markup de Sub-receitas primeiro */}
+            {markupSubReceita && (
+              <MarkupCard
+                key="sub-receitas"
+                markup={markupSubReceita}
+                custoTotal={custoTotal}
+                precoVenda={formData.preco_venda || 0}
+                isSelected={formData.markup_id === markupSubReceita.id}
+                onSelect={() => handleSelectMarkup(markupSubReceita.id)}
+                alwaysExpanded={true}
+              />
+            )}
+            
+            {/* Markups do usuário */}
             {markups.map((markup) => (
               <MarkupCard
                 key={markup.id}
@@ -184,63 +275,12 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
                 precoVenda={formData.preco_venda || 0}
                 isSelected={formData.markup_id === markup.id}
                 onSelect={() => handleSelectMarkup(markup.id)}
+                alwaysExpanded={true}
               />
             ))}
           </div>
         )}
       </div>
-
-      {/* Resumo de custos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Resumo de Custos</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Ingredientes:</span>
-            <span className="font-medium">
-              R$ {receita.ingredientes.reduce((sum, i) => {
-                if (!i.produto) return sum;
-                const custoUnitario = i.produto.unidade_uso 
-                  ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
-                  : i.produto.custo_unitario;
-                return sum + (custoUnitario * i.quantidade);
-              }, 0).toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Embalagens:</span>
-            <span className="font-medium">
-              R$ {receita.embalagens.reduce((sum, e) => {
-                if (!e.produto) return sum;
-                const custoUnitario = e.produto.unidade_uso 
-                  ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
-                  : e.produto.custo_unitario;
-                return sum + (custoUnitario * e.quantidade);
-              }, 0).toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Mão de Obra:</span>
-            <span className="font-medium">
-              R$ {receita.mao_obra.reduce((sum, m) => sum + m.valor_total, 0).toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Sub-receitas:</span>
-            <span className="font-medium">
-              R$ {receita.sub_receitas.reduce((sum, s) => {
-                if (!s.sub_receita) return sum;
-                return sum + (s.sub_receita.preco_venda * s.quantidade);
-              }, 0).toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between pt-2 border-t font-bold">
-            <span>Total:</span>
-            <span className="text-primary">R$ {custoTotal.toFixed(2)}</span>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

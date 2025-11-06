@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,10 +17,26 @@ interface MarkupCardProps {
   precoVenda: number;
   isSelected: boolean;
   onSelect: () => void;
+  alwaysExpanded?: boolean;
 }
 
-export function MarkupCard({ markup, custoTotal, precoVenda, isSelected, onSelect }: MarkupCardProps) {
-  const [expanded, setExpanded] = useState(isSelected);
+export function MarkupCard({ 
+  markup, 
+  custoTotal, 
+  precoVenda, 
+  isSelected, 
+  onSelect,
+  alwaysExpanded = false 
+}: MarkupCardProps) {
+  const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
+
+  useEffect(() => {
+    if (alwaysExpanded) {
+      setExpanded(true);
+    } else if (isSelected) {
+      setExpanded(true);
+    }
+  }, [isSelected, alwaysExpanded]);
 
   // Sugestão de preço = custo × markup ideal (para atingir margem desejada)
   const precoSugerido = custoTotal * markup.markup_ideal;
@@ -43,7 +59,10 @@ export function MarkupCard({ markup, custoTotal, precoVenda, isSelected, onSelec
         ? 'border-primary border-2 bg-primary/5 shadow-lg shadow-primary/20' 
         : 'hover:border-muted-foreground/20'
     )}>
-      <CardHeader className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+      <CardHeader 
+        className={alwaysExpanded ? "" : "cursor-pointer"} 
+        onClick={alwaysExpanded ? undefined : () => setExpanded(!expanded)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base">{markup.nome}</CardTitle>
@@ -85,7 +104,7 @@ export function MarkupCard({ markup, custoTotal, precoVenda, isSelected, onSelec
                 Selecionado
               </Badge>
             )}
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {!alwaysExpanded && (expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
           </div>
         </div>
       </CardHeader>
