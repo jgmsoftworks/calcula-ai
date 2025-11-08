@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { Plus, Trash2, Search, Info, Package } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,11 +19,19 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [receitas, setReceitas] = useState<Receita[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  const [allSubReceitas, setAllSubReceitas] = useState<Receita[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMarkup, setHasMarkup] = useState(true);
 
-  const handleSearch = async () => {
-    if (!user || !search.trim()) return;
+  // Carregar sub-receitas disponíveis automaticamente
+  useEffect(() => {
+    loadAvailableSubReceitas();
+  }, [user]);
 
+  const loadAvailableSubReceitas = async () => {
+    if (!user) return;
+
+    setLoading(true);
     try {
       // Buscar o markup de sub-receitas ativo do usuário
       const { data: markupData, error: markupError } = await supabase
@@ -37,13 +46,16 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
 
       // Se não houver markup de sub-receitas configurado
       if (!markupData) {
-        toast.error('Nenhum markup de sub-receitas configurado. Configure na aba Precificação.');
+        setHasMarkup(false);
+        setAllSubReceitas([]);
         setReceitas([]);
-        setShowResults(false);
+        setLoading(false);
         return;
       }
 
-      // Buscar APENAS receitas vinculadas ao markup de sub-receitas
+      setHasMarkup(true);
+
+      // Buscar TODAS as receitas vinculadas ao markup de sub-receitas
       const { data, error } = await supabase
         .from('receitas')
         .select('*')
@@ -51,22 +63,33 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
         .eq('status', 'finalizada')
         .eq('markup_id', markupData.id)
         .neq('id', receita.id)
-        .ilike('nome', `%${search}%`)
-        .limit(10);
+        .order('nome');
 
       if (error) throw error;
       
-      if (!data || data.length === 0) {
-        toast.info('Nenhuma sub-receita encontrada. Vincule receitas ao markup de sub-receitas.');
-      }
-      
-      setReceitas((data || []) as any[]);
-      setShowResults(true);
+      const subReceitas = (data || []) as any[];
+      setAllSubReceitas(subReceitas);
+      setReceitas(subReceitas);
     } catch (error: any) {
-      console.error('Erro ao buscar receitas:', error);
-      toast.error('Erro ao buscar receitas');
+      console.error('Erro ao buscar sub-receitas:', error);
+      toast.error('Erro ao carregar sub-receitas');
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Filtrar em tempo real conforme usuário digita
+  useEffect(() => {
+    if (!search.trim()) {
+      setReceitas(allSubReceitas);
+      return;
+    }
+
+    const filtered = allSubReceitas.filter(r => 
+      r.nome.toLowerCase().includes(search.toLowerCase())
+    );
+    setReceitas(filtered);
+  }, [search, allSubReceitas]);
 
   const handleAddSubReceita = async (subReceita: Receita) => {
     try {
@@ -79,8 +102,9 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
       if (error) throw error;
       toast.success('Sub-receita adicionada');
       setSearch('');
-      setShowResults(false);
       onUpdate();
+      // Recarregar lista para remover a receita adicionada
+      loadAvailableSubReceitas();
     } catch (error: any) {
       console.error('Erro ao adicionar sub-receita:', error);
       toast.error('Erro ao adicionar sub-receita');
@@ -125,41 +149,114 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Buscar Sub-receitas..."
-            className="pl-9"
-          />
-        </div>
-        <Button onClick={handleSearch}>
-          <Search className="h-4 w-4 mr-2" />
-          Buscar
-        </Button>
-      </div>
-
-      {showResults && receitas.length > 0 && (
-        <div className="border rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
-          {receitas.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-center justify-between p-2 hover:bg-accent rounded cursor-pointer"
-              onClick={() => handleAddSubReceita(r)}
-            >
-              <div>
-                <p className="font-medium">{r.nome}</p>
-                <p className="text-sm text-muted-foreground">
-                  R$ {r.preco_venda.toFixed(2)} / {r.rendimento_unidade || 'un'}
+      {/* Card explicativo */}
+      {!hasMarkup ? (
+        <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                  Nenhum Markup de Sub-receitas Configurado
+                </h4>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                  Para usar sub-receitas, você precisa:
+                </p>
+                <ol className="text-sm text-amber-800 dark:text-amber-200 list-decimal list-inside space-y-1">
+                  <li>Ir para a página <strong>Precificação</strong></li>
+                  <li>Criar um <strong>Markup de Sub-receitas</strong></li>
+                  <li>Voltar às suas receitas e selecionar esse markup nas receitas que deseja usar como sub-receitas</li>
+                  <li>Finalizar essas receitas (status "Finalizada")</li>
+                </ol>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : allSubReceitas.length === 0 ? (
+        <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Package className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                  Nenhuma Sub-receita Disponível
+                </h4>
+                <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                  Você tem o markup de sub-receitas configurado, mas ainda não vinculou nenhuma receita a ele.
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Para criar sub-receitas: Vá até a aba <strong>6 Precificação</strong> de qualquer receita finalizada e selecione o <strong>Markup de Sub-receitas</strong>. Essa receita ficará disponível aqui para ser usada como sub-receita.
                 </p>
               </div>
-              <Plus className="h-4 w-4" />
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-green-500 bg-green-50 dark:bg-green-950">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Package className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                  {allSubReceitas.length} Sub-receita{allSubReceitas.length !== 1 ? 's' : ''} Disponível{allSubReceitas.length !== 1 ? 'is' : ''}
+                </h4>
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  Busque e clique em uma sub-receita abaixo para adicioná-la nesta receita.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasMarkup && allSubReceitas.length > 0 && (
+        <>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filtrar sub-receitas pelo nome..."
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {receitas.length > 0 && (
+            <div className="border rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
+              {receitas.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between p-3 hover:bg-accent rounded cursor-pointer transition-colors"
+                  onClick={() => handleAddSubReceita(r)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-green-500 text-white">
+                      <Package className="h-3 w-3 mr-1" />
+                      Sub
+                    </Badge>
+                    <div>
+                      <p className="font-medium">{r.nome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        R$ {r.preco_venda.toFixed(2)} / {r.rendimento_unidade || 'un'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {receitas.length === 0 && search && (
+            <div className="text-center py-8 text-muted-foreground border rounded-lg">
+              Nenhuma sub-receita encontrada com "{search}"
+            </div>
+          )}
+        </>
       )}
 
       {receita.sub_receitas.length === 0 ? (
