@@ -132,41 +132,68 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
     const markup = allMarkups.find(m => m.id === markupId);
     if (!markup || !user) return;
 
-    // Buscar detalhes do markup de user_configurations
-    const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
-    
-    const { data } = await supabase
-      .from('user_configurations')
-      .select('configuration')
-      .eq('user_id', user.id)
-      .eq('type', configKey)
-      .maybeSingle();
-
-    const detalhes = data?.configuration as any;
-    const valorEmReal = detalhes?.valorEmReal ?? 0;
-
-    let precoVenda: number;
-
-    if (valorEmReal > 0) {
-      // CASO 1: COM "Valor em Real" - usar fórmula que garante % exato
-      const totalPercentuais = 
-        (detalhes?.gastoSobreFaturamento ?? 0) + 
-        (detalhes?.impostos ?? 0) + 
-        (detalhes?.taxas ?? 0) + 
-        (detalhes?.comissoes ?? 0) + 
-        (detalhes?.outros ?? 0) + 
-        (detalhes?.lucroDesejado ?? markup.margem_lucro);
+    try {
+      // Buscar detalhes do markup de user_configurations
+      const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
       
-      const baseCalculo = custoTotal + valorEmReal;
-      const divisor = 1 - (totalPercentuais / 100);
-      precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
-    } else {
-      // CASO 2: SEM "Valor em Real" - usar fórmula tradicional
-      precoVenda = custoTotal * markup.markup_ideal;
-    }
+      const { data } = await supabase
+        .from('user_configurations')
+        .select('configuration')
+        .eq('user_id', user.id)
+        .eq('type', configKey)
+        .maybeSingle();
 
-    onFormChange('markup_id', markupId);
-    onFormChange('preco_venda', precoVenda);
+      const detalhes = data?.configuration as any;
+      const valorEmReal = detalhes?.valorEmReal ?? 0;
+
+      let precoVenda: number;
+
+      if (valorEmReal > 0) {
+        // CASO 1: COM "Valor em Real" - usar fórmula que garante % exato
+        const totalPercentuais = 
+          (detalhes?.gastoSobreFaturamento ?? 0) + 
+          (detalhes?.impostos ?? 0) + 
+          (detalhes?.taxas ?? 0) + 
+          (detalhes?.comissoes ?? 0) + 
+          (detalhes?.outros ?? 0) + 
+          (detalhes?.lucroDesejado ?? markup.margem_lucro);
+        
+        const baseCalculo = custoTotal + valorEmReal;
+        const divisor = 1 - (totalPercentuais / 100);
+        precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+      } else {
+        // CASO 2: SEM "Valor em Real" - usar fórmula tradicional
+        precoVenda = custoTotal * markup.markup_ideal;
+      }
+
+      // Salvar automaticamente no banco de dados
+      const { error } = await supabase
+        .from('receitas')
+        .update({
+          markup_id: markupId,
+          preco_venda: precoVenda,
+        })
+        .eq('id', receita.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Atualizar o formulário local
+      onFormChange('markup_id', markupId);
+      onFormChange('preco_venda', precoVenda);
+
+      // Feedback visual
+      if (markup.tipo === 'sub_receita') {
+        toast.success('Markup de sub-receitas aplicado! Esta receita agora está disponível como sub-receita.', {
+          duration: 4000,
+        });
+      } else {
+        toast.success('Markup aplicado com sucesso!');
+      }
+    } catch (error: any) {
+      console.error('Erro ao aplicar markup:', error);
+      toast.error('Erro ao salvar o markup');
+    }
   };
 
   const precoKg = formData.peso_unitario > 0 
