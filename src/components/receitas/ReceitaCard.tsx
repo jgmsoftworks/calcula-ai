@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Download, Eye, Store } from 'lucide-react';
+import { Edit, Trash2, Download, Eye, Store, Package } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import type { ReceitaComDados } from '@/types/receitas';
 import {
@@ -58,6 +58,12 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                   {receita.tipo_produto?.nome && (
                     <Badge className="bg-purple-500 text-white">
                       {receita.tipo_produto.nome}
+                    </Badge>
+                  )}
+                  {receita.markup?.tipo === 'sub_receita' && (
+                    <Badge className="bg-green-500 text-white flex items-center gap-1">
+                      <Package className="h-3 w-3" />
+                      Sub-receita
                     </Badge>
                   )}
                 </div>

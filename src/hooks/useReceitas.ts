@@ -31,6 +31,7 @@ export function useReceitas() {
     search?: string;
     tipo?: string;
     status?: 'rascunho' | 'finalizada';
+    subReceita?: string;
   }) => {
     if (!user) return [];
     
@@ -41,6 +42,7 @@ export function useReceitas() {
         .select(`
           *,
           tipo_produto:tipos_produto(id, nome),
+          markup:markups(id, nome, tipo),
           total_ingredientes:receita_ingredientes(count),
           total_embalagens:receita_embalagens(count),
           total_sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
@@ -77,8 +79,17 @@ export function useReceitas() {
 
       if (error) throw error;
 
+      let receitasFiltradas = data || [];
+
+      // Filtro de sub-receitas (feito em memória porque precisa verificar o tipo do markup)
+      if (filters?.subReceita === 'subreceita') {
+        receitasFiltradas = receitasFiltradas.filter((r: any) => r.markup?.tipo === 'sub_receita');
+      } else if (filters?.subReceita === 'normal') {
+        receitasFiltradas = receitasFiltradas.filter((r: any) => r.markup?.tipo !== 'sub_receita');
+      }
+
       // Transform data to include calculated fields
-      const receitasComDados = (data || []).map((receita: any) => {
+      const receitasComDados = receitasFiltradas.map((receita: any) => {
         // Calcular custo de ingredientes dinamicamente
         const custoIngredientes = receita.ingredientes?.reduce((sum: number, i: any) => {
           if (!i.produto) return sum;

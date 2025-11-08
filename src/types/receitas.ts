@@ -104,4 +104,9 @@ export interface ReceitaComDados extends Receita {
   custo_embalagens?: number;
   custo_mao_obra?: number;
   custo_sub_receitas?: number;
+  markup?: {
+    id: string;
+    nome: string;
+    tipo: string;
+  };
 }

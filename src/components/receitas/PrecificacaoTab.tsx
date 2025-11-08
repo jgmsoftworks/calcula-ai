@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { MarkupCard } from './MarkupCard';
 import { formatBRL } from '@/lib/formatters';
 import { toast } from 'sonner';
+import { Info } from 'lucide-react';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface PrecificacaoTabProps {
@@ -288,15 +289,32 @@ export function PrecificacaoTab({ receita, formData, onFormChange }: Precificaca
           <div className="space-y-3">
             {/* Markup de Sub-receitas primeiro */}
             {markupSubReceita && (
-              <MarkupCard
-                key="sub-receitas"
-                markup={markupSubReceita}
-                custoTotal={custoTotal}
-                precoVenda={formData.preco_venda || 0}
-                isSelected={formData.markup_id === markupSubReceita.id}
-                onSelect={() => handleSelectMarkup(markupSubReceita.id)}
-                alwaysExpanded={true}
-              />
+              <>
+                <div className="p-4 border-2 border-green-500 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                        Markup de Sub-receitas
+                      </h4>
+                      <p className="text-sm text-green-800 dark:text-green-200">
+                        Ao selecionar este markup, esta receita ficará <strong>disponível para ser 
+                        usada como sub-receita</strong> em outras receitas. Ela aparecerá na aba 
+                        "Sub-receitas" quando você estiver criando ou editando outras receitas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <MarkupCard
+                  key="sub-receitas"
+                  markup={markupSubReceita}
+                  custoTotal={custoTotal}
+                  precoVenda={formData.preco_venda || 0}
+                  isSelected={formData.markup_id === markupSubReceita.id}
+                  onSelect={() => handleSelectMarkup(markupSubReceita.id)}
+                  alwaysExpanded={true}
+                />
+              </>
             )}
             
             {/* Markups do usuário */}

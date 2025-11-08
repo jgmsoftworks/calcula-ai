@@ -183,6 +183,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                   formData={formData}
                   onFormChange={handleFormChange}
                   onUpdate={loadReceitaCompleta}
+                  onTabChange={setActiveTab}
                 />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">

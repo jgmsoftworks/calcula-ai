@@ -15,18 +15,20 @@ export function ListaReceitas() {
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [subReceitaFilter, setSubReceitaFilter] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingReceita, setEditingReceita] = useState<ReceitaComDados | null>(null);
 
   useEffect(() => {
     loadReceitas();
-  }, [search, tipoFilter, statusFilter]);
+  }, [search, tipoFilter, statusFilter, subReceitaFilter]);
 
   const loadReceitas = async () => {
     const filters: any = {};
     if (search) filters.search = search;
     if (tipoFilter !== 'all') filters.tipo = tipoFilter;
     if (statusFilter !== 'all') filters.status = statusFilter;
+    if (subReceitaFilter !== 'all') filters.subReceita = subReceitaFilter;
 
     const data = await fetchReceitas(filters);
     setReceitas(data);
@@ -85,6 +87,16 @@ export function ListaReceitas() {
                 <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="rascunho">Rascunho</SelectItem>
                 <SelectItem value="finalizada">Finalizada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={subReceitaFilter} onValueChange={setSubReceitaFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Sub-receitas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="subreceita">Apenas Sub-receitas</SelectItem>
+                <SelectItem value="normal">Excluir Sub-receitas</SelectItem>
               </SelectContent>
             </Select>
           </div>

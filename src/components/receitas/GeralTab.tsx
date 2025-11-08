@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { TemperatureInput } from '@/components/ui/temperature-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Camera, Plus, Trash2, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
@@ -17,12 +19,38 @@ interface GeralTabProps {
   formData: any;
   onFormChange: (field: string, value: any) => void;
   onUpdate: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
-export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTabProps) {
+export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChange }: GeralTabProps) {
   const [novoPasso, setNovoPasso] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [markupInfo, setMarkupInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const loadMarkupInfo = async () => {
+      if (!formData.markup_id) {
+        setMarkupInfo(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('markups')
+          .select('id, nome, tipo')
+          .eq('id', formData.markup_id)
+          .maybeSingle();
+
+        if (error) throw error;
+        setMarkupInfo(data);
+      } catch (error) {
+        console.error('Erro ao carregar markup:', error);
+      }
+    };
+
+    loadMarkupInfo();
+  }, [formData.markup_id]);
 
   const handleAddPasso = async () => {
     if (!novoPasso.trim() || !receita) return;
@@ -122,6 +150,35 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate }: GeralTab
 
   return (
     <div className="space-y-6">
+      {/* Indicador de Markup Ativo */}
+      {markupInfo && (
+        <Card className="border-primary border-2">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary">Markup Ativo</Badge>
+                <span className="font-semibold">{markupInfo.nome}</span>
+                {markupInfo.tipo === 'sub_receita' && (
+                  <Badge className="bg-green-500 text-white">
+                    Disponível como Sub-receita
+                  </Badge>
+                )}
+              </div>
+              {onTabChange && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onTabChange('precificacao')}
+                >
+                  Alterar Markup
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* SEÇÃO 1: Imagem + Conservação lado a lado */}
       <div className="grid grid-cols-[300px_1fr] gap-6">
         {/* Upload de Imagem */}
