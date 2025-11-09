@@ -91,7 +91,23 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const loadReceitaCompleta = async () => {
     if (!receita) return;
     const data = await fetchReceitaCompleta(receita.id);
-    if (data) setReceitaCompleta(data);
+    if (data) {
+      setReceitaCompleta(data);
+      
+      // 🔄 SINCRONIZAR formData com dados do banco após reload
+      setFormData(prev => ({
+        ...prev,
+        markup_id: data.markup_id,
+        preco_venda: data.preco_venda || 0,
+        peso_unitario: data.peso_unitario || 0,
+      }));
+      
+      console.log('✅ formData sincronizado após reload:', {
+        markup_id: data.markup_id,
+        preco_venda: data.preco_venda,
+        peso_unitario: data.peso_unitario
+      });
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
