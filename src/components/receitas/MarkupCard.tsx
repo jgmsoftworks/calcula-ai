@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Info, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info, Check, Loader2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +33,7 @@ interface MarkupCardProps {
   isSelected: boolean;
   onSelect: () => void;
   alwaysExpanded?: boolean;
+  isApplying?: boolean;
 }
 
 export function MarkupCard({ 
@@ -41,7 +42,8 @@ export function MarkupCard({
   precoVenda, 
   isSelected, 
   onSelect,
-  alwaysExpanded = false 
+  alwaysExpanded = false,
+  isApplying = false
 }: MarkupCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
   const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(null);
@@ -396,8 +398,10 @@ export function MarkupCard({
             <Button
               variant={isSelected ? "default" : "outline"}
               onClick={onSelect}
+              disabled={isApplying}
             >
-              {isSelected ? 'Selecionado' : 'Selecionar'}
+              {isApplying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isApplying ? 'Aplicando...' : (isSelected ? 'Selecionado' : 'Selecionar')}
             </Button>
           </div>
         </CardContent>

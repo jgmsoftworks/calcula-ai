@@ -212,6 +212,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                   receita={receitaCompleta}
                   formData={formData}
                   onFormChange={handleFormChange}
+                  onUpdate={loadReceitaCompleta}
                 />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
