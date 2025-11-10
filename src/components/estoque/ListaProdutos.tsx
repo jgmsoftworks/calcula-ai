@@ -32,11 +32,13 @@ import { ProdutoForm } from './ProdutoForm';
 import { ImportProdutosExcel } from './ImportProdutosExcel';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { useExportProdutos } from '@/hooks/useExportProdutos';
+import { useMarcasCategorias } from '@/hooks/useMarcasCategorias';
 import { formatters } from '@/lib/formatters';
 
 export function ListaProdutos() {
   const { fetchProdutos, deleteProduto } = useEstoque();
   const { exportarProdutos } = useExportProdutos();
+  const { fetchMarcas, fetchCategorias } = useMarcasCategorias();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
@@ -46,8 +48,14 @@ export function ListaProdutos() {
   // Filtros
   const [search, setSearch] = useState('');
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>('todas');
+  const [marcaSelecionada, setMarcaSelecionada] = useState<string>('todas');
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('todas');
   const [abaixoMinimo, setAbaixoMinimo] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Dados dos filtros
+  const [marcas, setMarcas] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
 
   const loadProdutos = async (forceRefresh = false) => {
     setLoading(true);
@@ -57,6 +65,8 @@ export function ListaProdutos() {
     const data = await fetchProdutos({
       search: search || undefined,
       unidade: unidadeFiltro !== 'todas' ? unidadeFiltro : undefined,
+      marcas: marcaSelecionada !== 'todas' ? [marcaSelecionada] : undefined,
+      categorias: categoriaSelecionada !== 'todas' ? [categoriaSelecionada] : undefined,
       abaixoMinimo,
     });
     if (data) {
@@ -77,9 +87,22 @@ export function ListaProdutos() {
     loadProdutos(true);
   };
 
+  // Carregar marcas e categorias
+  useEffect(() => {
+    const loadFiltros = async () => {
+      const [marcasData, categoriasData] = await Promise.all([
+        fetchMarcas(),
+        fetchCategorias()
+      ]);
+      setMarcas(marcasData);
+      setCategorias(categoriasData);
+    };
+    loadFiltros();
+  }, []);
+
   useEffect(() => {
     loadProdutos();
-  }, [search, unidadeFiltro, abaixoMinimo]);
+  }, [search, unidadeFiltro, marcaSelecionada, categoriaSelecionada, abaixoMinimo]);
 
   const handleEdit = (produto: Produto) => {
     setProdutoSelecionado(produto);
@@ -109,7 +132,7 @@ export function ListaProdutos() {
     <div className="space-y-4">
       {/* Filtros */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="md:col-span-2">
             <Input
               placeholder="Busque por nome, código interno ou código de barras..."
@@ -117,6 +140,34 @@ export function ListaProdutos() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
+          <Select value={marcaSelecionada} onValueChange={setMarcaSelecionada}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas as marcas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as Marcas</SelectItem>
+              {marcas.map((marca) => (
+                <SelectItem key={marca.id} value={marca.nome}>
+                  {marca.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas as categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as Categorias</SelectItem>
+              {categorias.map((categoria) => (
+                <SelectItem key={categoria.id} value={categoria.nome}>
+                  {categoria.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
             <SelectTrigger>
