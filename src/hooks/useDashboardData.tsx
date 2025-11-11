@@ -141,6 +141,7 @@ export const useDashboardData = () => {
       
       // Buscar dados de forma paralela para otimizar
       const [
+        entradasMes,
         saidasMes,
         produtosEstoque,
         currentRevenue,
@@ -151,6 +152,14 @@ export const useDashboardData = () => {
         categoriesData,
         historicalData
       ] = await Promise.all([
+        // Entradas do mês para cálculo de Compras
+        supabase
+          .from('movimentacoes')
+          .select('quantidade, custo_aplicado, subtotal, motivo')
+          .eq('user_id', user.id)
+          .eq('tipo', 'entrada')
+          .gte('data_hora', monthStart)
+          .lte('data_hora', monthEnd),
         // Saídas do mês para CMV e Total de Saídas
         supabase
           .from('movimentacoes')
@@ -222,17 +231,50 @@ export const useDashboardData = () => {
           .single()
       ]);
 
-      // Calcular CMV do mês
-      const cmvMesAtual = saidasMes.data?.reduce((sum, mov) => {
-        return sum + ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
-      }, 0) || 0;
-
-      // Calcular valor total em estoque
-      const valorEmEstoque = produtosEstoque.data?.reduce((sum, prod) => {
+      // Calcular Estoque Final (EF) - valor atual do estoque
+      const estoqueAtual = produtosEstoque.data?.reduce((sum, prod) => {
         return sum + ((prod.estoque_atual || 0) * (prod.custo_unitario || 0));
       }, 0) || 0;
 
-      // Calcular total de saídas do mês
+      // Calcular Compras do mês (líquidas)
+      // Incluir: compras normais, custos acessórios
+      // Excluir: ajustes, transferências, bonificações sem custo
+      const comprasMes = entradasMes.data?.reduce((sum, mov) => {
+        const motivo = (mov.motivo || '').toLowerCase();
+        
+        // Excluir ajustes de inventário e transferências internas
+        if (motivo.includes('ajuste') || 
+            motivo.includes('inventário') || 
+            motivo.includes('transferência') ||
+            motivo.includes('bonificação') ||
+            motivo.includes('cancelamento')) {
+          return sum;
+        }
+        
+        // Devolução ao fornecedor: SUBTRAIR das compras
+        if (motivo.includes('devolução') && motivo.includes('fornecedor')) {
+          return sum - ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
+        }
+        
+        // Compras normais: SOMAR
+        return sum + ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
+      }, 0) || 0;
+
+      // Calcular Estoque Inicial (EI)
+      // EI = EF + Saídas - Entradas (reconstituindo o saldo do início do mês)
+      const totalSaidasCusto = saidasMes.data?.reduce((sum, mov) => {
+        return sum + ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
+      }, 0) || 0;
+      
+      const estoqueInicial = estoqueAtual + totalSaidasCusto - comprasMes;
+
+      // CMV Periódico = EI + Compras - EF
+      const cmvMesAtual = estoqueInicial + comprasMes - estoqueAtual;
+
+      // Calcular valor total em estoque (mesmo que EF)
+      const valorEmEstoque = estoqueAtual;
+
+      // Calcular total de saídas do mês (valor de venda/saída)
       const totalSaidasMes = saidasMes.data?.reduce((sum, mov) => {
         return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
       }, 0) || 0;

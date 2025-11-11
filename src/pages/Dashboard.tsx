@@ -97,11 +97,11 @@ const Dashboard = () => {
     },
   ] : [
     {
-      title: 'CMV (mês atual)',
+      title: 'CMV (mês atual) — Periódico',
       value: `R$ ${data.cmvMesAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       change: null,
       changeType: null,
-      description: 'Fuso: Brasília',
+      description: 'Estoque Inicial + Compras - Estoque Final',
       icon: TrendingDown,
       color: 'text-orange',
       trend: [],
