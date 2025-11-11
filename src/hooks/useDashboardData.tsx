@@ -3,11 +3,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+
+const BRASILIA_TZ = 'America/Sao_Paulo';
 
 export type PeriodFilter = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
 interface DashboardData {
-  // Cards principais
+  // Novos indicadores de estoque
+  cmvMesAtual: number;
+  valorEmEstoque: number;
+  totalSaidasMes: number;
+  
+  // Cards principais (mantidos para compatibilidade)
   totalRevenue: number;
   totalRevenueChange: number;
   activeProducts: number;
@@ -36,6 +44,9 @@ interface FilterState {
 export const useDashboardData = () => {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData>({
+    cmvMesAtual: 0,
+    valorEmEstoque: 0,
+    totalSaidasMes: 0,
     totalRevenue: 0,
     totalRevenueChange: 0,
     activeProducts: 0,
@@ -104,14 +115,34 @@ export const useDashboardData = () => {
     };
   }, [dateRange]);
 
+  // Calcular período do mês atual em Brasília
+  const getCurrentMonthRangeBrasilia = () => {
+    const now = new Date();
+    const nowBrasilia = toZonedTime(now, BRASILIA_TZ);
+    
+    const startOfMonth = new Date(nowBrasilia.getFullYear(), nowBrasilia.getMonth(), 1, 0, 0, 0);
+    const startBrasiliaUTC = fromZonedTime(startOfMonth, BRASILIA_TZ);
+    
+    const endBrasiliaUTC = fromZonedTime(nowBrasilia, BRASILIA_TZ);
+    
+    return {
+      start: startBrasiliaUTC.toISOString(),
+      end: endBrasiliaUTC.toISOString()
+    };
+  };
+
   const fetchDashboardData = async () => {
     if (!user?.id) return;
 
     setData(prev => ({ ...prev, loading: true, error: null }));
 
     try {
+      const { start: monthStart, end: monthEnd } = getCurrentMonthRangeBrasilia();
+      
       // Buscar dados de forma paralela para otimizar
       const [
+        saidasMes,
+        produtosEstoque,
         currentRevenue,
         previousRevenue,
         productsData,
@@ -120,6 +151,21 @@ export const useDashboardData = () => {
         categoriesData,
         historicalData
       ] = await Promise.all([
+        // Saídas do mês para CMV e Total de Saídas
+        supabase
+          .from('movimentacoes')
+          .select('quantidade, custo_aplicado, subtotal')
+          .eq('user_id', user.id)
+          .eq('tipo', 'saida')
+          .gte('data_hora', monthStart)
+          .lte('data_hora', monthEnd),
+        
+        // Produtos ativos para valor em estoque
+        supabase
+          .from('produtos')
+          .select('estoque_atual, custo_unitario')
+          .eq('user_id', user.id)
+          .eq('ativo', true),
         // Receita atual (simulada - baseada em receitas cadastradas)
         supabase
           .from('receitas')
@@ -175,6 +221,21 @@ export const useDashboardData = () => {
           .eq('type', 'faturamentos_historicos')
           .single()
       ]);
+
+      // Calcular CMV do mês
+      const cmvMesAtual = saidasMes.data?.reduce((sum, mov) => {
+        return sum + ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
+      }, 0) || 0;
+
+      // Calcular valor total em estoque
+      const valorEmEstoque = produtosEstoque.data?.reduce((sum, prod) => {
+        return sum + ((prod.estoque_atual || 0) * (prod.custo_unitario || 0));
+      }, 0) || 0;
+
+      // Calcular total de saídas do mês
+      const totalSaidasMes = saidasMes.data?.reduce((sum, mov) => {
+        return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
+      }, 0) || 0;
 
       // Processar receita total
       const currentRevenueValue = currentRevenue.data?.reduce((sum, item) => sum + (item.preco_venda || 0), 0) || 0;
@@ -237,6 +298,9 @@ export const useDashboardData = () => {
       });
 
       setData({
+        cmvMesAtual,
+        valorEmEstoque,
+        totalSaidasMes,
         totalRevenue: currentRevenueValue,
         totalRevenueChange: revenueChange,
         activeProducts: currentProducts,

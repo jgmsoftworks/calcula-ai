@@ -23,7 +23,9 @@ import {
   FileText,
   Filter,
   Settings,
-  HelpCircle
+  HelpCircle,
+  TrendingDown,
+  ArrowDownRight
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -95,44 +97,34 @@ const Dashboard = () => {
     },
   ] : [
     {
-      title: 'Receita Total',
-      value: `R$ ${data.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      change: `${data.totalRevenueChange >= 0 ? '+' : ''}${data.totalRevenueChange.toFixed(1)}%`,
-      changeType: data.totalRevenueChange >= 0 ? 'positive' : 'negative',
-      description: 'vs período anterior',
-      icon: DollarSign,
-      color: 'text-primary',
-      trend: data.revenueData.slice(-7).map(d => d.revenue),
-    },
-    {
-      title: 'Produtos Ativos',
-      value: data.activeProducts.toString(),
-      change: `+${data.activeProductsChange}`,
-      changeType: 'positive' as const,
-      description: 'novos no período',
-      icon: Package,
-      color: 'text-secondary',
-      trend: [45, 52, 48, 61, 67, 72, data.activeProducts],
-    },
-    {
-      title: 'Margem Média',
-      value: `${data.averageMargin.toFixed(1)}%`,
-      change: `${data.averageMarginChange >= 0 ? '+' : ''}${data.averageMarginChange.toFixed(1)}%`,
-      changeType: data.averageMarginChange >= 0 ? 'positive' : 'negative',
-      description: 'Meta: 30%',
-      icon: TrendingUp,
-      color: 'text-accent',
-      trend: [28, 30, 29, 31, 32, 33, data.averageMargin],
-    },
-    {
-      title: 'Custos Operacionais',
-      value: `R$ ${data.operationalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      change: `${data.operationalCostsChange >= 0 ? '+' : ''}${data.operationalCostsChange.toFixed(1)}%`,
-      changeType: data.operationalCostsChange >= 0 ? 'positive' : 'negative',
-      description: 'variação mensal',
-      icon: BarChart3,
+      title: 'CMV (mês atual)',
+      value: `R$ ${data.cmvMesAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: null,
+      changeType: null,
+      description: 'Fuso: Brasília',
+      icon: TrendingDown,
       color: 'text-orange',
-      trend: [3800, 3650, 3500, 3400, 3350, 3300, data.operationalCosts],
+      trend: [],
+    },
+    {
+      title: 'Valor em Estoque (agora)',
+      value: `R$ ${data.valorEmEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: null,
+      changeType: null,
+      description: 'Atualizado em Brasília',
+      icon: Package,
+      color: 'text-primary',
+      trend: [],
+    },
+    {
+      title: 'Saídas (mês atual)',
+      value: `R$ ${data.totalSaidasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: null,
+      changeType: null,
+      description: 'Fuso: Brasília',
+      icon: ArrowDownRight,
+      color: 'text-secondary',
+      trend: [],
     },
   ];
 
@@ -285,18 +277,24 @@ const Dashboard = () => {
                       <p className="text-4xl font-bold text-foreground">
                         {stat.value}
                       </p>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant={isPositive ? "default" : "destructive"} 
-                          className="font-medium"
-                        >
-                          {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                          {stat.change}
-                        </Badge>
+                      {stat.change ? (
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={isPositive ? "default" : "destructive"} 
+                            className="font-medium"
+                          >
+                            {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                            {stat.change}
+                          </Badge>
+                          <p className="text-sm text-muted-foreground">
+                            {stat.description}
+                          </p>
+                        </div>
+                      ) : (
                         <p className="text-sm text-muted-foreground">
                           {stat.description}
                         </p>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
