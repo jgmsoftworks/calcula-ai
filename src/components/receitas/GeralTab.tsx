@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { TemperatureInput } from '@/components/ui/temperature-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Plus, Trash2, Loader2, ArrowRight } from 'lucide-react';
+import { Camera, Plus, Trash2, Loader2, ArrowRight, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
@@ -27,6 +27,8 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [markupInfo, setMarkupInfo] = useState<any>(null);
+  const [editandoPasso, setEditandoPasso] = useState<string | null>(null);
+  const [textoEdicao, setTextoEdicao] = useState('');
 
   useEffect(() => {
     const loadMarkupInfo = async () => {
@@ -86,6 +88,26 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
     } catch (error: any) {
       console.error('Erro ao remover passo:', error);
       toast.error('Erro ao remover passo');
+    }
+  };
+
+  const handleEditPasso = async (id: string) => {
+    if (!textoEdicao.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('receita_passos_preparo')
+        .update({ descricao: textoEdicao })
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Passo atualizado');
+      setEditandoPasso(null);
+      setTextoEdicao('');
+      onUpdate();
+    } catch (error: any) {
+      console.error('Erro ao editar passo:', error);
+      toast.error('Erro ao editar passo');
     }
   };
 
@@ -402,23 +424,59 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
                 {index + 1}
               </div>
-              <div className="flex-1">
-                <p className="text-sm whitespace-pre-wrap">{passo.descricao}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100"
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemovePasso(passo.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              
+              {editandoPasso === passo.id ? (
+                <div className="flex-1 space-y-2">
+                  <Textarea
+                    value={textoEdicao}
+                    onChange={(e) => setTextoEdicao(e.target.value)}
+                    rows={3}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleEditPasso(passo.id)}>
+                      Salvar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => {
+                        setEditandoPasso(null);
+                        setTextoEdicao('');
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <p className="text-sm whitespace-pre-wrap">{passo.descricao}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditandoPasso(passo.id);
+                        setTextoEdicao(passo.descricao);
+                      }}
+                      title="Editar passo"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemovePasso(passo.id)}
+                      title="Remover passo"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
 

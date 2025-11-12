@@ -19,7 +19,7 @@ interface ReceitaFormProps {
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const { createReceita, updateReceita, fetchReceitaCompleta, loading } = useReceitas();
-  const [activeTab, setActiveTab] = useState('ingredientes');
+  const [activeTab, setActiveTab] = useState('geral');
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
@@ -43,7 +43,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const tabs = ['ingredientes', 'sub-receitas', 'embalagens', 'geral', 'projecao', 'precificacao'];
+  const tabs = ['geral', 'ingredientes', 'sub-receitas', 'embalagens', 'projecao', 'precificacao'];
   const currentTabIndex = tabs.indexOf(activeTab);
 
   const handleFormChange = (field: string, value: any) => {
@@ -151,10 +151,10 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           {/* TabsList FIXA - fora da área de scroll */}
           <div className="px-6 py-4 border-b shrink-0 bg-background">
             <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="ingredientes">1 Ingredientes</TabsTrigger>
-              <TabsTrigger value="sub-receitas">2 Sub-receitas</TabsTrigger>
-              <TabsTrigger value="embalagens">3 Embalagens</TabsTrigger>
-              <TabsTrigger value="geral">4 Geral</TabsTrigger>
+              <TabsTrigger value="geral">1 Geral</TabsTrigger>
+              <TabsTrigger value="ingredientes">2 Ingredientes</TabsTrigger>
+              <TabsTrigger value="sub-receitas">3 Sub-receitas</TabsTrigger>
+              <TabsTrigger value="embalagens">4 Embalagens</TabsTrigger>
               <TabsTrigger value="projecao">5 Projeção</TabsTrigger>
               <TabsTrigger value="precificacao">6 Precificação</TabsTrigger>
             </TabsList>
@@ -162,6 +162,16 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
           {/* Área de SCROLL - só o conteúdo */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
+            <TabsContent value="geral" className="mt-0">
+              <GeralTab
+                receita={receitaCompleta}
+                formData={formData}
+                onFormChange={handleFormChange}
+                onUpdate={loadReceitaCompleta}
+                onTabChange={setActiveTab}
+              />
+            </TabsContent>
+
             <TabsContent value="ingredientes" className="mt-0">
               {receita && receitaCompleta ? (
                 <IngredientesTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
@@ -188,22 +198,6 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   Salve os dados básicos primeiro para adicionar embalagens
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="geral" className="mt-0">
-              {receita && receitaCompleta ? (
-                <GeralTab
-                  receita={receitaCompleta}
-                  formData={formData}
-                  onFormChange={handleFormChange}
-                  onUpdate={loadReceitaCompleta}
-                  onTabChange={setActiveTab}
-                />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Salve os dados básicos primeiro
                 </div>
               )}
             </TabsContent>
@@ -255,7 +249,10 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
           <Button onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {currentTabIndex === tabs.length - 1 ? 'Atualizar Receita' : 'Próximo'}
+            {currentTabIndex === tabs.length - 1 
+              ? (receita ? 'Atualizar Receita' : 'Criar Receita')
+              : 'Próximo'
+            }
             {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-2" />}
           </Button>
         </div>
