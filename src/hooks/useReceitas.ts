@@ -57,7 +57,7 @@ export function useReceitas() {
           mao_obra:receita_mao_obra(valor_total),
           sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
             quantidade,
-            sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda)
+            sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
           )
         `)
         .eq('user_id', user.id)
@@ -113,7 +113,10 @@ export function useReceitas() {
         // Calcular custo de sub-receitas dinamicamente
         const custoSubReceitas = receita.sub_receitas?.reduce((sum: number, s: any) => {
           if (!s.sub_receita) return sum;
-          return sum + (s.sub_receita.preco_venda * s.quantidade);
+          const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
+            ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
+            : s.sub_receita.preco_venda;
+          return sum + (custoUnitario * s.quantidade);
         }, 0) || 0;
 
         return {
@@ -388,7 +391,7 @@ export function useReceitas() {
         supabase.from('receita_mao_obra').select('valor_total').eq('receita_id', receitaId),
         supabase.from('receita_sub_receitas').select(`
           quantidade,
-          sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda)
+          sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
         `).eq('receita_id', receitaId),
       ]);
 
@@ -410,7 +413,10 @@ export function useReceitas() {
 
       const custoSubReceitas = subReceitas.data?.reduce((sum, s: any) => {
         if (!s.sub_receita) return sum;
-        return sum + (s.sub_receita.preco_venda * s.quantidade);
+        const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
+          ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
+          : s.sub_receita.preco_venda;
+        return sum + (custoUnitario * s.quantidade);
       }, 0) || 0;
 
       const total = 

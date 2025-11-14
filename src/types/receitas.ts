@@ -70,6 +70,7 @@ export interface ReceitaSubReceita {
     nome: string;
     preco_venda: number;
     rendimento_unidade: string | null;
+    rendimento_valor: number | null;
   };
 }
 
