@@ -47,7 +47,10 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
       
       const custoSubReceitas = receita.sub_receitas.reduce((sum, s) => {
         if (!s.sub_receita) return sum;
-        return sum + (s.sub_receita.preco_venda * s.quantidade);
+        const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
+          ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
+          : s.sub_receita.preco_venda;
+        return sum + (custoUnitario * s.quantidade);
       }, 0);
       
       return custoIngredientes + custoEmbalagens + custoMaoObra + custoSubReceitas;
