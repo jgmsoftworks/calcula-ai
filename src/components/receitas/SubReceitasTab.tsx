@@ -285,7 +285,10 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
               {receita.sub_receitas.map((subReceita) => {
                 if (!subReceita.sub_receita) return null;
                 
-                const custoTotal = subReceita.sub_receita.preco_venda * subReceita.quantidade;
+                const custoUnitario = subReceita.sub_receita.rendimento_valor && subReceita.sub_receita.rendimento_valor > 0
+                  ? subReceita.sub_receita.preco_venda / subReceita.sub_receita.rendimento_valor
+                  : subReceita.sub_receita.preco_venda;
+                const custoTotal = custoUnitario * subReceita.quantidade;
                 const unidade = subReceita.sub_receita.rendimento_unidade || 'un';
 
                 return (
@@ -302,7 +305,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
                         step="0.01"
                       />
                     </TableCell>
-                    <TableCell className="text-right">R$ {subReceita.sub_receita.preco_venda.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
                     <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
                     <TableCell>
                       <Button
