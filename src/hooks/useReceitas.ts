@@ -183,15 +183,16 @@ export function useReceitas() {
           )
         `).eq('receita_id', id),
         supabase.from('receita_passos_preparo').select('*').eq('receita_id', id).order('ordem'),
-        supabase.from('receita_sub_receitas').select(`
-          *,
-          sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(
-            id,
-            nome,
-            preco_venda,
-            rendimento_unidade
-          )
-        `).eq('receita_id', id),
+      supabase.from('receita_sub_receitas').select(`
+        *,
+        sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(
+          id,
+          nome,
+          preco_venda,
+          rendimento_unidade,
+          rendimento_valor
+        )
+      `).eq('receita_id', id),
         supabase.from('receita_mao_obra').select('*').eq('receita_id', id),
       ]);
 
