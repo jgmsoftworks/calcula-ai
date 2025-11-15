@@ -144,7 +144,10 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
 
   const total = receita.sub_receitas.reduce((sum, sr) => {
     if (!sr.sub_receita) return sum;
-    return sum + (sr.sub_receita.preco_venda * sr.quantidade);
+    const custoUnitario = sr.sub_receita.rendimento_valor && sr.sub_receita.rendimento_valor > 0
+      ? sr.sub_receita.preco_venda / sr.sub_receita.rendimento_valor
+      : sr.sub_receita.preco_venda;
+    return sum + (custoUnitario * sr.quantidade);
   }, 0);
 
   return (
