@@ -171,6 +171,19 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
       console.log('⚙️ Detalhes do markup:', detalhes);
       console.log('💵 Valor em Real:', valorEmReal);
 
+      // Determinar o custo base (unitário ou total)
+      let custoBase: number;
+      
+      // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
+      if (markup.tipo !== 'sub_receita' && receita.rendimento_valor && receita.rendimento_valor > 0) {
+        custoBase = custoTotal / receita.rendimento_valor;
+        console.log('💰 Usando custo unitário:', { custoTotal, rendimento: receita.rendimento_valor, custoBase });
+      } else {
+        // Markup de sub-receita OU sem rendimento = usar custo total
+        custoBase = custoTotal;
+        console.log('💰 Usando custo total:', { custoBase });
+      }
+
       let precoVenda: number;
 
       if (valorEmReal > 0) {
@@ -183,7 +196,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
           (detalhes?.outros ?? 0) + 
           (detalhes?.lucroDesejado ?? markup.margem_lucro);
         
-        const baseCalculo = custoTotal + valorEmReal;
+        const baseCalculo = custoBase + valorEmReal;
         const divisor = 1 - (totalPercentuais / 100);
         precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
         
@@ -195,10 +208,10 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
         });
       } else {
         // CASO 2: SEM "Valor em Real" - usar fórmula tradicional
-        precoVenda = custoTotal * markup.markup_ideal;
+        precoVenda = custoBase * markup.markup_ideal;
         
         console.log('📊 Cálculo SEM Valor em Real:', {
-          custoTotal,
+          custoBase,
           markup_ideal: markup.markup_ideal,
           precoVenda
         });
