@@ -429,16 +429,17 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
                     </div>
                   </div>
                 </div>
-                <MarkupCard
-                  key="sub-receitas"
-                  markup={markupSubReceita}
-                  custoTotal={custoTotal}
-                  precoVenda={formData.preco_venda || 0}
-                  isSelected={formData.markup_id === markupSubReceita.id}
-                  onSelect={() => handleSelectMarkup(markupSubReceita.id)}
-                  alwaysExpanded={true}
-                  isApplying={isApplying}
-                />
+              <MarkupCard
+                key="sub-receitas"
+                markup={markupSubReceita}
+                custoTotal={custoTotal}
+                precoVenda={formData.preco_venda || 0}
+                isSelected={formData.markup_id === markupSubReceita.id}
+                onSelect={() => handleSelectMarkup(markupSubReceita.id)}
+                alwaysExpanded={true}
+                isApplying={isApplying}
+                rendimentoValor={receita.rendimento_valor}
+              />
               </>
             )}
             
@@ -453,6 +454,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
                 onSelect={() => handleSelectMarkup(markup.id)}
                 alwaysExpanded={true}
                 isApplying={isApplying}
+                rendimentoValor={receita.rendimento_valor}
               />
             ))}
           </div>

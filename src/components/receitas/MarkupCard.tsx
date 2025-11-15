@@ -34,6 +34,7 @@ interface MarkupCardProps {
   onSelect: () => void;
   alwaysExpanded?: boolean;
   isApplying?: boolean;
+  rendimentoValor?: number;
 }
 
 export function MarkupCard({ 
@@ -43,7 +44,8 @@ export function MarkupCard({
   isSelected, 
   onSelect,
   alwaysExpanded = false,
-  isApplying = false
+  isApplying = false,
+  rendimentoValor
 }: MarkupCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
   const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(null);
@@ -140,26 +142,37 @@ export function MarkupCard({
                           (detalhes?.outros ?? 0) + 
                           (detalhes?.lucroDesejado ?? markup.margem_lucro);
 
+  // Determinar o custo base (unitário ou total)
+  let custoBase: number;
+  
+  // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
+  if (markup.tipo !== 'sub_receita' && rendimentoValor && rendimentoValor > 0) {
+    custoBase = custoTotal / rendimentoValor;
+  } else {
+    // Markup de sub-receita OU sem rendimento = usar custo total
+    custoBase = custoTotal;
+  }
+
   let precoSugerido: number;
   let baseCalculo: number;
 
   // CASO 1: COM "Valor em Real" → usar fórmula que garante % exato
   if (valorEmRealBloco > 0) {
-    baseCalculo = custoTotal + valorEmRealBloco;
+    baseCalculo = custoBase + valorEmRealBloco;
     const divisor = 1 - (totalPercentuais / 100);
     precoSugerido = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
   } 
   // CASO 2: SEM "Valor em Real" → usar fórmula tradicional do markup
   else {
-    baseCalculo = custoTotal;
-    precoSugerido = custoTotal * markup.markup_ideal;
+    baseCalculo = custoBase;
+    precoSugerido = custoBase * markup.markup_ideal;
   }
   
-  // Markup aplicado = preço atual / custo (o que está sendo praticado)
-  const markupAplicado = custoTotal > 0 ? precoVenda / custoTotal : 0;
+  // Markup aplicado = preço atual / custo unitário
+  const markupAplicado = custoBase > 0 ? precoVenda / custoBase : 0;
   
   // Lucro bruto baseado no PREÇO ATUAL digitado
-  const lucroBruto = precoVenda - custoTotal;
+  const lucroBruto = precoVenda - custoBase;
   const margemBruta = precoVenda > 0 ? (lucroBruto / precoVenda) * 100 : 0;
   
   // Calcular lucro líquido considerando TODOS os custos indiretos
@@ -170,7 +183,7 @@ export function MarkupCard({
   const outrosReais = precoVenda * ((detalhes?.outros ?? 0) / 100);
 
   const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
-  const custosDirectosCompletos = custoTotal + valorEmRealBloco;
+  const custosDirectosCompletos = custoBase + valorEmRealBloco;
 
   // Lucro líquido REAL = Preço - Custos Diretos - Custos Indiretos
   const lucroLiquido = precoVenda - custosDirectosCompletos - totalCustosIndiretos;
