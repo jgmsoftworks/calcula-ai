@@ -3,14 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Search, Loader2, Download } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
+import { useExportReceitas } from '@/hooks/useExportReceitas';
 import { ReceitaCard } from './ReceitaCard';
 import { ReceitaForm } from './ReceitaForm';
 import type { ReceitaComDados } from '@/types/receitas';
 
 export function ListaReceitas() {
-  const { fetchReceitas, loading } = useReceitas();
+  const { fetchReceitas, fetchTiposProduto, loading } = useReceitas();
+  const { exportarReceitas } = useExportReceitas();
   const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
@@ -18,6 +20,11 @@ export function ListaReceitas() {
   const [subReceitaFilter, setSubReceitaFilter] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingReceita, setEditingReceita] = useState<ReceitaComDados | null>(null);
+  const [tiposProduto, setTiposProduto] = useState<Array<{ id: string; nome: string }>>([]);
+
+  useEffect(() => {
+    loadTiposProduto();
+  }, []);
 
   useEffect(() => {
     loadReceitas();
@@ -32,6 +39,11 @@ export function ListaReceitas() {
 
     const data = await fetchReceitas(filters);
     setReceitas(data);
+  };
+
+  const loadTiposProduto = async () => {
+    const tipos = await fetchTiposProduto();
+    setTiposProduto(tipos);
   };
 
   const handleEdit = (receita: ReceitaComDados) => {
@@ -51,10 +63,21 @@ export function ListaReceitas() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle>Receitas</CardTitle>
-            <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Receita
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={() => exportarReceitas(receitas)} 
+                variant="outline"
+                className="flex-1 sm:flex-initial"
+                disabled={receitas.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+              <Button onClick={() => setShowForm(true)} className="flex-1 sm:flex-initial">
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Receita
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -74,9 +97,11 @@ export function ListaReceitas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="doce">Doce</SelectItem>
-                <SelectItem value="salgado">Salgado</SelectItem>
-                <SelectItem value="bebida">Bebida</SelectItem>
+                {tiposProduto.map((tipo) => (
+                  <SelectItem key={tipo.id} value={tipo.id}>
+                    {tipo.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>

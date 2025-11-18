@@ -27,6 +27,24 @@ export function useReceitas() {
     return (data[0]?.numero_sequencial || 0) + 1;
   };
 
+  const fetchTiposProduto = async () => {
+    if (!user) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('tipos_produto')
+        .select('id, nome')
+        .eq('user_id', user.id)
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar tipos de produto:', error);
+      return [];
+    }
+  };
+
   const fetchReceitas = async (filters?: {
     search?: string;
     tipo?: string;
@@ -444,5 +462,6 @@ export function useReceitas() {
     uploadImagemReceita,
     deleteImagemReceita,
     calcularCustoTotal,
+    fetchTiposProduto,
   };
 }
