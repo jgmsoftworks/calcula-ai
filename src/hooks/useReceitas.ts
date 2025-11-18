@@ -85,8 +85,8 @@ export function useReceitas() {
         query = query.ilike('nome', `%${filters.search}%`);
       }
 
-      if (filters?.tipo) {
-        query = query.eq('tipo_produto', filters.tipo);
+      if (filters?.tipo && filters.tipo !== 'all') {
+        query = query.eq('tipo_produto_id', filters.tipo);
       }
 
       if (filters?.status) {
