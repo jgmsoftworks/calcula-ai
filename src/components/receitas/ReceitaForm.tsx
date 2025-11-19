@@ -11,6 +11,30 @@ import { ProjecaoTab } from './ProjecaoTab';
 import { PrecificacaoTab } from './PrecificacaoTab';
 import type { Receita, ReceitaCompleta } from '@/types/receitas';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// Tipos para itens temporários em modo criação
+interface TempIngrediente {
+  id: string;
+  produto_id: string;
+  quantidade: number;
+  produto: any;
+}
+
+interface TempSubReceita {
+  id: string;
+  sub_receita_id: string;
+  quantidade: number;
+  sub_receita: any;
+}
+
+interface TempEmbalagem {
+  id: string;
+  produto_id: string;
+  quantidade: number;
+  produto: any;
+}
 
 interface ReceitaFormProps {
   receita: Receita | null;
@@ -18,7 +42,7 @@ interface ReceitaFormProps {
 }
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
-  const { createReceita, updateReceita, fetchReceitaCompleta, loading } = useReceitas();
+  const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
   const [activeTab, setActiveTab] = useState('geral');
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState({
@@ -27,7 +51,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     rendimento_valor: 0,
     rendimento_unidade: 'un',
     observacoes: '',
-    status: 'rascunho' as 'rascunho' | 'finalizada',
+    status: 'finalizada' as 'rascunho' | 'finalizada',
     preco_venda: 0,
     markup_id: null as string | null,
     peso_unitario: 0,
@@ -42,9 +66,16 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Estados temporários para modo criação
+  const [tempIngredientes, setTempIngredientes] = useState<TempIngrediente[]>([]);
+  const [tempSubReceitas, setTempSubReceitas] = useState<TempSubReceita[]>([]);
+  const [tempEmbalagens, setTempEmbalagens] = useState<TempEmbalagem[]>([]);
 
   const tabs = ['geral', 'ingredientes', 'sub-receitas', 'embalagens', 'projecao', 'precificacao'];
   const currentTabIndex = tabs.indexOf(activeTab);
+  
+  const isCreating = !receita?.id; // Modo criação se não tem ID
 
   const handleFormChange = (field: string, value: any) => {
     setFormData({ ...formData, [field]: value });
@@ -124,7 +155,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
   const handleSave = async () => {
     if (!formData.nome.trim()) {
-      alert('Nome é obrigatório');
+      toast.error('Nome é obrigatório');
       return;
     }
 
@@ -177,7 +208,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 <IngredientesTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Salve os dados básicos primeiro para adicionar ingredientes
+                  Salve a receita primeiro para adicionar ingredientes
                 </div>
               )}
             </TabsContent>
@@ -187,7 +218,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 <SubReceitasTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Salve os dados básicos primeiro para adicionar sub-receitas
+                  Salve a receita primeiro para adicionar sub-receitas
                 </div>
               )}
             </TabsContent>
@@ -197,7 +228,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 <EmbalagensTa receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Salve os dados básicos primeiro para adicionar embalagens
+                  Salve a receita primeiro para adicionar embalagens
                 </div>
               )}
             </TabsContent>
@@ -211,7 +242,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Salve os dados básicos primeiro
+                  Salve a receita primeiro
                 </div>
               )}
             </TabsContent>
@@ -226,7 +257,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Salve os dados básicos primeiro para definir a precificação
+                  Salve a receita primeiro para definir precificação
                 </div>
               )}
             </TabsContent>

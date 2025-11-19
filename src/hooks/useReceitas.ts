@@ -246,7 +246,7 @@ export function useReceitas() {
           rendimento_valor: data.rendimento_valor || null,
           rendimento_unidade: data.rendimento_unidade || null,
           observacoes: data.observacoes || null,
-          status: data.status || 'rascunho',
+          status: 'finalizada',
           preco_venda: data.preco_venda || 0,
           tempo_preparo_total: data.tempo_preparo_total || 0,
           tempo_preparo_unidade: data.tempo_preparo_unidade || 'minutos',

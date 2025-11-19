@@ -54,7 +54,6 @@ export default function Simulador() {
           markups!inner(nome, tipo)
         `)
         .eq('user_id', user?.id)
-        .eq('status', 'finalizada')
         .neq('markups.tipo', 'sub-receitas')
         .neq('markups.nome', 'sub-receitas');
 

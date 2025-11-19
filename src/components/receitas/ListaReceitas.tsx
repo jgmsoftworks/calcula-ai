@@ -16,7 +16,6 @@ export function ListaReceitas() {
   const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [subReceitaFilter, setSubReceitaFilter] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingReceita, setEditingReceita] = useState<ReceitaComDados | null>(null);
@@ -28,13 +27,12 @@ export function ListaReceitas() {
 
   useEffect(() => {
     loadReceitas();
-  }, [search, tipoFilter, statusFilter, subReceitaFilter]);
+  }, [search, tipoFilter, subReceitaFilter]);
 
   const loadReceitas = async () => {
     const filters: any = {};
     if (search) filters.search = search;
     if (tipoFilter !== 'all') filters.tipo = tipoFilter;
-    if (statusFilter !== 'all') filters.status = statusFilter;
     if (subReceitaFilter !== 'all') filters.subReceita = subReceitaFilter;
 
     const data = await fetchReceitas(filters);
@@ -99,19 +97,9 @@ export function ListaReceitas() {
                 <SelectItem value="all">Todos os tipos</SelectItem>
                 {tiposProduto.map((tipo) => (
                   <SelectItem key={tipo.id} value={tipo.id}>
-                    {tipo.nome}
+                  {tipo.nome}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="rascunho">Rascunho</SelectItem>
-                <SelectItem value="finalizada">Finalizada</SelectItem>
               </SelectContent>
             </Select>
             <Select value={subReceitaFilter} onValueChange={setSubReceitaFilter}>
