@@ -60,7 +60,6 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
         .from('receitas')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'finalizada')
         .eq('markup_id', markupData.id)
         .neq('id', receita.id)
         .order('nome');

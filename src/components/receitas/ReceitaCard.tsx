@@ -74,9 +74,6 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={receita.status === 'finalizada' ? 'default' : 'secondary'}>
-                  {receita.status === 'finalizada' ? 'Finalizada' : 'Rascunho'}
-                </Badge>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" title="Baixar">
                     <Download className="h-4 w-4" />
