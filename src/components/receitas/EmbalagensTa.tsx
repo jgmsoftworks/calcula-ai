@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
-import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -42,8 +40,6 @@ export function EmbalagensTa({
   const [search, setSearch] = useState('');
   const [produtos, setProdutos] = useState<any[]>([]);
   const [allProdutos, setAllProdutos] = useState<any[]>([]);
-  const [selectedProduto, setSelectedProduto] = useState<any>(null);
-  const [quantidade, setQuantidade] = useState(1);
 
   useEffect(() => {
     loadProdutos();
@@ -63,7 +59,7 @@ export function EmbalagensTa({
 
   useEffect(() => {
     if (!search.trim()) {
-      setProdutos(allProdutos);
+      setProdutos([]);
       return;
     }
     const filtered = allProdutos.filter(p => 
@@ -73,9 +69,12 @@ export function EmbalagensTa({
     setProdutos(filtered);
   }, [search, allProdutos]);
 
-  const handleAddEmbalagem = async (produto: any, quantidade: number) => {
+  const handleAddEmbalagem = async (produto: any) => {
+    const quantidadeInicial = 1;
+
     if (mode === 'create') {
-      onAddTemp?.(produto, quantidade);
+      onAddTemp?.(produto, quantidadeInicial);
+      setSearch('');
       return;
     }
 
@@ -83,11 +82,12 @@ export function EmbalagensTa({
       const { error } = await supabase.from('receita_embalagens').insert({
         receita_id: receita!.id,
         produto_id: produto.id,
-        quantidade,
+        quantidade: quantidadeInicial,
       });
 
       if (error) throw error;
       toast.success('Embalagem adicionada');
+      setSearch('');
       onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao adicionar embalagem:', error);
@@ -113,6 +113,33 @@ export function EmbalagensTa({
     } catch (error: any) {
       console.error('Erro ao remover embalagem:', error);
       toast.error('Erro ao remover embalagem');
+    }
+  };
+
+  const handleUpdateQuantidade = async (id: string, rawValue: string) => {
+    const parsed = parseFloat(rawValue.replace(',', '.'));
+    const quantidade = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+
+    if (mode === 'create') {
+      const item = tempEmbalagens.find(e => e.id === id);
+      if (item && onRemoveTemp && onAddTemp) {
+        onRemoveTemp(id);
+        onAddTemp(item.produto, quantidade);
+      }
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('receita_embalagens')
+        .update({ quantidade })
+        .eq('id', id);
+
+      if (error) throw error;
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Erro ao atualizar quantidade:', error);
+      toast.error('Erro ao atualizar quantidade');
     }
   };
 
@@ -156,7 +183,7 @@ export function EmbalagensTa({
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => setSelectedProduto(produto)}
+                onClick={() => handleAddEmbalagem(produto)}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar
@@ -195,7 +222,13 @@ export function EmbalagensTa({
               return (
                 <TableRow key={embalagem.id}>
                   <TableCell>{embalagem.produto.nome}</TableCell>
-                  <TableCell className="text-right">{embalagem.quantidade}</TableCell>
+                  <TableCell className="text-right">
+                    <NumericInput
+                      className="w-20 text-right"
+                      value={embalagem.quantidade}
+                      onChange={(e) => handleUpdateQuantidade(embalagem.id, e.target.value)}
+                    />
+                  </TableCell>
                   <TableCell className="text-right">{unidade}</TableCell>
                   <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
                   <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
@@ -218,37 +251,6 @@ export function EmbalagensTa({
             </TableRow>
           </TableBody>
         </Table>
-      )}
-
-      {selectedProduto && (
-        <Dialog open onOpenChange={() => setSelectedProduto(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Adicionar {selectedProduto.nome}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Quantidade ({selectedProduto.unidade_uso || selectedProduto.unidade_compra})</Label>
-                <NumericInput
-                  value={quantidade}
-                  onChange={(e) => setQuantidade(Number(e.target.value))}
-                  step={0.01}
-                  min={0}
-                />
-              </div>
-              <Button 
-                onClick={() => {
-                  handleAddEmbalagem(selectedProduto, quantidade);
-                  setSelectedProduto(null);
-                  setQuantidade(1);
-                }}
-                className="w-full"
-              >
-                Confirmar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       )}
     </div>
   );
