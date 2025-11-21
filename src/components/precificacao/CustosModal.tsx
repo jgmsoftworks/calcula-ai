@@ -728,29 +728,32 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
                     </p>
                   </div>
                 ) : (
-                  folhaPagamento.map((funcionario) => (
+                  folhaPagamento.map((funcionario) => {
+                    const custoTotal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2);
+                    return (
                     <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-medium">{funcionario.nome}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {formatCurrency(funcionario.salario_base || 0)} total
+                          {formatCurrency(custoTotal)} total
                         </p>
                       </div>
                        <div className="flex items-center gap-3">
-                           <Checkbox 
-                             id={`funcionario-${funcionario.id}`}
-                             checked={tempCheckboxStates[funcionario.id] ?? false}
-                             onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
-                           />
-                         <Label 
-                           htmlFor={`funcionario-${funcionario.id}`}
-                           className="text-sm font-medium cursor-pointer"
-                         >
-                           Considerar
-                         </Label>
-                       </div>
-                    </div>
-                  ))
+                            <Checkbox 
+                              id={`funcionario-${funcionario.id}`}
+                              checked={tempCheckboxStates[funcionario.id] ?? false}
+                              onCheckedChange={(checked) => handleCheckboxChange(funcionario.id, checked as boolean)}
+                            />
+                          <Label 
+                            htmlFor={`funcionario-${funcionario.id}`}
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            Considerar
+                          </Label>
+                        </div>
+                     </div>
+                    );
+                  })
                 )}
               </CardContent>
             </Card>
