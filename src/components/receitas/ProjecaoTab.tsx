@@ -11,12 +11,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ProjecaoTabProps {
-  receita: Receita;
+  mode?: 'create' | 'edit';
+  receita: Receita | any;
   formData: any;
   onFormChange: (field: string, value: any) => void;
 }
 
-export const ProjecaoTab = ({ receita, formData, onFormChange }: ProjecaoTabProps) => {
+export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: ProjecaoTabProps) => {
   const { user } = useAuth();
   const [tiposProduto, setTiposProduto] = useState<any[]>([]);
   const [tiposModalOpen, setTiposModalOpen] = useState(false);
@@ -26,9 +27,13 @@ export const ProjecaoTab = ({ receita, formData, onFormChange }: ProjecaoTabProp
   useEffect(() => {
     if (user) {
       fetchTiposProduto();
-      fetchMaoObra();
+      
+      // Só buscar mão de obra em modo edição com receita válida
+      if (mode === 'edit' && receita?.id) {
+        fetchMaoObra();
+      }
     }
-  }, [user, receita.id]);
+  }, [user, receita?.id, mode]);
 
   const fetchTiposProduto = async () => {
     if (!user) return;
@@ -48,7 +53,7 @@ export const ProjecaoTab = ({ receita, formData, onFormChange }: ProjecaoTabProp
   };
 
   const fetchMaoObra = async () => {
-    if (!user) return;
+    if (!user || !receita?.id) return;
 
     try {
       const { data, error } = await supabase
@@ -189,7 +194,11 @@ export const ProjecaoTab = ({ receita, formData, onFormChange }: ProjecaoTabProp
           <div className="space-y-3">
             <Label>Tempo de Mão de Obra Direta</Label>
 
-            {maoObraList.length > 0 ? (
+            {mode === 'create' ? (
+              <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
+                <p>Cadastro de mão de obra fica disponível após salvar a receita pela primeira vez.</p>
+              </div>
+            ) : maoObraList.length > 0 ? (
               <div className="space-y-2">
                 {maoObraList.map((mo) => (
                   <div
@@ -230,15 +239,17 @@ export const ProjecaoTab = ({ receita, formData, onFormChange }: ProjecaoTabProp
               </div>
             )}
 
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setMaoObraModalOpen(true)}
-              type="button"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Mão de Obra
-            </Button>
+            {mode === 'edit' && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setMaoObraModalOpen(true)}
+                type="button"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Mão de Obra
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -253,12 +264,14 @@ export const ProjecaoTab = ({ receita, formData, onFormChange }: ProjecaoTabProp
         }}
       />
 
-      <MaoObraModal
-        receitaId={receita.id}
-        open={maoObraModalOpen}
-        onOpenChange={setMaoObraModalOpen}
-        onUpdate={fetchMaoObra}
-      />
+      {mode === 'edit' && receita?.id && (
+        <MaoObraModal
+          receitaId={receita.id}
+          open={maoObraModalOpen}
+          onOpenChange={setMaoObraModalOpen}
+          onUpdate={fetchMaoObra}
+        />
+      )}
     </>
   );
 };

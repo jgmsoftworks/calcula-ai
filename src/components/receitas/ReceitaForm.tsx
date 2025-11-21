@@ -356,32 +356,31 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             </TabsContent>
 
             <TabsContent value="projecao" className="mt-0">
-              {receita && receitaCompleta ? (
-                <ProjecaoTab
-                  receita={receitaCompleta}
-                  formData={formData}
-                  onFormChange={handleFormChange}
-                />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Salve a receita primeiro
-                </div>
-              )}
+              <ProjecaoTab
+                mode={isCreating ? 'create' : 'edit'}
+                receita={isCreating ? {} : receitaCompleta}
+                formData={formData}
+                onFormChange={handleFormChange}
+              />
             </TabsContent>
 
             <TabsContent value="precificacao" className="mt-0">
-              {receita && receitaCompleta ? (
-                <PrecificacaoTab
-                  receita={receitaCompleta}
-                  formData={formData}
-                  onFormChange={handleFormChange}
-                  onUpdate={loadReceitaCompleta}
-                />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Salve a receita primeiro para definir precificação
-                </div>
-              )}
+              <PrecificacaoTab
+                mode={isCreating ? 'create' : 'edit'}
+                receita={isCreating ? {
+                  ingredientes: tempIngredientes,
+                  embalagens: tempEmbalagens,
+                  sub_receitas: tempSubReceitas,
+                  mao_obra: [],
+                  rendimento_valor: formData.rendimento_valor,
+                  rendimento_unidade: formData.rendimento_unidade,
+                  preco_venda: formData.preco_venda,
+                  markup_id: formData.markup_id,
+                } : receitaCompleta}
+                formData={formData}
+                onFormChange={handleFormChange}
+                onUpdate={loadReceitaCompleta}
+              />
             </TabsContent>
           </div>
         </Tabs>

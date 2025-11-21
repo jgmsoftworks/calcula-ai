@@ -12,13 +12,14 @@ import { Info } from 'lucide-react';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface PrecificacaoTabProps {
-  receita: ReceitaCompleta;
+  mode?: 'create' | 'edit';
+  receita: ReceitaCompleta | any;
   formData: any;
   onFormChange: (field: string, value: any) => void;
   onUpdate?: () => Promise<void>;
 }
 
-export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: PrecificacaoTabProps) {
+export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate }: PrecificacaoTabProps) {
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
   const [markups, setMarkups] = useState<any[]>([]);
@@ -137,15 +138,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
     const markup = allMarkups.find(m => m.id === markupId);
     
-    console.log('=== 🚀 DEBUG MARKUP SELECTION ===');
-    console.log('📋 Receita ID:', receita.id);
-    console.log('📝 Receita Nome:', receita.nome);
-    console.log('👤 User ID:', user?.id);
-    console.log('🏷️ Markup ID:', markupId);
-    console.log('📦 Markup encontrado:', markup);
-    
     if (!markup || !user) {
-      console.error('❌ Markup ou user não encontrado!', { markup, user });
       toast.error('Erro: Markup ou usuário não encontrado');
       return;
     }
@@ -155,8 +148,6 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
     try {
       // Buscar detalhes do markup de user_configurations
       const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
-      
-      console.log('🔍 Buscando configuração:', configKey);
       
       const { data } = await supabase
         .from('user_configurations')
@@ -168,20 +159,15 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
       const detalhes = data?.configuration as any;
       const valorEmReal = detalhes?.valorEmReal ?? 0;
 
-      console.log('⚙️ Detalhes do markup:', detalhes);
-      console.log('💵 Valor em Real:', valorEmReal);
-
       // Determinar o custo base (unitário ou total)
       let custoBase: number;
       
       // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
       if (markup.tipo !== 'sub_receita' && receita.rendimento_valor && receita.rendimento_valor > 0) {
         custoBase = custoTotal / receita.rendimento_valor;
-        console.log('💰 Usando custo unitário:', { custoTotal, rendimento: receita.rendimento_valor, custoBase });
       } else {
         // Markup de sub-receita OU sem rendimento = usar custo total
         custoBase = custoTotal;
-        console.log('💰 Usando custo total:', { custoBase });
       }
 
       let precoVenda: number;
@@ -199,33 +185,29 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
         const baseCalculo = custoBase + valorEmReal;
         const divisor = 1 - (totalPercentuais / 100);
         precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
-        
-        console.log('📊 Cálculo COM Valor em Real:', {
-          totalPercentuais,
-          baseCalculo,
-          divisor,
-          precoVenda
-        });
       } else {
         // CASO 2: SEM "Valor em Real" - usar fórmula tradicional
         precoVenda = custoBase * markup.markup_ideal;
-        
-        console.log('📊 Cálculo SEM Valor em Real:', {
-          custoBase,
-          markup_ideal: markup.markup_ideal,
-          precoVenda
-        });
       }
 
-      // SALVAR NO BANCO DE DADOS
-      console.log('💾 Tentando UPDATE com:', {
-        markup_id: markupId,
-        preco_venda: precoVenda,
-        receita_id: receita.id,
-        user_id: user.id,
-        markup_tipo: markup.tipo
-      });
+      // MODO CRIAÇÃO: apenas atualizar formData localmente
+      if (mode === 'create') {
+        onFormChange('markup_id', markupId);
+        onFormChange('preco_venda', precoVenda);
+        
+        if (markup.tipo === 'sub_receita') {
+          toast.success('✅ Markup de sub-receitas selecionado! Esta receita ficará disponível como sub-receita após salvar.', {
+            duration: 4000,
+          });
+        } else {
+          toast.success('✅ Markup selecionado!');
+        }
+        
+        setIsApplying(false);
+        return;
+      }
 
+      // MODO EDIÇÃO: salvar no banco
       const { data: updatedData, error } = await supabase
         .from('receitas')
         .update({
@@ -234,16 +216,9 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
         })
         .eq('id', receita.id)
         .eq('user_id', user.id)
-        .select('*, markup:markups(id, nome, tipo)'); // ADICIONAR .select() para ver o resultado
+        .select('*, markup:markups(id, nome, tipo)');
 
-      console.log('📊 Resultado do UPDATE:', { updatedData, error });
-
-      if (error) {
-        console.error('❌ Erro no UPDATE:', error);
-        throw error;
-      }
-
-      console.log('✅ UPDATE realizado com sucesso!', updatedData);
+      if (error) throw error;
 
       // Atualizar o formulário local
       onFormChange('markup_id', markupId);
@@ -251,19 +226,8 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
 
       // FORÇAR RELOAD da receita completa
       if (onUpdate) {
-        console.log('🔄 Chamando onUpdate para recarregar dados...');
         await onUpdate();
-        console.log('✅ Dados recarregados!');
       }
-
-      // Verificar se realmente salvou
-      const { data: verificacao } = await supabase
-        .from('receitas')
-        .select('id, nome, markup_id, preco_venda, markup:markups(id, nome, tipo)')
-        .eq('id', receita.id)
-        .single();
-      
-      console.log('🔍 Verificação após salvar:', verificacao);
 
       // Feedback visual
       if (markup.tipo === 'sub_receita') {
@@ -274,8 +238,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
         toast.success('✅ Markup aplicado com sucesso!');
       }
     } catch (error: any) {
-      console.error('💥 ERRO COMPLETO:', error);
-      console.error('Stack trace:', error.stack);
+      console.error('Erro ao salvar markup:', error);
       toast.error('Erro ao salvar o markup: ' + error.message);
     } finally {
       setIsApplying(false);
@@ -395,28 +358,7 @@ export function PrecificacaoTab({ receita, formData, onFormChange, onUpdate }: P
 
       {/* Markups Configurados */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Markups Configurados</h3>
-          
-          {/* Botão temporário de debug */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={async () => {
-              console.log('🐛 DEBUG: Verificando estado atual da receita...');
-              const { data, error } = await supabase
-                .from('receitas')
-                .select('id, nome, markup_id, preco_venda, markup:markups(id, nome, tipo)')
-                .eq('id', receita.id)
-                .single();
-              console.log('🔍 Estado atual:', data);
-              console.log('❌ Erro:', error);
-              alert(JSON.stringify(data, null, 2));
-            }}
-          >
-            🐛 Debug
-          </Button>
-        </div>
+        <h3 className="text-lg font-semibold">Markups Configurados</h3>
         
         {markups.length === 0 && !markupSubReceita ? (
           <div className="text-center py-8 text-muted-foreground border rounded-lg">
