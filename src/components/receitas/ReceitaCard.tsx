@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Download, Eye, Store, Package } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import type { ReceitaComDados } from '@/types/receitas';
 import {
   AlertDialog,
@@ -24,6 +27,8 @@ interface ReceitaCardProps {
 
 export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
   const { deleteReceita } = useReceitas();
+  const { user } = useAuth();
+  const [markupDetalhes, setMarkupDetalhes] = useState<any>(null);
 
   const handleDelete = async () => {
     const success = await deleteReceita(receita.id);
@@ -35,8 +40,67 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                      (receita.custo_mao_obra || 0) + 
                      (receita.custo_sub_receitas || 0);
 
-  const margem = receita.preco_venda - custoTotal;
-  const margemPercentual = custoTotal > 0 ? (margem / receita.preco_venda) * 100 : 0;
+  const lucroBruto = receita.preco_venda - custoTotal;
+
+  // Buscar detalhes do markup se aplicável
+  useEffect(() => {
+    const carregarMarkupDetalhes = async () => {
+      if (!receita.markup?.nome || !user) {
+        setMarkupDetalhes(null);
+        return;
+      }
+      
+      const configKey = `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
+      
+      const { data } = await supabase
+        .from('user_configurations')
+        .select('configuration')
+        .eq('user_id', user.id)
+        .eq('type', configKey)
+        .maybeSingle();
+      
+      if (data?.configuration) {
+        setMarkupDetalhes(data.configuration);
+      } else {
+        setMarkupDetalhes(null);
+      }
+    };
+    
+    carregarMarkupDetalhes();
+  }, [receita.markup, user]);
+
+  // Calcular lucro líquido baseado no markup
+  const calcularLucroLiquido = () => {
+    if (!markupDetalhes || !receita.markup) return 0;
+    
+    // Custo base por unidade
+    const custoBase = receita.markup.tipo === 'sub_receita' 
+      ? custoTotal
+      : (receita.rendimento_valor > 0 ? custoTotal / receita.rendimento_valor : custoTotal);
+    
+    // Valor em real do bloco
+    const valorEmRealBloco = markupDetalhes.valorEmReal || 0;
+    
+    // Gastos sobre faturamento
+    const gastosReais = receita.preco_venda * ((markupDetalhes.gastoSobreFaturamento || 0) / 100);
+    
+    // Encargos percentuais
+    const impostosReais = receita.preco_venda * ((markupDetalhes.impostos || 0) / 100);
+    const taxasReais = receita.preco_venda * ((markupDetalhes.taxas || 0) / 100);
+    const comissoesReais = receita.preco_venda * ((markupDetalhes.comissoes || 0) / 100);
+    const outrosReais = receita.preco_venda * ((markupDetalhes.outros || 0) / 100);
+    
+    // Total de custos indiretos
+    const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
+    
+    // Custos diretos completos
+    const custosDirectosCompletos = custoBase + valorEmRealBloco;
+    
+    // Lucro líquido = Preço - Custos Diretos - Custos Indiretos
+    return receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
+  };
+
+  const lucroLiquido = calcularLucroLiquido();
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -165,15 +229,15 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                   <div className="font-semibold">R$ {receita.preco_venda.toFixed(2)}</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded">
-                  <div className="text-xs text-muted-foreground">Margem Contribuição</div>
-                  <div className={`font-semibold ${margem > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    R$ {margem.toFixed(2)}
+                  <div className="text-xs text-muted-foreground">Lucro Bruto</div>
+                  <div className={`font-semibold ${lucroBruto > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    R$ {lucroBruto.toFixed(2)}
                   </div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Lucro Líquido</div>
-                  <div className={`font-semibold ${margemPercentual > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {margemPercentual.toFixed(1)}%
+                  <div className={`font-semibold ${lucroLiquido > 0 ? 'text-green-600' : lucroLiquido < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {markupDetalhes ? `R$ ${lucroLiquido.toFixed(2)}` : '—'}
                   </div>
                 </div>
               </div>
