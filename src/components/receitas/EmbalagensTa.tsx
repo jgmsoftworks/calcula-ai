@@ -7,25 +7,52 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ReceitaCompleta } from '@/types/receitas';
 
-interface EmbalagensTabProps {
-  receita: ReceitaCompleta;
-  onUpdate: () => void;
+interface TempEmbalagem {
+  id: string;
+  produto_id: string;
+  quantidade: number;
+  produto: any;
 }
 
-export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
+interface EmbalagensTabProps {
+  // Modo edição
+  receita?: ReceitaCompleta;
+  onUpdate?: () => void;
+  
+  // Modo criação
+  mode: 'create' | 'edit';
+  tempEmbalagens?: TempEmbalagem[];
+  onAddTemp?: (produto: any, quantidade: number) => void;
+  onRemoveTemp?: (id: string) => void;
+}
+
+export function EmbalagensTa({ 
+  receita, 
+  onUpdate, 
+  mode, 
+  tempEmbalagens = [], 
+  onAddTemp, 
+  onRemoveTemp 
+}: EmbalagensTabProps) {
   const [showSelector, setShowSelector] = useState(false);
 
   const handleAddEmbalagem = async (produto: any, quantidade: number) => {
+    if (mode === 'create') {
+      onAddTemp?.(produto, quantidade);
+      setShowSelector(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.from('receita_embalagens').insert({
-        receita_id: receita.id,
+        receita_id: receita!.id,
         produto_id: produto.id,
         quantidade,
       });
 
       if (error) throw error;
       toast.success('Embalagem adicionada');
-      onUpdate();
+      onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao adicionar embalagem:', error);
       toast.error('Erro ao adicionar embalagem');
@@ -33,6 +60,11 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
   };
 
   const handleRemoveEmbalagem = async (id: string) => {
+    if (mode === 'create') {
+      onRemoveTemp?.(id);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('receita_embalagens')
@@ -41,14 +73,16 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
 
       if (error) throw error;
       toast.success('Embalagem removida');
-      onUpdate();
+      onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao remover embalagem:', error);
       toast.error('Erro ao remover embalagem');
     }
   };
 
-  const total = receita.embalagens.reduce((sum, emb) => {
+  const embalagens = mode === 'create' ? tempEmbalagens : (receita?.embalagens || []);
+
+  const total = embalagens.reduce((sum, emb) => {
     if (!emb.produto) return sum;
     const custoUnitario = emb.produto.unidade_uso 
       ? emb.produto.custo_unitario / (emb.produto.fator_conversao || 1)
@@ -66,7 +100,7 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
         </Button>
       </div>
 
-      {receita.embalagens.length === 0 ? (
+      {embalagens.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg">
           Nenhuma embalagem adicionada
         </div>
@@ -83,7 +117,7 @@ export function EmbalagensTa({ receita, onUpdate }: EmbalagensTabProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {receita.embalagens.map((embalagem) => {
+            {embalagens.map((embalagem) => {
               if (!embalagem.produto) return null;
               
               const unidade = embalagem.produto.unidade_uso || embalagem.produto.unidade_compra;
