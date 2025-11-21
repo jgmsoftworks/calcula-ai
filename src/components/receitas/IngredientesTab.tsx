@@ -26,6 +26,7 @@ interface IngredientesTabProps {
   tempIngredientes?: TempIngrediente[];
   onAddTemp?: (produto: any, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
+  onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
 }
 
 export function IngredientesTab({ 
@@ -34,7 +35,8 @@ export function IngredientesTab({
   mode, 
   tempIngredientes = [], 
   onAddTemp, 
-  onRemoveTemp 
+  onRemoveTemp,
+  onUpdateQuantidadeTemp
 }: IngredientesTabProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -59,7 +61,7 @@ export function IngredientesTab({
 
   useEffect(() => {
     if (!search.trim()) {
-      setProdutos([]);
+      setProdutos(allProdutos);
       return;
     }
     const filtered = allProdutos.filter(p => 
@@ -121,12 +123,7 @@ export function IngredientesTab({
     const quantidade = isNaN(parsed) || parsed < 0 ? 0 : parsed;
 
     if (mode === 'create') {
-      // Atualizar diretamente o array temporário no pai
-      const item = tempIngredientes.find(i => i.id === id);
-      if (item && onRemoveTemp && onAddTemp) {
-        onRemoveTemp(id);
-        onAddTemp(item.produto, quantidade);
-      }
+      onUpdateQuantidadeTemp?.(id, quantidade);
       return;
     }
 

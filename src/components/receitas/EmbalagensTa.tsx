@@ -26,6 +26,7 @@ interface EmbalagensTabProps {
   tempEmbalagens?: TempEmbalagem[];
   onAddTemp?: (produto: any, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
+  onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
 }
 
 export function EmbalagensTa({ 
@@ -34,7 +35,8 @@ export function EmbalagensTa({
   mode, 
   tempEmbalagens = [], 
   onAddTemp, 
-  onRemoveTemp 
+  onRemoveTemp,
+  onUpdateQuantidadeTemp
 }: EmbalagensTabProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -59,7 +61,7 @@ export function EmbalagensTa({
 
   useEffect(() => {
     if (!search.trim()) {
-      setProdutos([]);
+      setProdutos(allProdutos);
       return;
     }
     const filtered = allProdutos.filter(p => 
@@ -121,11 +123,7 @@ export function EmbalagensTa({
     const quantidade = isNaN(parsed) || parsed < 0 ? 0 : parsed;
 
     if (mode === 'create') {
-      const item = tempEmbalagens.find(e => e.id === id);
-      if (item && onRemoveTemp && onAddTemp) {
-        onRemoveTemp(id);
-        onAddTemp(item.produto, quantidade);
-      }
+      onUpdateQuantidadeTemp?.(id, quantidade);
       return;
     }
 

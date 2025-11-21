@@ -168,6 +168,12 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     toast.success('Ingrediente removido');
   };
 
+  const handleUpdateQuantidadeIngredienteTemp = (id: string, quantidade: number) => {
+    setTempIngredientes(tempIngredientes.map(i => 
+      i.id === id ? { ...i, quantidade } : i
+    ));
+  };
+
   const handleAddSubReceitaTemp = (subReceita: any, quantidade: number) => {
     setTempSubReceitas([...tempSubReceitas, {
       id: crypto.randomUUID(),
@@ -202,6 +208,12 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const handleRemoveEmbalagemTemp = (id: string) => {
     setTempEmbalagens(tempEmbalagens.filter(e => e.id !== id));
     toast.success('Embalagem removida');
+  };
+
+  const handleUpdateQuantidadeEmbalagemTemp = (id: string, quantidade: number) => {
+    setTempEmbalagens(tempEmbalagens.map(e => 
+      e.id === id ? { ...e, quantidade } : e
+    ));
   };
 
   const handleSave = async () => {
@@ -322,14 +334,15 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             </TabsContent>
 
             <TabsContent value="ingredientes" className="mt-0">
-              <IngredientesTab
-                mode={isCreating ? 'create' : 'edit'}
-                receita={receitaCompleta}
-                onUpdate={loadReceitaCompleta}
-                tempIngredientes={tempIngredientes}
-                onAddTemp={handleAddIngredienteTemp}
-                onRemoveTemp={handleRemoveIngredienteTemp}
-              />
+            <IngredientesTab
+              mode={isCreating ? 'create' : 'edit'}
+              receita={receitaCompleta}
+              onUpdate={loadReceitaCompleta}
+              tempIngredientes={tempIngredientes}
+              onAddTemp={handleAddIngredienteTemp}
+              onRemoveTemp={handleRemoveIngredienteTemp}
+              onUpdateQuantidadeTemp={handleUpdateQuantidadeIngredienteTemp}
+            />
             </TabsContent>
 
             <TabsContent value="sub-receitas" className="mt-0">
@@ -345,14 +358,15 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             </TabsContent>
 
             <TabsContent value="embalagens" className="mt-0">
-              <EmbalagensTa
-                mode={isCreating ? 'create' : 'edit'}
-                receita={receitaCompleta}
-                onUpdate={loadReceitaCompleta}
-                tempEmbalagens={tempEmbalagens}
-                onAddTemp={handleAddEmbalagemTemp}
-                onRemoveTemp={handleRemoveEmbalagemTemp}
-              />
+            <EmbalagensTa
+              mode={isCreating ? 'create' : 'edit'}
+              receita={receitaCompleta}
+              onUpdate={loadReceitaCompleta}
+              tempEmbalagens={tempEmbalagens}
+              onAddTemp={handleAddEmbalagemTemp}
+              onRemoveTemp={handleRemoveEmbalagemTemp}
+              onUpdateQuantidadeTemp={handleUpdateQuantidadeEmbalagemTemp}
+            />
             </TabsContent>
 
             <TabsContent value="projecao" className="mt-0">
