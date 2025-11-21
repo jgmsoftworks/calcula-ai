@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2 } from 'lucide-react';
-import { SelectorProdutos } from './SelectorProdutos';
+import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempEmbalagem {
@@ -34,12 +38,44 @@ export function EmbalagensTa({
   onAddTemp, 
   onRemoveTemp 
 }: EmbalagensTabProps) {
-  const [showSelector, setShowSelector] = useState(false);
+  const { user } = useAuth();
+  const [search, setSearch] = useState('');
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [allProdutos, setAllProdutos] = useState<any[]>([]);
+  const [selectedProduto, setSelectedProduto] = useState<any>(null);
+  const [quantidade, setQuantidade] = useState(1);
+
+  useEffect(() => {
+    loadProdutos();
+  }, [user]);
+
+  const loadProdutos = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('produtos')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('ativo', true)
+      .order('nome');
+    setAllProdutos(data || []);
+    setProdutos(data || []);
+  };
+
+  useEffect(() => {
+    if (!search.trim()) {
+      setProdutos(allProdutos);
+      return;
+    }
+    const filtered = allProdutos.filter(p => 
+      p.nome.toLowerCase().includes(search.toLowerCase()) ||
+      p.codigo_interno?.toString().includes(search)
+    );
+    setProdutos(filtered);
+  }, [search, allProdutos]);
 
   const handleAddEmbalagem = async (produto: any, quantidade: number) => {
     if (mode === 'create') {
       onAddTemp?.(produto, quantidade);
-      setShowSelector(false);
       return;
     }
 
@@ -92,13 +128,43 @@ export function EmbalagensTa({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Embalagens</h3>
-        <Button onClick={() => setShowSelector(true)} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar Embalagem
-        </Button>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar embalagens pelo nome ou código..."
+            className="pl-9"
+          />
+        </div>
       </div>
+
+      {produtos.length > 0 && (
+        <div className="border border-orange-200 bg-orange-50 dark:bg-orange-950 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
+          {produtos.map((produto) => (
+            <div
+              key={produto.id}
+              className="flex items-center justify-between p-3 hover:bg-orange-100 dark:hover:bg-orange-900 rounded transition-colors"
+            >
+              <div className="flex-1">
+                <p className="font-medium">{produto.nome}</p>
+                <p className="text-sm text-muted-foreground">
+                  R$ {produto.custo_unitario.toFixed(4)} / {produto.unidade_uso || produto.unidade_compra}
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => setSelectedProduto(produto)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {embalagens.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg">
@@ -131,15 +197,8 @@ export function EmbalagensTa({
                   <TableCell>{embalagem.produto.nome}</TableCell>
                   <TableCell className="text-right">{embalagem.quantidade}</TableCell>
                   <TableCell className="text-right">{unidade}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-sm">R$ {custoUnitario.toFixed(4)}/{unidade}</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="font-medium">R$ {custoTotal.toFixed(2)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {embalagem.quantidade} × R$ {custoUnitario.toFixed(4)}
-                    </div>
-                  </TableCell>
+                  <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
+                  <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
@@ -161,11 +220,35 @@ export function EmbalagensTa({
         </Table>
       )}
 
-      {showSelector && (
-        <SelectorProdutos
-          onSelect={handleAddEmbalagem}
-          onClose={() => setShowSelector(false)}
-        />
+      {selectedProduto && (
+        <Dialog open onOpenChange={() => setSelectedProduto(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Adicionar {selectedProduto.nome}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Quantidade ({selectedProduto.unidade_uso || selectedProduto.unidade_compra})</Label>
+                <NumericInput
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(Number(e.target.value))}
+                  step={0.01}
+                  min={0}
+                />
+              </div>
+              <Button 
+                onClick={() => {
+                  handleAddEmbalagem(selectedProduto, quantidade);
+                  setSelectedProduto(null);
+                  setQuantidade(1);
+                }}
+                className="w-full"
+              >
+                Confirmar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

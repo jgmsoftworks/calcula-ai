@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2 } from 'lucide-react';
-import { SelectorProdutos } from './SelectorProdutos';
+import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempIngrediente {
@@ -34,12 +38,44 @@ export function IngredientesTab({
   onAddTemp, 
   onRemoveTemp 
 }: IngredientesTabProps) {
-  const [showSelector, setShowSelector] = useState(false);
+  const { user } = useAuth();
+  const [search, setSearch] = useState('');
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [allProdutos, setAllProdutos] = useState<any[]>([]);
+  const [selectedProduto, setSelectedProduto] = useState<any>(null);
+  const [quantidade, setQuantidade] = useState(1);
+
+  useEffect(() => {
+    loadProdutos();
+  }, [user]);
+
+  const loadProdutos = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('produtos')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('ativo', true)
+      .order('nome');
+    setAllProdutos(data || []);
+    setProdutos(data || []);
+  };
+
+  useEffect(() => {
+    if (!search.trim()) {
+      setProdutos(allProdutos);
+      return;
+    }
+    const filtered = allProdutos.filter(p => 
+      p.nome.toLowerCase().includes(search.toLowerCase()) ||
+      p.codigo_interno?.toString().includes(search)
+    );
+    setProdutos(filtered);
+  }, [search, allProdutos]);
 
   const handleAddIngrediente = async (produto: any, quantidade: number) => {
     if (mode === 'create') {
       onAddTemp?.(produto, quantidade);
-      setShowSelector(false);
       return;
     }
 
@@ -92,13 +128,43 @@ export function IngredientesTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Ingredientes</h3>
-        <Button onClick={() => setShowSelector(true)} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar Ingrediente
-        </Button>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar ingredientes pelo nome ou código..."
+            className="pl-9"
+          />
+        </div>
       </div>
+
+      {produtos.length > 0 && (
+        <div className="border border-blue-200 bg-blue-50 dark:bg-blue-950 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
+          {produtos.map((produto) => (
+            <div
+              key={produto.id}
+              className="flex items-center justify-between p-3 hover:bg-blue-100 dark:hover:bg-blue-900 rounded transition-colors"
+            >
+              <div className="flex-1">
+                <p className="font-medium">{produto.nome}</p>
+                <p className="text-sm text-muted-foreground">
+                  R$ {produto.custo_unitario.toFixed(4)} / {produto.unidade_uso || produto.unidade_compra}
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => setSelectedProduto(produto)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {ingredientes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg">
@@ -108,7 +174,7 @@ export function IngredientesTab({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Produto</TableHead>
+              <TableHead>Ingrediente</TableHead>
               <TableHead className="text-right">Quantidade</TableHead>
               <TableHead className="text-right">Unidade</TableHead>
               <TableHead className="text-right">Custo Unit.</TableHead>
@@ -128,27 +194,11 @@ export function IngredientesTab({
 
               return (
                 <TableRow key={ingrediente.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{ingrediente.produto.nome}</div>
-                      {ingrediente.produto.marcas && ingrediente.produto.marcas.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          Marca: {ingrediente.produto.marcas.join(', ')}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
+                  <TableCell>{ingrediente.produto.nome}</TableCell>
                   <TableCell className="text-right">{ingrediente.quantidade}</TableCell>
                   <TableCell className="text-right">{unidade}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-sm">R$ {custoUnitario.toFixed(4)}/{unidade}</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="font-medium">R$ {custoTotal.toFixed(2)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {ingrediente.quantidade} × R$ {custoUnitario.toFixed(4)}
-                    </div>
-                  </TableCell>
+                  <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
+                  <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
@@ -170,11 +220,35 @@ export function IngredientesTab({
         </Table>
       )}
 
-      {showSelector && (
-        <SelectorProdutos
-          onSelect={handleAddIngrediente}
-          onClose={() => setShowSelector(false)}
-        />
+      {selectedProduto && (
+        <Dialog open onOpenChange={() => setSelectedProduto(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Adicionar {selectedProduto.nome}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Quantidade ({selectedProduto.unidade_uso || selectedProduto.unidade_compra})</Label>
+                <NumericInput
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(Number(e.target.value))}
+                  step={0.01}
+                  min={0}
+                />
+              </div>
+              <Button 
+                onClick={() => {
+                  handleAddIngrediente(selectedProduto, quantidade);
+                  setSelectedProduto(null);
+                  setQuantidade(1);
+                }}
+                className="w-full"
+              >
+                Confirmar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

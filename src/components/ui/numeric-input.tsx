@@ -16,6 +16,7 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
     allowNegative = false,
     onWheel,
     onKeyDown,
+    onFocus,
     ...props 
   }, ref) => {
     
@@ -33,6 +34,12 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
       onKeyDown?.(e);
     };
     
+    // Selecionar texto ao focar
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      e.target.select();
+      onFocus?.(e);
+    };
+    
     return (
       <Input
         ref={ref}
@@ -44,6 +51,7 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
         )}
         onWheel={handleWheel}
         onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
         {...props}
       />
     );
