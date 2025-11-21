@@ -111,8 +111,10 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
       }
     };
 
-    const handleFocus = () => {
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
+      // Seleciona todo o texto
+      e.target.select();
       // Ao focar, mostrar apenas os dígitos + vírgula (sem formatação)
       if (safeValue === 0) {
         setDisplayValue('');
@@ -176,7 +178,7 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
         inputMode="decimal"
         value={displayValue}
         onChange={handleChange}
-        onFocus={handleFocus}
+        onFocus={(e) => handleFocus(e)}
         onBlur={handleBlur}
         placeholder={getPlaceholder()}
         disabled={disabled}

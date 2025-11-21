@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, Search, Info, Package } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -289,8 +290,9 @@ export function SubReceitasTab({
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost">
-                    <Plus className="h-4 w-4" />
+                  <Button size="sm" variant="outline">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar
                   </Button>
                 </div>
               ))}
@@ -342,13 +344,12 @@ export function SubReceitasTab({
                     <TableCell>{subReceita.sub_receita.nome}</TableCell>
                     <TableCell>{unidade}</TableCell>
                     <TableCell className="text-right">
-                      <Input
-                        type="number"
+                      <NumericInput
                         value={subReceita.quantidade}
                         onChange={(e) => handleUpdateQuantidade(subReceita.id, Number(e.target.value))}
                         className="w-20 text-right"
-                        min="0"
-                        step="0.01"
+                        min={0}
+                        step={0.01}
                       />
                     </TableCell>
                     <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
