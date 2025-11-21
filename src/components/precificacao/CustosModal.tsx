@@ -370,10 +370,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     });
     
     const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
-      // Usar salario_base se custo_por_hora não estiver disponível
-      const custoMensal = funcionario.custo_por_hora > 0 
-        ? funcionario.custo_por_hora * (funcionario.horas_totais_mes || 173.2)
-        : funcionario.salario_base;
+      // Sempre usar custo_por_hora * horas_totais_mes para obter o custo total
+      // Se custo_por_hora não estiver disponível, o custo será zero (indica dados incompletos)
+      const custoMensal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2);
       return acc + custoMensal;
     }, 0);
     
