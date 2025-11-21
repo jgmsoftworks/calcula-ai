@@ -10,16 +10,39 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import type { ReceitaCompleta, Receita } from '@/types/receitas';
 
-interface SubReceitasTabProps {
-  receita: ReceitaCompleta;
-  onUpdate: () => void;
+interface TempSubReceita {
+  id: string;
+  sub_receita_id: string;
+  quantidade: number;
+  sub_receita: any;
 }
 
-export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
+interface SubReceitasTabProps {
+  // Modo edição
+  receita?: ReceitaCompleta;
+  onUpdate?: () => void;
+  
+  // Modo criação
+  mode: 'create' | 'edit';
+  tempSubReceitas?: TempSubReceita[];
+  onAddTemp?: (subReceita: any, quantidade: number) => void;
+  onRemoveTemp?: (id: string) => void;
+  onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
+}
+
+export function SubReceitasTab({ 
+  receita, 
+  onUpdate, 
+  mode, 
+  tempSubReceitas = [], 
+  onAddTemp, 
+  onRemoveTemp,
+  onUpdateQuantidadeTemp 
+}: SubReceitasTabProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
-  const [receitas, setReceitas] = useState<Receita[]>([]);
-  const [allSubReceitas, setAllSubReceitas] = useState<Receita[]>([]);
+  const [receitas, setReceitas] = useState<any[]>([]);
+  const [allSubReceitas, setAllSubReceitas] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMarkup, setHasMarkup] = useState(true);
 
@@ -61,14 +84,18 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
         .select('*')
         .eq('user_id', user.id)
         .eq('markup_id', markupData.id)
-        .neq('id', receita.id)
         .order('nome');
-
-      if (error) throw error;
       
-      const subReceitas = (data || []) as any[];
-      setAllSubReceitas(subReceitas);
-      setReceitas(subReceitas);
+      // Filtrar receita atual apenas em modo edição
+      if (mode === 'edit' && receita?.id) {
+        const filtered = (data || []).filter(r => r.id !== receita.id);
+        setAllSubReceitas(filtered);
+        setReceitas(filtered);
+      } else {
+        setAllSubReceitas(data || []);
+        setReceitas(data || []);
+      }
+
     } catch (error: any) {
       console.error('Erro ao buscar sub-receitas:', error);
       toast.error('Erro ao carregar sub-receitas');
@@ -91,9 +118,15 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
   }, [search, allSubReceitas]);
 
   const handleAddSubReceita = async (subReceita: Receita) => {
+    if (mode === 'create') {
+      onAddTemp?.(subReceita, 1);
+      setSearch('');
+      return;
+    }
+
     try {
       const { error } = await supabase.from('receita_sub_receitas').insert({
-        receita_id: receita.id,
+        receita_id: receita!.id,
         sub_receita_id: subReceita.id,
         quantidade: 1,
       });
@@ -101,8 +134,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
       if (error) throw error;
       toast.success('Sub-receita adicionada');
       setSearch('');
-      onUpdate();
-      // Recarregar lista para remover a receita adicionada
+      onUpdate?.();
       loadAvailableSubReceitas();
     } catch (error: any) {
       console.error('Erro ao adicionar sub-receita:', error);
@@ -111,6 +143,11 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
   };
 
   const handleRemoveSubReceita = async (id: string) => {
+    if (mode === 'create') {
+      onRemoveTemp?.(id);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('receita_sub_receitas')
@@ -119,7 +156,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
 
       if (error) throw error;
       toast.success('Sub-receita removida');
-      onUpdate();
+      onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao remover sub-receita:', error);
       toast.error('Erro ao remover sub-receita');
@@ -127,6 +164,11 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
   };
 
   const handleUpdateQuantidade = async (id: string, quantidade: number) => {
+    if (mode === 'create') {
+      onUpdateQuantidadeTemp?.(id, quantidade);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('receita_sub_receitas')
@@ -134,14 +176,16 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
         .eq('id', id);
 
       if (error) throw error;
-      onUpdate();
+      onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao atualizar quantidade:', error);
       toast.error('Erro ao atualizar quantidade');
     }
   };
 
-  const total = receita.sub_receitas.reduce((sum, sr) => {
+  const subReceitas = mode === 'create' ? tempSubReceitas : (receita?.sub_receitas || []);
+
+  const total = subReceitas.reduce((sum, sr) => {
     if (!sr.sub_receita) return sum;
     const custoUnitario = sr.sub_receita.rendimento_valor && sr.sub_receita.rendimento_valor > 0
       ? sr.sub_receita.preco_venda / sr.sub_receita.rendimento_valor
@@ -261,7 +305,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
         </>
       )}
 
-      {receita.sub_receitas.length === 0 ? (
+      {subReceitas.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg">
           Nenhuma sub-receita adicionada
         </div>
@@ -284,7 +328,7 @@ export function SubReceitasTab({ receita, onUpdate }: SubReceitasTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {receita.sub_receitas.map((subReceita) => {
+              {subReceitas.map((subReceita) => {
                 if (!subReceita.sub_receita) return null;
                 
                 const custoUnitario = subReceita.sub_receita.rendimento_valor && subReceita.sub_receita.rendimento_valor > 0

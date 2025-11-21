@@ -7,25 +7,52 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ReceitaCompleta } from '@/types/receitas';
 
-interface IngredientesTabProps {
-  receita: ReceitaCompleta;
-  onUpdate: () => void;
+interface TempIngrediente {
+  id: string;
+  produto_id: string;
+  quantidade: number;
+  produto: any;
 }
 
-export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
+interface IngredientesTabProps {
+  // Modo edição
+  receita?: ReceitaCompleta;
+  onUpdate?: () => void;
+  
+  // Modo criação
+  mode: 'create' | 'edit';
+  tempIngredientes?: TempIngrediente[];
+  onAddTemp?: (produto: any, quantidade: number) => void;
+  onRemoveTemp?: (id: string) => void;
+}
+
+export function IngredientesTab({ 
+  receita, 
+  onUpdate, 
+  mode, 
+  tempIngredientes = [], 
+  onAddTemp, 
+  onRemoveTemp 
+}: IngredientesTabProps) {
   const [showSelector, setShowSelector] = useState(false);
 
   const handleAddIngrediente = async (produto: any, quantidade: number) => {
+    if (mode === 'create') {
+      onAddTemp?.(produto, quantidade);
+      setShowSelector(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.from('receita_ingredientes').insert({
-        receita_id: receita.id,
+        receita_id: receita!.id,
         produto_id: produto.id,
         quantidade,
       });
 
       if (error) throw error;
       toast.success('Ingrediente adicionado');
-      onUpdate();
+      onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao adicionar ingrediente:', error);
       toast.error('Erro ao adicionar ingrediente');
@@ -33,6 +60,11 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
   };
 
   const handleRemoveIngrediente = async (id: string) => {
+    if (mode === 'create') {
+      onRemoveTemp?.(id);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('receita_ingredientes')
@@ -41,14 +73,16 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
 
       if (error) throw error;
       toast.success('Ingrediente removido');
-      onUpdate();
+      onUpdate?.();
     } catch (error: any) {
       console.error('Erro ao remover ingrediente:', error);
       toast.error('Erro ao remover ingrediente');
     }
   };
 
-  const total = receita.ingredientes.reduce((sum, ing) => {
+  const ingredientes = mode === 'create' ? tempIngredientes : (receita?.ingredientes || []);
+
+  const total = ingredientes.reduce((sum, ing) => {
     if (!ing.produto) return sum;
     const custoUnitario = ing.produto.unidade_uso 
       ? ing.produto.custo_unitario / (ing.produto.fator_conversao || 1)
@@ -66,7 +100,7 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
         </Button>
       </div>
 
-      {receita.ingredientes.length === 0 ? (
+      {ingredientes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg">
           Nenhum ingrediente adicionado
         </div>
@@ -83,7 +117,7 @@ export function IngredientesTab({ receita, onUpdate }: IngredientesTabProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {receita.ingredientes.map((ingrediente) => {
+            {ingredientes.map((ingrediente) => {
               if (!ingrediente.produto) return null;
               
               const unidade = ingrediente.produto.unidade_uso || ingrediente.produto.unidade_compra;

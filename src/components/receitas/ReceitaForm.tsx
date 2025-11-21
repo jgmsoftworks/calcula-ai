@@ -153,19 +153,137 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   };
 
+  const handleAddIngredienteTemp = (produto: any, quantidade: number) => {
+    setTempIngredientes([...tempIngredientes, {
+      id: crypto.randomUUID(),
+      produto_id: produto.id,
+      quantidade,
+      produto
+    }]);
+    toast.success('Ingrediente adicionado');
+  };
+
+  const handleRemoveIngredienteTemp = (id: string) => {
+    setTempIngredientes(tempIngredientes.filter(i => i.id !== id));
+    toast.success('Ingrediente removido');
+  };
+
+  const handleAddSubReceitaTemp = (subReceita: any, quantidade: number) => {
+    setTempSubReceitas([...tempSubReceitas, {
+      id: crypto.randomUUID(),
+      sub_receita_id: subReceita.id,
+      quantidade,
+      sub_receita: subReceita
+    }]);
+    toast.success('Sub-receita adicionada');
+  };
+
+  const handleRemoveSubReceitaTemp = (id: string) => {
+    setTempSubReceitas(tempSubReceitas.filter(s => s.id !== id));
+    toast.success('Sub-receita removida');
+  };
+
+  const handleUpdateQuantidadeSubReceitaTemp = (id: string, quantidade: number) => {
+    setTempSubReceitas(tempSubReceitas.map(s => 
+      s.id === id ? { ...s, quantidade } : s
+    ));
+  };
+
+  const handleAddEmbalagemTemp = (produto: any, quantidade: number) => {
+    setTempEmbalagens([...tempEmbalagens, {
+      id: crypto.randomUUID(),
+      produto_id: produto.id,
+      quantidade,
+      produto
+    }]);
+    toast.success('Embalagem adicionada');
+  };
+
+  const handleRemoveEmbalagemTemp = (id: string) => {
+    setTempEmbalagens(tempEmbalagens.filter(e => e.id !== id));
+    toast.success('Embalagem removida');
+  };
+
   const handleSave = async () => {
     if (!formData.nome.trim()) {
-      toast.error('Nome é obrigatório');
+      toast.error('Nome da receita é obrigatório');
       return;
     }
 
-    if (receita) {
-      await updateReceita(receita.id, formData);
-    } else {
-      await createReceita(formData);
-    }
+    try {
+      if (isCreating) {
+        // MODO CRIAÇÃO: Salvar tudo de uma vez
+        const novaReceita = await createReceita(formData);
+        if (!novaReceita?.id) {
+          toast.error('Erro ao criar receita');
+          return;
+        }
 
-    onClose();
+        // Inserir ingredientes
+        if (tempIngredientes.length > 0) {
+          const { error: errorIngredientes } = await supabase
+            .from('receita_ingredientes')
+            .insert(
+              tempIngredientes.map(ing => ({
+                receita_id: novaReceita.id,
+                produto_id: ing.produto_id,
+                quantidade: ing.quantidade
+              }))
+            );
+          
+          if (errorIngredientes) throw errorIngredientes;
+        }
+
+        // Inserir sub-receitas
+        if (tempSubReceitas.length > 0) {
+          const { error: errorSubReceitas } = await supabase
+            .from('receita_sub_receitas')
+            .insert(
+              tempSubReceitas.map(sub => ({
+                receita_id: novaReceita.id,
+                sub_receita_id: sub.sub_receita_id,
+                quantidade: sub.quantidade
+              }))
+            );
+          
+          if (errorSubReceitas) throw errorSubReceitas;
+        }
+
+        // Inserir embalagens
+        if (tempEmbalagens.length > 0) {
+          const { error: errorEmbalagens } = await supabase
+            .from('receita_embalagens')
+            .insert(
+              tempEmbalagens.map(emb => ({
+                receita_id: novaReceita.id,
+                produto_id: emb.produto_id,
+                quantidade: emb.quantidade
+              }))
+            );
+          
+          if (errorEmbalagens) throw errorEmbalagens;
+        }
+
+        // Upload de imagem se houver
+        if (imageFile) {
+          await uploadImagemReceita(imageFile, novaReceita.id);
+        }
+
+        toast.success('Receita criada com sucesso!');
+      } else {
+        // MODO EDIÇÃO: Apenas atualizar dados básicos
+        await updateReceita(receita!.id, formData);
+        
+        if (imageFile) {
+          await uploadImagemReceita(imageFile, receita!.id);
+        }
+      }
+
+      onClose();
+    } catch (error: any) {
+      console.error('Erro ao salvar receita:', error);
+      toast.error('Erro ao salvar receita');
+    }
   };
 
   return (
@@ -204,33 +322,37 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             </TabsContent>
 
             <TabsContent value="ingredientes" className="mt-0">
-              {receita && receitaCompleta ? (
-                <IngredientesTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Salve a receita primeiro para adicionar ingredientes
-                </div>
-              )}
+              <IngredientesTab
+                mode={isCreating ? 'create' : 'edit'}
+                receita={receitaCompleta}
+                onUpdate={loadReceitaCompleta}
+                tempIngredientes={tempIngredientes}
+                onAddTemp={handleAddIngredienteTemp}
+                onRemoveTemp={handleRemoveIngredienteTemp}
+              />
             </TabsContent>
 
             <TabsContent value="sub-receitas" className="mt-0">
-              {receita && receitaCompleta ? (
-                <SubReceitasTab receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Salve a receita primeiro para adicionar sub-receitas
-                </div>
-              )}
+              <SubReceitasTab
+                mode={isCreating ? 'create' : 'edit'}
+                receita={receitaCompleta}
+                onUpdate={loadReceitaCompleta}
+                tempSubReceitas={tempSubReceitas}
+                onAddTemp={handleAddSubReceitaTemp}
+                onRemoveTemp={handleRemoveSubReceitaTemp}
+                onUpdateQuantidadeTemp={handleUpdateQuantidadeSubReceitaTemp}
+              />
             </TabsContent>
 
             <TabsContent value="embalagens" className="mt-0">
-              {receita && receitaCompleta ? (
-                <EmbalagensTa receita={receitaCompleta} onUpdate={loadReceitaCompleta} />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Salve a receita primeiro para adicionar embalagens
-                </div>
-              )}
+              <EmbalagensTa
+                mode={isCreating ? 'create' : 'edit'}
+                receita={receitaCompleta}
+                onUpdate={loadReceitaCompleta}
+                tempEmbalagens={tempEmbalagens}
+                onAddTemp={handleAddEmbalagemTemp}
+                onRemoveTemp={handleRemoveEmbalagemTemp}
+              />
             </TabsContent>
 
             <TabsContent value="projecao" className="mt-0">
