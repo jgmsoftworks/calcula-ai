@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 
 interface MarkupBlock {
   id: string;
