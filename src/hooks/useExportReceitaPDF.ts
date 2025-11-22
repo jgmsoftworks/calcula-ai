@@ -92,57 +92,109 @@ export function useExportReceitaPDF() {
       // Criar PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      let currentY = 20;
+      let currentY = 10;
 
-      // Cabeçalho - Nome da Receita
-      doc.setFontSize(18);
+      // === CABEÇALHO PROFISSIONAL ===
+      // Retângulo principal do cabeçalho
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.rect(15, 10, pageWidth - 30, 50);
+
+      // Logo da empresa (canto superior esquerdo)
+      if (profile?.logo_empresa_url) {
+        try {
+          doc.addImage(profile.logo_empresa_url, 'PNG', 20, 15, 40, 40);
+          doc.rect(20, 15, 40, 40); // Borda ao redor do logo
+        } catch (error) {
+          console.error('Erro ao adicionar logo:', error);
+          // Desenhar retângulo vazio como fallback
+          doc.setFillColor(240, 240, 240);
+          doc.rect(20, 15, 40, 40, 'F');
+        }
+      } else {
+        // Retângulo vazio se não tiver logo
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, 15, 40, 40, 'F');
+      }
+
+      // Foto do produto (canto superior direito)
+      if (receita.imagem_url) {
+        try {
+          doc.addImage(receita.imagem_url, 'JPEG', pageWidth - 60, 15, 40, 40);
+          doc.rect(pageWidth - 60, 15, 40, 40); // Borda ao redor da foto
+        } catch (error) {
+          console.error('Erro ao adicionar foto do produto:', error);
+          // Desenhar retângulo vazio como fallback
+          doc.setFillColor(240, 240, 240);
+          doc.rect(pageWidth - 60, 15, 40, 40, 'F');
+        }
+      } else {
+        // Retângulo vazio se não tiver foto
+        doc.setFillColor(240, 240, 240);
+        doc.rect(pageWidth - 60, 15, 40, 40, 'F');
+      }
+
+      currentY = 65;
+
+      // Nome da Receita (centralizado abaixo do cabeçalho)
+      doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
       doc.text(receita.nome, pageWidth / 2, currentY, { align: 'center' });
-      currentY += 10;
+      currentY += 8;
 
       // Linha separadora
+      doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.5);
       doc.line(20, currentY, pageWidth - 20, currentY);
       currentY += 10;
 
-      // Seção Dados
+      // === SEÇÃO DADOS ===
+      // Título com fundo
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, currentY, pageWidth - 40, 7, 'F');
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Dados:', 20, currentY);
-      currentY += 7;
+      doc.setTextColor(0, 0, 0);
+      doc.text('Dados', 22, currentY + 5);
+      currentY += 10;
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       
+      // Cada dado em um retângulo com borda
+      const dadosToShow = [];
       if (receita.tipos_produto?.nome) {
-        doc.text(`Tipo do Produto: ${receita.tipos_produto.nome}`, 25, currentY);
-        currentY += 5;
+        dadosToShow.push(`Tipo do Produto: ${receita.tipos_produto.nome}`);
       }
-      
       if (receita.rendimento_valor && receita.rendimento_unidade) {
-        doc.text(
-          `Rendimento: ${formatQuantidade(receita.rendimento_valor)} ${receita.rendimento_unidade}`,
-          25,
-          currentY
-        );
-        currentY += 5;
+        dadosToShow.push(`Rendimento: ${formatQuantidade(receita.rendimento_valor)} ${receita.rendimento_unidade}`);
+      }
+      if (receita.peso_unitario) {
+        dadosToShow.push(`Peso unitário: ${formatQuantidade(receita.peso_unitario)} g`);
       }
 
-      if (receita.peso_unitario) {
-        doc.text(`Peso unitário: ${formatQuantidade(receita.peso_unitario)} g`, 25, currentY);
-        currentY += 5;
-      }
+      dadosToShow.forEach((dado) => {
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(20, currentY, pageWidth - 40, 7);
+        doc.text(dado, 22, currentY + 5);
+        currentY += 7;
+      });
 
       currentY += 5;
 
-      // Seção Conservação (se existir)
+      // === SEÇÃO CONSERVAÇÃO ===
       if (receita.conservacao) {
         const conservacao = receita.conservacao as ConservacaoData;
         
+        // Título com fundo
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, currentY, pageWidth - 40, 7, 'F');
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Conservação:', 20, currentY);
-        currentY += 7;
+        doc.setTextColor(0, 0, 0);
+        doc.text('Conservação', 22, currentY + 5);
+        currentY += 10;
 
         // Tabela de conservação
         const conservacaoData = [];
@@ -173,20 +225,32 @@ export function useExportReceitaPDF() {
           const colWidths = [50, 50, 50];
           const headers = ['Local', 'Temp. °C', 'Tempo'];
 
-          // Cabeçalho da tabela
-          doc.setFillColor(240, 240, 240);
-          doc.rect(20, tableStartY, colWidths[0] + colWidths[1] + colWidths[2], 7, 'F');
+          // Cabeçalho da tabela com fundo cinza escuro
+          doc.setDrawColor(200, 200, 200);
+          doc.setFillColor(220, 220, 220);
+          doc.rect(20, tableStartY, colWidths[0] + colWidths[1] + colWidths[2], 7, 'FD');
           doc.setFontSize(9);
           doc.setFont('helvetica', 'bold');
-          doc.text(headers[0], 22, tableStartY + 5);
-          doc.text(headers[1], 22 + colWidths[0], tableStartY + 5);
-          doc.text(headers[2], 22 + colWidths[0] + colWidths[1], tableStartY + 5);
+          doc.setTextColor(0, 0, 0);
+          
+          let xPos = 22;
+          headers.forEach((header, i) => {
+            doc.text(header, xPos, tableStartY + 5);
+            xPos += colWidths[i];
+          });
+          
           currentY = tableStartY + 7;
 
-          // Linhas da tabela
+          // Linhas da tabela com bordas
           doc.setFont('helvetica', 'normal');
           conservacaoData.forEach((row) => {
+            doc.setDrawColor(200, 200, 200);
             doc.rect(20, currentY, colWidths[0] + colWidths[1] + colWidths[2], 7);
+            
+            // Bordas verticais entre colunas
+            doc.line(20 + colWidths[0], currentY, 20 + colWidths[0], currentY + 7);
+            doc.line(20 + colWidths[0] + colWidths[1], currentY, 20 + colWidths[0] + colWidths[1], currentY + 7);
+            
             doc.text(row[0], 22, currentY + 5);
             doc.text(row[1], 22 + colWidths[0], currentY + 5);
             doc.text(row[2], 22 + colWidths[0] + colWidths[1], currentY + 5);
@@ -197,7 +261,7 @@ export function useExportReceitaPDF() {
         }
       }
 
-      // Função auxiliar para criar tabelas de itens
+      // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS ===
       const createItemTable = (
         title: string,
         items: any[],
@@ -205,19 +269,27 @@ export function useExportReceitaPDF() {
       ) => {
         if (items.length === 0) return;
 
+        // Título com fundo
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, currentY, pageWidth - 40, 7, 'F');
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text(title, 20, currentY);
-        currentY += 7;
+        doc.setTextColor(0, 0, 0);
+        doc.text(title, 22, currentY + 5);
+        currentY += 10;
 
         // Cabeçalho da tabela
         const colWidths = [50, 15, 25, 25, 25, 25];
         const tableStartY = currentY;
+        const totalWidth = colWidths.reduce((a, b) => a + b);
 
-        doc.setFillColor(240, 240, 240);
-        doc.rect(20, tableStartY, colWidths.reduce((a, b) => a + b), 7, 'F');
+        // Cabeçalho com fundo cinza escuro
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(220, 220, 220);
+        doc.rect(20, tableStartY, totalWidth, 7, 'FD');
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
 
         let xPos = 22;
         const headers = ['Ingrediente', 'Un.', 'Marcas', '1 Receita', '2 Receitas', '3 Receitas'];
@@ -242,7 +314,16 @@ export function useExportReceitaPDF() {
             currentY = 20;
           }
 
-          doc.rect(20, currentY, colWidths.reduce((a, b) => a + b), 7);
+          // Retângulo da linha com bordas
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(20, currentY, totalWidth, 7);
+
+          // Bordas verticais entre colunas
+          let cumulativeWidth = 20;
+          colWidths.slice(0, -1).forEach((width) => {
+            cumulativeWidth += width;
+            doc.line(cumulativeWidth, currentY, cumulativeWidth, currentY + 7);
+          });
 
           xPos = 22;
           doc.text(itemData.nome.substring(0, 30), xPos, currentY + 5);
@@ -311,7 +392,7 @@ export function useExportReceitaPDF() {
         );
       }
 
-      // Seção Modo de Preparo
+      // === SEÇÃO MODO DE PREPARO ===
       if (passos.length > 0) {
         // Verificar se precisa de nova página
         if (currentY > 200) {
@@ -319,46 +400,65 @@ export function useExportReceitaPDF() {
           currentY = 20;
         }
 
+        // Título com fundo
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, currentY, pageWidth - 40, 7, 'F');
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Modo de Preparo:', 20, currentY);
-        currentY += 7;
+        doc.setTextColor(0, 0, 0);
+        doc.text('Modo de Preparo', 22, currentY + 5);
+        currentY += 10;
 
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
 
         passos.forEach((passo: any, index: number) => {
           // Verificar se precisa de nova página
-          if (currentY > 270) {
+          if (currentY > 260) {
             doc.addPage();
             currentY = 20;
           }
 
           const numero = passo.ordem ?? index + 1;
-          const text = `${numero}. ${passo.descricao}`;
-          const lines = doc.splitTextToSize(text, pageWidth - 45);
           
-          lines.forEach((line: string) => {
+          // Número do passo em bold
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${numero}.`, 25, currentY);
+          
+          // Descrição com wrap automático
+          doc.setFont('helvetica', 'normal');
+          const descricaoLines = doc.splitTextToSize(passo.descricao, pageWidth - 50);
+          
+          descricaoLines.forEach((line: string, lineIndex: number) => {
             if (currentY > 270) {
               doc.addPage();
               currentY = 20;
             }
-            doc.text(line, 25, currentY);
+            // Primeiro linha alinhada com o número, demais linhas indentadas
+            const xOffset = lineIndex === 0 ? 32 : 32;
+            doc.text(line, xOffset, currentY);
             currentY += 5;
           });
 
-          currentY += 2;
+          currentY += 3; // Espaço entre passos
         });
       }
 
-      // Rodapé com dados da empresa (em todas as páginas)
+      // === RODAPÉ COM DADOS DA EMPRESA (em todas as páginas) ===
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         
-        doc.setFontSize(8);
+        const footerY = doc.internal.pageSize.getHeight() - 15;
+        
+        // Linha separadora acima do rodapé
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(20, footerY - 3, pageWidth - 20, footerY - 3);
+        
+        // Texto do rodapé
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        const footerY = doc.internal.pageSize.getHeight() - 10;
+        doc.setTextColor(100, 100, 100);
         
         const footerParts = [];
         if (profile?.business_name) footerParts.push(profile.business_name);
@@ -367,7 +467,7 @@ export function useExportReceitaPDF() {
         if (telefone) footerParts.push(`Tel: ${telefone}`);
         
         if (footerParts.length > 0) {
-          doc.text(footerParts.join(' | '), pageWidth / 2, footerY, { align: 'center' });
+          doc.text(footerParts.join(' | '), pageWidth / 2, footerY + 2, { align: 'center' });
         }
       }
 
