@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Download, Eye, Package } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { useAuth } from '@/hooks/useAuth';
+import { useExportReceitaPDF } from '@/hooks/useExportReceitaPDF';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaComDados, ReceitaCompleta } from '@/types/receitas';
@@ -30,6 +31,7 @@ interface ReceitaCardProps {
 export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
   const { deleteReceita, fetchReceitaCompleta } = useReceitas();
   const { user } = useAuth();
+  const { exportarReceitaPDF, exporting: exportingPDF } = useExportReceitaPDF();
   const [markupDetalhes, setMarkupDetalhes] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
@@ -122,6 +124,10 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    await exportarReceitaPDF(receita.id);
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardContent className="p-6">
@@ -159,7 +165,13 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" title="Baixar">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    title="Baixar Ficha Técnica"
+                    onClick={handleDownloadPDF}
+                    disabled={exportingPDF}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                   <Button 
