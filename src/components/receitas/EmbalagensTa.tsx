@@ -7,6 +7,7 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempEmbalagem {
@@ -175,7 +176,7 @@ export function EmbalagensTa({
               <div className="flex-1">
                 <p className="font-medium">{produto.nome}</p>
                 <p className="text-sm text-muted-foreground">
-                  R$ {produto.custo_unitario.toFixed(4)} / {produto.unidade_uso || produto.unidade_compra}
+                  R$ {formatNumber(produto.custo_unitario, 4)} / {produto.unidade_uso || produto.unidade_compra}
                 </p>
               </div>
               <Button 
@@ -228,8 +229,8 @@ export function EmbalagensTa({
                     />
                   </TableCell>
                   <TableCell className="text-right">{unidade}</TableCell>
-                  <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
-                  <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">R$ {formatNumber(custoUnitario, 4)}</TableCell>
+                  <TableCell className="text-right">R$ {formatBRL(custoTotal)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
@@ -244,7 +245,7 @@ export function EmbalagensTa({
             })}
             <TableRow>
               <TableCell colSpan={4} className="text-right font-semibold">Total:</TableCell>
-              <TableCell className="text-right font-semibold">R$ {total.toFixed(2)}</TableCell>
+              <TableCell className="text-right font-semibold">R$ {formatBRL(total)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
           </TableBody>

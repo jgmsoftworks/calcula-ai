@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import SolicitarOrcamentoModal from '@/components/marketplace/SolicitarOrcamentoModal';
+import { formatNumber } from '@/lib/formatters';
 
 interface Fornecedor {
   id: string;
@@ -264,7 +265,7 @@ export default function MarketplaceFornecedores() {
                           <div className="flex items-center">
                             <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                             <span className="text-sm font-medium ml-1">
-                              {fornecedor.rating.toFixed(1)}
+                              {formatNumber(fornecedor.rating, 1)}
                             </span>
                           </div>
                         </div>

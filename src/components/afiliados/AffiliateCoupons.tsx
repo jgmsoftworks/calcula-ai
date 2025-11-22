@@ -13,6 +13,7 @@ import { Plus, Percent, DollarSign, Calendar, Users, ToggleLeft, ToggleRight, Tr
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAffiliates } from "@/hooks/useAffiliates";
+import { formatBRL } from '@/lib/formatters';
 
 interface AffiliateCoupon {
   id: string;
@@ -265,7 +266,7 @@ export function AffiliateCoupons() {
     if (type === 'percentage') {
       return `${value}%`;
     }
-    return `R$ ${value.toFixed(2)}`;
+    return `R$ ${formatBRL(value)}`;
   };
 
   const isExpired = (expiresAt: string | null) => {

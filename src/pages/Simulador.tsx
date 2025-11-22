@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SimuladorModal } from "@/components/simulador/SimuladorModal";
 import { PlanRestrictedArea } from "@/components/planos/PlanRestrictedArea";
+import { formatNumber } from '@/lib/formatters';
 
 interface Receita {
   id: string;
@@ -265,7 +266,7 @@ export default function Simulador() {
                 <div>
                   <p className="text-sm text-muted-foreground">Margem Média</p>
                   <p className="text-2xl font-bold">
-                    {(receitas.reduce((acc, r) => acc + calcularPercentualLucro(r.preco_venda, r.custo_total), 0) / receitas.length).toFixed(1)}%
+                    {formatNumber(receitas.reduce((acc, r) => acc + calcularPercentualLucro(r.preco_venda, r.custo_total), 0) / receitas.length, 1)}%
                   </p>
                 </div>
               </div>
@@ -337,7 +338,7 @@ export default function Simulador() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Lucro:</span>
                       <span className={`font-semibold ${isLucro ? 'text-green-600' : 'text-red-600'}`}>
-                        {percentualLucro.toFixed(1)}%
+                        {formatNumber(percentualLucro, 1)}%
                       </span>
                     </div>
 

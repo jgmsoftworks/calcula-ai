@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Check, Star, Crown, Zap, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatBRL } from '@/lib/formatters';
 
 interface PlanData {
   name: string;
@@ -128,9 +129,9 @@ const AffiliatePlanSelector = () => {
   const formatPrice = (price: number, billing: 'monthly' | 'yearly') => {
     const monthlyPrice = billing === 'yearly' ? price / 12 : price;
     return {
-      main: `R$ ${monthlyPrice.toFixed(2).replace('.', ',')}`,
+      main: `R$ ${formatBRL(monthlyPrice)}`,
       period: '/mês',
-      total: billing === 'yearly' ? `Cobrado R$ ${price.toFixed(2).replace('.', ',')} anualmente` : ''
+      total: billing === 'yearly' ? `Cobrado R$ ${formatBRL(price)} anualmente` : ''
     };
   };
 

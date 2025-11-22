@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatNumber } from '@/lib/formatters';
 import {
   Tooltip,
   TooltipContent,
@@ -80,19 +81,19 @@ export const FinancialHealthScore = () => {
         if (margemMedia >= 40) {
           margemScore = 100;
           margemStatus = 'excellent';
-          margemDesc = `Excelente! Margem média de ${margemMedia.toFixed(1)}%`;
+          margemDesc = `Excelente! Margem média de ${formatNumber(margemMedia, 1)}%`;
         } else if (margemMedia >= 30) {
           margemScore = 80;
           margemStatus = 'good';
-          margemDesc = `Boa margem média de ${margemMedia.toFixed(1)}%`;
+          margemDesc = `Boa margem média de ${formatNumber(margemMedia, 1)}%`;
         } else if (margemMedia >= 20) {
           margemScore = 60;
           margemStatus = 'warning';
-          margemDesc = `Margem média de ${margemMedia.toFixed(1)}% - pode melhorar`;
+          margemDesc = `Margem média de ${formatNumber(margemMedia, 1)}% - pode melhorar`;
         } else {
           margemScore = 40;
           margemStatus = 'critical';
-          margemDesc = `Margem baixa de ${margemMedia.toFixed(1)}% - atenção!`;
+          margemDesc = `Margem baixa de ${formatNumber(margemMedia, 1)}% - atenção!`;
         }
       }
 
@@ -147,19 +148,19 @@ export const FinancialHealthScore = () => {
           if (variacaoMedia <= 10) {
             consistenciaScore = 100;
             consistenciaStatus = 'excellent';
-            consistenciaDesc = `Custos estáveis - variação de ${variacaoMedia.toFixed(1)}%`;
+            consistenciaDesc = `Custos estáveis - variação de ${formatNumber(variacaoMedia, 1)}%`;
           } else if (variacaoMedia <= 20) {
             consistenciaScore = 75;
             consistenciaStatus = 'good';
-            consistenciaDesc = `Custos controlados - variação de ${variacaoMedia.toFixed(1)}%`;
+            consistenciaDesc = `Custos controlados - variação de ${formatNumber(variacaoMedia, 1)}%`;
           } else if (variacaoMedia <= 35) {
             consistenciaScore = 50;
             consistenciaStatus = 'warning';
-            consistenciaDesc = `Custos variando ${variacaoMedia.toFixed(1)}% - atenção`;
+            consistenciaDesc = `Custos variando ${formatNumber(variacaoMedia, 1)}% - atenção`;
           } else {
             consistenciaScore = 30;
             consistenciaStatus = 'critical';
-            consistenciaDesc = `Alta variação de ${variacaoMedia.toFixed(1)}% nos custos`;
+            consistenciaDesc = `Alta variação de ${formatNumber(variacaoMedia, 1)}% nos custos`;
           }
         } else {
           consistenciaScore = 70;
@@ -199,7 +200,7 @@ export const FinancialHealthScore = () => {
         } else if (percentualPrecificado >= 80) {
           precificacaoScore = 80;
           precificacaoStatus = 'good';
-          precificacaoDesc = `${percentualPrecificado.toFixed(0)}% das receitas precificadas`;
+          precificacaoDesc = `${formatNumber(percentualPrecificado, 0)}% das receitas precificadas`;
         } else if (percentualPrecificado >= 50) {
           precificacaoScore = 60;
           precificacaoStatus = 'warning';

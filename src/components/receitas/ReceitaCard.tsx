@@ -6,6 +6,7 @@ import { Edit, Trash2, Download, Eye, Store, Package } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaComDados } from '@/types/receitas';
 import {
   AlertDialog,
@@ -206,19 +207,19 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
               <div className="grid grid-cols-4 gap-3">
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Custo M.O.</div>
-                  <div className="font-semibold">R$ {(receita.custo_mao_obra || 0).toFixed(2)}</div>
+                  <div className="font-semibold">R$ {formatBRL(receita.custo_mao_obra || 0)}</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Custo Matéria-Prima</div>
-                  <div className="font-semibold">R$ {(receita.custo_ingredientes || 0).toFixed(2)}</div>
+                  <div className="font-semibold">R$ {formatBRL(receita.custo_ingredientes || 0)}</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Custo Embalagem</div>
-                  <div className="font-semibold">R$ {(receita.custo_embalagens || 0).toFixed(2)}</div>
+                  <div className="font-semibold">R$ {formatBRL(receita.custo_embalagens || 0)}</div>
                 </div>
                 <div className="text-center p-2 bg-primary text-primary-foreground rounded">
                   <div className="text-xs">Custo Total</div>
-                  <div className="font-semibold">R$ {custoTotal.toFixed(2)}</div>
+                  <div className="font-semibold">R$ {formatBRL(custoTotal)}</div>
                 </div>
               </div>
 
@@ -226,18 +227,18 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
               <div className="grid grid-cols-3 gap-3">
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Preço Venda</div>
-                  <div className="font-semibold">R$ {receita.preco_venda.toFixed(2)}</div>
+                  <div className="font-semibold">R$ {formatBRL(receita.preco_venda)}</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Lucro Bruto</div>
                   <div className={`font-semibold ${lucroBruto > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    R$ {lucroBruto.toFixed(2)}
+                    R$ {formatBRL(lucroBruto)}
                   </div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded">
                   <div className="text-xs text-muted-foreground">Lucro Líquido</div>
                   <div className={`font-semibold ${lucroLiquido > 0 ? 'text-green-600' : lucroLiquido < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                    {markupDetalhes ? `R$ ${lucroLiquido.toFixed(2)}` : '—'}
+                    {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
                   </div>
                 </div>
               </div>

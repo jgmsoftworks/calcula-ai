@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DollarSign, Clock, CheckCircle, XCircle } from "lucide-react";
+import { formatBRL } from '@/lib/formatters';
 
 interface PaymentRequest {
   id: string;
@@ -199,7 +200,7 @@ export function AffiliatePaymentSystem() {
                       {request.affiliate_name}
                     </TableCell>
                     <TableCell>
-                      R$ {request.amount.toFixed(2)}
+                      R$ {formatBRL(request.amount)}
                     </TableCell>
                     <TableCell>
                       {request.pix_key || 'Não informado'}
@@ -225,7 +226,7 @@ export function AffiliatePaymentSystem() {
                           <DialogHeader>
                             <DialogTitle>Processar Pagamento</DialogTitle>
                             <DialogDescription>
-                              Confirme o pagamento para {request.affiliate_name} no valor de R$ {request.amount.toFixed(2)}
+                              Confirme o pagamento para {request.affiliate_name} no valor de R$ {formatBRL(request.amount)}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4">

@@ -8,6 +8,7 @@ import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, CheckCircle, AlertCircle, CreditCard, Check, X } from 'lucide-react';
+import { formatBRL } from '@/lib/formatters';
 
 const Planos = () => {
   const { currentPlan, planInfo, loading, reloadPlan } = usePlanLimits();
@@ -90,7 +91,7 @@ const Planos = () => {
   };
 
   const formatPrice = (price: number) => {
-    return price === 0 ? 'Grátis' : `R$ ${price.toFixed(2).replace('.', ',')}`;
+    return price === 0 ? 'Grátis' : `R$ ${formatBRL(price)}`;
   };
 
   if (loading) {

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaCompleta, Receita } from '@/types/receitas';
 
 interface TempSubReceita {
@@ -286,7 +287,7 @@ export function SubReceitasTab({
                     <div>
                       <p className="font-medium">{r.nome}</p>
                       <p className="text-sm text-muted-foreground">
-                        R$ {r.preco_venda.toFixed(2)} / {r.rendimento_unidade || 'un'}
+                        R$ {formatBRL(r.preco_venda)} / {r.rendimento_unidade || 'un'}
                       </p>
                     </div>
                   </div>
@@ -312,10 +313,10 @@ export function SubReceitasTab({
           Nenhuma sub-receita adicionada
         </div>
       ) : (
-        <div className="space-y-4">
+          <div className="space-y-4">
           <div className="flex justify-end">
             <Badge variant="secondary" className="text-base px-4 py-2">
-              Total: R$ {total.toFixed(2)}
+              Total: R$ {formatBRL(total)}
             </Badge>
           </div>
           <Table>
@@ -352,8 +353,8 @@ export function SubReceitasTab({
                         step={0.01}
                       />
                     </TableCell>
-                    <TableCell className="text-right">R$ {custoUnitario.toFixed(4)}</TableCell>
-                    <TableCell className="text-right">R$ {custoTotal.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {formatNumber(custoUnitario, 4)}</TableCell>
+                    <TableCell className="text-right">R$ {formatBRL(custoTotal)}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"

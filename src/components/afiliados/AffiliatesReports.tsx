@@ -8,6 +8,7 @@ import { useAffiliates } from "@/hooks/useAffiliates";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Download, TrendingUp, Users, DollarSign, Percent, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatBRL, formatNumber } from '@/lib/formatters';
 
 export function AffiliatesReports() {
   const { affiliates, affiliateLinks, affiliateSales, affiliateCommissions, loading } = useAffiliates();
@@ -92,7 +93,7 @@ export function AffiliatesReports() {
     return Object.entries(planCounts).map(([plan, count]) => ({
       name: plan.charAt(0).toUpperCase() + plan.slice(1),
       value: count,
-      percentage: ((count / filteredSales.length) * 100).toFixed(1)
+      percentage: formatNumber((count / filteredSales.length) * 100, 1)
     }));
   };
 
@@ -117,14 +118,14 @@ export function AffiliatesReports() {
         const affiliate = affiliates.find(a => a.name === data.name);
         const links = affiliateLinks.filter(l => l.affiliate_id === affiliate?.id);
         const totalClicks = links.reduce((sum, l) => sum + l.clicks_count, 0);
-        const conversao = totalClicks > 0 ? (data.vendas / totalClicks * 100).toFixed(2) : '0.00';
+        const conversao = totalClicks > 0 ? formatNumber(data.vendas / totalClicks * 100, 2) : '0,00';
         
         return [
           data.name,
           affiliate?.email || '',
           data.vendas.toString(),
-          `R$ ${data.valor.toFixed(2)}`,
-          `R$ ${data.comissao.toFixed(2)}`,
+          `R$ ${formatBRL(data.valor)}`,
+          `R$ ${formatBRL(data.comissao)}`,
           `${conversao}%`
         ];
       })
@@ -390,7 +391,7 @@ export function AffiliatesReports() {
                   <TableCell>R$ {link.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell>
                     <Badge variant={link.conversao > 5 ? "default" : link.conversao > 2 ? "secondary" : "outline"}>
-                      {link.conversao.toFixed(2)}%
+                      {formatNumber(link.conversao, 2)}%
                     </Badge>
                   </TableCell>
                 </TableRow>
