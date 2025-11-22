@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Download, Eye, Store, Package } from 'lucide-react';
+import { Edit, Trash2, Download, Eye, Package } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -148,9 +148,6 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(receita)}>
                     <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" title="Vitrine">
-                    <Store className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
