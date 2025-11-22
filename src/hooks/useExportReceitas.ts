@@ -50,23 +50,28 @@ export function useExportReceitas() {
         }
       }
 
-      // Função para calcular simulação de preços
+      // Função para calcular simulação de preços (EXATAMENTE igual ao MarkupCard.tsx)
       const calcularSimulacao = (receita: ReceitaComDados) => {
         const custoTotal = (receita.custo_ingredientes || 0) + 
                           (receita.custo_embalagens || 0) + 
                           (receita.custo_mao_obra || 0) + 
                           (receita.custo_sub_receitas || 0);
 
-        // Calcular custo base exatamente como no MarkupCard
-        const custoBase = receita.markup?.tipo === 'sub_receita' 
-          ? custoTotal
-          : (receita.rendimento_valor && receita.rendimento_valor > 0 
-              ? custoTotal / receita.rendimento_valor 
-              : custoTotal);
+        // Determinar o custo base (unitário ou total) - IGUAL ao MarkupCard linha 146-154
+        let custoBase: number;
         
+        // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
+        if (receita.markup?.tipo !== 'sub_receita' && receita.rendimento_valor && receita.rendimento_valor > 0) {
+          custoBase = custoTotal / receita.rendimento_valor;
+        } else {
+          // Markup de sub-receita OU sem rendimento = usar custo total
+          custoBase = custoTotal;
+        }
+        
+        // Lucro bruto sempre calculado
         const lucroBruto = receita.preco_venda - custoBase;
 
-        // Se não houver markup base (tabela markups), não há simulação de sugestão de preço
+        // Se não houver markup selecionado, retornar apenas lucro bruto
         if (!markupBase) {
           return {
             lucroLiquido: 0,
@@ -75,9 +80,10 @@ export function useExportReceitas() {
           };
         }
         
+        // Valor em Real do bloco (taxa fixa por venda) - MarkupCard linha 135
         const valorEmRealBloco = markupDetalhes?.valorEmReal ?? 0;
         
-        // Pegar os percentuais do bloco (como no MarkupCard)
+        // Pegar os percentuais do bloco - IGUAL ao MarkupCard linha 138-143
         const totalPercentuais = (markupDetalhes?.gastoSobreFaturamento ?? 0) + 
                                 (markupDetalhes?.impostos ?? 0) + 
                                 (markupDetalhes?.taxas ?? 0) + 
@@ -85,37 +91,37 @@ export function useExportReceitas() {
                                 (markupDetalhes?.outros ?? 0) + 
                                 (markupDetalhes?.lucroDesejado ?? markupBase.margem_lucro);
 
-        // Cálculo do lucro líquido (mantém lógica atual, usando percentuais)
+        let precoSugerido: number;
+        let baseCalculo: number;
+
+        // CASO 1: COM "Valor em Real" - IGUAL ao MarkupCard linha 160-163
+        if (valorEmRealBloco > 0) {
+          baseCalculo = custoBase + valorEmRealBloco;
+          const divisor = 1 - (totalPercentuais / 100);
+          precoSugerido = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+        } 
+        // CASO 2: SEM "Valor em Real" - IGUAL ao MarkupCard linha 166-168
+        else {
+          baseCalculo = custoBase;
+          precoSugerido = custoBase * markupBase.markup_ideal;
+        }
+        
+        // Calcular lucro líquido considerando TODOS os custos indiretos - IGUAL ao MarkupCard linha 179-189
         const gastosReais = receita.preco_venda * ((markupDetalhes?.gastoSobreFaturamento ?? 0) / 100);
         const impostosReais = receita.preco_venda * ((markupDetalhes?.impostos ?? 0) / 100);
         const taxasReais = receita.preco_venda * ((markupDetalhes?.taxas ?? 0) / 100);
         const comissoesReais = receita.preco_venda * ((markupDetalhes?.comissoes ?? 0) / 100);
         const outrosReais = receita.preco_venda * ((markupDetalhes?.outros ?? 0) / 100);
-        
+
         const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
         const custosDirectosCompletos = custoBase + valorEmRealBloco;
-        
-        const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
-        
-        // Calcular sugestão de preço (EXATAMENTE igual ao MarkupCard)
-        let sugestaoPreco: number;
-        let baseCalculo: number;
 
-        if (valorEmRealBloco > 0) {
-          // CASO 1: COM "Valor em Real" → mesma fórmula do MarkupCard
-          baseCalculo = custoBase + valorEmRealBloco;
-          const divisor = 1 - (totalPercentuais / 100);
-          sugestaoPreco = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
-        } else {
-          // CASO 2: SEM "Valor em Real" → fórmula tradicional do markup
-          // baseCalculo é o custo base e multiplicamos por markup.markup_ideal
-          baseCalculo = custoBase;
-          sugestaoPreco = custoBase * (markupBase.markup_ideal || 1);
-        }
+        // Lucro líquido REAL = Preço - Custos Diretos - Custos Indiretos
+        const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
         
         return {
           lucroLiquido,
-          sugestaoPreco,
+          sugestaoPreco: precoSugerido,
           lucroBruto
         };
       };
