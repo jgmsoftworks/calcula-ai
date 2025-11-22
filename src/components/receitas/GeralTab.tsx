@@ -170,6 +170,43 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
     }
   };
 
+  const handleRemoveImage = async () => {
+    if (!receita) return;
+    
+    try {
+      setUploadingImage(true);
+      
+      // Atualizar receita no banco para remover imagem_url
+      const { error: updateError } = await supabase
+        .from('receitas')
+        .update({ imagem_url: null })
+        .eq('id', receita.id);
+      
+      if (updateError) throw updateError;
+      
+      // Deletar arquivo do storage
+      if (receita.imagem_url) {
+        const fileName = receita.imagem_url.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('receitas-images')
+            .remove([`${receita.user_id}/${fileName}`]);
+        }
+      }
+      
+      // Limpar preview local
+      setImagePreview(null);
+      
+      toast.success('Imagem removida!');
+      onUpdate();
+    } catch (error) {
+      console.error('Erro ao remover imagem:', error);
+      toast.error('Erro ao remover imagem');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Indicador de Markup Ativo */}
@@ -214,16 +251,25 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
                   alt="Imagem da receita"
                   className="w-full h-full object-cover"
                 />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="absolute bottom-2 right-2"
-                  onClick={() => document.getElementById('image-upload')?.click()}
-                  disabled={uploadingImage}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Alterar
-                </Button>
+                <div className="absolute bottom-2 right-2 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                    disabled={uploadingImage}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Alterar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRemoveImage}
+                    disabled={uploadingImage}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </>
             ) : (
               <label 
