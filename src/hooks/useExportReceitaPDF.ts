@@ -66,10 +66,6 @@ export function useExportReceitaPDF() {
               marcas
             )
           ),
-          receita_passos_preparo (
-            ordem,
-            descricao
-          ),
           tipos_produto (
             nome
           )
@@ -79,6 +75,19 @@ export function useExportReceitaPDF() {
 
       if (receitaError) throw receitaError;
       if (!receita) throw new Error('Receita não encontrada');
+
+      // Buscar passos de preparo em query separada
+      const { data: passosPreparo, error: passosError } = await supabase
+        .from('receita_passos_preparo')
+        .select('ordem, descricao')
+        .eq('receita_id', receitaId)
+        .order('ordem', { ascending: true });
+
+      if (passosError) {
+        console.error('Erro ao buscar passos de preparo para o PDF:', passosError);
+      }
+
+      const passos = passosPreparo ?? [];
 
       // Criar PDF
       const doc = new jsPDF();
@@ -303,7 +312,7 @@ export function useExportReceitaPDF() {
       }
 
       // Seção Modo de Preparo
-      if (receita.receita_passos_preparo && receita.receita_passos_preparo.length > 0) {
+      if (passos.length > 0) {
         // Verificar se precisa de nova página
         if (currentY > 200) {
           doc.addPage();
@@ -318,16 +327,15 @@ export function useExportReceitaPDF() {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
 
-        const passos = [...receita.receita_passos_preparo].sort((a: any, b: any) => a.ordem - b.ordem);
-
-        passos.forEach((passo: any) => {
+        passos.forEach((passo: any, index: number) => {
           // Verificar se precisa de nova página
           if (currentY > 270) {
             doc.addPage();
             currentY = 20;
           }
 
-          const text = `${passo.ordem}. ${passo.descricao}`;
+          const numero = passo.ordem ?? index + 1;
+          const text = `${numero}. ${passo.descricao}`;
           const lines = doc.splitTextToSize(text, pageWidth - 45);
           
           lines.forEach((line: string) => {
