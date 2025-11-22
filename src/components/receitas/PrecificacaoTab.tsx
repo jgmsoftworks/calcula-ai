@@ -28,7 +28,12 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   useEffect(() => {
     const calcularCustoTotal = () => {
-      const custoIngredientes = receita.ingredientes.reduce((sum, i) => {
+      const ingredientes = receita?.ingredientes ?? [];
+      const embalagens = receita?.embalagens ?? [];
+      const maoObra = receita?.mao_obra ?? [];
+      const subReceitas = receita?.sub_receitas ?? [];
+
+      const custoIngredientes = ingredientes.reduce((sum, i) => {
         if (!i.produto) return sum;
         const custoUnitario = i.produto.unidade_uso 
           ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
@@ -36,7 +41,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         return sum + (custoUnitario * i.quantidade);
       }, 0);
       
-      const custoEmbalagens = receita.embalagens.reduce((sum, e) => {
+      const custoEmbalagens = embalagens.reduce((sum, e) => {
         if (!e.produto) return sum;
         const custoUnitario = e.produto.unidade_uso 
           ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
@@ -44,9 +49,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         return sum + (custoUnitario * e.quantidade);
       }, 0);
       
-      const custoMaoObra = receita.mao_obra.reduce((sum, m) => sum + m.valor_total, 0);
+      const custoMaoObra = maoObra.reduce((sum, m) => sum + m.valor_total, 0);
       
-      const custoSubReceitas = receita.sub_receitas.reduce((sum, s) => {
+      const custoSubReceitas = subReceitas.reduce((sum, s) => {
         if (!s.sub_receita) return sum;
         const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
           ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
@@ -249,7 +254,12 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     ? (custoTotal / formData.peso_unitario) * 1000 
     : 0;
 
-  const custoIngredientes = receita.ingredientes.reduce((sum, i) => {
+  const ingredientesResumo = receita?.ingredientes ?? [];
+  const embalagensResumo = receita?.embalagens ?? [];
+  const maoObraResumo = receita?.mao_obra ?? [];
+  const subReceitasResumo = receita?.sub_receitas ?? [];
+
+  const custoIngredientes = ingredientesResumo.reduce((sum, i) => {
     if (!i.produto) return sum;
     const custoUnitario = i.produto.unidade_uso 
       ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
@@ -257,7 +267,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     return sum + (custoUnitario * i.quantidade);
   }, 0);
   
-  const custoEmbalagens = receita.embalagens.reduce((sum, e) => {
+  const custoEmbalagens = embalagensResumo.reduce((sum, e) => {
     if (!e.produto) return sum;
     const custoUnitario = e.produto.unidade_uso 
       ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
@@ -265,9 +275,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     return sum + (custoUnitario * e.quantidade);
   }, 0);
   
-  const custoMaoObra = receita.mao_obra.reduce((sum, m) => sum + m.valor_total, 0);
+  const custoMaoObra = maoObraResumo.reduce((sum, m) => sum + m.valor_total, 0);
   
-  const custoSubReceitas = receita.sub_receitas.reduce((sum, s) => {
+  const custoSubReceitas = subReceitasResumo.reduce((sum, s) => {
     if (!s.sub_receita) return sum;
     const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
       ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
