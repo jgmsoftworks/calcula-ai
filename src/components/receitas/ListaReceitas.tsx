@@ -6,13 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search, Loader2, Download } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { useExportReceitas } from '@/hooks/useExportReceitas';
+import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { ReceitaCard } from './ReceitaCard';
 import { ReceitaForm } from './ReceitaForm';
+import { ExportMarkupModal } from './ExportMarkupModal';
 import type { ReceitaComDados } from '@/types/receitas';
 
 export function ListaReceitas() {
   const { fetchReceitas, fetchTiposProduto, loading } = useReceitas();
-  const { exportarReceitas } = useExportReceitas();
+  const { exportarReceitas, exporting } = useExportReceitas();
+  const { loadConfiguration } = useOptimizedUserConfigurations();
   const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
@@ -20,6 +23,8 @@ export function ListaReceitas() {
   const [showForm, setShowForm] = useState(false);
   const [editingReceita, setEditingReceita] = useState<ReceitaComDados | null>(null);
   const [tiposProduto, setTiposProduto] = useState<Array<{ id: string; nome: string }>>([]);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [markupsDisponiveis, setMarkupsDisponiveis] = useState<Array<{ id: string; nome: string }>>([]);
 
   useEffect(() => {
     loadTiposProduto();
@@ -44,6 +49,26 @@ export function ListaReceitas() {
     setTiposProduto(tipos);
   };
 
+  const loadMarkups = async () => {
+    const config = await loadConfiguration('markups_blocos');
+    if (config && Array.isArray(config)) {
+      const markups = config
+        .filter((m: any) => m.id !== 'subreceita-fixo')
+        .map((m: any) => ({ id: m.id, nome: m.nome }));
+      setMarkupsDisponiveis(markups);
+    }
+  };
+
+  const handleExportClick = async () => {
+    await loadMarkups();
+    setShowExportModal(true);
+  };
+
+  const handleExportConfirm = async (markupId: string | null, markupNome: string | null) => {
+    setShowExportModal(false);
+    await exportarReceitas(receitas, markupId, markupNome);
+  };
+
   const handleEdit = (receita: ReceitaComDados) => {
     setEditingReceita(receita);
     setShowForm(true);
@@ -63,13 +88,22 @@ export function ListaReceitas() {
             <CardTitle>Receitas</CardTitle>
             <div className="flex gap-2 w-full sm:w-auto">
               <Button 
-                onClick={() => exportarReceitas(receitas)} 
+                onClick={handleExportClick}
                 variant="outline"
                 className="flex-1 sm:flex-initial"
-                disabled={receitas.length === 0}
+                disabled={receitas.length === 0 || exporting}
               >
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Excel
+                {exporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar Excel
+                  </>
+                )}
               </Button>
               <Button onClick={() => setShowForm(true)} className="flex-1 sm:flex-initial">
                 <Plus className="h-4 w-4 mr-2" />
@@ -143,6 +177,14 @@ export function ListaReceitas() {
           onClose={handleCloseForm}
         />
       )}
+
+      <ExportMarkupModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onConfirm={handleExportConfirm}
+        markups={markupsDisponiveis}
+        loading={exporting}
+      />
     </>
   );
 }
