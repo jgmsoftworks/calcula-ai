@@ -14,6 +14,7 @@ import { Plus, Percent, DollarSign, Calendar, Users, ToggleLeft, ToggleRight, Tr
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import { formatBRL } from '@/lib/formatters';
 
 const couponCodeSchema = z.string()
   .min(3, 'Código deve ter no mínimo 3 caracteres')
@@ -259,7 +260,7 @@ export function PromotionalCoupons() {
     if (coupon.discount_type === 'percentage') {
       return `${coupon.discount_value}% OFF`;
     }
-    return `R$ ${coupon.discount_value?.toFixed(2)} OFF`;
+    return `R$ ${formatBRL(coupon.discount_value || 0)} OFF`;
   };
 
   const isExpired = (expiresAt: string | null) => {

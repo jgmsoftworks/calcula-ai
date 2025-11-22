@@ -40,6 +40,7 @@ import { FinancialHealthScore } from '@/components/dashboard/FinancialHealthScor
 import { InsightsCard } from '@/components/dashboard/InsightsCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatNumber } from '@/lib/formatters';
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
@@ -322,7 +323,7 @@ const Dashboard = () => {
                 </CardDescription>
               </div>
               <Badge variant="outline" className="font-semibold">
-                {isAdminView ? `${adminData.totalUsers} usuários` : `${data.totalRevenueChange >= 0 ? '+' : ''}${data.totalRevenueChange.toFixed(1)}%`}
+                {isAdminView ? `${adminData.totalUsers} usuários` : `${data.totalRevenueChange >= 0 ? '+' : ''}${formatNumber(data.totalRevenueChange, 1)}%`}
               </Badge>
             </div>
           </CardHeader>
@@ -345,7 +346,7 @@ const Dashboard = () => {
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={12}
                       tickLine={false}
-                      tickFormatter={(value) => isAdminView ? value.toString() : `R$ ${(value/1000).toFixed(0)}k`}
+                      tickFormatter={(value) => isAdminView ? value.toString() : `R$ ${formatNumber(value/1000, 0)}k`}
                     />
                     <Tooltip 
                       contentStyle={{

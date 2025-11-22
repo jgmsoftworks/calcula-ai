@@ -333,7 +333,7 @@ export function MediaFaturamento() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                      tickFormatter={(value) => `${formatNumber(value / 1000, 0)}k`}
                       width={40}
                     />
                     <ChartTooltip 

@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAffiliates } from "@/hooks/useAffiliates";
 import { TrendingUp, Users, DollarSign, Link2, Calendar, Download, Filter } from "lucide-react";
 import { useState } from "react";
+import { formatBRL, formatNumber } from '@/lib/formatters';
 
 export function AffiliatesDashboard() {
   const { affiliates, affiliateLinks, affiliateSales, affiliateCommissions, loading } = useAffiliates();
@@ -141,7 +142,7 @@ export function AffiliatesDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {pendingCommissions.toFixed(2)}
+              R$ {formatBRL(pendingCommissions)}
             </div>
             <p className="text-xs text-muted-foreground">
               A pagar
@@ -157,7 +158,7 @@ export function AffiliatesDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">
               {conversionRates.length > 0 
-                ? `${(conversionRates.reduce((sum, l) => sum + l.conversionRate, 0) / conversionRates.length).toFixed(1)}%`
+                ? `${formatNumber(conversionRates.reduce((sum, l) => sum + l.conversionRate, 0) / conversionRates.length, 1)}%`
                 : '0%'
               }
             </div>
@@ -190,7 +191,7 @@ export function AffiliatesDashboard() {
                     </p>
                   </div>
                   <div className="text-sm font-medium">
-                    R$ {affiliate.total_sales.toFixed(2)}
+                    R$ {formatBRL(affiliate.total_sales)}
                   </div>
                 </div>
               ))}
@@ -222,7 +223,7 @@ export function AffiliatesDashboard() {
                     </p>
                   </div>
                   <div className="text-sm font-medium">
-                    R$ {sale.sale_amount.toFixed(2)}
+                    R$ {formatBRL(sale.sale_amount)}
                   </div>
                 </div>
               ))}
@@ -256,7 +257,7 @@ export function AffiliatesDashboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium">
-                    {link.conversionRate.toFixed(1)}%
+                    {formatNumber(link.conversionRate, 1)}%
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Taxa conversão

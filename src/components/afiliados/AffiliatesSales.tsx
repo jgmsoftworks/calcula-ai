@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAffiliates } from "@/hooks/useAffiliates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatBRL, formatNumber } from '@/lib/formatters';
 
 export function AffiliatesSales() {
   const { affiliateSales, loading } = useAffiliates();
@@ -109,7 +110,7 @@ export function AffiliatesSales() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalSales > 0 ? `${((totalCommissions / totalSales) * 100).toFixed(1)}%` : '0%'}
+              {totalSales > 0 ? `${formatNumber((totalCommissions / totalSales) * 100, 1)}%` : '0%'}
             </div>
             <p className="text-xs text-muted-foreground">
               Comissão média
@@ -160,10 +161,10 @@ export function AffiliatesSales() {
                     {getPlanBadge(sale.plan_type)}
                   </TableCell>
                   <TableCell className="font-medium">
-                    R$ {sale.sale_amount.toFixed(2)}
+                    R$ {formatBRL(sale.sale_amount)}
                   </TableCell>
                   <TableCell className="font-medium">
-                    R$ {sale.commission_amount.toFixed(2)}
+                    R$ {formatBRL(sale.commission_amount)}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(sale.status)}

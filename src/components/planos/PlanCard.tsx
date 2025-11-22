@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Crown, Zap, CreditCard } from 'lucide-react';
 import { PlanInfo, PlanType } from '@/hooks/usePlanLimits';
+import { formatBRL } from '@/lib/formatters';
 
 interface PlanCardProps {
   planType: PlanType;
@@ -48,7 +49,7 @@ export const PlanCard = ({ planType, planInfo, currentPlan, onSelectPlan, loadin
         
         <div className="flex items-baseline justify-center gap-1">
           <span className="text-3xl font-bold">
-            {planInfo.price === 0 ? 'Grátis' : `R$ ${planInfo.price.toFixed(2).replace('.', ',')}`}
+            {planInfo.price === 0 ? 'Grátis' : `R$ ${formatBRL(planInfo.price)}`}
           </span>
           {planInfo.price > 0 && (
             <span className="text-muted-foreground">/mês</span>

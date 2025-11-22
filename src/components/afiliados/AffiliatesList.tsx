@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatBRL } from '@/lib/formatters';
 import { Textarea } from "@/components/ui/textarea";
 import { AffiliateForm } from "./AffiliateForm";
 import { MigrateAffiliatesButton } from "./MigrateAffiliatesButton";
@@ -188,11 +189,11 @@ export function AffiliatesList() {
                 <TableCell>
                   {affiliate.commission_type === 'percentage' 
                     ? `${affiliate.commission_percentage}%`
-                    : `R$ ${affiliate.commission_fixed_amount?.toFixed(2)}`
+                    : `R$ ${formatBRL(affiliate.commission_fixed_amount || 0)}`
                   }
                 </TableCell>
                 <TableCell>
-                  R$ {affiliate.total_sales.toFixed(2)}
+                  R$ {formatBRL(affiliate.total_sales)}
                 </TableCell>
                 <TableCell>{affiliate.total_customers}</TableCell>
                 <TableCell>

@@ -951,7 +951,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                 <div className="flex items-center justify-between">
                   <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
                   <div className="text-3xl font-bold text-primary">
-                    {markupIdealSubreceita.toFixed(4).replace('.', ',')}
+                    {formatNumber(markupIdealSubreceita, 4)}
                   </div>
                 </div>
               </div>
@@ -1098,7 +1098,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-2 text-3xl font-bold text-primary">
-                          {hasCalculated ? markupIdeal.toFixed(4).replace('.', ',') : '1,0000'}
+                          {hasCalculated ? formatNumber(markupIdeal, 4) : '1,0000'}
                           <Info className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </TooltipTrigger>

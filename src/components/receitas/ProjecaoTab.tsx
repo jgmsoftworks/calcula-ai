@@ -9,6 +9,7 @@ import { MaoObraModal } from './MaoObraModal';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 
 interface ProjecaoTabProps {
   mode?: 'create' | 'edit';
@@ -213,7 +214,7 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-primary">
-                        R$ {(mo.valor_total || 0).toFixed(2).replace('.', ',')}
+                        R$ {formatBRL(mo.valor_total || 0)}
                       </span>
                       <Button
                         variant="ghost"
@@ -229,7 +230,7 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
                 <div className="flex justify-between items-center pt-2 border-t font-bold">
                   <span>Total:</span>
                   <span className="text-primary">
-                    R$ {totalMaoObra.toFixed(2).replace('.', ',')}
+                    R$ {formatBRL(totalMaoObra)}
                   </span>
                 </div>
               </div>

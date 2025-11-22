@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X, DollarSign, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatBRL } from '@/lib/formatters';
 
 export function AffiliatesCommissions() {
   const { affiliateCommissions, loading, loadAffiliateCommissions } = useAffiliates();
@@ -175,14 +176,14 @@ export function AffiliatesCommissions() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div>R$ {commission.sale?.sale_amount.toFixed(2)}</div>
+                      <div>R$ {formatBRL(commission.sale?.sale_amount)}</div>
                       <div className="text-muted-foreground">
                         {commission.sale?.plan_type}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
-                    R$ {commission.amount.toFixed(2)}
+                    R$ {formatBRL(commission.amount)}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(commission.status)}
