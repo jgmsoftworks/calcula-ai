@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search, Loader2, Download } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { useExportReceitas } from '@/hooks/useExportReceitas';
-import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { ReceitaCard } from './ReceitaCard';
 import { ReceitaForm } from './ReceitaForm';
 import { ExportMarkupModal } from './ExportMarkupModal';
@@ -15,7 +16,7 @@ import type { ReceitaComDados } from '@/types/receitas';
 export function ListaReceitas() {
   const { fetchReceitas, fetchTiposProduto, loading } = useReceitas();
   const { exportarReceitas, exporting } = useExportReceitas();
-  const { loadConfiguration } = useOptimizedUserConfigurations();
+  const { user } = useAuth();
   const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
@@ -50,13 +51,22 @@ export function ListaReceitas() {
   };
 
   const loadMarkups = async () => {
-    const config = await loadConfiguration('markups_blocos');
-    if (config && Array.isArray(config)) {
-      const markups = config
-        .filter((m: any) => m.id !== 'subreceita-fixo')
-        .map((m: any) => ({ id: m.id, nome: m.nome }));
-      setMarkupsDisponiveis(markups);
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('markups')
+      .select('id, nome')
+      .eq('user_id', user.id)
+      .eq('ativo', true)
+      .neq('tipo', 'sub_receita')
+      .order('nome');
+
+    if (error) {
+      console.error('Erro ao carregar markups:', error);
+      return;
     }
+
+    setMarkupsDisponiveis(data || []);
   };
 
   const handleExportClick = async () => {
