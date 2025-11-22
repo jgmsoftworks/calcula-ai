@@ -66,8 +66,8 @@ export function useExportReceitas() {
         
         const lucroBruto = receita.preco_venda - custoBase;
 
-        // Se não houver nem markupDetalhes nem markupBase, retorna valores zerados
-        if (!markupDetalhes && !markupBase) {
+        // Se não houver markup base (tabela markups), não há simulação de sugestão de preço
+        if (!markupBase) {
           return {
             lucroLiquido: 0,
             sugestaoPreco: 0,
@@ -75,52 +75,42 @@ export function useExportReceitas() {
           };
         }
         
-        const valorEmRealBloco = markupDetalhes?.valorEmReal || 0;
-        const gastosReais = receita.preco_venda * ((markupDetalhes?.gastoSobreFaturamento || 0) / 100);
-        const impostosReais = receita.preco_venda * ((markupDetalhes?.impostos || 0) / 100);
-        const taxasReais = receita.preco_venda * ((markupDetalhes?.taxas || 0) / 100);
-        const comissoesReais = receita.preco_venda * ((markupDetalhes?.comissoes || 0) / 100);
-        const outrosReais = receita.preco_venda * ((markupDetalhes?.outros || 0) / 100);
+        const valorEmRealBloco = markupDetalhes?.valorEmReal ?? 0;
+        
+        // Pegar os percentuais do bloco (como no MarkupCard)
+        const totalPercentuais = (markupDetalhes?.gastoSobreFaturamento ?? 0) + 
+                                (markupDetalhes?.impostos ?? 0) + 
+                                (markupDetalhes?.taxas ?? 0) + 
+                                (markupDetalhes?.comissoes ?? 0) + 
+                                (markupDetalhes?.outros ?? 0) + 
+                                (markupDetalhes?.lucroDesejado ?? markupBase.margem_lucro);
+
+        // Cálculo do lucro líquido (mantém lógica atual, usando percentuais)
+        const gastosReais = receita.preco_venda * ((markupDetalhes?.gastoSobreFaturamento ?? 0) / 100);
+        const impostosReais = receita.preco_venda * ((markupDetalhes?.impostos ?? 0) / 100);
+        const taxasReais = receita.preco_venda * ((markupDetalhes?.taxas ?? 0) / 100);
+        const comissoesReais = receita.preco_venda * ((markupDetalhes?.comissoes ?? 0) / 100);
+        const outrosReais = receita.preco_venda * ((markupDetalhes?.outros ?? 0) / 100);
         
         const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
         const custosDirectosCompletos = custoBase + valorEmRealBloco;
         
         const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
         
-        // Calcular sugestão de preço (igual ao MarkupCard)
-        const lucroDesejado = markupDetalhes?.lucroDesejado ?? markupBase?.margem_lucro ?? 0;
-        const totalPercentuais = (markupDetalhes?.gastoSobreFaturamento || 0) +
-                                 (markupDetalhes?.impostos || 0) +
-                                 (markupDetalhes?.taxas || 0) +
-                                 (markupDetalhes?.comissoes || 0) +
-                                 (markupDetalhes?.outros || 0) +
-                                 lucroDesejado;
-        
+        // Calcular sugestão de preço (EXATAMENTE igual ao MarkupCard)
         let sugestaoPreco: number;
-        
+        let baseCalculo: number;
+
         if (valorEmRealBloco > 0) {
-          // CASO 1: Com Valor em Real → mesma fórmula do MarkupCard
-          const baseCalculo = custoBase + valorEmRealBloco;
+          // CASO 1: COM "Valor em Real" → mesma fórmula do MarkupCard
+          baseCalculo = custoBase + valorEmRealBloco;
           const divisor = 1 - (totalPercentuais / 100);
           sugestaoPreco = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
         } else {
-          // CASO 2: Sem Valor em Real → usar markup.markup_ideal da tabela markups
-          let markupIdeal: number;
-
-          if (markupBase?.markup_ideal && markupBase.markup_ideal > 0) {
-            // Prioridade 1: markup.markup_ideal da tabela markups (igual ao MarkupCard)
-            markupIdeal = markupBase.markup_ideal;
-          } else if (markupDetalhes?.markupIdeal && markupDetalhes.markupIdeal > 0) {
-            // Prioridade 2: markupIdeal salvo na configuração detalhada
-            markupIdeal = markupDetalhes.markupIdeal;
-          } else if (totalPercentuais < 100) {
-            // Prioridade 3: recalcular a partir dos percentuais
-            markupIdeal = 1 / (1 - totalPercentuais / 100);
-          } else {
-            markupIdeal = 1;
-          }
-
-          sugestaoPreco = custoBase * markupIdeal;
+          // CASO 2: SEM "Valor em Real" → fórmula tradicional do markup
+          // baseCalculo é o custo base e multiplicamos por markup.markup_ideal
+          baseCalculo = custoBase;
+          sugestaoPreco = custoBase * (markupBase.markup_ideal || 1);
         }
         
         return {
