@@ -78,8 +78,8 @@ export function useExportReceitas() {
         const lucroDesejado = markupDetalhes.lucroDesejado || 0;
         const somaPercentuais = (markupDetalhes.gastoSobreFaturamento || 0) +
                                 (markupDetalhes.impostos || 0) +
-                                (markupDetalhes.taxasMeiosPagamento || 0) +
-                                (markupDetalhes.comissoesPlataformas || 0) +
+                                (markupDetalhes.taxas || 0) +
+                                (markupDetalhes.comissoes || 0) +
                                 (markupDetalhes.outros || 0) +
                                 lucroDesejado;
         
