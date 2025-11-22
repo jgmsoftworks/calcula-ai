@@ -24,17 +24,30 @@ export function useExportReceitas() {
 
       // Buscar configuração do markup se selecionado
       let markupDetalhes: any = null;
+      let markupBase: any = null;
       if (markupId && markupNome && user) {
         const configKey = `markup_${markupNome.toLowerCase().replace(/\s+/g, '_')}`;
-        const { data } = await supabase
-          .from('user_configurations')
-          .select('configuration')
-          .eq('user_id', user.id)
-          .eq('type', configKey)
-          .maybeSingle();
-        
-        if (data?.configuration) {
-          markupDetalhes = data.configuration;
+        const [{ data: configData }, { data: markupData }] = await Promise.all([
+          supabase
+            .from('user_configurations')
+            .select('configuration')
+            .eq('user_id', user.id)
+            .eq('type', configKey)
+            .maybeSingle(),
+          supabase
+            .from('markups')
+            .select('id, nome, markup_ideal, margem_lucro, tipo, user_id')
+            .eq('id', markupId)
+            .eq('user_id', user.id)
+            .maybeSingle(),
+        ]);
+
+        if (configData?.configuration) {
+          markupDetalhes = configData.configuration;
+        }
+
+        if (markupData) {
+          markupBase = markupData;
         }
       }
 
@@ -53,7 +66,7 @@ export function useExportReceitas() {
           };
         }
         
-        // Calcular usando mesma lógica do ReceitaCard
+        // Calcular custo base exatamente como no MarkupCard
         const custoBase = receita.markup?.tipo === 'sub_receita' 
           ? custoTotal
           : (receita.rendimento_valor && receita.rendimento_valor > 0 
@@ -75,7 +88,7 @@ export function useExportReceitas() {
         const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
         
         // Calcular sugestão de preço (igual ao MarkupCard)
-        const lucroDesejado = markupDetalhes.lucroDesejado || 0;
+        const lucroDesejado = (markupDetalhes.lucroDesejado ?? markupBase?.margem_lucro ?? 0);
         const totalPercentuais = (markupDetalhes.gastoSobreFaturamento || 0) +
                                  (markupDetalhes.impostos || 0) +
                                  (markupDetalhes.taxas || 0) +
@@ -86,16 +99,27 @@ export function useExportReceitas() {
         let sugestaoPreco: number;
         
         if (valorEmRealBloco > 0) {
-          // CASO 1: Com Valor em Real
+          // CASO 1: Com Valor em Real → mesma fórmula do MarkupCard
           const baseCalculo = custoBase + valorEmRealBloco;
           const divisor = 1 - (totalPercentuais / 100);
           sugestaoPreco = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
         } else {
-          // CASO 2: Sem Valor em Real (usa markup ideal)
-          const markupIdeal = markupDetalhes.markupIdeal || 
-                              (totalPercentuais < 100 
-                                ? 1 / (1 - totalPercentuais / 100) 
-                                : 1);
+          // CASO 2: Sem Valor em Real → usar markup.markup_ideal (do markup base)
+          let markupIdeal: number;
+
+          if (markupBase?.markup_ideal && markupBase.markup_ideal > 0) {
+            // Mesmo comportamento do MarkupCard: usa markup.markup_ideal
+            markupIdeal = markupBase.markup_ideal;
+          } else if (markupDetalhes.markupIdeal && markupDetalhes.markupIdeal > 0) {
+            // Fallback: usar markupIdeal salvo na configuração detalhada
+            markupIdeal = markupDetalhes.markupIdeal;
+          } else if (totalPercentuais < 100) {
+            // Último recurso: recalcular markupIdeal a partir dos percentuais
+            markupIdeal = 1 / (1 - totalPercentuais / 100);
+          } else {
+            markupIdeal = 1;
+          }
+
           sugestaoPreco = custoBase * markupIdeal;
         }
         
