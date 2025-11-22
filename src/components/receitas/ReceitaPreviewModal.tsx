@@ -50,7 +50,6 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
 
   const custoTotal = custoIngredientes + custoSubReceitas + custoEmbalagens + custoMaoObra;
   const precoVenda = receita.preco_venda || 0;
-  const lucroBruto = precoVenda - custoTotal;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,6 +62,16 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Foto do Produto */}
+          {receita.imagem_url && (
+            <div className="flex justify-center">
+              <img
+                src={receita.imagem_url}
+                alt={receita.nome}
+                className="rounded-lg max-w-md w-full h-auto object-cover shadow-lg"
+              />
+            </div>
+          )}
           {/* Informações Gerais */}
           <section className="bg-muted/30 p-4 rounded-lg">
             <h3 className="font-semibold text-lg mb-3">Informações Gerais</h3>
@@ -85,7 +94,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                   </p>
                 </div>
               )}
-              {receita.tempo_preparo_total && (
+              {receita.tempo_preparo_total && receita.tempo_preparo_total > 0 && (
                 <div>
                   <p className="text-sm text-muted-foreground">Tempo Total de Preparo</p>
                   <p className="font-medium flex items-center gap-1">
@@ -94,13 +103,13 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                   </p>
                 </div>
               )}
-              {receita.tempo_preparo_mao_obra && (
+              {receita.tempo_preparo_mao_obra && receita.tempo_preparo_mao_obra > 0 && (
                 <div>
                   <p className="text-sm text-muted-foreground">Tempo de Mão de Obra</p>
                   <p className="font-medium">{receita.tempo_preparo_mao_obra} minutos</p>
                 </div>
               )}
-              {receita.peso_unitario && (
+              {receita.peso_unitario && receita.peso_unitario > 0 && (
                 <div>
                   <p className="text-sm text-muted-foreground">Peso Unitário</p>
                   <p className="font-medium">{receita.peso_unitario}g</p>
@@ -114,6 +123,59 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
               </div>
             )}
           </section>
+
+          {/* Modo de Conservação */}
+          {receita.conservacao && (
+            <>
+              <Separator />
+              <section className="bg-muted/30 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3">Modo de Conservação</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {receita.conservacao.congelado?.tempo > 0 && (
+                    <div className="border rounded-lg p-3 bg-background">
+                      <p className="font-medium text-sm mb-2">🧊 Congelado</p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Temperatura:</span>{' '}
+                        {receita.conservacao.congelado.temperatura}°C
+                      </p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Validade:</span>{' '}
+                        {receita.conservacao.congelado.tempo} {receita.conservacao.congelado.unidade}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {receita.conservacao.refrigerado?.tempo > 0 && (
+                    <div className="border rounded-lg p-3 bg-background">
+                      <p className="font-medium text-sm mb-2">❄️ Refrigerado</p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Temperatura:</span>{' '}
+                        {receita.conservacao.refrigerado.temperatura}°C
+                      </p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Validade:</span>{' '}
+                        {receita.conservacao.refrigerado.tempo} {receita.conservacao.refrigerado.unidade}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {receita.conservacao.ambiente?.tempo > 0 && (
+                    <div className="border rounded-lg p-3 bg-background">
+                      <p className="font-medium text-sm mb-2">🌡️ Temperatura Ambiente</p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Temperatura:</span>{' '}
+                        {receita.conservacao.ambiente.temperatura}°C
+                      </p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Validade:</span>{' '}
+                        {receita.conservacao.ambiente.tempo} {receita.conservacao.ambiente.unidade}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
 
           <Separator />
 
@@ -360,13 +422,6 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
               <div className="flex justify-between text-lg">
                 <span className="font-semibold">Preço de Venda:</span>
                 <span className="font-bold">{formatBRL(precoVenda)}</span>
-              </div>
-              <Separator className="my-2" />
-              <div className="flex justify-between text-lg">
-                <span className="font-semibold">Lucro Bruto:</span>
-                <span className={`font-bold ${lucroBruto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatBRL(lucroBruto)}
-                </span>
               </div>
               {receita.markup && (
                 <div className="flex justify-between text-sm mt-2">
