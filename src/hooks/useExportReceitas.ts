@@ -44,14 +44,12 @@ export function useExportReceitas() {
                           (receita.custo_embalagens || 0) + 
                           (receita.custo_mao_obra || 0) + 
                           (receita.custo_sub_receitas || 0);
-        
-        const lucroBruto = receita.preco_venda - custoTotal;
 
         if (!markupDetalhes) {
           return {
             lucroLiquido: 0,
             sugestaoPreco: 0,
-            lucroBruto
+            lucroBruto: receita.preco_venda - custoTotal
           };
         }
         
@@ -62,11 +60,13 @@ export function useExportReceitas() {
               ? custoTotal / receita.rendimento_valor 
               : custoTotal);
         
+        const lucroBruto = receita.preco_venda - custoBase;
+        
         const valorEmRealBloco = markupDetalhes.valorEmReal || 0;
         const gastosReais = receita.preco_venda * ((markupDetalhes.gastoSobreFaturamento || 0) / 100);
         const impostosReais = receita.preco_venda * ((markupDetalhes.impostos || 0) / 100);
-        const taxasReais = receita.preco_venda * ((markupDetalhes.taxasMeiosPagamento || 0) / 100);
-        const comissoesReais = receita.preco_venda * ((markupDetalhes.comissoesPlataformas || 0) / 100);
+        const taxasReais = receita.preco_venda * ((markupDetalhes.taxas || 0) / 100);
+        const comissoesReais = receita.preco_venda * ((markupDetalhes.comissoes || 0) / 100);
         const outrosReais = receita.preco_venda * ((markupDetalhes.outros || 0) / 100);
         
         const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
