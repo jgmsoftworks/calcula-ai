@@ -92,174 +92,249 @@ export function useExportReceitaPDF() {
       // Criar PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      let currentY = 10;
-
-      // === CABEÇALHO PROFISSIONAL ===
-      // Retângulo principal do cabeçalho
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.5);
-      doc.rect(15, 10, pageWidth - 30, 50);
-
-      // Logo da empresa (canto superior esquerdo)
-      if (profile?.logo_empresa_url) {
-        try {
-          doc.addImage(profile.logo_empresa_url, 'PNG', 20, 15, 40, 40);
-          doc.rect(20, 15, 40, 40); // Borda ao redor do logo
-        } catch (error) {
-          console.error('Erro ao adicionar logo:', error);
-          // Desenhar retângulo vazio como fallback
-          doc.setFillColor(240, 240, 240);
-          doc.rect(20, 15, 40, 40, 'F');
-        }
-      } else {
-        // Retângulo vazio se não tiver logo
-        doc.setFillColor(240, 240, 240);
-        doc.rect(20, 15, 40, 40, 'F');
-      }
-
-      // Foto do produto (canto superior direito)
-      if (receita.imagem_url) {
-        try {
-          doc.addImage(receita.imagem_url, 'JPEG', pageWidth - 60, 15, 40, 40);
-          doc.rect(pageWidth - 60, 15, 40, 40); // Borda ao redor da foto
-        } catch (error) {
-          console.error('Erro ao adicionar foto do produto:', error);
-          // Desenhar retângulo vazio como fallback
-          doc.setFillColor(240, 240, 240);
-          doc.rect(pageWidth - 60, 15, 40, 40, 'F');
-        }
-      } else {
-        // Retângulo vazio se não tiver foto
-        doc.setFillColor(240, 240, 240);
-        doc.rect(pageWidth - 60, 15, 40, 40, 'F');
-      }
-
-      currentY = 65;
-
-      // Nome da Receita (centralizado abaixo do cabeçalho)
+      let currentY = 15;
+      
+      // ============================================================================
+      // CABEÇALHO - Nome da receita centralizado
+      // ============================================================================
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
-      doc.text(receita.nome, pageWidth / 2, currentY, { align: 'center' });
+      const nomeReceita = receita.nome.toUpperCase();
+      doc.text(nomeReceita, pageWidth / 2, currentY, { align: 'center' });
       currentY += 8;
-
-      // Linha separadora
-      doc.setDrawColor(200, 200, 200);
+      
+      // Linha horizontal abaixo do nome
+      doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(0.5);
-      doc.line(20, currentY, pageWidth - 20, currentY);
+      doc.line(15, currentY, pageWidth - 15, currentY);
       currentY += 10;
-
-      // === SEÇÃO DADOS ===
-      // Título com fundo
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, currentY, pageWidth - 40, 7, 'F');
-      doc.setFontSize(12);
+      
+      // ============================================================================
+      // TRÊS COLUNAS: Esquerda (Logo + Empresa) | Centro (Foto) | Direita (Dados)
+      // ============================================================================
+      
+      const colEsquerdaX = 15;
+      const colEsquerdaWidth = 55;
+      const colCentroX = 80;
+      const colCentroWidth = 90;
+      const colDireitaX = 180;
+      const colDireitaWidth = pageWidth - colDireitaX - 15;
+      
+      let yEsquerda = currentY;
+      let yDireita = currentY;
+      
+      // -------------------------
+      // COLUNA ESQUERDA - Logo
+      // -------------------------
+      const logoSize = 50;
+      if (profile?.logo_empresa_url) {
+        try {
+          doc.addImage(profile.logo_empresa_url, 'PNG', colEsquerdaX, yEsquerda, logoSize, logoSize);
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.3);
+          doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize);
+        } catch (error) {
+          console.error('Erro ao adicionar logo da empresa:', error);
+          doc.setFillColor(240, 240, 240);
+          doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize, 'F');
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize);
+        }
+      } else {
+        doc.setFillColor(240, 240, 240);
+        doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize);
+      }
+      yEsquerda += logoSize + 3;
+      
+      // -------------------------
+      // COLUNA ESQUERDA - Dados da Empresa
+      // -------------------------
+      const dadosEmpresa = [
+        profile?.business_name || 'Nome da Empresa',
+        profile?.cnpj_cpf ? `CNPJ/CPF: ${profile.cnpj_cpf}` : 'CNPJ/CPF: -',
+        profile?.telefone_comercial || profile?.phone || 'Telefone: -'
+      ];
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      dadosEmpresa.forEach((dado) => {
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, 9);
+        doc.text(dado, colEsquerdaX + 2, yEsquerda + 6);
+        yEsquerda += 9;
+      });
+      
+      // -------------------------
+      // COLUNA CENTRO - Foto do Produto
+      // -------------------------
+      const fotoProdutoHeight = 100;
+      if (receita.imagem_url) {
+        try {
+          doc.addImage(receita.imagem_url, 'JPEG', colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.3);
+          doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+        } catch (error) {
+          console.error('Erro ao adicionar foto do produto:', error);
+          doc.setFillColor(240, 240, 240);
+          doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight, 'F');
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+          doc.setFontSize(9);
+          doc.setTextColor(150, 150, 150);
+          doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + fotoProdutoHeight / 2, { align: 'center' });
+        }
+      } else {
+        doc.setFillColor(240, 240, 240);
+        doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + fotoProdutoHeight / 2, { align: 'center' });
+      }
+      
+      // -------------------------
+      // COLUNA DIREITA - Card "Dados"
+      // -------------------------
+      // Cabeçalho do card
+      doc.setFillColor(100, 100, 100);
+      doc.rect(colDireitaX, yDireita, colDireitaWidth, 8, 'F');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('Dados:', colDireitaX + 2, yDireita + 5.5);
+      yDireita += 8;
+      
+      // Conteúdo do card (3 linhas)
+      const dadosReceita = [
+        { label: 'Tipo do Produto:', valor: receita.tipos_produto?.nome || '-' },
+        { 
+          label: 'Rendimento:', 
+          valor: receita.rendimento_valor && receita.rendimento_unidade 
+            ? `${formatQuantidade(receita.rendimento_valor)} ${receita.rendimento_unidade}`
+            : '-'
+        },
+        { 
+          label: 'Peso unitário:', 
+          valor: receita.peso_unitario ? `${formatQuantidade(receita.peso_unitario)} g` : '-'
+        }
+      ];
+      
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      
+      dadosReceita.forEach((dado) => {
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.rect(colDireitaX, yDireita, colDireitaWidth, 10);
+        
+        doc.setFont('helvetica', 'bold');
+        const labelWidth = doc.getTextWidth(dado.label);
+        doc.text(dado.label, colDireitaX + 2, yDireita + 7);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text(dado.valor, colDireitaX + 2 + labelWidth + 1, yDireita + 7);
+        
+        yDireita += 10;
+      });
+      
+      yDireita += 3; // Espaço entre cards
+      
+      // -------------------------
+      // COLUNA DIREITA - Card "Conservação"
+      // -------------------------
+      // Cabeçalho do card
+      doc.setFillColor(100, 100, 100);
+      doc.rect(colDireitaX, yDireita, colDireitaWidth, 8, 'F');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('Conservação:', colDireitaX + 2, yDireita + 5.5);
+      yDireita += 8;
+      
+      // Tabela de conservação (3 colunas x 4 linhas)
+      const conservacao = receita.conservacao as ConservacaoData || {};
+      
+      // Larguras das colunas
+      const colWidth1 = colDireitaWidth * 0.35; // Local
+      const colWidth2 = colDireitaWidth * 0.30; // Temp
+      const colWidth3 = colDireitaWidth * 0.35; // Tempo
+      
+      // Cabeçalho da tabela
+      const headers = ['Local', 'Temp. °C', 'Tempo'];
+      const headerY = yDireita;
+      
+      // Fundo cinza claro no cabeçalho
+      doc.setFillColor(220, 220, 220);
+      doc.rect(colDireitaX, headerY, colDireitaWidth, 8, 'F');
+      
+      // Bordas e texto do cabeçalho
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
-      doc.text('Dados', 22, currentY + 5);
-      currentY += 10;
-
-      doc.setFontSize(10);
+      
+      let xPos = colDireitaX;
+      headers.forEach((header, i) => {
+        const width = i === 0 ? colWidth1 : i === 1 ? colWidth2 : colWidth3;
+        doc.rect(xPos, headerY, width, 8);
+        doc.text(header, xPos + 2, headerY + 5.5);
+        xPos += width;
+      });
+      
+      yDireita += 8;
+      
+      // Linhas de dados
+      const conservacaoRows = [
+        {
+          local: 'Congelado',
+          temp: conservacao.congelado?.temperatura ? `${conservacao.congelado.temperatura}` : '',
+          tempo: conservacao.congelado?.tempo || ''
+        },
+        {
+          local: 'Refrigerado',
+          temp: conservacao.refrigerado?.temperatura ? `${conservacao.refrigerado.temperatura}` : '',
+          tempo: conservacao.refrigerado?.tempo || ''
+        },
+        {
+          local: 'Ambiente',
+          temp: conservacao.ambiente?.temperatura ? `${conservacao.ambiente.temperatura}` : '',
+          tempo: conservacao.ambiente?.tempo || ''
+        }
+      ];
+      
       doc.setFont('helvetica', 'normal');
       
-      // Cada dado em um retângulo com borda
-      const dadosToShow = [];
-      if (receita.tipos_produto?.nome) {
-        dadosToShow.push(`Tipo do Produto: ${receita.tipos_produto.nome}`);
-      }
-      if (receita.rendimento_valor && receita.rendimento_unidade) {
-        dadosToShow.push(`Rendimento: ${formatQuantidade(receita.rendimento_valor)} ${receita.rendimento_unidade}`);
-      }
-      if (receita.peso_unitario) {
-        dadosToShow.push(`Peso unitário: ${formatQuantidade(receita.peso_unitario)} g`);
-      }
-
-      dadosToShow.forEach((dado) => {
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(20, currentY, pageWidth - 40, 7);
-        doc.text(dado, 22, currentY + 5);
-        currentY += 7;
-      });
-
-      currentY += 5;
-
-      // === SEÇÃO CONSERVAÇÃO ===
-      if (receita.conservacao) {
-        const conservacao = receita.conservacao as ConservacaoData;
+      conservacaoRows.forEach((row) => {
+        xPos = colDireitaX;
         
-        // Título com fundo
-        doc.setFillColor(240, 240, 240);
-        doc.rect(20, currentY, pageWidth - 40, 7, 'F');
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0);
-        doc.text('Conservação', 22, currentY + 5);
-        currentY += 10;
-
-        // Tabela de conservação
-        const conservacaoData = [];
-        if (conservacao.congelado) {
-          conservacaoData.push([
-            'Congelado',
-            conservacao.congelado.temperatura || '-',
-            conservacao.congelado.tempo || '-'
-          ]);
-        }
-        if (conservacao.refrigerado) {
-          conservacaoData.push([
-            'Refrigerado',
-            conservacao.refrigerado.temperatura || '-',
-            conservacao.refrigerado.tempo || '-'
-          ]);
-        }
-        if (conservacao.ambiente) {
-          conservacaoData.push([
-            'Ambiente',
-            conservacao.ambiente.temperatura || '-',
-            conservacao.ambiente.tempo || '-'
-          ]);
-        }
-
-        if (conservacaoData.length > 0) {
-          const tableStartY = currentY;
-          const colWidths = [50, 50, 50];
-          const headers = ['Local', 'Temp. °C', 'Tempo'];
-
-          // Cabeçalho da tabela com fundo cinza escuro
-          doc.setDrawColor(200, 200, 200);
-          doc.setFillColor(220, 220, 220);
-          doc.rect(20, tableStartY, colWidths[0] + colWidths[1] + colWidths[2], 7, 'FD');
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(0, 0, 0);
-          
-          let xPos = 22;
-          headers.forEach((header, i) => {
-            doc.text(header, xPos, tableStartY + 5);
-            xPos += colWidths[i];
-          });
-          
-          currentY = tableStartY + 7;
-
-          // Linhas da tabela com bordas
-          doc.setFont('helvetica', 'normal');
-          conservacaoData.forEach((row) => {
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(20, currentY, colWidths[0] + colWidths[1] + colWidths[2], 7);
-            
-            // Bordas verticais entre colunas
-            doc.line(20 + colWidths[0], currentY, 20 + colWidths[0], currentY + 7);
-            doc.line(20 + colWidths[0] + colWidths[1], currentY, 20 + colWidths[0] + colWidths[1], currentY + 7);
-            
-            doc.text(row[0], 22, currentY + 5);
-            doc.text(row[1], 22 + colWidths[0], currentY + 5);
-            doc.text(row[2], 22 + colWidths[0] + colWidths[1], currentY + 5);
-            currentY += 7;
-          });
-
-          currentY += 5;
-        }
-      }
+        // Local
+        doc.rect(xPos, yDireita, colWidth1, 8);
+        doc.text(row.local, xPos + 2, yDireita + 5.5);
+        xPos += colWidth1;
+        
+        // Temperatura
+        doc.rect(xPos, yDireita, colWidth2, 8);
+        doc.text(row.temp, xPos + 2, yDireita + 5.5);
+        xPos += colWidth2;
+        
+        // Tempo
+        doc.rect(xPos, yDireita, colWidth3, 8);
+        doc.text(row.tempo, xPos + 2, yDireita + 5.5);
+        
+        yDireita += 8;
+      });
+      
+      // Ajustar currentY para continuar após as 3 colunas
+      currentY = Math.max(yEsquerda, yDireita, currentY + fotoProdutoHeight) + 10;
 
       // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS ===
       const createItemTable = (
