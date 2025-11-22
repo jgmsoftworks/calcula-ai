@@ -27,7 +27,7 @@ export function useExportReceitas() {
       let markupBase: any = null;
       if (markupId && markupNome && user) {
         const configKey = `markup_${markupNome.toLowerCase().replace(/\s+/g, '_')}`;
-        const [{ data: configData }, { data: markupData }] = await Promise.all([
+        const [{ data: configData }, { data: blocosData }] = await Promise.all([
           supabase
             .from('user_configurations')
             .select('configuration')
@@ -35,10 +35,10 @@ export function useExportReceitas() {
             .eq('type', configKey)
             .maybeSingle(),
           supabase
-            .from('markups')
-            .select('id, nome, markup_ideal, margem_lucro, tipo, user_id')
-            .eq('id', markupId)
+            .from('user_configurations')
+            .select('configuration')
             .eq('user_id', user.id)
+            .eq('type', 'markups_blocos')
             .maybeSingle(),
         ]);
 
@@ -46,8 +46,9 @@ export function useExportReceitas() {
           markupDetalhes = configData.configuration;
         }
 
-        if (markupData) {
-          markupBase = markupData;
+        if (blocosData?.configuration && Array.isArray(blocosData.configuration)) {
+          const blocos = blocosData.configuration as any[];
+          markupBase = blocos.find((b) => b.id === markupId) || null;
         }
       }
 
