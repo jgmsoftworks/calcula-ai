@@ -12,7 +12,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
-import { formatters } from '@/lib/formatters';
+import { formatters, formatNumber } from '@/lib/formatters';
 
 interface FaturamentoHistorico {
   id: string;
