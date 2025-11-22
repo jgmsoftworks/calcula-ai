@@ -27,7 +27,7 @@ export function useExportReceitaPDF() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('business_name, cnpj_cpf, phone, telefone_comercial, logo_empresa_url')
+        .select('nome_fantasia, cnpj_cpf, telefone_comercial, whatsapp, celular, phone, logo_empresa_url')
         .eq('user_id', user.id)
         .single();
 
@@ -159,9 +159,9 @@ export function useExportReceitaPDF() {
       // COLUNA ESQUERDA - Dados da Empresa
       // -------------------------
       const dadosEmpresa = [
-        profile?.business_name || 'Nome da Empresa',
+        profile?.nome_fantasia || 'Nome da Empresa',
         profile?.cnpj_cpf ? `CNPJ/CPF: ${profile.cnpj_cpf}` : 'CNPJ/CPF: -',
-        profile?.telefone_comercial || profile?.phone || 'Telefone: -'
+        profile?.telefone_comercial || profile?.whatsapp || profile?.celular || profile?.phone || 'Telefone: -'
       ];
       
       doc.setFontSize(8);
@@ -542,9 +542,9 @@ export function useExportReceitaPDF() {
         doc.setTextColor(100, 100, 100);
         
         const footerParts = [];
-        if (profile?.business_name) footerParts.push(profile.business_name);
+        if (profile?.nome_fantasia) footerParts.push(profile.nome_fantasia);
         if (profile?.cnpj_cpf) footerParts.push(`CNPJ: ${profile.cnpj_cpf}`);
-        const telefone = profile?.telefone_comercial || profile?.phone;
+        const telefone = profile?.telefone_comercial || profile?.whatsapp || profile?.celular || profile?.phone;
         if (telefone) footerParts.push(`Tel: ${telefone}`);
         
         if (footerParts.length > 0) {
