@@ -126,6 +126,10 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
 
           {/* Modo de Conservação */}
           {receita.conservacao && (
+            receita.conservacao.congelado?.tempo > 0 ||
+            receita.conservacao.refrigerado?.tempo > 0 ||
+            receita.conservacao.ambiente?.tempo > 0
+          ) && (
             <>
               <Separator />
               <section className="bg-muted/30 p-4 rounded-lg">
