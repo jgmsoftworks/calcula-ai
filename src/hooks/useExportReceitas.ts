@@ -27,7 +27,7 @@ export function useExportReceitas() {
       let markupBase: any = null;
       if (markupId && markupNome && user) {
         const configKey = `markup_${markupNome.toLowerCase().replace(/\s+/g, '_')}`;
-        const [{ data: configData }, { data: blocosData }] = await Promise.all([
+        const [{ data: configData }, { data: markupData }] = await Promise.all([
           supabase
             .from('user_configurations')
             .select('configuration')
@@ -35,10 +35,9 @@ export function useExportReceitas() {
             .eq('type', configKey)
             .maybeSingle(),
           supabase
-            .from('user_configurations')
-            .select('configuration')
-            .eq('user_id', user.id)
-            .eq('type', 'markups_blocos')
+            .from('markups')
+            .select('id, nome, tipo, markup_ideal, margem_lucro')
+            .eq('id', markupId)
             .maybeSingle(),
         ]);
 
@@ -46,9 +45,8 @@ export function useExportReceitas() {
           markupDetalhes = configData.configuration;
         }
 
-        if (blocosData?.configuration && Array.isArray(blocosData.configuration)) {
-          const blocos = blocosData.configuration as any[];
-          markupBase = blocos.find((b) => b.id === markupId) || null;
+        if (markupData) {
+          markupBase = markupData;
         }
       }
 
@@ -59,14 +57,6 @@ export function useExportReceitas() {
                           (receita.custo_mao_obra || 0) + 
                           (receita.custo_sub_receitas || 0);
 
-        if (!markupDetalhes) {
-          return {
-            lucroLiquido: 0,
-            sugestaoPreco: 0,
-            lucroBruto: receita.preco_venda - custoTotal
-          };
-        }
-        
         // Calcular custo base exatamente como no MarkupCard
         const custoBase = receita.markup?.tipo === 'sub_receita' 
           ? custoTotal
@@ -75,13 +65,22 @@ export function useExportReceitas() {
               : custoTotal);
         
         const lucroBruto = receita.preco_venda - custoBase;
+
+        // Se não houver nem markupDetalhes nem markupBase, retorna valores zerados
+        if (!markupDetalhes && !markupBase) {
+          return {
+            lucroLiquido: 0,
+            sugestaoPreco: 0,
+            lucroBruto
+          };
+        }
         
-        const valorEmRealBloco = markupDetalhes.valorEmReal || 0;
-        const gastosReais = receita.preco_venda * ((markupDetalhes.gastoSobreFaturamento || 0) / 100);
-        const impostosReais = receita.preco_venda * ((markupDetalhes.impostos || 0) / 100);
-        const taxasReais = receita.preco_venda * ((markupDetalhes.taxas || 0) / 100);
-        const comissoesReais = receita.preco_venda * ((markupDetalhes.comissoes || 0) / 100);
-        const outrosReais = receita.preco_venda * ((markupDetalhes.outros || 0) / 100);
+        const valorEmRealBloco = markupDetalhes?.valorEmReal || 0;
+        const gastosReais = receita.preco_venda * ((markupDetalhes?.gastoSobreFaturamento || 0) / 100);
+        const impostosReais = receita.preco_venda * ((markupDetalhes?.impostos || 0) / 100);
+        const taxasReais = receita.preco_venda * ((markupDetalhes?.taxas || 0) / 100);
+        const comissoesReais = receita.preco_venda * ((markupDetalhes?.comissoes || 0) / 100);
+        const outrosReais = receita.preco_venda * ((markupDetalhes?.outros || 0) / 100);
         
         const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
         const custosDirectosCompletos = custoBase + valorEmRealBloco;
@@ -89,12 +88,12 @@ export function useExportReceitas() {
         const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
         
         // Calcular sugestão de preço (igual ao MarkupCard)
-        const lucroDesejado = (markupDetalhes.lucroDesejado ?? markupBase?.margem_lucro ?? 0);
-        const totalPercentuais = (markupDetalhes.gastoSobreFaturamento || 0) +
-                                 (markupDetalhes.impostos || 0) +
-                                 (markupDetalhes.taxas || 0) +
-                                 (markupDetalhes.comissoes || 0) +
-                                 (markupDetalhes.outros || 0) +
+        const lucroDesejado = markupDetalhes?.lucroDesejado ?? markupBase?.margem_lucro ?? 0;
+        const totalPercentuais = (markupDetalhes?.gastoSobreFaturamento || 0) +
+                                 (markupDetalhes?.impostos || 0) +
+                                 (markupDetalhes?.taxas || 0) +
+                                 (markupDetalhes?.comissoes || 0) +
+                                 (markupDetalhes?.outros || 0) +
                                  lucroDesejado;
         
         let sugestaoPreco: number;
@@ -105,17 +104,17 @@ export function useExportReceitas() {
           const divisor = 1 - (totalPercentuais / 100);
           sugestaoPreco = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
         } else {
-          // CASO 2: Sem Valor em Real → usar markup.markup_ideal (do markup base)
+          // CASO 2: Sem Valor em Real → usar markup.markup_ideal da tabela markups
           let markupIdeal: number;
 
           if (markupBase?.markup_ideal && markupBase.markup_ideal > 0) {
-            // Mesmo comportamento do MarkupCard: usa markup.markup_ideal
+            // Prioridade 1: markup.markup_ideal da tabela markups (igual ao MarkupCard)
             markupIdeal = markupBase.markup_ideal;
-          } else if (markupDetalhes.markupIdeal && markupDetalhes.markupIdeal > 0) {
-            // Fallback: usar markupIdeal salvo na configuração detalhada
+          } else if (markupDetalhes?.markupIdeal && markupDetalhes.markupIdeal > 0) {
+            // Prioridade 2: markupIdeal salvo na configuração detalhada
             markupIdeal = markupDetalhes.markupIdeal;
           } else if (totalPercentuais < 100) {
-            // Último recurso: recalcular markupIdeal a partir dos percentuais
+            // Prioridade 3: recalcular a partir dos percentuais
             markupIdeal = 1 / (1 - totalPercentuais / 100);
           } else {
             markupIdeal = 1;
@@ -160,7 +159,7 @@ export function useExportReceitas() {
           'Preço de Venda (R$)': r.preco_venda,
           'Lucro Bruto (R$)': lucroBruto,
           'Lucro Líquido (R$)': lucroLiquido,
-          'Sugestão Preço (R$)': markupDetalhes ? sugestaoPreco : '—'
+          'Sugestão Preço (R$)': (markupDetalhes || markupBase) ? sugestaoPreco : '—'
         };
       });
 
