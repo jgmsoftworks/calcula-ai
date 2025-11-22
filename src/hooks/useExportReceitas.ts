@@ -74,18 +74,30 @@ export function useExportReceitas() {
         
         const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
         
-        // Calcular sugestão de preço
+        // Calcular sugestão de preço (igual ao MarkupCard)
         const lucroDesejado = markupDetalhes.lucroDesejado || 0;
-        const somaPercentuais = (markupDetalhes.gastoSobreFaturamento || 0) +
-                                (markupDetalhes.impostos || 0) +
-                                (markupDetalhes.taxas || 0) +
-                                (markupDetalhes.comissoes || 0) +
-                                (markupDetalhes.outros || 0) +
-                                lucroDesejado;
+        const totalPercentuais = (markupDetalhes.gastoSobreFaturamento || 0) +
+                                 (markupDetalhes.impostos || 0) +
+                                 (markupDetalhes.taxas || 0) +
+                                 (markupDetalhes.comissoes || 0) +
+                                 (markupDetalhes.outros || 0) +
+                                 lucroDesejado;
         
-        const sugestaoPreco = somaPercentuais < 100
-          ? (custosDirectosCompletos / (1 - (somaPercentuais / 100)))
-          : 0;
+        let sugestaoPreco: number;
+        
+        if (valorEmRealBloco > 0) {
+          // CASO 1: Com Valor em Real
+          const baseCalculo = custoBase + valorEmRealBloco;
+          const divisor = 1 - (totalPercentuais / 100);
+          sugestaoPreco = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+        } else {
+          // CASO 2: Sem Valor em Real (usa markup ideal)
+          const markupIdeal = markupDetalhes.markupIdeal || 
+                              (totalPercentuais < 100 
+                                ? 1 / (1 - totalPercentuais / 100) 
+                                : 1);
+          sugestaoPreco = custoBase * markupIdeal;
+        }
         
         return {
           lucroLiquido,
