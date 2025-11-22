@@ -47,14 +47,14 @@ export function useExportReceitaPDF() {
               marcas
             )
           ),
-          receita_sub_receitas (
-            id,
-            quantidade,
-            sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey (
-              nome,
-              rendimento_unidade
-            )
-          ),
+        receita_sub_receitas!receita_sub_receitas_receita_id_fkey (
+          id,
+          quantidade,
+          sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey (
+            nome,
+            rendimento_unidade
+          )
+        ),
           receita_embalagens (
             id,
             quantidade,
