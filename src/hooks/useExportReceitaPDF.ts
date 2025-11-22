@@ -114,12 +114,18 @@ export function useExportReceitaPDF() {
       // TRÊS COLUNAS: Esquerda (Logo + Empresa) | Centro (Foto) | Direita (Dados)
       // ============================================================================
       
-      const colEsquerdaX = 15;
-      const colEsquerdaWidth = 55;
-      const colCentroX = 80;
-      const colCentroWidth = 90;
-      const colDireitaX = 180;
-      const colDireitaWidth = pageWidth - colDireitaX - 15;
+      // Cálculo proporcional das 3 colunas (33% cada)
+      const margem = 15;
+      const larguraUtil = pageWidth - (margem * 2); // ~180pts
+      const espacamento = 10; // espaço entre colunas
+      const larguraColuna = (larguraUtil - (espacamento * 2)) / 3; // ~53pts cada
+
+      const colEsquerdaX = margem;
+      const colEsquerdaWidth = larguraColuna;
+      const colCentroX = margem + larguraColuna + espacamento;
+      const colCentroWidth = larguraColuna;
+      const colDireitaX = margem + (larguraColuna * 2) + (espacamento * 2);
+      const colDireitaWidth = larguraColuna;
       
       let yEsquerda = currentY;
       let yDireita = currentY;
@@ -127,7 +133,7 @@ export function useExportReceitaPDF() {
       // -------------------------
       // COLUNA ESQUERDA - Logo
       // -------------------------
-      const logoSize = 50;
+      const logoSize = colEsquerdaWidth - 2; // Ajusta ao tamanho da coluna
       if (profile?.logo_empresa_url) {
         try {
           doc.addImage(profile.logo_empresa_url, 'PNG', colEsquerdaX, yEsquerda, logoSize, logoSize);
@@ -173,7 +179,7 @@ export function useExportReceitaPDF() {
       // -------------------------
       // COLUNA CENTRO - Foto do Produto
       // -------------------------
-      const fotoProdutoHeight = 100;
+      const fotoProdutoHeight = colCentroWidth * 1.2; // Proporção adequada à largura
       if (receita.imagem_url) {
         try {
           doc.addImage(receita.imagem_url, 'JPEG', colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
