@@ -7,7 +7,8 @@ import { useReceitas } from '@/hooks/useReceitas';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBRL, formatNumber } from '@/lib/formatters';
-import type { ReceitaComDados } from '@/types/receitas';
+import type { ReceitaComDados, ReceitaCompleta } from '@/types/receitas';
+import { ReceitaPreviewModal } from './ReceitaPreviewModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +28,12 @@ interface ReceitaCardProps {
 }
 
 export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
-  const { deleteReceita } = useReceitas();
+  const { deleteReceita, fetchReceitaCompleta } = useReceitas();
   const { user } = useAuth();
   const [markupDetalhes, setMarkupDetalhes] = useState<any>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const handleDelete = async () => {
     const success = await deleteReceita(receita.id);
@@ -103,6 +107,21 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
 
   const lucroLiquido = calcularLucroLiquido();
 
+  const handleOpenPreview = async () => {
+    setLoadingPreview(true);
+    try {
+      const dados = await fetchReceitaCompleta(receita.id);
+      if (dados) {
+        setReceitaCompleta(dados);
+        setPreviewOpen(true);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar preview:', error);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardContent className="p-6">
@@ -143,7 +162,13 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
                   <Button variant="ghost" size="icon" title="Baixar">
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" title="Preview">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    title="Preview"
+                    onClick={handleOpenPreview}
+                    disabled={loadingPreview}
+                  >
                     <Eye className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(receita)}>
@@ -243,6 +268,12 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
           </div>
         </div>
       </CardContent>
+
+      <ReceitaPreviewModal
+        receita={receitaCompleta}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </Card>
   );
 }
