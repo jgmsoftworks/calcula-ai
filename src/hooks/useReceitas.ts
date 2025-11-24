@@ -305,6 +305,28 @@ export function useReceitas() {
 
     setLoading(true);
     try {
+      // Verificar se está sendo usada como sub-receita em outras receitas
+      const { data: receitasQueUsam } = await supabase
+        .from('receita_sub_receitas')
+        .select(`
+          receita:receitas!receita_sub_receitas_receita_id_fkey(nome)
+        `)
+        .eq('sub_receita_id', id);
+
+      if (receitasQueUsam && receitasQueUsam.length > 0) {
+        // Extrair nomes das receitas que usam esta sub-receita
+        const nomes = receitasQueUsam
+          .map((r: any) => r.receita?.nome)
+          .filter(Boolean)
+          .join(', ');
+        
+        toast.error(
+          `Não é possível excluir esta receita pois está sendo usada como sub-receita em: ${nomes}`
+        );
+        return false;
+      }
+
+      // Se não está sendo usada, prosseguir com exclusão
       const { error } = await supabase
         .from('receitas')
         .delete()
