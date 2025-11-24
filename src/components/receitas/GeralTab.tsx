@@ -14,15 +14,35 @@ import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
 import type { ReceitaCompleta } from '@/types/receitas';
 
+interface TempPasso {
+  id: string;
+  ordem: number;
+  descricao: string;
+}
+
 interface GeralTabProps {
   receita: ReceitaCompleta | null;
   formData: any;
   onFormChange: (field: string, value: any) => void;
   onUpdate: () => void;
   onTabChange?: (tab: string) => void;
+  mode?: 'create' | 'edit';
+  tempPassos?: TempPasso[];
+  onAddPassoTemp?: (descricao: string) => void;
+  onRemovePassoTemp?: (id: string) => void;
 }
 
-export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChange }: GeralTabProps) {
+export function GeralTab({ 
+  receita, 
+  formData, 
+  onFormChange, 
+  onUpdate, 
+  onTabChange,
+  mode = 'edit',
+  tempPassos = [],
+  onAddPassoTemp,
+  onRemovePassoTemp 
+}: GeralTabProps) {
   const [novoPasso, setNovoPasso] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -55,10 +75,20 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
   }, [formData.markup_id]);
 
   const handleAddPasso = async () => {
-    if (!novoPasso.trim() || !receita) return;
+    if (!novoPasso.trim()) return;
+
+    if (mode === 'create') {
+      // Modo criação: usar handler temporário
+      onAddPassoTemp?.(novoPasso);
+      setNovoPasso('');
+      return;
+    }
+
+    // Modo edição: salvar no banco
+    if (!receita) return;
 
     try {
-      const ordem = receita.passos.length + 1;
+      const ordem = (receita.passos?.length || 0) + 1;
       const { error } = await supabase.from('receita_passos_preparo').insert({
         receita_id: receita.id,
         ordem,
@@ -76,6 +106,13 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
   };
 
   const handleRemovePasso = async (id: string) => {
+    if (mode === 'create') {
+      // Modo criação: remover temporariamente
+      onRemovePassoTemp?.(id);
+      return;
+    }
+
+    // Modo edição: remover do banco
     try {
       const { error } = await supabase
         .from('receita_passos_preparo')
@@ -465,66 +502,75 @@ export function GeralTab({ receita, formData, onFormChange, onUpdate, onTabChang
       <div className="space-y-2">
         <Label>Passos de Preparo</Label>
         <div className="space-y-3">
-          {receita?.passos.map((passo, index) => (
-            <div key={passo.id} className="flex gap-3 items-start border rounded-lg p-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                {index + 1}
-              </div>
-              
-              {editandoPasso === passo.id ? (
-                <div className="flex-1 space-y-2">
-                  <Textarea
-                    value={textoEdicao}
-                    onChange={(e) => setTextoEdicao(e.target.value)}
-                    rows={3}
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleEditPasso(passo.id)}>
-                      Salvar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      onClick={() => {
-                        setEditandoPasso(null);
-                        setTextoEdicao('');
-                      }}
-                    >
-                      Cancelar
-                    </Button>
+          {(() => {
+            const passos = mode === 'create' ? tempPassos : (receita?.passos || []);
+            return passos.length > 0 ? (
+              passos.map((passo, index) => (
+                <div key={passo.id} className="flex gap-3 items-start border rounded-lg p-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+                    {index + 1}
                   </div>
+                  
+                  {mode === 'edit' && editandoPasso === passo.id ? (
+                    <div className="flex-1 space-y-2">
+                      <Textarea
+                        value={textoEdicao}
+                        onChange={(e) => setTextoEdicao(e.target.value)}
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleEditPasso(passo.id)}>
+                          Salvar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => {
+                            setEditandoPasso(null);
+                            setTextoEdicao('');
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-1">
+                        <p className="text-sm whitespace-pre-wrap">{passo.descricao}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        {mode === 'edit' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditandoPasso(passo.id);
+                              setTextoEdicao(passo.descricao);
+                            }}
+                            title="Editar passo"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemovePasso(passo.id)}
+                          title="Remover passo"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <>
-                  <div className="flex-1">
-                    <p className="text-sm whitespace-pre-wrap">{passo.descricao}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditandoPasso(passo.id);
-                        setTextoEdicao(passo.descricao);
-                      }}
-                      title="Editar passo"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemovePasso(passo.id)}
-                      title="Remover passo"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum passo adicionado ainda</p>
+            );
+          })()}
 
           <div className="space-y-2">
             <Textarea
