@@ -17,9 +17,10 @@ interface PrecificacaoTabProps {
   formData: any;
   onFormChange: (field: string, value: any) => void;
   onUpdate?: () => Promise<void>;
+  isMarkupSubReceita?: boolean;
 }
 
-export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate }: PrecificacaoTabProps) {
+export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate, isMarkupSubReceita = false }: PrecificacaoTabProps) {
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
   const [markups, setMarkups] = useState<any[]>([]);
@@ -138,6 +139,64 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       supabase.removeChannel(channel);
     };
   }, [user, loadMarkups, loadMarkupSubReceita]);
+
+  // Recálculo automático APENAS para sub-receitas quando custos mudam
+  useEffect(() => {
+    if (!isMarkupSubReceita || !formData.markup_id || !markupSubReceita || !user) return;
+    
+    const recalcularPreco = async () => {
+      try {
+        // Buscar detalhes do markup de user_configurations
+        const configKey = `markup_${markupSubReceita.nome.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        const { data } = await supabase
+          .from('user_configurations')
+          .select('configuration')
+          .eq('user_id', user.id)
+          .eq('type', configKey)
+          .maybeSingle();
+
+        const detalhes = data?.configuration as any;
+        const valorEmReal = detalhes?.valorEmReal ?? 0;
+
+        let precoVenda: number;
+
+        if (valorEmReal > 0) {
+          // COM "Valor em Real"
+          const totalPercentuais = 
+            (detalhes?.gastoSobreFaturamento ?? 0) + 
+            (detalhes?.impostos ?? 0) + 
+            (detalhes?.taxas ?? 0) + 
+            (detalhes?.comissoes ?? 0) + 
+            (detalhes?.outros ?? 0) + 
+            (detalhes?.lucroDesejado ?? markupSubReceita.margem_lucro);
+          
+          const baseCalculo = custoTotal + valorEmReal;
+          const divisor = 1 - (totalPercentuais / 100);
+          precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+        } else {
+          // SEM "Valor em Real"
+          precoVenda = custoTotal * markupSubReceita.markup_ideal;
+        }
+        
+        // Atualizar preço local
+        onFormChange('preco_venda', precoVenda);
+        
+        // MODO EDIÇÃO: Salvar no banco automaticamente
+        if (mode === 'edit' && receita?.id) {
+          await supabase
+            .from('receitas')
+            .update({ preco_venda: precoVenda })
+            .eq('id', receita.id)
+            .eq('user_id', user.id);
+        }
+      } catch (error) {
+        console.error('Erro ao recalcular preço automaticamente:', error);
+      }
+    };
+    
+    recalcularPreco();
+  }, [custoTotal, isMarkupSubReceita, formData.markup_id, markupSubReceita, user, mode, receita?.id, onFormChange]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
@@ -329,9 +388,19 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               tipo="valor"
               value={formData.preco_venda || 0}
               onChange={(value) => onFormChange('preco_venda', value)}
-              className="text-4xl font-bold text-blue-600 dark:text-blue-400 border-0 p-0 h-auto bg-transparent focus:ring-0"
+              disabled={isMarkupSubReceita}
+              className={`text-4xl font-bold border-0 p-0 h-auto bg-transparent focus:ring-0 ${
+                isMarkupSubReceita 
+                  ? 'text-muted-foreground cursor-not-allowed' 
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}
               placeholder="R$ 0,00"
             />
+            {isMarkupSubReceita && (
+              <p className="text-xs text-muted-foreground mt-2">
+                ⚠️ Preço calculado automaticamente pelo markup de sub-receita
+              </p>
+            )}
           </CardContent>
         </Card>
 
