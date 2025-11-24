@@ -176,7 +176,8 @@ export function useReceitas() {
         .from('receitas')
         .select(`
           *,
-          tipo_produto:tipos_produto(id, nome)
+          tipo_produto:tipos_produto(id, nome),
+          markup:markups(id, nome, tipo)
         `)
         .eq('id', id)
         .eq('user_id', user.id)

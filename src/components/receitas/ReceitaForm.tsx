@@ -79,6 +79,9 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [tempSubReceitas, setTempSubReceitas] = useState<TempSubReceita[]>([]);
   const [tempEmbalagens, setTempEmbalagens] = useState<TempEmbalagem[]>([]);
   const [tempPassos, setTempPassos] = useState<TempPasso[]>([]);
+  
+  // Estado para markup atual selecionado
+  const [markupAtual, setMarkupAtual] = useState<{ tipo: string } | null>(null);
 
   const tabs = ['geral', 'ingredientes', 'sub-receitas', 'embalagens', 'projecao', 'precificacao'];
   const currentTabIndex = tabs.indexOf(activeTab);
@@ -148,6 +151,24 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       });
     }
   };
+  
+  // Buscar tipo do markup quando formData.markup_id muda
+  useEffect(() => {
+    if (formData.markup_id) {
+      supabase
+        .from('markups')
+        .select('tipo')
+        .eq('id', formData.markup_id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setMarkupAtual(data);
+          }
+        });
+    } else {
+      setMarkupAtual(null);
+    }
+  }, [formData.markup_id]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -436,7 +457,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 formData={formData}
                 onFormChange={handleFormChange}
                 onUpdate={loadReceitaCompleta}
-                isMarkupSubReceita={receitaCompleta?.markup?.tipo === 'sub_receita'}
+                isMarkupSubReceita={markupAtual?.tipo === 'sub_receita' || receitaCompleta?.markup?.tipo === 'sub_receita'}
               />
             </TabsContent>
           </div>
