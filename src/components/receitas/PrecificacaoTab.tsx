@@ -18,9 +18,10 @@ interface PrecificacaoTabProps {
   onFormChange: (field: string, value: any) => void;
   onUpdate?: () => Promise<void>;
   isMarkupSubReceita?: boolean;
+  markupTipo?: string | null;
 }
 
-export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate, isMarkupSubReceita = false }: PrecificacaoTabProps) {
+export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate, isMarkupSubReceita = false, markupTipo }: PrecificacaoTabProps) {
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
   const [markups, setMarkups] = useState<any[]>([]);
@@ -142,7 +143,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   // Recálculo automático APENAS para sub-receitas quando custos mudam
   useEffect(() => {
-    if (!isMarkupSubReceita || !formData.markup_id || !markupSubReceita || !user) return;
+    const isSubReceita = markupTipo === 'sub_receita' || isMarkupSubReceita;
+    if (!isSubReceita || !formData.markup_id || !markupSubReceita || !user) return;
     
     const recalcularPreco = async () => {
       try {
@@ -196,7 +198,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     };
     
     recalcularPreco();
-  }, [custoTotal, isMarkupSubReceita, formData.markup_id, markupSubReceita, user, mode, receita?.id, onFormChange]);
+  }, [custoTotal, isMarkupSubReceita, formData.markup_id, markupSubReceita, user, mode, receita?.id, onFormChange, markupTipo]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
@@ -257,6 +259,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       // MODO CRIAÇÃO: apenas atualizar formData localmente
       if (mode === 'create') {
         onFormChange('markup_id', markupId);
+        onFormChange('markup_tipo', markup.tipo);
         onFormChange('preco_venda', precoVenda);
         
         if (markup.tipo === 'sub_receita') {
