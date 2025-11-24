@@ -444,6 +444,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 formData={formData}
                 onFormChange={handleFormChange}
                 onUpdate={loadReceitaCompleta}
+                isMarkupSubReceita={receitaCompleta?.markup?.tipo === 'sub_receita'}
               />
             </TabsContent>
           </div>
