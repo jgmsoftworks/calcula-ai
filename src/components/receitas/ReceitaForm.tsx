@@ -61,6 +61,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     status: 'finalizada' as 'rascunho' | 'finalizada',
     preco_venda: 0,
     markup_id: null as string | null,
+    markup_tipo: null as string | null,
     peso_unitario: 0,
     tempo_preparo_total: 0,
     tempo_preparo_unidade: 'minutos' as string,
@@ -116,6 +117,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         status: receita.status,
         preco_venda: receita.preco_venda || 0,
         markup_id: receita.markup_id,
+        markup_tipo: null,
         peso_unitario: receita.peso_unitario || 0,
         tempo_preparo_total: receita.tempo_preparo_total || 0,
         tempo_preparo_unidade: receita.tempo_preparo_unidade || 'minutos',
@@ -457,7 +459,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 formData={formData}
                 onFormChange={handleFormChange}
                 onUpdate={loadReceitaCompleta}
-                isMarkupSubReceita={markupAtual?.tipo === 'sub_receita' || receitaCompleta?.markup?.tipo === 'sub_receita'}
+                isMarkupSubReceita={formData.markup_tipo === 'sub_receita' || markupAtual?.tipo === 'sub_receita' || receitaCompleta?.markup?.tipo === 'sub_receita'}
+                markupTipo={formData.markup_tipo}
               />
             </TabsContent>
           </div>
