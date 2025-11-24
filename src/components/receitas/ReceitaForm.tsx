@@ -9,6 +9,7 @@ import { EmbalagensTa } from './EmbalagensTa';
 import { GeralTab } from './GeralTab';
 import { ProjecaoTab } from './ProjecaoTab';
 import { PrecificacaoTab } from './PrecificacaoTab';
+import { PrepareTab } from './PrepareTab';
 import type { Receita, ReceitaCompleta } from '@/types/receitas';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +35,12 @@ interface TempEmbalagem {
   produto_id: string;
   quantidade: number;
   produto: any;
+}
+
+interface TempPasso {
+  id: string;
+  ordem: number;
+  descricao: string;
 }
 
 interface ReceitaFormProps {
@@ -71,8 +78,9 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [tempIngredientes, setTempIngredientes] = useState<TempIngrediente[]>([]);
   const [tempSubReceitas, setTempSubReceitas] = useState<TempSubReceita[]>([]);
   const [tempEmbalagens, setTempEmbalagens] = useState<TempEmbalagem[]>([]);
+  const [tempPassos, setTempPassos] = useState<TempPasso[]>([]);
 
-  const tabs = ['geral', 'ingredientes', 'sub-receitas', 'embalagens', 'projecao', 'precificacao'];
+  const tabs = ['geral', 'ingredientes', 'sub-receitas', 'embalagens', 'preparo', 'projecao', 'precificacao'];
   const currentTabIndex = tabs.indexOf(activeTab);
   
   const isCreating = !receita?.id; // Modo criação se não tem ID
@@ -216,6 +224,21 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     ));
   };
 
+  const handleAddPassoTemp = (descricao: string) => {
+    const ordem = tempPassos.length + 1;
+    setTempPassos([...tempPassos, {
+      id: crypto.randomUUID(),
+      ordem,
+      descricao
+    }]);
+    toast.success('Passo adicionado');
+  };
+
+  const handleRemovePassoTemp = (id: string) => {
+    setTempPassos(tempPassos.filter(p => p.id !== id));
+    toast.success('Passo removido');
+  };
+
   const handleSave = async () => {
     if (!formData.nome.trim()) {
       toast.error('Nome da receita é obrigatório');
@@ -276,6 +299,21 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           if (errorEmbalagens) throw errorEmbalagens;
         }
 
+        // Inserir passos de preparo
+        if (tempPassos.length > 0) {
+          const { error: errorPassos } = await supabase
+            .from('receita_passos_preparo')
+            .insert(
+              tempPassos.map(passo => ({
+                receita_id: novaReceita.id,
+                ordem: passo.ordem,
+                descricao: passo.descricao
+              }))
+            );
+          
+          if (errorPassos) throw errorPassos;
+        }
+
         // Upload de imagem se houver
         if (imageFile) {
           await uploadImagemReceita(imageFile, novaReceita.id);
@@ -311,13 +349,14 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           {/* TabsList FIXA - fora da área de scroll */}
           <div className="px-6 py-4 border-b shrink-0 bg-background">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="geral">1 Geral</TabsTrigger>
               <TabsTrigger value="ingredientes">2 Ingredientes</TabsTrigger>
               <TabsTrigger value="sub-receitas">3 Sub-receitas</TabsTrigger>
               <TabsTrigger value="embalagens">4 Embalagens</TabsTrigger>
-              <TabsTrigger value="projecao">5 Projeção</TabsTrigger>
-              <TabsTrigger value="precificacao">6 Precificação</TabsTrigger>
+              <TabsTrigger value="preparo">5 Preparo</TabsTrigger>
+              <TabsTrigger value="projecao">6 Projeção</TabsTrigger>
+              <TabsTrigger value="precificacao">7 Precificação</TabsTrigger>
             </TabsList>
           </div>
 
@@ -367,6 +406,17 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
               onRemoveTemp={handleRemoveEmbalagemTemp}
               onUpdateQuantidadeTemp={handleUpdateQuantidadeEmbalagemTemp}
             />
+            </TabsContent>
+
+            <TabsContent value="preparo" className="mt-0">
+              <PrepareTab
+                mode={isCreating ? 'create' : 'edit'}
+                receita={receitaCompleta}
+                onUpdate={loadReceitaCompleta}
+                tempPassos={tempPassos}
+                onAddTemp={handleAddPassoTemp}
+                onRemoveTemp={handleRemovePassoTemp}
+              />
             </TabsContent>
 
             <TabsContent value="projecao" className="mt-0">
