@@ -82,7 +82,15 @@ export function useReceitas() {
         .order('numero_sequencial', { ascending: false });
 
       if (filters?.search) {
-        query = query.ilike('nome', `%${filters.search}%`);
+        // Verificar se a busca é um número para pesquisar pelo numero_sequencial
+        const searchAsNumber = parseInt(filters.search);
+        if (!isNaN(searchAsNumber)) {
+          // Se for um número válido, buscar por numero_sequencial OU nome
+          query = query.or(`numero_sequencial.eq.${searchAsNumber},nome.ilike.%${filters.search}%`);
+        } else {
+          // Se não for número, buscar apenas por nome
+          query = query.ilike('nome', `%${filters.search}%`);
+        }
       }
 
       if (filters?.tipo && filters.tipo !== 'all') {
