@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -318,7 +318,16 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     }
   };
 
-  const precoKg = formData.peso_unitario > 0 
+  // Verificar dinamicamente se o markup atual é de sub-receita
+  const markupAtualSelecionado = useMemo(() => {
+    if (!formData.markup_id) return null;
+    const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
+    return allMarkups.find(m => m.id === formData.markup_id);
+  }, [formData.markup_id, markupSubReceita, markups]);
+
+  const isMarkupSubReceitaAtual = markupAtualSelecionado?.tipo === 'sub_receita';
+
+  const precoKg = formData.peso_unitario > 0
     ? (formData.preco_venda / formData.peso_unitario) * 1000 
     : 0;
 
@@ -397,15 +406,15 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               tipo="valor"
               value={formData.preco_venda || 0}
               onChange={(value) => onFormChange('preco_venda', value)}
-              disabled={isMarkupSubReceita}
+              disabled={isMarkupSubReceitaAtual}
               className={`text-4xl font-bold border-0 p-0 h-auto bg-transparent focus:ring-0 ${
-                isMarkupSubReceita 
+                isMarkupSubReceitaAtual 
                   ? 'text-muted-foreground cursor-not-allowed' 
                   : 'text-blue-600 dark:text-blue-400'
               }`}
               placeholder="R$ 0,00"
             />
-            {isMarkupSubReceita && (
+            {isMarkupSubReceitaAtual && (
               <p className="text-xs text-muted-foreground mt-2">
                 ⚠️ Preço calculado automaticamente pelo markup de sub-receita
               </p>
