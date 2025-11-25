@@ -143,12 +143,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   useEffect(() => {
     if (!formData.markup_id || !user) return;
 
-    // Buscar o markup atual para verificar se é sub-receita
-    const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
-    const markupAtual = allMarkups.find(m => m.id === formData.markup_id);
-
-    // Só continua se o markup ATUAL for de sub-receita
-    if (markupAtual?.tipo !== 'sub_receita' || !markupSubReceita) return;
+    // Usa formData.markup_tipo diretamente - sempre atualizado!
+    if (formData.markup_tipo !== 'sub_receita' || !markupSubReceita) return;
     
     const recalcularPreco = async () => {
       try {
@@ -202,7 +198,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     };
     
     recalcularPreco();
-  }, [custoTotal, formData.markup_id, user, mode, receita?.id]);
+  }, [custoTotal, formData.markup_id, formData.markup_tipo, markupSubReceita, user, mode, receita?.id]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
