@@ -54,8 +54,14 @@ export const FinancialHealthScore = () => {
           id,
           nome,
           preco_venda,
-          receita_ingredientes(custo_total),
-          receita_embalagens(custo_total),
+          receita_ingredientes(
+            quantidade,
+            produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+          ),
+          receita_embalagens(
+            quantidade,
+            produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
+          ),
           receita_mao_obra(valor_total)
         `)
         .eq('user_id', user.id)
@@ -68,10 +74,28 @@ export const FinancialHealthScore = () => {
 
       if (recipes && recipes.length > 0) {
         const margens = recipes.map(recipe => {
-          const custoTotal = 
-            (recipe.receita_ingredientes?.reduce((sum: number, i: any) => sum + (i.custo_total || 0), 0) || 0) +
-            (recipe.receita_embalagens?.reduce((sum: number, i: any) => sum + (i.custo_total || 0), 0) || 0) +
-            (recipe.receita_mao_obra?.reduce((sum: number, i: any) => sum + (i.valor_total || 0), 0) || 0);
+          // Calcular custo de ingredientes dinamicamente
+          const custoIngredientes = recipe.receita_ingredientes?.reduce((sum: number, i: any) => {
+            if (!i.produto) return sum;
+            const custoUnitario = i.produto.unidade_uso 
+              ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
+              : i.produto.custo_unitario;
+            return sum + (custoUnitario * i.quantidade);
+          }, 0) || 0;
+
+          // Calcular custo de embalagens dinamicamente
+          const custoEmbalagens = recipe.receita_embalagens?.reduce((sum: number, e: any) => {
+            if (!e.produto) return sum;
+            const custoUnitario = e.produto.unidade_uso 
+              ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
+              : e.produto.custo_unitario;
+            return sum + (custoUnitario * e.quantidade);
+          }, 0) || 0;
+
+          // Custo de mão de obra
+          const custoMaoObra = recipe.receita_mao_obra?.reduce((sum: number, m: any) => sum + (m.valor_total || 0), 0) || 0;
+
+          const custoTotal = custoIngredientes + custoEmbalagens + custoMaoObra;
           
           return ((recipe.preco_venda - custoTotal) / recipe.preco_venda) * 100;
         });
