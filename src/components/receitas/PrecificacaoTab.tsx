@@ -17,11 +17,9 @@ interface PrecificacaoTabProps {
   formData: any;
   onFormChange: (field: string, value: any) => void;
   onUpdate?: () => Promise<void>;
-  isMarkupSubReceita?: boolean;
-  markupTipo?: string | null;
 }
 
-export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate, isMarkupSubReceita = false, markupTipo }: PrecificacaoTabProps) {
+export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate }: PrecificacaoTabProps) {
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
   const [markups, setMarkups] = useState<any[]>([]);
@@ -204,7 +202,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     };
     
     recalcularPreco();
-  }, [custoTotal, formData.markup_id, markupSubReceita, markups, user, mode, receita?.id, onFormChange]);
+  }, [custoTotal, formData.markup_id, user, mode, receita?.id]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
@@ -295,12 +293,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
       // Atualizar o formulário local
       onFormChange('markup_id', markupId);
+      onFormChange('markup_tipo', markup.tipo);
       onFormChange('preco_venda', precoVenda);
-
-      // FORÇAR RELOAD da receita completa
-      if (onUpdate) {
-        await onUpdate();
-      }
 
       // Feedback visual
       if (markup.tipo === 'sub_receita') {
