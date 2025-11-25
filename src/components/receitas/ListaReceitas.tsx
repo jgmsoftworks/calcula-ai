@@ -64,6 +64,41 @@ export function ListaReceitas() {
     };
   }, [user, search, tipoFilter, subReceitaFilter]);
 
+  const sincronizarPrecosSubReceitas = async (receitasCarregadas: ReceitaComDados[]) => {
+    if (!user) return;
+    
+    // Filtrar apenas sub-receitas com preço diferente do custo
+    const subReceitasDesatualizadas = receitasCarregadas.filter(r => {
+      if (r.markup?.tipo !== 'sub_receita') return false;
+      
+      const custoTotal = (r.custo_ingredientes || 0) + 
+                         (r.custo_embalagens || 0) + 
+                         (r.custo_mao_obra || 0) + 
+                         (r.custo_sub_receitas || 0);
+      
+      // Se a diferença for significativa (mais de 0.01)
+      return Math.abs(r.preco_venda - custoTotal) > 0.01;
+    });
+    
+    if (subReceitasDesatualizadas.length === 0) return;
+    
+    console.log(`🔄 Atualizando ${subReceitasDesatualizadas.length} sub-receitas com preços desatualizados`);
+    
+    // Atualizar cada sub-receita
+    for (const receita of subReceitasDesatualizadas) {
+      const custoTotal = (receita.custo_ingredientes || 0) + 
+                         (receita.custo_embalagens || 0) + 
+                         (receita.custo_mao_obra || 0) + 
+                         (receita.custo_sub_receitas || 0);
+      
+      await supabase
+        .from('receitas')
+        .update({ preco_venda: custoTotal })
+        .eq('id', receita.id)
+        .eq('user_id', user.id);
+    }
+  };
+
   const loadReceitas = async () => {
     const filters: any = {};
     if (search) filters.search = search;
@@ -72,6 +107,9 @@ export function ListaReceitas() {
 
     const data = await fetchReceitas(filters);
     setReceitas(data);
+    
+    // Sincronizar preços de sub-receitas desatualizadas
+    await sincronizarPrecosSubReceitas(data);
   };
 
   const loadTiposProduto = async () => {
