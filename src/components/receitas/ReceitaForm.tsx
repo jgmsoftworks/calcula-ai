@@ -90,7 +90,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const isCreating = !receita?.id; // Modo criação se não tem ID
 
   const handleFormChange = (field: string, value: any) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePrevious = () => {
