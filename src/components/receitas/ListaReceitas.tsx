@@ -35,6 +35,35 @@ export function ListaReceitas() {
     loadReceitas();
   }, [search, tipoFilter, subReceitaFilter]);
 
+  // Real-time subscription para atualizar lista quando receitas mudarem
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('🔄 Configurando real-time updates para lista de receitas');
+    
+    const channel = supabase
+      .channel('lista-receitas-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'receitas',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 Receita atualizada em tempo real:', payload);
+          loadReceitas();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Desconectando real-time de receitas');
+      supabase.removeChannel(channel);
+    };
+  }, [user, search, tipoFilter, subReceitaFilter]);
+
   const loadReceitas = async () => {
     const filters: any = {};
     if (search) filters.search = search;
