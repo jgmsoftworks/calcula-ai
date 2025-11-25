@@ -312,14 +312,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     }
   };
 
-  // Verificar dinamicamente se o markup atual é de sub-receita
-  const markupAtualSelecionado = useMemo(() => {
-    if (!formData.markup_id) return null;
-    const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
-    return allMarkups.find(m => m.id === formData.markup_id);
-  }, [formData.markup_id, markupSubReceita, markups]);
-
-  const isMarkupSubReceitaAtual = markupAtualSelecionado?.tipo === 'sub_receita';
+  // Verificar dinamicamente se o markup atual é de sub-receita usando formData diretamente
+  const isMarkupSubReceitaAtual = formData.markup_tipo === 'sub_receita';
 
   const precoKg = formData.peso_unitario > 0
     ? (formData.preco_venda / formData.peso_unitario) * 1000 
