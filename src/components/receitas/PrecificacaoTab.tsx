@@ -143,8 +143,14 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   // Recálculo automático APENAS para sub-receitas quando custos mudam
   useEffect(() => {
-    const isSubReceita = markupTipo === 'sub_receita' || isMarkupSubReceita;
-    if (!isSubReceita || !formData.markup_id || !markupSubReceita || !user) return;
+    if (!formData.markup_id || !user) return;
+
+    // Buscar o markup atual para verificar se é sub-receita
+    const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
+    const markupAtual = allMarkups.find(m => m.id === formData.markup_id);
+
+    // Só continua se o markup ATUAL for de sub-receita
+    if (markupAtual?.tipo !== 'sub_receita' || !markupSubReceita) return;
     
     const recalcularPreco = async () => {
       try {
@@ -198,7 +204,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     };
     
     recalcularPreco();
-  }, [custoTotal, isMarkupSubReceita, formData.markup_id, markupSubReceita, user, mode, receita?.id, onFormChange, markupTipo]);
+  }, [custoTotal, formData.markup_id, markupSubReceita, markups, user, mode, receita?.id, onFormChange]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
