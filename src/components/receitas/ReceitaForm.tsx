@@ -165,10 +165,14 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         .then(({ data }) => {
           if (data) {
             setMarkupAtual(data);
+            // Sincronizar markup_tipo no formData para persistir o bloqueio
+            setFormData(prev => ({ ...prev, markup_tipo: data.tipo }));
           }
         });
     } else {
       setMarkupAtual(null);
+      // Limpar markup_tipo quando não há markup
+      setFormData(prev => ({ ...prev, markup_tipo: null }));
     }
   }, [formData.markup_id]);
 
