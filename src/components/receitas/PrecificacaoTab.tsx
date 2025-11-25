@@ -141,45 +141,16 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   // Recálculo automático APENAS para sub-receitas quando custos mudam
   useEffect(() => {
-    if (!formData.markup_id || !user) return;
+    if (!formData.markup_id || !user || !markupSubReceita) return;
 
-    // Usa formData.markup_tipo diretamente - sempre atualizado!
-    if (formData.markup_tipo !== 'sub_receita' || !markupSubReceita) return;
+    // Verificar diretamente se o markup selecionado é de sub-receita
+    const isSubReceitaMarkup = formData.markup_id === markupSubReceita.id;
+    if (!isSubReceitaMarkup) return;
     
     const recalcularPreco = async () => {
       try {
-        // Buscar detalhes do markup de user_configurations
-        const configKey = `markup_${markupSubReceita.nome.toLowerCase().replace(/\s+/g, '_')}`;
-        
-        const { data } = await supabase
-          .from('user_configurations')
-          .select('configuration')
-          .eq('user_id', user.id)
-          .eq('type', configKey)
-          .maybeSingle();
-
-        const detalhes = data?.configuration as any;
-        const valorEmReal = detalhes?.valorEmReal ?? 0;
-
-        let precoVenda: number;
-
-        if (valorEmReal > 0) {
-          // COM "Valor em Real"
-          const totalPercentuais = 
-            (detalhes?.gastoSobreFaturamento ?? 0) + 
-            (detalhes?.impostos ?? 0) + 
-            (detalhes?.taxas ?? 0) + 
-            (detalhes?.comissoes ?? 0) + 
-            (detalhes?.outros ?? 0) + 
-            (detalhes?.lucroDesejado ?? markupSubReceita.margem_lucro);
-          
-          const baseCalculo = custoTotal + valorEmReal;
-          const divisor = 1 - (totalPercentuais / 100);
-          precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
-        } else {
-          // SEM "Valor em Real"
-          precoVenda = custoTotal * markupSubReceita.markup_ideal;
-        }
+        // Sub-receitas: preço = custo (sem markup adicional)
+        const precoVenda = custoTotal;
         
         // Atualizar preço local
         onFormChange('preco_venda', precoVenda);
@@ -198,7 +169,30 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     };
     
     recalcularPreco();
-  }, [custoTotal, formData.markup_id, formData.markup_tipo, markupSubReceita, user, mode, receita?.id]);
+  }, [custoTotal, formData.markup_id, markupSubReceita, user, mode, receita?.id, onFormChange]);
+
+  // Verificação de consistência ao abrir receita
+  useEffect(() => {
+    if (!markupSubReceita || !formData.markup_id || !user) return;
+    
+    const isSubReceita = formData.markup_id === markupSubReceita.id;
+    if (!isSubReceita) return;
+    
+    // Se preço é diferente do custo, recalcular
+    const diferencaSignificativa = Math.abs(formData.preco_venda - custoTotal) > 0.001;
+    if (diferencaSignificativa && custoTotal > 0) {
+      console.log('🔄 Detectada inconsistência, recalculando preço...');
+      onFormChange('preco_venda', custoTotal);
+      
+      if (mode === 'edit' && receita?.id) {
+        supabase
+          .from('receitas')
+          .update({ preco_venda: custoTotal })
+          .eq('id', receita.id)
+          .eq('user_id', user.id);
+      }
+    }
+  }, [markupSubReceita, formData.markup_id, formData.preco_venda, custoTotal, user, mode, receita?.id, onFormChange]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
@@ -308,8 +302,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     }
   };
 
-  // Verificar dinamicamente se o markup atual é de sub-receita usando formData diretamente
-  const isMarkupSubReceitaAtual = formData.markup_tipo === 'sub_receita';
+  // Verificar dinamicamente se o markup atual é de sub-receita usando ID direto
+  const isMarkupSubReceitaAtual = formData.markup_id && markupSubReceita && formData.markup_id === markupSubReceita.id;
 
   const precoKg = formData.peso_unitario > 0
     ? (formData.preco_venda / formData.peso_unitario) * 1000 
