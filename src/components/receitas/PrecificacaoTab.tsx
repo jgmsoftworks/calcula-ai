@@ -313,7 +313,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   };
 
   const precoKg = formData.peso_unitario > 0 
-    ? (custoTotal / formData.peso_unitario) * 1000 
+    ? (formData.preco_venda / formData.peso_unitario) * 1000 
     : 0;
 
   const ingredientesResumo = receita?.ingredientes ?? [];
