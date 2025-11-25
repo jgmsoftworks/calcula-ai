@@ -288,7 +288,7 @@ export function useReceitas() {
     setLoading(true);
     try {
       // Remover campos que são JOINs e não devem ser atualizados
-      const { tipo_produto, ...updateData } = data;
+      const { tipo_produto, markup_tipo, ...updateData } = data as any;
       
       const { error } = await supabase
         .from('receitas')
