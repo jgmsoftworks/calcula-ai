@@ -147,25 +147,14 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     const isSubReceitaMarkup = formData.markup_id === markupSubReceita.id;
     if (!isSubReceitaMarkup) return;
     
-    const recalcularPreco = async () => {
-      try {
-        // Sub-receitas: preço = custo (sem markup adicional)
-        const precoVenda = custoTotal;
-        
-        // Atualizar preço local
-        onFormChange('preco_venda', precoVenda);
-        
-        // MODO EDIÇÃO: Salvar no banco automaticamente
-        if (mode === 'edit' && receita?.id) {
-          await supabase
-            .from('receitas')
-            .update({ preco_venda: precoVenda })
-            .eq('id', receita.id)
-            .eq('user_id', user.id);
-        }
-      } catch (error) {
-        console.error('Erro ao recalcular preço automaticamente:', error);
-      }
+    const recalcularPreco = () => {
+      // Sub-receitas: preço = custo (sem markup adicional)
+      const precoVenda = custoTotal;
+      
+      // ✅ Atualizar preço local (UI atualiza instantaneamente)
+      onFormChange('preco_venda', precoVenda);
+      
+      // ❌ Update no banco removido - será feito no handleSave quando usuário clicar "Atualizar Receita"
     };
     
     recalcularPreco();
@@ -182,17 +171,12 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     const diferencaSignificativa = Math.abs(formData.preco_venda - custoTotal) > 0.001;
     if (diferencaSignificativa && custoTotal > 0) {
       console.log('🔄 Detectada inconsistência, recalculando preço...');
+      // ✅ Atualizar preço local (UI atualiza instantaneamente)
       onFormChange('preco_venda', custoTotal);
       
-      if (mode === 'edit' && receita?.id) {
-        supabase
-          .from('receitas')
-          .update({ preco_venda: custoTotal })
-          .eq('id', receita.id)
-          .eq('user_id', user.id);
-      }
+      // ❌ Update no banco removido - será feito no handleSave quando usuário clicar "Atualizar Receita"
     }
-  }, [markupSubReceita, formData.markup_id, formData.preco_venda, custoTotal, user, mode, receita?.id, onFormChange]);
+  }, [markupSubReceita, formData.markup_id, formData.preco_venda, custoTotal, user, onFormChange]);
 
   const handleSelectMarkup = async (markupId: string) => {
     const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
