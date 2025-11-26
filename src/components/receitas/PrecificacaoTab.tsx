@@ -444,7 +444,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                 onSelect={() => handleSelectMarkup(markupSubReceita.id)}
                 alwaysExpanded={true}
                 isApplying={isApplying}
-                rendimentoValor={receita.rendimento_valor}
+                rendimentoValor={formData.rendimento_valor}
               />
               </>
             )}
@@ -460,7 +460,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                 onSelect={() => handleSelectMarkup(markup.id)}
                 alwaysExpanded={true}
                 isApplying={isApplying}
-                rendimentoValor={receita.rendimento_valor}
+                rendimentoValor={formData.rendimento_valor}
               />
             ))}
           </div>
