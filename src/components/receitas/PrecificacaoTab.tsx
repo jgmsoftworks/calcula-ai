@@ -206,6 +206,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     setIsApplying(true);
 
     try {
+      // ✅ ATUALIZAR UI IMEDIATAMENTE PRIMEIRO (feedback instantâneo)
+      onFormChange('markup_id', markupId);
+      onFormChange('markup_tipo', markup.tipo);
       // Buscar detalhes do markup de user_configurations
       const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
       
@@ -250,26 +253,26 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         precoVenda = custoBase * markup.markup_ideal;
       }
 
+      // Atualizar preço localmente também
+      onFormChange('preco_venda', precoVenda);
+
+      // Mostrar toast de sucesso IMEDIATAMENTE
+      if (markup.tipo === 'sub_receita') {
+        toast.success('✅ Markup de sub-receitas selecionado!', {
+          duration: 3000,
+        });
+      } else {
+        toast.success('✅ Markup selecionado!');
+      }
+
       // MODO CRIAÇÃO: apenas atualizar formData localmente
       if (mode === 'create') {
-        onFormChange('markup_id', markupId);
-        onFormChange('markup_tipo', markup.tipo);
-        onFormChange('preco_venda', precoVenda);
-        
-        if (markup.tipo === 'sub_receita') {
-          toast.success('✅ Markup de sub-receitas selecionado! Esta receita ficará disponível como sub-receita após salvar.', {
-            duration: 4000,
-          });
-        } else {
-          toast.success('✅ Markup selecionado!');
-        }
-        
         setIsApplying(false);
         return;
       }
 
-      // MODO EDIÇÃO: salvar no banco
-      const { data: updatedData, error } = await supabase
+      // MODO EDIÇÃO: salvar no banco EM BACKGROUND (sem bloquear UI)
+      supabase
         .from('receitas')
         .update({
           markup_id: markupId,
@@ -277,23 +280,12 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         })
         .eq('id', receita.id)
         .eq('user_id', user.id)
-        .select('*, markup:markups(id, nome, tipo)');
-
-      if (error) throw error;
-
-      // Atualizar o formulário local
-      onFormChange('markup_id', markupId);
-      onFormChange('markup_tipo', markup.tipo);
-      onFormChange('preco_venda', precoVenda);
-
-      // Feedback visual
-      if (markup.tipo === 'sub_receita') {
-        toast.success('✅ Markup de sub-receitas aplicado! Esta receita agora está disponível como sub-receita.', {
-          duration: 4000,
+        .then(({ error }) => {
+          if (error) {
+            console.error('Erro ao salvar no banco:', error);
+            toast.error('Erro ao salvar no banco');
+          }
         });
-      } else {
-        toast.success('✅ Markup aplicado com sucesso!');
-      }
     } catch (error: any) {
       console.error('Erro ao salvar markup:', error);
       toast.error('Erro ao salvar o markup: ' + error.message);
