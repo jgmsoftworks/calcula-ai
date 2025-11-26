@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,20 @@ export function ListaReceitas() {
     loadReceitas();
   }, [search, tipoFilter, subReceitaFilter]);
 
+  // Ref para debounce do real-time
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const jaCarregouRef = useRef(false);
+
+  // Função debounced para carregar receitas
+  const debouncedLoadReceitas = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      loadReceitas();
+    }, 500); // Esperar 500ms antes de recarregar
+  }, [search, tipoFilter, subReceitaFilter]);
+
   // Real-time subscription para atualizar lista quando receitas mudarem
   useEffect(() => {
     if (!user) return;
@@ -53,7 +67,7 @@ export function ListaReceitas() {
         },
         (payload) => {
           console.log('🔔 Receita atualizada em tempo real:', payload);
-          loadReceitas();
+          debouncedLoadReceitas(); // Usar versão debounced
         }
       )
       .subscribe();
@@ -62,7 +76,7 @@ export function ListaReceitas() {
       console.log('🔌 Desconectando real-time de receitas');
       supabase.removeChannel(channel);
     };
-  }, [user, search, tipoFilter, subReceitaFilter]);
+  }, [user, debouncedLoadReceitas]);
 
   const sincronizarPrecosSubReceitas = async (receitasCarregadas: ReceitaComDados[]) => {
     if (!user) return;
@@ -108,9 +122,16 @@ export function ListaReceitas() {
     const data = await fetchReceitas(filters);
     setReceitas(data);
     
-    // Sincronizar preços de sub-receitas desatualizadas
-    await sincronizarPrecosSubReceitas(data);
+    // NÃO sincronizar aqui - será feito separadamente
   };
+
+  // Sincronizar apenas UMA VEZ após primeira carga
+  useEffect(() => {
+    if (receitas.length > 0 && !jaCarregouRef.current) {
+      jaCarregouRef.current = true;
+      sincronizarPrecosSubReceitas(receitas);
+    }
+  }, [receitas.length]);
 
   const loadTiposProduto = async () => {
     const tipos = await fetchTiposProduto();

@@ -142,21 +142,23 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       setFormData(prev => ({
         ...prev,
         markup_id: data.markup_id,
+        markup_tipo: data.markup?.tipo || null, // ✅ Já vem do JOIN
         preco_venda: data.preco_venda || 0,
         peso_unitario: data.peso_unitario || 0,
       }));
       
       console.log('✅ formData sincronizado após reload:', {
         markup_id: data.markup_id,
+        markup_tipo: data.markup?.tipo,
         preco_venda: data.preco_venda,
         peso_unitario: data.peso_unitario
       });
     }
   };
   
-  // Buscar tipo do markup quando formData.markup_id muda
+  // Buscar tipo do markup APENAS como fallback (se não vier do loadReceitaCompleta)
   useEffect(() => {
-    if (formData.markup_id) {
+    if (formData.markup_id && !formData.markup_tipo) {
       supabase
         .from('markups')
         .select('tipo')
@@ -165,16 +167,14 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         .then(({ data }) => {
           if (data) {
             setMarkupAtual(data);
-            // Sincronizar markup_tipo no formData para persistir o bloqueio
             setFormData(prev => ({ ...prev, markup_tipo: data.tipo }));
           }
         });
-    } else {
+    } else if (!formData.markup_id) {
       setMarkupAtual(null);
-      // Limpar markup_tipo quando não há markup
       setFormData(prev => ({ ...prev, markup_tipo: null }));
     }
-  }, [formData.markup_id]);
+  }, [formData.markup_id, formData.markup_tipo]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
