@@ -231,10 +231,8 @@ export function DespesasFixas() {
   };
 
   const getTotalDespesas = () => {
-    // Soma apenas as despesas que têm categoria associada
-    return despesas
-      .filter(despesa => despesa.categoria_id && categorias.some(cat => cat.id === despesa.categoria_id))
-      .reduce((total, despesa) => total + despesa.valor, 0);
+    // Soma TODAS as despesas (com e sem categoria)
+    return despesas.reduce((total, despesa) => total + despesa.valor, 0);
   };
 
   const getTotalByCategoria = (categoriaId: string) => {
@@ -249,7 +247,9 @@ export function DespesasFixas() {
       .reduce((total, despesa) => total + despesa.valor, 0);
   };
 
-  const filteredDespesas = selectedCategory
+  const filteredDespesas = selectedCategory === 'sem-categoria'
+    ? despesas.filter(despesa => !despesa.categoria_id)
+    : selectedCategory
     ? despesas.filter(despesa => despesa.categoria_id === selectedCategory)
     : despesas;
 
@@ -305,6 +305,23 @@ export function DespesasFixas() {
                  </div>
               </button>
             ))}
+            
+            {/* Seção "Sem Categoria" */}
+            {getTotalSemCategoria() > 0 && (
+              <button
+                onClick={() => setSelectedCategory('sem-categoria')}
+                className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  selectedCategory === 'sem-categoria'
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted/50 text-muted-foreground'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="italic">Sem Categoria</span>
+                  <span className="text-xs">{formatters.valor(getTotalSemCategoria())}</span>
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -316,13 +333,17 @@ export function DespesasFixas() {
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="text-2xl font-bold text-primary mb-1">
-                  {selectedCategory 
+                  {selectedCategory === 'sem-categoria'
+                    ? 'Sem Categoria'
+                    : selectedCategory 
                     ? categorias.find(c => c.id === selectedCategory)?.nome || 'Categoria não encontrada'
                     : 'Despesas Fixas'
                   }
                 </CardTitle>
                 <p className="text-muted-foreground text-sm">
-                  {selectedCategory 
+                  {selectedCategory === 'sem-categoria'
+                    ? 'Despesas que não possuem categoria atribuída'
+                    : selectedCategory 
                     ? categorias.find(c => c.id === selectedCategory)?.descricao || 'Gerencie suas despesas desta categoria'
                     : 'Gerencie suas despesas mensais fixas'
                   }
@@ -331,7 +352,9 @@ export function DespesasFixas() {
                <div className="text-right">
                  <p className="text-sm text-muted-foreground">Total</p>
                  <p className="text-2xl font-bold text-primary">
-                   {selectedCategory 
+                   {selectedCategory === 'sem-categoria'
+                     ? formatters.valor(getTotalSemCategoria())
+                     : selectedCategory 
                      ? formatters.valor(getTotalByCategoria(selectedCategory))
                      : formatters.valor(getTotalDespesas())
                    }
@@ -343,7 +366,7 @@ export function DespesasFixas() {
           <CardContent>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Lista de Despesas</h3>
-              {selectedCategory && (
+              {selectedCategory && selectedCategory !== 'sem-categoria' && (
                 <Button onClick={handleNewDespesa} variant="outline" className="gap-2">
                   <Plus className="h-4 w-4" />
                   Adicionar Despesa
