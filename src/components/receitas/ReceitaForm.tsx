@@ -132,6 +132,39 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   }, [receita]);
 
+  // Carregar dados do banco para estados temporários em modo edição
+  useEffect(() => {
+    if (receita && receitaCompleta && !isCreating) {
+      // Popular estados temporários com dados existentes
+      setTempIngredientes(receitaCompleta.ingredientes?.map(i => ({
+        id: i.id,
+        produto_id: i.produto_id,
+        quantidade: i.quantidade,
+        produto: i.produto,
+      })) || []);
+      
+      setTempSubReceitas(receitaCompleta.sub_receitas?.map(s => ({
+        id: s.id,
+        sub_receita_id: s.sub_receita_id,
+        quantidade: s.quantidade,
+        sub_receita: s.sub_receita,
+      })) || []);
+      
+      setTempEmbalagens(receitaCompleta.embalagens?.map(e => ({
+        id: e.id,
+        produto_id: e.produto_id,
+        quantidade: e.quantidade,
+        produto: e.produto,
+      })) || []);
+      
+      setTempPassos(receitaCompleta.passos?.map(p => ({
+        id: p.id,
+        ordem: p.ordem,
+        descricao: p.descricao,
+      })) || []);
+    }
+  }, [receitaCompleta, receita, isCreating]);
+
   const loadReceitaCompleta = async () => {
     if (!receita) return;
     const data = await fetchReceitaCompleta(receita.id);
@@ -348,12 +381,119 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
         toast.success('Receita criada com sucesso!');
       } else {
-        // MODO EDIÇÃO: Apenas atualizar dados básicos
+        // MODO EDIÇÃO: Processar diferenças e salvar tudo de uma vez
         await updateReceita(receita!.id, formData);
+        
+        // Processar ingredientes
+        const ingredientesOriginais = receitaCompleta?.ingredientes?.map(i => i.id) || [];
+        const ingredientesAtuais = tempIngredientes.map(i => i.id);
+        
+        const ingredientesParaDeletar = ingredientesOriginais.filter(id => !ingredientesAtuais.includes(id));
+        const ingredientesParaInserir = tempIngredientes.filter(i => !ingredientesOriginais.includes(i.id));
+        const ingredientesParaAtualizar = tempIngredientes.filter(i => ingredientesOriginais.includes(i.id));
+        
+        if (ingredientesParaDeletar.length > 0) {
+          await supabase.from('receita_ingredientes').delete().in('id', ingredientesParaDeletar);
+        }
+        
+        if (ingredientesParaInserir.length > 0) {
+          await supabase.from('receita_ingredientes').insert(
+            ingredientesParaInserir.map(i => ({
+              receita_id: receita!.id,
+              produto_id: i.produto_id,
+              quantidade: i.quantidade
+            }))
+          );
+        }
+        
+        for (const ing of ingredientesParaAtualizar) {
+          await supabase.from('receita_ingredientes')
+            .update({ quantidade: ing.quantidade })
+            .eq('id', ing.id);
+        }
+        
+        // Processar sub-receitas
+        const subReceitasOriginais = receitaCompleta?.sub_receitas?.map(s => s.id) || [];
+        const subReceitasAtuais = tempSubReceitas.map(s => s.id);
+        
+        const subReceitasParaDeletar = subReceitasOriginais.filter(id => !subReceitasAtuais.includes(id));
+        const subReceitasParaInserir = tempSubReceitas.filter(s => !subReceitasOriginais.includes(s.id));
+        const subReceitasParaAtualizar = tempSubReceitas.filter(s => subReceitasOriginais.includes(s.id));
+        
+        if (subReceitasParaDeletar.length > 0) {
+          await supabase.from('receita_sub_receitas').delete().in('id', subReceitasParaDeletar);
+        }
+        
+        if (subReceitasParaInserir.length > 0) {
+          await supabase.from('receita_sub_receitas').insert(
+            subReceitasParaInserir.map(s => ({
+              receita_id: receita!.id,
+              sub_receita_id: s.sub_receita_id,
+              quantidade: s.quantidade
+            }))
+          );
+        }
+        
+        for (const sub of subReceitasParaAtualizar) {
+          await supabase.from('receita_sub_receitas')
+            .update({ quantidade: sub.quantidade })
+            .eq('id', sub.id);
+        }
+        
+        // Processar embalagens
+        const embalagensOriginais = receitaCompleta?.embalagens?.map(e => e.id) || [];
+        const embalagensAtuais = tempEmbalagens.map(e => e.id);
+        
+        const embalagensParaDeletar = embalagensOriginais.filter(id => !embalagensAtuais.includes(id));
+        const embalagensParaInserir = tempEmbalagens.filter(e => !embalagensOriginais.includes(e.id));
+        const embalagensParaAtualizar = tempEmbalagens.filter(e => embalagensOriginais.includes(e.id));
+        
+        if (embalagensParaDeletar.length > 0) {
+          await supabase.from('receita_embalagens').delete().in('id', embalagensParaDeletar);
+        }
+        
+        if (embalagensParaInserir.length > 0) {
+          await supabase.from('receita_embalagens').insert(
+            embalagensParaInserir.map(e => ({
+              receita_id: receita!.id,
+              produto_id: e.produto_id,
+              quantidade: e.quantidade
+            }))
+          );
+        }
+        
+        for (const emb of embalagensParaAtualizar) {
+          await supabase.from('receita_embalagens')
+            .update({ quantidade: emb.quantidade })
+            .eq('id', emb.id);
+        }
+        
+        // Processar passos
+        const passosOriginais = receitaCompleta?.passos?.map(p => p.id) || [];
+        const passosAtuais = tempPassos.map(p => p.id);
+        
+        const passosParaDeletar = passosOriginais.filter(id => !passosAtuais.includes(id));
+        const passosParaInserir = tempPassos.filter(p => !passosOriginais.includes(p.id));
+        
+        if (passosParaDeletar.length > 0) {
+          await supabase.from('receita_passos_preparo').delete().in('id', passosParaDeletar);
+        }
+        
+        if (passosParaInserir.length > 0) {
+          await supabase.from('receita_passos_preparo').insert(
+            passosParaInserir.map(p => ({
+              receita_id: receita!.id,
+              ordem: p.ordem,
+              descricao: p.descricao
+            }))
+          );
+        }
         
         if (imageFile) {
           await uploadImagemReceita(imageFile, receita!.id);
         }
+
+        toast.success('Receita atualizada com sucesso!');
       }
 
       onClose();

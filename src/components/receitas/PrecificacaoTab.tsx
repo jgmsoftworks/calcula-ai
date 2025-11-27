@@ -249,27 +249,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         toast.success('✅ Markup selecionado!');
       }
 
-      // MODO CRIAÇÃO: apenas atualizar formData localmente
-      if (mode === 'create') {
-        setIsApplying(false);
-        return;
-      }
-
-      // MODO EDIÇÃO: salvar no banco EM BACKGROUND (sem bloquear UI)
-      supabase
-        .from('receitas')
-        .update({
-          markup_id: markupId,
-          preco_venda: precoVenda,
-        })
-        .eq('id', receita.id)
-        .eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Erro ao salvar no banco:', error);
-            toast.error('Erro ao salvar no banco');
-          }
-        });
+      // Salvamento será feito quando clicar em "Atualizar Receita"
     } catch (error: any) {
       console.error('Erro ao salvar markup:', error);
       toast.error('Erro ao salvar o markup: ' + error.message);

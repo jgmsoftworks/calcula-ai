@@ -72,77 +72,25 @@ export function IngredientesTab({
     setProdutos(filtered);
   }, [search, allProdutos]);
 
-  const handleAddIngrediente = async (produto: any) => {
+  const handleAddIngrediente = (produto: any) => {
     const quantidadeInicial = 1;
-
-    if (mode === 'create') {
-      onAddTemp?.(produto, quantidadeInicial);
-      setSearch('');
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('receita_ingredientes').insert({
-        receita_id: receita!.id,
-        produto_id: produto.id,
-        quantidade: quantidadeInicial,
-      });
-
-      if (error) throw error;
-      toast.success('Ingrediente adicionado');
-      setSearch('');
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao adicionar ingrediente:', error);
-      toast.error('Erro ao adicionar ingrediente');
-    }
+    onAddTemp?.(produto, quantidadeInicial);
+    setSearch('');
+    toast.success('Ingrediente adicionado');
   };
 
-  const handleRemoveIngrediente = async (id: string) => {
-    if (mode === 'create') {
-      onRemoveTemp?.(id);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('receita_ingredientes')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Ingrediente removido');
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao remover ingrediente:', error);
-      toast.error('Erro ao remover ingrediente');
-    }
+  const handleRemoveIngrediente = (id: string) => {
+    onRemoveTemp?.(id);
+    toast.success('Ingrediente removido');
   };
 
-  const handleUpdateQuantidade = async (id: string, rawValue: string) => {
+  const handleUpdateQuantidade = (id: string, rawValue: string) => {
     const parsed = parseFloat(rawValue.replace(',', '.'));
     const quantidade = isNaN(parsed) || parsed < 0 ? 0 : parsed;
-
-    if (mode === 'create') {
-      onUpdateQuantidadeTemp?.(id, quantidade);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('receita_ingredientes')
-        .update({ quantidade })
-        .eq('id', id);
-
-      if (error) throw error;
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao atualizar quantidade:', error);
-      toast.error('Erro ao atualizar quantidade');
-    }
+    onUpdateQuantidadeTemp?.(id, quantidade);
   };
 
-  const ingredientes = mode === 'create' ? tempIngredientes : (receita?.ingredientes || []);
+  const ingredientes = mode === 'create' ? tempIngredientes : tempIngredientes;
 
   const total = ingredientes.reduce((sum, ing) => {
     if (!ing.produto) return sum;

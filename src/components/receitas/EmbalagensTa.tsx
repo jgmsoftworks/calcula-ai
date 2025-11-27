@@ -72,77 +72,25 @@ export function EmbalagensTa({
     setProdutos(filtered);
   }, [search, allProdutos]);
 
-  const handleAddEmbalagem = async (produto: any) => {
+  const handleAddEmbalagem = (produto: any) => {
     const quantidadeInicial = 1;
-
-    if (mode === 'create') {
-      onAddTemp?.(produto, quantidadeInicial);
-      setSearch('');
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('receita_embalagens').insert({
-        receita_id: receita!.id,
-        produto_id: produto.id,
-        quantidade: quantidadeInicial,
-      });
-
-      if (error) throw error;
-      toast.success('Embalagem adicionada');
-      setSearch('');
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao adicionar embalagem:', error);
-      toast.error('Erro ao adicionar embalagem');
-    }
+    onAddTemp?.(produto, quantidadeInicial);
+    setSearch('');
+    toast.success('Embalagem adicionada');
   };
 
-  const handleRemoveEmbalagem = async (id: string) => {
-    if (mode === 'create') {
-      onRemoveTemp?.(id);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('receita_embalagens')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Embalagem removida');
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao remover embalagem:', error);
-      toast.error('Erro ao remover embalagem');
-    }
+  const handleRemoveEmbalagem = (id: string) => {
+    onRemoveTemp?.(id);
+    toast.success('Embalagem removida');
   };
 
-  const handleUpdateQuantidade = async (id: string, rawValue: string) => {
+  const handleUpdateQuantidade = (id: string, rawValue: string) => {
     const parsed = parseFloat(rawValue.replace(',', '.'));
     const quantidade = isNaN(parsed) || parsed < 0 ? 0 : parsed;
-
-    if (mode === 'create') {
-      onUpdateQuantidadeTemp?.(id, quantidade);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('receita_embalagens')
-        .update({ quantidade })
-        .eq('id', id);
-
-      if (error) throw error;
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao atualizar quantidade:', error);
-      toast.error('Erro ao atualizar quantidade');
-    }
+    onUpdateQuantidadeTemp?.(id, quantidade);
   };
 
-  const embalagens = mode === 'create' ? tempEmbalagens : (receita?.embalagens || []);
+  const embalagens = mode === 'create' ? tempEmbalagens : tempEmbalagens;
 
   const total = embalagens.reduce((sum, emb) => {
     if (!emb.produto) return sum;
