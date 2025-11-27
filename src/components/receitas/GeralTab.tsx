@@ -74,58 +74,16 @@ export function GeralTab({
     loadMarkupInfo();
   }, [formData.markup_id]);
 
-  const handleAddPasso = async () => {
+  const handleAddPasso = () => {
     if (!novoPasso.trim()) return;
-
-    if (mode === 'create') {
-      // Modo criação: usar handler temporário
-      onAddPassoTemp?.(novoPasso);
-      setNovoPasso('');
-      return;
-    }
-
-    // Modo edição: salvar no banco
-    if (!receita) return;
-
-    try {
-      const ordem = (receita.passos?.length || 0) + 1;
-      const { error } = await supabase.from('receita_passos_preparo').insert({
-        receita_id: receita.id,
-        ordem,
-        descricao: novoPasso,
-      });
-
-      if (error) throw error;
-      toast.success('Passo adicionado');
-      setNovoPasso('');
-      onUpdate();
-    } catch (error: any) {
-      console.error('Erro ao adicionar passo:', error);
-      toast.error('Erro ao adicionar passo');
-    }
+    onAddPassoTemp?.(novoPasso);
+    setNovoPasso('');
+    toast.success('Passo adicionado');
   };
 
-  const handleRemovePasso = async (id: string) => {
-    if (mode === 'create') {
-      // Modo criação: remover temporariamente
-      onRemovePassoTemp?.(id);
-      return;
-    }
-
-    // Modo edição: remover do banco
-    try {
-      const { error } = await supabase
-        .from('receita_passos_preparo')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Passo removido');
-      onUpdate();
-    } catch (error: any) {
-      console.error('Erro ao remover passo:', error);
-      toast.error('Erro ao remover passo');
-    }
+  const handleRemovePasso = (id: string) => {
+    onRemovePassoTemp?.(id);
+    toast.success('Passo removido');
   };
 
   const handleEditPasso = async (id: string) => {
@@ -503,7 +461,7 @@ export function GeralTab({
         <Label>Passos de Preparo</Label>
         <div className="space-y-3">
           {(() => {
-            const passos = mode === 'create' ? tempPassos : (receita?.passos || []);
+            const passos = tempPassos;
             return passos.length > 0 ? (
               passos.map((passo, index) => (
                 <div key={passo.id} className="flex gap-3 items-start border rounded-lg p-4">

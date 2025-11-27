@@ -119,73 +119,22 @@ export function SubReceitasTab({
     setReceitas(filtered);
   }, [search, allSubReceitas]);
 
-  const handleAddSubReceita = async (subReceita: Receita) => {
-    if (mode === 'create') {
-      onAddTemp?.(subReceita, 1);
-      setSearch('');
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('receita_sub_receitas').insert({
-        receita_id: receita!.id,
-        sub_receita_id: subReceita.id,
-        quantidade: 1,
-      });
-
-      if (error) throw error;
-      toast.success('Sub-receita adicionada');
-      setSearch('');
-      onUpdate?.();
-      loadAvailableSubReceitas();
-    } catch (error: any) {
-      console.error('Erro ao adicionar sub-receita:', error);
-      toast.error('Erro ao adicionar sub-receita');
-    }
+  const handleAddSubReceita = (subReceita: Receita) => {
+    onAddTemp?.(subReceita, 1);
+    setSearch('');
+    toast.success('Sub-receita adicionada');
   };
 
-  const handleRemoveSubReceita = async (id: string) => {
-    if (mode === 'create') {
-      onRemoveTemp?.(id);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('receita_sub_receitas')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Sub-receita removida');
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao remover sub-receita:', error);
-      toast.error('Erro ao remover sub-receita');
-    }
+  const handleRemoveSubReceita = (id: string) => {
+    onRemoveTemp?.(id);
+    toast.success('Sub-receita removida');
   };
 
-  const handleUpdateQuantidade = async (id: string, quantidade: number) => {
-    if (mode === 'create') {
-      onUpdateQuantidadeTemp?.(id, quantidade);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('receita_sub_receitas')
-        .update({ quantidade })
-        .eq('id', id);
-
-      if (error) throw error;
-      onUpdate?.();
-    } catch (error: any) {
-      console.error('Erro ao atualizar quantidade:', error);
-      toast.error('Erro ao atualizar quantidade');
-    }
+  const handleUpdateQuantidade = (id: string, quantidade: number) => {
+    onUpdateQuantidadeTemp?.(id, quantidade);
   };
 
-  const subReceitas = mode === 'create' ? tempSubReceitas : (receita?.sub_receitas || []);
+  const subReceitas = mode === 'create' ? tempSubReceitas : tempSubReceitas;
 
   const total = subReceitas.reduce((sum, sr) => {
     if (!sr.sub_receita) return sum;
