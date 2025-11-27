@@ -2043,6 +2043,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      atualizar_preco_receita: {
+        Args: { p_receita_id: string }
+        Returns: undefined
+      }
+      calcular_custo_receita: {
+        Args: { p_receita_id: string }
+        Returns: number
+      }
       check_plan_limits: {
         Args: {
           feature_count?: number
@@ -2123,6 +2131,10 @@ export type Database = {
       initialize_user_filters: {
         Args: { user_uuid: string }
         Returns: undefined
+      }
+      recalcular_todas_receitas: {
+        Args: { p_user_id?: string }
+        Returns: number
       }
       reset_monthly_pdf_counter: { Args: never; Returns: undefined }
       user_is_admin: { Args: never; Returns: boolean }
