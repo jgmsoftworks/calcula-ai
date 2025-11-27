@@ -237,8 +237,11 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         precoVenda = custoBase * markup.markup_ideal;
       }
 
-      // Atualizar preço localmente também
-      onFormChange('preco_venda', precoVenda);
+      // Atualizar preço APENAS se for markup de sub-receita
+      // Para markups normais, o preço sugerido é apenas referência visual no MarkupCard
+      if (markup.tipo === 'sub_receita') {
+        onFormChange('preco_venda', precoVenda);
+      }
 
       // Mostrar toast de sucesso IMEDIATAMENTE
       if (markup.tipo === 'sub_receita') {
