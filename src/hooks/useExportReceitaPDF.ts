@@ -632,6 +632,15 @@ export function useExportReceitaPDF() {
 
       // === RODAPÉ COM DADOS DA EMPRESA (em todas as páginas) ===
       const totalPages = doc.getNumberOfPages();
+      
+      // Carregar logo Calculaí uma vez
+      let logoCalcBase64: string | null = null;
+      try {
+        logoCalcBase64 = await imageUrlToBase64('/assets/logo-calculaai.png');
+      } catch (err) {
+        console.log('Logo Calculaí não disponível');
+      }
+      
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         
@@ -655,6 +664,16 @@ export function useExportReceitaPDF() {
         
         if (footerParts.length > 0) {
           doc.text(footerParts.join(' | '), pageWidth / 2, footerY + 2, { align: 'center' });
+        }
+        
+        // Logo Calculaí no canto inferior direito (pequena mas legível)
+        if (logoCalcBase64) {
+          const logoWidth = 25;  // ~25mm
+          const logoHeight = 8;  // Proporcional
+          const logoX = pageWidth - logoWidth - 10; // 10mm da borda direita
+          const logoY = doc.internal.pageSize.getHeight() - logoHeight - 5; // 5mm do fundo
+          
+          doc.addImage(logoCalcBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
         }
       }
 
