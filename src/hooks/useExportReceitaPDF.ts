@@ -2,7 +2,7 @@ import { useState } from 'react';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { formatNumber } from '@/lib/formatters';
+import { formatters } from '@/lib/formatters';
 
 interface ConservacaoData {
   congelado?: { temperatura?: string; tempo?: string };
@@ -14,7 +14,7 @@ export function useExportReceitaPDF() {
   const [exporting, setExporting] = useState(false);
 
   const formatQuantidade = (quantidade: number): string => {
-    return formatNumber(quantidade, 2);
+    return formatters.quantidadeContinua(quantidade, 3);
   };
 
   // Função para converter URL de imagem para Base64
