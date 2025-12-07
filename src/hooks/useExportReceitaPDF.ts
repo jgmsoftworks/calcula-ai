@@ -17,6 +17,26 @@ export function useExportReceitaPDF() {
     return formatters.quantidadeContinua(quantidade, 3);
   };
 
+  // Função para formatar unidades de forma completa (ex: "g" -> "Grama (g)")
+  const formatUnidadeCompleta = (unidade: string): string => {
+    const mapa: Record<string, string> = {
+      'cm': 'Centímetro (cm)',
+      'cx': 'Caixa (cx)',
+      'fd': 'Fardo (fd)',
+      'g': 'Grama (g)',
+      'k': 'Quilo (k)',
+      'kg': 'Quilo (kg)',
+      'l': 'Litro (l)',
+      'm': 'Metro (m)',
+      'ml': 'Mililitro (ml)',
+      'pct': 'Pacote (pct)',
+      'un': 'Unidade (un)'
+    };
+    
+    const unidadeLower = unidade?.toLowerCase().trim() || 'un';
+    return mapa[unidadeLower] || unidade;
+  };
+
   // Função para converter URL de imagem para Base64
   const imageUrlToBase64 = async (url: string): Promise<string | null> => {
     try {
@@ -258,7 +278,7 @@ export function useExportReceitaPDF() {
         { 
           label: 'Rendim.:', 
           valor: receita.rendimento_valor && receita.rendimento_unidade 
-            ? `${formatQuantidade(receita.rendimento_valor)} ${receita.rendimento_unidade}`
+            ? `${formatQuantidade(receita.rendimento_valor)} ${formatUnidadeCompleta(receita.rendimento_unidade)}`
             : '-'
         },
         { 
@@ -392,7 +412,7 @@ export function useExportReceitaPDF() {
         currentY += 10;
 
         // Cabeçalho da tabela
-        const colWidths = [60, 20, 30, 30, 30];
+        const colWidths = [45, 35, 30, 30, 30];
         const tableStartY = currentY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
 
@@ -466,7 +486,7 @@ export function useExportReceitaPDF() {
           receita.receita_ingredientes,
           (item) => ({
             nome: item.produtos?.nome || 'N/A',
-            unidade: item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un'
+            unidade: formatUnidadeCompleta(item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un')
           })
         );
       }
@@ -478,7 +498,7 @@ export function useExportReceitaPDF() {
           receita.receita_sub_receitas,
           (item) => ({
             nome: item.sub_receita?.nome || 'N/A',
-            unidade: item.sub_receita?.rendimento_unidade || 'un'
+            unidade: formatUnidadeCompleta(item.sub_receita?.rendimento_unidade || 'un')
           })
         );
       }
@@ -490,7 +510,7 @@ export function useExportReceitaPDF() {
           receita.receita_embalagens,
           (item) => ({
             nome: item.produtos?.nome || 'N/A',
-            unidade: item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un'
+            unidade: formatUnidadeCompleta(item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un')
           })
         );
       }
