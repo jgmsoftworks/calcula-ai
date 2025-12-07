@@ -181,8 +181,12 @@ const PerfilNegocio = () => {
 
   useEffect(() => {
     loadProfile();
-    loadLogo();
   }, []);
+
+  // Carregar logo após o profile
+  useEffect(() => {
+    loadLogo();
+  }, [profile.logo_empresa_url]);
 
   // Initialize semNumero state based on profile data
   useEffect(() => {
@@ -242,6 +246,12 @@ const PerfilNegocio = () => {
   };
 
   const loadLogo = async () => {
+    // Priorizar logo_empresa_url do profile (salvo no Storage)
+    if (profile.logo_empresa_url) {
+      setLogoPreview(profile.logo_empresa_url);
+      return;
+    }
+    // Fallback para configuração antiga
     const logoConfig = await loadConfiguration('business_logo');
     if (logoConfig && typeof logoConfig === 'string') {
       setLogoPreview(logoConfig);
@@ -313,18 +323,43 @@ const PerfilNegocio = () => {
   };
 
   const saveLogo = async () => {
-    if (!logoFile) return;
+    if (!logoFile || !user) return;
 
     setIsLoading(true);
     try {
-      // Salvar preview na configuração do usuário
-      await saveConfiguration('business_logo', logoPreview);
+      // 1. Fazer upload para o Supabase Storage
+      const fileExt = logoFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('logos-empresas')
+        .upload(fileName, logoFile, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // 2. Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos-empresas')
+        .getPublicUrl(fileName);
+      
+      // 3. Atualizar profile com a URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ logo_empresa_url: publicUrl })
+        .eq('user_id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      // Atualizar estado local
+      setProfile(prev => ({ ...prev, logo_empresa_url: publicUrl }));
+      setLogoPreview(publicUrl);
       
       toast({
         title: "Logo atualizado",
         description: "Seu logo foi salvo com sucesso"
       });
     } catch (error) {
+      console.error('Erro ao salvar logo:', error);
       toast({
         title: "Erro ao salvar logo",
         description: "Tente novamente em alguns instantes",
