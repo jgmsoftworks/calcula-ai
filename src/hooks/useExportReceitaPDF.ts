@@ -432,7 +432,18 @@ export function useExportReceitaPDF() {
         return lines.length ? lines : [''];
       };
 
-      // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS ===
+      // === LAYOUT DE DUAS COLUNAS: TABELAS (ESQUERDA) + MODO DE PREPARO (DIREITA) ===
+      const secaoInicioY = currentY; // Salvar posição inicial para ambas colunas
+      const colunaEsquerdaX = 15;
+      const colunaDireitaX = 110;
+      const larguraColunaEsquerda = 90;
+      const larguraColunaDireita = pageWidth - colunaDireitaX - 15;
+      
+      // Variáveis para controlar Y de cada coluna
+      let tabelasY = secaoInicioY;
+      let modoPreparoY = secaoInicioY;
+
+      // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS (COLUNA ESQUERDA) ===
       const createItemTable = (
         title: string,
         items: any[],
@@ -440,40 +451,41 @@ export function useExportReceitaPDF() {
       ) => {
         if (items.length === 0) return;
 
-        // Título com fundo
+        // Título com fundo (compacto para caber na metade)
         doc.setFillColor(240, 240, 240);
-        doc.rect(20, currentY, pageWidth - 40, 7, 'F');
-        doc.setFontSize(12);
+        doc.rect(colunaEsquerdaX, tabelasY, larguraColunaEsquerda, 6, 'F');
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
-        doc.text(title, 22, currentY + 5);
-        currentY += 10;
+        doc.text(title, colunaEsquerdaX + 2, tabelasY + 4);
+        tabelasY += 7;
 
-        // Cabeçalho da tabela
-        const colWidths = [45, 35, 30, 30, 30];
-        const tableStartY = currentY;
+        // Cabeçalho da tabela - colunas compactas para caber na metade
+        const colWidths = [30, 15, 15, 15, 15]; // Total: 90 (metade da página)
+        const tableStartY = tabelasY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
-        const lineHeight = 4; // altura de cada linha de texto
+        const lineHeight = 3.5;
 
         // Cabeçalho com fundo cinza escuro
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(220, 220, 220);
-        doc.rect(20, tableStartY, totalWidth, 7, 'FD');
-        doc.setFontSize(8);
+        doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 6, 'FD');
+        doc.setFontSize(6);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
 
-        let xPos = 22;
-        const headers = ['Ingrediente', 'Un.', '1 Receita', '2 Receitas', '3 Receitas'];
+        let xPos = colunaEsquerdaX + 1;
+        const headers = ['Item', 'Un.', '1x', '2x', '3x'];
         headers.forEach((header, i) => {
-          doc.text(header, xPos, tableStartY + 5);
+          doc.text(header, xPos, tableStartY + 4);
           xPos += colWidths[i];
         });
 
-        currentY = tableStartY + 7;
+        tabelasY = tableStartY + 6;
 
         // Linhas da tabela
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
         items.forEach((item) => {
           const itemData = getItemData(item);
           const quantidade1x = item.quantidade;
@@ -486,56 +498,57 @@ export function useExportReceitaPDF() {
           
           // Calcular altura dinâmica baseada na célula com mais linhas
           const maxLines = Math.max(nomeLines.length, unidadeLines.length, 1);
-          const rowHeight = Math.max(7, maxLines * lineHeight + 3);
+          const rowHeight = Math.max(5, maxLines * lineHeight + 2);
 
           // Verificar se precisa de nova página
-          if (currentY + rowHeight > 270) {
+          if (tabelasY + rowHeight > 270) {
             doc.addPage();
-            currentY = 20;
+            tabelasY = 20;
+            modoPreparoY = 20; // Resetar também o modo de preparo
           }
 
           // Retângulo da linha com bordas (altura dinâmica)
           doc.setDrawColor(200, 200, 200);
-          doc.rect(20, currentY, totalWidth, rowHeight);
+          doc.rect(colunaEsquerdaX, tabelasY, totalWidth, rowHeight);
 
           // Bordas verticais entre colunas
-          let cumulativeWidth = 20;
+          let cumulativeWidth = colunaEsquerdaX;
           colWidths.slice(0, -1).forEach((width) => {
             cumulativeWidth += width;
-            doc.line(cumulativeWidth, currentY, cumulativeWidth, currentY + rowHeight);
+            doc.line(cumulativeWidth, tabelasY, cumulativeWidth, tabelasY + rowHeight);
           });
 
           // Renderizar texto com múltiplas linhas
-          xPos = 22;
+          xPos = colunaEsquerdaX + 1;
           
           // Coluna Nome (com word wrap)
           nomeLines.forEach((line, i) => {
-            doc.text(line, xPos, currentY + 4 + (i * lineHeight));
+            doc.text(line, xPos, tabelasY + 3 + (i * lineHeight));
           });
           xPos += colWidths[0];
           
           // Coluna Unidade (com word wrap)
           unidadeLines.forEach((line, i) => {
-            doc.text(line, xPos, currentY + 4 + (i * lineHeight));
+            doc.text(line, xPos, tabelasY + 3 + (i * lineHeight));
           });
           xPos += colWidths[1];
           
-          // Colunas de quantidade (não precisam de wrap, são números curtos)
-          doc.text(formatQuantidade(quantidade1x), xPos, currentY + 4);
+          // Colunas de quantidade
+          doc.text(formatQuantidade(quantidade1x), xPos, tabelasY + 3);
           xPos += colWidths[2];
           
-          doc.text(formatQuantidade(quantidade2x), xPos, currentY + 4);
+          doc.text(formatQuantidade(quantidade2x), xPos, tabelasY + 3);
           xPos += colWidths[3];
           
-          doc.text(formatQuantidade(quantidade3x), xPos, currentY + 4);
+          doc.text(formatQuantidade(quantidade3x), xPos, tabelasY + 3);
 
-          currentY += rowHeight;
+          tabelasY += rowHeight;
         });
 
-        currentY += 5;
+        tabelasY += 4;
       };
 
-      // Seção Ingredientes
+      // Renderizar tabelas na coluna esquerda
       if (receita.receita_ingredientes && receita.receita_ingredientes.length > 0) {
         createItemTable(
           'Ingredientes',
@@ -547,7 +560,6 @@ export function useExportReceitaPDF() {
         );
       }
 
-      // Seção Sub-receitas
       if (receita.receita_sub_receitas && receita.receita_sub_receitas.length > 0) {
         createItemTable(
           'Sub-receitas',
@@ -559,7 +571,6 @@ export function useExportReceitaPDF() {
         );
       }
 
-      // Seção Embalagem
       if (receita.receita_embalagens && receita.receita_embalagens.length > 0) {
         createItemTable(
           'Embalagem',
@@ -571,56 +582,53 @@ export function useExportReceitaPDF() {
         );
       }
 
-      // === SEÇÃO MODO DE PREPARO ===
+      // === MODO DE PREPARO NA COLUNA DIREITA ===
       if (passos.length > 0) {
-        // Verificar se precisa de nova página
-        if (currentY > 200) {
-          doc.addPage();
-          currentY = 20;
-        }
-
         // Título com fundo
         doc.setFillColor(240, 240, 240);
-        doc.rect(20, currentY, pageWidth - 40, 7, 'F');
-        doc.setFontSize(12);
+        doc.rect(colunaDireitaX, modoPreparoY, larguraColunaDireita, 6, 'F');
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
-        doc.text('Modo de Preparo', 22, currentY + 5);
-        currentY += 10;
+        doc.text('Modo de Preparo', colunaDireitaX + 2, modoPreparoY + 4);
+        modoPreparoY += 8;
 
-        doc.setFontSize(10);
+        doc.setFontSize(7);
 
         passos.forEach((passo: any, index: number) => {
           // Verificar se precisa de nova página
-          if (currentY > 260) {
+          if (modoPreparoY > 265) {
             doc.addPage();
-            currentY = 20;
+            modoPreparoY = 20;
+            tabelasY = 20;
           }
 
           const numero = passo.ordem ?? index + 1;
           
           // Número do passo em bold
           doc.setFont('helvetica', 'bold');
-          doc.text(`${numero}.`, 25, currentY);
+          doc.text(`${numero}.`, colunaDireitaX, modoPreparoY);
           
-          // Descrição com wrap automático
+          // Descrição com wrap automático usando nossa função wrapText
           doc.setFont('helvetica', 'normal');
-          const descricaoLines = doc.splitTextToSize(passo.descricao, pageWidth - 50);
+          const descricaoLines = wrapText(passo.descricao, larguraColunaDireita - 10);
           
           descricaoLines.forEach((line: string, lineIndex: number) => {
-            if (currentY > 270) {
+            if (modoPreparoY > 268) {
               doc.addPage();
-              currentY = 20;
+              modoPreparoY = 20;
+              tabelasY = 20;
             }
-            // Primeiro linha alinhada com o número, demais linhas indentadas
-            const xOffset = lineIndex === 0 ? 32 : 32;
-            doc.text(line, xOffset, currentY);
-            currentY += 5;
+            doc.text(line, colunaDireitaX + 6, modoPreparoY);
+            modoPreparoY += 4;
           });
 
-          currentY += 3; // Espaço entre passos
+          modoPreparoY += 2; // Espaço entre passos
         });
       }
+
+      // Sincronizar Y final - próximo conteúdo começa após a maior das duas colunas
+      currentY = Math.max(tabelasY, modoPreparoY) + 5;
 
       // === RODAPÉ COM DADOS DA EMPRESA (em todas as páginas) ===
       const totalPages = doc.getNumberOfPages();
