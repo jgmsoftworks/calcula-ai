@@ -394,6 +394,44 @@ export function useExportReceitaPDF() {
       // Ajustar currentY para continuar após as 3 colunas
       currentY = Math.max(yEsquerda, yDireita, currentY + alturaBloco) + 10;
 
+      // === FUNÇÃO AUXILIAR PARA QUEBRAR TEXTO EM MÚLTIPLAS LINHAS ===
+      const wrapText = (text: string, maxWidth: number): string[] => {
+        if (!text) return [''];
+        
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+
+        words.forEach(word => {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testWidth = doc.getTextWidth(testLine);
+          
+          if (testWidth > maxWidth - 4) { // 4 = padding interno
+            if (currentLine) lines.push(currentLine);
+            // Se a palavra sozinha é maior que a largura, quebrar a palavra
+            if (doc.getTextWidth(word) > maxWidth - 4) {
+              let remaining = word;
+              while (remaining.length > 0) {
+                let fit = remaining;
+                while (doc.getTextWidth(fit) > maxWidth - 4 && fit.length > 1) {
+                  fit = fit.substring(0, fit.length - 1);
+                }
+                lines.push(fit);
+                remaining = remaining.substring(fit.length);
+              }
+              currentLine = '';
+            } else {
+              currentLine = word;
+            }
+          } else {
+            currentLine = testLine;
+          }
+        });
+        
+        if (currentLine) lines.push(currentLine);
+        return lines.length ? lines : [''];
+      };
+
       // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS ===
       const createItemTable = (
         title: string,
@@ -415,6 +453,7 @@ export function useExportReceitaPDF() {
         const colWidths = [45, 35, 30, 30, 30];
         const tableStartY = currentY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
+        const lineHeight = 4; // altura de cada linha de texto
 
         // Cabeçalho com fundo cinza escuro
         doc.setDrawColor(200, 200, 200);
@@ -441,39 +480,56 @@ export function useExportReceitaPDF() {
           const quantidade2x = quantidade1x * 2;
           const quantidade3x = quantidade1x * 3;
 
+          // Quebrar texto em linhas para cada coluna
+          const nomeLines = wrapText(itemData.nome, colWidths[0]);
+          const unidadeLines = wrapText(itemData.unidade, colWidths[1]);
+          
+          // Calcular altura dinâmica baseada na célula com mais linhas
+          const maxLines = Math.max(nomeLines.length, unidadeLines.length, 1);
+          const rowHeight = Math.max(7, maxLines * lineHeight + 3);
+
           // Verificar se precisa de nova página
-          if (currentY > 270) {
+          if (currentY + rowHeight > 270) {
             doc.addPage();
             currentY = 20;
           }
 
-          // Retângulo da linha com bordas
+          // Retângulo da linha com bordas (altura dinâmica)
           doc.setDrawColor(200, 200, 200);
-          doc.rect(20, currentY, totalWidth, 7);
+          doc.rect(20, currentY, totalWidth, rowHeight);
 
           // Bordas verticais entre colunas
           let cumulativeWidth = 20;
           colWidths.slice(0, -1).forEach((width) => {
             cumulativeWidth += width;
-            doc.line(cumulativeWidth, currentY, cumulativeWidth, currentY + 7);
+            doc.line(cumulativeWidth, currentY, cumulativeWidth, currentY + rowHeight);
           });
 
+          // Renderizar texto com múltiplas linhas
           xPos = 22;
-          doc.text(itemData.nome.substring(0, 35), xPos, currentY + 5);
+          
+          // Coluna Nome (com word wrap)
+          nomeLines.forEach((line, i) => {
+            doc.text(line, xPos, currentY + 4 + (i * lineHeight));
+          });
           xPos += colWidths[0];
           
-          doc.text(itemData.unidade, xPos, currentY + 5);
+          // Coluna Unidade (com word wrap)
+          unidadeLines.forEach((line, i) => {
+            doc.text(line, xPos, currentY + 4 + (i * lineHeight));
+          });
           xPos += colWidths[1];
           
-          doc.text(formatQuantidade(quantidade1x), xPos, currentY + 5);
+          // Colunas de quantidade (não precisam de wrap, são números curtos)
+          doc.text(formatQuantidade(quantidade1x), xPos, currentY + 4);
           xPos += colWidths[2];
           
-          doc.text(formatQuantidade(quantidade2x), xPos, currentY + 5);
+          doc.text(formatQuantidade(quantidade2x), xPos, currentY + 4);
           xPos += colWidths[3];
           
-          doc.text(formatQuantidade(quantidade3x), xPos, currentY + 5);
+          doc.text(formatQuantidade(quantidade3x), xPos, currentY + 4);
 
-          currentY += 7;
+          currentY += rowHeight;
         });
 
         currentY += 5;
