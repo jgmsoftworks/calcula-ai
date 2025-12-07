@@ -17,6 +17,22 @@ export function useExportReceitaPDF() {
     return formatNumber(quantidade, 2);
   };
 
+  // Função para converter URL de imagem para Base64
+  const imageUrlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+
   const exportarReceitaPDF = async (receitaId: string) => {
     try {
       setExporting(true);
@@ -89,6 +105,14 @@ export function useExportReceitaPDF() {
 
       const passos = passosPreparo ?? [];
 
+      // Converter imagens para Base64 antes de criar o PDF
+      const logoBase64 = profile?.logo_empresa_url 
+        ? await imageUrlToBase64(profile.logo_empresa_url) 
+        : null;
+      const receitaImageBase64 = receita.imagem_url 
+        ? await imageUrlToBase64(receita.imagem_url) 
+        : null;
+
       // Criar PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -114,11 +138,11 @@ export function useExportReceitaPDF() {
       // TRÊS COLUNAS: Esquerda (Logo + Empresa) | Centro (Foto) | Direita (Dados)
       // ============================================================================
       
-      // Cálculo proporcional das 3 colunas (33% cada)
+      // Cálculo proporcional das 3 colunas (33% cada) - LARGURAS IGUAIS
       const margem = 15;
       const larguraUtil = pageWidth - (margem * 2); // ~180pts
-      const espacamento = 10; // espaço entre colunas
-      const larguraColuna = (larguraUtil - (espacamento * 2)) / 3; // ~53pts cada
+      const espacamento = 8; // espaço entre colunas (reduzido para melhor aproveitamento)
+      const larguraColuna = (larguraUtil - (espacamento * 2)) / 3; // cada coluna = largura igual
 
       const colEsquerdaX = margem;
       const colEsquerdaWidth = larguraColuna;
@@ -127,143 +151,150 @@ export function useExportReceitaPDF() {
       const colDireitaX = margem + (larguraColuna * 2) + (espacamento * 2);
       const colDireitaWidth = larguraColuna;
       
+      // ALTURA FIXA para todas as colunas (baseada na altura da foto do centro)
+      const alturaBloco = larguraColuna * 1.2; // ~65pts - altura de referência da foto
+      
       let yEsquerda = currentY;
       let yDireita = currentY;
       
       // -------------------------
-      // COLUNA ESQUERDA - Logo
+      // COLUNA ESQUERDA - Logo + Dados da Empresa (tudo dentro de alturaBloco)
       // -------------------------
-      const logoSize = colEsquerdaWidth - 2; // Ajusta ao tamanho da coluna
-      if (profile?.logo_empresa_url) {
+      // Calcular proporções para caber em alturaBloco
+      const logoHeight = alturaBloco * 0.55; // ~55% para logo
+      const dadosEmpresaRowHeight = (alturaBloco - logoHeight) / 3; // ~15% por linha de dados
+      
+      // Logo da empresa
+      if (logoBase64) {
         try {
-          doc.addImage(profile.logo_empresa_url, 'PNG', colEsquerdaX, yEsquerda, logoSize, logoSize);
+          doc.addImage(logoBase64, 'PNG', colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
           doc.setDrawColor(200, 200, 200);
           doc.setLineWidth(0.3);
-          doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize);
+          doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
         } catch (error) {
           console.error('Erro ao adicionar logo da empresa:', error);
           doc.setFillColor(240, 240, 240);
-          doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize, 'F');
+          doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight, 'F');
           doc.setDrawColor(200, 200, 200);
-          doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize);
+          doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
         }
       } else {
         doc.setFillColor(240, 240, 240);
-        doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize, 'F');
+        doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight, 'F');
         doc.setDrawColor(200, 200, 200);
-        doc.rect(colEsquerdaX, yEsquerda, logoSize, logoSize);
+        doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
       }
-      yEsquerda += logoSize + 3;
+      yEsquerda += logoHeight;
       
-      // -------------------------
-      // COLUNA ESQUERDA - Dados da Empresa
-      // -------------------------
+      // Dados da Empresa (3 linhas)
       const dadosEmpresa = [
         profile?.nome_fantasia || 'Nome da Empresa',
         profile?.cnpj_cpf ? `CNPJ/CPF: ${profile.cnpj_cpf}` : 'CNPJ/CPF: -',
         profile?.telefone_comercial || profile?.whatsapp || profile?.celular || profile?.phone || 'Telefone: -'
       ];
       
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
       
       dadosEmpresa.forEach((dado) => {
         doc.setDrawColor(200, 200, 200);
         doc.setLineWidth(0.3);
-        doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, 9);
-        doc.text(dado, colEsquerdaX + 2, yEsquerda + 6);
-        yEsquerda += 9;
+        doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, dadosEmpresaRowHeight);
+        doc.text(dado.substring(0, 25), colEsquerdaX + 2, yEsquerda + dadosEmpresaRowHeight * 0.65);
+        yEsquerda += dadosEmpresaRowHeight;
       });
       
       // -------------------------
-      // COLUNA CENTRO - Foto do Produto
+      // COLUNA CENTRO - Foto do Produto (altura = alturaBloco)
       // -------------------------
-      const fotoProdutoHeight = colCentroWidth * 1.2; // Proporção adequada à largura
-      if (receita.imagem_url) {
+      if (receitaImageBase64) {
         try {
-          doc.addImage(receita.imagem_url, 'JPEG', colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+          doc.addImage(receitaImageBase64, 'JPEG', colCentroX, currentY, colCentroWidth, alturaBloco);
           doc.setDrawColor(200, 200, 200);
           doc.setLineWidth(0.3);
-          doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+          doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco);
         } catch (error) {
           console.error('Erro ao adicionar foto do produto:', error);
           doc.setFillColor(240, 240, 240);
-          doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight, 'F');
+          doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco, 'F');
           doc.setDrawColor(200, 200, 200);
-          doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+          doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco);
           doc.setFontSize(9);
           doc.setTextColor(150, 150, 150);
-          doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + fotoProdutoHeight / 2, { align: 'center' });
+          doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + alturaBloco / 2, { align: 'center' });
         }
       } else {
         doc.setFillColor(240, 240, 240);
-        doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight, 'F');
+        doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco, 'F');
         doc.setDrawColor(200, 200, 200);
-        doc.rect(colCentroX, currentY, colCentroWidth, fotoProdutoHeight);
+        doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco);
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
-        doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + fotoProdutoHeight / 2, { align: 'center' });
+        doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + alturaBloco / 2, { align: 'center' });
       }
       
       // -------------------------
-      // COLUNA DIREITA - Card "Dados"
+      // COLUNA DIREITA - Cards "Dados" e "Conservação" (tudo dentro de alturaBloco)
       // -------------------------
-      // Cabeçalho do card
+      // Calcular alturas proporcionais para caber em alturaBloco
+      const cardHeaderHeight = 6;
+      const cardDadosRowHeight = 7;
+      const conservacaoRowHeight = 6;
+      const espacoEntreCards = 2;
+      
+      // Card "Dados" - Cabeçalho
       doc.setFillColor(100, 100, 100);
-      doc.rect(colDireitaX, yDireita, colDireitaWidth, 8, 'F');
-      doc.setFontSize(10);
+      doc.rect(colDireitaX, yDireita, colDireitaWidth, cardHeaderHeight, 'F');
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255);
-      doc.text('Dados:', colDireitaX + 2, yDireita + 5.5);
-      yDireita += 8;
+      doc.text('Dados:', colDireitaX + 2, yDireita + 4.5);
+      yDireita += cardHeaderHeight;
       
       // Conteúdo do card (3 linhas)
       const dadosReceita = [
-        { label: 'Tipo do Produto:', valor: receita.tipos_produto?.nome || '-' },
+        { label: 'Tipo:', valor: (receita.tipos_produto?.nome || '-').substring(0, 12) },
         { 
-          label: 'Rendimento:', 
+          label: 'Rendim.:', 
           valor: receita.rendimento_valor && receita.rendimento_unidade 
             ? `${formatQuantidade(receita.rendimento_valor)} ${receita.rendimento_unidade}`
             : '-'
         },
         { 
-          label: 'Peso unitário:', 
+          label: 'Peso unit.:', 
           valor: receita.peso_unitario ? `${formatQuantidade(receita.peso_unitario)} g` : '-'
         }
       ];
       
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
       
       dadosReceita.forEach((dado) => {
         doc.setDrawColor(200, 200, 200);
         doc.setLineWidth(0.3);
-        doc.rect(colDireitaX, yDireita, colDireitaWidth, 10);
+        doc.rect(colDireitaX, yDireita, colDireitaWidth, cardDadosRowHeight);
         
         doc.setFont('helvetica', 'bold');
-        const labelWidth = doc.getTextWidth(dado.label);
-        doc.text(dado.label, colDireitaX + 2, yDireita + 7);
+        doc.text(dado.label, colDireitaX + 1, yDireita + 5);
         
         doc.setFont('helvetica', 'normal');
-        doc.text(dado.valor, colDireitaX + 2 + labelWidth + 1, yDireita + 7);
+        const labelWidth = doc.getTextWidth(dado.label);
+        doc.text(dado.valor, colDireitaX + 1 + labelWidth + 1, yDireita + 5);
         
-        yDireita += 10;
+        yDireita += cardDadosRowHeight;
       });
       
-      yDireita += 3; // Espaço entre cards
+      yDireita += espacoEntreCards; // Espaço entre cards
       
-      // -------------------------
-      // COLUNA DIREITA - Card "Conservação"
-      // -------------------------
-      // Cabeçalho do card
+      // Card "Conservação" - Cabeçalho
       doc.setFillColor(100, 100, 100);
-      doc.rect(colDireitaX, yDireita, colDireitaWidth, 8, 'F');
-      doc.setFontSize(10);
+      doc.rect(colDireitaX, yDireita, colDireitaWidth, cardHeaderHeight, 'F');
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255);
-      doc.text('Conservação:', colDireitaX + 2, yDireita + 5.5);
-      yDireita += 8;
+      doc.text('Conservação:', colDireitaX + 2, yDireita + 4.5);
+      yDireita += cardHeaderHeight;
       
       // Tabela de conservação (3 colunas x 4 linhas)
       const conservacao = receita.conservacao as ConservacaoData || {};
@@ -274,29 +305,29 @@ export function useExportReceitaPDF() {
       const colWidth3 = colDireitaWidth * 0.35; // Tempo
       
       // Cabeçalho da tabela
-      const headers = ['Local', 'Temp. °C', 'Tempo'];
+      const headers = ['Local', 'Temp.', 'Tempo'];
       const headerY = yDireita;
       
       // Fundo cinza claro no cabeçalho
       doc.setFillColor(220, 220, 220);
-      doc.rect(colDireitaX, headerY, colDireitaWidth, 8, 'F');
+      doc.rect(colDireitaX, headerY, colDireitaWidth, conservacaoRowHeight, 'F');
       
       // Bordas e texto do cabeçalho
       doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.3);
-      doc.setFontSize(8);
+      doc.setFontSize(6);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
       
       let xPos = colDireitaX;
       headers.forEach((header, i) => {
         const width = i === 0 ? colWidth1 : i === 1 ? colWidth2 : colWidth3;
-        doc.rect(xPos, headerY, width, 8);
-        doc.text(header, xPos + 2, headerY + 5.5);
+        doc.rect(xPos, headerY, width, conservacaoRowHeight);
+        doc.text(header, xPos + 1, headerY + 4);
         xPos += width;
       });
       
-      yDireita += 8;
+      yDireita += conservacaoRowHeight;
       
       // Linhas de dados
       const conservacaoRows = [
@@ -318,29 +349,30 @@ export function useExportReceitaPDF() {
       ];
       
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
       
       conservacaoRows.forEach((row) => {
         xPos = colDireitaX;
         
         // Local
-        doc.rect(xPos, yDireita, colWidth1, 8);
-        doc.text(row.local, xPos + 2, yDireita + 5.5);
+        doc.rect(xPos, yDireita, colWidth1, conservacaoRowHeight);
+        doc.text(row.local.substring(0, 10), xPos + 1, yDireita + 4);
         xPos += colWidth1;
         
         // Temperatura
-        doc.rect(xPos, yDireita, colWidth2, 8);
-        doc.text(row.temp, xPos + 2, yDireita + 5.5);
+        doc.rect(xPos, yDireita, colWidth2, conservacaoRowHeight);
+        doc.text(row.temp.substring(0, 5), xPos + 1, yDireita + 4);
         xPos += colWidth2;
         
         // Tempo
-        doc.rect(xPos, yDireita, colWidth3, 8);
-        doc.text(row.tempo, xPos + 2, yDireita + 5.5);
+        doc.rect(xPos, yDireita, colWidth3, conservacaoRowHeight);
+        doc.text(row.tempo.substring(0, 10), xPos + 1, yDireita + 4);
         
-        yDireita += 8;
+        yDireita += conservacaoRowHeight;
       });
       
       // Ajustar currentY para continuar após as 3 colunas
-      currentY = Math.max(yEsquerda, yDireita, currentY + fotoProdutoHeight) + 10;
+      currentY = Math.max(yEsquerda, yDireita, currentY + alturaBloco) + 10;
 
       // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS ===
       const createItemTable = (
