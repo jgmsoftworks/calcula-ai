@@ -432,12 +432,12 @@ export function useExportReceitaPDF() {
         return lines.length ? lines : [''];
       };
 
-      // === LAYOUT DE DUAS COLUNAS: TABELAS (ESQUERDA) + MODO DE PREPARO (DIREITA) ===
+      // === LAYOUT DE DUAS COLUNAS: TABELAS (ESQUERDA ~60%) + MODO DE PREPARO (DIREITA ~40%) ===
       const secaoInicioY = currentY; // Salvar posição inicial para ambas colunas
       const colunaEsquerdaX = 15;
-      const colunaDireitaX = 110;
-      const larguraColunaEsquerda = 90;
-      const larguraColunaDireita = pageWidth - colunaDireitaX - 15;
+      const colunaDireitaX = 135; // Empurrar modo de preparo mais para a direita
+      const larguraColunaEsquerda = 115; // ~30% maior
+      const larguraColunaDireita = pageWidth - colunaDireitaX - 15; // ~30% menor
       
       // Variáveis para controlar Y de cada coluna
       let tabelasY = secaoInicioY;
@@ -460,8 +460,8 @@ export function useExportReceitaPDF() {
         doc.text(title, colunaEsquerdaX + 2, tabelasY + 4);
         tabelasY += 7;
 
-        // Cabeçalho da tabela - colunas compactas para caber na metade
-        const colWidths = [30, 15, 15, 15, 15]; // Total: 90 (metade da página)
+        // Cabeçalho da tabela - colunas ajustadas para ~60% da página
+        const colWidths = [45, 18, 17, 17, 17]; // Total: 114
         const tableStartY = tabelasY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
         const lineHeight = 3.5;
