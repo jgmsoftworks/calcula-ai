@@ -378,7 +378,7 @@ export function useExportReceitaPDF() {
       const createItemTable = (
         title: string,
         items: any[],
-        getItemData: (item: any) => { nome: string; unidade: string; marcas: string }
+        getItemData: (item: any) => { nome: string; unidade: string }
       ) => {
         if (items.length === 0) return;
 
@@ -392,7 +392,7 @@ export function useExportReceitaPDF() {
         currentY += 10;
 
         // Cabeçalho da tabela
-        const colWidths = [50, 15, 25, 25, 25, 25];
+        const colWidths = [60, 20, 30, 30, 30];
         const tableStartY = currentY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
 
@@ -405,7 +405,7 @@ export function useExportReceitaPDF() {
         doc.setTextColor(0, 0, 0);
 
         let xPos = 22;
-        const headers = ['Ingrediente', 'Un.', 'Marcas', '1 Receita', '2 Receitas', '3 Receitas'];
+        const headers = ['Ingrediente', 'Un.', '1 Receita', '2 Receitas', '3 Receitas'];
         headers.forEach((header, i) => {
           doc.text(header, xPos, tableStartY + 5);
           xPos += colWidths[i];
@@ -439,20 +439,17 @@ export function useExportReceitaPDF() {
           });
 
           xPos = 22;
-          doc.text(itemData.nome.substring(0, 30), xPos, currentY + 5);
+          doc.text(itemData.nome.substring(0, 35), xPos, currentY + 5);
           xPos += colWidths[0];
           
           doc.text(itemData.unidade, xPos, currentY + 5);
           xPos += colWidths[1];
           
-          doc.text(itemData.marcas.substring(0, 15), xPos, currentY + 5);
+          doc.text(formatQuantidade(quantidade1x), xPos, currentY + 5);
           xPos += colWidths[2];
           
-          doc.text(formatQuantidade(quantidade1x), xPos, currentY + 5);
-          xPos += colWidths[3];
-          
           doc.text(formatQuantidade(quantidade2x), xPos, currentY + 5);
-          xPos += colWidths[4];
+          xPos += colWidths[3];
           
           doc.text(formatQuantidade(quantidade3x), xPos, currentY + 5);
 
@@ -469,10 +466,7 @@ export function useExportReceitaPDF() {
           receita.receita_ingredientes,
           (item) => ({
             nome: item.produtos?.nome || 'N/A',
-            unidade: item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un',
-            marcas: Array.isArray(item.produtos?.marcas) && item.produtos.marcas.length > 0
-              ? item.produtos.marcas.join(', ')
-              : '-'
+            unidade: item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un'
           })
         );
       }
@@ -484,8 +478,7 @@ export function useExportReceitaPDF() {
           receita.receita_sub_receitas,
           (item) => ({
             nome: item.sub_receita?.nome || 'N/A',
-            unidade: item.sub_receita?.rendimento_unidade || 'un',
-            marcas: '-'
+            unidade: item.sub_receita?.rendimento_unidade || 'un'
           })
         );
       }
@@ -497,10 +490,7 @@ export function useExportReceitaPDF() {
           receita.receita_embalagens,
           (item) => ({
             nome: item.produtos?.nome || 'N/A',
-            unidade: item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un',
-            marcas: Array.isArray(item.produtos?.marcas) && item.produtos.marcas.length > 0
-              ? item.produtos.marcas.join(', ')
-              : '-'
+            unidade: item.produtos?.unidade_uso || item.produtos?.unidade_compra || 'un'
           })
         );
       }
