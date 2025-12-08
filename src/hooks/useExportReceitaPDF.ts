@@ -5,9 +5,9 @@ import { toast } from 'sonner';
 import { formatters } from '@/lib/formatters';
 
 interface ConservacaoData {
-  congelado?: { temperatura?: string; tempo?: string };
-  refrigerado?: { temperatura?: string; tempo?: string };
-  ambiente?: { temperatura?: string; tempo?: string };
+  congelado?: { temperatura?: string; tempo?: string; unidade?: string };
+  refrigerado?: { temperatura?: string; tempo?: string; unidade?: string };
+  ambiente?: { temperatura?: string; tempo?: string; unidade?: string };
 }
 
 export function useExportReceitaPDF() {
@@ -354,17 +354,17 @@ export function useExportReceitaPDF() {
         {
           local: 'Congelado',
           temp: conservacao.congelado?.temperatura ? `${conservacao.congelado.temperatura}` : '',
-          tempo: conservacao.congelado?.tempo ? String(conservacao.congelado.tempo) : ''
+          tempo: conservacao.congelado?.tempo ? `${conservacao.congelado.tempo} ${conservacao.congelado.unidade || ''}`.trim() : ''
         },
         {
           local: 'Refrigerado',
           temp: conservacao.refrigerado?.temperatura ? `${conservacao.refrigerado.temperatura}` : '',
-          tempo: conservacao.refrigerado?.tempo ? String(conservacao.refrigerado.tempo) : ''
+          tempo: conservacao.refrigerado?.tempo ? `${conservacao.refrigerado.tempo} ${conservacao.refrigerado.unidade || ''}`.trim() : ''
         },
         {
           local: 'Ambiente',
           temp: conservacao.ambiente?.temperatura ? `${conservacao.ambiente.temperatura}` : '',
-          tempo: conservacao.ambiente?.tempo ? String(conservacao.ambiente.tempo) : ''
+          tempo: conservacao.ambiente?.tempo ? `${conservacao.ambiente.tempo} ${conservacao.ambiente.unidade || ''}`.trim() : ''
         }
       ];
       
