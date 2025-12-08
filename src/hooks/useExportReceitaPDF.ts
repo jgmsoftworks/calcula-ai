@@ -461,7 +461,7 @@ export function useExportReceitaPDF() {
         tabelasY += 7;
 
         // Cabeçalho da tabela - colunas ajustadas para ~60% da página
-        const colWidths = [45, 18, 17, 17, 17]; // Total: 114
+        const colWidths = [45, 27, 14, 14, 14]; // Total: 114 - Un. maior para caber texto completo
         const tableStartY = tabelasY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
         const lineHeight = 3.5;
