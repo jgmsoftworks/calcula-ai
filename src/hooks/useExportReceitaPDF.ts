@@ -274,7 +274,7 @@ export function useExportReceitaPDF() {
       
       // Conteúdo do card (3 linhas)
       const dadosReceita = [
-        { label: 'Tipo:', valor: (receita.tipos_produto?.nome || '-').substring(0, 12) },
+        { label: 'Tipo:', valor: (receita.tipos_produto?.nome || '-').substring(0, 25) },
         { 
           label: 'Rendim.:', 
           valor: receita.rendimento_valor && receita.rendimento_unidade 
