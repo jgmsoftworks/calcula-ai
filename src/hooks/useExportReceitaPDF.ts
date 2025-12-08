@@ -354,17 +354,17 @@ export function useExportReceitaPDF() {
         {
           local: 'Congelado',
           temp: conservacao.congelado?.temperatura ? `${conservacao.congelado.temperatura}` : '',
-          tempo: conservacao.congelado?.tempo || ''
+          tempo: conservacao.congelado?.tempo ? String(conservacao.congelado.tempo) : ''
         },
         {
           local: 'Refrigerado',
           temp: conservacao.refrigerado?.temperatura ? `${conservacao.refrigerado.temperatura}` : '',
-          tempo: conservacao.refrigerado?.tempo || ''
+          tempo: conservacao.refrigerado?.tempo ? String(conservacao.refrigerado.tempo) : ''
         },
         {
           local: 'Ambiente',
           temp: conservacao.ambiente?.temperatura ? `${conservacao.ambiente.temperatura}` : '',
-          tempo: conservacao.ambiente?.tempo || ''
+          tempo: conservacao.ambiente?.tempo ? String(conservacao.ambiente.tempo) : ''
         }
       ];
       
@@ -376,17 +376,17 @@ export function useExportReceitaPDF() {
         
         // Local
         doc.rect(xPos, yDireita, colWidth1, conservacaoRowHeight);
-        doc.text(row.local.substring(0, 10), xPos + 1, yDireita + 4);
+        doc.text(String(row.local).substring(0, 10), xPos + 1, yDireita + 4);
         xPos += colWidth1;
         
         // Temperatura
         doc.rect(xPos, yDireita, colWidth2, conservacaoRowHeight);
-        doc.text(row.temp.substring(0, 5), xPos + 1, yDireita + 4);
+        doc.text(String(row.temp).substring(0, 5), xPos + 1, yDireita + 4);
         xPos += colWidth2;
         
         // Tempo
         doc.rect(xPos, yDireita, colWidth3, conservacaoRowHeight);
-        doc.text(row.tempo.substring(0, 10), xPos + 1, yDireita + 4);
+        doc.text(String(row.tempo).substring(0, 10), xPos + 1, yDireita + 4);
         
         yDireita += conservacaoRowHeight;
       });
@@ -684,7 +684,8 @@ export function useExportReceitaPDF() {
       toast.success('Ficha técnica gerada com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      toast.error('Erro ao gerar ficha técnica');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao gerar ficha técnica: ${errorMessage}`);
     } finally {
       setExporting(false);
     }
