@@ -591,7 +591,7 @@ export function useExportReceitaPDF() {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
         doc.text('Modo de Preparo', colunaDireitaX + 2, modoPreparoY + 4);
-        modoPreparoY += 8;
+        modoPreparoY += 10;
 
         doc.setFontSize(7);
 
