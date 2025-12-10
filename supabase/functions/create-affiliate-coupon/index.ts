@@ -34,14 +34,13 @@ serve(async (req) => {
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
     
-    // Check if user is admin
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('is_admin')
-      .eq('user_id', user.id)
-      .single();
+    // Check if user is admin using secure RPC function
+    const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role_or_higher', {
+      required_role: 'admin',
+      check_user_id: user.id
+    });
     
-    if (!profile?.is_admin) {
+    if (roleError || !isAdmin) {
       throw new Error("Acesso negado. Apenas administradores podem criar cupons");
     }
 

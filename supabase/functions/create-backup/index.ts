@@ -60,15 +60,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check if user is admin
+    // Check if user is admin using secure RPC function
     if (user) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('is_admin')
-        .eq('user_id', user.id)
-        .single();
+      const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role_or_higher', {
+        required_role: 'admin',
+        check_user_id: user.id
+      });
 
-      if (!profile?.is_admin) {
+      if (roleError || !isAdmin) {
         return new Response(
           JSON.stringify({ error: 'Unauthorized. Admin access required.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
