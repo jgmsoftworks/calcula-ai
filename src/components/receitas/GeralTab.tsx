@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Camera, Plus, Trash2, Loader2, ArrowRight, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { resizeImageToSquare } from '@/lib/imageUtils';
+import { ImageCropperModal } from '@/components/ui/image-cropper-modal';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempPasso {
@@ -49,6 +49,8 @@ export function GeralTab({
   const [markupInfo, setMarkupInfo] = useState<any>(null);
   const [editandoPasso, setEditandoPasso] = useState<string | null>(null);
   const [textoEdicao, setTextoEdicao] = useState('');
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
   useEffect(() => {
     const loadMarkupInfo = async () => {
@@ -106,31 +108,31 @@ export function GeralTab({
     }
   };
 
-  const handleImageUpload = async (file: File) => {
+  const handleFileSelect = (file: File) => {
+    // Abre o modal de crop com a imagem selecionada
+    const imageUrl = URL.createObjectURL(file);
+    setImageToCrop(imageUrl);
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = async (croppedImageDataUrl: string) => {
     if (!receita) return;
     
     try {
       setUploadingImage(true);
       
-      // 0. Obter user_id
+      // Obter user_id
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Usuário não autenticado');
         return;
       }
       
-      // 1. Redimensionar imagem para 512x512
-      const resizedImage = await resizeImageToSquare(
-        URL.createObjectURL(file),
-        512,
-        0.9
-      );
-      
-      // 2. Converter data URL para Blob
-      const response = await fetch(resizedImage);
+      // Converter data URL para Blob
+      const response = await fetch(croppedImageDataUrl);
       const blob = await response.blob();
       
-      // 3. Upload para Supabase Storage (com user_id no path)
+      // Upload para Supabase Storage (com user_id no path)
       const fileName = `${user.id}/${receita.id}-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from('receitas-images')
@@ -141,12 +143,12 @@ export function GeralTab({
       
       if (uploadError) throw uploadError;
       
-      // 4. Obter URL pública
+      // Obter URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('receitas-images')
         .getPublicUrl(fileName);
       
-      // 5. Atualizar receita no banco
+      // Atualizar receita no banco
       const { error: updateError } = await supabase
         .from('receitas')
         .update({ imagem_url: publicUrl })
@@ -162,6 +164,7 @@ export function GeralTab({
       toast.error('Erro ao fazer upload da imagem');
     } finally {
       setUploadingImage(false);
+      setImageToCrop(null);
     }
   };
 
@@ -286,7 +289,7 @@ export function GeralTab({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleImageUpload(file);
+                if (file) handleFileSelect(file);
               }}
               disabled={uploadingImage}
             />
@@ -556,6 +559,19 @@ export function GeralTab({
           rows={4}
         />
       </div>
+
+      {/* Modal de Crop de Imagem */}
+      {imageToCrop && (
+        <ImageCropperModal
+          open={cropperOpen}
+          onClose={() => {
+            setCropperOpen(false);
+            setImageToCrop(null);
+          }}
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 }
