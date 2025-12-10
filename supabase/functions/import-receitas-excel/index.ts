@@ -30,14 +30,13 @@ serve(async (req) => {
       throw new Error('Não autenticado');
     }
 
-    // Verificar se é admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('is_admin')
-      .eq('user_id', user.id)
-      .single();
+    // Verificar se é admin usando RPC seguro
+    const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role_or_higher', {
+      required_role: 'admin',
+      check_user_id: user.id
+    });
 
-    if (profileError || !profile?.is_admin) {
+    if (roleError || !isAdmin) {
       throw new Error('Acesso negado. Apenas administradores podem importar receitas.');
     }
 
