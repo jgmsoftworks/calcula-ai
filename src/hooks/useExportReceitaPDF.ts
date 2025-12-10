@@ -470,7 +470,7 @@ export function useExportReceitaPDF() {
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(220, 220, 220);
         doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 6, 'FD');
-        doc.setFontSize(6);
+        doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
 
@@ -485,7 +485,7 @@ export function useExportReceitaPDF() {
 
         // Linhas da tabela
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
+        doc.setFontSize(14);
         items.forEach((item) => {
           const itemData = getItemData(item);
           const quantidade1x = item.quantidade;
@@ -593,7 +593,7 @@ export function useExportReceitaPDF() {
         doc.text('Modo de Preparo', colunaDireitaX + 2, modoPreparoY + 4);
         modoPreparoY += 10;
 
-        doc.setFontSize(7);
+        doc.setFontSize(14);
 
         passos.forEach((passo: any, index: number) => {
           // Verificar se precisa de nova página
