@@ -464,28 +464,28 @@ export function useExportReceitaPDF() {
         const colWidths = [45, 27, 14, 14, 14]; // Total: 114 - Un. maior para caber texto completo
         const tableStartY = tabelasY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
-        const lineHeight = 6;
+        const lineHeight = 4;
 
         // Cabeçalho com fundo cinza escuro
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(220, 220, 220);
-        doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 10, 'FD');
-        doc.setFontSize(16);
+        doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 7, 'FD');
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
 
         let xPos = colunaEsquerdaX + 1;
         const headers = ['Item', 'Un.', '1x', '2x', '3x'];
         headers.forEach((header, i) => {
-          doc.text(header, xPos, tableStartY + 7);
+          doc.text(header, xPos, tableStartY + 5);
           xPos += colWidths[i];
         });
 
-        tabelasY = tableStartY + 10;
+        tabelasY = tableStartY + 7;
 
         // Linhas da tabela
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(14);
+        doc.setFontSize(10);
         items.forEach((item) => {
           const itemData = getItemData(item);
           const quantidade1x = item.quantidade;
@@ -498,7 +498,7 @@ export function useExportReceitaPDF() {
           
           // Calcular altura dinâmica baseada na célula com mais linhas
           const maxLines = Math.max(nomeLines.length, unidadeLines.length, 1);
-          const rowHeight = Math.max(10, maxLines * lineHeight + 4);
+          const rowHeight = Math.max(6, maxLines * lineHeight + 2);
 
           // Verificar se precisa de nova página
           if (tabelasY + rowHeight > 270) {
@@ -523,24 +523,24 @@ export function useExportReceitaPDF() {
           
           // Coluna Nome (com word wrap)
           nomeLines.forEach((line, i) => {
-            doc.text(line, xPos, tabelasY + 6 + (i * lineHeight));
+            doc.text(line, xPos, tabelasY + 4 + (i * lineHeight));
           });
           xPos += colWidths[0];
           
           // Coluna Unidade (com word wrap)
           unidadeLines.forEach((line, i) => {
-            doc.text(line, xPos, tabelasY + 6 + (i * lineHeight));
+            doc.text(line, xPos, tabelasY + 4 + (i * lineHeight));
           });
           xPos += colWidths[1];
           
           // Colunas de quantidade
-          doc.text(formatQuantidade(quantidade1x), xPos, tabelasY + 6);
+          doc.text(formatQuantidade(quantidade1x), xPos, tabelasY + 4);
           xPos += colWidths[2];
           
-          doc.text(formatQuantidade(quantidade2x), xPos, tabelasY + 6);
+          doc.text(formatQuantidade(quantidade2x), xPos, tabelasY + 4);
           xPos += colWidths[3];
           
-          doc.text(formatQuantidade(quantidade3x), xPos, tabelasY + 6);
+          doc.text(formatQuantidade(quantidade3x), xPos, tabelasY + 4);
 
           tabelasY += rowHeight;
         });
@@ -593,7 +593,7 @@ export function useExportReceitaPDF() {
         doc.text('Modo de Preparo', colunaDireitaX + 2, modoPreparoY + 4);
         modoPreparoY += 10;
 
-        doc.setFontSize(14);
+        doc.setFontSize(10);
 
         passos.forEach((passo: any, index: number) => {
           // Verificar se precisa de nova página
@@ -620,10 +620,10 @@ export function useExportReceitaPDF() {
               tabelasY = 20;
             }
             doc.text(line, colunaDireitaX + 6, modoPreparoY);
-            modoPreparoY += 6;
+            modoPreparoY += 4;
           });
 
-          modoPreparoY += 4; // Espaço entre passos
+          modoPreparoY += 2; // Espaço entre passos
         });
       }
 
