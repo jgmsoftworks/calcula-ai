@@ -464,12 +464,12 @@ export function useExportReceitaPDF() {
         const colWidths = [45, 27, 14, 14, 14]; // Total: 114 - Un. maior para caber texto completo
         const tableStartY = tabelasY;
         const totalWidth = colWidths.reduce((a, b) => a + b);
-        const lineHeight = 3.5;
+        const lineHeight = 6;
 
         // Cabeçalho com fundo cinza escuro
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(220, 220, 220);
-        doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 6, 'FD');
+        doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 10, 'FD');
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
@@ -477,11 +477,11 @@ export function useExportReceitaPDF() {
         let xPos = colunaEsquerdaX + 1;
         const headers = ['Item', 'Un.', '1x', '2x', '3x'];
         headers.forEach((header, i) => {
-          doc.text(header, xPos, tableStartY + 4);
+          doc.text(header, xPos, tableStartY + 7);
           xPos += colWidths[i];
         });
 
-        tabelasY = tableStartY + 6;
+        tabelasY = tableStartY + 10;
 
         // Linhas da tabela
         doc.setFont('helvetica', 'normal');
@@ -498,7 +498,7 @@ export function useExportReceitaPDF() {
           
           // Calcular altura dinâmica baseada na célula com mais linhas
           const maxLines = Math.max(nomeLines.length, unidadeLines.length, 1);
-          const rowHeight = Math.max(5, maxLines * lineHeight + 2);
+          const rowHeight = Math.max(10, maxLines * lineHeight + 4);
 
           // Verificar se precisa de nova página
           if (tabelasY + rowHeight > 270) {
@@ -523,24 +523,24 @@ export function useExportReceitaPDF() {
           
           // Coluna Nome (com word wrap)
           nomeLines.forEach((line, i) => {
-            doc.text(line, xPos, tabelasY + 3 + (i * lineHeight));
+            doc.text(line, xPos, tabelasY + 6 + (i * lineHeight));
           });
           xPos += colWidths[0];
           
           // Coluna Unidade (com word wrap)
           unidadeLines.forEach((line, i) => {
-            doc.text(line, xPos, tabelasY + 3 + (i * lineHeight));
+            doc.text(line, xPos, tabelasY + 6 + (i * lineHeight));
           });
           xPos += colWidths[1];
           
           // Colunas de quantidade
-          doc.text(formatQuantidade(quantidade1x), xPos, tabelasY + 3);
+          doc.text(formatQuantidade(quantidade1x), xPos, tabelasY + 6);
           xPos += colWidths[2];
           
-          doc.text(formatQuantidade(quantidade2x), xPos, tabelasY + 3);
+          doc.text(formatQuantidade(quantidade2x), xPos, tabelasY + 6);
           xPos += colWidths[3];
           
-          doc.text(formatQuantidade(quantidade3x), xPos, tabelasY + 3);
+          doc.text(formatQuantidade(quantidade3x), xPos, tabelasY + 6);
 
           tabelasY += rowHeight;
         });
@@ -620,10 +620,10 @@ export function useExportReceitaPDF() {
               tabelasY = 20;
             }
             doc.text(line, colunaDireitaX + 6, modoPreparoY);
-            modoPreparoY += 4;
+            modoPreparoY += 6;
           });
 
-          modoPreparoY += 2; // Espaço entre passos
+          modoPreparoY += 4; // Espaço entre passos
         });
       }
 
