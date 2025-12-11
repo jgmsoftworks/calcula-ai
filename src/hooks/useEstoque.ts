@@ -56,14 +56,8 @@ export function useEstoque() {
       .eq('ativo', true)
       .order('codigo_interno', { ascending: true });
 
-    // Filtro por nome e código interno na query (código de barras será filtrado localmente)
-    if (filters?.search) {
-      const searchTerm = filters.search.trim();
-      const searchLike = `%${searchTerm}%`;
-      const codigoNumero = parseInt(searchTerm) || 0;
-      query = query.or(`nome.ilike.${searchLike},codigo_interno.eq.${codigoNumero}`);
-    }
-
+    // Se não há busca, aplicamos filtros diretamente na query
+    // Se há busca, trazemos todos os produtos e filtramos localmente (para incluir código de barras)
     if (filters?.unidade) {
       query = query.eq('unidade_compra', filters.unidade);
     }
@@ -78,20 +72,16 @@ export function useEstoque() {
 
     let produtos = data || [];
 
-    // Filtro por código de barras (local, pois a sintaxe do Supabase não funciona bem com arrays)
+    // Filtro de busca local (nome, código interno OU código de barras)
     if (filters?.search) {
-      const searchTerm = filters.search.trim();
-      const produtosPorBarcode = (data || []).filter(p => 
+      const searchTerm = filters.search.trim().toLowerCase();
+      const codigoNumero = parseInt(searchTerm) || 0;
+      
+      produtos = produtos.filter(p => 
+        p.nome?.toLowerCase().includes(searchTerm) ||
+        p.codigo_interno === codigoNumero ||
         p.codigos_barras?.some((cb: string) => cb.includes(searchTerm))
       );
-      
-      // Mesclar resultados únicos
-      const idsExistentes = new Set(produtos.map(p => p.id));
-      produtosPorBarcode.forEach(p => {
-        if (!idsExistentes.has(p.id)) {
-          produtos.push(p);
-        }
-      });
     }
 
     // Filtros locais (arrays)
