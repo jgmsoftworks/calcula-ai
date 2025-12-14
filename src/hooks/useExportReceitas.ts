@@ -144,9 +144,9 @@ export function useExportReceitas() {
           'Rendimento (unidade)': r.rendimento_unidade || 'un',
           'Custo Total (R$)': custoTotal,
           'Preço de Venda (R$)': r.preco_venda,
+          'Sugestão Preço (R$)': (markupDetalhes || markupBase) ? sugestaoPreco : '—',
           'Lucro Bruto (R$)': lucroBruto,
-          'Lucro Líquido (R$)': lucroLiquido,
-          'Sugestão Preço (R$)': (markupDetalhes || markupBase) ? sugestaoPreco : '—'
+          'Lucro Líquido (R$)': lucroLiquido
         };
       });
 
