@@ -89,8 +89,9 @@ export function CarrinhoMovimentacao({ carrinho, onCarrinhoChange }: any) {
   const valorTotal = carrinho.reduce((sum: number, item: any) => sum + item.subtotal, 0);
 
   return (
-    <Card className="p-4 space-y-4 sticky top-4">
-      <div className="flex items-center gap-2">
+    <Card className="p-4 flex flex-col lg:max-h-[calc(100vh-2rem)]">
+      {/* Cabeçalho - fixo */}
+      <div className="flex items-center gap-2 flex-shrink-0">
         <ShoppingCart className="h-5 w-5" />
         <h3 className="font-semibold text-lg">Carrinho</h3>
         {totalItens > 0 && (
@@ -100,70 +101,76 @@ export function CarrinhoMovimentacao({ carrinho, onCarrinhoChange }: any) {
         )}
       </div>
 
-      <Separator />
+      <Separator className="my-4 flex-shrink-0" />
 
-      {carrinho.length === 0 ? (
-        <div className="text-center text-muted-foreground py-8 text-sm">
-          Nenhum item adicionado
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {carrinho.map((item: any, index: number) => (
-            <ItemCarrinho
-              key={`${item.produto_id}-${index}`}
-              item={item}
-              onRemove={() => handleRemoveItem(index)}
-            />
-          ))}
-        </div>
-      )}
-
-      {carrinho.length > 0 && (
-        <>
-          <Separator />
-          <div className="flex items-center justify-between font-semibold">
-            <span>Total:</span>
-            <span className="text-lg">{formatters.valor(valorTotal)}</span>
+      {/* Área de itens - com scroll */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {carrinho.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8 text-sm">
+            Nenhum item adicionado
           </div>
-        </>
-      )}
-
-      <Separator />
-
-      <div className="space-y-2">
-        <Label>Responsável *</Label>
-        <Select value={responsavel} onValueChange={setResponsavel}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o responsável" />
-          </SelectTrigger>
-          <SelectContent>
-            {funcionarios.map((func) => (
-              <SelectItem key={func.id} value={func.nome}>
-                {func.nome}
-              </SelectItem>
+        ) : (
+          <div className="space-y-2 pr-1">
+            {carrinho.map((item: any, index: number) => (
+              <ItemCarrinho
+                key={`${item.produto_id}-${index}`}
+                item={item}
+                onRemove={() => handleRemoveItem(index)}
+              />
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-2">
-        <Label>Observação</Label>
-        <Textarea
-          value={observacao}
-          onChange={(e) => setObservacao(e.target.value)}
-          placeholder="Observações sobre a movimentação..."
-          rows={3}
-        />
-      </div>
+      {/* Rodapé - fixo na parte inferior */}
+      <div className="flex-shrink-0 space-y-4 mt-4">
+        {carrinho.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex items-center justify-between font-semibold">
+              <span>Total:</span>
+              <span className="text-lg">{formatters.valor(valorTotal)}</span>
+            </div>
+          </>
+        )}
 
-      <Button
-        onClick={handleFinalizar}
-        disabled={carrinho.length === 0 || !responsavel || finalizing}
-        className="w-full"
-      >
-        <FileText className="h-4 w-4 mr-2" />
-        {finalizing ? 'Finalizando...' : 'Finalizar e Gerar Comprovante'}
-      </Button>
+        <Separator />
+
+        <div className="space-y-2">
+          <Label>Responsável *</Label>
+          <Select value={responsavel} onValueChange={setResponsavel}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              {funcionarios.map((func) => (
+                <SelectItem key={func.id} value={func.nome}>
+                  {func.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Observação</Label>
+          <Textarea
+            value={observacao}
+            onChange={(e) => setObservacao(e.target.value)}
+            placeholder="Observações sobre a movimentação..."
+            rows={2}
+          />
+        </div>
+
+        <Button
+          onClick={handleFinalizar}
+          disabled={carrinho.length === 0 || !responsavel || finalizing}
+          className="w-full"
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          {finalizing ? 'Finalizando...' : 'Finalizar e Gerar Comprovante'}
+        </Button>
+      </div>
     </Card>
   );
 }
