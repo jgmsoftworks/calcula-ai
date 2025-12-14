@@ -95,8 +95,8 @@ export default function Movimentacao() {
           />
         </div>
 
-        {/* Carrinho */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
+        {/* Carrinho - fixo na lateral */}
+        <div className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)]">
           <CarrinhoMovimentacao 
             carrinho={carrinho} 
             onCarrinhoChange={setCarrinho} 
