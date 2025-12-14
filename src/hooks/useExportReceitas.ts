@@ -132,23 +132,21 @@ export function useExportReceitas() {
         ? `Sugestão Preço (${lucroDesejado}% lucro)` 
         : 'Sugestão Preço (R$)';
 
-      // Função para buscar detalhes do markup DA RECEITA (não do modal)
-      const buscarMarkupDaReceita = async (receita: ReceitaComDados): Promise<any> => {
-        if (!receita.markup || !user) return null;
-        
-        const configKey = `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
-        const { data: configData } = await supabase
-          .from('user_configurations')
-          .select('configuration')
-          .eq('user_id', user.id)
-          .eq('type', configKey)
-          .maybeSingle();
-        
-        return configData?.configuration || null;
-      };
+      // Buscar TODAS as configurações de markup do usuário em uma única consulta
+      const { data: todasConfiguracoes } = await supabase
+        .from('user_configurations')
+        .select('type, configuration')
+        .eq('user_id', user?.id || '')
+        .like('type', 'markup_%');
 
-      // Converter dados para formato Excel (async para buscar markup de cada receita)
-      const dadosExcel = await Promise.all(receitas.map(async (r) => {
+      // Criar Map para acesso O(1) - muito mais rápido que consultas individuais
+      const markupConfigCache = new Map<string, any>();
+      todasConfiguracoes?.forEach(config => {
+        markupConfigCache.set(config.type, config.configuration);
+      });
+
+      // Converter dados para formato Excel (agora síncrono - sem consultas no loop)
+      const dadosExcel = receitas.map(r => {
         const custoTotal = (r.custo_ingredientes || 0) + 
                           (r.custo_embalagens || 0) + 
                           (r.custo_mao_obra || 0) + 
@@ -167,8 +165,12 @@ export function useExportReceitas() {
         // Lucros baseados no preço de venda ATUAL + markup DA RECEITA
         const lucroBrutoAtual = (r.preco_venda || 0) - custoBase;
         
-        // Buscar configuração do markup DA RECEITA (não do modal)
-        const markupReceitaDetalhes = await buscarMarkupDaReceita(r);
+        // Buscar configuração do markup DA RECEITA do cache (acesso instantâneo)
+        let markupReceitaDetalhes = null;
+        if (r.markup) {
+          const configKey = `markup_${r.markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
+          markupReceitaDetalhes = markupConfigCache.get(configKey) || null;
+        }
         
         // Lucro líquido atual considera custos indiretos do markup DA RECEITA
         let lucroLiquidoAtual = lucroBrutoAtual;
@@ -198,7 +200,7 @@ export function useExportReceitas() {
           'Lucro Bruto (R$)': lucroBruto,
           'Lucro Líquido (R$)': lucroLiquido
         };
-      }));
+      });
 
       // Criar planilha
       const ws = XLSX.utils.json_to_sheet(dadosExcel);
