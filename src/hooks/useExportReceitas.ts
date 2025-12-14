@@ -126,6 +126,12 @@ export function useExportReceitas() {
         };
       };
 
+      // Pegar o lucro desejado para o título da coluna
+      const lucroDesejado = markupDetalhes?.lucroDesejado ?? markupBase?.margem_lucro ?? 0;
+      const tituloSugestao = (markupDetalhes || markupBase) 
+        ? `Sugestão Preço (${lucroDesejado}% lucro)` 
+        : 'Sugestão Preço (R$)';
+
       // Converter dados para formato Excel
       const dadosExcel = receitas.map(r => {
         const custoTotal = (r.custo_ingredientes || 0) + 
@@ -144,7 +150,7 @@ export function useExportReceitas() {
           'Rendimento (unidade)': r.rendimento_unidade || 'un',
           'Custo Total (R$)': custoTotal,
           'Preço de Venda (R$)': r.preco_venda,
-          'Sugestão Preço (R$)': (markupDetalhes || markupBase) ? sugestaoPreco : '—',
+          [tituloSugestao]: (markupDetalhes || markupBase) ? sugestaoPreco : '—',
           'Lucro Bruto (R$)': lucroBruto,
           'Lucro Líquido (R$)': lucroLiquido
         };
@@ -178,9 +184,9 @@ export function useExportReceitas() {
         { wch: 15 },  // Rendimento unidade
         { wch: 15 },  // Custo Total
         { wch: 15 },  // Preço de Venda
+        { wch: 25 },  // Sugestão Preço (XX% lucro)
         { wch: 15 },  // Lucro Bruto
-        { wch: 15 },  // Lucro Líquido
-        { wch: 15 }   // Sugestão Preço
+        { wch: 15 }   // Lucro Líquido
       ];
 
       const wb = XLSX.utils.book_new();
