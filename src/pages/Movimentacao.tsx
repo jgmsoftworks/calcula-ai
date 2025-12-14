@@ -83,25 +83,30 @@ export default function Movimentacao() {
         onSelectCategoria={setCategoriaSelecionada}
       />
 
-      {/* Layout Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Área de Produtos */}
-        <div className="lg:col-span-2">
-          <ListaProdutos 
-            produtos={produtos}
-            loading={loading}
-            categoriaSelecionada={categoriaSelecionada}
-            onSelectProduto={handleSelectProduto}
-          />
-        </div>
+      {/* Área de Produtos - com espaço para o carrinho fixo à direita */}
+      <div className="lg:pr-[340px]">
+        <ListaProdutos 
+          produtos={produtos}
+          loading={loading}
+          categoriaSelecionada={categoriaSelecionada}
+          onSelectProduto={handleSelectProduto}
+        />
+      </div>
 
-        {/* Carrinho - fixo na lateral */}
-        <div className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)]">
-          <CarrinhoMovimentacao 
-            carrinho={carrinho} 
-            onCarrinhoChange={setCarrinho} 
-          />
-        </div>
+      {/* Carrinho - fixo na lateral direita (desktop) */}
+      <div className="hidden lg:block fixed top-24 right-6 w-[320px] max-h-[calc(100vh-120px)]">
+        <CarrinhoMovimentacao 
+          carrinho={carrinho} 
+          onCarrinhoChange={setCarrinho} 
+        />
+      </div>
+
+      {/* Carrinho mobile - no fluxo normal */}
+      <div className="lg:hidden">
+        <CarrinhoMovimentacao 
+          carrinho={carrinho} 
+          onCarrinhoChange={setCarrinho} 
+        />
       </div>
 
       {/* Modal */}
