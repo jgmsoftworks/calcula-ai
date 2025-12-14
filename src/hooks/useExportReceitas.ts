@@ -141,6 +141,30 @@ export function useExportReceitas() {
         
         const { lucroLiquido, sugestaoPreco, lucroBruto } = calcularSimulacao(r);
 
+        // Custo unitário para calcular lucros do preço atual
+        let custoBase: number;
+        if (r.markup?.tipo !== 'sub_receita' && r.rendimento_valor && r.rendimento_valor > 0) {
+          custoBase = custoTotal / r.rendimento_valor;
+        } else {
+          custoBase = custoTotal;
+        }
+
+        // Lucros baseados no preço de venda ATUAL
+        const lucroBrutoAtual = (r.preco_venda || 0) - custoBase;
+        
+        // Lucro líquido atual considera custos indiretos do markup
+        let lucroLiquidoAtual = lucroBrutoAtual;
+        if (markupDetalhes) {
+          const valorEmRealBloco = markupDetalhes?.valorEmReal ?? 0;
+          const gastosReais = (r.preco_venda || 0) * ((markupDetalhes?.gastoSobreFaturamento ?? 0) / 100);
+          const impostosReais = (r.preco_venda || 0) * ((markupDetalhes?.impostos ?? 0) / 100);
+          const taxasReais = (r.preco_venda || 0) * ((markupDetalhes?.taxas ?? 0) / 100);
+          const comissoesReais = (r.preco_venda || 0) * ((markupDetalhes?.comissoes ?? 0) / 100);
+          const outrosReais = (r.preco_venda || 0) * ((markupDetalhes?.outros ?? 0) / 100);
+          const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
+          lucroLiquidoAtual = (r.preco_venda || 0) - custoBase - valorEmRealBloco - totalCustosIndiretos;
+        }
+
         return {
           'Número': r.numero_sequencial,
           'Nome': r.nome,
@@ -150,6 +174,8 @@ export function useExportReceitas() {
           'Rendimento (unidade)': r.rendimento_unidade || 'un',
           'Custo Total (R$)': custoTotal,
           'Preço de Venda (R$)': r.preco_venda,
+          'Lucro Bruto Atual (R$)': lucroBrutoAtual,
+          'Lucro Líquido Atual (R$)': lucroLiquidoAtual,
           [tituloSugestao]: (markupDetalhes || markupBase) ? sugestaoPreco : '—',
           'Lucro Bruto (R$)': lucroBruto,
           'Lucro Líquido (R$)': lucroLiquido
@@ -163,8 +189,8 @@ export function useExportReceitas() {
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
       
       for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        // Colunas G até K (Custo Total até Sugestão Preço)
-        const colsMonetarias = ['G', 'H', 'I', 'J', 'K'];
+        // Colunas G até M (Custo Total até Lucro Líquido)
+        const colsMonetarias = ['G', 'H', 'I', 'J', 'K', 'L', 'M'];
         
         colsMonetarias.forEach(col => {
           const cellAddress = col + (R + 1);
@@ -184,6 +210,8 @@ export function useExportReceitas() {
         { wch: 15 },  // Rendimento unidade
         { wch: 15 },  // Custo Total
         { wch: 15 },  // Preço de Venda
+        { wch: 18 },  // Lucro Bruto Atual
+        { wch: 18 },  // Lucro Líquido Atual
         { wch: 25 },  // Sugestão Preço (XX% lucro)
         { wch: 15 },  // Lucro Bruto
         { wch: 15 }   // Lucro Líquido
