@@ -55,7 +55,7 @@ export function ListaProdutos({
   }
 
   return (
-    <div className="max-h-[520px] overflow-y-auto pr-2">
+    <div className="max-h-[580px] overflow-y-auto pr-2">
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
         {produtosFiltrados.map((produto) => (
           <ProdutoCard
