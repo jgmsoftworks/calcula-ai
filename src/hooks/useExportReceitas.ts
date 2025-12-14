@@ -68,15 +68,12 @@ export function useExportReceitas() {
           custoBase = custoTotal;
         }
         
-        // Lucro bruto sempre calculado
-        const lucroBruto = receita.preco_venda - custoBase;
-
-        // Se não houver markup selecionado, retornar apenas lucro bruto
+        // Se não houver markup selecionado, retornar zeros
         if (!markupBase) {
           return {
             lucroLiquido: 0,
             sugestaoPreco: 0,
-            lucroBruto
+            lucroBruto: 0
           };
         }
         
@@ -106,18 +103,21 @@ export function useExportReceitas() {
           precoSugerido = custoBase * markupBase.markup_ideal;
         }
         
-        // Calcular lucro líquido considerando TODOS os custos indiretos - IGUAL ao MarkupCard linha 179-189
-        const gastosReais = receita.preco_venda * ((markupDetalhes?.gastoSobreFaturamento ?? 0) / 100);
-        const impostosReais = receita.preco_venda * ((markupDetalhes?.impostos ?? 0) / 100);
-        const taxasReais = receita.preco_venda * ((markupDetalhes?.taxas ?? 0) / 100);
-        const comissoesReais = receita.preco_venda * ((markupDetalhes?.comissoes ?? 0) / 100);
-        const outrosReais = receita.preco_venda * ((markupDetalhes?.outros ?? 0) / 100);
+        // Lucro bruto baseado na SUGESTÃO de preço (não no preço atual)
+        const lucroBruto = precoSugerido - custoBase;
+        
+        // Calcular lucro líquido baseado na SUGESTÃO de preço
+        const gastosReais = precoSugerido * ((markupDetalhes?.gastoSobreFaturamento ?? 0) / 100);
+        const impostosReais = precoSugerido * ((markupDetalhes?.impostos ?? 0) / 100);
+        const taxasReais = precoSugerido * ((markupDetalhes?.taxas ?? 0) / 100);
+        const comissoesReais = precoSugerido * ((markupDetalhes?.comissoes ?? 0) / 100);
+        const outrosReais = precoSugerido * ((markupDetalhes?.outros ?? 0) / 100);
 
         const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
         const custosDirectosCompletos = custoBase + valorEmRealBloco;
 
-        // Lucro líquido REAL = Preço - Custos Diretos - Custos Indiretos
-        const lucroLiquido = receita.preco_venda - custosDirectosCompletos - totalCustosIndiretos;
+        // Lucro líquido = Preço Sugerido - Custos Diretos - Custos Indiretos
+        const lucroLiquido = precoSugerido - custosDirectosCompletos - totalCustosIndiretos;
         
         return {
           lucroLiquido,
