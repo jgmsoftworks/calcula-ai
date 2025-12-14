@@ -89,7 +89,7 @@ export function CarrinhoMovimentacao({ carrinho, onCarrinhoChange }: any) {
   const valorTotal = carrinho.reduce((sum: number, item: any) => sum + item.subtotal, 0);
 
   return (
-    <Card className="p-4 flex flex-col lg:max-h-[calc(100vh-2rem)]">
+    <Card className="p-4 flex flex-col h-[580px]">
       {/* Cabeçalho - fixo */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <ShoppingCart className="h-5 w-5" />
