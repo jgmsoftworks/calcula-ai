@@ -132,8 +132,23 @@ export function useExportReceitas() {
         ? `Sugestão Preço (${lucroDesejado}% lucro)` 
         : 'Sugestão Preço (R$)';
 
-      // Converter dados para formato Excel
-      const dadosExcel = receitas.map(r => {
+      // Função para buscar detalhes do markup DA RECEITA (não do modal)
+      const buscarMarkupDaReceita = async (receita: ReceitaComDados): Promise<any> => {
+        if (!receita.markup || !user) return null;
+        
+        const configKey = `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
+        const { data: configData } = await supabase
+          .from('user_configurations')
+          .select('configuration')
+          .eq('user_id', user.id)
+          .eq('type', configKey)
+          .maybeSingle();
+        
+        return configData?.configuration || null;
+      };
+
+      // Converter dados para formato Excel (async para buscar markup de cada receita)
+      const dadosExcel = await Promise.all(receitas.map(async (r) => {
         const custoTotal = (r.custo_ingredientes || 0) + 
                           (r.custo_embalagens || 0) + 
                           (r.custo_mao_obra || 0) + 
@@ -149,18 +164,21 @@ export function useExportReceitas() {
           custoBase = custoTotal;
         }
 
-        // Lucros baseados no preço de venda ATUAL
+        // Lucros baseados no preço de venda ATUAL + markup DA RECEITA
         const lucroBrutoAtual = (r.preco_venda || 0) - custoBase;
         
-        // Lucro líquido atual considera custos indiretos do markup
+        // Buscar configuração do markup DA RECEITA (não do modal)
+        const markupReceitaDetalhes = await buscarMarkupDaReceita(r);
+        
+        // Lucro líquido atual considera custos indiretos do markup DA RECEITA
         let lucroLiquidoAtual = lucroBrutoAtual;
-        if (markupDetalhes) {
-          const valorEmRealBloco = markupDetalhes?.valorEmReal ?? 0;
-          const gastosReais = (r.preco_venda || 0) * ((markupDetalhes?.gastoSobreFaturamento ?? 0) / 100);
-          const impostosReais = (r.preco_venda || 0) * ((markupDetalhes?.impostos ?? 0) / 100);
-          const taxasReais = (r.preco_venda || 0) * ((markupDetalhes?.taxas ?? 0) / 100);
-          const comissoesReais = (r.preco_venda || 0) * ((markupDetalhes?.comissoes ?? 0) / 100);
-          const outrosReais = (r.preco_venda || 0) * ((markupDetalhes?.outros ?? 0) / 100);
+        if (markupReceitaDetalhes) {
+          const valorEmRealBloco = markupReceitaDetalhes?.valorEmReal ?? 0;
+          const gastosReais = (r.preco_venda || 0) * ((markupReceitaDetalhes?.gastoSobreFaturamento ?? 0) / 100);
+          const impostosReais = (r.preco_venda || 0) * ((markupReceitaDetalhes?.impostos ?? 0) / 100);
+          const taxasReais = (r.preco_venda || 0) * ((markupReceitaDetalhes?.taxas ?? 0) / 100);
+          const comissoesReais = (r.preco_venda || 0) * ((markupReceitaDetalhes?.comissoes ?? 0) / 100);
+          const outrosReais = (r.preco_venda || 0) * ((markupReceitaDetalhes?.outros ?? 0) / 100);
           const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
           lucroLiquidoAtual = (r.preco_venda || 0) - custoBase - valorEmRealBloco - totalCustosIndiretos;
         }
@@ -180,7 +198,7 @@ export function useExportReceitas() {
           'Lucro Bruto (R$)': lucroBruto,
           'Lucro Líquido (R$)': lucroLiquido
         };
-      });
+      }));
 
       // Criar planilha
       const ws = XLSX.utils.json_to_sheet(dadosExcel);
