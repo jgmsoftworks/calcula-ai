@@ -46,7 +46,7 @@ export function CategoriasFiltro({
 
   return (
     <ScrollArea className="w-full whitespace-nowrap">
-      <div className="flex gap-4 pb-4">
+      <div className="flex gap-4 pb-6">
         {/* Botão Todos */}
         <button
           onClick={() => onSelectCategoria(null)}
