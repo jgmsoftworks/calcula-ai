@@ -142,15 +142,6 @@ export function useExportReceitas() {
           'É Sub-receita': r.markup?.tipo === 'sub_receita' ? 'Sim' : 'Não',
           'Rendimento (valor)': r.rendimento_valor || 0,
           'Rendimento (unidade)': r.rendimento_unidade || 'un',
-          'Tempo Total (min)': r.tempo_preparo_total || 0,
-          'Tempo M.O. (min)': r.tempo_preparo_mao_obra || 0,
-          'Qtd Ingredientes': r.total_ingredientes || 0,
-          'Qtd Sub-receitas': r.total_sub_receitas || 0,
-          'Qtd Embalagens': r.total_embalagens || 0,
-          'Custo M.O. (R$)': r.custo_mao_obra || 0,
-          'Custo Matéria-Prima (R$)': r.custo_ingredientes || 0,
-          'Custo Sub-receitas (R$)': r.custo_sub_receitas || 0,
-          'Custo Embalagem (R$)': r.custo_embalagens || 0,
           'Custo Total (R$)': custoTotal,
           'Preço de Venda (R$)': r.preco_venda,
           'Lucro Bruto (R$)': lucroBruto,
@@ -166,8 +157,8 @@ export function useExportReceitas() {
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
       
       for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        // Colunas L até T (Custo M.O. até Sugestão Preço)
-        const colsMonetarias = ['L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
+        // Colunas G até K (Custo Total até Sugestão Preço)
+        const colsMonetarias = ['G', 'H', 'I', 'J', 'K'];
         
         colsMonetarias.forEach(col => {
           const cellAddress = col + (R + 1);
@@ -179,26 +170,17 @@ export function useExportReceitas() {
       
       // Ajustar largura das colunas
       ws['!cols'] = [
-        { wch: 8 },  // Número
-        { wch: 25 }, // Nome
-        { wch: 15 }, // Tipo
-        { wch: 12 }, // Sub-receita
-        { wch: 12 }, // Rendimento valor
-        { wch: 15 }, // Rendimento unidade
-        { wch: 12 }, // Tempo Total
-        { wch: 12 }, // Tempo M.O.
-        { wch: 12 }, // Qtd Ingredientes
-        { wch: 12 }, // Qtd Sub-receitas
-        { wch: 12 }, // Qtd Embalagens
-        { wch: 15 }, // Custo M.O.
-        { wch: 18 }, // Custo Matéria-Prima
-        { wch: 18 }, // Custo Sub-receitas
-        { wch: 18 }, // Custo Embalagem
-        { wch: 15 }, // Custo Total
-        { wch: 15 }, // Preço de Venda
-        { wch: 15 }, // Lucro Bruto
-        { wch: 15 }, // Lucro Líquido
-        { wch: 15 }  // Sugestão Preço
+        { wch: 8 },   // Número
+        { wch: 25 },  // Nome
+        { wch: 15 },  // Tipo
+        { wch: 12 },  // Sub-receita
+        { wch: 12 },  // Rendimento valor
+        { wch: 15 },  // Rendimento unidade
+        { wch: 15 },  // Custo Total
+        { wch: 15 },  // Preço de Venda
+        { wch: 15 },  // Lucro Bruto
+        { wch: 15 },  // Lucro Líquido
+        { wch: 15 }   // Sugestão Preço
       ];
 
       const wb = XLSX.utils.book_new();
