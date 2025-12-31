@@ -613,17 +613,24 @@ export function useExportReceitaPDF() {
           doc.setFont('helvetica', 'normal');
           const descricaoLines = wrapText(passo.descricao, larguraColunaDireita - 10);
           
+          // Renderizar cada linha na posição correta (baseada no índice)
           descricaoLines.forEach((line: string, lineIndex: number) => {
-            if (modoPreparoY > 268) {
+            const lineY = modoPreparoY + (lineIndex * 4);
+            
+            // Verificar se precisa de nova página
+            if (lineY > 268) {
               doc.addPage();
               modoPreparoY = 20;
               tabelasY = 20;
+              // Re-renderizar a linha na nova página
+              doc.text(line, colunaDireitaX + 6, modoPreparoY + (lineIndex * 4) - (lineIndex * 4));
+            } else {
+              doc.text(line, colunaDireitaX + 6, lineY);
             }
-            doc.text(line, colunaDireitaX + 6, modoPreparoY);
-            modoPreparoY += 4;
           });
 
-          modoPreparoY += 2; // Espaço entre passos
+          // Incrementar Y pelo total de linhas + espaço entre passos
+          modoPreparoY += (descricaoLines.length * 4) + 4;
         });
       }
 
