@@ -584,54 +584,85 @@ export function useExportReceitaPDF() {
 
       // === MODO DE PREPARO NA COLUNA DIREITA ===
       if (passos.length > 0) {
-        // Título com fundo
-        doc.setFillColor(240, 240, 240);
-        doc.rect(colunaDireitaX, modoPreparoY, larguraColunaDireita, 6, 'F');
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0);
-        doc.text('Modo de Preparo', colunaDireitaX + 2, modoPreparoY + 4);
-        modoPreparoY += 10;
-
+        const lineHeight = 4;
+        const stepSpacing = 4;
+        const bottomLimit = 268;
+        
+        // Função para desenhar cabeçalho do modo de preparo
+        const drawModoPreparoHeader = (y: number) => {
+          doc.setFillColor(240, 240, 240);
+          doc.rect(colunaDireitaX, y, larguraColunaDireita, 6, 'F');
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(0, 0, 0);
+          doc.text('Modo de Preparo', colunaDireitaX + 2, y + 4);
+          return y + 10;
+        };
+        
+        // Desenhar cabeçalho inicial
+        modoPreparoY = drawModoPreparoHeader(modoPreparoY);
         doc.setFontSize(10);
 
-        passos.forEach((passo: any, index: number) => {
-          // Verificar se precisa de nova página
-          if (modoPreparoY > 265) {
-            doc.addPage();
-            modoPreparoY = 20;
-            tabelasY = 20;
-          }
+        // Usar cursorY para controle de fluxo
+        let cursorY = modoPreparoY;
 
+        passos.forEach((passo: any, index: number) => {
           const numero = passo.ordem ?? index + 1;
           
-          // Número do passo em bold
-          doc.setFont('helvetica', 'bold');
-          doc.text(`${numero}.`, colunaDireitaX, modoPreparoY);
+          // Normalizar descrição: remover quebras de linha e criar array flat
+          const rawDescricao = String(passo.descricao ?? '').replace(/\r\n/g, '\n');
+          const paragraphs = rawDescricao.split('\n');
           
-          // Descrição com wrap automático usando nossa função wrapText
-          doc.setFont('helvetica', 'normal');
-          const descricaoLines = wrapText(passo.descricao, larguraColunaDireita - 10);
-          
-          // Renderizar cada linha na posição correta (baseada no índice)
-          descricaoLines.forEach((line: string, lineIndex: number) => {
-            const lineY = modoPreparoY + (lineIndex * 4);
-            
-            // Verificar se precisa de nova página
-            if (lineY > 268) {
-              doc.addPage();
-              modoPreparoY = 20;
-              tabelasY = 20;
-              // Re-renderizar a linha na nova página
-              doc.text(line, colunaDireitaX + 6, modoPreparoY + (lineIndex * 4) - (lineIndex * 4));
+          // Criar lista flat de todas as linhas (cada parágrafo passa por wrapText)
+          const allLines: string[] = [];
+          paragraphs.forEach(paragraph => {
+            if (paragraph.trim() === '') {
+              allLines.push(''); // Linha em branco para espaçamento
             } else {
-              doc.text(line, colunaDireitaX + 6, lineY);
+              const wrappedLines = wrapText(paragraph, larguraColunaDireita - 10);
+              allLines.push(...wrappedLines);
             }
           });
+          
+          // Verificar se precisa de nova página antes do número do passo
+          if (cursorY > bottomLimit) {
+            doc.addPage();
+            cursorY = 20;
+            tabelasY = 20;
+            cursorY = drawModoPreparoHeader(cursorY);
+          }
 
-          // Incrementar Y pelo total de linhas + espaço entre passos
-          modoPreparoY += (descricaoLines.length * 4) + 4;
+          // Número do passo em bold
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${numero}.`, colunaDireitaX, cursorY);
+          
+          // Descrição normal
+          doc.setFont('helvetica', 'normal');
+          
+          // Renderizar cada linha incrementando cursorY
+          allLines.forEach((line: string) => {
+            // Verificar se precisa de nova página
+            if (cursorY > bottomLimit) {
+              doc.addPage();
+              cursorY = 20;
+              tabelasY = 20;
+              cursorY = drawModoPreparoHeader(cursorY);
+              doc.setFontSize(10);
+              doc.setFont('helvetica', 'normal');
+            }
+            
+            // Renderizar linha (pular linhas vazias mas manter espaço)
+            if (line.trim() !== '') {
+              doc.text(line, colunaDireitaX + 6, cursorY);
+            }
+            cursorY += lineHeight;
+          });
+
+          // Espaço entre passos
+          cursorY += stepSpacing;
         });
+        
+        modoPreparoY = cursorY;
       }
 
       // Sincronizar Y final - próximo conteúdo começa após a maior das duas colunas
