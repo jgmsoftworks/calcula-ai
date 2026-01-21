@@ -34,7 +34,7 @@ export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] lg:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Escolha seu Plano</DialogTitle>
         </DialogHeader>
