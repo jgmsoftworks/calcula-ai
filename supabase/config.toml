@@ -17,3 +17,9 @@ verify_jwt = true
 
 [functions.get-user-by-email]
 verify_jwt = true
+
+[functions.admin-list-all-users]
+verify_jwt = false
+
+[functions.admin-confirm-user-email]
+verify_jwt = false
