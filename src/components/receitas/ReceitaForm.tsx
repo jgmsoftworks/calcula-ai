@@ -506,7 +506,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent 
-        className="w-[1000px] h-[810px] max-w-none flex flex-col p-0 overflow-hidden"
+        className="w-full max-w-[95vw] lg:max-w-[1000px] h-[90vh] max-h-[810px] flex flex-col p-0 overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 py-4 border-b shrink-0">
@@ -516,7 +516,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           {/* TabsList FIXA - fora da área de scroll */}
           <div className="px-6 py-4 border-b shrink-0 bg-background">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1">
               <TabsTrigger value="geral">1 Geral</TabsTrigger>
               <TabsTrigger value="ingredientes">2 Ingredientes</TabsTrigger>
               <TabsTrigger value="sub-receitas">3 Sub-receitas</TabsTrigger>
