@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar } from "lucide-react";
+import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -26,24 +26,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EditUserPlanModal } from '@/components/admin/EditUserPlanModal';
 
-interface UserProfile {
-  id: string;
+interface MergedUser {
   user_id: string;
+  email: string | null;
+  email_confirmed_at: string | null;
+  last_sign_in_at: string | null;
+  created_at: string;
   full_name: string | null;
   business_name: string | null;
   plan: string;
-  created_at: string;
   cnpj_cpf: string | null;
-}
-
-interface UserAuthInfo {
-  user_id: string;
-  email: string;
-  last_sign_in_at: string | null;
-}
-
-interface FornecedorStatus {
-  user_id: string;
+  has_profile: boolean;
   eh_fornecedor: boolean;
   fornecedor_id: string | null;
 }
@@ -51,19 +44,23 @@ interface FornecedorStatus {
 export default function AdminUsers() {
   const { isAdmin, loading } = useAuth();
   const { toast } = useToast();
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [fornecedorStatus, setFornecedorStatus] = useState<Map<string, FornecedorStatus>>(new Map());
-  const [authInfo, setAuthInfo] = useState<Map<string, UserAuthInfo>>(new Map());
+  const [users, setUsers] = useState<MergedUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<string>("all");
+  const [selectedEmailStatus, setSelectedEmailStatus] = useState<string>("all");
   const [confirmAction, setConfirmAction] = useState<{
     userId: string;
     userName: string;
     action: "add" | "remove";
   } | null>(null);
+  const [confirmEmailAction, setConfirmEmailAction] = useState<{
+    userId: string;
+    email: string;
+  } | null>(null);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [confirmingEmailUserId, setConfirmingEmailUserId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<MergedUser | null>(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -75,48 +72,20 @@ export default function AdminUsers() {
     try {
       setLoadingUsers(true);
 
-      // Fetch user profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, business_name, plan, created_at, cnpj_cpf")
-        .order("created_at", { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      setUsers(profiles || []);
-
-      // Buscar informações de autenticação (email e último acesso)
-      const { data: authData, error: authError } = await supabase
-        .rpc('get_users_auth_info');
-
-      if (authError) {
-        console.error('Erro ao buscar informações de auth:', authError);
-      } else if (authData) {
-        const authMap = new Map<string, UserAuthInfo>();
-        authData.forEach((info: UserAuthInfo) => {
-          authMap.set(info.user_id, info);
-        });
-        setAuthInfo(authMap);
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Sessão não encontrada');
       }
 
-      // Fetch fornecedor status for all users
-      const { data: fornecedores, error: fornecedoresError } = await supabase
-        .from("fornecedores")
-        .select("user_id, eh_fornecedor, id")
-        .eq("eh_fornecedor", true);
-
-      if (fornecedoresError) throw fornecedoresError;
-
-      const statusMap = new Map<string, FornecedorStatus>();
-      fornecedores?.forEach((f) => {
-        statusMap.set(f.user_id, {
-          user_id: f.user_id,
-          eh_fornecedor: f.eh_fornecedor,
-          fornecedor_id: f.id,
-        });
+      const { data, error } = await supabase.functions.invoke('admin-list-all-users', {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`
+        }
       });
 
-      setFornecedorStatus(statusMap);
+      if (error) throw error;
+
+      setUsers(data.users || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar usuários",
@@ -143,7 +112,6 @@ export default function AdminUsers() {
         description: data.message,
       });
 
-      // Refresh data
       await fetchUsers();
     } catch (error: any) {
       toast({
@@ -157,19 +125,59 @@ export default function AdminUsers() {
     }
   };
 
+  const handleConfirmEmail = async (userId: string) => {
+    try {
+      setConfirmingEmailUserId(userId);
+
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const { data, error } = await supabase.functions.invoke('admin-confirm-user-email', {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`
+        },
+        body: { userId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: data.message,
+      });
+
+      await fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao confirmar email",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setConfirmingEmailUserId(null);
+      setConfirmEmailAction(null);
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const searchLower = searchTerm.toLowerCase();
-    const userAuth = authInfo.get(user.user_id);
     const matchesSearch =
       searchTerm === "" ||
       user.full_name?.toLowerCase().includes(searchLower) ||
       user.business_name?.toLowerCase().includes(searchLower) ||
       user.cnpj_cpf?.includes(searchTerm) ||
-      userAuth?.email?.toLowerCase().includes(searchLower);
+      user.email?.toLowerCase().includes(searchLower);
 
     const matchesPlan = selectedPlan === "all" || user.plan === selectedPlan;
 
-    return matchesSearch && matchesPlan;
+    const matchesEmailStatus = 
+      selectedEmailStatus === "all" ||
+      (selectedEmailStatus === "verified" && user.email_confirmed_at) ||
+      (selectedEmailStatus === "pending" && !user.email_confirmed_at);
+
+    return matchesSearch && matchesPlan && matchesEmailStatus;
   });
 
   const formatLastSignIn = (lastSignIn: string | null | undefined) => {
@@ -197,6 +205,23 @@ export default function AdminUsers() {
 
     const planConfig = variants[plan] || { variant: "secondary", label: plan };
     return <Badge variant={planConfig.variant}>{planConfig.label}</Badge>;
+  };
+
+  const getEmailStatusBadge = (emailConfirmedAt: string | null) => {
+    if (emailConfirmedAt) {
+      return (
+        <Badge variant="default" className="bg-emerald-600/90 hover:bg-emerald-600">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Email verificado
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="bg-amber-500/90 text-white hover:bg-amber-500">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        Aguardando verificação
+      </Badge>
+    );
   };
 
   if (loading) {
@@ -227,7 +252,7 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
           <p className="text-muted-foreground">
-            Gerencie permissões de fornecedores e status de usuários
+            Gerencie permissões de fornecedores, planos e verificação de email
           </p>
         </div>
         <Badge variant="outline">
@@ -240,12 +265,12 @@ export default function AdminUsers() {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[250px]">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome, negócio ou documento..."
+                  placeholder="Buscar por nome, email, negócio ou documento..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -253,7 +278,7 @@ export default function AdminUsers() {
               </div>
             </div>
             <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filtrar por plano" />
               </SelectTrigger>
               <SelectContent>
@@ -261,6 +286,16 @@ export default function AdminUsers() {
                 <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="professional">Professional</SelectItem>
                 <SelectItem value="enterprise">Enterprise</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedEmailStatus} onValueChange={setSelectedEmailStatus}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Status do email" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="verified">Email verificado</SelectItem>
+                <SelectItem value="pending">Aguardando verificação</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -274,26 +309,31 @@ export default function AdminUsers() {
       ) : (
         <div className="grid gap-4">
           {filteredUsers.map((user) => {
-            const isFornecedor = fornecedorStatus.get(user.user_id)?.eh_fornecedor || false;
             const isProcessing = processingUserId === user.user_id;
-            const userAuth = authInfo.get(user.user_id);
+            const isConfirmingEmail = confirmingEmailUserId === user.user_id;
 
             return (
-              <Card key={user.id}>
+              <Card key={user.user_id}>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-lg">
-                          {user.full_name || "Nome não informado"}
+                          {user.full_name || user.email?.split('@')[0] || "Nome não informado"}
                         </h3>
                         {getPlanBadge(user.plan)}
+                        {getEmailStatusBadge(user.email_confirmed_at)}
+                        {!user.has_profile && (
+                          <Badge variant="outline" className="text-xs">
+                            Sem perfil
+                          </Badge>
+                        )}
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
-                        {userAuth?.email && (
+                        {user.email && (
                           <p className="flex items-center gap-2">
                             <Mail className="h-3 w-3" />
-                            {userAuth.email}
+                            {user.email}
                           </p>
                         )}
                         {user.business_name && (
@@ -310,13 +350,13 @@ export default function AdminUsers() {
                           </p>
                           <p className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            Último acesso: {formatLastSignIn(userAuth?.last_sign_in_at)}
+                            Último acesso: {formatLastSignIn(user.last_sign_in_at)}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 pt-2">
-                        <Badge variant={isFornecedor ? "default" : "secondary"}>
-                          {isFornecedor ? (
+                        <Badge variant={user.eh_fornecedor ? "default" : "secondary"}>
+                          {user.eh_fornecedor ? (
                             <>
                               <Store className="h-3 w-3 mr-1" />
                               Fornecedor
@@ -330,7 +370,30 @@ export default function AdminUsers() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {!user.email_confirmed_at && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isConfirmingEmail}
+                          onClick={() =>
+                            setConfirmEmailAction({
+                              userId: user.user_id,
+                              email: user.email || "",
+                            })
+                          }
+                          className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                        >
+                          {isConfirmingEmail ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <MailCheck className="h-4 w-4 mr-1" />
+                              Confirmar Email
+                            </>
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -340,20 +403,20 @@ export default function AdminUsers() {
                         Plano
                       </Button>
                       <Button
-                        variant={isFornecedor ? "destructive" : "default"}
+                        variant={user.eh_fornecedor ? "destructive" : "default"}
                         size="sm"
                         disabled={isProcessing}
                         onClick={() =>
                           setConfirmAction({
                             userId: user.user_id,
                             userName: user.full_name || user.business_name || "este usuário",
-                            action: isFornecedor ? "remove" : "add",
+                            action: user.eh_fornecedor ? "remove" : "add",
                           })
                         }
                       >
                         {isProcessing ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : isFornecedor ? (
+                        ) : user.eh_fornecedor ? (
                           "Remover Fornecedor"
                         ) : (
                           "Tornar Fornecedor"
@@ -378,6 +441,7 @@ export default function AdminUsers() {
         </div>
       )}
 
+      {/* Dialog de confirmação para fornecedor */}
       <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -416,12 +480,46 @@ export default function AdminUsers() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Dialog de confirmação para email */}
+      <AlertDialog open={!!confirmEmailAction} onOpenChange={() => setConfirmEmailAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar verificação de email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja confirmar manualmente o email <strong>{confirmEmailAction?.email}</strong>?
+              <br />
+              <br />
+              Após a confirmação, o usuário poderá fazer login normalmente no sistema.
+              Um perfil será criado automaticamente se ainda não existir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmEmailAction) {
+                  handleConfirmEmail(confirmEmailAction.userId);
+                }
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              Confirmar Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Modal de edição de plano */}
       {editingUser && (
         <EditUserPlanModal
           open={!!editingUser}
           onOpenChange={(open) => !open && setEditingUser(null)}
-          user={editingUser}
+          user={{
+            user_id: editingUser.user_id,
+            full_name: editingUser.full_name || '',
+            business_name: editingUser.business_name || '',
+            plan: editingUser.plan
+          }}
           onSuccess={fetchUsers}
         />
       )}
