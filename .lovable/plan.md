@@ -1,65 +1,103 @@
-# Plano de Limpeza do Sistema CalculaAI
 
-## ✅ CONCLUÍDO
+# Plano de Limpeza Final - CalculaAI
 
-### Resumo
-Funcionalidades não utilizadas foram removidas e a página de Planos foi redesenhada com um visual moderno e elegante.
-
----
-
-## O que foi removido
-
-### ✅ Funcionalidades de Fornecedor
-- Páginas: `FornecedorDashboard.tsx`, `FornecedorOrcamentos.tsx`, `MeuPainelFornecedor.tsx`
-- Componente: `FornecedorProtectedRoute.tsx`
-- Badge "FORNECEDOR" do sidebar
-- Menu de navegação para fornecedores
-- Lógica `isFornecedor` simplificada (sempre `false`)
-
-### ✅ Páginas Removidas
-- **Marketplace**: `MarketplaceFornecedores.tsx` + componentes
-- **Simulador**: `Simulador.tsx` + `SimuladorModal.tsx`
-- **Sugestões**: `Sugestoes.tsx` + todos os componentes
-
-### ✅ Hooks Removidos
-- `useRoadmap.tsx`
-- `useSuggestions.tsx`
+## Resumo
+Remover a aba "Sou Fornecedor" da tela de login e verificar todo o código para garantir que nada está quebrado após as remoções anteriores.
 
 ---
 
-## O que foi melhorado
+## Problema Identificado
 
-### ✅ Página de Planos - Novo Design
-- Header com ícone Sparkles e gradiente
-- Toggle mensal/anual centralizado com badge de economia
-- Cards com:
-  - Ícones coloridos em gradiente
-  - Hover animado (scale + shadow)
-  - Badge "Mais Popular" no plano Profissional
-  - Badge de economia ao selecionar anual
-- Tabela de comparação com:
-  - Ícones ✓ (verde) e ✗ (vermelho)
-  - Destaque visual no plano Profissional
-  - Hover nas linhas
-- Footer com informações de segurança
+A aba "Sou Fornecedor" ainda existe na tela de login (`src/pages/Auth.tsx`), nas linhas 424-429:
+
+```tsx
+<TabsTrigger 
+  value="fornecedor"
+  className="..."
+>
+  Sou Fornecedor
+</TabsTrigger>
+```
+
+Além disso, todo o formulário de cadastro de fornecedor (linhas 44-267) ainda existe no arquivo.
 
 ---
 
-## Arquivos Modificados
-| Arquivo | Status |
-|---------|--------|
-| `src/App.tsx` | ✅ Limpo |
-| `src/components/layout/AppSidebar.tsx` | ✅ Limpo |
-| `src/hooks/useAuth.tsx` | ✅ Simplificado |
-| `src/pages/Planos.tsx` | ✅ Redesenhado |
+## Arquivos a Modificar
 
-## Arquivos Deletados (18 arquivos)
-- ✅ 6 páginas
-- ✅ 9 componentes  
-- ✅ 2 hooks
-- ✅ 1 protected route
+| Arquivo | Ação |
+|---------|------|
+| `src/pages/Auth.tsx` | Remover aba "Sou Fornecedor" e formulário relacionado |
+
+---
+
+## Detalhes das Alterações
+
+### 1. src/pages/Auth.tsx
+
+**Remover:**
+- Estados do formulário de fornecedor (linhas 44-50):
+  - `businessNameFornecedor`
+  - `cnpjFornecedor`
+  - `cidadeFornecedor`
+  - `emailFornecedor`
+  - `passwordFornecedor`
+  - `telefoneFornecedor`
+
+- Import de ícones não utilizados (linha 23-24):
+  - `Store`
+  - `Phone`
+
+- Função `handleSignupFornecedor` (linhas 200-267)
+
+- TabsTrigger "Sou Fornecedor" (linhas 424-429)
+
+- TabsContent com formulário de fornecedor (todo o bloco que contém o formulário de cadastro de fornecedor)
+
+**Manter:**
+- Grid de 2 colunas para as abas (Entrar e Criar conta)
+
+---
+
+## Verificação de Integridade
+
+**Já verificado e OK:**
+- `src/App.tsx` - Rotas limpas, sem referências a páginas removidas
+- `src/components/layout/AppSidebar.tsx` - Menu limpo, sem itens de fornecedor
+- `src/hooks/useAuth.tsx` - `isFornecedor` hardcoded como `false`
+- `src/contexts/ActivityContext.tsx` - Corrigido para não usar `useActivityLog`
+
+**Não será alterado:**
+- Banco de dados (tabelas permanecem intactas)
+- Edge Functions (mantidas para uso futuro)
+- Termos "fornecedor" no contexto de estoque/CMV (ex: "Compra de fornecedor")
+- Arquivo `src/lib/motivosMovimentacao.ts` (contém "Compra de fornecedor" e "Devolução a fornecedor" - são motivos válidos de movimentação de estoque)
+- `src/integrations/supabase/types.ts` (tipos gerados automaticamente do Supabase)
+
+---
+
+## Resultado Esperado
+
+Após esta alteração:
+
+```text
+ANTES:                              DEPOIS:
+┌─────────────────────────────┐     ┌─────────────────────────────┐
+│ [Entrar] [Criar] [Fornec.]  │     │   [Entrar]    [Criar]       │
+│ (3 abas)                    │     │   (2 abas)                  │
+├─────────────────────────────┤     ├─────────────────────────────┤
+│ Formulário de login/        │     │ Formulário de login/        │
+│ cadastro/fornecedor         │     │ cadastro apenas             │
+└─────────────────────────────┘     └─────────────────────────────┘
+```
+
+---
 
 ## Segurança
-- ✅ Banco de dados NÃO foi alterado
-- ✅ Sistema continua 100% funcional
-- ✅ Rotas principais preservadas
+
+- O banco de dados NÃO será alterado
+- As Edge Functions NÃO serão removidas
+- Nenhum dado será perdido
+- O sistema continuará funcionando normalmente
+- Termos de "fornecedor" no contexto de estoque/compras permanecem
+
