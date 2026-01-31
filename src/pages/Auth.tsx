@@ -88,10 +88,40 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, fullName, businessName);
+      const { data, error } = await signUp(email, password, fullName, businessName);
       
       if (error) {
-        throw error;
+        // Tratar erros específicos do Supabase
+        let errorMessage = "Tente novamente";
+        
+        if (error.message.includes("Password should be at least")) {
+          errorMessage = "A senha deve ter no mínimo 6 caracteres";
+        } else if (error.message.includes("Unable to validate email")) {
+          errorMessage = "Email inválido. Verifique o formato do email.";
+        } else if (error.message.includes("Signup requires a valid password")) {
+          errorMessage = "Digite uma senha válida";
+        } else if (error.message.includes("User already registered")) {
+          errorMessage = "Este email já possui uma conta. Tente fazer login.";
+        } else {
+          errorMessage = error.message;
+        }
+        
+        toast({
+          title: "Erro ao criar conta",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // IMPORTANTE: Verificar se identities está vazio = email já cadastrado
+      if (data?.user?.identities?.length === 0) {
+        toast({
+          title: "Email já cadastrado",
+          description: "Este email já possui uma conta. Tente fazer login ou recuperar sua senha.",
+          variant: "destructive",
+        });
+        return;
       }
       
       toast({
@@ -101,10 +131,11 @@ const Auth = () => {
       
       // Mostrar opção de reenviar confirmação
       setShowResendConfirmation(true);
+      
     } catch (error: any) {
       toast({
-        title: "Erro ao criar conta",
-        description: error.message || "Tente novamente",
+        title: "Erro inesperado",
+        description: "Ocorreu um problema ao criar sua conta. Tente novamente.",
         variant: "destructive",
       });
     } finally {
