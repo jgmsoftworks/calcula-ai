@@ -9,7 +9,7 @@ interface AuthContextType {
   emailVerified: boolean;
   isAdmin: boolean;
   isFornecedor: boolean;
-  signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, fullName?: string, businessName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     });
-    return { error };
+    return { data, error };
   };
 
   const resetPassword = async (email: string) => {
