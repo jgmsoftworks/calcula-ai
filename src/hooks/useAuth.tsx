@@ -25,7 +25,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isFornecedor, setIsFornecedor] = useState(false);
+  // Mantido para compatibilidade de tipos, mas sempre false
+  const [isFornecedor] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -40,7 +41,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setEmailVerified(!!session.user.email_confirmed_at);
           
           // Check if user is admin using secure role system
-          // CRITICAL: Always use user_is_admin() function, never check profile.is_admin directly
           setTimeout(async () => {
             try {
               // First ensure profile exists
@@ -62,7 +62,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               }
 
               // Use security definer function to check admin status
-              // This prevents privilege escalation attacks
               const { data: isAdminData, error: adminError } = await supabase
                 .rpc('has_role_or_higher', { 
                   required_role: 'admin',
@@ -75,27 +74,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               } else {
                 setIsAdmin(isAdminData || false);
               }
-
-              // Check fornecedor status via RPC call
-              const { data: isFornecedorData, error: fornecedorError } = await supabase
-                .rpc('user_is_fornecedor', { check_user_id: session.user.id });
-
-              if (fornecedorError) {
-                console.error('Error checking fornecedor status:', fornecedorError);
-                setIsFornecedor(false);
-              } else {
-                setIsFornecedor(isFornecedorData || false);
-              }
             } catch (error) {
               console.error('Error handling profile:', error);
               setIsAdmin(false);
-              setIsFornecedor(false);
             }
           }, 0);
         } else {
           setEmailVerified(false);
           setIsAdmin(false);
-          setIsFornecedor(false);
         }
       }
     );
@@ -172,11 +158,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={{
       user,
-    session,
-    loading,
-    emailVerified,
-    isAdmin,
-    isFornecedor,
+      session,
+      loading,
+      emailVerified,
+      isAdmin,
+      isFornecedor,
       signUp,
       signIn,
       signInWithGoogle,
