@@ -1,219 +1,81 @@
 
-# Plano: Melhorias no Tratamento de Erros de Autenticação
+# Plano: Duplicar Receita
 
-## Problema Identificado
-
-O Supabase, por questões de segurança (para evitar enumeração de emails), **não retorna erro quando um email já está cadastrado**. Em vez disso, retorna:
-
-```json
-{
-  "data": {
-    "user": {
-      "identities": [],  // ← Array VAZIO indica email já existe
-      "session": null
-    }
-  },
-  "error": null  // ← Sem erro!
-}
-```
-
-Isso explica porque você viu uma "descrição esquisita" - o sistema mostra sucesso quando na verdade o email já estava cadastrado.
+## Resumo
+Adicionar um botao de "Duplicar" ao lado dos botoes existentes no card da receita. Ao clicar, o sistema copia a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos de preparo) com o nome `"Nome Original (Cópia)"`, garantindo que nao haja nomes duplicados.
 
 ---
 
-## Solução
+## Como vai funcionar
 
-Verificar se `data.user?.identities` está vazio após o signup para detectar emails já cadastrados.
+1. Usuario clica no botao de duplicar (icone de copia)
+2. O sistema busca a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos)
+3. Gera um nome unico: `"Nome (Cópia)"`, ou `"Nome (Cópia 2)"` se ja existir
+4. Cria a receita nova com numero sequencial novo
+5. Copia todos os itens relacionados (ingredientes, embalagens, sub-receitas, mao de obra, passos)
+6. Atualiza a lista automaticamente
 
 ---
 
-## Arquivo a Modificar
+## Arquivos a Modificar
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| `src/pages/Auth.tsx` | Melhorar tratamento de erros no `handleSignup` |
+| `src/hooks/useReceitas.ts` | Adicionar funcao `duplicarReceita` |
+| `src/components/receitas/ReceitaCard.tsx` | Adicionar botao de duplicar |
+| `src/components/receitas/ListaReceitas.tsx` | Passar callback de reload |
 
 ---
 
-## Detalhes das Alterações
+## Detalhes Tecnicos
 
-### 1. src/pages/Auth.tsx - Função `handleSignup`
+### 1. `src/hooks/useReceitas.ts` - Nova funcao `duplicarReceita`
 
-**Antes (linhas 86-113):**
-```typescript
-const handleSignup = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+Adicionar funcao que:
+- Busca a receita completa via `fetchReceitaCompleta`
+- Verifica nomes existentes para gerar nome unico (ex: "Bolo (Cópia)", "Bolo (Cópia 2)")
+- Cria nova receita com `createReceita` (gera novo numero sequencial)
+- Copia em batch: `receita_ingredientes`, `receita_embalagens`, `receita_sub_receitas`, `receita_mao_obra`, `receita_passos_preparo`
+- NAO copia a imagem (cada receita deve ter sua propria imagem)
 
-  try {
-    const { error } = await signUp(email, password, fullName, businessName);
-    
-    if (error) {
-      throw error;
-    }
-    
-    toast({
-      title: "Conta criada com sucesso!",
-      description: "Verifique seu email...",
-    });
-    setShowResendConfirmation(true);
-  } catch (error: any) {
-    toast({
-      title: "Erro ao criar conta",
-      description: error.message || "Tente novamente",  // ← Mensagem genérica!
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+Logica para nome unico:
+```
+1. Nome base = "Nome Original (Cópia)"
+2. Buscar receitas do usuario com nome LIKE "Nome Original (Cópia%"
+3. Se nenhuma existe -> usar "Nome Original (Cópia)"
+4. Se ja existe -> usar "Nome Original (Cópia 2)", "Nome Original (Cópia 3)", etc.
 ```
 
-**Depois:**
-```typescript
-const handleSignup = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+### 2. `src/components/receitas/ReceitaCard.tsx`
 
-  try {
-    const { data, error } = await signUp(email, password, fullName, businessName);
-    
-    if (error) {
-      // Tratar erros específicos do Supabase
-      let errorMessage = "Tente novamente";
-      
-      if (error.message.includes("Password should be at least")) {
-        errorMessage = "A senha deve ter no mínimo 6 caracteres";
-      } else if (error.message.includes("Unable to validate email")) {
-        errorMessage = "Email inválido. Verifique o formato do email.";
-      } else if (error.message.includes("Signup requires a valid password")) {
-        errorMessage = "Digite uma senha válida";
-      } else {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "Erro ao criar conta",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return;
-    }
+- Importar icone `Copy` do lucide-react
+- Adicionar botao entre o botao de Edit e o AlertDialog de Delete
+- Chamar `duplicarReceita` ao clicar
+- Mostrar loading durante a duplicacao
+- Chamar `onDelete` (que recarrega a lista) apos duplicar com sucesso
 
-    // IMPORTANTE: Verificar se identities está vazio = email já cadastrado
-    if (data?.user?.identities?.length === 0) {
-      toast({
-        title: "Email já cadastrado",
-        description: "Este email já possui uma conta. Tente fazer login ou recuperar sua senha.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "Conta criada com sucesso!",
-      description: "Verifique seu email para confirmar a conta. Não esqueça de verificar a pasta de spam.",
-    });
-    setShowResendConfirmation(true);
-    
-  } catch (error: any) {
-    toast({
-      title: "Erro inesperado",
-      description: "Ocorreu um problema ao criar sua conta. Tente novamente.",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-```
+### 3. `src/components/receitas/ListaReceitas.tsx`
+
+Nenhuma mudanca necessaria - o `onDelete` ja faz reload da lista, e o real-time subscription tambem captura o INSERT.
 
 ---
 
-## Também precisa modificar
+## Tabelas envolvidas na copia
 
-### 2. src/hooks/useAuth.tsx - Função `signUp`
-
-Para retornar `data` além do `error`, precisamos modificar a função:
-
-**Antes (linhas 99-114):**
-```typescript
-const signUp = async (email: string, password: string, fullName?: string, businessName?: string) => {
-  const redirectUrl = `${window.location.origin}/`;
-  
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: redirectUrl,
-      data: {
-        full_name: fullName,
-        business_name: businessName,
-      }
-    }
-  });
-  return { error };  // ← Só retorna error!
-};
-```
-
-**Depois:**
-```typescript
-const signUp = async (email: string, password: string, fullName?: string, businessName?: string) => {
-  const redirectUrl = `${window.location.origin}/`;
-  
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: redirectUrl,
-      data: {
-        full_name: fullName,
-        business_name: businessName,
-      }
-    }
-  });
-  return { data, error };  // ← Retorna data E error
-};
-```
-
-### 3. Atualizar o tipo no AuthContextType
-
-Adicionar o tipo de retorno correto para a função `signUp`:
-
-```typescript
-signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ data: any; error: any }>;
-```
+| Tabela | O que copiar |
+|--------|-------------|
+| `receitas` | Todos os campos exceto `id`, `numero_sequencial`, `imagem_url`, `created_at`, `updated_at` |
+| `receita_ingredientes` | `produto_id`, `quantidade` |
+| `receita_embalagens` | `produto_id`, `quantidade` |
+| `receita_sub_receitas` | `sub_receita_id`, `quantidade` |
+| `receita_mao_obra` | `funcionario_id`, `funcionario_nome`, `funcionario_cargo`, `tempo`, `unidade_tempo`, `custo_por_hora`, `valor_total` |
+| `receita_passos_preparo` | `ordem`, `descricao` (sem imagem) |
 
 ---
 
-## Resumo das Mensagens de Erro Tratadas
+## Seguranca
 
-| Situação | Mensagem Atual | Mensagem Nova |
-|----------|----------------|---------------|
-| Email já cadastrado | "Conta criada com sucesso!" (ERRADO) | "Email já cadastrado. Tente fazer login ou recuperar sua senha." |
-| Senha muito curta | Texto técnico em inglês | "A senha deve ter no mínimo 6 caracteres" |
-| Email inválido | Texto técnico em inglês | "Email inválido. Verifique o formato do email." |
-| Erro genérico | "Tente novamente" | "Ocorreu um problema ao criar sua conta. Tente novamente." |
-
----
-
-## Resultado Esperado
-
-```text
-ANTES:                              DEPOIS:
-┌─────────────────────────────┐     ┌─────────────────────────────┐
-│ Email já existe → "Sucesso!"│     │ Email já existe → ERRO      │
-│ (mostra tela de confirmação)│     │ "Email já cadastrado"       │
-├─────────────────────────────┤     ├─────────────────────────────┤
-│ Erros em inglês            │     │ Erros traduzidos            │
-│ "Password should be..."    │     │ "A senha deve ter..."       │
-└─────────────────────────────┘     └─────────────────────────────┘
-```
-
----
-
-## Segurança
-
-- Nenhuma alteração no banco de dados
-- Nenhuma alteração em Edge Functions
-- Apenas melhorias na UX de tratamento de erros
+- Nenhuma alteracao no banco de dados (schema)
+- Nenhuma alteracao em Edge Functions
+- RLS policies ja cobrem INSERT para todas as tabelas envolvidas
+- A receita duplicada pertence ao mesmo usuario
