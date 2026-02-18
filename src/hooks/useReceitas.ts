@@ -482,6 +482,133 @@ export function useReceitas() {
     }
   };
 
+  const duplicarReceita = async (receitaId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    setLoading(true);
+    try {
+      // 1. Buscar receita completa
+      const receitaCompleta = await fetchReceitaCompleta(receitaId);
+      if (!receitaCompleta) throw new Error('Receita não encontrada');
+
+      // 2. Gerar nome único
+      const nomeBase = `${receitaCompleta.nome} (Cópia)`;
+      const { data: existentes } = await supabase
+        .from('receitas')
+        .select('nome')
+        .eq('user_id', user.id)
+        .ilike('nome', `${receitaCompleta.nome} (Cópia%`);
+
+      let nomeUnico = nomeBase;
+      if (existentes && existentes.length > 0) {
+        const nomesExistentes = new Set(existentes.map(r => r.nome));
+        if (nomesExistentes.has(nomeBase)) {
+          let contador = 2;
+          while (nomesExistentes.has(`${receitaCompleta.nome} (Cópia ${contador})`)) {
+            contador++;
+          }
+          nomeUnico = `${receitaCompleta.nome} (Cópia ${contador})`;
+        }
+      }
+
+      // 3. Criar nova receita
+      const numeroSequencial = await gerarNumeroSequencial();
+      const { data: novaReceita, error: erroCriar } = await supabase
+        .from('receitas')
+        .insert([{
+          nome: nomeUnico,
+          tipo_produto_id: receitaCompleta.tipo_produto_id || null,
+          rendimento_valor: receitaCompleta.rendimento_valor,
+          rendimento_unidade: receitaCompleta.rendimento_unidade,
+          observacoes: receitaCompleta.observacoes,
+          status: receitaCompleta.status || 'finalizada',
+          preco_venda: receitaCompleta.preco_venda || 0,
+          tempo_preparo_total: receitaCompleta.tempo_preparo_total || 0,
+          tempo_preparo_unidade: receitaCompleta.tempo_preparo_unidade || 'minutos',
+          tempo_preparo_mao_obra: receitaCompleta.tempo_preparo_mao_obra || 0,
+          peso_unitario: receitaCompleta.peso_unitario,
+          conservacao: receitaCompleta.conservacao,
+          markup_id: receitaCompleta.markup_id,
+          user_id: user.id,
+          numero_sequencial: numeroSequencial,
+        }])
+        .select()
+        .single();
+
+      if (erroCriar || !novaReceita) throw erroCriar || new Error('Erro ao criar receita');
+
+      // 4. Copiar dados relacionados em paralelo
+      const novaReceitaId = novaReceita.id;
+      const promises: PromiseLike<any>[] = [];
+
+      if (receitaCompleta.ingredientes?.length > 0) {
+        promises.push(supabase.from('receita_ingredientes').insert(
+          receitaCompleta.ingredientes.map(i => ({
+            receita_id: novaReceitaId,
+            produto_id: i.produto_id,
+            quantidade: i.quantidade,
+          }))
+        ).select());
+      }
+
+      if (receitaCompleta.embalagens?.length > 0) {
+        promises.push(supabase.from('receita_embalagens').insert(
+          receitaCompleta.embalagens.map(e => ({
+            receita_id: novaReceitaId,
+            produto_id: e.produto_id,
+            quantidade: e.quantidade,
+          }))
+        ).select());
+      }
+
+      if (receitaCompleta.sub_receitas?.length > 0) {
+        promises.push(supabase.from('receita_sub_receitas').insert(
+          receitaCompleta.sub_receitas.map(s => ({
+            receita_id: novaReceitaId,
+            sub_receita_id: s.sub_receita_id,
+            quantidade: s.quantidade,
+          }))
+        ).select());
+      }
+
+      if (receitaCompleta.mao_obra?.length > 0) {
+        promises.push(supabase.from('receita_mao_obra').insert(
+          receitaCompleta.mao_obra.map(m => ({
+            receita_id: novaReceitaId,
+            funcionario_id: m.funcionario_id,
+            funcionario_nome: m.funcionario_nome,
+            funcionario_cargo: m.funcionario_cargo,
+            tempo: m.tempo,
+            unidade_tempo: m.unidade_tempo,
+            custo_por_hora: m.custo_por_hora,
+            valor_total: m.valor_total,
+          }))
+        ).select());
+      }
+
+      if (receitaCompleta.passos?.length > 0) {
+        promises.push(supabase.from('receita_passos_preparo').insert(
+          receitaCompleta.passos.map(p => ({
+            receita_id: novaReceitaId,
+            ordem: p.ordem,
+            descricao: p.descricao,
+          }))
+        ).select());
+      }
+
+      await Promise.all(promises);
+
+      toast.success(`Receita duplicada: "${nomeUnico}"`);
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao duplicar receita:', error);
+      toast.error('Erro ao duplicar receita');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     gerarNumeroSequencial,
@@ -490,6 +617,7 @@ export function useReceitas() {
     createReceita,
     updateReceita,
     deleteReceita,
+    duplicarReceita,
     uploadImagemReceita,
     deleteImagemReceita,
     calcularCustoTotal,
