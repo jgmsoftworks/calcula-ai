@@ -38,6 +38,7 @@ const Auth = () => {
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showLoginResend, setShowLoginResend] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
