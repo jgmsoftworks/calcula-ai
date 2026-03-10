@@ -199,6 +199,34 @@ const Auth = () => {
     }
   };
 
+  const handleLoginResend = async () => {
+    if (!loginEmail) {
+      toast({
+        title: "Email necessário",
+        description: "Preencha o campo de email para reenviar a confirmação.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await resendConfirmation(loginEmail);
+      if (error) throw error;
+      toast({
+        title: "Email de confirmação reenviado!",
+        description: "Verifique seu email, incluindo a pasta de spam.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao reenviar email",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     setLoading(true);
 
