@@ -38,6 +38,7 @@ const Auth = () => {
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showLoginResend, setShowLoginResend] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
@@ -56,7 +57,8 @@ const Auth = () => {
         if (error.message.includes("Invalid login credentials")) {
           errorMessage = "Email ou senha incorretos";
         } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Por favor, confirme seu email antes de fazer login";
+          errorMessage = "Seu email ainda não foi confirmado. Verifique sua caixa de entrada e spam.";
+          setShowLoginResend(true);
         }
         
         toast({
@@ -190,6 +192,34 @@ const Auth = () => {
       toast({
         title: "Erro ao reenviar email",
         description: error.message || "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginResend = async () => {
+    if (!loginEmail) {
+      toast({
+        title: "Email necessário",
+        description: "Preencha o campo de email para reenviar a confirmação.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await resendConfirmation(loginEmail);
+      if (error) throw error;
+      toast({
+        title: "Email de confirmação reenviado!",
+        description: "Verifique seu email, incluindo a pasta de spam.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao reenviar email",
+        description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
     } finally {
@@ -482,6 +512,28 @@ const Auth = () => {
                           Esqueceu sua senha?
                         </Button>
                       </div>
+
+                      {showLoginResend && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3 animate-fade-in">
+                          <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                            ⚠️ Email não confirmado
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            Verifique sua caixa de entrada e pasta de spam. Se não encontrar o email, clique abaixo para reenviar.
+                          </p>
+                          <Button 
+                            type="button"
+                            onClick={handleLoginResend} 
+                            disabled={loading} 
+                            variant="outline" 
+                            size="sm"
+                            className="w-full border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Reenviar email de confirmação
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </form>
                 </TabsContent>
