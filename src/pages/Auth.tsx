@@ -512,6 +512,28 @@ const Auth = () => {
                           Esqueceu sua senha?
                         </Button>
                       </div>
+
+                      {showLoginResend && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3 animate-fade-in">
+                          <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                            ⚠️ Email não confirmado
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            Verifique sua caixa de entrada e pasta de spam. Se não encontrar o email, clique abaixo para reenviar.
+                          </p>
+                          <Button 
+                            type="button"
+                            onClick={handleLoginResend} 
+                            disabled={loading} 
+                            variant="outline" 
+                            size="sm"
+                            className="w-full border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Reenviar email de confirmação
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </form>
                 </TabsContent>
