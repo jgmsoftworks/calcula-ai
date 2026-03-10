@@ -1,19 +1,17 @@
 
-# Plano: Duplicar Receita
 
-## Resumo
-Adicionar um botao de "Duplicar" ao lado dos botoes existentes no card da receita. Ao clicar, o sistema copia a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos de preparo) com o nome `"Nome Original (Cópia)"`, garantindo que nao haja nomes duplicados.
+# Plano: Resolver Problemas de Login/Cadastro de Novos Usuarios
 
----
+## Problema
 
-## Como vai funcionar
+Novos usuarios se cadastram mas nao conseguem confirmar o email ou fazer login, obrigando o admin a confirmar manualmente. Dois problemas principais:
 
-1. Usuario clica no botao de duplicar (icone de copia)
-2. O sistema busca a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos)
-3. Gera um nome unico: `"Nome (Cópia)"`, ou `"Nome (Cópia 2)"` se ja existir
-4. Cria a receita nova com numero sequencial novo
-5. Copia todos os itens relacionados (ingredientes, embalagens, sub-receitas, mao de obra, passos)
-6. Atualiza a lista automaticamente
+1. **Emails de confirmacao do Supabase nao chegam** (rate limit do Supabase: 3 emails/hora no plano gratuito de email)
+2. **Na tela de login, quando o erro e "Email nao confirmado", nao tem botao para reenviar** - o botao de reenvio so aparece na aba de cadastro
+
+## Solucao
+
+Duas frentes: melhorar a UX para lidar com emails nao confirmados + adicionar opcao de desabilitar confirmacao de email.
 
 ---
 
@@ -21,61 +19,74 @@ Adicionar um botao de "Duplicar" ao lado dos botoes existentes no card da receit
 
 | Arquivo | Acao |
 |---------|------|
-| `src/hooks/useReceitas.ts` | Adicionar funcao `duplicarReceita` |
-| `src/components/receitas/ReceitaCard.tsx` | Adicionar botao de duplicar |
-| `src/components/receitas/ListaReceitas.tsx` | Passar callback de reload |
+| `src/pages/Auth.tsx` | Adicionar botao "Reenviar confirmacao" no login quando erro de email nao confirmado |
 
 ---
 
-## Detalhes Tecnicos
+## Detalhes
 
-### 1. `src/hooks/useReceitas.ts` - Nova funcao `duplicarReceita`
+### 1. Auth.tsx - Melhorar fluxo de "Email nao confirmado"
 
-Adicionar funcao que:
-- Busca a receita completa via `fetchReceitaCompleta`
-- Verifica nomes existentes para gerar nome unico (ex: "Bolo (Cópia)", "Bolo (Cópia 2)")
-- Cria nova receita com `createReceita` (gera novo numero sequencial)
-- Copia em batch: `receita_ingredientes`, `receita_embalagens`, `receita_sub_receitas`, `receita_mao_obra`, `receita_passos_preparo`
-- NAO copia a imagem (cada receita deve ter sua propria imagem)
+**No handleLogin (linha 46-84):**
+- Quando o erro for "Email not confirmed", alem da mensagem de erro, mostrar um bloco com:
+  - Input pre-preenchido com o email usado no login
+  - Botao "Reenviar email de confirmacao"
+  - Instrucoes claras ("Verifique sua caixa de entrada e pasta de spam")
 
-Logica para nome unico:
+Adicionar estado `showLoginResend` e logica para reenviar a partir da aba de login.
+
+**No handleLogin, trecho do erro "Email not confirmed":**
+```typescript
+} else if (error.message.includes("Email not confirmed")) {
+  errorMessage = "Seu email ainda nao foi confirmado. Verifique sua caixa de entrada e spam.";
+  setShowLoginResend(true); // NOVO: mostrar botao de reenvio
+}
 ```
-1. Nome base = "Nome Original (Cópia)"
-2. Buscar receitas do usuario com nome LIKE "Nome Original (Cópia%"
-3. Se nenhuma existe -> usar "Nome Original (Cópia)"
-4. Se ja existe -> usar "Nome Original (Cópia 2)", "Nome Original (Cópia 3)", etc.
+
+**Novo bloco visual apos o botao "Esqueceu sua senha?":**
+```tsx
+{showLoginResend && (
+  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+    <p className="text-sm text-amber-800 font-medium">
+      Email nao confirmado
+    </p>
+    <p className="text-xs text-amber-700">
+      Verifique sua caixa de entrada e pasta de spam. Se nao encontrar, reenvie abaixo.
+    </p>
+    <Button onClick={handleLoginResend} disabled={loading} variant="outline" size="sm">
+      <RefreshCw className="h-4 w-4 mr-2" />
+      Reenviar email de confirmacao
+    </Button>
+  </div>
+)}
 ```
 
-### 2. `src/components/receitas/ReceitaCard.tsx`
+**Nova funcao `handleLoginResend`:**
+- Usa `resendConfirmation(loginEmail)` com o email que ja esta preenchido no campo de login
+- Mostra toast de sucesso/erro
 
-- Importar icone `Copy` do lucide-react
-- Adicionar botao entre o botao de Edit e o AlertDialog de Delete
-- Chamar `duplicarReceita` ao clicar
-- Mostrar loading durante a duplicacao
-- Chamar `onDelete` (que recarrega a lista) apos duplicar com sucesso
+### 2. Sugestao ao usuario (nao e codigo)
 
-### 3. `src/components/receitas/ListaReceitas.tsx`
-
-Nenhuma mudanca necessaria - o `onDelete` ja faz reload da lista, e o real-time subscription tambem captura o INSERT.
+Recomendar ao usuario ir nas configuracoes do Supabase Dashboard e:
+- **Opcao A**: Configurar um email customizado (SMTP) para melhor entrega
+- **Opcao B**: Desabilitar "Confirm email" em Authentication > Providers > Email se nao quiser exigir confirmacao
 
 ---
 
-## Tabelas envolvidas na copia
+## Resultado
 
-| Tabela | O que copiar |
-|--------|-------------|
-| `receitas` | Todos os campos exceto `id`, `numero_sequencial`, `imagem_url`, `created_at`, `updated_at` |
-| `receita_ingredientes` | `produto_id`, `quantidade` |
-| `receita_embalagens` | `produto_id`, `quantidade` |
-| `receita_sub_receitas` | `sub_receita_id`, `quantidade` |
-| `receita_mao_obra` | `funcionario_id`, `funcionario_nome`, `funcionario_cargo`, `tempo`, `unidade_tempo`, `custo_por_hora`, `valor_total` |
-| `receita_passos_preparo` | `ordem`, `descricao` (sem imagem) |
+```text
+ANTES (login com email nao confirmado):
+┌─────────────────────────────────┐
+│ ❌ "Email ou senha incorretos" │  ← mensagem vaga
+│ (sem opcao de reenvio)          │
+└─────────────────────────────────┘
 
----
+DEPOIS:
+┌─────────────────────────────────┐
+│ ⚠️ "Email nao confirmado"      │
+│ Verifique inbox e spam.         │
+│ [Reenviar email de confirmacao] │  ← botao funcional
+└─────────────────────────────────┘
+```
 
-## Seguranca
-
-- Nenhuma alteracao no banco de dados (schema)
-- Nenhuma alteracao em Edge Functions
-- RLS policies ja cobrem INSERT para todas as tabelas envolvidas
-- A receita duplicada pertence ao mesmo usuario
