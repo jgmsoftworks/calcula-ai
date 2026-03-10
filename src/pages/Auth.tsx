@@ -57,7 +57,8 @@ const Auth = () => {
         if (error.message.includes("Invalid login credentials")) {
           errorMessage = "Email ou senha incorretos";
         } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Por favor, confirme seu email antes de fazer login";
+          errorMessage = "Seu email ainda não foi confirmado. Verifique sua caixa de entrada e spam.";
+          setShowLoginResend(true);
         }
         
         toast({
