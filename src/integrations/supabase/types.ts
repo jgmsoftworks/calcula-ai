@@ -470,6 +470,13 @@ export type Database = {
             referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "avaliacoes_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores_marketplace"
+            referencedColumns: ["id"]
+          },
         ]
       }
       backup_history: {
@@ -1169,6 +1176,13 @@ export type Database = {
             referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orcamentos_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores_marketplace"
+            referencedColumns: ["id"]
+          },
         ]
       }
       produtos: {
@@ -1436,6 +1450,13 @@ export type Database = {
             columns: ["fornecedor_id"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promocoes_fornecedores_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores_marketplace"
             referencedColumns: ["id"]
           },
         ]
@@ -2040,7 +2061,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      fornecedores_marketplace: {
+        Row: {
+          catalogo_url: string | null
+          cidade: string | null
+          descricao: string | null
+          eh_fornecedor: boolean | null
+          entrega_disponivel: boolean | null
+          estado: string | null
+          formas_pagamento: string[] | null
+          horario_atendimento: Json | null
+          id: string | null
+          logo_url: string | null
+          nome: string | null
+          raio_entrega_km: number | null
+        }
+        Insert: {
+          catalogo_url?: string | null
+          cidade?: string | null
+          descricao?: string | null
+          eh_fornecedor?: boolean | null
+          entrega_disponivel?: boolean | null
+          estado?: string | null
+          formas_pagamento?: string[] | null
+          horario_atendimento?: Json | null
+          id?: string | null
+          logo_url?: string | null
+          nome?: string | null
+          raio_entrega_km?: number | null
+        }
+        Update: {
+          catalogo_url?: string | null
+          cidade?: string | null
+          descricao?: string | null
+          eh_fornecedor?: boolean | null
+          entrega_disponivel?: boolean | null
+          estado?: string | null
+          formas_pagamento?: string[] | null
+          horario_atendimento?: Json | null
+          id?: string | null
+          logo_url?: string | null
+          nome?: string | null
+          raio_entrega_km?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       atualizar_preco_receita: {
