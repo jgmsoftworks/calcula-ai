@@ -1,81 +1,89 @@
 
-# Plano: Duplicar Receita
 
-## Resumo
-Adicionar um botao de "Duplicar" ao lado dos botoes existentes no card da receita. Ao clicar, o sistema copia a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos de preparo) com o nome `"Nome Original (Cópia)"`, garantindo que nao haja nomes duplicados.
+# Análise de Segurança - CalculaAI
 
----
+## Resumo Geral
 
-## Como vai funcionar
-
-1. Usuario clica no botao de duplicar (icone de copia)
-2. O sistema busca a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos)
-3. Gera um nome unico: `"Nome (Cópia)"`, ou `"Nome (Cópia 2)"` se ja existir
-4. Cria a receita nova com numero sequencial novo
-5. Copia todos os itens relacionados (ingredientes, embalagens, sub-receitas, mao de obra, passos)
-6. Atualiza a lista automaticamente
+O scan de segurança encontrou **3 vulnerabilidades críticas (ERRO)** e **6 avisos (WARN)**. Vou explicar cada uma de forma clara.
 
 ---
 
-## Arquivos a Modificar
+## VULNERABILIDADES CRÍTICAS
 
-| Arquivo | Acao |
-|---------|------|
-| `src/hooks/useReceitas.ts` | Adicionar funcao `duplicarReceita` |
-| `src/components/receitas/ReceitaCard.tsx` | Adicionar botao de duplicar |
-| `src/components/receitas/ListaReceitas.tsx` | Passar callback de reload |
+### 1. ESCALAÇÃO DE PRIVILÉGIO — Qualquer usuário pode virar Admin
+**Gravidade: CRÍTICA**
 
----
+A função `user_is_admin()` verifica a coluna `is_admin` diretamente na tabela `profiles`. Como os usuários conseguem editar seu próprio perfil (via RLS policy), **qualquer usuário pode setar `is_admin = true` no seu próprio perfil** e ganhar acesso de administrador.
 
-## Detalhes Tecnicos
+Isso dá acesso a:
+- `affiliate_commissions`, `affiliates`, `affiliate_coupons`, `affiliate_links`, `affiliate_sales`, `backup_history`, `user_roles`
+- Edge functions de admin (`admin-list-all-users`, `admin-confirm-user-email`)
 
-### 1. `src/hooks/useReceitas.ts` - Nova funcao `duplicarReceita`
+**Correção**: Substituir todas as referências a `user_is_admin()` por `has_role_or_higher('admin')` que usa a tabela `user_roles` (que o usuário NÃO consegue editar). Remover a coluna `is_admin` da lógica de autorização.
 
-Adicionar funcao que:
-- Busca a receita completa via `fetchReceitaCompleta`
-- Verifica nomes existentes para gerar nome unico (ex: "Bolo (Cópia)", "Bolo (Cópia 2)")
-- Cria nova receita com `createReceita` (gera novo numero sequencial)
-- Copia em batch: `receita_ingredientes`, `receita_embalagens`, `receita_sub_receitas`, `receita_mao_obra`, `receita_passos_preparo`
-- NAO copia a imagem (cada receita deve ter sua propria imagem)
+### 2. Dados pessoais de fornecedores expostos publicamente
+**Gravidade: ALTA**
 
-Logica para nome unico:
-```
-1. Nome base = "Nome Original (Cópia)"
-2. Buscar receitas do usuario com nome LIKE "Nome Original (Cópia%"
-3. Se nenhuma existe -> usar "Nome Original (Cópia)"
-4. Se ja existe -> usar "Nome Original (Cópia 2)", "Nome Original (Cópia 3)", etc.
-```
+A tabela `fornecedores` é legível publicamente quando `eh_fornecedor = true`, expondo telefone, email, endereço, CNPJ/CPF.
 
-### 2. `src/components/receitas/ReceitaCard.tsx`
+**Correção**: Restringir RLS para expor apenas nome e dados de marketplace, não dados pessoais.
 
-- Importar icone `Copy` do lucide-react
-- Adicionar botao entre o botao de Edit e o AlertDialog de Delete
-- Chamar `duplicarReceita` ao clicar
-- Mostrar loading durante a duplicacao
-- Chamar `onDelete` (que recarrega a lista) apos duplicar com sucesso
+### 3. Dados pessoais de clientes vulneráveis
+**Gravidade: ALTA**
 
-### 3. `src/components/receitas/ListaReceitas.tsx`
-
-Nenhuma mudanca necessaria - o `onDelete` ja faz reload da lista, e o real-time subscription tambem captura o INSERT.
+A tabela `profiles` contém nomes, telefones, emails, CPF/CNPJ, endereços, WhatsApp. Se credenciais de admin forem comprometidas (fácil pelo problema #1), todos esses dados vazam.
 
 ---
 
-## Tabelas envolvidas na copia
+## AVISOS DE SEGURANÇA
 
-| Tabela | O que copiar |
-|--------|-------------|
-| `receitas` | Todos os campos exceto `id`, `numero_sequencial`, `imagem_url`, `created_at`, `updated_at` |
-| `receita_ingredientes` | `produto_id`, `quantidade` |
-| `receita_embalagens` | `produto_id`, `quantidade` |
-| `receita_sub_receitas` | `sub_receita_id`, `quantidade` |
-| `receita_mao_obra` | `funcionario_id`, `funcionario_nome`, `funcionario_cargo`, `tempo`, `unidade_tempo`, `custo_por_hora`, `valor_total` |
-| `receita_passos_preparo` | `ordem`, `descricao` (sem imagem) |
+### 4. RLS Policies com `true` (5 ocorrências)
+Existem 5 policies de INSERT/UPDATE/DELETE que usam `USING (true)` ou `WITH CHECK (true)`, significando que **qualquer usuário autenticado pode modificar dados** nessas tabelas sem restrição.
+
+### 5. Proteção contra senhas vazadas DESABILITADA
+O Supabase tem uma feature que impede usuários de usar senhas que já apareceram em vazamentos de dados. Está desligada.
+
+### 6. Edge Functions sem verificação JWT
+As seguintes funções aceitam requisições **sem autenticação**:
+- `create-backup` — alguém pode criar backups sem ser admin
+- `admin-list-all-users` — lista TODOS os usuários (tem verificação manual de admin, mas depende da função `user_is_admin()` vulnerável)
+- `admin-confirm-user-email` — confirma email de qualquer usuário
+- `process-stripe-payment`, `sync-stripe-sales` — processam pagamentos
+
+Algumas fazem verificação interna de admin, mas dependem da função `user_is_admin()` que é vulnerável.
 
 ---
 
-## Seguranca
+## O QUE NÃO É PROBLEMA
 
-- Nenhuma alteracao no banco de dados (schema)
-- Nenhuma alteracao em Edge Functions
-- RLS policies ja cobrem INSERT para todas as tabelas envolvidas
-- A receita duplicada pertence ao mesmo usuario
+- **Supabase Anon Key** no código: isso é **normal e esperado**. É uma chave pública, não é um secret. Toda a segurança é feita via RLS.
+- **Secrets** (Stripe, OpenAI, SMTP): estão nas variáveis de ambiente do Supabase, **não no código**. Correto.
+- **Service Role Key**: está apenas no servidor Supabase, **não no frontend**. Correto.
+
+---
+
+## Plano de Correção (por prioridade)
+
+### Prioridade 1 — Escalação de privilégio (URGENTE)
+- Migrar TODAS as RLS policies que usam `user_is_admin()` para usar `has_role_or_higher('admin')`
+- Bloquear escrita na coluna `is_admin` via RLS ou removê-la totalmente
+- Tabelas afetadas: `affiliate_commissions`, `affiliates`, `affiliate_coupons`, `affiliate_links`, `affiliate_sales`, `affiliate_stripe_products`, `backup_history`, `user_roles`
+
+### Prioridade 2 — RLS permissivas
+- Identificar quais 5 tabelas têm `WITH CHECK (true)` e restringir para `auth.uid() = user_id`
+
+### Prioridade 3 — Dados de fornecedores
+- Restringir campos visíveis publicamente na tabela `fornecedores`
+
+### Prioridade 4 — Proteção de senhas
+- Habilitar "Leaked Password Protection" no Supabase Dashboard
+
+### Prioridade 5 — Edge Functions
+- Adicionar verificação de auth nas edge functions que não têm (ou que dependem de `user_is_admin()`)
+
+---
+
+## Veredicto
+
+**Nível de risco atual: ALTO.** A vulnerabilidade #1 é a mais grave — qualquer usuário autenticado pode se tornar admin e acessar dados de todos os outros usuários. As APIs e secrets do Stripe/OpenAI estão seguros (não expostos no frontend), mas o controle de acesso no banco de dados tem falhas exploráveis.
+
