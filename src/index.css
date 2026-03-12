@@ -92,6 +92,7 @@ All colors MUST be HSL.
     --spacing-dashboard: 2rem;
     --card-radius-soft: 16px;
     --shadow-soft-card: 0 2px 16px -4px hsl(220 13% 91% / 0.4);
+    --gradient-glass: linear-gradient(135deg, hsl(220 14% 96% / 0.8), hsl(0 0% 100% / 0.6));
 
     --sidebar-background: 0 0% 98%;
 
