@@ -793,7 +793,6 @@ const PerfilNegocio = () => {
                       onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                       className="data-[state=checked]:bg-gradient-primary"
                     />
-                    />
                     <Moon className="h-5 w-5 text-primary transition-all duration-300" />
                   </div>
                 </div>
