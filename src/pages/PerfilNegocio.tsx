@@ -86,7 +86,8 @@ interface UserProfile {
 const PerfilNegocio = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const currentTheme = theme || resolvedTheme || 'light';
   const { saveConfiguration, loadConfiguration } = useOptimizedUserConfigurations();
   
   const [profile, setProfile] = useState<UserProfile>({
