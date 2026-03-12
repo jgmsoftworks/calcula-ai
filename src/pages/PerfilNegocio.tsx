@@ -86,7 +86,8 @@ interface UserProfile {
 const PerfilNegocio = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const currentTheme = theme || resolvedTheme || 'light';
   const { saveConfiguration, loadConfiguration } = useOptimizedUserConfigurations();
   
   const [profile, setProfile] = useState<UserProfile>({
@@ -788,7 +789,7 @@ const PerfilNegocio = () => {
                   <div className="flex items-center gap-3">
                     <Sun className="h-5 w-5 text-orange transition-all duration-300" />
                     <Switch
-                      checked={theme === 'dark'}
+                      checked={currentTheme === 'dark'}
                       onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                       className="data-[state=checked]:bg-gradient-primary"
                     />
