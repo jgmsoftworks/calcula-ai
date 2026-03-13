@@ -276,7 +276,7 @@ const Auth = () => {
                       </Button>
                       
                       <Divider />
-                      <GoogleButton label="Entrar com Google" />
+                      <GoogleButton label="Entrar com Google" onClick={handleGoogleLogin} loading={loading} />
                       
                       <div className="text-center">
                         <Button type="button" variant="link" onClick={() => setShowForgotPassword(true)} className="text-primary text-sm h-auto p-0">
