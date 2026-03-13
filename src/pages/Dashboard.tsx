@@ -189,6 +189,9 @@ const Dashboard = () => {
             </Card>
           );
         })}
+        {!isAdminView && (
+          <CmvCard cmvResult={data.cmvResult} animationDelay="200ms" />
+        )}
       </div>
 
       {/* Insights + Health Score */}
