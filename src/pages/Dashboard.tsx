@@ -164,14 +164,9 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* CMV Card dedicado (apenas para usuários normais) */}
-        {!isAdminView && (
-          <CmvCard cmvResult={data.cmvResult} animationDelay="0ms" />
-        )}
-
         {stats.map((stat, i) => {
           const Icon = stat.icon;
-          const delay = isAdminView ? i * 100 : (i + 1) * 100;
+          const delay = i * 100;
           return (
             <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${delay}ms` }}>
               {/* Top gradient accent */}
