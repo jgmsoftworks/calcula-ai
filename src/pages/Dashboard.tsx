@@ -73,7 +73,6 @@ const Dashboard = () => {
     {
       title: 'Valor em Estoque',
       value: `R$ ${data.valorEmEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      description: 'Atualizado agora',
       icon: Package,
       gradient: 'from-[#0483e4] to-[#2c4dc7]',
       iconBg: 'bg-[#0483e4]/10',
@@ -82,7 +81,6 @@ const Dashboard = () => {
     {
       title: 'Saídas (mês atual)',
       value: `R$ ${data.totalSaidasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      description: 'Fuso: Brasília',
       icon: ArrowDownRight,
       gradient: 'from-[#7328b1] to-[#af1188]',
       iconBg: 'bg-[#7328b1]/10',
@@ -166,14 +164,9 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* CMV Card dedicado (apenas para usuários normais) */}
-        {!isAdminView && (
-          <CmvCard cmvResult={data.cmvResult} animationDelay="0ms" />
-        )}
-
         {stats.map((stat, i) => {
           const Icon = stat.icon;
-          const delay = isAdminView ? i * 100 : (i + 1) * 100;
+          const delay = i * 100;
           return (
             <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${delay}ms` }}>
               {/* Top gradient accent */}
@@ -187,11 +180,6 @@ const Dashboard = () => {
                     <p className="text-2xl font-bold font-display text-foreground">
                       {stat.value}
                     </p>
-                    {'description' in stat && stat.description && (
-                      <p className="text-xs text-muted-foreground">
-                        {(stat as any).description}
-                      </p>
-                    )}
                   </div>
                   <div className={`p-2.5 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
                     <Icon className={`h-5 w-5 ${stat.iconColor}`} />
