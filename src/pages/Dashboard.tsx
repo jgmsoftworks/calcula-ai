@@ -73,7 +73,6 @@ const Dashboard = () => {
     {
       title: 'Valor em Estoque',
       value: `R$ ${data.valorEmEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      description: 'Atualizado agora',
       icon: Package,
       gradient: 'from-[#0483e4] to-[#2c4dc7]',
       iconBg: 'bg-[#0483e4]/10',
@@ -82,7 +81,6 @@ const Dashboard = () => {
     {
       title: 'Saídas (mês atual)',
       value: `R$ ${data.totalSaidasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      description: 'Fuso: Brasília',
       icon: ArrowDownRight,
       gradient: 'from-[#7328b1] to-[#af1188]',
       iconBg: 'bg-[#7328b1]/10',
