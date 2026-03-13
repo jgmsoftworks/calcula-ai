@@ -180,11 +180,6 @@ const Dashboard = () => {
                     <p className="text-2xl font-bold font-display text-foreground">
                       {stat.value}
                     </p>
-                    {'description' in stat && stat.description && (
-                      <p className="text-xs text-muted-foreground">
-                        {(stat as any).description}
-                      </p>
-                    )}
                   </div>
                   <div className={`p-2.5 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
                     <Icon className={`h-5 w-5 ${stat.iconColor}`} />
