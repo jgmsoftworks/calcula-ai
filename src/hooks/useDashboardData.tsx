@@ -53,7 +53,12 @@ interface FilterState {
 export const useDashboardData = () => {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData>({
-    cmvMesAtual: 0,
+    cmvResult: {
+      cmvDisponivel: false,
+      cmvValor: null,
+      cmvPercentual: null,
+      breakdown: { estoqueInicial: null, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
+    },
     valorEmEstoque: 0,
     totalSaidasMes: 0,
     totalRevenue: 0,

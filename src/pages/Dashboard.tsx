@@ -27,6 +27,7 @@ import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { FinancialHealthScore } from '@/components/dashboard/FinancialHealthScore';
 import { InsightsCard } from '@/components/dashboard/InsightsCard';
+import { CmvCard } from '@/components/dashboard/CmvCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatNumber } from '@/lib/formatters';
@@ -41,7 +42,7 @@ const Dashboard = () => {
   const currentData = isAdminView ? adminData : data;
   const currentRefresh = isAdminView ? refreshAdminData : refreshData;
 
-  const stats = isAdminView ? [
+  const adminStats = [
     {
       title: 'Total de Usuários',
       value: adminData.totalUsers.toString(),
@@ -66,16 +67,9 @@ const Dashboard = () => {
       iconBg: 'bg-[#dd0b52]/10',
       iconColor: 'text-[#dd0b52]',
     },
-  ] : [
-    {
-      title: 'CMV (mês atual)',
-      value: `R$ ${data.cmvMesAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      description: 'Estoque Inicial + Compras - Estoque Final',
-      icon: TrendingDown,
-      gradient: 'from-[#f96e0c] to-[#dd0b52]',
-      iconBg: 'bg-[#f96e0c]/10',
-      iconColor: 'text-[#f96e0c]',
-    },
+  ];
+
+  const userStats = [
     {
       title: 'Valor em Estoque',
       value: `R$ ${data.valorEmEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -96,6 +90,7 @@ const Dashboard = () => {
     },
   ];
 
+  const stats = isAdminView ? adminStats : userStats;
   const quickActions = isAdminView ? [
     { title: 'Gerenciar Usuários', icon: Users, href: '/admin-usuarios' },
     { title: 'Afiliados', icon: Crown, href: '/afiliados' },
