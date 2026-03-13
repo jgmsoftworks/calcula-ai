@@ -163,35 +163,31 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`grid gap-4 ${isAdminView ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           const delay = i * 100;
           return (
             <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${delay}ms` }}>
-              {/* Top gradient accent */}
               <div className={`h-1 bg-gradient-to-r ${stat.gradient}`} />
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold font-display text-foreground">
+                    <p className="text-3xl font-bold font-display text-foreground">
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`p-2.5 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
-                    <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                  <div className={`p-3 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
+                    <Icon className={`h-6 w-6 ${stat.iconColor}`} />
                   </div>
                 </div>
               </CardContent>
             </Card>
           );
         })}
-        {!isAdminView && (
-          <CmvCard cmvResult={data.cmvResult} animationDelay="200ms" />
-        )}
       </div>
 
       {/* Insights + Health Score */}
