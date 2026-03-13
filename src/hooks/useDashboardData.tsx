@@ -129,21 +129,6 @@ export const useDashboardData = () => {
     };
   }, [dateRange]);
 
-  // Calcular período do mês atual em Brasília
-  const getCurrentMonthRangeBrasilia = () => {
-    const now = new Date();
-    const nowBrasilia = toZonedTime(now, BRASILIA_TZ);
-    
-    const startOfMonth = new Date(nowBrasilia.getFullYear(), nowBrasilia.getMonth(), 1, 0, 0, 0);
-    const startBrasiliaUTC = fromZonedTime(startOfMonth, BRASILIA_TZ);
-    
-    const endBrasiliaUTC = fromZonedTime(nowBrasilia, BRASILIA_TZ);
-    
-    return {
-      start: startBrasiliaUTC.toISOString(),
-      end: endBrasiliaUTC.toISOString()
-    };
-  };
 
   const fetchDashboardData = async () => {
     if (!user?.id) return;
