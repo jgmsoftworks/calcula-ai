@@ -4,9 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { 
-  Calculator, 
   Mail, 
   Lock, 
   User, 
@@ -15,7 +13,6 @@ import {
   Shield,
   CheckCircle,
   Users,
-  Sparkles,
   KeyRound,
   RefreshCw,
   Eye,
@@ -47,39 +44,23 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { error } = await signIn(loginEmail, loginPassword);
-      
       if (error) {
         let errorMessage = "Verifique suas credenciais";
-        
         if (error.message.includes("Invalid login credentials")) {
           errorMessage = "Email ou senha incorretos";
         } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Seu email ainda não foi confirmado. Verifique sua caixa de entrada e spam.";
+          errorMessage = "Seu email ainda não foi confirmado.";
           setShowLoginResend(true);
         }
-        
-        toast({
-          title: "Erro no login",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast({ title: "Erro no login", description: errorMessage, variant: "destructive" });
         return;
       }
-      
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta ao CalculaAi",
-      });
+      toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
       navigate('/');
     } catch (error: any) {
-      toast({
-        title: "Erro inesperado",
-        description: error.message || "Tente novamente",
-        variant: "destructive",
-      });
+      toast({ title: "Erro inesperado", description: error.message || "Tente novamente", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -88,58 +69,26 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { data, error } = await signUp(email, password, fullName, businessName);
-      
       if (error) {
-        // Tratar erros específicos do Supabase
         let errorMessage = "Tente novamente";
-        
-        if (error.message.includes("Password should be at least")) {
-          errorMessage = "A senha deve ter no mínimo 6 caracteres";
-        } else if (error.message.includes("Unable to validate email")) {
-          errorMessage = "Email inválido. Verifique o formato do email.";
-        } else if (error.message.includes("Signup requires a valid password")) {
-          errorMessage = "Digite uma senha válida";
-        } else if (error.message.includes("User already registered")) {
-          errorMessage = "Este email já possui uma conta. Tente fazer login.";
-        } else {
-          errorMessage = error.message;
-        }
-        
-        toast({
-          title: "Erro ao criar conta",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        if (error.message.includes("Password should be at least")) errorMessage = "A senha deve ter no mínimo 6 caracteres";
+        else if (error.message.includes("Unable to validate email")) errorMessage = "Email inválido.";
+        else if (error.message.includes("Signup requires a valid password")) errorMessage = "Digite uma senha válida";
+        else if (error.message.includes("User already registered")) errorMessage = "Este email já possui uma conta.";
+        else errorMessage = error.message;
+        toast({ title: "Erro ao criar conta", description: errorMessage, variant: "destructive" });
         return;
       }
-
-      // IMPORTANTE: Verificar se identities está vazio = email já cadastrado
       if (data?.user?.identities?.length === 0) {
-        toast({
-          title: "Email já cadastrado",
-          description: "Este email já possui uma conta. Tente fazer login ou recuperar sua senha.",
-          variant: "destructive",
-        });
+        toast({ title: "Email já cadastrado", description: "Tente fazer login ou recuperar sua senha.", variant: "destructive" });
         return;
       }
-      
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Verifique seu email para confirmar a conta. Não esqueça de verificar a pasta de spam.",
-      });
-      
-      // Mostrar opção de reenviar confirmação
+      toast({ title: "Conta criada!", description: "Verifique seu email para confirmar." });
       setShowResendConfirmation(true);
-      
     } catch (error: any) {
-      toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um problema ao criar sua conta. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro inesperado", description: "Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -148,27 +97,14 @@ const Auth = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { error } = await resetPassword(resetEmail);
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Email enviado!",
-        description: "Verifique seu email para instruções de redefinição de senha.",
-      });
-      
+      if (error) throw error;
+      toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada." });
       setShowForgotPassword(false);
       setResetEmail('');
     } catch (error: any) {
-      toast({
-        title: "Erro ao enviar email",
-        description: error.message || "Tente novamente",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao enviar", description: error.message || "Tente novamente", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -176,24 +112,12 @@ const Auth = () => {
 
   const handleResendConfirmation = async () => {
     setLoading(true);
-
     try {
       const { error } = await resendConfirmation(email);
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Email de confirmação reenviado!",
-        description: "Verifique seu email, incluindo a pasta de spam.",
-      });
+      if (error) throw error;
+      toast({ title: "Email reenviado!", description: "Verifique sua caixa." });
     } catch (error: any) {
-      toast({
-        title: "Erro ao reenviar email",
-        description: error.message || "Tente novamente",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: error.message || "Tente novamente", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -201,27 +125,16 @@ const Auth = () => {
 
   const handleLoginResend = async () => {
     if (!loginEmail) {
-      toast({
-        title: "Email necessário",
-        description: "Preencha o campo de email para reenviar a confirmação.",
-        variant: "destructive",
-      });
+      toast({ title: "Email necessário", description: "Preencha o campo de email.", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const { error } = await resendConfirmation(loginEmail);
       if (error) throw error;
-      toast({
-        title: "Email de confirmação reenviado!",
-        description: "Verifique seu email, incluindo a pasta de spam.",
-      });
+      toast({ title: "Email reenviado!", description: "Verifique sua caixa." });
     } catch (error: any) {
-      toast({
-        title: "Erro ao reenviar email",
-        description: error.message || "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: error.message || "Tente novamente", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -229,491 +142,205 @@ const Auth = () => {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-
     try {
       const { error } = await signInWithGoogle();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // O redirecionamento será automático após o sucesso do OAuth
+      if (error) throw error;
     } catch (error: any) {
-      toast({
-        title: "Erro no login com Google",
-        description: error.message || "Tente novamente",
-        variant: "destructive",
-      });
+      toast({ title: "Erro no login com Google", description: error.message || "Tente novamente", variant: "destructive" });
       setLoading(false);
     }
   };
 
+  const InputField = ({ id, label, icon: Icon, type = "text", placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
+    <div className="space-y-1.5 group">
+      <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <Icon className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+        </div>
+        <Input
+          id={id}
+          type={showPassword !== undefined ? (showPassword ? "text" : "password") : type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          className="pl-10 h-11 rounded-xl bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-background transition-all text-sm"
+          required={required}
+        />
+        {onTogglePassword && (
+          <button type="button" onClick={onTogglePassword} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors">
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const GoogleButton = ({ label }: { label: string }) => (
+    <Button type="button" onClick={handleGoogleLogin} disabled={loading} variant="outline" className="w-full h-11 rounded-xl border-border/40 hover:bg-muted/50 transition-all text-sm">
+      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      {label}
+    </Button>
+  );
+
+  const Divider = () => (
+    <div className="relative my-4">
+      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
+      <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">ou</span></div>
+    </div>
+  );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-muted/20 to-card">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        {/* Gradient Orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse opacity-60"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-accent/20 to-primary/20 rounded-full blur-3xl animate-pulse opacity-40" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-secondary/15 to-accent/15 rounded-full blur-2xl animate-pulse opacity-50" style={{ animationDelay: '2s' }}></div>
-        
-        {/* Floating Particles */}
-        <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-primary/30 rounded-full animate-bounce opacity-20"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${3 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      {/* Background gradient orbs */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
+        <div className="absolute -bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
+        <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-[#dd0b52]/5 blur-[100px]" />
       </div>
 
-      {/* Glass Morphism Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background/60 via-background/40 to-background/80 backdrop-blur-sm"></div>
-
-      {/* Content */}
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-md space-y-8 animate-fade-in">
+        <div className="w-full max-w-[420px] space-y-6 animate-fade-in">
           
-          {/* Logo Section with Enhanced Animation */}
-          <div className="text-center space-y-4 animate-scale-in" style={{ animationDelay: '0.2s' }}>
-            <div className="relative inline-block group">
-              <img 
-                src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png" 
-                alt="CalculaAi Logo" 
-                className="h-20 w-auto mx-auto transform group-hover:scale-110 transition-all duration-500 drop-shadow-2xl"
-                style={{
-                  filter: "drop-shadow(0 0 20px rgba(168, 85, 247, 0.4)) drop-shadow(0 0 40px rgba(168, 85, 247, 0.2))"
-                }}
-              />
-            </div>
-            
-            <div className="space-y-3">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          {/* Logo */}
+          <div className="text-center space-y-3">
+            <img 
+              src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png" 
+              alt="CalculaAi Logo" 
+              className="h-16 w-auto mx-auto"
+            />
+            <div>
+              <h1 className="text-3xl font-bold font-display text-gradient-brand">
                 CalculaAi
               </h1>
-              <p className="text-lg text-muted-foreground animate-fade-in" style={{ animationDelay: '0.6s' }}>
+              <p className="text-sm text-muted-foreground mt-1">
                 Precificação inteligente para seu negócio
               </p>
-              
-              {/* Premium Badge */}
-              <div className="flex justify-center animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                <Badge className="bg-gradient-primary text-white border-0 shadow-brand px-4 py-1 text-sm font-medium">
-                  <Sparkles className="h-4 w-4 mr-1" />
-                  Versão Premium
-                </Badge>
-              </div>
             </div>
           </div>
 
-          {/* Enhanced Auth Card */}
-          <Card className="card-premium shadow-2xl border-0 backdrop-blur-2xl bg-card/80 animate-scale-in overflow-hidden" style={{ animationDelay: '1s' }}>
-            {/* Card Header with Gradient */}
-            <CardHeader className="relative pb-8 pt-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5"></div>
-              <div className="relative space-y-2">
-                <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                  Acesse sua conta
-                </CardTitle>
-                <CardDescription className="text-center text-muted-foreground text-lg">
-                  Entre ou crie sua conta para começar
-                </CardDescription>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-8 pt-0">
+          {/* Auth Card */}
+          <Card className="glass-card shadow-elevated border-0 overflow-hidden">
+            {/* Brand gradient line */}
+            <div className="brand-line" />
+            
+            <CardContent className="p-6">
               {showForgotPassword ? (
-                <div className="space-y-6 animate-fade-in">
+                <div className="space-y-5 animate-fade-in">
                   <div className="text-center space-y-2">
-                    <KeyRound className="h-12 w-12 mx-auto text-primary" />
-                    <h3 className="text-xl font-semibold">Recuperar Senha</h3>
-                    <p className="text-muted-foreground">Digite seu email para receber instruções</p>
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                      <KeyRound className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold font-display">Recuperar Senha</h3>
+                    <p className="text-sm text-muted-foreground">Digite seu email para receber instruções</p>
                   </div>
                   
                   <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <div className="space-y-2 group">
-                      <Label htmlFor="resetEmail" className="text-base font-medium">Email</Label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                          <Mail className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        </div>
-                        <Input
-                          id="resetEmail"
-                          type="email"
-                          placeholder="seu@email.com"
-                          value={resetEmail}
-                          onChange={(e) => setResetEmail(e.target.value)}
-                          className="pl-12 h-12 input-premium"
-                          required
-                        />
-                      </div>
-                    </div>
+                    <InputField id="resetEmail" label="Email" icon={Mail} type="email" placeholder="seu@email.com" value={resetEmail} onChange={(e: any) => setResetEmail(e.target.value)} />
                     
-                    <div className="space-y-3">
-                      <Button 
-                        type="submit" 
-                        disabled={loading}
-                        className="w-full h-12 button-premium"
-                        variant="gradient"
-                      >
-                        {loading ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            <span>Enviando...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Mail className="h-4 w-4" />
-                            <span>Enviar instruções</span>
-                          </div>
-                        )}
-                      </Button>
-                      
-                      <Button 
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setShowForgotPassword(false)}
-                        className="w-full"
-                      >
-                        Voltar ao login
-                      </Button>
-                    </div>
+                    <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
+                      {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Mail className="h-4 w-4 mr-2" />Enviar instruções</>}
+                    </Button>
+                    
+                    <Button type="button" variant="ghost" onClick={() => setShowForgotPassword(false)} className="w-full text-sm">
+                      Voltar ao login
+                    </Button>
                   </form>
                 </div>
               ) : (
-                <Tabs defaultValue="login" className="space-y-8" data-tabs-container>
-                  {/* Enhanced Tab List */}
-                  <TabsList className="grid w-full grid-cols-2 bg-gradient-glass border border-border/50 p-1.5 rounded-2xl h-14">
-                    <TabsTrigger 
-                      value="login" 
-                      className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
-                    >
+                <Tabs defaultValue="login" className="space-y-5">
+                  <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl h-11">
+                    <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft rounded-lg text-sm font-medium transition-all">
                       Entrar
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="signup" 
-                      data-value="signup"
-                      className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white data-[state=active]:shadow-glow rounded-xl transition-all duration-500 text-base font-medium data-[state=active]:scale-105"
-                    >
+                    <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-soft rounded-lg text-sm font-medium transition-all">
                       Criar conta
                     </TabsTrigger>
                   </TabsList>
 
-                <TabsContent value="login" className="animate-fade-in">
-                  <form onSubmit={handleLogin} className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2 group">
-                        <Label htmlFor="email" className="text-base font-medium text-foreground">Email</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <Mail className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
-                          </div>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="seu@email.com"
-                            value={loginEmail}
-                            onChange={(e) => setLoginEmail(e.target.value)}
-                            className="pl-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
-                            required
-                          />
-                        </div>
-                      </div>
+                  <TabsContent value="login" className="animate-fade-in space-y-4 mt-0">
+                    <form onSubmit={handleLogin} className="space-y-4">
+                      <InputField id="email" label="Email" icon={Mail} type="email" placeholder="seu@email.com" value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
+                      <InputField id="password" label="Senha" icon={Lock} placeholder="••••••••" value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
                       
-                      <div className="space-y-2 group">
-                        <Label htmlFor="password" className="text-base font-medium text-foreground">Senha</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <Lock className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
-                          </div>
-                          <Input
-                            id="password"
-                            type={showLoginPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            value={loginPassword}
-                            onChange={(e) => setLoginPassword(e.target.value)}
-                            className="pl-12 pr-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowLoginPassword(!showLoginPassword)}
-                            className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Button 
-                        type="submit" 
-                        disabled={loading}
-                        className="w-full h-12 button-premium shadow-glow text-base font-semibold hover:scale-105 transition-all duration-300" 
-                        variant="gradient"
-                      >
-                        {loading ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            <span>Entrando...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span>Entrar</span>
-                            <ArrowRight className="h-4 w-4" />
-                          </div>
-                        )}
-                       </Button>
-                       
-                       {/* Divider */}
-                       <div className="relative">
-                         <div className="absolute inset-0 flex items-center">
-                           <span className="w-full border-t border-border/50" />
-                         </div>
-                         <div className="relative flex justify-center text-xs uppercase">
-                           <span className="bg-card px-2 text-muted-foreground">ou</span>
-                         </div>
-                       </div>
-
-                       {/* Google Login Button */}
-                       <Button 
-                         type="button"
-                         onClick={handleGoogleLogin}
-                         disabled={loading}
-                         variant="outline"
-                         className="w-full h-12 border-border/50 hover:bg-accent/50 transition-all duration-300"
-                       >
-                         <div className="flex items-center space-x-2">
-                           <svg className="h-5 w-5" viewBox="0 0 24 24">
-                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                           </svg>
-                           <span>Entrar com Google</span>
-                         </div>
-                       </Button>
-                       
-                       <div className="text-center">
-                        <Button 
-                          type="button"
-                          variant="link"
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-primary hover:text-primary-glow transition-colors text-sm"
-                        >
+                      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
+                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Entrar</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                      </Button>
+                      
+                      <Divider />
+                      <GoogleButton label="Entrar com Google" />
+                      
+                      <div className="text-center">
+                        <Button type="button" variant="link" onClick={() => setShowForgotPassword(true)} className="text-primary text-sm h-auto p-0">
                           Esqueceu sua senha?
                         </Button>
                       </div>
 
                       {showLoginResend && (
-                        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3 animate-fade-in">
-                          <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
-                            ⚠️ Email não confirmado
-                          </p>
-                          <p className="text-xs text-amber-700 dark:text-amber-300">
-                            Verifique sua caixa de entrada e pasta de spam. Se não encontrar o email, clique abaixo para reenviar.
-                          </p>
-                          <Button 
-                            type="button"
-                            onClick={handleLoginResend} 
-                            disabled={loading} 
-                            variant="outline" 
-                            size="sm"
-                            className="w-full border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Reenviar email de confirmação
+                        <div className="p-3 bg-orange/5 border border-orange/20 rounded-xl space-y-2 animate-fade-in">
+                          <p className="text-sm font-medium">⚠️ Email não confirmado</p>
+                          <p className="text-xs text-muted-foreground">Verifique sua caixa de entrada e spam.</p>
+                          <Button type="button" onClick={handleLoginResend} disabled={loading} variant="outline" size="sm" className="w-full rounded-lg border-orange/30 text-sm">
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Reenviar confirmação
                           </Button>
                         </div>
                       )}
-                    </div>
-                  </form>
-                </TabsContent>
+                    </form>
+                  </TabsContent>
 
-                <TabsContent value="signup" className="animate-fade-in">
-                  <form onSubmit={handleSignup} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-2 group">
-                        <Label htmlFor="fullName" className="text-base font-medium text-foreground">Nome Completo</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <User className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
-                          </div>
-                          <Input
-                            id="fullName"
-                            type="text"
-                            placeholder="Digite seu nome completo"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="pl-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
-                            required
-                          />
-                        </div>
-                      </div>
+                  <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
+                    <form onSubmit={handleSignup} className="space-y-3">
+                      <InputField id="fullName" label="Nome Completo" icon={User} placeholder="Seu nome" value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
+                      <InputField id="businessName" label="Nome do Negócio" icon={Building2} placeholder="Sua empresa" value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
+                      <InputField id="signupEmail" label="Email" icon={Mail} type="email" placeholder="seu@email.com" value={email} onChange={(e: any) => setEmail(e.target.value)} />
+                      <InputField id="signupPassword" label="Senha" icon={Lock} placeholder="Mínimo 6 caracteres" value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
                       
-                      <div className="space-y-2 group">
-                        <Label htmlFor="businessName" className="text-base font-medium text-foreground">Nome do Negócio</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <Building2 className="h-5 w-5 text-muted-foreground group-focus-within:text-secondary transition-colors duration-300" />
-                          </div>
-                          <Input
-                            id="businessName"
-                            type="text"
-                            placeholder="Nome da sua empresa"
-                            value={businessName}
-                            onChange={(e) => setBusinessName(e.target.value)}
-                            className="pl-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-secondary/50 focus:bg-background transition-all duration-300"
-                            required
-                          />
-                        </div>
-                      </div>
+                      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
+                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Criar conta</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                      </Button>
                       
-                      <div className="space-y-2 group">
-                        <Label htmlFor="signupEmail" className="text-base font-medium text-foreground">Email</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <Mail className="h-5 w-5 text-muted-foreground group-focus-within:text-accent transition-colors duration-300" />
-                          </div>
-                          <Input
-                            id="signupEmail"
-                            type="email"
-                            placeholder="seuemail@empresa.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="pl-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-accent/50 focus:bg-background transition-all duration-300"
-                            required
-                          />
-                        </div>
-                      </div>
+                      <Divider />
+                      <GoogleButton label="Cadastrar com Google" />
                       
-                      <div className="space-y-2 group">
-                        <Label htmlFor="signupPassword" className="text-base font-medium text-foreground">Senha</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                            <Lock className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
-                          </div>
-                          <Input
-                            id="signupPassword"
-                            type={showSignupPassword ? "text" : "password"}
-                            placeholder="Mínimo 6 caracteres"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="pl-12 pr-12 h-12 input-premium text-base bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowSignupPassword(!showSignupPassword)}
-                            className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showSignupPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Button 
-                        type="submit" 
-                        disabled={loading}
-                        className="w-full h-12 button-premium shadow-glow text-base font-semibold hover:scale-105 transition-all duration-300" 
-                        variant="gradient"
-                      >
-                        {loading ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            <span>Criando conta...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span>Criar conta</span>
-                            <ArrowRight className="h-4 w-4" />
-                          </div>
-                        )}
-                       </Button>
-                       
-                       {/* Divider */}
-                       <div className="relative">
-                         <div className="absolute inset-0 flex items-center">
-                           <span className="w-full border-t border-border/50" />
-                         </div>
-                         <div className="relative flex justify-center text-xs uppercase">
-                           <span className="bg-card px-2 text-muted-foreground">ou</span>
-                         </div>
-                       </div>
-
-                       {/* Google Login Button */}
-                       <Button 
-                         type="button"
-                         onClick={handleGoogleLogin}
-                         disabled={loading}
-                         variant="outline"
-                         className="w-full h-12 border-border/50 hover:bg-accent/50 transition-all duration-300"
-                       >
-                         <div className="flex items-center space-x-2">
-                           <svg className="h-5 w-5" viewBox="0 0 24 24">
-                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                           </svg>
-                           <span>Cadastrar com Google</span>
-                         </div>
-                       </Button>
-                       
-                       {showResendConfirmation && (
-                        <div className="text-center space-y-2 p-4 bg-primary/10 rounded-lg">
-                          <p className="text-sm text-muted-foreground">Não recebeu o email de confirmação?</p>
-                          <Button 
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleResendConfirmation}
-                            disabled={loading}
-                            className="text-primary hover:text-primary-glow"
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Reenviar email
+                      {showResendConfirmation && (
+                        <div className="text-center space-y-2 p-3 bg-primary/5 rounded-xl">
+                          <p className="text-xs text-muted-foreground">Não recebeu o email?</p>
+                          <Button type="button" variant="ghost" size="sm" onClick={handleResendConfirmation} disabled={loading} className="text-primary text-xs">
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Reenviar email
                           </Button>
                         </div>
                       )}
-                    </div>
-              </form>
-            </TabsContent>
-          </Tabs>
+                    </form>
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>
 
-          {/* Footer with Trust Indicators */}
-          <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '1.4s' }}>
-            <div className="flex justify-center space-x-6 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-1 group cursor-pointer">
-                <Shield className="h-4 w-4 text-primary group-hover:text-primary-glow transition-colors" />
-                <span className="group-hover:text-primary transition-colors">Dados seguros</span>
-              </div>
-              <div className="flex items-center space-x-1 group cursor-pointer">
-                <CheckCircle className="h-4 w-4 text-green-500 group-hover:text-green-400 transition-colors" />
-                <span className="group-hover:text-green-400 transition-colors">SSL certificado</span>
-              </div>
-              <div className="flex items-center space-x-1 group cursor-pointer">
-                <Users className="h-4 w-4 text-secondary group-hover:text-secondary/80 transition-colors" />
-                <span className="group-hover:text-secondary transition-colors">+1000 empresas</span>
-              </div>
+          {/* Trust indicators */}
+          <div className="flex justify-center gap-6 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Shield className="h-3.5 w-3.5 text-primary" />
+              <span>Dados seguros</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              © 2024 CalculaAi. Todos os direitos reservados.
-            </p>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+              <span>SSL certificado</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5 text-secondary" />
+              <span>+1000 empresas</span>
+            </div>
           </div>
+          
+          <p className="text-center text-[11px] text-muted-foreground/60">
+            © 2024 CalculaAi. Todos os direitos reservados.
+          </p>
         </div>
       </div>
     </div>

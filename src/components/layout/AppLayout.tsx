@@ -7,7 +7,7 @@ import { useMarkupInitializer } from '@/hooks/useMarkupInitializer';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Mail, RefreshCw } from 'lucide-react';
+import { Mail, RefreshCw, Menu } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -18,15 +18,17 @@ interface AppLayoutProps {
 
 const getPageInfo = (pathname: string): { title: string; description: string; } => {
   const pageMap: Record<string, { title: string; description: string; }> = {
-    '/': { title: 'Dashboard Executivo', description: 'Indicadores estratégicos e performance do seu negócio' },
-    '/estoque': { title: 'Gestão de Estoque', description: 'Controle produtos, fornecedores e movimentações' },
-    '/movimentacao': { title: 'Movimentações', description: 'Gestão rápida de entradas e saídas' },
-    '/custos': { title: 'Centro de Custos', description: 'Controle financeiro completo: despesas, folha e encargos operacionais' },
-    '/precificacao': { title: 'Estratégia de Preços', description: 'Defina preços competitivos com margem de lucro otimizada' },
-    '/perfil': { title: 'Perfil do Negócio', description: 'Informações e configurações da empresa' }
+    '/': { title: 'Dashboard', description: 'Visão geral do seu negócio' },
+    '/estoque': { title: 'Estoque', description: 'Gerencie seus produtos' },
+    '/movimentacao': { title: 'Movimentações', description: 'Entradas e saídas' },
+    '/custos': { title: 'Custos', description: 'Despesas, folha e encargos' },
+    '/precificacao': { title: 'Precificação', description: 'Defina seus preços' },
+    '/perfil': { title: 'Perfil', description: 'Configurações da empresa' },
+    '/receitas': { title: 'Receitas', description: 'Monte e precifique receitas' },
+    '/planos': { title: 'Planos', description: 'Gerencie sua assinatura' },
   };
   
-  return pageMap[pathname] || { title: 'CalculaAi Dashboard', description: '' };
+  return pageMap[pathname] || { title: 'CalculaAi', description: '' };
 };
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
@@ -37,18 +39,15 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
   const { toast } = useToast();
   
-  // Check if URL contains OAuth fragments
   useEffect(() => {
     const fragment = window.location.hash;
     if (fragment.includes('access_token') || fragment.includes('error')) {
       setHasAuthFragment(true);
-      // Give extra time for Supabase to process OAuth tokens
       const timer = setTimeout(() => setHasAuthFragment(false), 3000);
       return () => clearTimeout(timer);
     }
   }, []);
   
-  // Inicializar markups automaticamente quando o usuário estiver logado
   useMarkupInitializer();
 
   const handleResendConfirmation = async () => {
@@ -57,11 +56,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     setIsResending(true);
     try {
       const { error } = await resendConfirmation(user.email);
-      
-      if (error) {
-        throw error;
-      }
-      
+      if (error) throw error;
       toast({
         title: "Email reenviado!",
         description: "Verifique sua caixa de entrada e pasta de spam.",
@@ -87,10 +82,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   if (loading || !isReady || hasAuthFragment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-4 animate-fade-in">
           <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground">
-            {hasAuthFragment ? "Processando autenticação..." : "Carregando aplicação..."}
+          <p className="text-muted-foreground text-sm">
+            {hasAuthFragment ? "Processando autenticação..." : "Carregando..."}
           </p>
         </div>
       </div>
@@ -109,56 +104,45 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col min-h-screen">
-          {/* Header */}
-          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-            <div className="h-16 flex items-center px-4 lg:px-6">
-              <SidebarTrigger className="lg:hidden" />
+          {/* Header — glass morphism */}
+          <header className="glass-strong sticky top-0 z-30 border-b border-border/30">
+            <div className="h-14 flex items-center px-4 lg:px-6 gap-3">
+              <SidebarTrigger className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
               
-              {/* Header content can be customized per page */}
-              <div className="flex-1 ml-4 lg:ml-0">
-                <h2 className="text-lg font-semibold text-foreground">
+              <div className="flex-1">
+                <h2 className="text-base font-semibold font-display text-foreground leading-tight">
                   {pageInfo.title}
                 </h2>
-                {pageInfo.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {pageInfo.description}
-                  </p>
-                )}
               </div>
               
-              {/* Notification Center */}
-              <div className="flex items-center">
-                <NotificationCenter />
-              </div>
+              <NotificationCenter />
             </div>
             
             {/* Email Verification Alert */}
             {user && !emailVerified && (
-              <Alert className="mx-4 mb-4 border-amber-200 bg-amber-50 text-amber-800">
-                <Mail className="h-4 w-4" />
-                <AlertDescription className="flex items-center justify-between">
-                  <span>Confirme seu email para ter acesso completo às funcionalidades.</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResendConfirmation}
-                    disabled={isResending}
-                    className="ml-2 border-amber-300 text-amber-700 hover:bg-amber-100"
-                  >
-                    {isResending ? (
-                      <div className="flex items-center space-x-1">
+              <div className="px-4 pb-3">
+                <Alert className="border-orange/30 bg-orange/5 text-foreground">
+                  <Mail className="h-4 w-4 text-orange" />
+                  <AlertDescription className="flex items-center justify-between text-sm">
+                    <span>Confirme seu email para acesso completo.</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResendConfirmation}
+                      disabled={isResending}
+                      className="ml-2 h-7 text-xs border-orange/30 hover:bg-orange/10"
+                    >
+                      {isResending ? (
                         <RefreshCw className="h-3 w-3 animate-spin" />
-                        <span>Enviando...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-1">
-                        <Mail className="h-3 w-3" />
-                        <span>Reenviar</span>
-                      </div>
-                    )}
-                  </Button>
-                </AlertDescription>
-              </Alert>
+                      ) : (
+                        "Reenviar"
+                      )}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              </div>
             )}
           </header>
 
@@ -170,7 +154,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </main>
         </div>
 
-        {/* Botão de Suporte WhatsApp - aparece em todas as telas */}
         <WhatsAppSupportButton />
       </div>
     </SidebarProvider>
