@@ -308,7 +308,7 @@ const Auth = () => {
                       </Button>
                       
                       <Divider />
-                      <GoogleButton label="Cadastrar com Google" />
+                      <GoogleButton label="Cadastrar com Google" onClick={handleGoogleLogin} loading={loading} />
                       
                       {showResendConfirmation && (
                         <div className="text-center space-y-2 p-3 bg-primary/5 rounded-xl">
