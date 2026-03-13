@@ -174,7 +174,7 @@ export const useDashboardData = () => {
           .eq('tipo', 'entrada')
           .gte('data_hora', monthStart)
           .lte('data_hora', monthEnd),
-        // Saídas do mês para CMV e Total de Saídas
+        // Saídas do mês para Total de Saídas
         supabase
           .from('movimentacoes')
           .select('quantidade, custo_aplicado, subtotal')
@@ -245,50 +245,18 @@ export const useDashboardData = () => {
           .single()
       ]);
 
-      // Calcular Estoque Final (EF) - valor atual do estoque
-      const estoqueAtual = produtosEstoque.data?.reduce((sum, prod) => {
-        return sum + ((prod.estoque_atual || 0) * (prod.custo_unitario || 0));
-      }, 0) || 0;
+      // ===== CMV REAL =====
+      // Usar funções centralizadas de cmvCalculations.ts
+      const cmvResult = await calcularCmvCompleto(
+        user.id,
+        produtosEstoque.data || [],
+        entradasMes.data || []
+      );
 
-      // Calcular Compras do mês (líquidas)
-      // Incluir: compras normais, custos acessórios
-      // Excluir: ajustes, transferências, bonificações sem custo
-      const comprasMes = entradasMes.data?.reduce((sum, mov) => {
-        const motivo = (mov.motivo || '').toLowerCase();
-        
-        // Excluir ajustes de inventário e transferências internas
-        if (motivo.includes('ajuste') || 
-            motivo.includes('inventário') || 
-            motivo.includes('transferência') ||
-            motivo.includes('bonificação') ||
-            motivo.includes('cancelamento')) {
-          return sum;
-        }
-        
-        // Devolução ao fornecedor: SUBTRAIR das compras
-        if (motivo.includes('devolução') && motivo.includes('fornecedor')) {
-          return sum - ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
-        }
-        
-        // Compras normais: SOMAR
-        return sum + ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
-      }, 0) || 0;
+      // Valor em estoque (EF)
+      const valorEmEstoque = calculateEstoqueFinal(produtosEstoque.data || []);
 
-      // Calcular Estoque Inicial (EI)
-      // EI = EF + Saídas - Entradas (reconstituindo o saldo do início do mês)
-      const totalSaidasCusto = saidasMes.data?.reduce((sum, mov) => {
-        return sum + ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
-      }, 0) || 0;
-      
-      const estoqueInicial = estoqueAtual + totalSaidasCusto - comprasMes;
-
-      // CMV Periódico = EI + Compras - EF
-      const cmvMesAtual = estoqueInicial + comprasMes - estoqueAtual;
-
-      // Calcular valor total em estoque (mesmo que EF)
-      const valorEmEstoque = estoqueAtual;
-
-      // Calcular total de saídas do mês (valor de venda/saída)
+      // Total de saídas do mês (valor de venda/saída)
       const totalSaidasMes = saidasMes.data?.reduce((sum, mov) => {
         return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
       }, 0) || 0;
@@ -330,15 +298,15 @@ export const useDashboardData = () => {
           value: totalCategoryCount > 0 ? Math.round((count / totalCategoryCount) * 100) : 0,
           color: `hsl(${(index * 60) % 360}, 70%, 50%)`
         }))
-        .slice(0, 5); // Top 5 categorias
+        .slice(0, 5);
 
       // Processar dados históricos
       const historicalFaturamento = historicalData.data?.configuration || [];
       const monthlyData = Array.isArray(historicalFaturamento) 
         ? historicalFaturamento.slice(-6).map((item: any) => ({
             month: format(new Date(item.mes), 'MMM'),
-            revenue: item.valor / 100, // Convertendo centavos para reais
-            cost: item.valor * 0.6 / 100, // Estimando 60% como custo
+            revenue: item.valor / 100,
+            cost: item.valor * 0.6 / 100,
             date: item.mes
           }))
         : [];
@@ -354,7 +322,7 @@ export const useDashboardData = () => {
       });
 
       setData({
-        cmvMesAtual,
+        cmvResult,
         valorEmEstoque,
         totalSaidasMes,
         totalRevenue: currentRevenueValue,
@@ -362,9 +330,9 @@ export const useDashboardData = () => {
         activeProducts: currentProducts,
         activeProductsChange: productsInPeriod,
         averageMargin: avgMargin,
-        averageMarginChange: 2.1, // Placeholder
+        averageMarginChange: 2.1,
         operationalCosts: totalCosts,
-        operationalCostsChange: -5.2, // Placeholder
+        operationalCostsChange: -5.2,
         revenueData: monthlyData,
         categoryData: processedCategories,
         dailyActivity: dailyActivityData,
