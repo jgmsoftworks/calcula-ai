@@ -4,14 +4,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import {
+  getCurrentMonthRangeBrasilia,
+  calculateEstoqueFinal,
+  calculateComprasLiquidas,
+  calcularCmvCompleto,
+  type CmvResult,
+} from '@/lib/cmvCalculations';
 
 const BRASILIA_TZ = 'America/Sao_Paulo';
 
 export type PeriodFilter = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
 interface DashboardData {
-  // Novos indicadores de estoque
-  cmvMesAtual: number;
+  // CMV real
+  cmvResult: CmvResult;
+
+  // Cards de estoque
   valorEmEstoque: number;
   totalSaidasMes: number;
   
