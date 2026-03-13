@@ -741,6 +741,36 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_fechamentos_mensais: {
+        Row: {
+          competencia: string
+          created_at: string
+          id: string
+          qtd_produtos_ativos: number | null
+          updated_at: string
+          user_id: string
+          valor_estoque_fechamento: number
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          id?: string
+          qtd_produtos_ativos?: number | null
+          updated_at?: string
+          user_id: string
+          valor_estoque_fechamento?: number
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          id?: string
+          qtd_produtos_ativos?: number | null
+          updated_at?: string
+          user_id?: string
+          valor_estoque_fechamento?: number
+        }
+        Relationships: []
+      }
       folha_pagamento: {
         Row: {
           adicional: number | null
