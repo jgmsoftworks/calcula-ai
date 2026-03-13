@@ -9,6 +9,7 @@ import {
   ChefHat,
   Crown,
   Users,
+  ArrowRightFromLine,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -27,7 +28,6 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-// Items for regular business users
 const businessNavigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
   { title: 'Estoque', url: '/estoque', icon: Package },
@@ -42,7 +42,6 @@ const businessItems = [
   { title: 'Planos', url: '/planos', icon: Crown },
 ];
 
-// Items for admin users
 const adminNavigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
   { title: 'Usuários', url: '/admin-usuarios', icon: Users },
@@ -62,19 +61,12 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
 
-  // Select navigation items based on role
   const navigationItems = isAdmin ? adminNavigationItems : businessNavigationItems;
   const toolsItems = isAdmin ? adminItems : businessItems;
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
     return currentPath.startsWith(path);
-  };
-
-  const getNavClassName = (path: string) => {
-    return isActive(path)
-      ? 'bg-gradient-primary text-white shadow-soft font-medium'
-      : 'hover:bg-muted/50 transition-smooth text-foreground';
   };
 
   const handleSignOut = async () => {
@@ -95,29 +87,32 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? 'w-14' : 'w-64'} sidebar-premium transition-smooth`}
+      className={`${isCollapsed ? 'w-14' : 'w-64'} transition-smooth border-r-0`}
       collapsible="icon"
     >
+      {/* Brand line at top */}
+      <div className="brand-line w-full" />
+
       {/* Header */}
-      <SidebarHeader className="p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-background to-sidebar-background/80">
+      <SidebarHeader className={`p-4 ${isCollapsed ? 'px-2' : 'px-5'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full'}`}>
           {isCollapsed ? (
             <img 
               src="/lovable-uploads/51eac01a-23f2-4ae9-b4d9-3185f48d4798.png" 
               alt="CalculaAi" 
-              className="h-10 w-10 object-contain"
+              className="h-9 w-9 object-contain"
             />
           ) : (
-            <div className="w-full">
+            <div className="w-full space-y-2">
               <img 
                 src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
                 alt="CalculaAi - Precificação Inteligente" 
-                className="h-10 w-full object-contain object-left"
+                className="h-9 w-full object-contain object-left"
               />
               {isAdmin && (
-                <div className="mt-2 flex items-center justify-center">
-                  <span className="px-2 py-1 text-xs font-bold bg-gradient-primary text-white rounded-full shadow-glow">
-                    ADMIN MASTER
+                <div className="flex items-center">
+                  <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gradient-brand text-white rounded-full">
+                    Admin
                   </span>
                 </div>
               )}
@@ -126,74 +121,100 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-3">
         {/* Main Navigation */}
-        <SidebarGroup className="py-4">
-          <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
-            {isAdmin ? 'Administração' : 'Navegação Principal'}
-          </SidebarGroupLabel>
+        <SidebarGroup className="py-2">
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1 px-3">
+              {isAdmin ? 'Administração' : 'Menu'}
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      end={item.url === '/'}
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                      {!isCollapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="space-y-0.5">
+              {navigationItems.map((item) => {
+                const active = isActive(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        end={item.url === '/'}
+                        className={`
+                          relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                          transition-all duration-200 group
+                          ${active 
+                            ? 'bg-primary text-primary-foreground shadow-brand' 
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          }
+                          ${isCollapsed ? 'justify-center px-2' : ''}
+                        `}
+                      >
+                        <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${active ? '' : 'group-hover:text-primary'} transition-colors`} />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Tools Section */}
-        <SidebarGroup className="py-4">
-          <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
-            {isAdmin ? 'Sistema' : 'Ferramentas de Negócio'}
-          </SidebarGroupLabel>
+        <SidebarGroup className="py-2">
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1 px-3">
+              {isAdmin ? 'Sistema' : 'Configurações'}
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {toolsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url}
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                      {!isCollapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="space-y-0.5">
+              {toolsItems.map((item) => {
+                const active = isActive(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url}
+                        className={`
+                          relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                          transition-all duration-200 group
+                          ${active 
+                            ? 'bg-primary text-primary-foreground shadow-brand' 
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          }
+                          ${isCollapsed ? 'justify-center px-2' : ''}
+                        `}
+                      >
+                        <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${active ? '' : 'group-hover:text-primary'} transition-colors`} />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="p-4 border-t border-sidebar-border bg-gradient-to-t from-sidebar-background to-sidebar-background/80">
+      <SidebarFooter className={`p-4 border-t border-border/30 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {!isCollapsed && (
-          <div className="space-y-2 mb-3">
-            <p className="text-sm font-medium text-foreground">
-              {user?.user_metadata?.full_name || user?.email}
+          <div className="mb-3 px-1">
+            <p className="text-sm font-medium text-foreground truncate">
+              {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {user?.user_metadata?.business_name || 'Negócio'}
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.email}
             </p>
           </div>
         )}
         <Button
           onClick={handleSignOut}
-          variant={isCollapsed ? "ghost" : "outline"}
-          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'}`}
+          variant="ghost"
+          size="sm"
+          className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${isCollapsed ? 'px-2' : 'justify-start'}`}
         >
           <LogOut className={`h-4 w-4 ${isCollapsed ? '' : 'mr-2'}`} />
           {!isCollapsed && "Sair"}
