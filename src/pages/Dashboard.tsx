@@ -1,42 +1,31 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Link } from 'react-router-dom';
 import { 
-  TrendingUp, 
   Package, 
   BarChart3,
   DollarSign,
-  Plus,
-  Building2,
   Users,
   Crown,
   Filter,
-  TrendingDown,
   ArrowDownRight,
+  ArrowUpRight,
   RefreshCcw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useAdminData } from '@/hooks/useAdminData';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
-import { usePlanLimits } from '@/hooks/usePlanLimits';
-import { FinancialHealthScore } from '@/components/dashboard/FinancialHealthScore';
-import { InsightsCard } from '@/components/dashboard/InsightsCard';
 import { CmvCard } from '@/components/dashboard/CmvCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatNumber } from '@/lib/formatters';
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
   const { data: adminData, refreshData: refreshAdminData } = useAdminData();
-  const { hasAccess } = usePlanLimits();
 
   const isAdminView = isAdmin;
   const currentData = isAdminView ? adminData : data;
@@ -79,6 +68,14 @@ const Dashboard = () => {
       iconColor: 'text-[#0483e4]',
     },
     {
+      title: 'Entradas (mês atual)',
+      value: `R$ ${data.totalEntradasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: ArrowUpRight,
+      gradient: 'from-[#16a34a] to-[#15803d]',
+      iconBg: 'bg-[#16a34a]/10',
+      iconColor: 'text-[#16a34a]',
+    },
+    {
       title: 'Saídas (mês atual)',
       value: `R$ ${data.totalSaidasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: ArrowDownRight,
@@ -89,15 +86,6 @@ const Dashboard = () => {
   ];
 
   const stats = isAdminView ? adminStats : userStats;
-  const quickActions = isAdminView ? [
-    { title: 'Gerenciar Usuários', icon: Users, href: '/admin-usuarios' },
-    { title: 'Afiliados', icon: Crown, href: '/afiliados' },
-    { title: 'Configurações', icon: Building2, href: '/admin-configuracoes' },
-  ] : [
-    { title: 'Novo Produto', icon: Plus, href: '/estoque' },
-    { title: 'Análise Avançada', icon: BarChart3, href: '/custos', requiresPlan: 'professional' as const },
-    { title: 'Configurações', icon: Building2, href: '/perfil' },
-  ];
 
   if (currentData.loading) {
     return (
@@ -163,7 +151,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className={`grid gap-4 ${isAdminView ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           const delay = i * 100;
@@ -190,127 +178,72 @@ const Dashboard = () => {
         })}
       </div>
 
-      {/* Insights + Health Score */}
+      {/* Daily Movements Chart */}
       {!isAdminView && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <InsightsCard />
-          <FinancialHealthScore />
-        </div>
-      )}
-
-      {/* Chart */}
-      <Card className="glass-card overflow-hidden">
-        <div className="h-1 bg-gradient-brand-horizontal" />
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-display">Performance Financeira</CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                {isAdminView ? 'Crescimento de usuários' : 'Receita ao longo do tempo'}
-              </CardDescription>
-            </div>
-            {!isAdminView && (
-              <Badge variant="outline" className="text-xs font-medium rounded-lg">
-                {data.totalRevenueChange >= 0 ? '+' : ''}{formatNumber(data.totalRevenueChange, 1)}%
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="h-56">
-            {(isAdminView ? adminData.userGrowth.length > 0 : data.revenueData.length > 0) ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart 
-                  data={isAdminView ? adminData.userGrowth : data.revenueData} 
-                  margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-                  <XAxis 
-                    dataKey="month" 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => isAdminView ? value.toString() : `R$${formatNumber(value/1000, 0)}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '12px',
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                    }}
-                    formatter={(value, name) => {
-                      if (isAdminView) return [value.toString(), 'Usuários'];
-                      return [`R$ ${Number(value).toLocaleString('pt-BR')}`, 'Receita'];
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey={isAdminView ? "users" : "revenue"} 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2.5}
-                    dot={{ fill: 'hsl(var(--primary))', r: 3, strokeWidth: 0 }}
-                    activeDot={{ r: 5, strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center space-y-2">
-                  <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
-                  <p className="text-xs">Sem dados disponíveis</p>
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-brand-horizontal" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display">Movimentações Diárias</CardTitle>
+            <CardDescription className="text-xs mt-0.5">
+              Entradas e saídas por dia no mês atual
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="h-64">
+              {data.dailyMovements.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={data.dailyMovements} 
+                    margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                    <XAxis 
+                      dataKey="day" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `R$${(value / 1).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '12px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                      }}
+                      formatter={(value: number, name: string) => [
+                        `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                        name === 'entradas' ? 'Entradas' : 'Saídas'
+                      ]}
+                      labelFormatter={(label) => `Dia ${label}`}
+                    />
+                    <Legend 
+                      formatter={(value) => value === 'entradas' ? 'Entradas' : 'Saídas'}
+                    />
+                    <Bar dataKey="entradas" fill="#16a34a" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="saidas" fill="#7328b1" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <div className="text-center space-y-2">
+                    <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
+                    <p className="text-xs">Sem dados disponíveis</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold font-display text-muted-foreground uppercase tracking-wide">Ações Rápidas</h2>
-        <div className="flex flex-wrap gap-2">
-          {quickActions.map((action) => {
-            if ('requiresPlan' in action && action.requiresPlan && !hasAccess(action.requiresPlan)) {
-              return (
-                <PlanRestrictedArea 
-                  key={action.title}
-                  requiredPlan={action.requiresPlan}
-                  feature={action.title}
-                  variant="overlay"
-                >
-                  <Button variant="outline" className="gap-2 rounded-xl h-9 text-sm border-border/50" disabled>
-                    <action.icon className="h-3.5 w-3.5" />
-                    {action.title}
-                  </Button>
-                </PlanRestrictedArea>
-              );
-            }
-            
-            return (
-              <Button
-                key={action.title}
-                variant="outline"
-                className="gap-2 rounded-xl h-9 text-sm border-border/50 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
-                asChild
-              >
-                <Link to={action.href}>
-                  <action.icon className="h-3.5 w-3.5" />
-                  {action.title}
-                </Link>
-              </Button>
-            );
-          })}
-        </div>
-      </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
