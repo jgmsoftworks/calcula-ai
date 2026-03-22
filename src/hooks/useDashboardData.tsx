@@ -56,7 +56,7 @@ export const useDashboardData = () => {
       cmvDisponivel: false,
       cmvValor: null,
       cmvPercentual: null,
-      breakdown: { estoqueInicial: null, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
+      breakdown: { estoqueInicial: null, estoqueInicialEstimado: false, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
     },
     valorEmEstoque: 0,
     totalEntradasMes: 0,
@@ -180,7 +180,8 @@ export const useDashboardData = () => {
       const cmvResult = await calcularCmvCompleto(
         user.id,
         produtosEstoque.data || [],
-        entradasMes.data || []
+        entradasMes.data || [],
+        allMovimentacoesMes.data || []
       );
 
       // Valor em estoque (EF)

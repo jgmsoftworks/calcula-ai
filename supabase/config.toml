@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.admin-confirm-user-email]
 verify_jwt = false
+
+[functions.auto-fechamento-mensal]
+verify_jwt = false
