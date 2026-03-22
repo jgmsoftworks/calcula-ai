@@ -26,6 +26,7 @@ import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
 import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
+import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
