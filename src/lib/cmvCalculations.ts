@@ -181,10 +181,10 @@ export async function getFaturamentoLiquidoMes(
   start: string,
   end: string
 ): Promise<number | null> {
-  // Buscar saídas com motivo que indica venda
+  // Buscar TODAS as saídas do mês (todas as saídas são consideradas como faturamento)
   const { data, error } = await supabase
     .from('movimentacoes')
-    .select('subtotal, custo_aplicado, quantidade, motivo')
+    .select('subtotal, custo_aplicado, quantidade')
     .eq('user_id', userId)
     .eq('tipo', 'saida')
     .gte('data_hora', start)
@@ -197,15 +197,7 @@ export async function getFaturamentoLiquidoMes(
 
   if (!data || data.length === 0) return null;
 
-  // Filtrar apenas saídas com motivo de venda
-  const vendas = data.filter((mov) => {
-    const motivo = (mov.motivo || '').toLowerCase();
-    return motivo.includes('venda');
-  });
-
-  if (vendas.length === 0) return null;
-
-  const total = vendas.reduce((sum, mov) => {
+  const total = data.reduce((sum, mov) => {
     return sum + (mov.subtotal || (mov.custo_aplicado || 0) * (mov.quantidade || 0));
   }, 0);
 
