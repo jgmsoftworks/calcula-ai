@@ -1,45 +1,37 @@
 
 
-## Plano: Fechamento mensal automático do estoque
+## Plano: Screenshots reais do CalculaAi para o Tutorial
 
-### Problema atual
-O card "Saldo Inicial do Estoque" mostra "Indisponível" porque depende de um registro manual na tabela `estoque_fechamentos_mensais`. O usuário quer que o sistema faça isso automaticamente: no dia 1 de cada mes, capturar o valor do estoque naquele momento (meia-noite de Brasilia) e gravar como fechamento.
+### Problema
+As imagens do tutorial sao genericas/inventadas. O usuario quer prints reais das telas do CalculaAi.
 
 ### Solucao
 
-Duas frentes: (1) uma Edge Function agendada (cron) que roda todo dia 1 a meia-noite de Brasilia e grava o fechamento, e (2) um fallback no frontend para quando o cron ainda nao rodou ou o usuario acabou de comecar a usar o sistema.
+Usar as ferramentas de browser para navegar em cada tela do sistema, tirar screenshots reais, e salvar como assets do tutorial. Depois atualizar o Tutorial.tsx para usar essas imagens.
 
-### Alteracoes tecnicas
+### Passo a passo
 
-**1. Edge Function `auto-fechamento-mensal` (nova)**
-- Cron: todo dia 1 as 03:00 UTC (meia-noite de Brasilia)
-- Para cada usuario que tem produtos ativos, calcula `SUM(estoque_atual * custo_unitario)` e grava/atualiza na tabela `estoque_fechamentos_mensais` com a competencia do mes anterior (ex: roda dia 1 de abril, grava competencia "2026-03")
-- Usa `service_role` para acessar todos os usuarios
+**1. Capturar screenshots reais de cada tela**
+Navegar pelo app publicado e tirar screenshot de:
+- `/` (Dashboard)
+- `/estoque` (Estoque)
+- `/movimentacao` (Movimentacao)
+- `/receitas` (Receitas)
+- `/custos` (Custos)
+- `/precificacao` (Precificacao)
+- `/perfil` (Perfil do Negocio)
+- `/planos` (Planos)
+- `/notificacoes` (Notificacoes)
 
-**2. Fallback no frontend — `getEstoqueInicialReal` (alteracao em `cmvCalculations.ts`)**
-- Se nao encontrar fechamento do mes anterior na tabela, calcular o valor "retroativo": pegar o estoque atual e reverter as movimentacoes do mes corrente (somar saidas, subtrair entradas) para estimar o que era no inicio do mes
-- Formula: `EI estimado = EF atual - entradas_mes + saidas_mes` (em termos de valor a custo)
-- Isso garante que o card nunca fique "Indisponivel" — mostra o valor calculado com uma indicacao de que e estimado
+Usar o product-shot generator para dar acabamento visual (moldura macOS + gradiente de fundo combinando com a cor da secao).
 
-**3. Dashboard (`Dashboard.tsx`)**
-- Remover a mensagem "Indisponivel — sem fechamento anterior"
-- Mostrar o valor sempre, com um badge "(estimado)" quando vier do fallback em vez do fechamento real
+**2. Substituir os assets em `src/assets/tutorial/`**
+Trocar os 6 JPGs existentes pelos screenshots reais e adicionar novos para Perfil, Planos e Notificacoes.
 
-### Fluxo
-
-```text
-Dia 1 do mes (03:00 UTC / 00:00 BRT):
-  Edge Function roda → grava fechamento do mes que acabou
-
-Dashboard carrega:
-  1. Busca fechamento do mes anterior na tabela
-  2. Se encontrou → usa valor real
-  3. Se nao encontrou → calcula EI estimado via formula reversa
-```
+**3. Adicionar secoes que faltam no Tutorial.tsx**
+Incluir secoes para Perfil do Negocio, Planos e Notificacoes com textos explicativos e os prints reais.
 
 ### Arquivos envolvidos
-- `supabase/functions/auto-fechamento-mensal/index.ts` — nova edge function
-- `src/lib/cmvCalculations.ts` — adicionar fallback de estimativa no `getEstoqueInicialReal` (ou funcao auxiliar)
-- `src/hooks/useDashboardData.tsx` — passar movimentacoes do mes para a funcao de calculo
-- `src/pages/Dashboard.tsx` — remover "Indisponivel", mostrar badge "(estimado)" quando aplicavel
+- `src/assets/tutorial/*.jpg` — substituir por screenshots reais
+- `src/pages/Tutorial.tsx` — adicionar secoes faltantes (Perfil, Planos, Notificacoes)
 
