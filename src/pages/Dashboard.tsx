@@ -260,13 +260,18 @@ const Dashboard = () => {
                     Saldo Inicial do Estoque (mês)
                   </p>
                   {data.cmvResult.breakdown.estoqueInicial !== null ? (
-                    <p className="text-3xl font-bold font-display text-foreground">
-                      R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
+                    <div>
+                      <p className="text-3xl font-bold font-display text-foreground">
+                        R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      {data.cmvResult.breakdown.estoqueInicialEstimado && (
+                        <span className="text-xs text-muted-foreground mt-1 inline-block">(estimado)</span>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">Indisponível — sem fechamento anterior</span>
+                      <span className="text-sm">Sem dados para estimar</span>
                     </div>
                   )}
                 </div>
