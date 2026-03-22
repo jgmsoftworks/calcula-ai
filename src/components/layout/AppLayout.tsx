@@ -126,7 +126,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 rounded-full"
-                    onClick={() => window.location.href = '/tutorial'}
+                    onClick={() => navigate('/tutorial')}
                   >
                     <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
                   </Button>
