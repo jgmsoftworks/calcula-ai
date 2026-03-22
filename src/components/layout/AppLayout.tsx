@@ -36,6 +36,7 @@ const getPageInfo = (pathname: string): { title: string; description: string; } 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, loading, emailVerified, resendConfirmation } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isReady, setIsReady] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
