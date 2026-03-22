@@ -17,6 +17,7 @@ const MOTIVOS_EXCLUIDOS = ['ajuste', 'inventário', 'transferência', 'bonifica�
 
 export interface CmvBreakdown {
   estoqueInicial: number | null;
+  estoqueInicialEstimado: boolean;
   comprasLiquidas: number;
   estoqueFinal: number;
   faturamentoLiquido: number | null;
