@@ -27,6 +27,7 @@ const getPageInfo = (pathname: string): { title: string; description: string; } 
     '/perfil': { title: 'Perfil', description: 'Configurações da empresa' },
     '/receitas': { title: 'Receitas', description: 'Monte e precifique receitas' },
     '/planos': { title: 'Planos', description: 'Gerencie sua assinatura' },
+    '/tutorial': { title: 'Tutorial', description: 'Aprenda a usar o sistema' },
   };
   
   return pageMap[pathname] || { title: 'CalculaAi', description: '' };
