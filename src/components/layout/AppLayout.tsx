@@ -118,6 +118,19 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </h2>
               </div>
               
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full"
+                    onClick={() => window.location.href = '/tutorial'}
+                  >
+                    <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Tutorial</TooltipContent>
+              </Tooltip>
               <NotificationCenter />
             </div>
             
