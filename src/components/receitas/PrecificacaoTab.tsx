@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkupCard } from './MarkupCard';
 import { formatBRL } from '@/lib/formatters';
 import { toast } from 'sonner';
-import { Info } from 'lucide-react';
+import { Info, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface PrecificacaoTabProps {
@@ -67,7 +67,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   const loadMarkups = useCallback(async () => {
     if (!user) return;
-
     try {
       const { data, error } = await supabase
         .from('markups')
@@ -75,7 +74,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         .eq('user_id', user.id)
         .eq('tipo', 'normal')
         .eq('ativo', true);
-
       if (error) throw error;
       setMarkups(data || []);
     } catch (error: any) {
@@ -86,18 +84,15 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   const loadMarkupSubReceita = useCallback(async () => {
     if (!user) return;
-
     try {
-    const { data, error } = await supabase
-      .from('markups')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('tipo', 'sub_receita')
-      .eq('ativo', true)
-      .maybeSingle();
-
+      const { data, error } = await supabase
+        .from('markups')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('tipo', 'sub_receita')
+        .eq('ativo', true)
+        .maybeSingle();
       if (error && error.code !== 'PGRST116') throw error;
-      
       setMarkupSubReceita(data);
     } catch (error: any) {
       console.error('Erro ao carregar markup de sub-receitas:', error);
@@ -112,9 +107,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   // Real-time updates para markups
   useEffect(() => {
     if (!user) return;
-
-    console.log('🔄 Configurando real-time updates para markups');
-    
     const channel = supabase
       .channel('receita-markups-updates')
       .on(
@@ -125,8 +117,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           table: 'markups',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
-          console.log('🔔 Markup atualizado em tempo real:', payload);
+        () => {
           loadMarkups();
           loadMarkupSubReceita();
         }
@@ -134,7 +125,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       .subscribe();
 
     return () => {
-      console.log('🔌 Desconectando real-time updates de markups');
       supabase.removeChannel(channel);
     };
   }, [user, loadMarkups, loadMarkupSubReceita]);
@@ -142,39 +132,22 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   // Recálculo automático APENAS para sub-receitas quando custos mudam
   useEffect(() => {
     if (!formData.markup_id || !user || !markupSubReceita) return;
-
-    // Verificar diretamente se o markup selecionado é de sub-receita
     const isSubReceitaMarkup = formData.markup_id === markupSubReceita.id;
     if (!isSubReceitaMarkup) return;
     
-    const recalcularPreco = () => {
-      // Sub-receitas: preço = custo (sem markup adicional)
-      const precoVenda = custoTotal;
-      
-      // ✅ Atualizar preço local (UI atualiza instantaneamente)
-      onFormChange('preco_venda', precoVenda);
-      
-      // ❌ Update no banco removido - será feito no handleSave quando usuário clicar "Atualizar Receita"
-    };
-    
-    recalcularPreco();
+    const precoVenda = custoTotal;
+    onFormChange('preco_venda', precoVenda);
   }, [custoTotal, formData.markup_id, markupSubReceita, user, mode, receita?.id, onFormChange]);
 
   // Verificação de consistência ao abrir receita
   useEffect(() => {
     if (!markupSubReceita || !formData.markup_id || !user) return;
-    
     const isSubReceita = formData.markup_id === markupSubReceita.id;
     if (!isSubReceita) return;
     
-    // Se preço é diferente do custo, recalcular
     const diferencaSignificativa = Math.abs(formData.preco_venda - custoTotal) > 0.001;
     if (diferencaSignificativa && custoTotal > 0) {
-      console.log('🔄 Detectada inconsistência, recalculando preço...');
-      // ✅ Atualizar preço local (UI atualiza instantaneamente)
       onFormChange('preco_venda', custoTotal);
-      
-      // ❌ Update no banco removido - será feito no handleSave quando usuário clicar "Atualizar Receita"
     }
   }, [markupSubReceita, formData.markup_id, formData.preco_venda, custoTotal, user, onFormChange]);
 
@@ -190,10 +163,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     setIsApplying(true);
 
     try {
-      // ✅ ATUALIZAR UI IMEDIATAMENTE PRIMEIRO (feedback instantâneo)
       onFormChange('markup_id', markupId);
       onFormChange('markup_tipo', markup.tipo);
-      // Buscar detalhes do markup de user_configurations
+      
       const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
       
       const { data } = await supabase
@@ -206,21 +178,16 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       const detalhes = data?.configuration as any;
       const valorEmReal = detalhes?.valorEmReal ?? 0;
 
-      // Determinar o custo base (unitário ou total)
       let custoBase: number;
-      
-      // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
       if (markup.tipo !== 'sub_receita' && receita.rendimento_valor && receita.rendimento_valor > 0) {
         custoBase = custoTotal / receita.rendimento_valor;
       } else {
-        // Markup de sub-receita OU sem rendimento = usar custo total
         custoBase = custoTotal;
       }
 
       let precoVenda: number;
 
       if (valorEmReal > 0) {
-        // CASO 1: COM "Valor em Real" - usar fórmula que garante % exato
         const totalPercentuais = 
           (detalhes?.gastoSobreFaturamento ?? 0) + 
           (detalhes?.impostos ?? 0) + 
@@ -233,26 +200,18 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         const divisor = 1 - (totalPercentuais / 100);
         precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
       } else {
-        // CASO 2: SEM "Valor em Real" - usar fórmula tradicional
         precoVenda = custoBase * markup.markup_ideal;
       }
 
-      // Atualizar preço APENAS se for markup de sub-receita
-      // Para markups normais, o preço sugerido é apenas referência visual no MarkupCard
       if (markup.tipo === 'sub_receita') {
         onFormChange('preco_venda', precoVenda);
       }
 
-      // Mostrar toast de sucesso IMEDIATAMENTE
       if (markup.tipo === 'sub_receita') {
-        toast.success('✅ Markup de sub-receitas selecionado!', {
-          duration: 3000,
-        });
+        toast.success('✅ Markup de sub-receitas selecionado!', { duration: 3000 });
       } else {
         toast.success('✅ Markup selecionado!');
       }
-
-      // Salvamento será feito quando clicar em "Atualizar Receita"
     } catch (error: any) {
       console.error('Erro ao salvar markup:', error);
       toast.error('Erro ao salvar o markup: ' + error.message);
@@ -261,13 +220,13 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     }
   };
 
-  // Verificar dinamicamente se o markup atual é de sub-receita usando ID direto
   const isMarkupSubReceitaAtual = formData.markup_id && markupSubReceita && formData.markup_id === markupSubReceita.id;
 
   const precoKg = formData.peso_unitario > 0
     ? (formData.preco_venda / formData.peso_unitario) * 1000 
     : 0;
 
+  // Resumo de custos
   const ingredientesResumo = receita?.ingredientes ?? [];
   const embalagensResumo = receita?.embalagens ?? [];
   const maoObraResumo = receita?.mao_obra ?? [];
@@ -275,33 +234,38 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
   const custoIngredientes = ingredientesResumo.reduce((sum, i) => {
     if (!i.produto) return sum;
-    const custoUnitario = i.produto.unidade_uso 
+    const cu = i.produto.unidade_uso 
       ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
       : i.produto.custo_unitario;
-    return sum + (custoUnitario * i.quantidade);
+    return sum + (cu * i.quantidade);
   }, 0);
   
   const custoEmbalagens = embalagensResumo.reduce((sum, e) => {
     if (!e.produto) return sum;
-    const custoUnitario = e.produto.unidade_uso 
+    const cu = e.produto.unidade_uso 
       ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
       : e.produto.custo_unitario;
-    return sum + (custoUnitario * e.quantidade);
+    return sum + (cu * e.quantidade);
   }, 0);
   
   const custoMaoObra = maoObraResumo.reduce((sum, m) => sum + m.valor_total, 0);
   
   const custoSubReceitas = subReceitasResumo.reduce((sum, s) => {
     if (!s.sub_receita) return sum;
-    const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
+    const cu = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
       ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
       : s.sub_receita.preco_venda;
-    return sum + (custoUnitario * s.quantidade);
+    return sum + (cu * s.quantidade);
   }, 0);
+
+  // All markups combined for the select
+  const allMarkups = markupSubReceita ? [markupSubReceita, ...markups] : markups;
+  const selectedMarkup = allMarkups.find(m => m.id === formData.markup_id);
+  const hasNoMarkups = allMarkups.length === 0;
 
   return (
     <div className="space-y-6">
-      {/* Resumo de Custos no topo */}
+      {/* Resumo de Custos */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Resumo de Custos</CardTitle>
@@ -330,7 +294,74 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         </CardContent>
       </Card>
 
-      {/* Cards no meio */}
+      {/* Seleção de Markup */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Markup da Receita</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Selecione o markup que será usado para calcular o preço de venda desta receita.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {hasNoMarkups ? (
+            <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+              <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+              <p className="font-medium">Nenhum markup configurado</p>
+              <p className="text-sm mt-1">Vá para a aba Precificação para criar seus markups.</p>
+            </div>
+          ) : (
+            <>
+              <Select
+                value={formData.markup_id || ''}
+                onValueChange={(value) => handleSelectMarkup(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um markup..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {markupSubReceita && (
+                    <SelectItem value={markupSubReceita.id}>
+                      🔗 {markupSubReceita.nome} (Sub-receita)
+                    </SelectItem>
+                  )}
+                  {markups.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      📊 {m.nome} — Markup {m.markup_ideal.toFixed(4)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {!formData.markup_id && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Selecione um markup para que os cálculos de precificação sejam aplicados à receita.
+                  </p>
+                </div>
+              )}
+
+              {/* Info box para sub-receita */}
+              {isMarkupSubReceitaAtual && (
+                <div className="flex items-start gap-3 p-4 border-2 border-green-500 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <Info className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                      Markup de Sub-receitas
+                    </h4>
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      Esta receita está marcada como <strong>sub-receita</strong>. O preço de venda é igual ao custo total 
+                      e ela ficará disponível para ser usada dentro de outras receitas na aba "Sub-receitas".
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Cards de preço/peso */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-blue-50 dark:bg-blue-950">
           <CardHeader className="pb-3">
@@ -390,65 +421,23 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         </Card>
       </div>
 
-      {/* Markups Configurados */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Markups Configurados</h3>
-        
-        {markups.length === 0 && !markupSubReceita ? (
-          <div className="text-center py-8 text-muted-foreground border rounded-lg">
-            Nenhum markup configurado. Vá para a aba Precificação para criar markups.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {/* Markup de Sub-receitas primeiro */}
-            {markupSubReceita && (
-              <>
-                <div className="p-4 border-2 border-green-500 bg-green-50 dark:bg-green-950 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                        Markup de Sub-receitas
-                      </h4>
-                      <p className="text-sm text-green-800 dark:text-green-200">
-                        Ao selecionar este markup, esta receita ficará <strong>disponível para ser 
-                        usada como sub-receita</strong> em outras receitas. Ela aparecerá na aba 
-                        "Sub-receitas" quando você estiver criando ou editando outras receitas.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              <MarkupCard
-                key="sub-receitas"
-                markup={markupSubReceita}
-                custoTotal={custoTotal}
-                precoVenda={formData.preco_venda || 0}
-                isSelected={formData.markup_id === markupSubReceita.id}
-                onSelect={() => handleSelectMarkup(markupSubReceita.id)}
-                alwaysExpanded={true}
-                isApplying={isApplying}
-                rendimentoValor={formData.rendimento_valor}
-              />
-              </>
-            )}
-            
-            {/* Markups do usuário */}
-            {markups.map((markup) => (
-              <MarkupCard
-                key={markup.id}
-                markup={markup}
-                custoTotal={custoTotal}
-                precoVenda={formData.preco_venda || 0}
-                isSelected={formData.markup_id === markup.id}
-                onSelect={() => handleSelectMarkup(markup.id)}
-                alwaysExpanded={true}
-                isApplying={isApplying}
-                rendimentoValor={formData.rendimento_valor}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Detalhes do markup selecionado */}
+      {selectedMarkup && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Detalhes do Markup Selecionado</h3>
+          <MarkupCard
+            key={selectedMarkup.id}
+            markup={selectedMarkup}
+            custoTotal={custoTotal}
+            precoVenda={formData.preco_venda || 0}
+            isSelected={true}
+            onSelect={() => {}}
+            alwaysExpanded={true}
+            isApplying={isApplying}
+            rendimentoValor={formData.rendimento_valor}
+          />
+        </div>
+      )}
     </div>
   );
 }
