@@ -1,39 +1,45 @@
 
 
-## Plano: Adicionar cards de "Saldo Inicial do Estoque" e "CMV %" abaixo do gráfico
+## Plano: Fechamento mensal automático do estoque
 
-### O que muda
+### Problema atual
+O card "Saldo Inicial do Estoque" mostra "Indisponível" porque depende de um registro manual na tabela `estoque_fechamentos_mensais`. O usuário quer que o sistema faça isso automaticamente: no dia 1 de cada mes, capturar o valor do estoque naquele momento (meia-noite de Brasilia) e gravar como fechamento.
 
-Dois novos cards em grid de 2 colunas, posicionados logo abaixo do gráfico de Movimentações Diárias:
+### Solucao
 
-1. **Saldo Inicial do Estoque (mês)** -- valor em R$ do fechamento do mês anterior
-2. **CMV %** -- percentual do Custo de Mercadoria Vendida
+Duas frentes: (1) uma Edge Function agendada (cron) que roda todo dia 1 a meia-noite de Brasilia e grava o fechamento, e (2) um fallback no frontend para quando o cron ainda nao rodou ou o usuario acabou de comecar a usar o sistema.
 
-### Lógica do CMV que será utilizada
+### Alteracoes tecnicas
+
+**1. Edge Function `auto-fechamento-mensal` (nova)**
+- Cron: todo dia 1 as 03:00 UTC (meia-noite de Brasilia)
+- Para cada usuario que tem produtos ativos, calcula `SUM(estoque_atual * custo_unitario)` e grava/atualiza na tabela `estoque_fechamentos_mensais` com a competencia do mes anterior (ex: roda dia 1 de abril, grava competencia "2026-03")
+- Usa `service_role` para acessar todos os usuarios
+
+**2. Fallback no frontend — `getEstoqueInicialReal` (alteracao em `cmvCalculations.ts`)**
+- Se nao encontrar fechamento do mes anterior na tabela, calcular o valor "retroativo": pegar o estoque atual e reverter as movimentacoes do mes corrente (somar saidas, subtrair entradas) para estimar o que era no inicio do mes
+- Formula: `EI estimado = EF atual - entradas_mes + saidas_mes` (em termos de valor a custo)
+- Isso garante que o card nunca fique "Indisponivel" — mostra o valor calculado com uma indicacao de que e estimado
+
+**3. Dashboard (`Dashboard.tsx`)**
+- Remover a mensagem "Indisponivel — sem fechamento anterior"
+- Mostrar o valor sempre, com um badge "(estimado)" quando vier do fallback em vez do fechamento real
+
+### Fluxo
 
 ```text
-CMV = Estoque Inicial + Compras Líquidas − Estoque Final
-CMV% = (CMV / Faturamento Líquido) × 100
+Dia 1 do mes (03:00 UTC / 00:00 BRT):
+  Edge Function roda → grava fechamento do mes que acabou
+
+Dashboard carrega:
+  1. Busca fechamento do mes anterior na tabela
+  2. Se encontrou → usa valor real
+  3. Se nao encontrou → calcula EI estimado via formula reversa
 ```
 
-Detalhes de cada componente:
-
-- **Estoque Inicial (EI)**: valor gravado na tabela `estoque_fechamentos_mensais` para a competência do mês anterior (ex: se estamos em março, busca o fechamento de fevereiro). Se não houver fechamento registrado, o card mostra "Indisponível".
-
-- **Compras Líquidas**: soma de todas as entradas do mês atual a custo (`custo_aplicado × quantidade`), excluindo motivos como ajuste, inventário, transferência, bonificação e cancelamento. Devoluções ao fornecedor são subtraídas.
-
-- **Estoque Final (EF)**: soma de `estoque_atual × custo_unitario` de todos os produtos ativos no momento da consulta.
-
-- **Faturamento Líquido**: soma dos `subtotal` das saídas com motivo contendo "venda" no mês atual. Se não houver vendas, CMV% mostra "Sem vendas".
-
-Toda essa lógica já existe em `src/lib/cmvCalculations.ts` e o hook `useDashboardData` já calcula e retorna `cmvResult` com todos esses valores. Nenhuma query nova é necessária.
-
-### Alterações técnicas
-
-**Arquivo: `src/pages/Dashboard.tsx`**
-- Abaixo do card do gráfico de Movimentações Diárias, adicionar um `grid grid-cols-2 gap-4` com dois cards glassmorphism:
-  - Card 1: "Saldo Inicial do Estoque" mostrando `data.cmvResult.breakdown.estoqueInicial` formatado em R$, ou "Indisponível" com ícone de alerta se `null`
-  - Card 2: "CMV %" mostrando `data.cmvResult.cmvPercentual` formatado com 1 casa decimal e sufixo %, ou "Sem vendas" / "Indisponível" conforme o caso
-- Ambos os cards seguem o mesmo padrão visual dos cards superiores (gradient top bar, glassmorphism, hover effect)
-- Nenhuma alteração no hook ou no backend
+### Arquivos envolvidos
+- `supabase/functions/auto-fechamento-mensal/index.ts` — nova edge function
+- `src/lib/cmvCalculations.ts` — adicionar fallback de estimativa no `getEstoqueInicialReal` (ou funcao auxiliar)
+- `src/hooks/useDashboardData.tsx` — passar movimentacoes do mes para a funcao de calculo
+- `src/pages/Dashboard.tsx` — remover "Indisponivel", mostrar badge "(estimado)" quando aplicavel
 
