@@ -10,7 +10,10 @@ import {
   Filter,
   ArrowDownRight,
   ArrowUpRight,
-  RefreshCcw
+  RefreshCcw,
+  Warehouse,
+  TrendingDown,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -243,6 +246,68 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Saldo Inicial + CMV % */}
+      {!isAdminView && (
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+          <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+            <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Saldo Inicial do Estoque (mês)
+                  </p>
+                  {data.cmvResult.breakdown.estoqueInicial !== null ? (
+                    <p className="text-3xl font-bold font-display text-foreground">
+                      R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">Indisponível — sem fechamento anterior</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 rounded-xl bg-[#0483e4]/10 group-hover:scale-110 transition-transform">
+                  <Warehouse className="h-6 w-6 text-[#0483e4]" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+            <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    CMV %
+                  </p>
+                  {!data.cmvResult.cmvDisponivel ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">Indisponível</span>
+                    </div>
+                  ) : data.cmvResult.cmvPercentual !== null ? (
+                    <p className="text-3xl font-bold font-display text-foreground">
+                      {data.cmvResult.cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                    </p>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">Sem vendas no período</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 rounded-xl bg-[#dd0b52]/10 group-hover:scale-110 transition-transform">
+                  <TrendingDown className="h-6 w-6 text-[#dd0b52]" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
