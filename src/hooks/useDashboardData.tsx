@@ -61,6 +61,7 @@ export const useDashboardData = () => {
       breakdown: { estoqueInicial: null, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
     },
     valorEmEstoque: 0,
+    totalEntradasMes: 0,
     totalSaidasMes: 0,
     totalRevenue: 0,
     totalRevenueChange: 0,
