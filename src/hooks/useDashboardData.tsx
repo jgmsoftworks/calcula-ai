@@ -36,9 +36,7 @@ interface DashboardData {
   operationalCostsChange: number;
   
   // Dados para gráficos
-  revenueData: Array<{ month: string; revenue: number; cost: number; date: string }>;
-  categoryData: Array<{ name: string; value: number; color: string }>;
-  dailyActivity: Array<{ day: string; vendas: number; produtos: number }>;
+  dailyMovements: Array<{ day: string; entradas: number; saidas: number }>;
   
   // Loading states
   loading: boolean;
