@@ -10,7 +10,10 @@ import {
   Filter,
   ArrowDownRight,
   ArrowUpRight,
-  RefreshCcw
+  RefreshCcw,
+  Warehouse,
+  TrendingDown,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
