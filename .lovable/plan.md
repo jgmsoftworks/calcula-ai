@@ -1,81 +1,39 @@
 
-# Plano: Duplicar Receita
 
-## Resumo
-Adicionar um botao de "Duplicar" ao lado dos botoes existentes no card da receita. Ao clicar, o sistema copia a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos de preparo) com o nome `"Nome Original (Cópia)"`, garantindo que nao haja nomes duplicados.
+## Plano: Adicionar cards de "Saldo Inicial do Estoque" e "CMV %" abaixo do gráfico
 
----
+### O que muda
 
-## Como vai funcionar
+Dois novos cards em grid de 2 colunas, posicionados logo abaixo do gráfico de Movimentações Diárias:
 
-1. Usuario clica no botao de duplicar (icone de copia)
-2. O sistema busca a receita completa (ingredientes, embalagens, sub-receitas, mao de obra, passos)
-3. Gera um nome unico: `"Nome (Cópia)"`, ou `"Nome (Cópia 2)"` se ja existir
-4. Cria a receita nova com numero sequencial novo
-5. Copia todos os itens relacionados (ingredientes, embalagens, sub-receitas, mao de obra, passos)
-6. Atualiza a lista automaticamente
+1. **Saldo Inicial do Estoque (mês)** -- valor em R$ do fechamento do mês anterior
+2. **CMV %** -- percentual do Custo de Mercadoria Vendida
 
----
+### Lógica do CMV que será utilizada
 
-## Arquivos a Modificar
-
-| Arquivo | Acao |
-|---------|------|
-| `src/hooks/useReceitas.ts` | Adicionar funcao `duplicarReceita` |
-| `src/components/receitas/ReceitaCard.tsx` | Adicionar botao de duplicar |
-| `src/components/receitas/ListaReceitas.tsx` | Passar callback de reload |
-
----
-
-## Detalhes Tecnicos
-
-### 1. `src/hooks/useReceitas.ts` - Nova funcao `duplicarReceita`
-
-Adicionar funcao que:
-- Busca a receita completa via `fetchReceitaCompleta`
-- Verifica nomes existentes para gerar nome unico (ex: "Bolo (Cópia)", "Bolo (Cópia 2)")
-- Cria nova receita com `createReceita` (gera novo numero sequencial)
-- Copia em batch: `receita_ingredientes`, `receita_embalagens`, `receita_sub_receitas`, `receita_mao_obra`, `receita_passos_preparo`
-- NAO copia a imagem (cada receita deve ter sua propria imagem)
-
-Logica para nome unico:
-```
-1. Nome base = "Nome Original (Cópia)"
-2. Buscar receitas do usuario com nome LIKE "Nome Original (Cópia%"
-3. Se nenhuma existe -> usar "Nome Original (Cópia)"
-4. Se ja existe -> usar "Nome Original (Cópia 2)", "Nome Original (Cópia 3)", etc.
+```text
+CMV = Estoque Inicial + Compras Líquidas − Estoque Final
+CMV% = (CMV / Faturamento Líquido) × 100
 ```
 
-### 2. `src/components/receitas/ReceitaCard.tsx`
+Detalhes de cada componente:
 
-- Importar icone `Copy` do lucide-react
-- Adicionar botao entre o botao de Edit e o AlertDialog de Delete
-- Chamar `duplicarReceita` ao clicar
-- Mostrar loading durante a duplicacao
-- Chamar `onDelete` (que recarrega a lista) apos duplicar com sucesso
+- **Estoque Inicial (EI)**: valor gravado na tabela `estoque_fechamentos_mensais` para a competência do mês anterior (ex: se estamos em março, busca o fechamento de fevereiro). Se não houver fechamento registrado, o card mostra "Indisponível".
 
-### 3. `src/components/receitas/ListaReceitas.tsx`
+- **Compras Líquidas**: soma de todas as entradas do mês atual a custo (`custo_aplicado × quantidade`), excluindo motivos como ajuste, inventário, transferência, bonificação e cancelamento. Devoluções ao fornecedor são subtraídas.
 
-Nenhuma mudanca necessaria - o `onDelete` ja faz reload da lista, e o real-time subscription tambem captura o INSERT.
+- **Estoque Final (EF)**: soma de `estoque_atual × custo_unitario` de todos os produtos ativos no momento da consulta.
 
----
+- **Faturamento Líquido**: soma dos `subtotal` das saídas com motivo contendo "venda" no mês atual. Se não houver vendas, CMV% mostra "Sem vendas".
 
-## Tabelas envolvidas na copia
+Toda essa lógica já existe em `src/lib/cmvCalculations.ts` e o hook `useDashboardData` já calcula e retorna `cmvResult` com todos esses valores. Nenhuma query nova é necessária.
 
-| Tabela | O que copiar |
-|--------|-------------|
-| `receitas` | Todos os campos exceto `id`, `numero_sequencial`, `imagem_url`, `created_at`, `updated_at` |
-| `receita_ingredientes` | `produto_id`, `quantidade` |
-| `receita_embalagens` | `produto_id`, `quantidade` |
-| `receita_sub_receitas` | `sub_receita_id`, `quantidade` |
-| `receita_mao_obra` | `funcionario_id`, `funcionario_nome`, `funcionario_cargo`, `tempo`, `unidade_tempo`, `custo_por_hora`, `valor_total` |
-| `receita_passos_preparo` | `ordem`, `descricao` (sem imagem) |
+### Alterações técnicas
 
----
+**Arquivo: `src/pages/Dashboard.tsx`**
+- Abaixo do card do gráfico de Movimentações Diárias, adicionar um `grid grid-cols-2 gap-4` com dois cards glassmorphism:
+  - Card 1: "Saldo Inicial do Estoque" mostrando `data.cmvResult.breakdown.estoqueInicial` formatado em R$, ou "Indisponível" com ícone de alerta se `null`
+  - Card 2: "CMV %" mostrando `data.cmvResult.cmvPercentual` formatado com 1 casa decimal e sufixo %, ou "Sem vendas" / "Indisponível" conforme o caso
+- Ambos os cards seguem o mesmo padrão visual dos cards superiores (gradient top bar, glassmorphism, hover effect)
+- Nenhuma alteração no hook ou no backend
 
-## Seguranca
-
-- Nenhuma alteracao no banco de dados (schema)
-- Nenhuma alteracao em Edge Functions
-- RLS policies ja cobrem INSERT para todas as tabelas envolvidas
-- A receita duplicada pertence ao mesmo usuario
