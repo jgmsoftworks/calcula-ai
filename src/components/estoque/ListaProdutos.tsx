@@ -250,7 +250,7 @@ export function ListaProdutos() {
             ) : (
               produtos.map((produto) => {
                 const valorEstoque = produto.custo_unitario * produto.estoque_atual;
-                const estoqueAbaixo = produto.estoque_minimo && produto.estoque_atual < produto.estoque_minimo;
+                const estoqueAbaixo = produto.estoque_minimo > 0 && produto.estoque_atual < produto.estoque_minimo;
 
                 return (
                   <TableRow key={`${produto.id}-${refreshKey}`}>
