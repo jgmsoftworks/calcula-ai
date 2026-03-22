@@ -69,9 +69,7 @@ export const useDashboardData = () => {
     averageMarginChange: 0,
     operationalCosts: 0,
     operationalCostsChange: 0,
-    revenueData: [],
-    categoryData: [],
-    dailyActivity: [],
+    dailyMovements: [],
     loading: true,
     error: null,
   });
