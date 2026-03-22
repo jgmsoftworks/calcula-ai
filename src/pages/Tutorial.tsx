@@ -34,6 +34,9 @@ import movimentacaoImg from '@/assets/tutorial/movimentacao-preview.jpg';
 import receitasImg from '@/assets/tutorial/receitas-preview.jpg';
 import custosImg from '@/assets/tutorial/custos-preview.jpg';
 import precificacaoImg from '@/assets/tutorial/precificacao-preview.jpg';
+import perfilImg from '@/assets/tutorial/perfil-preview.jpg';
+import planosImg from '@/assets/tutorial/planos-preview.jpg';
+import notificacoesImg from '@/assets/tutorial/notificacoes-preview.jpg';
 
 // -------------------------------------------------------
 // Types
