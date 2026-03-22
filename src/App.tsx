@@ -26,6 +26,7 @@ import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
 import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
+import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/planos" element={<AppLayout><Planos /></AppLayout>} />
                 <Route path="/perfil" element={<AppLayout><PerfilNegocio /></AppLayout>} />
                 <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
+                <Route path="/tutorial" element={<AppLayout><Tutorial /></AppLayout>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

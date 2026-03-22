@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +7,8 @@ import { useMarkupInitializer } from '@/hooks/useMarkupInitializer';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Mail, RefreshCw, Menu } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Mail, RefreshCw, Menu, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -26,6 +27,7 @@ const getPageInfo = (pathname: string): { title: string; description: string; } 
     '/perfil': { title: 'Perfil', description: 'Configurações da empresa' },
     '/receitas': { title: 'Receitas', description: 'Monte e precifique receitas' },
     '/planos': { title: 'Planos', description: 'Gerencie sua assinatura' },
+    '/tutorial': { title: 'Tutorial', description: 'Aprenda a usar o sistema' },
   };
   
   return pageMap[pathname] || { title: 'CalculaAi', description: '' };
@@ -34,6 +36,7 @@ const getPageInfo = (pathname: string): { title: string; description: string; } 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, loading, emailVerified, resendConfirmation } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isReady, setIsReady] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
@@ -117,6 +120,19 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </h2>
               </div>
               
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full"
+                    onClick={() => navigate('/tutorial')}
+                  >
+                    <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Tutorial</TooltipContent>
+              </Tooltip>
               <NotificationCenter />
             </div>
             
