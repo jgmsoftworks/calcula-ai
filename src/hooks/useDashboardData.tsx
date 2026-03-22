@@ -180,7 +180,8 @@ export const useDashboardData = () => {
       const cmvResult = await calcularCmvCompleto(
         user.id,
         produtosEstoque.data || [],
-        entradasMes.data || []
+        entradasMes.data || [],
+        allMovimentacoesMes.data || []
       );
 
       // Valor em estoque (EF)
