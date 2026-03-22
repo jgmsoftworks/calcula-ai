@@ -22,6 +22,7 @@ interface DashboardData {
 
   // Cards de estoque
   valorEmEstoque: number;
+  totalEntradasMes: number;
   totalSaidasMes: number;
   
   // Cards principais (mantidos para compatibilidade)
