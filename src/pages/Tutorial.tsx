@@ -24,6 +24,10 @@ import {
   Layers,
   Settings,
   CreditCard,
+  Bell,
+  UserCircle,
+  FileText,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +38,9 @@ import movimentacaoImg from '@/assets/tutorial/movimentacao-preview.jpg';
 import receitasImg from '@/assets/tutorial/receitas-preview.jpg';
 import custosImg from '@/assets/tutorial/custos-preview.jpg';
 import precificacaoImg from '@/assets/tutorial/precificacao-preview.jpg';
+import perfilImg from '@/assets/tutorial/perfil-preview.jpg';
+import planosImg from '@/assets/tutorial/planos-preview.jpg';
+import notificacoesImg from '@/assets/tutorial/notificacoes-preview.jpg';
 
 // -------------------------------------------------------
 // Types
@@ -191,6 +198,66 @@ const sections: TutorialSection[] = [
       { title: 'Média de Faturamento', content: 'Informe seu faturamento médio mensal. O sistema calcula quanto cada despesa fixa representa em percentual sobre o faturamento.' },
       { title: 'Criar Markup', content: 'Clique em "+ Novo Markup". Selecione quais despesas fixas, funcionários e encargos devem ser considerados. Defina a margem de lucro desejada (%).' },
       { title: 'Resultado', content: 'O sistema calcula o Markup Ideal automaticamente. Vincule-o às receitas para obter o preço de venda sugerido.', tips: ['Crie markups diferentes para cada canal de venda (loja, delivery, atacado)', 'O markup recalcula automaticamente quando despesas ou encargos mudam'] },
+    ],
+  },
+  {
+    id: 'perfil',
+    title: 'Perfil de Negócio',
+    subtitle: 'Dados da sua empresa',
+    icon: UserCircle,
+    gradient: 'from-[hsl(205,96%,46%)] to-[hsl(190,80%,42%)]',
+    gradientBg: 'from-[hsl(205,96%,46%,0.08)] to-[hsl(190,80%,42%,0.04)]',
+    image: perfilImg,
+    description: 'Configure todas as informações do seu negócio: logo, dados da empresa, endereço, responsável e informações fiscais. Esses dados são usados nos relatórios e documentos gerados pelo sistema.',
+    features: [
+      { icon: Building2, title: 'Dados da Empresa', text: 'Nome fantasia, razão social, CNPJ, tipo de negócio' },
+      { icon: FileText, title: 'Informações Fiscais', text: 'Inscrição estadual, municipal, regime tributário' },
+      { icon: UserCircle, title: 'Responsável', text: 'Nome, cargo, contatos do responsável legal' },
+    ],
+    details: [
+      { title: 'Logo da Empresa', content: 'Faça upload da logo da sua empresa. Ela aparece na sidebar, relatórios e PDFs exportados. Aceita JPG, PNG e GIF até 2MB.' },
+      { title: 'Dados da Empresa', content: 'Preencha nome fantasia, razão social, CNPJ/CPF, tipo de negócio (Alimentação, Varejo, etc.), setor de atividade e porte da empresa.' },
+      { title: 'Endereço e Contato', content: 'Cadastre o endereço completo, telefone comercial, e-mail, WhatsApp, Instagram e site.', tips: ['O WhatsApp pode ser usado para receber pedidos de clientes via marketplace.'] },
+    ],
+  },
+  {
+    id: 'planos',
+    title: 'Planos',
+    subtitle: 'Escolha e gerencie',
+    icon: Crown,
+    gradient: 'from-[hsl(45,93%,47%)] to-[hsl(25,95%,51%)]',
+    gradientBg: 'from-[hsl(45,93%,47%,0.08)] to-[hsl(25,95%,51%,0.04)]',
+    image: planosImg,
+    description: 'Veja os planos disponíveis (Free, Profissional e Empresarial), compare funcionalidades e faça upgrade. Gerencie sua assinatura e veja os limites do plano atual.',
+    features: [
+      { icon: Crown, title: 'Três Planos', text: 'Free, Profissional (R$49,90) e Empresarial (R$89,90)' },
+      { icon: Shield, title: 'Limites Claros', text: 'Cada plano tem limites de produtos, receitas e markups' },
+      { icon: CreditCard, title: 'Pagamento Seguro', text: 'Assinatura via Stripe com cartão de crédito' },
+    ],
+    details: [
+      { title: 'Plano Free', content: 'Até 30 produtos, 5 receitas e 1 markup. Funcionalidades básicas e folha de pagamento liberada. Ideal para quem está começando.' },
+      { title: 'Plano Profissional', content: 'Matéria-prima ilimitada, até 60 receitas, 3 markups, movimentação de estoque, sistema de vitrine e notificações inteligentes.', tips: ['É o plano mais popular e cobre a maioria dos negócios.'] },
+      { title: 'Plano Empresarial', content: 'Tudo ilimitado, simulador de preços, sistema de vitrine, suporte prioritário e recursos avançados. Para negócios que precisam de tudo.' },
+    ],
+  },
+  {
+    id: 'notificacoes',
+    title: 'Notificações',
+    subtitle: 'Alertas inteligentes',
+    icon: Bell,
+    gradient: 'from-[hsl(35,95%,50%)] to-[hsl(15,90%,55%)]',
+    gradientBg: 'from-[hsl(35,95%,50%,0.08)] to-[hsl(15,90%,55%,0.04)]',
+    image: notificacoesImg,
+    description: 'O sistema monitora automaticamente seu negócio e envia alertas sobre estoque baixo, receitas sem preço, anomalias de custo, oportunidades de venda e mais.',
+    features: [
+      { icon: Bell, title: 'Alertas Automáticos', text: 'Estoque baixo, anomalias de custo, margens baixas' },
+      { icon: Settings, title: 'Configurável', text: 'Ative ou desative cada tipo de notificação' },
+      { icon: BarChart3, title: 'Histórico', text: 'Consulte todas as notificações passadas' },
+    ],
+    details: [
+      { title: 'Configurações', content: 'Na aba "Configurações", veja todos os tipos de alerta disponíveis: Estoque Baixo, Receitas Sem Preço, Anomalias de Custo, Oportunidades de Venda, Margem de Lucro Baixa e Lembretes de Atividade.' },
+      { title: 'Prioridades', content: 'Cada alerta tem uma prioridade: Alta (vermelho), Média (amarelo) ou Baixa (verde). Prioridades altas aparecem primeiro.' },
+      { title: 'Histórico', content: 'Na aba "Histórico", consulte todas as notificações já geradas com data, tipo e detalhes. Útil para acompanhar tendências.', tips: ['Alertas de estoque baixo ajudam a nunca ficar sem insumos importantes.'] },
     ],
   },
 ];
