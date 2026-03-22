@@ -24,6 +24,10 @@ import {
   Layers,
   Settings,
   CreditCard,
+  Bell,
+  UserCircle,
+  FileText,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
