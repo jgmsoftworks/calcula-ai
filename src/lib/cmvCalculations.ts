@@ -37,6 +37,10 @@ interface Movimentacao {
   motivo: string | null;
 }
 
+interface MovimentacaoComTipo extends Movimentacao {
+  tipo: string;
+}
+
 interface ProdutoEstoque {
   estoque_atual: number;
   custo_unitario: number;
