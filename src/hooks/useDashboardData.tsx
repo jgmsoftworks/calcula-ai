@@ -22,6 +22,7 @@ interface DashboardData {
 
   // Cards de estoque
   valorEmEstoque: number;
+  totalEntradasMes: number;
   totalSaidasMes: number;
   
   // Cards principais (mantidos para compatibilidade)
@@ -35,9 +36,7 @@ interface DashboardData {
   operationalCostsChange: number;
   
   // Dados para gráficos
-  revenueData: Array<{ month: string; revenue: number; cost: number; date: string }>;
-  categoryData: Array<{ name: string; value: number; color: string }>;
-  dailyActivity: Array<{ day: string; vendas: number; produtos: number }>;
+  dailyMovements: Array<{ day: string; entradas: number; saidas: number }>;
   
   // Loading states
   loading: boolean;
@@ -60,6 +59,7 @@ export const useDashboardData = () => {
       breakdown: { estoqueInicial: null, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
     },
     valorEmEstoque: 0,
+    totalEntradasMes: 0,
     totalSaidasMes: 0,
     totalRevenue: 0,
     totalRevenueChange: 0,
@@ -69,9 +69,7 @@ export const useDashboardData = () => {
     averageMarginChange: 0,
     operationalCosts: 0,
     operationalCostsChange: 0,
-    revenueData: [],
-    categoryData: [],
-    dailyActivity: [],
+    dailyMovements: [],
     loading: true,
     error: null,
   });
@@ -143,13 +141,7 @@ export const useDashboardData = () => {
         entradasMes,
         saidasMes,
         produtosEstoque,
-        currentRevenue,
-        previousRevenue,
-        productsData,
-        markupsData,
-        costsData,
-        categoriesData,
-        historicalData
+        allMovimentacoesMes,
       ] = await Promise.all([
         // Entradas do mês para cálculo de Compras
         supabase
@@ -174,64 +166,17 @@ export const useDashboardData = () => {
           .select('estoque_atual, custo_unitario')
           .eq('user_id', user.id)
           .eq('ativo', true),
-        // Receita atual (simulada - baseada em receitas cadastradas)
-        supabase
-          .from('receitas')
-          .select('preco_venda, created_at')
-          .eq('user_id', user.id)
-          .gte('created_at', dateRange.start.toISOString())
-          .lte('created_at', dateRange.end.toISOString()),
 
-        // Receita período anterior
+        // Todas as movimentações do mês para o gráfico diário
         supabase
-          .from('receitas')
-          .select('preco_venda, created_at')
+          .from('movimentacoes')
+          .select('tipo, subtotal, custo_aplicado, quantidade, data_hora')
           .eq('user_id', user.id)
-          .gte('created_at', previousDateRange.start.toISOString())
-          .lte('created_at', previousDateRange.end.toISOString()),
-
-        // Produtos ativos
-        // @ts-ignore - Tabela em migração
-        supabase
-          .from('produtos')
-          .select('id, created_at, categorias')
-          .eq('user_id', user.id)
-          .eq('ativo', true),
-
-        // Markups para calcular margem média
-        supabase
-          .from('markups')
-          .select('margem_lucro, markup_ideal, created_at')
-          .eq('user_id', user.id)
-          .eq('ativo', true),
-
-        // Custos operacionais
-        supabase
-          .from('despesas_fixas')
-          .select('valor, created_at')
-          .eq('user_id', user.id)
-          .eq('ativo', true),
-
-        // Categorias para distribuição
-        // @ts-ignore - Tabela em migração
-        supabase
-          .from('produtos')
-          .select('categorias')
-          .eq('user_id', user.id)
-          .eq('ativo', true)
-          .not('categorias', 'is', null),
-
-        // Dados históricos para gráficos (últimos 6 meses)
-        supabase
-          .from('user_configurations')
-          .select('configuration')
-          .eq('user_id', user.id)
-          .eq('type', 'faturamentos_historicos')
-          .single()
+          .gte('data_hora', monthStart)
+          .lte('data_hora', monthEnd),
       ]);
 
       // ===== CMV REAL =====
-      // Usar funções centralizadas de cmvCalculations.ts
       const cmvResult = await calcularCmvCompleto(
         user.id,
         produtosEstoque.data || [],
@@ -241,86 +186,60 @@ export const useDashboardData = () => {
       // Valor em estoque (EF)
       const valorEmEstoque = calculateEstoqueFinal(produtosEstoque.data || []);
 
-      // Total de saídas do mês (valor de venda/saída)
+      // Total de entradas do mês
+      const totalEntradasMes = entradasMes.data?.reduce((sum, mov) => {
+        return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
+      }, 0) || 0;
+
+      // Total de saídas do mês
       const totalSaidasMes = saidasMes.data?.reduce((sum, mov) => {
         return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
       }, 0) || 0;
 
-      // Processar receita total
-      const currentRevenueValue = currentRevenue.data?.reduce((sum, item) => sum + (item.preco_venda || 0), 0) || 0;
-      const previousRevenueValue = previousRevenue.data?.reduce((sum, item) => sum + (item.preco_venda || 0), 0) || 0;
-      const revenueChange = previousRevenueValue > 0 
-        ? ((currentRevenueValue - previousRevenueValue) / previousRevenueValue) * 100 
-        : 0;
+      // Processar movimentações diárias para gráfico
+      const dailyMap = new Map<string, { entradas: number; saidas: number }>();
+      const now = new Date();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = d.toString().padStart(2, '0');
+        dailyMap.set(key, { entradas: 0, saidas: 0 });
+      }
 
-      // Processar produtos ativos
-      const currentProducts = productsData.data?.length || 0;
-      const productsInPeriod = productsData.data?.filter(p => 
-        new Date(p.created_at) >= dateRange.start && new Date(p.created_at) <= dateRange.end
-      ).length || 0;
-
-      // Processar margem média
-      const margins = markupsData.data?.map(m => m.margem_lucro || 0) || [];
-      const avgMargin = margins.length > 0 ? margins.reduce((sum, m) => sum + m, 0) / margins.length : 0;
-
-      // Processar custos operacionais
-      const totalCosts = costsData.data?.reduce((sum, item) => sum + (item.valor || 0), 0) || 0;
-
-      // Processar distribuição por categorias
-      const categoryMap = new Map<string, number>();
-      categoriesData.data?.forEach(product => {
-        if (product.categorias && Array.isArray(product.categorias)) {
-          product.categorias.forEach(cat => {
-            categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
-          });
+      allMovimentacoesMes.data?.forEach(mov => {
+        const date = new Date(mov.data_hora);
+        const dayKey = date.getDate().toString().padStart(2, '0');
+        const existing = dailyMap.get(dayKey) || { entradas: 0, saidas: 0 };
+        const valor = mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
+        
+        if (mov.tipo === 'entrada') {
+          existing.entradas += valor;
+        } else if (mov.tipo === 'saida') {
+          existing.saidas += valor;
         }
+        dailyMap.set(dayKey, existing);
       });
 
-      const totalCategoryCount = Array.from(categoryMap.values()).reduce((sum, count) => sum + count, 0);
-      const processedCategories = Array.from(categoryMap.entries())
-        .map(([name, count], index) => ({
-          name,
-          value: totalCategoryCount > 0 ? Math.round((count / totalCategoryCount) * 100) : 0,
-          color: `hsl(${(index * 60) % 360}, 70%, 50%)`
-        }))
-        .slice(0, 5);
-
-      // Processar dados históricos
-      const historicalFaturamento = historicalData.data?.configuration || [];
-      const monthlyData = Array.isArray(historicalFaturamento) 
-        ? historicalFaturamento.slice(-6).map((item: any) => ({
-            month: format(new Date(item.mes), 'MMM'),
-            revenue: item.valor / 100,
-            cost: item.valor * 0.6 / 100,
-            date: item.mes
-          }))
-        : [];
-
-      // Simular atividade diária
-      const dailyActivityData = Array.from({ length: 7 }, (_, i) => {
-        const day = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][i];
-        return {
-          day,
-          vendas: Math.floor(Math.random() * 30) + 10,
-          produtos: Math.floor(Math.random() * 20) + 5,
-        };
-      });
+      const dailyMovements = Array.from(dailyMap.entries()).map(([day, values]) => ({
+        day,
+        entradas: values.entradas,
+        saidas: values.saidas,
+      }));
 
       setData({
         cmvResult,
         valorEmEstoque,
+        totalEntradasMes,
         totalSaidasMes,
-        totalRevenue: currentRevenueValue,
-        totalRevenueChange: revenueChange,
-        activeProducts: currentProducts,
-        activeProductsChange: productsInPeriod,
-        averageMargin: avgMargin,
-        averageMarginChange: 2.1,
-        operationalCosts: totalCosts,
-        operationalCostsChange: -5.2,
-        revenueData: monthlyData,
-        categoryData: processedCategories,
-        dailyActivity: dailyActivityData,
+        totalRevenue: 0,
+        totalRevenueChange: 0,
+        activeProducts: 0,
+        activeProductsChange: 0,
+        averageMargin: 0,
+        averageMarginChange: 0,
+        operationalCosts: 0,
+        operationalCostsChange: 0,
+        dailyMovements,
         loading: false,
         error: null,
       });
