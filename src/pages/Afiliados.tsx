@@ -15,6 +15,7 @@ import { AffiliateCoupons } from "@/components/afiliados/AffiliateCoupons";
 import { PromotionalCoupons } from "@/components/afiliados/PromotionalCoupons";
 import { AffiliatesReports } from "@/components/afiliados/AffiliatesReports";
 import { AdminActions } from "@/components/afiliados/AdminActions";
+import { SupportHours } from "@/components/afiliados/SupportHours";
 import { useAffiliates } from "@/hooks/useAffiliates";
 
 export default function Afiliados() {
@@ -99,14 +100,15 @@ export default function Afiliados() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11 text-xs">
+        <TabsList className="grid w-full grid-cols-12 text-xs">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="afiliados">Afiliados</TabsTrigger>
+          <TabsTrigger value="afiliados">Vendedores</TabsTrigger>
           <TabsTrigger value="links">Links</TabsTrigger>
           <TabsTrigger value="cupons">Cupons Afil.</TabsTrigger>
           <TabsTrigger value="cupons-promo">Cupons Promo</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+          <TabsTrigger value="suporte">Suporte</TabsTrigger>
           <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           <TabsTrigger value="admin">Admin</TabsTrigger>
@@ -139,6 +141,10 @@ export default function Afiliados() {
         
         <TabsContent value="comissoes" className="space-y-4">
           <AffiliatesCommissions />
+        </TabsContent>
+
+        <TabsContent value="suporte" className="space-y-4">
+          <SupportHours />
         </TabsContent>
         
         <TabsContent value="pagamentos" className="space-y-4">
