@@ -2,13 +2,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAffiliates } from "@/hooks/useAffiliates";
-import { TrendingUp, Users, DollarSign, Link2, Calendar, Download, Filter } from "lucide-react";
-import { useState } from "react";
+import { TrendingUp, Users, DollarSign, Link2, Calendar, Download, Filter, Headphones } from "lucide-react";
+import { useState, useEffect } from "react";
 import { formatBRL, formatNumber } from '@/lib/formatters';
+import { supabase } from "@/integrations/supabase/client";
 
 export function AffiliatesDashboard() {
   const { affiliates, affiliateLinks, affiliateSales, affiliateCommissions, loading } = useAffiliates();
   const [dateFilter, setDateFilter] = useState('this_month');
+  const [pendingSupportTotal, setPendingSupportTotal] = useState(0);
+
+  useEffect(() => {
+    const loadSupportTotal = async () => {
+      const { data } = await supabase
+        .from('vendedor_suporte_horas')
+        .select('valor_total')
+        .eq('status', 'pending');
+      if (data) {
+        setPendingSupportTotal(data.reduce((sum: number, s: any) => sum + (s.valor_total || 0), 0));
+      }
+    };
+    loadSupportTotal();
+  }, []);
 
   if (loading) {
     return (
@@ -99,7 +114,7 @@ export function AffiliatesDashboard() {
       </div>
 
       {/* Resumo executivo */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
