@@ -380,8 +380,10 @@ export type Database = {
       affiliates: {
         Row: {
           bank_details: Json | null
+          commission_first_sale_pct: number
           commission_fixed_amount: number | null
           commission_percentage: number
+          commission_recurring_pct: number
           commission_type: string
           created_at: string
           document: string | null
@@ -391,6 +393,7 @@ export type Database = {
           phone: string | null
           pix_key: string | null
           status: string
+          support_hourly_rate: number
           total_commissions: number | null
           total_customers: number | null
           total_sales: number | null
@@ -399,8 +402,10 @@ export type Database = {
         }
         Insert: {
           bank_details?: Json | null
+          commission_first_sale_pct?: number
           commission_fixed_amount?: number | null
           commission_percentage?: number
+          commission_recurring_pct?: number
           commission_type?: string
           created_at?: string
           document?: string | null
@@ -410,6 +415,7 @@ export type Database = {
           phone?: string | null
           pix_key?: string | null
           status?: string
+          support_hourly_rate?: number
           total_commissions?: number | null
           total_customers?: number | null
           total_sales?: number | null
@@ -418,8 +424,10 @@ export type Database = {
         }
         Update: {
           bank_details?: Json | null
+          commission_first_sale_pct?: number
           commission_fixed_amount?: number | null
           commission_percentage?: number
+          commission_recurring_pct?: number
           commission_type?: string
           created_at?: string
           document?: string | null
@@ -429,6 +437,7 @@ export type Database = {
           phone?: string | null
           pix_key?: string | null
           status?: string
+          support_hourly_rate?: number
           total_commissions?: number | null
           total_customers?: number | null
           total_sales?: number | null
@@ -2088,6 +2097,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vendedor_suporte_horas: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          data: string
+          descricao: string | null
+          horas: number
+          id: string
+          status: string
+          updated_at: string
+          valor_hora: number
+          valor_total: number | null
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          data?: string
+          descricao?: string | null
+          horas?: number
+          id?: string
+          status?: string
+          updated_at?: string
+          valor_hora?: number
+          valor_total?: number | null
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          data?: string
+          descricao?: string | null
+          horas?: number
+          id?: string
+          status?: string
+          updated_at?: string
+          valor_hora?: number
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_suporte_horas_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

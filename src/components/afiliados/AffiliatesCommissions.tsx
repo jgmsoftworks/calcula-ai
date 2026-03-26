@@ -152,7 +152,8 @@ export function AffiliatesCommissions() {
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
-                <TableHead>Afiliado</TableHead>
+                <TableHead>Vendedor</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Venda</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
@@ -173,6 +174,15 @@ export function AffiliatesCommissions() {
                         {commission.affiliate?.email}
                       </div>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={
+                      (commission.cycle_number || 1) === 1 
+                        ? "border-green-500 text-green-700" 
+                        : "border-blue-500 text-blue-700"
+                    }>
+                      {(commission.cycle_number || 1) === 1 ? "1ª Venda (40%)" : `Recorrente (20%) #${commission.cycle_number}`}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
