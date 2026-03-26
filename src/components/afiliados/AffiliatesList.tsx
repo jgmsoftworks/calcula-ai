@@ -135,9 +135,9 @@ export function AffiliatesList() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Gestão de Afiliados</CardTitle>
+          <CardTitle>Gestão de Vendedores Parceiros</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Cada afiliado tem produtos únicos no Stripe para rastreamento automático
+            Cada vendedor tem comissões diferenciadas: 1ª venda, recorrente e suporte
           </p>
         </div>
         <div className="flex gap-2">
@@ -174,7 +174,9 @@ export function AffiliatesList() {
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Comissão</TableHead>
+              <TableHead>1ª Venda</TableHead>
+              <TableHead>Recorrente</TableHead>
+              <TableHead>R$/hora</TableHead>
               <TableHead>Total Vendas</TableHead>
               <TableHead>Clientes</TableHead>
               <TableHead>Ações</TableHead>
@@ -186,23 +188,14 @@ export function AffiliatesList() {
                 <TableCell className="font-medium">{affiliate.name}</TableCell>
                 <TableCell>{affiliate.email}</TableCell>
                 <TableCell>{getStatusBadge(affiliate.status)}</TableCell>
-                <TableCell>
-                  {affiliate.commission_type === 'percentage' 
-                    ? `${affiliate.commission_percentage}%`
-                    : `R$ ${formatBRL(affiliate.commission_fixed_amount || 0)}`
-                  }
-                </TableCell>
-                <TableCell>
-                  R$ {formatBRL(affiliate.total_sales)}
-                </TableCell>
+                <TableCell>{(affiliate as any).commission_first_sale_pct || 40}%</TableCell>
+                <TableCell>{(affiliate as any).commission_recurring_pct || 20}%</TableCell>
+                <TableCell>R$ {formatBRL((affiliate as any).support_hourly_rate || 10)}</TableCell>
+                <TableCell>R$ {formatBRL(affiliate.total_sales)}</TableCell>
                 <TableCell>{affiliate.total_customers}</TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(affiliate)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(affiliate)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                   </div>
