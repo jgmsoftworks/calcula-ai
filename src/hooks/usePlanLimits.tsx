@@ -58,7 +58,6 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
       'Máx. 60 receitas',
       'Até 3 blocos de markup',
       'Movimentação de estoque',
-      'Sistema de Vitrine',
       'Simulador de preços',
       '80 PDFs por mês',
     ],
@@ -76,7 +75,6 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
     },
     features: [
       'Tudo ilimitado',
-      'Sistema de Vitrine',
       'Simulador de preços',
       'Suporte prioritário',
       'Recursos avançados',
