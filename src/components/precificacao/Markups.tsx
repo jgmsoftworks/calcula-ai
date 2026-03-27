@@ -839,28 +839,52 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     return isFinite(markup) ? markup : 1;
   };
 
+  const renderMarkupGrid = (bloco: MarkupBlock, calculated: CalculatedMarkup | undefined, hasCalculated: boolean) => {
+    const items = [
+      { label: 'Gasto sobre faturamento', value: hasCalculated ? formatPercentage(calculated!.gastoSobreFaturamento) : '0', suffix: '%', color: '#0483e4' },
+      { label: 'Impostos', value: hasCalculated ? formatPercentage(calculated!.impostos) : '0', suffix: '%', color: '#2c4dc7' },
+      { label: 'Taxas meios pgto.', value: hasCalculated ? formatPercentage(calculated!.taxasMeiosPagamento) : '0', suffix: '%', color: '#7328b1' },
+      { label: 'Comissões / plataformas', value: hasCalculated ? formatPercentage(calculated!.comissoesPlataformas) : '0', suffix: '%', color: '#af1188' },
+      { label: 'Outros', value: hasCalculated ? formatPercentage(calculated!.outros) : '0', suffix: '%', color: '#dd0b52' },
+      { label: 'Valor fixo (R$)', value: hasCalculated ? formatCurrency(calculated!.valorEmReal) : formatCurrency(0), suffix: '', color: '#f96e0c' },
+    ];
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {items.map((item, i) => (
+          <div key={i} className="rounded-xl bg-muted/40 border border-border/30 p-3 space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{item.label}</p>
+            <p className="text-lg font-bold font-display" style={{ color: item.color }}>
+              {item.value}{item.suffix && <span className="text-xs ml-0.5">{item.suffix}</span>}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Botão para criar novo bloco */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Configuração de Markups</h2>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold font-display text-foreground">Configuração de Markups</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             {blocos.filter(b => b.id !== 'subreceita-fixo').length}/{planInfo.limits.markups === -1 ? '∞' : planInfo.limits.markups} blocos de markup
           </p>
         </div>
         <Button 
           onClick={criarNovoBloco}
-          className="bg-primary hover:bg-primary/90"
+          size="sm"
+          className="gap-1.5 rounded-xl h-9"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Bloco de Markup
+          <Plus className="h-3.5 w-3.5" />
+          Novo Bloco
         </Button>
       </div>
 
-      {/* Bloco Subreceita - Sempre fixo */}
+      {/* Bloco Subreceita */}
       {(() => {
-        // Buscar o bloco de sub-receita do array
         const blocoSub = blocos.find(b => b.id === 'subreceita-fixo');
         if (!blocoSub) return null;
         
@@ -870,90 +894,46 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           : 1;
         
         return (
-          <Card className="border-primary bg-primary/5">
-            <CardHeader>
+          <Card className="glass-card overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-primary capitalize font-bold text-xl flex items-center gap-2">
-                    <Calculator className="h-5 w-5" />
-                    Subreceita
-                  </CardTitle>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p><strong>Atenção:</strong> Este bloco é exclusivo para subprodutos que não são vendidos separadamente, como massas, recheios e coberturas. Ele serve apenas para organizar ingredientes usados em receitas.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div className="p-2 rounded-lg bg-[#0483e4]/10">
+                    <Calculator className="h-4 w-4 text-[#0483e4]" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-display">Subreceita</CardTitle>
+                    <p className="text-[10px] text-muted-foreground">Bloco fixo para subprodutos</p>
+                  </div>
                 </div>
-                
-                {/* ✅ ADICIONAR botão de configuração */}
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => abrirConfiguracaoCompleta('subreceita-fixo')}
-                  className="h-8 px-3 flex items-center gap-1"
-                >
-                  <Settings className="h-3 w-3" />
-                  Configurar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => abrirConfiguracaoCompleta('subreceita-fixo')}
+                    className="h-8 px-3 gap-1.5 rounded-xl text-xs border-border/50"
+                  >
+                    <Settings className="h-3 w-3" />
+                    Configurar
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {calculated ? formatPercentage(calculated.gastoSobreFaturamento) : '0,00'}%
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {calculated ? formatPercentage(calculated.impostos) : '0,00'}%
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {calculated ? formatPercentage(calculated.taxasMeiosPagamento) : '0,00'}%
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {calculated ? formatPercentage(calculated.comissoesPlataformas) : '0,00'}%
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {calculated ? formatPercentage(calculated.outros) : '0,00'}%
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
-                  <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>
-                    {calculated ? formatCurrency(calculated.valorEmReal) : formatCurrency(0)}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
-                  <div className="text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>
-                    {blocoSub.lucroDesejado}%
-                  </div>
-                </div>
-              </div>
+              {renderMarkupGrid(blocoSub, calculated, !!calculated)}
               
-              <div className="mt-6 pt-4 border-t bg-primary/5 dark:bg-primary/10 -mx-6 px-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
-                  <div className="text-3xl font-bold text-primary">
+              {/* Lucro + Markup ideal */}
+              <div className="flex items-center justify-between rounded-xl bg-[#0483e4]/5 border border-[#0483e4]/20 p-4">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Lucro desejado</p>
+                  <p className="text-lg font-bold font-display text-foreground">{blocoSub.lucroDesejado}%</p>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Markup Ideal</p>
+                  <p className="text-2xl font-bold font-display text-[#0483e4]">
                     {formatNumber(markupIdealSubreceita, 4)}
-                  </div>
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -962,153 +942,129 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       })()}
 
       {/* Blocos do usuário */}
-      {blocos.filter(b => b.id !== 'subreceita-fixo').map((bloco) => {
+      {blocos.filter(b => b.id !== 'subreceita-fixo').map((bloco, index) => {
         const calculated = calculatedMarkups.get(bloco.id);
         const hasCalculated = calculated !== undefined;
         const markupIdeal = hasCalculated ? calcularMarkupIdealParaExibicao(bloco, calculated) : 1;
         
+        // Brand gradient colors cycling
+        const gradients = [
+          'from-[#7328b1] to-[#af1188]',
+          'from-[#dd0b52] to-[#f96e0c]',
+          'from-[#0483e4] to-[#2c4dc7]',
+          'from-[#af1188] to-[#dd0b52]',
+        ];
+        const gradientColors = [
+          { bg: '#7328b1', light: '#7328b1' },
+          { bg: '#dd0b52', light: '#dd0b52' },
+          { bg: '#0483e4', light: '#0483e4' },
+          { bg: '#af1188', light: '#af1188' },
+        ];
+        const gi = index % gradients.length;
+        const gradient = gradients[gi];
+        const gColor = gradientColors[gi];
+        
         return (
-          <Card key={bloco.id} className="border-border">
-            <CardHeader>
+          <Card key={bloco.id} className="glass-card overflow-hidden animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+            <div className={`h-1 bg-gradient-to-r ${gradient}`} />
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-primary capitalize font-bold text-xl">
-                  {bloco.nome}
-                </CardTitle>
                 <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: `${gColor.bg}15` }}>
+                    <Calculator className="h-4 w-4" style={{ color: gColor.bg }} />
+                  </div>
+                  <CardTitle className="text-base font-display capitalize">{bloco.nome}</CardTitle>
+                </div>
+                <div className="flex items-center gap-1.5">
                   <Button 
                     size="sm" 
-                    variant="outline" 
+                    variant="ghost" 
                     onClick={() => iniciarEdicaoNome(bloco)}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 rounded-xl"
                   >
                     <Edit2 className="h-3 w-3" />
                   </Button>
-                  
                   <Button 
                     size="sm" 
                     variant="outline" 
                     onClick={() => abrirConfiguracaoCompleta(bloco.id)}
-                    className="h-8 px-3 flex items-center gap-1"
+                    className="h-8 px-3 gap-1.5 rounded-xl text-xs border-border/50"
                   >
                     <Settings className="h-3 w-3" />
                     Configurar
                   </Button>
-                  
                   <Button 
                     size="sm" 
-                    variant="outline" 
+                    variant="ghost" 
                     onClick={() => removerBloco(bloco.id)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    className="h-8 w-8 p-0 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
               
-              {/* Filtro de Período e Média de Faturamento - Individual por bloco */}
-              <div className="mt-4 p-4 bg-blue-50/50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <Label className="text-sm font-medium whitespace-nowrap">
-                      Período:
-                    </Label>
-                    <Select value={bloco.periodo} onValueChange={(value) => {
-                      atualizarBloco(bloco.id, 'periodo', value);
-                    }}>
-                      <SelectTrigger className="w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Último mês</SelectItem>
-                        <SelectItem value="3">Últimos 3 meses</SelectItem>
-                        <SelectItem value="6">Últimos 6 meses</SelectItem>
-                        <SelectItem value="12">Últimos 12 meses</SelectItem>
-                        <SelectItem value="todos">Todos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="text-right">
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      {bloco.periodo === 'todos' ? 'Média de faturamento (todos os períodos)' : `Média de faturamento (${getPeriodoLabel(bloco.periodo)})`}
-                    </Label>
-                    <p className="text-lg font-bold text-primary">
-                      {formatCurrency(calcularValorPeriodoBloco(bloco.periodo))}
-                    </p>
-                  </div>
+              {/* Período + Média */}
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-muted/40 border border-border/30 p-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Período:</Label>
+                  <Select value={bloco.periodo} onValueChange={(value) => atualizarBloco(bloco.id, 'periodo', value)}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Último mês</SelectItem>
+                      <SelectItem value="3">Últimos 3 meses</SelectItem>
+                      <SelectItem value="6">Últimos 6 meses</SelectItem>
+                      <SelectItem value="12">Últimos 12 meses</SelectItem>
+                      <SelectItem value="todos">Todos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground">Média de faturamento</p>
+                  <p className="text-sm font-bold font-display" style={{ color: gColor.bg }}>
+                    {formatCurrency(calcularValorPeriodoBloco(bloco.periodo))}
+                  </p>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {renderMarkupGrid(bloco, calculated, hasCalculated)}
+              
+              {/* Lucro + Markup ideal */}
+              <div className="flex items-center justify-between rounded-xl border p-4" style={{ backgroundColor: `${gColor.bg}08`, borderColor: `${gColor.bg}25` }}>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Gasto sobre faturamento</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {hasCalculated ? formatPercentage(calculated.gastoSobreFaturamento) : '0'} <span className="text-sm">%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Impostos</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {hasCalculated ? formatPercentage(calculated.impostos) : '0'} <span className="text-sm">%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Taxas de meios de pagamento</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {hasCalculated ? formatPercentage(calculated.taxasMeiosPagamento) : '0'} <span className="text-sm">%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Comissões e plataformas</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {hasCalculated ? formatPercentage(calculated.comissoesPlataformas) : '0'} <span className="text-sm">%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Outros</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    {hasCalculated ? formatPercentage(calculated.outros) : '0'} <span className="text-sm">%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Valor em real</Label>
-                  <div className="text-2xl font-bold" style={{ color: 'hsl(var(--orange))' }}>
-                    {hasCalculated ? formatCurrency(calculated.valorEmReal) : formatCurrency(0)}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-muted-foreground">Lucro desejado sobre venda</Label>
-                  <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Lucro desejado</p>
+                  <div className="w-24">
                     <NumericInputPtBr
                       tipo="percentual"
                       min={0}
                       max={100}
                       value={bloco.lucroDesejado}
                       onChange={(valor) => atualizarBloco(bloco.id, 'lucroDesejado', valor)}
-                      className="font-bold"
-                      style={{ color: 'hsl(var(--accent))' }}
+                      className="font-bold text-lg h-9"
                     />
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t bg-card -mx-6 px-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg font-semibold text-primary">Markup ideal</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2 text-3xl font-bold text-primary">
-                          {hasCalculated ? formatNumber(markupIdeal, 4) : '1,0000'}
-                          <Info className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Markup = 100 / (100 - % total)</p>
-                        <p>Onde % total = soma de todos os custos + lucro desejado</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                <div className="text-right space-y-0.5">
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Markup Ideal</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Markup = 100 / (100 - % total)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <p className="text-2xl font-bold font-display" style={{ color: gColor.bg }}>
+                    {hasCalculated ? formatNumber(markupIdeal, 4) : '1,0000'}
+                  </p>
                 </div>
               </div>
             </CardContent>

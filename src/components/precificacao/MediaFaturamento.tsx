@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -34,17 +34,14 @@ export function MediaFaturamento() {
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        // Carregar faturamentos históricos
         const configFaturamentos = await loadConfiguration('faturamentos_historicos');
         if (configFaturamentos && Array.isArray(configFaturamentos)) {
           const faturamentos = configFaturamentos.map((f: any) => ({
             ...f,
             mes: new Date(f.mes)
           })).sort((a, b) => {
-            // Primeiro ordena por data (mês/ano)
             const dateCompare = b.mes.getTime() - a.mes.getTime();
             if (dateCompare !== 0) return dateCompare;
-            // Se a data for igual, ordena por ID (timestamp de criação) - mais recente primeiro
             return parseInt(b.id) - parseInt(a.id);
           });
           setFaturamentosHistoricos(faturamentos);
@@ -65,18 +62,11 @@ export function MediaFaturamento() {
   }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
   const formatCurrencyInput = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   };
 
   const parseInputValue = (value: string) => {
@@ -86,41 +76,20 @@ export function MediaFaturamento() {
     return isNaN(parsed) ? 0 : Math.max(0, parsed);
   };
 
-  const handleValueChange = (inputValue: string) => {
-    const numericValue = inputValue.replace(/\D/g, '');
-    const numberValue = parseInt(numericValue || '0') / 100;
-    const formattedValue = formatCurrencyInput(numberValue);
-    
-    setNovoFaturamento({ ...novoFaturamento, valor: formattedValue });
-  };
-
   const adicionarFaturamento = () => {
     if (!novoFaturamento.valor || !novoFaturamento.mes || !novoFaturamento.ano) {
-      toast({
-        title: "Dados incompletos",
-        description: "Preencha o valor, mês e ano",
-        variant: "destructive"
-      });
+      toast({ title: "Dados incompletos", description: "Preencha o valor, mês e ano", variant: "destructive" });
       return;
     }
 
     const valor = parseInputValue(novoFaturamento.valor);
     if (valor <= 0) {
-      toast({
-        title: "Valor inválido",
-        description: "O valor deve ser maior que zero",
-        variant: "destructive"
-      });
+      toast({ title: "Valor inválido", description: "O valor deve ser maior que zero", variant: "destructive" });
       return;
     }
 
     const dataFaturamento = new Date(novoFaturamento.ano, novoFaturamento.mes - 1, 1);
-
-    const novoItem: FaturamentoHistorico = {
-      id: Date.now().toString(),
-      valor,
-      mes: dataFaturamento
-    };
+    const novoItem: FaturamentoHistorico = { id: Date.now().toString(), valor, mes: dataFaturamento };
 
     const novosFaturamentos = [...faturamentosHistoricos, novoItem]
       .sort((a, b) => {
@@ -131,50 +100,29 @@ export function MediaFaturamento() {
     
     setFaturamentosHistoricos(novosFaturamentos);
     salvarFaturamentos(novosFaturamentos);
-    setNovoFaturamento({ 
-      valor: '', 
-      mes: new Date().getMonth() + 1, 
-      ano: new Date().getFullYear() 
-    });
-    
-    toast({
-      title: "Faturamento adicionado",
-      description: "Dados salvos com sucesso"
-    });
+    setNovoFaturamento({ valor: '', mes: new Date().getMonth() + 1, ano: new Date().getFullYear() });
+    toast({ title: "Faturamento adicionado", description: "Dados salvos com sucesso" });
   };
 
   const removerFaturamento = (id: string) => {
     const novosFaturamentos = faturamentosHistoricos.filter(f => f.id !== id);
     setFaturamentosHistoricos(novosFaturamentos);
     salvarFaturamentos(novosFaturamentos);
-    
-    toast({
-      title: "Faturamento removido",
-      description: "Item removido com sucesso"
-    });
+    toast({ title: "Faturamento removido", description: "Item removido com sucesso" });
   };
 
   const calcularEstatisticas = () => {    
     if (faturamentosHistoricos.length === 0) {
-      return {
-        mediaFaturamento: 0,
-        totalFaturamento: 0
-      };
+      return { mediaFaturamento: 0, totalFaturamento: 0 };
     }
-
     const valores = faturamentosHistoricos.map(f => f.valor);
     const totalFaturamento = valores.reduce((acc, valor) => acc + valor, 0);
     const mediaFaturamento = totalFaturamento / valores.length;
-
-    return {
-      mediaFaturamento,
-      totalFaturamento
-    };
+    return { mediaFaturamento, totalFaturamento };
   };
 
   const { mediaFaturamento, totalFaturamento } = calcularEstatisticas();
 
-  // Preparar dados do gráfico (6 meses mais recentes)
   const dadosGrafico = faturamentosHistoricos
     .slice(0, 6)
     .reverse()
@@ -185,28 +133,24 @@ export function MediaFaturamento() {
     }));
 
   const chartConfig = {
-    valor: {
-      label: "Faturamento",
-      color: "hsl(var(--primary))",
-    },
+    valor: { label: "Faturamento", color: "hsl(var(--primary))" },
   };
 
   return (
-    <div className="space-y-6">
-      {/* Formulário para adicionar faturamento */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary mb-1">
-            Lançar Faturamento
-          </CardTitle>
-          <p className="text-muted-foreground text-sm">
+    <div className="space-y-6 animate-fade-in">
+      {/* Formulário */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-brand-horizontal" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-display">Lançar Faturamento</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Adicione os faturamentos mensais que já aconteceram
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="valor-faturamento">Valor do Faturamento</Label>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Valor do Faturamento</Label>
               <NumericInputPtBr
                 tipo="valor"
                 value={parseInputValue(novoFaturamento.valor)}
@@ -215,29 +159,29 @@ export function MediaFaturamento() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Mês/Ano</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Mês/Ano</Label>
               <div className="grid grid-cols-2 gap-2">
                 <Select 
                   value={novoFaturamento.mes.toString()} 
                   onValueChange={(value) => setNovoFaturamento({ ...novoFaturamento, mes: parseInt(value) })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="Mês" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Janeiro</SelectItem>
-                    <SelectItem value="2">Fevereiro</SelectItem>
-                    <SelectItem value="3">Março</SelectItem>
-                    <SelectItem value="4">Abril</SelectItem>
-                    <SelectItem value="5">Maio</SelectItem>
-                    <SelectItem value="6">Junho</SelectItem>
-                    <SelectItem value="7">Julho</SelectItem>
-                    <SelectItem value="8">Agosto</SelectItem>
-                    <SelectItem value="9">Setembro</SelectItem>
-                    <SelectItem value="10">Outubro</SelectItem>
-                    <SelectItem value="11">Novembro</SelectItem>
-                    <SelectItem value="12">Dezembro</SelectItem>
+                    <SelectItem value="1">Jan</SelectItem>
+                    <SelectItem value="2">Fev</SelectItem>
+                    <SelectItem value="3">Mar</SelectItem>
+                    <SelectItem value="4">Abr</SelectItem>
+                    <SelectItem value="5">Mai</SelectItem>
+                    <SelectItem value="6">Jun</SelectItem>
+                    <SelectItem value="7">Jul</SelectItem>
+                    <SelectItem value="8">Ago</SelectItem>
+                    <SelectItem value="9">Set</SelectItem>
+                    <SelectItem value="10">Out</SelectItem>
+                    <SelectItem value="11">Nov</SelectItem>
+                    <SelectItem value="12">Dez</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input
@@ -247,86 +191,102 @@ export function MediaFaturamento() {
                   placeholder="Ano"
                   min="2020"
                   max="2030"
+                  className="h-9 text-sm"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
-              <Button onClick={adicionarFaturamento} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar
-              </Button>
-            </div>
+            <Button onClick={adicionarFaturamento} className="h-9 gap-1.5 rounded-xl">
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Estatísticas e Gráfico */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
-        {/* Cards de Estatísticas */}
-        <div className="flex flex-col gap-4 h-full">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800/50 flex-1 flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-white" />
+      {/* Stats + Gráfico */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Média Mensal */}
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Média Mensal
+                </p>
+                <p className="text-3xl font-bold font-display text-foreground">
+                  {formatters.valor(mediaFaturamento)}
+                </p>
               </div>
-              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full">
-                MÉDIA
+              <div className="p-3 rounded-xl bg-[#0483e4]/10 group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-6 w-6 text-[#0483e4]" />
               </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Média Mensal</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                {formatters.valor(mediaFaturamento)}
-              </p>
-            </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-xl p-6 border border-green-200 dark:border-green-800/50 flex-1 flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-green-500 rounded-lg">
-                <DollarSign className="h-5 w-5 text-white" />
+        {/* Total */}
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Total do Período
+                </p>
+                <p className="text-3xl font-bold font-display text-foreground">
+                  {formatters.valor(totalFaturamento)}
+                </p>
               </div>
-              <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">
-                TOTAL
+              <div className="p-3 rounded-xl bg-[#16a34a]/10 group-hover:scale-110 transition-transform">
+                <DollarSign className="h-6 w-6 text-[#16a34a]" />
               </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-green-700 dark:text-green-300">Total do Período</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                {formatters.valor(totalFaturamento)}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Gráfico */}
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-xl p-6 border border-purple-200 dark:border-purple-800/50 h-full flex flex-col">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-purple-500 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-white" />
+        {/* Lançamentos */}
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Lançamentos
+                </p>
+                <p className="text-3xl font-bold font-display text-foreground">
+                  {faturamentosHistoricos.length}
+                </p>
               </div>
-              <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full">
-                EVOLUÇÃO
+              <div className="p-3 rounded-xl bg-[#7328b1]/10 group-hover:scale-110 transition-transform">
+                <CalendarDays className="h-6 w-6 text-[#7328b1]" />
               </div>
             </div>
-            <h3 className="text-sm font-medium text-purple-700 dark:text-purple-300">Últimos 6 Meses</h3>
-          </div>
-          <div className="flex-1 min-h-0">
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gráfico */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-brand-horizontal" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-display">Evolução do Faturamento</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Últimos 6 meses lançados
+          </p>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="h-64">
             {dadosGrafico.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-full w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart 
-                    data={dadosGrafico} 
-                    margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
-                  >
+                  <LineChart data={dadosGrafico} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                     <XAxis 
                       dataKey="mes" 
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       interval={0}
                     />
                     <YAxis 
@@ -342,49 +302,58 @@ export function MediaFaturamento() {
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
+                        borderRadius: "12px",
+                        padding: "8px 12px",
+                        fontSize: "12px",
                       }}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="valor" 
-                      stroke="hsl(var(--secondary))" 
+                      stroke="#7328b1"
                       strokeWidth={3}
-                      dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "hsl(var(--secondary))", strokeWidth: 2, fill: "hsl(var(--card))" }}
+                      dot={{ fill: "#7328b1", strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: "#7328b1", strokeWidth: 2, fill: "hsl(var(--card))" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-purple-600 dark:text-purple-400">
-                <div className="text-center">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">Adicione faturamentos para ver o gráfico</p>
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center space-y-2">
+                  <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
+                  <p className="text-xs">Adicione faturamentos para ver o gráfico</p>
                 </div>
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Lista de Faturamentos */}
       {faturamentosHistoricos.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Faturamentos Lançados</CardTitle>
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-brand-horizontal" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display">Faturamentos Lançados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {faturamentosHistoricos.map((faturamento) => (
-                <div key={faturamento.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              {faturamentosHistoricos.map((faturamento, i) => (
+                <div 
+                  key={faturamento.id} 
+                  className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/30 hover:border-border/60 transition-all animate-slide-up"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#0483e4]/10">
+                      <CalendarDays className="h-4 w-4 text-[#0483e4]" />
+                    </div>
                     <div>
-                      <p className="font-medium">
+                      <p className="text-sm font-medium font-display">
                         {format(faturamento.mes, "MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {formatters.valor(faturamento.valor)}
                       </p>
                     </div>
@@ -393,9 +362,9 @@ export function MediaFaturamento() {
                     variant="ghost"
                     size="sm"
                     onClick={() => removerFaturamento(faturamento.id)}
-                    className="text-destructive hover:text-destructive"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
@@ -405,11 +374,12 @@ export function MediaFaturamento() {
       )}
 
       {faturamentosHistoricos.length === 0 && (
-        <Card>
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-brand-horizontal" />
           <CardContent className="p-12 text-center">
-            <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhum faturamento lançado</h3>
-            <p className="text-muted-foreground">
+            <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-30" />
+            <h3 className="text-sm font-medium font-display mb-1">Nenhum faturamento lançado</h3>
+            <p className="text-xs text-muted-foreground">
               Adicione seus faturamentos mensais para calcular a média histórica
             </p>
           </CardContent>
