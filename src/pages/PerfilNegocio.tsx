@@ -3,15 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { 
   Building2, 
   Upload, 
-  Moon, 
-  Sun, 
-  Palette,
+  Save,
   Save,
   User,
   Phone,
@@ -25,7 +20,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useTheme } from 'next-themes';
+
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 
 interface BusinessProfile {
@@ -86,8 +81,6 @@ interface UserProfile {
 const PerfilNegocio = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const currentTheme = theme || resolvedTheme || 'light';
   const { saveConfiguration, loadConfiguration } = useOptimizedUserConfigurations();
   
   const [profile, setProfile] = useState<UserProfile>({
