@@ -27,39 +27,41 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-
-const businessNavigationItems = [
-  { title: 'Dashboard', url: '/', icon: Home },
-  { title: 'Estoque', url: '/estoque', icon: Package },
-  { title: 'Movimentação', url: '/movimentacao', icon: TrendingUp },
-  { title: 'Receitas', url: '/receitas', icon: ChefHat },
-  { title: 'Custos', url: '/custos', icon: TrendingUp },
-  { title: 'Precificação', url: '/precificacao', icon: Calculator },
-];
-
-const businessItems = [
-  { title: 'Perfil de Negócio', url: '/perfil', icon: Building2 },
-  { title: 'Planos', url: '/planos', icon: Crown },
-];
-
-const adminNavigationItems = [
-  { title: 'Dashboard', url: '/', icon: Home },
-  { title: 'Usuários', url: '/admin-usuarios', icon: Users },
-  { title: 'Afiliados', url: '/afiliados', icon: Crown },
-];
-
-const adminItems = [
-  { title: 'Gerenciar Usuários', url: '/admin/usuarios', icon: Users },
-  { title: 'Configurações', url: '/admin-configuracoes', icon: Building2 },
-];
+import { useTranslation } from 'react-i18next';
 
 export function AppSidebar() {
+  const { t } = useTranslation();
   const { state } = useSidebar();
   const location = useLocation();
   const { signOut, user, isAdmin } = useAuth();
   const { toast } = useToast();
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
+
+  const businessNavigationItems = [
+    { title: t('nav.dashboard'), url: '/', icon: Home },
+    { title: t('nav.estoque'), url: '/estoque', icon: Package },
+    { title: t('nav.movimentacao'), url: '/movimentacao', icon: TrendingUp },
+    { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
+    { title: t('nav.custos'), url: '/custos', icon: TrendingUp },
+    { title: t('nav.precificacao'), url: '/precificacao', icon: Calculator },
+  ];
+
+  const businessItems = [
+    { title: t('nav.perfil'), url: '/perfil', icon: Building2 },
+    { title: t('nav.planos'), url: '/planos', icon: Crown },
+  ];
+
+  const adminNavigationItems = [
+    { title: t('nav.dashboard'), url: '/', icon: Home },
+    { title: t('nav.usuarios'), url: '/admin-usuarios', icon: Users },
+    { title: t('nav.afiliados'), url: '/afiliados', icon: Crown },
+  ];
+
+  const adminItems = [
+    { title: t('nav.gerenciarUsuarios'), url: '/admin/usuarios', icon: Users },
+    { title: t('nav.configuracoes'), url: '/admin-configuracoes', icon: Building2 },
+  ];
 
   const navigationItems = isAdmin ? adminNavigationItems : businessNavigationItems;
   const toolsItems = isAdmin ? adminItems : businessItems;
@@ -73,13 +75,13 @@ export function AppSidebar() {
     try {
       await signOut();
       toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso",
+        title: t('common.logout'),
+        description: t('common.logoutDesc'),
       });
     } catch (error) {
       toast({
-        title: "Erro no logout",
-        description: "Tente novamente",
+        title: t('common.logoutError'),
+        description: t('common.logoutErrorDesc'),
         variant: "destructive",
       });
     }
@@ -126,7 +128,7 @@ export function AppSidebar() {
         <SidebarGroup className="py-2">
           {!isCollapsed && (
             <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1 px-3">
-              {isAdmin ? 'Administração' : 'Menu'}
+              {isAdmin ? t('nav.admin') : t('nav.menu')}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
@@ -134,7 +136,7 @@ export function AppSidebar() {
               {navigationItems.map((item) => {
                 const active = isActive(item.url);
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url} 
@@ -164,7 +166,7 @@ export function AppSidebar() {
         <SidebarGroup className="py-2">
           {!isCollapsed && (
             <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1 px-3">
-              {isAdmin ? 'Sistema' : 'Configurações'}
+              {isAdmin ? t('nav.sistema') : t('nav.settings')}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
@@ -172,7 +174,7 @@ export function AppSidebar() {
               {toolsItems.map((item) => {
                 const active = isActive(item.url);
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url}
@@ -217,7 +219,7 @@ export function AppSidebar() {
           className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${isCollapsed ? 'px-2' : 'justify-start'}`}
         >
           <LogOut className={`h-4 w-4 ${isCollapsed ? '' : 'mr-2'}`} />
-          {!isCollapsed && "Sair"}
+          {!isCollapsed && t('nav.sair')}
         </Button>
       </SidebarFooter>
     </Sidebar>
