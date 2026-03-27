@@ -2208,14 +2208,23 @@ export type Database = {
         Args: { p_receita_id: string }
         Returns: number
       }
-      check_plan_limits: {
-        Args: {
-          feature_count?: number
-          feature_type: string
-          user_uuid: string
-        }
-        Returns: Json
-      }
+      check_plan_limits:
+        | {
+            Args: {
+              feature_count?: number
+              feature_type: string
+              user_uuid: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              feature_count?: number
+              feature_type: string
+              user_uuid: string
+            }
+            Returns: Json
+          }
       count_user_suggestions_24h: {
         Args: { check_user_id: string }
         Returns: number
