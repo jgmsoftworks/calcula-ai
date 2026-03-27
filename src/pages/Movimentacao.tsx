@@ -7,8 +7,10 @@ import { CarrinhoMovimentacao } from '@/components/movimentacao/CarrinhoMoviment
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export default function Movimentacao() {
+  const { t } = useTranslation();
   const { fetchProdutos } = useEstoque();
   const [produtos, setProdutos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export default function Movimentacao() {
       <div className="glass-card p-4 flex items-center gap-3">
         <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
-          placeholder="Busque por nome, código ou código de barras..."
+          placeholder={t('movimentacao.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 border-0 bg-transparent focus-visible:ring-0 h-9 text-sm"

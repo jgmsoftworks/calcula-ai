@@ -4,6 +4,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ExportMarkupModalProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface ExportMarkupModalProps {
 }
 
 export function ExportMarkupModal({ open, onClose, onConfirm, markups, loading }: ExportMarkupModalProps) {
+  const { t } = useTranslation();
   const [selectedMarkup, setSelectedMarkup] = useState<string>('sem-markup');
 
   const handleConfirm = () => {
@@ -31,10 +33,9 @@ export function ExportMarkupModal({ open, onClose, onConfirm, markups, loading }
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Exportar Receitas para Excel</DialogTitle>
+          <DialogTitle>{t('receitas.exportTitle')}</DialogTitle>
           <DialogDescription>
-            Selecione um bloco de markup para simular preços e lucros na exportação.
-            Esta simulação não afetará os valores cadastrados no sistema.
+            {t('receitas.exportDesc')}
           </DialogDescription>
         </DialogHeader>
 
@@ -43,13 +44,13 @@ export function ExportMarkupModal({ open, onClose, onConfirm, markups, loading }
             <div className="flex items-center space-x-2 mb-3">
               <RadioGroupItem value="sem-markup" id="sem-markup" />
               <Label htmlFor="sem-markup" className="cursor-pointer">
-                Sem markup (apenas custos diretos)
+                {t('receitas.noMarkup')}
               </Label>
             </div>
             
             {markups.length === 0 ? (
               <p className="text-sm text-muted-foreground ml-6">
-                Nenhum bloco de markup cadastrado
+                {t('receitas.noMarkupBlocks')}
               </p>
             ) : (
               markups.map((markup) => (
@@ -66,16 +67,16 @@ export function ExportMarkupModal({ open, onClose, onConfirm, markups, loading }
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Exportando...
+                {t('receitas.exporting')}
               </>
             ) : (
-              'Exportar'
+              t('receitas.export')
             )}
           </Button>
         </DialogFooter>

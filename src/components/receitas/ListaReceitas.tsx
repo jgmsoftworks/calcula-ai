@@ -11,9 +11,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { ReceitaCard } from './ReceitaCard';
 import { ReceitaForm } from './ReceitaForm';
 import { ExportMarkupModal } from './ExportMarkupModal';
+import { useTranslation } from 'react-i18next';
 import type { ReceitaComDados } from '@/types/receitas';
 
 export function ListaReceitas() {
+  const { t } = useTranslation();
   const { fetchReceitas, fetchTiposProduto, loading } = useReceitas();
   const { exportarReceitas, exporting } = useExportReceitas();
   const { user } = useAuth();
@@ -183,7 +185,7 @@ export function ListaReceitas() {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle>Receitas</CardTitle>
+            <CardTitle>{t('receitas.recipes')}</CardTitle>
             <div className="flex gap-2 w-full sm:w-auto">
               <Button 
                 onClick={handleExportClick}
@@ -194,18 +196,18 @@ export function ListaReceitas() {
                 {exporting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Exportando...
+                    {t('receitas.exporting')}
                   </>
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Exportar Excel
+                    {t('receitas.exportExcel')}
                   </>
                 )}
               </Button>
               <Button onClick={() => setShowForm(true)} className="flex-1 sm:flex-initial">
                 <Plus className="h-4 w-4 mr-2" />
-                Nova Receita
+                {t('receitas.newRecipe')}
               </Button>
             </div>
           </div>
@@ -215,7 +217,7 @@ export function ListaReceitas() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar receita..."
+                placeholder={t('receitas.searchRecipe')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -223,10 +225,10 @@ export function ListaReceitas() {
             </div>
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Tipo" />
+                <SelectValue placeholder={t('common.type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="all">{t('receitas.allTypes')}</SelectItem>
                 {tiposProduto.map((tipo) => (
                   <SelectItem key={tipo.id} value={tipo.id}>
                   {tipo.nome}
@@ -239,9 +241,9 @@ export function ListaReceitas() {
                 <SelectValue placeholder="Sub-receitas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="subreceita">Apenas Sub-receitas</SelectItem>
-                <SelectItem value="normal">Excluir Sub-receitas</SelectItem>
+                <SelectItem value="all">{t('receitas.allRecipes')}</SelectItem>
+                <SelectItem value="subreceita">{t('receitas.onlySubRecipes')}</SelectItem>
+                <SelectItem value="normal">{t('receitas.excludeSubRecipes')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -252,7 +254,7 @@ export function ListaReceitas() {
             </div>
           ) : receitas.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              Nenhuma receita cadastrada
+              {t('receitas.noRecipes')}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
