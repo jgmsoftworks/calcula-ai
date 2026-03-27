@@ -262,77 +262,81 @@ export function DespesasFixas() {
   };
 
   return (
-    <div className="grid grid-cols-12 gap-6">
+    <div className="grid grid-cols-12 gap-6 animate-fade-in">
       {/* Sidebar com categorias */}
       <div className="col-span-12 lg:col-span-3 space-y-3">
-        <div className="bg-card rounded-lg border p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-sm text-muted-foreground">Categorias</h3>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsCategoriaModalOpen(true)}
-              className="gap-1 h-8 text-xs"
-            >
-              <Plus className="h-3 w-3" />
-              Adicionar
-            </Button>
-          </div>
-          
-          {/* Total geral */}
-          <div className="mb-4 p-2 bg-primary/5 rounded border">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Total Geral:</span>
-               <span className="text-sm font-bold text-primary">
-                 {formatters.valor(getTotalDespesas())}
-               </span>
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Categorias</h3>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsCategoriaModalOpen(true)}
+                className="gap-1 h-7 text-xs rounded-xl border-border/50"
+              >
+                <Plus className="h-3 w-3" />
+                Adicionar
+              </Button>
             </div>
-          </div>
-          <div className="space-y-2">
-            {categorias.map((categoria) => (
-              <button
-                key={categoria.id}
-                onClick={() => setSelectedCategory(categoria.id)}
-                className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  selectedCategory === categoria.id
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-muted/50 text-muted-foreground'
-                }`}
-              >
-                 <div className="flex justify-between items-center">
-                   <span>{categoria.nome}</span>
-                   <span className="text-xs">{formatters.valor(getTotalByCategoria(categoria.id))}</span>
-                 </div>
-              </button>
-            ))}
             
-            {/* Seção "Sem Categoria" */}
-            {getTotalSemCategoria() > 0 && (
-              <button
-                onClick={() => setSelectedCategory('sem-categoria')}
-                className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  selectedCategory === 'sem-categoria'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-muted/50 text-muted-foreground'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="italic">Sem Categoria</span>
-                  <span className="text-xs">{formatters.valor(getTotalSemCategoria())}</span>
-                </div>
-              </button>
-            )}
-          </div>
-        </div>
+            {/* Total geral */}
+            <div className="mb-4 p-3 rounded-xl bg-[#0483e4]/5 border border-[#0483e4]/20">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-muted-foreground">Total Geral</span>
+                <span className="text-sm font-bold font-display text-[#0483e4]">
+                  {formatters.valor(getTotalDespesas())}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              {categorias.map((categoria) => (
+                <button
+                  key={categoria.id}
+                  onClick={() => setSelectedCategory(categoria.id)}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    selectedCategory === categoria.id
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'hover:bg-muted/50 text-muted-foreground border border-transparent'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="truncate">{categoria.nome}</span>
+                    <span className="text-[10px] font-bold ml-2">{formatters.valor(getTotalByCategoria(categoria.id))}</span>
+                  </div>
+                </button>
+              ))}
+              
+              {getTotalSemCategoria() > 0 && (
+                <button
+                  onClick={() => setSelectedCategory('sem-categoria')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    selectedCategory === 'sem-categoria'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'hover:bg-muted/50 text-muted-foreground border border-transparent'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="italic truncate">Sem Categoria</span>
+                    <span className="text-[10px] font-bold ml-2">{formatters.valor(getTotalSemCategoria())}</span>
+                  </div>
+                </button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Conteúdo principal */}
       <div className="col-span-12 lg:col-span-9">
-        <Card>
-          <CardHeader className="pb-4">
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-brand-horizontal" />
+          <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-2xl font-bold text-primary mb-1">
+                <CardTitle className="text-base font-display">
                   {selectedCategory === 'sem-categoria'
                     ? 'Sem Categoria'
                     : selectedCategory 
@@ -340,7 +344,7 @@ export function DespesasFixas() {
                     : 'Despesas Fixas'
                   }
                 </CardTitle>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {selectedCategory === 'sem-categoria'
                     ? 'Despesas que não possuem categoria atribuída'
                     : selectedCategory 
@@ -349,96 +353,82 @@ export function DespesasFixas() {
                   }
                 </p>
               </div>
-               <div className="text-right">
-                 <p className="text-sm text-muted-foreground">Total</p>
-                 <p className="text-2xl font-bold text-primary">
-                   {selectedCategory === 'sem-categoria'
-                     ? formatters.valor(getTotalSemCategoria())
-                     : selectedCategory 
-                     ? formatters.valor(getTotalByCategoria(selectedCategory))
-                     : formatters.valor(getTotalDespesas())
-                   }
-                 </p>
-               </div>
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="text-xl font-bold font-display text-foreground">
+                  {selectedCategory === 'sem-categoria'
+                    ? formatters.valor(getTotalSemCategoria())
+                    : selectedCategory 
+                    ? formatters.valor(getTotalByCategoria(selectedCategory))
+                    : formatters.valor(getTotalDespesas())
+                  }
+                </p>
+              </div>
             </div>
           </CardHeader>
           
           <CardContent>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Lista de Despesas</h3>
+              <h3 className="text-sm font-medium font-display">Lista de Despesas</h3>
               {selectedCategory && selectedCategory !== 'sem-categoria' && (
-                <Button onClick={handleNewDespesa} variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Adicionar Despesa
+                <Button onClick={handleNewDespesa} variant="outline" size="sm" className="gap-1.5 h-8 rounded-xl text-xs border-border/50">
+                  <Plus className="h-3 w-3" />
+                  Adicionar
                 </Button>
               )}
             </div>
 
             {filteredDespesas.length === 0 ? (
-              <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed border-muted">
-                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Package className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-lg font-medium text-muted-foreground mb-2">
+              <div className="text-center py-12 rounded-xl bg-muted/30 border border-dashed border-border/50">
+                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
+                <p className="text-sm font-medium font-display text-muted-foreground mb-1">
                   {selectedCategory ? 'Nenhuma despesa nesta categoria' : 'Selecione uma categoria'}
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {selectedCategory ? 'Clique em Adicionar despesa para começar.' : 'Escolha uma categoria na sidebar para ver suas despesas.'}
+                <p className="text-xs text-muted-foreground">
+                  {selectedCategory ? 'Clique em Adicionar para começar.' : 'Escolha uma categoria na sidebar.'}
                 </p>
               </div>
             ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Valor (R$)</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                <TableBody>
-                  {filteredDespesas.map((despesa) => {
-                    const categoria = categorias.find(c => c.id === despesa.categoria_id);
-                    return (
-                    <TableRow key={despesa.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{despesa.nome}</p>
+              <div className="space-y-2">
+                {filteredDespesas.map((despesa, i) => {
+                  const categoria = categorias.find(c => c.id === despesa.categoria_id);
+                  return (
+                    <div 
+                      key={despesa.id} 
+                      className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/30 hover:border-border/60 transition-all animate-slide-up"
+                      style={{ animationDelay: `${i * 30}ms` }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="p-2 rounded-lg bg-[#0483e4]/10">
+                          <Package className="h-4 w-4 text-[#0483e4]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium font-display truncate">{despesa.nome}</p>
                           {despesa.descricao && (
-                            <p className="text-sm text-muted-foreground">{despesa.descricao}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{despesa.descricao}</p>
                           )}
                           {categoria && (
-                            <Badge variant="secondary" className="mt-1 text-xs">
+                            <Badge variant="secondary" className="mt-0.5 text-[10px] h-4 px-1.5">
                               {categoria.nome}
                             </Badge>
                           )}
                         </div>
-                      </TableCell>
-                       <TableCell className="font-semibold text-lg">{formatters.valor(despesa.valor)}</TableCell>
-                       <TableCell className="text-right">
-                         <div className="flex justify-end gap-1">
-                           <Button
-                             size="sm"
-                             variant="ghost"
-                             onClick={() => handleEdit(despesa)}
-                             className="h-8 w-8 p-0"
-                           >
-                             <Edit className="h-4 w-4" />
-                           </Button>
-                           <Button
-                             size="sm"
-                             variant="ghost"
-                             onClick={() => handleDelete(despesa.id)}
-                             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                           >
-                             <Trash2 className="h-4 w-4" />
-                           </Button>
-                         </div>
-                       </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-bold font-display text-foreground whitespace-nowrap">{formatters.valor(despesa.valor)}</p>
+                        <div className="flex gap-0.5">
+                          <Button size="sm" variant="ghost" onClick={() => handleEdit(despesa)} className="h-8 w-8 p-0 rounded-xl">
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(despesa.id)} className="h-8 w-8 p-0 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -448,51 +438,45 @@ export function DespesasFixas() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl">
+            <DialogTitle className="font-display">
               {editingDespesa ? 'Editar Despesa' : 'Adicionar Despesa'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="nome">Nome da despesa</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="nome" className="text-xs">Nome da despesa</Label>
               <Input
                 id="nome"
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 placeholder="Ex: Aluguel, Energia, Internet..."
-                className="mt-1"
               />
             </div>
-            <div>
-              <Label htmlFor="valor">Valor</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="valor" className="text-xs">Valor</Label>
               <NumericInputPtBr
                 tipo="valor"
                 value={parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0}
                 onChange={(valor) => setFormData({ ...formData, valor: formatCurrencyInput(valor) })}
                 min={0}
-                className="mt-1"
               />
             </div>
-            <div>
-              <Label htmlFor="descricao">Descrição (opcional)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="descricao" className="text-xs">Descrição (opcional)</Label>
               <Textarea
                 id="descricao"
                 value={formData.descricao}
                 onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                 placeholder="Descrição adicional..."
-                className="mt-1 min-h-[80px]"
+                className="min-h-[80px]"
               />
             </div>
             <div className="flex gap-3 pt-2">
-              <Button onClick={handleSave} className="flex-1 gap-2">
+              <Button onClick={handleSave} className="flex-1 gap-2 rounded-xl">
                 <Plus className="h-4 w-4" />
                 {editingDespesa ? 'Atualizar' : 'Salvar'}
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsModalOpen(false)}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-xl">
                 Cancelar
               </Button>
             </div>
@@ -501,10 +485,9 @@ export function DespesasFixas() {
       </Dialog>
 
       <CategoriasDespesasModal
-        isOpen={isCategoriaModalOpen}
-        onClose={() => setIsCategoriaModalOpen(false)}
+        open={isCategoriaModalOpen}
+        onOpenChange={setIsCategoriaModalOpen}
         onCategoriaCreated={handleCategoriaCreated}
-        categorias={categorias}
         onCategoriaUpdated={handleCategoriaUpdated}
       />
     </div>

@@ -618,84 +618,62 @@ export function FolhaPagamento() {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <CardTitle className="text-xl font-semibold">Folha de Pagamento</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Total da Folha: {formatCurrency(getTotalFolha())}
+          <h1 className="text-2xl font-bold font-display text-foreground">Folha de Pagamento</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Total da Folha: <span className="font-bold text-foreground">{formatCurrency(getTotalFolha())}</span>
           </p>
         </div>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleNewFuncionario} className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button onClick={handleNewFuncionario} size="sm" className="gap-1.5 rounded-xl h-9">
+              <Plus className="h-3.5 w-3.5" />
               Novo Funcionário
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="font-display">
                 {editingFuncionario ? 'Editar Funcionário' : 'Novo Funcionário'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-6">
               {/* Dados básicos */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="tipo_mao_obra">Tipo de Mão de Obra *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="tipo_mao_obra" className="text-xs">Tipo de Mão de Obra *</Label>
                   <Select value={formData.tipo_mao_obra} onValueChange={(value) => setFormData({ ...formData, tipo_mao_obra: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="direta">Direta</SelectItem>
                       <SelectItem value="indireta">Indireta</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="nome">Nome *</Label>
-                  <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    placeholder="Ex: João Silva"
-                  />
+                <div className="space-y-1.5">
+                  <Label htmlFor="nome" className="text-xs">Nome *</Label>
+                  <Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} placeholder="Ex: João Silva" />
                 </div>
-                <div>
-                  <Label htmlFor="cargo">Cargo *</Label>
-                  <Input
-                    id="cargo"
-                    value={formData.cargo}
-                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                    placeholder="Ex: Vendedor, Gerente..."
-                  />
+                <div className="space-y-1.5">
+                  <Label htmlFor="cargo" className="text-xs">Cargo *</Label>
+                  <Input id="cargo" value={formData.cargo} onChange={(e) => setFormData({ ...formData, cargo: e.target.value })} placeholder="Ex: Vendedor, Gerente..." />
                 </div>
-                <div>
-                  <Label htmlFor="salario_base">Salário Bruto *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="salario_base" className="text-xs">Salário Bruto *</Label>
                   <div className="relative">
-                    <Input
-                      id="salario_base"
-                      type="text"
-                      value={formData.salario_base}
-                      onChange={(e) => handleSalarioBaseChange(e.target.value)}
-                      placeholder="0,00"
-                      className="pl-8"
-                      autoComplete="off"
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      spellCheck="false"
-                    />
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                    <Input id="salario_base" type="text" value={formData.salario_base} onChange={(e) => handleSalarioBaseChange(e.target.value)} placeholder="0,00" className="pl-8" autoComplete="off" />
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                   </div>
                 </div>
               </div>
 
               {/* Encargos */}
               <div>
-                <h4 className="text-lg font-semibold mb-4">Encargos sobre o Salário</h4>
-                <div className="space-y-3">
+                <h4 className="text-sm font-semibold font-display mb-3">Encargos sobre o Salário</h4>
+                <div className="space-y-2">
                   {[
                     { label: 'FGTS', percentKey: 'fgts_percent', valorKey: 'fgts_valor' },
                     { label: 'INSS', percentKey: 'inss_percent', valorKey: 'inss_valor' },
@@ -707,118 +685,51 @@ export function FolhaPagamento() {
                     { label: 'Plano de Saúde', percentKey: 'plano_saude_percent', valorKey: 'plano_saude_valor' },
                     { label: 'Outros', percentKey: 'outros_percent', valorKey: 'outros_valor' }
                   ].map((encargo) => (
-                    <div key={encargo.label} className="grid grid-cols-[1fr_120px_140px] gap-4 items-center">
-                      <Label className="text-primary font-medium">{encargo.label}</Label>
-                      
-                      {/* Campo de Porcentagem */}
+                    <div key={encargo.label} className="grid grid-cols-[1fr_110px_130px] gap-3 items-center">
+                      <Label className="text-xs font-medium">{encargo.label}</Label>
                       <div className="relative">
-                        <Input
-                          type="text"
-                          value={formData[encargo.percentKey as keyof typeof formData]}
-                          onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)}
-                          onKeyDown={handleInputKeyDown}
-                          onWheel={handleInputWheel}
-                          placeholder="0,00"
-                          className="pr-6"
-                          autoComplete="off"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                        <Input type="text" value={formData[encargo.percentKey as keyof typeof formData]} onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)} onKeyDown={handleInputKeyDown} onWheel={handleInputWheel} placeholder="0,00" className="pr-6 h-8 text-sm" autoComplete="off" />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                       </div>
-                      
-                      {/* Campo de Valor */}
                       <div className="relative">
-                        <Input
-                          type="text"
-                          value={formData[encargo.valorKey as keyof typeof formData]}
-                          onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)}
-                          onKeyDown={handleInputKeyDown}
-                          onWheel={handleInputWheel}
-                          placeholder="0,00"
-                          className="pl-8"
-                          autoComplete="off"
-                        />
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                        <Input type="text" value={formData[encargo.valorKey as keyof typeof formData]} onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)} onKeyDown={handleInputKeyDown} onWheel={handleInputWheel} placeholder="0,00" className="pl-7 h-8 text-sm" autoComplete="off" />
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Calculadora de Horas */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-4">Calculadora de Horas</h4>
+                <div className="mt-6">
+                  <h4 className="text-sm font-semibold font-display mb-3">Calculadora de Horas</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="horas_por_dia">Horas por Dia</Label>
-                      <Input
-                        id="horas_por_dia"
-                        type="text"
-                        key={`horas-${formData.horas_por_dia}`}
-                        defaultValue={formatDecimalNumber(formData.horas_por_dia)}
-                        onBlur={(e) => {
-                          const parsed = parseInputValue(e.target.value);
-                          handleHorasChange('horas_por_dia', e.target.value);
-                          e.target.value = formatDecimalNumber(parsed);
-                        }}
-                        placeholder="8"
-                        autoComplete="off"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                      />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="horas_por_dia" className="text-xs">Horas por Dia</Label>
+                      <Input id="horas_por_dia" type="text" key={`horas-${formData.horas_por_dia}`} defaultValue={formatDecimalNumber(formData.horas_por_dia)} onBlur={(e) => { const parsed = parseInputValue(e.target.value); handleHorasChange('horas_por_dia', e.target.value); e.target.value = formatDecimalNumber(parsed); }} placeholder="8" autoComplete="off" />
                     </div>
-                    <div>
-                      <Label htmlFor="dias_por_semana">Dias por Semana</Label>
-                      <Input
-                        id="dias_por_semana"
-                        type="text"
-                        key={`dias-${formData.dias_por_semana}`}
-                        defaultValue={formatDecimalNumber(formData.dias_por_semana)}
-                        onBlur={(e) => {
-                          const parsed = parseInputValue(e.target.value);
-                          handleHorasChange('dias_por_semana', e.target.value);
-                          e.target.value = formatDecimalNumber(parsed);
-                        }}
-                        placeholder="5"
-                        autoComplete="off"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                      />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dias_por_semana" className="text-xs">Dias por Semana</Label>
+                      <Input id="dias_por_semana" type="text" key={`dias-${formData.dias_por_semana}`} defaultValue={formatDecimalNumber(formData.dias_por_semana)} onBlur={(e) => { const parsed = parseInputValue(e.target.value); handleHorasChange('dias_por_semana', e.target.value); e.target.value = formatDecimalNumber(parsed); }} placeholder="5" autoComplete="off" />
                     </div>
-                    <div>
-                      <Label htmlFor="semanas_por_mes">Semanas por Mês</Label>
-                      <Input
-                        id="semanas_por_mes"
-                        type="text"
-                        key={`semanas-${formData.semanas_por_mes}`}
-                        defaultValue={formatDecimalNumber(formData.semanas_por_mes)}
-                        onBlur={(e) => {
-                          const parsed = parseInputValue(e.target.value);
-                          handleHorasChange('semanas_por_mes', e.target.value);
-                          e.target.value = formatDecimalNumber(parsed);
-                        }}
-                        placeholder="4,33"
-                        autoComplete="off"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                      />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="semanas_por_mes" className="text-xs">Semanas por Mês</Label>
+                      <Input id="semanas_por_mes" type="text" key={`semanas-${formData.semanas_por_mes}`} defaultValue={formatDecimalNumber(formData.semanas_por_mes)} onBlur={(e) => { const parsed = parseInputValue(e.target.value); handleHorasChange('semanas_por_mes', e.target.value); e.target.value = formatDecimalNumber(parsed); }} placeholder="4,33" autoComplete="off" />
                     </div>
                   </div>
                   
-                  <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                    <div className="text-center mb-4">
-                      <p className="text-sm text-muted-foreground">Custo Total deste Funcionário</p>
-                      <p className="text-xl font-bold text-primary">R$ {formatCurrencyDisplay(calculateCustoTotalFormulario())}</p>
+                  <div className="mt-4 p-4 rounded-xl bg-[#0483e4]/5 border border-[#0483e4]/20">
+                    <div className="text-center mb-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo Total deste Funcionário</p>
+                      <p className="text-xl font-bold font-display text-[#0483e4]">R$ {formatCurrencyDisplay(calculateCustoTotalFormulario())}</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                    <div className="grid grid-cols-2 gap-4 text-center">
                       <div>
-                        <p className="text-sm text-muted-foreground">Total de Horas por Mês</p>
-                        <p className="text-lg font-semibold">{calculateHorasTotais()}h</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Horas/Mês</p>
+                        <p className="text-sm font-bold font-display">{calculateHorasTotais()}h</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Custo por Hora</p>
-                        <p className="text-lg font-semibold text-primary">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo/Hora</p>
+                        <p className="text-sm font-bold font-display text-[#7328b1]">
                           {calculateHorasTotais() > 0 ? `R$ ${formatCustoPorHora(calculateCustoPorHora())}` : "—"}
                         </p>
                       </div>
@@ -828,95 +739,95 @@ export function FolhaPagamento() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleSave} className="flex-1">
+                <Button onClick={handleSave} className="flex-1 rounded-xl">
                   {editingFuncionario ? 'Atualizar' : 'Salvar'}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-xl">
                   Cancelar
                 </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Cargo</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Valor da Mão de Obra</TableHead>
-              <TableHead>Valor Total do Funcionário</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {funcionarios.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Nenhum funcionário cadastrado
-                </TableCell>
-              </TableRow>
-            ) : (
-              funcionarios.map((funcionario) => (
-                <TableRow key={funcionario.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {funcionario.nome}
+      </div>
+
+      {/* Lista de funcionários */}
+      {funcionarios.length === 0 ? (
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-brand-horizontal" />
+          <CardContent className="p-12 text-center">
+            <User className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
+            <p className="text-sm font-medium font-display mb-1">Nenhum funcionário cadastrado</p>
+            <p className="text-xs text-muted-foreground">Clique em "Novo Funcionário" para começar</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {funcionarios.map((funcionario, i) => (
+            <Card key={funcionario.id} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
+              <div className={`h-1 bg-gradient-to-r ${funcionario.tipo_mao_obra === 'direta' ? 'from-[#16a34a] to-[#15803d]' : 'from-[#0483e4] to-[#2c4dc7]'}`} />
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`p-2 rounded-xl ${funcionario.tipo_mao_obra === 'direta' ? 'bg-[#16a34a]/10' : 'bg-[#0483e4]/10'}`}>
+                      <User className={`h-5 w-5 ${funcionario.tipo_mao_obra === 'direta' ? 'text-[#16a34a]' : 'text-[#0483e4]'}`} />
                     </div>
-                  </TableCell>
-                  <TableCell>{funcionario.cargo}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      funcionario.tipo_mao_obra === 'direta' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {funcionario.tipo_mao_obra === 'direta' ? 'Direta' : 'Indireta'}
-                    </span>
-                  </TableCell>
-                  <TableCell>R$ {formatCurrencyDisplay(calculateCustoPorHoraFuncionario(funcionario))}</TableCell>
-                  <TableCell className="font-semibold text-primary">
-                    R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEdit(funcionario)}
-                      >
-                        <Edit className="h-4 w-4" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium font-display truncate">{funcionario.nome}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          funcionario.tipo_mao_obra === 'direta' 
+                            ? 'bg-[#16a34a]/10 text-[#16a34a]' 
+                            : 'bg-[#0483e4]/10 text-[#0483e4]'
+                        }`}>
+                          {funcionario.tipo_mao_obra === 'direta' ? 'Direta' : 'Indireta'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{funcionario.cargo}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-6">
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo/Hora</p>
+                        <p className="text-sm font-bold font-display text-[#7328b1]">R$ {formatCurrencyDisplay(calculateCustoPorHoraFuncionario(funcionario))}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+                        <p className="text-sm font-bold font-display text-foreground">R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-0.5">
+                      <Button size="sm" variant="ghost" onClick={() => handleEdit(funcionario)} className="h-8 w-8 p-0 rounded-xl">
+                        <Edit className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDuplicate(funcionario)}
-                        title="Duplicar funcionário"
-                      >
-                        <Copy className="h-4 w-4" />
+                      <Button size="sm" variant="ghost" onClick={() => handleDuplicate(funcionario)} className="h-8 w-8 p-0 rounded-xl" title="Duplicar">
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(funcionario.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(funcionario.id)} className="h-8 w-8 p-0 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  </div>
+                </div>
+
+                {/* Mobile: show values */}
+                <div className="flex md:hidden items-center gap-4 mt-2 pt-2 border-t border-border/30">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Custo/Hora</p>
+                    <p className="text-xs font-bold text-[#7328b1]">R$ {formatCurrencyDisplay(calculateCustoPorHoraFuncionario(funcionario))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Total</p>
+                    <p className="text-xs font-bold">R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
