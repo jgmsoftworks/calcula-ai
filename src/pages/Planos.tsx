@@ -122,7 +122,7 @@ const Planos = () => {
     { label: 'Receitas', free: '5', professional: '60', enterprise: 'Ilimitado' },
     { label: 'Blocos de Markup', free: '1', professional: '3', enterprise: 'Ilimitado' },
     { label: 'Movimentação de Estoque', free: true, professional: true, enterprise: true },
-    { label: 'Impressão PDF', free: false, professional: '80/mês', enterprise: 'Ilimitado' },
+    { label: 'Impressão de Ficha Técnica', free: false, professional: '80 cópias/mês', enterprise: 'Ilimitado' },
     { label: 'Simulador de Preços', free: false, professional: true, enterprise: true },
     { label: 'Suporte Prioritário', free: false, professional: false, enterprise: true },
   ];
