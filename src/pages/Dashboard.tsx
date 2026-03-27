@@ -23,9 +23,11 @@ import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CmvCard } from '@/components/dashboard/CmvCard';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 
 const Dashboard = () => {
+  const { t, i18n } = useTranslation();
   const { user, isAdmin } = useAuth();
   const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
   const { data: adminData, refreshData: refreshAdminData } = useAdminData();
@@ -33,10 +35,11 @@ const Dashboard = () => {
   const isAdminView = isAdmin;
   const currentData = isAdminView ? adminData : data;
   const currentRefresh = isAdminView ? refreshAdminData : refreshData;
+  const dateLocale = i18n.language === 'pt-BR' ? ptBR : enUS;
 
   const adminStats = [
     {
-      title: 'Total de Usuários',
+      title: t('dashboard.totalUsers'),
       value: adminData.totalUsers.toString(),
       icon: Users,
       gradient: 'from-[#0483e4] to-[#2c4dc7]',
@@ -44,7 +47,7 @@ const Dashboard = () => {
       iconColor: 'text-[#0483e4]',
     },
     {
-      title: 'Assinantes Ativos',
+      title: t('dashboard.activeSubscriptions'),
       value: adminData.activeSubscriptions.toString(),
       icon: Crown,
       gradient: 'from-[#7328b1] to-[#af1188]',
@@ -52,7 +55,7 @@ const Dashboard = () => {
       iconColor: 'text-[#7328b1]',
     },
     {
-      title: 'Receita Mensal',
+      title: t('dashboard.monthlyRevenue'),
       value: `R$ ${adminData.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
       gradient: 'from-[#dd0b52] to-[#f96e0c]',
@@ -63,7 +66,7 @@ const Dashboard = () => {
 
   const userStats = [
     {
-      title: 'Valor em Estoque',
+      title: t('dashboard.stockValue'),
       value: `R$ ${data.valorEmEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: Package,
       gradient: 'from-[#0483e4] to-[#2c4dc7]',
@@ -71,7 +74,7 @@ const Dashboard = () => {
       iconColor: 'text-[#0483e4]',
     },
     {
-      title: 'Entradas (mês atual)',
+      title: t('dashboard.entriesMonth'),
       value: `R$ ${data.totalEntradasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: ArrowUpRight,
       gradient: 'from-[#16a34a] to-[#15803d]',
@@ -79,7 +82,7 @@ const Dashboard = () => {
       iconColor: 'text-[#16a34a]',
     },
     {
-      title: 'Saídas (mês atual)',
+      title: t('dashboard.exitsMonth'),
       value: `R$ ${data.totalSaidasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: ArrowDownRight,
       gradient: 'from-[#7328b1] to-[#af1188]',
@@ -95,7 +98,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4 animate-fade-in">
           <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground text-sm">Carregando dados...</p>
+          <p className="text-muted-foreground text-sm">{t('dashboard.loadingData')}</p>
         </div>
       </div>
     );
@@ -107,10 +110,10 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-display text-foreground">
-            {isAdminView ? 'Painel Admin' : `Olá, ${user?.email?.split('@')[0] || 'usuário'}`}
+            {isAdminView ? t('dashboard.adminPanel') : t('dashboard.hello', { name: user?.email?.split('@')[0] || 'user' })}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: dateLocale })}
           </p>
         </div>
         
@@ -120,13 +123,13 @@ const Dashboard = () => {
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5 rounded-xl h-9 border-border/50">
                   <Filter className="h-3.5 w-3.5" />
-                  Filtros
+                  {t('dashboard.filters')}
                 </Button>
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Filtros</SheetTitle>
-                  <SheetDescription>Personalize o período de análise</SheetDescription>
+                  <SheetTitle>{t('dashboard.filters')}</SheetTitle>
+                  <SheetDescription>{t('dashboard.customizePeriod')}</SheetDescription>
                 </SheetHeader>
                 <div className="py-6">
                   <DashboardFilters
@@ -148,7 +151,7 @@ const Dashboard = () => {
             className="gap-1.5 rounded-xl h-9 border-border/50"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
-            Atualizar
+            {t('dashboard.refresh')}
           </Button>
         </div>
       </div>
@@ -186,9 +189,9 @@ const Dashboard = () => {
         <Card className="glass-card overflow-hidden">
           <div className="h-1 bg-gradient-brand-horizontal" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">Movimentações Diárias</CardTitle>
+            <CardTitle className="text-base font-display">{t('dashboard.dailyMovements')}</CardTitle>
             <CardDescription className="text-xs mt-0.5">
-              Entradas e saídas por dia no mês atual
+              {t('dashboard.dailyMovementsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
@@ -224,12 +227,12 @@ const Dashboard = () => {
                       }}
                       formatter={(value: number, name: string) => [
                         `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                        name === 'entradas' ? 'Entradas' : 'Saídas'
+                        name === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')
                       ]}
-                      labelFormatter={(label) => `Dia ${label}`}
+                      labelFormatter={(label) => `${t('dashboard.day')} ${label}`}
                     />
                     <Legend 
-                      formatter={(value) => value === 'entradas' ? 'Entradas' : 'Saídas'}
+                      formatter={(value) => value === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')}
                     />
                     <Bar dataKey="entradas" fill="#16a34a" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="saidas" fill="#7328b1" radius={[2, 2, 0, 0]} />
@@ -239,7 +242,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   <div className="text-center space-y-2">
                     <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
-                    <p className="text-xs">Sem dados disponíveis</p>
+                    <p className="text-xs">{t('dashboard.noData')}</p>
                   </div>
                 </div>
               )}
@@ -257,7 +260,7 @@ const Dashboard = () => {
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Saldo Inicial do Estoque (mês)
+                    {t('dashboard.initialBalance')}
                   </p>
                   {data.cmvResult.breakdown.estoqueInicial !== null ? (
                     <div>
@@ -265,13 +268,13 @@ const Dashboard = () => {
                         R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                       {data.cmvResult.breakdown.estoqueInicialEstimado && (
-                        <span className="text-xs text-muted-foreground mt-1 inline-block">(estimado)</span>
+                        <span className="text-xs text-muted-foreground mt-1 inline-block">{t('dashboard.estimated')}</span>
                       )}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">Sem dados para estimar</span>
+                      <span className="text-sm">{t('dashboard.noEstimateData')}</span>
                     </div>
                   )}
                 </div>
@@ -288,12 +291,12 @@ const Dashboard = () => {
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    CMV %
+                    {t('dashboard.cmvPercent')}
                   </p>
                   {!data.cmvResult.cmvDisponivel ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">Indisponível</span>
+                      <span className="text-sm">{t('dashboard.unavailable')}</span>
                     </div>
                   ) : data.cmvResult.cmvPercentual !== null ? (
                     <p className="text-3xl font-bold font-display text-foreground">
@@ -302,7 +305,7 @@ const Dashboard = () => {
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">Sem vendas no período</span>
+                      <span className="text-sm">{t('dashboard.noSales')}</span>
                     </div>
                   )}
                 </div>
