@@ -7,6 +7,7 @@ import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const planGradients: Record<PlanType, string> = {
   free: 'from-[#0483e4] to-[#2c4dc7]',
@@ -27,6 +28,7 @@ const planBgAccent: Record<PlanType, string> = {
 };
 
 const Planos = () => {
+  const { t } = useTranslation();
   const { currentPlan, planInfo, loading, reloadPlan } = usePlanLimits();
   const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
@@ -40,8 +42,8 @@ const Planos = () => {
 
     if (success === 'true') {
       toast({
-        title: 'Pagamento realizado com sucesso!',
-        description: 'Seu plano foi atualizado. Pode levar alguns minutos para refletir.',
+        title: t('plans.paymentSuccess'),
+        description: t('plans.paymentSuccessDesc'),
       });
       reloadPlan();
       window.history.replaceState({}, '', '/planos');
@@ -49,13 +51,13 @@ const Planos = () => {
 
     if (canceled === 'true') {
       toast({
-        title: 'Pagamento cancelado',
-        description: 'Você pode tentar novamente a qualquer momento.',
+        title: t('plans.paymentCanceled'),
+        description: t('plans.paymentCanceledDesc'),
         variant: 'destructive'
       });
       window.history.replaceState({}, '', '/planos');
     }
-  }, [toast, reloadPlan]);
+  }, [toast, reloadPlan, t]);
 
   const handleSelectPlan = async (planType: PlanType) => {
     if (planType === currentPlan) {
@@ -79,8 +81,8 @@ const Planos = () => {
     } catch (error) {
       console.error('Erro ao processar plano:', error);
       toast({
-        title: 'Erro',
-        description: 'Erro ao processar alteração de plano. Tente novamente.',
+        title: t('plans.error'),
+        description: t('plans.planChangeError'),
         variant: 'destructive',
       });
     } finally {
@@ -98,14 +100,14 @@ const Planos = () => {
 
   const getPrice = (planType: PlanType) => {
     const config = PLAN_CONFIGS[planType];
-    if (planType === 'free') return { main: 'Grátis', sub: 'para sempre' };
+    if (planType === 'free') return { main: t('plans.free'), sub: t('plans.forever') };
     
     const price = isYearly ? config.yearlyPrice : config.price;
     const monthly = isYearly ? (config.yearlyPrice / 12).toFixed(2).replace('.', ',') : null;
     
     return {
       main: `R$ ${price.toFixed(2).replace('.', ',')}`,
-      sub: isYearly ? `/ano (R$ ${monthly}/mês)` : '/mês'
+      sub: isYearly ? t('plans.perYearMonthly', { monthly }) : t('plans.perMonth')
     };
   };
 
@@ -118,14 +120,14 @@ const Planos = () => {
   };
 
   const comparisonRows = [
-    { label: 'Matéria-prima', free: '30', professional: 'Ilimitado', enterprise: 'Ilimitado' },
-    { label: 'Receitas', free: '5', professional: '60', enterprise: 'Ilimitado' },
-    { label: 'Blocos de Markup', free: '1', professional: '3', enterprise: 'Ilimitado' },
-    { label: 'Movimentação de Estoque', free: true, professional: true, enterprise: true },
-    { label: 'Impressão de Ficha Técnica', free: false, professional: '80 cópias/mês', enterprise: 'Ilimitado' },
-    { label: 'Simulador de Preços', free: false, professional: true, enterprise: true },
-    { label: 'Suporte', free: false, professional: true, enterprise: true },
-    { label: 'Suporte Personalizado', free: false, professional: false, enterprise: true },
+    { label: t('plans.rawMaterials'), free: '30', professional: t('plans.unlimited'), enterprise: t('plans.unlimited') },
+    { label: t('plans.recipes'), free: '5', professional: '60', enterprise: t('plans.unlimited') },
+    { label: t('plans.markupBlocks'), free: '1', professional: '3', enterprise: t('plans.unlimited') },
+    { label: t('plans.stockMovement'), free: true, professional: true, enterprise: true },
+    { label: t('plans.techSheetPrint'), free: false, professional: t('plans.copiesPerMonth', { count: 80 }), enterprise: t('plans.unlimited') },
+    { label: t('plans.priceSimulator'), free: false, professional: true, enterprise: true },
+    { label: t('plans.support'), free: false, professional: true, enterprise: true },
+    { label: t('plans.personalizedSupport'), free: false, professional: false, enterprise: true },
   ];
 
   if (loading) {
@@ -133,7 +135,7 @@ const Planos = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando informações do plano...</p>
+          <p className="text-muted-foreground">{t('plans.loadingPlan')}</p>
         </div>
       </div>
     );
@@ -147,10 +149,10 @@ const Planos = () => {
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-3xl font-bold font-display text-foreground">
-          Escolha seu Plano
+          {t('plans.chooseYourPlan')}
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Selecione o plano ideal para o seu negócio e comece a precificar com inteligência
+          {t('plans.choosePlanDesc')}
         </p>
       </div>
 
@@ -158,7 +160,7 @@ const Planos = () => {
       <div className="flex items-center justify-center gap-4 animate-slide-up">
         <div className="glass-card px-6 py-3 flex items-center gap-4">
           <Label className={`text-sm font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-            Mensal
+            {t('plans.monthly')}
           </Label>
           <Switch
             checked={isYearly}
@@ -166,7 +168,7 @@ const Planos = () => {
             className="data-[state=checked]:bg-primary"
           />
           <Label className={`text-sm font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-            Anual
+            {t('plans.yearly')}
           </Label>
           {isYearly && (
             <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
@@ -203,7 +205,7 @@ const Planos = () => {
               {isProfessional && (
                 <div className="absolute top-4 right-4">
                   <Badge className="bg-gradient-to-r from-[#7328b1] to-[#af1188] text-white border-0 text-[10px] uppercase tracking-wider font-bold">
-                    ⭐ Popular
+                    {t('plans.popular')}
                   </Badge>
                 </div>
               )}
@@ -217,7 +219,7 @@ const Planos = () => {
                   <div>
                     <h3 className="text-lg font-bold font-display text-foreground">{config.name}</h3>
                     {isCurrentPlan && (
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary">Plano atual</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary">{t('plans.currentPlan')}</span>
                     )}
                   </div>
                 </div>
@@ -230,7 +232,7 @@ const Planos = () => {
                   </div>
                   {savings && (
                     <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
-                      Economize {savings}%
+                      {t('plans.save', { percent: savings })}
                     </Badge>
                   )}
                 </div>
@@ -261,17 +263,17 @@ const Planos = () => {
                   {processingPlan === planType ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
-                      Processando...
+                      {t('plans.processing')}
                     </div>
                   ) : isCurrentPlan && planType !== 'free' ? (
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4" />
-                      Gerenciar Assinatura
+                      {t('plans.manageSubscription')}
                     </div>
                   ) : isCurrentPlan ? (
-                    'Plano Atual'
+                    t('plans.currentPlan')
                   ) : (
-                    `Escolher ${config.name}`
+                    t('plans.choosePlan', { name: config.name })
                   )}
                 </Button>
               </div>
@@ -284,16 +286,16 @@ const Planos = () => {
       <div className="glass-card overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
         <div className="h-1 bg-gradient-to-r from-[#0483e4] via-[#7328b1] to-[#f96e0c]" />
         <div className="p-5 border-b border-border/30">
-          <h2 className="text-lg font-bold font-display text-foreground">Comparação Detalhada</h2>
+          <h2 className="text-lg font-bold font-display text-foreground">{t('plans.detailedComparison')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/30 bg-muted/20">
-                <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recurso</th>
+                <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('plans.feature')}</th>
                 <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Free</th>
-                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-[#7328b1] bg-[#7328b1]/5">Profissional</th>
-                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresarial</th>
+                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-[#7328b1] bg-[#7328b1]/5">{t('plans.professional')}</th>
+                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('plans.enterprise')}</th>
               </tr>
             </thead>
             <tbody className="text-sm">
@@ -326,12 +328,12 @@ const Planos = () => {
       <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground pb-6 animate-fade-in">
         <div className="flex items-center gap-1.5">
           <Shield className="h-3.5 w-3.5" />
-          Pagamento seguro via Stripe
+          {t('plans.securePayment')}
         </div>
         <span className="text-border">•</span>
-        <span>Cancele quando quiser</span>
+        <span>{t('plans.cancelAnytime')}</span>
         <span className="text-border">•</span>
-        <span>Dados preservados</span>
+        <span>{t('plans.dataPreserved')}</span>
       </div>
     </div>
   );

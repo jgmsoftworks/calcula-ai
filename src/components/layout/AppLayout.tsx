@@ -8,33 +8,19 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon } from 'lucide-react';
+import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Languages } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { useTranslation } from 'react-i18next';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const getPageInfo = (pathname: string): { title: string; description: string; } => {
-  const pageMap: Record<string, { title: string; description: string; }> = {
-    '/': { title: 'Dashboard', description: 'Visão geral do seu negócio' },
-    '/estoque': { title: 'Estoque', description: 'Gerencie seus produtos' },
-    '/movimentacao': { title: 'Movimentações', description: 'Entradas e saídas' },
-    '/custos': { title: 'Custos', description: 'Despesas, folha e encargos' },
-    '/precificacao': { title: 'Precificação', description: 'Defina seus preços' },
-    '/perfil': { title: 'Perfil', description: 'Configurações da empresa' },
-    '/receitas': { title: 'Receitas', description: 'Monte e precifique receitas' },
-    '/planos': { title: 'Planos', description: 'Gerencie sua assinatura' },
-    '/tutorial': { title: 'Tutorial', description: 'Aprenda a usar o sistema' },
-  };
-  
-  return pageMap[pathname] || { title: 'CalculaAi', description: '' };
-};
-
 export const AppLayout = ({ children }: AppLayoutProps) => {
+  const { t, i18n } = useTranslation();
   const { user, loading, emailVerified, resendConfirmation } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const currentTheme = theme || resolvedTheme || 'light';
@@ -44,6 +30,28 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const [isResending, setIsResending] = useState(false);
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
   const { toast } = useToast();
+
+  const getPageInfo = (pathname: string) => {
+    const pageMap: Record<string, string> = {
+      '/': 'dashboard',
+      '/estoque': 'estoque',
+      '/movimentacao': 'movimentacao',
+      '/custos': 'custos',
+      '/precificacao': 'precificacao',
+      '/perfil': 'perfil',
+      '/receitas': 'receitas',
+      '/planos': 'planos',
+      '/tutorial': 'tutorial',
+    };
+    const key = pageMap[pathname];
+    if (key) {
+      return {
+        title: t(`pages.${key}.title`),
+        description: t(`pages.${key}.description`),
+      };
+    }
+    return { title: 'CalculaAi', description: '' };
+  };
   
   useEffect(() => {
     const fragment = window.location.hash;
@@ -64,18 +72,23 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       const { error } = await resendConfirmation(user.email);
       if (error) throw error;
       toast({
-        title: "Email reenviado!",
-        description: "Verifique sua caixa de entrada e pasta de spam.",
+        title: t('header.emailResent'),
+        description: t('header.emailResentDesc'),
       });
     } catch (error: any) {
       toast({
-        title: "Erro ao reenviar email",
-        description: error.message || "Tente novamente",
+        title: t('header.emailResendError'),
+        description: error.message || t('common.error'),
         variant: "destructive",
       });
     } finally {
       setIsResending(false);
     }
+  };
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
+    i18n.changeLanguage(newLang);
   };
 
   useEffect(() => {
@@ -91,7 +104,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex flex-col items-center space-y-4 animate-fade-in">
           <LoadingSpinner size="lg" />
           <p className="text-muted-foreground text-sm">
-            {hasAuthFragment ? "Processando autenticação..." : "Carregando..."}
+            {hasAuthFragment ? t('header.processing') : t('header.loading')}
           </p>
         </div>
       </div>
@@ -122,6 +135,25 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                   {pageInfo.title}
                 </h2>
               </div>
+
+              {/* Language Toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full"
+                    onClick={toggleLanguage}
+                  >
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {i18n.language === 'pt-BR' ? 'PT' : 'EN'}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {i18n.language === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
+                </TooltipContent>
+              </Tooltip>
               
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -138,7 +170,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{currentTheme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</TooltipContent>
+                <TooltipContent>{currentTheme === 'dark' ? t('header.lightMode') : t('header.darkMode')}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -151,7 +183,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Tutorial</TooltipContent>
+                <TooltipContent>{t('header.tutorial')}</TooltipContent>
               </Tooltip>
               <NotificationCenter />
             </div>
@@ -162,7 +194,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 <Alert className="border-orange/30 bg-orange/5 text-foreground">
                   <Mail className="h-4 w-4 text-orange" />
                   <AlertDescription className="flex items-center justify-between text-sm">
-                    <span>Confirme seu email para acesso completo.</span>
+                    <span>{t('header.confirmEmail')}</span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -173,7 +205,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                       {isResending ? (
                         <RefreshCw className="h-3 w-3 animate-spin" />
                       ) : (
-                        "Reenviar"
+                        t('header.resend')
                       )}
                     </Button>
                   </AlertDescription>
