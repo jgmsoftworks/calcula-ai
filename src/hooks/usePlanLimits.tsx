@@ -59,7 +59,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
       'Até 3 blocos de markup',
       'Movimentação de estoque',
       'Simulador de preços',
-      '80 PDFs por mês',
+      '80 impressões de ficha técnica/mês',
     ],
   },
   enterprise: {
@@ -190,7 +190,7 @@ export const usePlanLimits = () => {
         suggestedPlan = 'Profissional';
         break;
       case 'pdf_exports':
-        featureName = 'exportação de PDFs';
+        featureName = 'impressão de fichas técnicas';
         suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
         break;
     }
