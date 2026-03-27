@@ -124,7 +124,8 @@ const Planos = () => {
     { label: 'Movimentação de Estoque', free: true, professional: true, enterprise: true },
     { label: 'Impressão de Ficha Técnica', free: false, professional: '80 cópias/mês', enterprise: 'Ilimitado' },
     { label: 'Simulador de Preços', free: false, professional: true, enterprise: true },
-    { label: 'Suporte Prioritário', free: false, professional: false, enterprise: true },
+    { label: 'Suporte', free: false, professional: true, enterprise: true },
+    { label: 'Suporte Personalizado', free: false, professional: false, enterprise: true },
   ];
 
   if (loading) {
