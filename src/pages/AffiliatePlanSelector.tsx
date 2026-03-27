@@ -22,7 +22,7 @@ const plans: PlanData[] = [
     name: 'Professional Mensal',
     price: 49.90,
     billing: 'monthly',
-    features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Sistema de Vitrine', 'Simulador de preços', '80 PDFs por mês'],
+    features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Simulador de preços', '80 impressões de ficha técnica/mês'],
     icon: <Star className="h-5 w-5" />
   },
   {
@@ -30,7 +30,7 @@ const plans: PlanData[] = [
     price: 478.80,
     billing: 'yearly',
     popular: true,
-    features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Sistema de Vitrine', 'Simulador de preços', '80 PDFs por mês'],
+    features: ['Matéria-prima ilimitada', 'Máx. 60 receitas', 'Até 3 blocos de markup', 'Movimentação de estoque', 'Simulador de preços', '80 impressões de ficha técnica/mês'],
     icon: <Star className="h-5 w-5" />
   },
   {
