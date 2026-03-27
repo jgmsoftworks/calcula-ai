@@ -8,12 +8,19 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Languages } from 'lucide-react';
+import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Globe } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { useTranslation } from 'react-i18next';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -86,9 +93,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
-    i18n.changeLanguage(newLang);
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
   };
 
   useEffect(() => {
@@ -116,6 +122,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   }
 
   const pageInfo = getPageInfo(location.pathname);
+  const currentLang = i18n.language?.startsWith('pt') ? 'pt-BR' : 'en';
 
   return (
     <SidebarProvider>
@@ -136,24 +143,28 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </h2>
               </div>
 
-              {/* Language Toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
+              {/* Language Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 rounded-full"
-                    onClick={toggleLanguage}
                   >
-                    <span className="text-xs font-bold text-muted-foreground">
-                      {i18n.language === 'pt-BR' ? 'PT' : 'EN'}
-                    </span>
+                    <Globe className="h-4.5 w-4.5 text-muted-foreground" />
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {i18n.language === 'pt-BR' ? 'Switch to English' : 'Mudar para Português'}
-                </TooltipContent>
-              </Tooltip>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuRadioGroup value={currentLang} onValueChange={handleLanguageChange}>
+                    <DropdownMenuRadioItem value="pt-BR" className="cursor-pointer">
+                      🇧🇷 Português (BR)
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="en" className="cursor-pointer">
+                      🇺🇸 English
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               <Tooltip>
                 <TooltipTrigger asChild>
