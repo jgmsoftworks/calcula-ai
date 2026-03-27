@@ -485,10 +485,11 @@ export function DespesasFixas() {
       </Dialog>
 
       <CategoriasDespesasModal
-        open={isCategoriaModalOpen}
-        onOpenChange={setIsCategoriaModalOpen}
+        isOpen={isCategoriaModalOpen}
+        onClose={() => setIsCategoriaModalOpen(false)}
         onCategoriaCreated={handleCategoriaCreated}
         onCategoriaUpdated={handleCategoriaUpdated}
+        categorias={categorias}
       />
     </div>
   );
