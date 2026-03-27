@@ -1,63 +1,78 @@
 
 
-## Plano: Sistema de Vendedores Parceiros (reaproveitando Afiliados)
+## Plano: Internacionalização (pt-BR + Inglês)
 
-### O que muda
-Adaptar o sistema de afiliados existente para funcionar como um programa de vendedores parceiros com regras de comissao especificas:
-- **1a mensalidade**: 40% do valor
-- **Mensalidades recorrentes** (cliente ativo): 20% do valor
-- **Suporte prestado**: R$ 10/hora
+### Resumo
+Adicionar suporte a dois idiomas (Português BR e Inglês) usando `react-i18next`, com um botão de troca no header ao lado do tema escuro/claro.
 
-### Alteracoes no banco de dados
+### Como vai funcionar
+- Um botão no header com a bandeira/sigla do idioma atual (🇧🇷 PT / 🇺🇸 EN)
+- Ao clicar, alterna entre português e inglês
+- A preferência fica salva no localStorage
 
-**1. Nova tabela `vendedor_suporte_horas`** para registrar horas de suporte:
-- `id`, `affiliate_id` (vendedor), `customer_email`, `data`, `horas` (decimal), `descricao`, `valor_hora` (default 10), `status` (pending/paid), `created_at`
-- RLS: somente admins
+### Escopo da tradução
 
-**2. Adicionar coluna na tabela `affiliates`**:
-- `commission_first_sale_pct` (default 40) — comissao 1a venda
-- `commission_recurring_pct` (default 20) — comissao recorrente
-- `support_hourly_rate` (default 10) — valor hora suporte
+O sistema tem **30+ arquivos** com textos hardcoded em português. A implementação será feita em fases:
 
-Isso permite que cada vendedor tenha taxas customizaveis, mas com os defaults que voce pediu.
+**Fase 1 (esta implementação):**
+- Infraestrutura i18n completa (react-i18next + arquivos de tradução)
+- Botão de troca no header
+- Tradução de todas as áreas de navegação: sidebar, header, page titles
+- Tradução das páginas principais: Dashboard, Estoque, Receitas, Custos, Precificação, Movimentação, Planos, Perfil, Tutorial, Auth
+- Tradução de componentes compartilhados: toasts, alertas, modais de confirmação, botões comuns
 
-### Alteracoes no frontend
+### Detalhes técnicos
 
-**3. Atualizar `AffiliateForm`**:
-- Trocar campos de comissao unica por 3 campos: % 1a venda (40), % recorrente (20), valor/hora suporte (R$10)
-- Manter campos de nome, email, telefone, CPF, PIX
+**1. Instalar dependências**
+- `react-i18next` + `i18next` + `i18next-browser-languagedetector`
 
-**4. Atualizar `AffiliatesList`**:
-- Mostrar as 3 colunas de comissao (1a venda %, recorrente %, R$/hora)
-- Mostrar total de horas de suporte prestadas
+**2. Criar arquivos de tradução**
+```
+src/i18n/
+  index.ts          ← configuração do i18next
+  locales/
+    pt-BR.json      ← todas as strings em português
+    en.json          ← todas as strings em inglês
+```
 
-**5. Nova aba "Suporte" na pagina de Afiliados**:
-- Tabela para registrar horas de suporte por vendedor/cliente
-- Formulario: selecionar vendedor, cliente, data, horas, descricao
-- Totalizador de horas e valor a pagar
+As traduções serão organizadas por namespace/seção:
+```json
+{
+  "nav": { "dashboard": "Dashboard", "estoque": "Inventory", ... },
+  "dashboard": { "title": "Dashboard", "monthlyRevenue": "Monthly Revenue", ... },
+  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", ... },
+  "auth": { "login": "Login", "signup": "Sign Up", ... },
+  "plans": { "free": "Free", "professional": "Professional", ... },
+  ...
+}
+```
 
-**6. Atualizar `AffiliatesDashboard`**:
-- Card adicional mostrando total de suporte pendente (horas x R$10)
-- Diferenciar comissoes de 1a venda vs recorrentes nos resumos
+**3. Inicializar no App.tsx**
+- Importar `src/i18n/index.ts` antes do render
 
-**7. Atualizar `AffiliatesCommissions`**:
-- Coluna indicando se a comissao e "1a venda (40%)" ou "recorrente (20%)" ou "suporte"
-- Filtro por tipo de comissao
+**4. Botão de idioma no header (AppLayout.tsx)**
+- Ícone `Languages` do lucide-react ou bandeiras
+- Posicionado entre o tema e o tutorial
+- Tooltip mostrando o idioma atual
 
-**8. Vincular cliente ao vendedor**:
-- Na tabela `affiliate_customers`, quando um cliente e vinculado, o campo `first_purchase_date` marca a 1a compra
-- Comissoes subsequentes usam 20% automaticamente baseado no `cycle_number` existente (cycle 1 = 40%, cycle 2+ = 20%)
+**5. Atualizar componentes**
+- Substituir strings hardcoded por `t('chave')` usando o hook `useTranslation()`
+- Componentes afetados: AppSidebar, AppLayout, todas as pages, formulários, modais, toasts
 
-### Arquivos envolvidos
-- `supabase/migrations/` — nova tabela e colunas
-- `src/hooks/useAffiliates.tsx` — adicionar CRUD de suporte, adaptar logica de comissao
-- `src/components/afiliados/AffiliateForm.tsx` — novos campos
-- `src/components/afiliados/AffiliatesList.tsx` — colunas atualizadas
-- `src/components/afiliados/AffiliatesDashboard.tsx` — metricas de suporte
-- `src/components/afiliados/AffiliatesCommissions.tsx` — tipos de comissao
-- `src/components/afiliados/SupportHours.tsx` — novo componente
-- `src/pages/Afiliados.tsx` — nova aba "Suporte"
+**6. Formatação de números e datas**
+- Manter BRL para valores monetários (o sistema é brasileiro)
+- Datas formatadas conforme o idioma selecionado
 
-### Seguranca
-Tudo continua admin-only via `has_role_or_higher('admin')` nas RLS policies — nenhum vendedor tem acesso direto ao painel.
+### Arquivos criados
+- `src/i18n/index.ts`
+- `src/i18n/locales/pt-BR.json`
+- `src/i18n/locales/en.json`
+
+### Arquivos modificados (principais)
+- `src/App.tsx` — import do i18n
+- `src/components/layout/AppLayout.tsx` — botão de idioma + uso de `t()`
+- `src/components/layout/AppSidebar.tsx` — labels traduzidos
+- `src/pages/*.tsx` — todas as páginas com `useTranslation()`
+- `src/hooks/usePlanLimits.tsx` — mensagens traduzidas
+- `src/components/**/*.tsx` — componentes com textos visíveis
 
