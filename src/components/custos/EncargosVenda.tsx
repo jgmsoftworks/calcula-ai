@@ -352,97 +352,83 @@ export const EncargosVenda = () => {
     }
   };
 
+  const categoryColors: Record<string, { gradient: string; bg: string; color: string }> = {
+    impostos: { gradient: 'from-[#dd0b52] to-[#f96e0c]', bg: 'bg-[#dd0b52]/10', color: 'text-[#dd0b52]' },
+    meios_pagamento: { gradient: 'from-[#0483e4] to-[#2c4dc7]', bg: 'bg-[#0483e4]/10', color: 'text-[#0483e4]' },
+    comissoes: { gradient: 'from-[#7328b1] to-[#af1188]', bg: 'bg-[#7328b1]/10', color: 'text-[#7328b1]' },
+    outros: { gradient: 'from-[#af1188] to-[#dd0b52]', bg: 'bg-[#af1188]/10', color: 'text-[#af1188]' },
+  };
+
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargos.filter(e => e.categoria === categoria);
+    const colors = categoryColors[categoria];
 
     return (
-      <Card key={categoria} className="overflow-hidden">
-        <CardHeader>
+      <Card key={categoria} className="glass-card overflow-hidden">
+        <div className={`h-1 bg-gradient-to-r ${colors.gradient}`} />
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-foreground">{titulo}</CardTitle>
+            <CardTitle className="text-base font-display">{titulo}</CardTitle>
             {categoria === 'outros' && (
-              <Button onClick={adicionarOutroEncargo} variant="outline" size="sm" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
+              <Button onClick={adicionarOutroEncargo} variant="outline" size="sm" className="gap-1.5 h-7 text-xs rounded-xl border-border/50">
+                <Plus className="h-3 w-3" />
                 Adicionar
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent className="px-6 pb-6">
-          <div className="bg-muted/30 rounded-lg p-4 mb-6">
-            <div className={`grid gap-4 ${categoria === 'outros' ? 'grid-cols-4' : 'grid-cols-3'}`}>
-              <div className="text-sm font-medium text-muted-foreground">Nome</div>
-              <div className="text-center text-sm font-medium text-muted-foreground">Percentual (%)</div>
-              <div className="text-center text-sm font-medium text-muted-foreground">Valor Fixo (R$)</div>
-              {categoria === 'outros' && (
-                <div className="text-center text-sm font-medium text-muted-foreground">Ações</div>
-              )}
-            </div>
+        <CardContent>
+          {/* Header labels */}
+          <div className={`grid gap-3 mb-3 ${categoria === 'outros' ? 'grid-cols-[1fr_80px_90px_56px]' : 'grid-cols-[1fr_80px_90px]'}`}>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Nome</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">%</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">R$</p>
+            {categoria === 'outros' && <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">Ações</p>}
           </div>
 
-          <div className="space-y-3">
-            {encargosDaCategoria.map((encargo) => (
-              <div key={encargo.id || encargo.nome} className="bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <Label className="text-sm font-medium text-foreground break-words">{encargo.nome}</Label>
-                  </div>
+          <div className="space-y-2">
+            {encargosDaCategoria.map((encargo, i) => (
+              <div 
+                key={encargo.id || encargo.nome} 
+                className="rounded-xl bg-muted/40 border border-border/30 p-3 hover:border-border/60 transition-all animate-slide-up"
+                style={{ animationDelay: `${i * 30}ms` }}
+              >
+                <div className={`grid gap-3 items-center ${categoria === 'outros' ? 'grid-cols-[1fr_80px_90px_56px]' : 'grid-cols-[1fr_80px_90px]'}`}>
+                  <Label className="text-xs font-medium truncate">{encargo.nome}</Label>
                   
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <NumericInputPtBr
-                        tipo="percentual"
-                        min={0}
-                        max={100}
-                        value={encargo.valor_percentual}
-                        onChange={(valor) => {
-                          setEncargos(prev => 
-                            prev.map(item => 
-                              item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item
-                            )
-                          );
-                        }}
-                        onBlur={() => atualizarValorPercentual(encargo.nome, encargo.valor_percentual)}
-                        className="text-center h-8 text-sm w-20 border-border focus:border-primary"
-                      />
-                      
-                      <NumericInputPtBr
-                        tipo="valor"
-                        min={0}
-                        value={encargo.valor_fixo}
-                        onChange={(valor) => {
-                          setEncargos(prev => 
-                            prev.map(item => 
-                              item.nome === encargo.nome ? { ...item, valor_fixo: valor } : item
-                            )
-                          );
-                        }}
-                        onBlur={() => atualizarValorFixo(encargo.nome, encargo.valor_fixo)}
-                        className="text-center h-8 text-sm w-24 border-border focus:border-primary"
-                      />
-                    </div>
+                  <NumericInputPtBr
+                    tipo="percentual"
+                    min={0}
+                    max={100}
+                    value={encargo.valor_percentual}
+                    onChange={(valor) => {
+                      setEncargos(prev => prev.map(item => item.nome === encargo.nome ? { ...item, valor_percentual: valor } : item));
+                    }}
+                    onBlur={() => atualizarValorPercentual(encargo.nome, encargo.valor_percentual)}
+                    className="text-center h-8 text-xs rounded-lg"
+                  />
+                  
+                  <NumericInputPtBr
+                    tipo="valor"
+                    min={0}
+                    value={encargo.valor_fixo}
+                    onChange={(valor) => {
+                      setEncargos(prev => prev.map(item => item.nome === encargo.nome ? { ...item, valor_fixo: valor } : item));
+                    }}
+                    onBlur={() => atualizarValorFixo(encargo.nome, encargo.valor_fixo)}
+                    className="text-center h-8 text-xs rounded-lg"
+                  />
 
-                    {categoria === 'outros' && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => iniciarEdicaoModal(encargo)}
-                          className="h-7 w-7 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          onClick={() => encargo.id && removerEncargo(encargo.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  {categoria === 'outros' && (
+                    <div className="flex gap-0.5 justify-center">
+                      <Button size="sm" variant="ghost" onClick={() => iniciarEdicaoModal(encargo)} className="h-7 w-7 p-0 rounded-lg">
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button onClick={() => encargo.id && removerEncargo(encargo.id)} variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -454,14 +440,14 @@ export const EncargosVenda = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <p className="text-muted-foreground">Carregando encargos...</p>
+      <div className="flex items-center justify-center py-12">
+        <p className="text-sm text-muted-foreground">Carregando encargos...</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in">
       {renderEncargosPorCategoria('impostos', 'Impostos')}
       {renderEncargosPorCategoria('comissoes', 'Comissões e Plataformas')}
       {renderEncargosPorCategoria('meios_pagamento', 'Taxas de Meios de Pagamento')}
@@ -470,18 +456,15 @@ export const EncargosVenda = () => {
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Nome do Encargo</DialogTitle>
+            <DialogTitle className="font-display">Editar Nome do Encargo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="nome" className="text-sm font-medium">
-                Nome do encargo
-              </Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="nome" className="text-xs">Nome do encargo</Label>
               <Input
                 id="nome"
                 value={nomeEditando}
                 onChange={(e) => setNomeEditando(e.target.value)}
-                className="mt-1"
                 placeholder="Digite o nome do encargo"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') salvarEdicaoModal();
@@ -491,12 +474,8 @@ export const EncargosVenda = () => {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={cancelarEdicaoModal}>
-                Cancelar
-              </Button>
-              <Button onClick={salvarEdicaoModal}>
-                Salvar
-              </Button>
+              <Button variant="outline" onClick={cancelarEdicaoModal} className="rounded-xl">Cancelar</Button>
+              <Button onClick={salvarEdicaoModal} className="rounded-xl">Salvar</Button>
             </div>
           </div>
         </DialogContent>
