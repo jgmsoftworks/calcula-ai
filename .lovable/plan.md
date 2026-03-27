@@ -1,78 +1,59 @@
 
 
-## Plano: Internacionalização (pt-BR + Inglês)
+## Plano: Completar i18n + Melhorar Seletor de Idioma
 
-### Resumo
-Adicionar suporte a dois idiomas (Português BR e Inglês) usando `react-i18next`, com um botão de troca no header ao lado do tema escuro/claro.
+### Problemas identificados
+1. **Seletor de idioma ruim**: Botão atual só mostra "PT"/"EN" e alterna direto. O usuário quer um dropdown com lista de idiomas para selecionar.
+2. **Strings não traduzidas**: A maioria dos componentes internos ainda tem texto hardcoded em português (~49 arquivos com strings não traduzidas).
 
-### Como vai funcionar
-- Um botão no header com a bandeira/sigla do idioma atual (🇧🇷 PT / 🇺🇸 EN)
-- Ao clicar, alterna entre português e inglês
-- A preferência fica salva no localStorage
+### 1. Novo Seletor de Idioma (Dropdown)
+Trocar o botão toggle por um `DropdownMenu` no header que mostra os idiomas disponíveis com bandeira/nome:
+- 🇧🇷 Português (BR)
+- 🇺🇸 English
 
-### Escopo da tradução
+O botão mostra a bandeira do idioma atual. Ao clicar, abre a lista para selecionar.
 
-O sistema tem **30+ arquivos** com textos hardcoded em português. A implementação será feita em fases:
+### 2. Traduzir todos os componentes restantes
 
-**Fase 1 (esta implementação):**
-- Infraestrutura i18n completa (react-i18next + arquivos de tradução)
-- Botão de troca no header
-- Tradução de todas as áreas de navegação: sidebar, header, page titles
-- Tradução das páginas principais: Dashboard, Estoque, Receitas, Custos, Precificação, Movimentação, Planos, Perfil, Tutorial, Auth
-- Tradução de componentes compartilhados: toasts, alertas, modais de confirmação, botões comuns
+**Arquivos de tradução** (`en.json` e `pt-BR.json`): Expandir massivamente com seções para cada área:
 
-### Detalhes técnicos
-
-**1. Instalar dependências**
-- `react-i18next` + `i18next` + `i18next-browser-languagedetector`
-
-**2. Criar arquivos de tradução**
 ```
-src/i18n/
-  index.ts          ← configuração do i18next
-  locales/
-    pt-BR.json      ← todas as strings em português
-    en.json          ← todas as strings em inglês
+receitas.*        → ListaReceitas, ReceitaCard, ReceitaForm, ExportMarkupModal, tabs, labels financeiros
+estoque.*         → ListaProdutos, filtros, tabela, badges, botões, ProdutoForm
+movimentacao.*    → CarrinhoMovimentacao, MovimentacaoModal, ListaProdutos, motivos
+custos.*          → DespesasFixas, FolhaPagamento, EncargosVenda
+precificacao.*    → Markups, MediaFaturamento
+perfil.*          → PerfilNegocio campos e labels
+notifications.*   → NotificacoesPainel
 ```
 
-As traduções serão organizadas por namespace/seção:
-```json
-{
-  "nav": { "dashboard": "Dashboard", "estoque": "Inventory", ... },
-  "dashboard": { "title": "Dashboard", "monthlyRevenue": "Monthly Revenue", ... },
-  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", ... },
-  "auth": { "login": "Login", "signup": "Sign Up", ... },
-  "plans": { "free": "Free", "professional": "Professional", ... },
-  ...
-}
-```
+**Componentes a traduzir** (lista dos principais — todos os ~49 arquivos com strings hardcoded):
 
-**3. Inicializar no App.tsx**
-- Importar `src/i18n/index.ts` antes do render
+| Área | Arquivos |
+|------|----------|
+| Receitas | ListaReceitas, ReceitaCard, ReceitaForm, ExportMarkupModal, GeralTab, IngredientesTab, SubReceitasTab, EmbalagensTa, ProjecaoTab, PrecificacaoTab, HistoricoGeralReceitas, ReceitaPreviewModal, TiposProdutoModal, MaoObraModal, MarkupCard |
+| Estoque | ListaProdutos, ProdutoForm, HistoricoGeral, ImportProdutosExcel, CategoriasModal, MarcasModal |
+| Movimentação | CarrinhoMovimentacao, MovimentacaoModal, ListaProdutos, ItemCarrinho, ProdutoCard, CategoriasFiltro |
+| Custos | DespesasFixas, FolhaPagamento, EncargosVenda, CategoriasDespesasModal |
+| Precificação | Markups, MediaFaturamento, CustosModal |
+| Perfil | PerfilNegocio |
+| Notificações | NotificacoesPainel, NotificationCenter, NotificationSettings |
+| Outros | Checkout, Tutorial, AdminUsers, hooks (useMovimentacoes, usePlanLimits toasts) |
 
-**4. Botão de idioma no header (AppLayout.tsx)**
-- Ícone `Languages` do lucide-react ou bandeiras
-- Posicionado entre o tema e o tutorial
-- Tooltip mostrando o idioma atual
+**Dados dinâmicos** (motivos de movimentação):
+- `src/lib/motivosMovimentacao.ts` — converter para usar chaves i18n ao invés de strings fixas em português
 
-**5. Atualizar componentes**
-- Substituir strings hardcoded por `t('chave')` usando o hook `useTranslation()`
-- Componentes afetados: AppSidebar, AppLayout, todas as pages, formulários, modais, toasts
+### 3. Detalhes técnicos
 
-**6. Formatação de números e datas**
-- Manter BRL para valores monetários (o sistema é brasileiro)
-- Datas formatadas conforme o idioma selecionado
+- **Seletor**: `DropdownMenu` do shadcn/ui com `DropdownMenuRadioGroup` para seleção do idioma
+- **Padrão de tradução**: `useTranslation()` + `t('section.key')` em cada componente
+- **Dados do usuário preservados**: Nomes de produtos, receitas, etc. que o usuário digitou continuam como estão — só labels de UI são traduzidos
+- **Motivos de movimentação**: Transformar em chaves i18n mapeadas para traduções, mantendo compatibilidade com dados já salvos no banco
 
-### Arquivos criados
-- `src/i18n/index.ts`
-- `src/i18n/locales/pt-BR.json`
-- `src/i18n/locales/en.json`
-
-### Arquivos modificados (principais)
-- `src/App.tsx` — import do i18n
-- `src/components/layout/AppLayout.tsx` — botão de idioma + uso de `t()`
-- `src/components/layout/AppSidebar.tsx` — labels traduzidos
-- `src/pages/*.tsx` — todas as páginas com `useTranslation()`
-- `src/hooks/usePlanLimits.tsx` — mensagens traduzidas
-- `src/components/**/*.tsx` — componentes com textos visíveis
+### Arquivos modificados
+- `src/i18n/locales/en.json` — expandir com ~300+ novas chaves
+- `src/i18n/locales/pt-BR.json` — expandir com ~300+ novas chaves correspondentes
+- `src/components/layout/AppLayout.tsx` — trocar toggle por dropdown
+- `src/lib/motivosMovimentacao.ts` — adaptar para i18n
+- ~40 componentes em `src/components/` e `src/pages/` — adicionar `useTranslation()` e substituir strings hardcoded
 
