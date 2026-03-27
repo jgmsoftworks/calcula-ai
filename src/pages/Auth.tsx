@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const InputField = ({ id, label, icon: Icon, type = "text", placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
@@ -59,14 +60,8 @@ const GoogleButton = ({ label, onClick, loading }: { label: string; onClick: () 
   </Button>
 );
 
-const Divider = () => (
-  <div className="relative my-4">
-    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
-    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">ou</span></div>
-  </div>
-);
-
 const Auth = () => {
+  const { t, i18n } = useTranslation();
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -85,26 +80,31 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
+    i18n.changeLanguage(newLang);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       const { error } = await signIn(loginEmail, loginPassword);
       if (error) {
-        let errorMessage = "Verifique suas credenciais";
+        let errorMessage = t('auth.checkCredentials');
         if (error.message.includes("Invalid login credentials")) {
-          errorMessage = "Email ou senha incorretos";
+          errorMessage = t('auth.wrongEmailPassword');
         } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Seu email ainda não foi confirmado.";
+          errorMessage = t('auth.emailNotConfirmedDesc');
           setShowLoginResend(true);
         }
-        toast({ title: "Erro no login", description: errorMessage, variant: "destructive" });
+        toast({ title: t('auth.loginError'), description: errorMessage, variant: "destructive" });
         return;
       }
-      toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
+      toast({ title: t('auth.loginSuccess'), description: t('auth.welcomeBack') });
       navigate('/');
     } catch (error: any) {
-      toast({ title: "Erro inesperado", description: error.message || "Tente novamente", variant: "destructive" });
+      toast({ title: t('auth.unexpectedError'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -116,23 +116,23 @@ const Auth = () => {
     try {
       const { data, error } = await signUp(email, password, fullName, businessName);
       if (error) {
-        let errorMessage = "Tente novamente";
-        if (error.message.includes("Password should be at least")) errorMessage = "A senha deve ter no mínimo 6 caracteres";
-        else if (error.message.includes("Unable to validate email")) errorMessage = "Email inválido.";
-        else if (error.message.includes("Signup requires a valid password")) errorMessage = "Digite uma senha válida";
-        else if (error.message.includes("User already registered")) errorMessage = "Este email já possui uma conta.";
+        let errorMessage = t('auth.tryAgain');
+        if (error.message.includes("Password should be at least")) errorMessage = t('auth.passwordMinLength');
+        else if (error.message.includes("Unable to validate email")) errorMessage = t('auth.invalidEmail');
+        else if (error.message.includes("Signup requires a valid password")) errorMessage = t('auth.enterValidPassword');
+        else if (error.message.includes("User already registered")) errorMessage = t('auth.alreadyRegistered');
         else errorMessage = error.message;
-        toast({ title: "Erro ao criar conta", description: errorMessage, variant: "destructive" });
+        toast({ title: t('auth.signupError'), description: errorMessage, variant: "destructive" });
         return;
       }
       if (data?.user?.identities?.length === 0) {
-        toast({ title: "Email já cadastrado", description: "Tente fazer login ou recuperar sua senha.", variant: "destructive" });
+        toast({ title: t('auth.emailAlreadyExists'), description: t('auth.emailAlreadyExistsDesc'), variant: "destructive" });
         return;
       }
-      toast({ title: "Conta criada!", description: "Verifique seu email para confirmar." });
+      toast({ title: t('auth.accountCreated'), description: t('auth.confirmEmail') });
       setShowResendConfirmation(true);
     } catch (error: any) {
-      toast({ title: "Erro inesperado", description: "Tente novamente.", variant: "destructive" });
+      toast({ title: t('auth.unexpectedError'), description: t('auth.tryAgain'), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -144,11 +144,11 @@ const Auth = () => {
     try {
       const { error } = await resetPassword(resetEmail);
       if (error) throw error;
-      toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada." });
+      toast({ title: t('auth.emailSent'), description: t('auth.checkYourInbox') });
       setShowForgotPassword(false);
       setResetEmail('');
     } catch (error: any) {
-      toast({ title: "Erro ao enviar", description: error.message || "Tente novamente", variant: "destructive" });
+      toast({ title: t('auth.sendError'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -159,9 +159,9 @@ const Auth = () => {
     try {
       const { error } = await resendConfirmation(email);
       if (error) throw error;
-      toast({ title: "Email reenviado!", description: "Verifique sua caixa." });
+      toast({ title: t('auth.emailResent'), description: t('auth.checkYourBox') });
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Tente novamente", variant: "destructive" });
+      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -169,16 +169,16 @@ const Auth = () => {
 
   const handleLoginResend = async () => {
     if (!loginEmail) {
-      toast({ title: "Email necessário", description: "Preencha o campo de email.", variant: "destructive" });
+      toast({ title: t('auth.emailNeeded'), description: t('auth.fillEmail'), variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const { error } = await resendConfirmation(loginEmail);
       if (error) throw error;
-      toast({ title: "Email reenviado!", description: "Verifique sua caixa." });
+      toast({ title: t('auth.emailResent'), description: t('auth.checkYourBox') });
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Tente novamente", variant: "destructive" });
+      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -190,13 +190,17 @@ const Auth = () => {
       const { error } = await signInWithGoogle();
       if (error) throw error;
     } catch (error: any) {
-      toast({ title: "Erro no login com Google", description: error.message || "Tente novamente", variant: "destructive" });
+      toast({ title: t('auth.googleError'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
       setLoading(false);
     }
   };
 
-
-
+  const Divider = () => (
+    <div className="relative my-4">
+      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
+      <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">{t('auth.or')}</span></div>
+    </div>
+  );
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
@@ -205,6 +209,18 @@ const Auth = () => {
         <div className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
         <div className="absolute -bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
         <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-[#dd0b52]/5 blur-[100px]" />
+      </div>
+
+      {/* Language toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground"
+          onClick={toggleLanguage}
+        >
+          {i18n.language === 'pt-BR' ? '🇺🇸 EN' : '🇧🇷 PT'}
+        </Button>
       </div>
 
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
@@ -222,14 +238,13 @@ const Auth = () => {
                 CalculaAi
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Precificação inteligente para seu negócio
+                {t('auth.smartPricing')}
               </p>
             </div>
           </div>
 
           {/* Auth Card */}
           <Card className="glass-card shadow-elevated border-0 overflow-hidden">
-            {/* Brand gradient line */}
             <div className="brand-line" />
             
             <CardContent className="p-6">
@@ -239,19 +254,19 @@ const Auth = () => {
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
                       <KeyRound className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold font-display">Recuperar Senha</h3>
-                    <p className="text-sm text-muted-foreground">Digite seu email para receber instruções</p>
+                    <h3 className="text-lg font-semibold font-display">{t('auth.recoverPassword')}</h3>
+                    <p className="text-sm text-muted-foreground">{t('auth.recoverInstructions')}</p>
                   </div>
                   
                   <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <InputField id="resetEmail" label="Email" icon={Mail} type="email" placeholder="seu@email.com" value={resetEmail} onChange={(e: any) => setResetEmail(e.target.value)} />
+                    <InputField id="resetEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={resetEmail} onChange={(e: any) => setResetEmail(e.target.value)} />
                     
                     <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
-                      {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Mail className="h-4 w-4 mr-2" />Enviar instruções</>}
+                      {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Mail className="h-4 w-4 mr-2" />{t('auth.sendInstructions')}</>}
                     </Button>
                     
                     <Button type="button" variant="ghost" onClick={() => setShowForgotPassword(false)} className="w-full text-sm">
-                      Voltar ao login
+                      {t('auth.backToLogin')}
                     </Button>
                   </form>
                 </div>
@@ -259,37 +274,37 @@ const Auth = () => {
                 <Tabs defaultValue="login" className="space-y-5">
                   <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl h-11">
                     <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft rounded-lg text-sm font-medium transition-all">
-                      Entrar
+                      {t('auth.login')}
                     </TabsTrigger>
                     <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-soft rounded-lg text-sm font-medium transition-all">
-                      Criar conta
+                      {t('auth.signup')}
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="login" className="animate-fade-in space-y-4 mt-0">
                     <form onSubmit={handleLogin} className="space-y-4">
-                      <InputField id="email" label="Email" icon={Mail} type="email" placeholder="seu@email.com" value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
-                      <InputField id="password" label="Senha" icon={Lock} placeholder="••••••••" value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
+                      <InputField id="email" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
+                      <InputField id="password" label={t('auth.password')} icon={Lock} placeholder={t('auth.passwordPlaceholder')} value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
                       
                       <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
-                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Entrar</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.login')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                       </Button>
                       
                       <Divider />
-                      <GoogleButton label="Entrar com Google" onClick={handleGoogleLogin} loading={loading} />
+                      <GoogleButton label={t('auth.loginWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
                       
                       <div className="text-center">
                         <Button type="button" variant="link" onClick={() => setShowForgotPassword(true)} className="text-primary text-sm h-auto p-0">
-                          Esqueceu sua senha?
+                          {t('auth.forgotPassword')}
                         </Button>
                       </div>
 
                       {showLoginResend && (
                         <div className="p-3 bg-orange/5 border border-orange/20 rounded-xl space-y-2 animate-fade-in">
-                          <p className="text-sm font-medium">⚠️ Email não confirmado</p>
-                          <p className="text-xs text-muted-foreground">Verifique sua caixa de entrada e spam.</p>
+                          <p className="text-sm font-medium">{t('auth.emailNotConfirmed')}</p>
+                          <p className="text-xs text-muted-foreground">{t('auth.checkInbox')}</p>
                           <Button type="button" onClick={handleLoginResend} disabled={loading} variant="outline" size="sm" className="w-full rounded-lg border-orange/30 text-sm">
-                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Reenviar confirmação
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />{t('auth.resendConfirmation')}
                           </Button>
                         </div>
                       )}
@@ -298,23 +313,23 @@ const Auth = () => {
 
                   <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
                     <form onSubmit={handleSignup} className="space-y-3">
-                      <InputField id="fullName" label="Nome Completo" icon={User} placeholder="Seu nome" value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
-                      <InputField id="businessName" label="Nome do Negócio" icon={Building2} placeholder="Sua empresa" value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
-                      <InputField id="signupEmail" label="Email" icon={Mail} type="email" placeholder="seu@email.com" value={email} onChange={(e: any) => setEmail(e.target.value)} />
-                      <InputField id="signupPassword" label="Senha" icon={Lock} placeholder="Mínimo 6 caracteres" value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
+                      <InputField id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
+                      <InputField id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
+                      <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
+                      <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
                       
                       <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
-                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Criar conta</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                       </Button>
                       
                       <Divider />
-                      <GoogleButton label="Cadastrar com Google" onClick={handleGoogleLogin} loading={loading} />
+                      <GoogleButton label={t('auth.signupWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
                       
                       {showResendConfirmation && (
                         <div className="text-center space-y-2 p-3 bg-primary/5 rounded-xl">
-                          <p className="text-xs text-muted-foreground">Não recebeu o email?</p>
+                          <p className="text-xs text-muted-foreground">{t('auth.didntReceive')}</p>
                           <Button type="button" variant="ghost" size="sm" onClick={handleResendConfirmation} disabled={loading} className="text-primary text-xs">
-                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Reenviar email
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />{t('auth.resendEmail')}
                           </Button>
                         </div>
                       )}
@@ -329,20 +344,20 @@ const Auth = () => {
           <div className="flex justify-center gap-6 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Shield className="h-3.5 w-3.5 text-primary" />
-              <span>Dados seguros</span>
+              <span>{t('auth.secureData')}</span>
             </div>
             <div className="flex items-center gap-1">
               <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-              <span>SSL certificado</span>
+              <span>{t('auth.sslCertified')}</span>
             </div>
             <div className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5 text-secondary" />
-              <span>+1000 empresas</span>
+              <span>{t('auth.companies')}</span>
             </div>
           </div>
           
           <p className="text-center text-[11px] text-muted-foreground/60">
-            © 2024 CalculaAi. Todos os direitos reservados.
+            {t('auth.copyright')}
           </p>
         </div>
       </div>
