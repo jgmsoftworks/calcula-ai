@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -7,7 +6,25 @@ import { Label } from '@/components/ui/label';
 import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
-import { Crown, Zap, Gift, Check, X, Sparkles, CreditCard } from 'lucide-react';
+import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
+
+const planGradients: Record<PlanType, string> = {
+  free: 'from-[#0483e4] to-[#2c4dc7]',
+  professional: 'from-[#7328b1] to-[#af1188]',
+  enterprise: 'from-[#dd0b52] to-[#f96e0c]',
+};
+
+const planAccentColors: Record<PlanType, string> = {
+  free: 'text-[#0483e4]',
+  professional: 'text-[#7328b1]',
+  enterprise: 'text-[#dd0b52]',
+};
+
+const planBgAccent: Record<PlanType, string> = {
+  free: 'bg-[#0483e4]/10',
+  professional: 'bg-[#7328b1]/10',
+  enterprise: 'bg-[#dd0b52]/10',
+};
 
 const Planos = () => {
   const { currentPlan, planInfo, loading, reloadPlan } = usePlanLimits();
@@ -73,23 +90,9 @@ const Planos = () => {
 
   const getPlanIcon = (planType: PlanType) => {
     switch (planType) {
-      case 'free':
-        return <Gift className="h-8 w-8" />;
-      case 'professional':
-        return <Zap className="h-8 w-8" />;
-      case 'enterprise':
-        return <Crown className="h-8 w-8" />;
-    }
-  };
-
-  const getPlanGradient = (planType: PlanType) => {
-    switch (planType) {
-      case 'free':
-        return 'from-slate-500 to-slate-600';
-      case 'professional':
-        return 'from-primary to-primary/80';
-      case 'enterprise':
-        return 'from-yellow-500 to-amber-600';
+      case 'free': return <Gift className="h-7 w-7" />;
+      case 'professional': return <Zap className="h-7 w-7" />;
+      case 'enterprise': return <Crown className="h-7 w-7" />;
     }
   };
 
@@ -114,11 +117,21 @@ const Planos = () => {
     return Math.round((savings / yearlyTotal) * 100);
   };
 
+  const comparisonRows = [
+    { label: 'Matéria-prima', free: '30', professional: 'Ilimitado', enterprise: 'Ilimitado' },
+    { label: 'Receitas', free: '5', professional: '60', enterprise: 'Ilimitado' },
+    { label: 'Blocos de Markup', free: '1', professional: '3', enterprise: 'Ilimitado' },
+    { label: 'Movimentação de Estoque', free: true, professional: true, enterprise: true },
+    { label: 'Impressão PDF', free: false, professional: '80/mês', enterprise: 'Ilimitado' },
+    { label: 'Simulador de Preços', free: false, professional: true, enterprise: true },
+    { label: 'Suporte Prioritário', free: false, professional: false, enterprise: true },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Carregando informações do plano...</p>
         </div>
       </div>
@@ -127,43 +140,44 @@ const Planos = () => {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Header com Gradiente */}
-      <div className="text-center space-y-4 py-8">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 mb-4">
-          <Sparkles className="h-10 w-10 text-primary" />
+      {/* Header */}
+      <div className="text-center space-y-3 animate-fade-in">
+        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
+          <Sparkles className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+        <h1 className="text-3xl font-bold font-display text-foreground">
           Escolha seu Plano
         </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+        <p className="text-muted-foreground max-w-xl mx-auto">
           Selecione o plano ideal para o seu negócio e comece a precificar com inteligência
         </p>
       </div>
 
       {/* Toggle Mensal/Anual */}
-      <div className="flex items-center justify-center gap-4 p-4 rounded-2xl bg-muted/50 w-fit mx-auto">
-        <Label htmlFor="billing-toggle" className={`text-base font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-          Mensal
-        </Label>
-        <Switch
-          id="billing-toggle"
-          checked={isYearly}
-          onCheckedChange={setIsYearly}
-          className="data-[state=checked]:bg-primary"
-        />
-        <Label htmlFor="billing-toggle" className={`text-base font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-          Anual
-        </Label>
-        {isYearly && (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20">
-            Economize 20%
-          </Badge>
-        )}
+      <div className="flex items-center justify-center gap-4 animate-slide-up">
+        <div className="glass-card px-6 py-3 flex items-center gap-4">
+          <Label className={`text-sm font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+            Mensal
+          </Label>
+          <Switch
+            checked={isYearly}
+            onCheckedChange={setIsYearly}
+            className="data-[state=checked]:bg-primary"
+          />
+          <Label className={`text-sm font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+            Anual
+          </Label>
+          {isYearly && (
+            <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+              -20%
+            </Badge>
+          )}
+        </div>
       </div>
 
-      {/* Cards dos Planos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {(Object.keys(PLAN_CONFIGS) as PlanType[]).map((planType) => {
+      {/* Plan Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {(Object.keys(PLAN_CONFIGS) as PlanType[]).map((planType, idx) => {
           const config = PLAN_CONFIGS[planType];
           const isCurrentPlan = currentPlan === planType;
           const isProfessional = planType === 'professional';
@@ -171,54 +185,72 @@ const Planos = () => {
           const savings = getSavings(planType);
 
           return (
-            <Card 
+            <div
               key={planType}
-              className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-                isCurrentPlan ? 'ring-2 ring-primary shadow-lg' : ''
-              } ${isProfessional ? 'md:scale-105 z-10' : ''}`}
+              className={`
+                glass-card relative overflow-hidden transition-all duration-300 hover:-translate-y-1
+                animate-slide-up
+                ${isCurrentPlan ? 'ring-2 ring-primary shadow-brand' : 'hover:shadow-xl'}
+                ${isProfessional ? 'md:scale-[1.03] z-10' : ''}
+              `}
+              style={{ animationDelay: `${idx * 100}ms` }}
             >
-              {/* Badge Popular */}
+              {/* Gradient top bar */}
+              <div className={`h-1.5 bg-gradient-to-r ${planGradients[planType]}`} />
+
+              {/* Popular badge */}
               {isProfessional && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-center py-1.5 text-sm font-semibold">
-                  ⭐ Mais Popular
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-gradient-to-r from-[#7328b1] to-[#af1188] text-white border-0 text-[10px] uppercase tracking-wider font-bold">
+                    ⭐ Popular
+                  </Badge>
                 </div>
               )}
 
-              {/* Badge Economia */}
-              {savings && (
-                <Badge className="absolute top-3 right-3 bg-green-500 text-white border-0">
-                  -{savings}%
-                </Badge>
-              )}
-
-              <CardHeader className={`text-center ${isProfessional ? 'pt-12' : 'pt-6'} pb-4`}>
-                <div className={`inline-flex items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${getPlanGradient(planType)} text-white mx-auto mb-4 shadow-lg`}>
-                  {getPlanIcon(planType)}
+              <div className="p-6 space-y-6">
+                {/* Icon + Name */}
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl bg-gradient-to-br ${planGradients[planType]} text-white shadow-lg`}>
+                    {getPlanIcon(planType)}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold font-display text-foreground">{config.name}</h3>
+                    {isCurrentPlan && (
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary">Plano atual</span>
+                    )}
+                  </div>
                 </div>
-                <CardTitle className="text-2xl">{config.name}</CardTitle>
-                
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">{price.main}</span>
-                  <span className="text-muted-foreground ml-1">{price.sub}</span>
-                </div>
-              </CardHeader>
 
-              <CardContent className="space-y-6">
-                <ul className="space-y-3">
+                {/* Price */}
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold font-display text-foreground">{price.main}</span>
+                    <span className="text-sm text-muted-foreground">{price.sub}</span>
+                  </div>
+                  {savings && (
+                    <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+                      Economize {savings}%
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-2.5">
                   {config.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <div className="rounded-full p-1 bg-green-500/10 flex-shrink-0 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-green-600" />
+                    <li key={index} className="flex items-start gap-2.5">
+                      <div className={`rounded-full p-0.5 ${planBgAccent[planType]} flex-shrink-0 mt-0.5`}>
+                        <Check className={`h-3.5 w-3.5 ${planAccentColors[planType]}`} />
                       </div>
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-sm text-foreground/80">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
+                {/* CTA Button */}
                 <Button
-                  className={`w-full h-12 text-base font-semibold transition-all ${
+                  className={`w-full h-11 text-sm font-semibold transition-all ${
                     isProfessional && !isCurrentPlan
-                      ? 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl'
+                      ? 'bg-gradient-to-r from-[#7328b1] to-[#af1188] hover:from-[#7328b1]/90 hover:to-[#af1188]/90 text-white shadow-lg hover:shadow-xl border-0'
                       : ''
                   }`}
                   variant={isCurrentPlan ? 'secondary' : 'default'}
@@ -241,85 +273,64 @@ const Planos = () => {
                     `Escolher ${config.name}`
                   )}
                 </Button>
-
-                {isCurrentPlan && (
-                  <div className="flex justify-center">
-                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                      ✓ Seu plano atual
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           );
         })}
       </div>
 
-      {/* Tabela de Comparação */}
-      <Card className="overflow-hidden">
-        <CardHeader className="bg-muted/30">
-          <CardTitle className="text-xl">Comparação Detalhada</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/20">
-                  <th className="text-left p-4 font-semibold">Recursos</th>
-                  <th className="text-center p-4 font-semibold">Free</th>
-                  <th className="text-center p-4 font-semibold bg-primary/5">Profissional</th>
-                  <th className="text-center p-4 font-semibold">Empresarial</th>
+      {/* Comparison Table */}
+      <div className="glass-card overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
+        <div className="h-1 bg-gradient-to-r from-[#0483e4] via-[#7328b1] to-[#f96e0c]" />
+        <div className="p-5 border-b border-border/30">
+          <h2 className="text-lg font-bold font-display text-foreground">Comparação Detalhada</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border/30 bg-muted/20">
+                <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recurso</th>
+                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Free</th>
+                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-[#7328b1] bg-[#7328b1]/5">Profissional</th>
+                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Empresarial</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {comparisonRows.map((row, i) => (
+                <tr key={i} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
+                  <td className="p-4 font-medium text-foreground">{row.label}</td>
+                  {(['free', 'professional', 'enterprise'] as const).map(plan => {
+                    const val = row[plan];
+                    const isPro = plan === 'professional';
+                    return (
+                      <td key={plan} className={`text-center p-4 ${isPro ? 'bg-[#7328b1]/5' : ''}`}>
+                        {val === true ? (
+                          <Check className="h-4.5 w-4.5 text-green-500 mx-auto" />
+                        ) : val === false ? (
+                          <X className="h-4.5 w-4.5 text-muted-foreground/40 mx-auto" />
+                        ) : (
+                          <span className={`font-semibold ${isPro ? 'text-[#7328b1]' : 'text-foreground'}`}>{val}</span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
-              </thead>
-              <tbody className="text-sm">
-                <tr className="border-b hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-medium">Matéria-prima</td>
-                  <td className="text-center p-4">30</td>
-                  <td className="text-center p-4 bg-primary/5 font-semibold">Ilimitado</td>
-                  <td className="text-center p-4 font-semibold">Ilimitado</td>
-                </tr>
-                <tr className="border-b hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-medium">Receitas</td>
-                  <td className="text-center p-4">5</td>
-                  <td className="text-center p-4 bg-primary/5">60</td>
-                  <td className="text-center p-4 font-semibold">Ilimitado</td>
-                </tr>
-                <tr className="border-b hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-medium">Movimentação de Estoque</td>
-                  <td className="text-center p-4">
-                    <X className="h-5 w-5 text-red-500 mx-auto" />
-                  </td>
-                  <td className="text-center p-4 bg-primary/5">
-                    <Check className="h-5 w-5 text-green-500 mx-auto" />
-                  </td>
-                  <td className="text-center p-4">
-                    <Check className="h-5 w-5 text-green-500 mx-auto" />
-                  </td>
-                </tr>
-                <tr className="border-b hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-medium">Impressão PDF</td>
-                  <td className="text-center p-4">
-                    <X className="h-5 w-5 text-red-500 mx-auto" />
-                  </td>
-                  <td className="text-center p-4 bg-primary/5">80/mês</td>
-                  <td className="text-center p-4 font-semibold">Ilimitado</td>
-                </tr>
-                <tr className="hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-medium">Suporte</td>
-                  <td className="text-center p-4">Email</td>
-                  <td className="text-center p-4 bg-primary/5">Email</td>
-                  <td className="text-center p-4 font-semibold text-yellow-600">Prioritário</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      {/* Informações de Segurança */}
-      <div className="text-center text-sm text-muted-foreground space-y-2 pb-8">
-        <p>🔒 Pagamentos processados com segurança via Stripe</p>
-        <p>💳 Cancele a qualquer momento • Seus dados são preservados</p>
+      {/* Footer */}
+      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground pb-6 animate-fade-in">
+        <div className="flex items-center gap-1.5">
+          <Shield className="h-3.5 w-3.5" />
+          Pagamento seguro via Stripe
+        </div>
+        <span className="text-border">•</span>
+        <span>Cancele quando quiser</span>
+        <span className="text-border">•</span>
+        <span>Dados preservados</span>
       </div>
     </div>
   );
