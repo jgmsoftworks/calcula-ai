@@ -770,64 +770,6 @@ const PerfilNegocio = () => {
             </Card>
           </div>
 
-          {/* Configurações de Aparência */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-              <Palette className="h-5 w-5 text-purple" />
-              Aparência do Sistema
-            </h2>
-            
-            <Card className="card-premium">
-              <CardContent className="p-6 space-y-8">
-                <div className="flex items-center justify-between p-4 bg-gradient-glass rounded-xl border border-border/50">
-                  <div className="space-y-1">
-                    <Label className="text-base font-medium">Modo Escuro</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Alternar entre tema claro e escuro
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Sun className="h-5 w-5 text-orange transition-all duration-300" />
-                    <Switch
-                      checked={currentTheme === 'dark'}
-                      onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                      className="data-[state=checked]:bg-gradient-primary"
-                    />
-                    <Moon className="h-5 w-5 text-primary transition-all duration-300" />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <Label className="text-base font-medium">Tema Atual</Label>
-                  <div className="flex gap-3">
-                    <Badge 
-                      variant={theme === 'light' ? 'default' : 'secondary'}
-                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-all duration-300 ${
-                        theme === 'light' 
-                          ? 'bg-gradient-to-r from-orange to-orange-light text-white shadow-orange' 
-                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      <Sun className="h-4 w-4" />
-                    </Badge>
-                    <Badge 
-                      variant={theme === 'dark' ? 'default' : 'secondary'}
-                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-all duration-300 ${
-                        theme === 'dark' 
-                          ? 'bg-gradient-primary text-white shadow-brand' 
-                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      <Moon className="h-4 w-4" />
-                      Tema Escuro
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Botão de Ação */}
