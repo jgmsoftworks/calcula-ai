@@ -220,6 +220,7 @@ function SectionBlock({ section, index }: { section: TutorialSection; index: num
 
 export default function Tutorial() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const { exportPDF, isExporting } = useExportTutorialPDF();
 
   const handleNavigate = (id: string) => {
     setActiveSection(id);
@@ -228,7 +229,7 @@ export default function Tutorial() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      <HeroSection />
+      <HeroSection onExportPDF={exportPDF} isExportingPDF={isExporting} />
       <QuickNav activeSection={activeSection} onNavigate={handleNavigate} />
 
       <div className="space-y-8">
