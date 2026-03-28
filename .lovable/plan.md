@@ -1,65 +1,36 @@
 
 
-## Plano: Botão "Exportar PDF" no Tutorial
+## Plano: Redesign da Página de Afiliado (AffiliatePlanSelector)
 
 ### Resumo
-Adicionar um botão na página de Tutorial que gera um PDF completo e bonito com todo o conteúdo: seções, imagens, descrições, bullets e dicas. Cuidado especial com divisórias de página para não cortar conteúdo.
+Padronizar a tela de seleção de plano do afiliado com o mesmo visual da página `/planos` interna, adicionar opção Free, usar toggle Mensal/Anual (ao invés de 4 cards separados), e resolver o problema da logo misturada com o fundo.
 
-### Como vai funcionar
-- Botão "Baixar PDF" no topo da página do Tutorial (ao lado do hero)
-- Gera um PDF A4 portrait usando `jsPDF` (já instalado no projeto)
-- Conteúdo completo: capa, 6 seções com todas as 17 sub-telas, imagens, bullets e tips
+### Mudanças visuais
 
-### Estrutura do PDF
+1. **Fundo**: Trocar `bg-gradient-primary` (que mistura com a logo) por fundo claro/neutro (`bg-background`) com header decorativo usando gradiente apenas na barra superior sutil
+2. **Layout 3 colunas**: Free + Profissional + Empresarial (como a página Planos), com toggle Mensal/Anual centralizado
+3. **Card Free**: Redireciona para `/auth` (cadastro gratuito) com cookie de afiliado já salvo
+4. **Cards pagos**: Mantém os valores promocionais anuais atuais (R$ 478,80 e R$ 838,80)
+5. **Glassmorphism**: `glass-card`, gradiente top bar por plano, ícones com fundo gradient, badge "Popular" no Profissional
+6. **Logo**: Fundo branco/claro atrás para não misturar com gradientes
+7. **Tabela comparativa**: Mesma tabela de comparação da página Planos
 
-```text
-┌─────────────────────────┐
-│       CAPA              │
-│  Logo gradient header   │
-│  "Guia Completo"        │
-│  "CalculaAi"            │
-│  Data de geração        │
-└─────────────────────────┘
-┌─────────────────────────┐
-│  SEÇÃO: Dashboard       │
-│  ─── barra colorida ─── │
-│  Ícone + título         │
-│  Intro text             │
-│                         │
-│  Sub-tela 1:            │
-│  [imagem screenshot]    │
-│  Descrição              │
-│  • bullet 1             │
-│  • bullet 2             │
-│  💡 tip                 │
-│  ─── separador ───      │
-│  Sub-tela 2: ...        │
-└─────────────────────────┘
-   ... repete para cada seção
-```
+### Estrutura do componente
 
-### Detalhes técnicos
+- Toggle Mensal/Anual (com badge -20% no anual)
+- 3 cards: Free (azul), Profissional (roxo, popular), Empresarial (vermelho-laranja)
+- Preço muda dinamicamente com toggle (mensal/anual)
+- Features usam `PLAN_CONFIGS` como fonte de dados (mas preços anuais mantêm os valores do affiliate: 478.80 e 838.80)
+- Card Free: botão "Começar Grátis" → navega para `/auth` (mantendo cookie do afiliado)
+- Tabela de comparação abaixo dos cards
+- Footer com selo de segurança
 
-**1. Novo hook `useExportTutorialPDF.ts`**
-- Usa `jsPDF` para gerar o PDF
-- Carrega imagens dos assets via fetch → base64 para embedding
-- Controle inteligente de page breaks: antes de cada sub-tela, verifica se há espaço suficiente na página; se não, pula para próxima
-- Barra colorida no topo de cada seção (usando o gradient da seção)
-- Bullets com marcadores visuais, tips com fundo destacado
-- Formatação de `**bold**` nos bullets (split por `**` como já feito no React)
+### Arquivo modificado
+- `src/pages/AffiliatePlanSelector.tsx` — reescrever completamente seguindo o padrão visual de `Planos.tsx`
 
-**2. Modificar `Tutorial.tsx`**
-- Importar o hook
-- Adicionar botão "📄 Baixar PDF" no hero ou logo abaixo dele
-- Loading state durante geração
-
-### Cuidados com page breaks
-- Antes de renderizar cada sub-tela, calcular altura estimada (título + imagem + descrição + bullets + tips)
-- Se não cabe na página atual, `addPage()` antes
-- Imagens redimensionadas para caber na largura útil (max ~170mm) mantendo proporção
-- Margem segura de 20mm em todos os lados
-
-### Arquivos
-- **Criar**: `src/hooks/useExportTutorialPDF.ts`
-- **Modificar**: `src/pages/Tutorial.tsx` (adicionar botão)
+### Valores preservados
+- Professional Anual: R$ 478,80
+- Enterprise Anual: R$ 838,80
+- Professional Mensal: R$ 49,90
+- Enterprise Mensal: R$ 89,90
 
