@@ -8,9 +8,12 @@ import {
   ArrowRight,
   Package,
   ChefHat,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sections, TutorialSection, SubScreen } from '@/data/tutorialData';
+import { useExportTutorialPDF } from '@/hooks/useExportTutorialPDF';
 
 // -------------------------------------------------------
 // Sub-components
