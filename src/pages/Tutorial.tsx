@@ -8,15 +8,18 @@ import {
   ArrowRight,
   Package,
   ChefHat,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sections, TutorialSection, SubScreen } from '@/data/tutorialData';
+import { useExportTutorialPDF } from '@/hooks/useExportTutorialPDF';
 
 // -------------------------------------------------------
 // Sub-components
 // -------------------------------------------------------
 
-function HeroSection() {
+function HeroSection({ onExportPDF, isExportingPDF }: { onExportPDF: () => void; isExportingPDF: boolean }) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(205,96%,46%)] via-[hsl(273,63%,42%)] to-[hsl(340,91%,45%)] p-8 md:p-12 text-white">
       <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/3" />
@@ -34,6 +37,18 @@ function HeroSection() {
           Um tutorial visual e detalhado de cada tela, modal e funcionalidade do sistema.
           Com prints reais e explicações passo a passo.
         </p>
+        <Button
+          onClick={onExportPDF}
+          disabled={isExportingPDF}
+          className="mt-4 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/20 rounded-full gap-2"
+        >
+          {isExportingPDF ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileDown className="h-4 w-4" />
+          )}
+          {isExportingPDF ? 'Gerando PDF...' : 'Baixar PDF Completo'}
+        </Button>
       </div>
     </div>
   );
@@ -205,6 +220,7 @@ function SectionBlock({ section, index }: { section: TutorialSection; index: num
 
 export default function Tutorial() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const { exportPDF, isExporting } = useExportTutorialPDF();
 
   const handleNavigate = (id: string) => {
     setActiveSection(id);
@@ -213,7 +229,7 @@ export default function Tutorial() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      <HeroSection />
+      <HeroSection onExportPDF={exportPDF} isExportingPDF={isExporting} />
       <QuickNav activeSection={activeSection} onNavigate={handleNavigate} />
 
       <div className="space-y-8">
