@@ -1,59 +1,65 @@
 
 
-## Plano: Completar i18n + Melhorar Seletor de Idioma
+## Plano: Botão "Exportar PDF" no Tutorial
 
-### Problemas identificados
-1. **Seletor de idioma ruim**: Botão atual só mostra "PT"/"EN" e alterna direto. O usuário quer um dropdown com lista de idiomas para selecionar.
-2. **Strings não traduzidas**: A maioria dos componentes internos ainda tem texto hardcoded em português (~49 arquivos com strings não traduzidas).
+### Resumo
+Adicionar um botão na página de Tutorial que gera um PDF completo e bonito com todo o conteúdo: seções, imagens, descrições, bullets e dicas. Cuidado especial com divisórias de página para não cortar conteúdo.
 
-### 1. Novo Seletor de Idioma (Dropdown)
-Trocar o botão toggle por um `DropdownMenu` no header que mostra os idiomas disponíveis com bandeira/nome:
-- 🇧🇷 Português (BR)
-- 🇺🇸 English
+### Como vai funcionar
+- Botão "Baixar PDF" no topo da página do Tutorial (ao lado do hero)
+- Gera um PDF A4 portrait usando `jsPDF` (já instalado no projeto)
+- Conteúdo completo: capa, 6 seções com todas as 17 sub-telas, imagens, bullets e tips
 
-O botão mostra a bandeira do idioma atual. Ao clicar, abre a lista para selecionar.
+### Estrutura do PDF
 
-### 2. Traduzir todos os componentes restantes
-
-**Arquivos de tradução** (`en.json` e `pt-BR.json`): Expandir massivamente com seções para cada área:
-
+```text
+┌─────────────────────────┐
+│       CAPA              │
+│  Logo gradient header   │
+│  "Guia Completo"        │
+│  "CalculaAi"            │
+│  Data de geração        │
+└─────────────────────────┘
+┌─────────────────────────┐
+│  SEÇÃO: Dashboard       │
+│  ─── barra colorida ─── │
+│  Ícone + título         │
+│  Intro text             │
+│                         │
+│  Sub-tela 1:            │
+│  [imagem screenshot]    │
+│  Descrição              │
+│  • bullet 1             │
+│  • bullet 2             │
+│  💡 tip                 │
+│  ─── separador ───      │
+│  Sub-tela 2: ...        │
+└─────────────────────────┘
+   ... repete para cada seção
 ```
-receitas.*        → ListaReceitas, ReceitaCard, ReceitaForm, ExportMarkupModal, tabs, labels financeiros
-estoque.*         → ListaProdutos, filtros, tabela, badges, botões, ProdutoForm
-movimentacao.*    → CarrinhoMovimentacao, MovimentacaoModal, ListaProdutos, motivos
-custos.*          → DespesasFixas, FolhaPagamento, EncargosVenda
-precificacao.*    → Markups, MediaFaturamento
-perfil.*          → PerfilNegocio campos e labels
-notifications.*   → NotificacoesPainel
-```
 
-**Componentes a traduzir** (lista dos principais — todos os ~49 arquivos com strings hardcoded):
+### Detalhes técnicos
 
-| Área | Arquivos |
-|------|----------|
-| Receitas | ListaReceitas, ReceitaCard, ReceitaForm, ExportMarkupModal, GeralTab, IngredientesTab, SubReceitasTab, EmbalagensTa, ProjecaoTab, PrecificacaoTab, HistoricoGeralReceitas, ReceitaPreviewModal, TiposProdutoModal, MaoObraModal, MarkupCard |
-| Estoque | ListaProdutos, ProdutoForm, HistoricoGeral, ImportProdutosExcel, CategoriasModal, MarcasModal |
-| Movimentação | CarrinhoMovimentacao, MovimentacaoModal, ListaProdutos, ItemCarrinho, ProdutoCard, CategoriasFiltro |
-| Custos | DespesasFixas, FolhaPagamento, EncargosVenda, CategoriasDespesasModal |
-| Precificação | Markups, MediaFaturamento, CustosModal |
-| Perfil | PerfilNegocio |
-| Notificações | NotificacoesPainel, NotificationCenter, NotificationSettings |
-| Outros | Checkout, Tutorial, AdminUsers, hooks (useMovimentacoes, usePlanLimits toasts) |
+**1. Novo hook `useExportTutorialPDF.ts`**
+- Usa `jsPDF` para gerar o PDF
+- Carrega imagens dos assets via fetch → base64 para embedding
+- Controle inteligente de page breaks: antes de cada sub-tela, verifica se há espaço suficiente na página; se não, pula para próxima
+- Barra colorida no topo de cada seção (usando o gradient da seção)
+- Bullets com marcadores visuais, tips com fundo destacado
+- Formatação de `**bold**` nos bullets (split por `**` como já feito no React)
 
-**Dados dinâmicos** (motivos de movimentação):
-- `src/lib/motivosMovimentacao.ts` — converter para usar chaves i18n ao invés de strings fixas em português
+**2. Modificar `Tutorial.tsx`**
+- Importar o hook
+- Adicionar botão "📄 Baixar PDF" no hero ou logo abaixo dele
+- Loading state durante geração
 
-### 3. Detalhes técnicos
+### Cuidados com page breaks
+- Antes de renderizar cada sub-tela, calcular altura estimada (título + imagem + descrição + bullets + tips)
+- Se não cabe na página atual, `addPage()` antes
+- Imagens redimensionadas para caber na largura útil (max ~170mm) mantendo proporção
+- Margem segura de 20mm em todos os lados
 
-- **Seletor**: `DropdownMenu` do shadcn/ui com `DropdownMenuRadioGroup` para seleção do idioma
-- **Padrão de tradução**: `useTranslation()` + `t('section.key')` em cada componente
-- **Dados do usuário preservados**: Nomes de produtos, receitas, etc. que o usuário digitou continuam como estão — só labels de UI são traduzidos
-- **Motivos de movimentação**: Transformar em chaves i18n mapeadas para traduções, mantendo compatibilidade com dados já salvos no banco
-
-### Arquivos modificados
-- `src/i18n/locales/en.json` — expandir com ~300+ novas chaves
-- `src/i18n/locales/pt-BR.json` — expandir com ~300+ novas chaves correspondentes
-- `src/components/layout/AppLayout.tsx` — trocar toggle por dropdown
-- `src/lib/motivosMovimentacao.ts` — adaptar para i18n
-- ~40 componentes em `src/components/` e `src/pages/` — adicionar `useTranslation()` e substituir strings hardcoded
+### Arquivos
+- **Criar**: `src/hooks/useExportTutorialPDF.ts`
+- **Modificar**: `src/pages/Tutorial.tsx` (adicionar botão)
 
