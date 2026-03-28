@@ -8,7 +8,6 @@ const MARGIN = 20;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const BOTTOM_LIMIT = PAGE_H - MARGIN;
 
-// Section colors (HSL converted to RGB for jsPDF)
 const SECTION_COLORS: Record<string, [number, number, number]> = {
   dashboard: [14, 110, 184],
   estoque: [66, 66, 140],
@@ -17,6 +16,22 @@ const SECTION_COLORS: Record<string, [number, number, number]> = {
   custos: [190, 40, 60],
   precificacao: [210, 120, 30],
 };
+
+// Strip emoji and special unicode that jsPDF can't render
+function sanitize(text: string): string {
+  // Remove emoji and other non-latin chars that cause garbled output
+  return text
+    .replace(/[\u{1F600}-\u{1F9FF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
+    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[\u{200D}]/gu, '')
+    .replace(/💡/g, '[Dica]')
+    .replace(/🚀/g, '')
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .trim();
+}
 
 async function loadImageAsBase64(src: string): Promise<string | null> {
   try {
@@ -51,7 +66,7 @@ function ensureSpace(doc: jsPDF, y: number, needed: number): number {
 }
 
 function wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
-  return doc.splitTextToSize(text, maxWidth);
+  return doc.splitTextToSize(sanitize(text), maxWidth);
 }
 
 function drawColorBar(doc: jsPDF, y: number, color: [number, number, number]): number {
@@ -66,12 +81,16 @@ function drawBullet(
   y: number,
   color: [number, number, number]
 ): number {
-  const parts = bullet.split('**');
-  // Build plain text for wrapping calculation
-  const plainText = parts.join('');
-  const lines = wrapText(doc, plainText, CONTENT_W - 10);
-  const lineHeight = 5;
-  const neededH = lines.length * lineHeight + 2;
+  const clean = sanitize(bullet);
+  const parts = clean.split('**');
+  const bulletIndent = 8;
+  const textW = CONTENT_W - bulletIndent;
+  const lineHeight = 4.5;
+
+  // Build full wrapped lines to calculate total height first
+  const fullText = parts.join('');
+  const lines = doc.splitTextToSize(fullText, textW);
+  const neededH = lines.length * lineHeight + 3;
 
   y = ensureSpace(doc, y, neededH);
 
@@ -79,38 +98,68 @@ function drawBullet(
   doc.setFillColor(color[0], color[1], color[2]);
   doc.circle(MARGIN + 3, y + 2, 1, 'F');
 
-  // Render text with bold segments
-  let curX = MARGIN + 8;
+  // Render line by line using splitTextToSize for proper wrapping
+  // We render the full text line by line, applying bold to ** segments
   let curY = y;
-  const maxX = MARGIN + CONTENT_W;
 
-  for (let pi = 0; pi < parts.length; pi++) {
-    const isBold = pi % 2 === 1;
-    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+  for (const line of lines) {
+    curY = ensureSpace(doc, curY, lineHeight + 1);
+
+    // Find which parts of the original text this line corresponds to
+    // Simple approach: render the whole line in normal, then overlay bold parts
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(50, 50, 50);
+    doc.text(line, MARGIN + bulletIndent, curY + 3);
 
-    const words = parts[pi].split(' ');
-    for (const word of words) {
-      if (!word) continue;
-      const wordW = doc.getTextWidth(word + ' ');
-      if (curX + wordW > maxX) {
-        curX = MARGIN + 8;
-        curY += lineHeight;
-        curY = ensureSpace(doc, curY, lineHeight);
+    curY += lineHeight;
+  }
+
+  // Now re-render with bold detection on first line only (title part)
+  // Better approach: render each line with inline bold
+  // Reset and re-render properly
+  const pageBeforeRerender = doc.getCurrentPageInfo().pageNumber;
+
+  // We already rendered normal text above. For bold segments in the first occurrence,
+  // let's do a simpler approach: render the bold part separately if it's at the start
+  if (parts.length > 1 && parts[0] === '') {
+    // Text starts with bold: **BoldPart**: rest...
+    const boldPart = parts[1];
+    if (boldPart) {
+      // Overwrite just the bold segment on the first line
+      const firstLineY = y;
+      // Only if we're still on the same page
+      if (doc.getCurrentPageInfo().pageNumber === pageBeforeRerender || lines.length <= Math.ceil(BOTTOM_LIMIT / lineHeight)) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(50, 50, 50);
+
+        // Clear area behind bold text and redraw
+        const boldW = doc.getTextWidth(boldPart);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(MARGIN + bulletIndent, firstLineY - 0.5, boldW + 0.5, lineHeight + 1, 'F');
+
+        // Re-draw bullet dot (might have been covered)
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.circle(MARGIN + 3, y + 2, 1, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(50, 50, 50);
+        doc.text(boldPart, MARGIN + bulletIndent, firstLineY + 3);
       }
-      doc.text(word + ' ', curX, curY + 3);
-      curX += wordW;
     }
   }
 
-  return curY + lineHeight + 1;
+  return curY + 1;
 }
 
 function drawTip(doc: jsPDF, tip: string, y: number): number {
+  const cleanTip = sanitize(tip);
   doc.setFontSize(8);
-  const lines = wrapText(doc, '💡 ' + tip, CONTENT_W - 12);
-  const boxH = lines.length * 4.5 + 6;
+  doc.setFont('helvetica', 'normal');
+  const prefix = '[Dica] ';
+  const lines = doc.splitTextToSize(prefix + cleanTip, CONTENT_W - 16);
+  const boxH = lines.length * 4 + 6;
 
   y = ensureSpace(doc, y, boxH + 2);
 
@@ -118,8 +167,13 @@ function drawTip(doc: jsPDF, tip: string, y: number): number {
   doc.setFillColor(240, 245, 255);
   doc.roundedRect(MARGIN + 2, y, CONTENT_W - 4, boxH, 2, 2, 'F');
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80, 80, 100);
+  // Border
+  doc.setDrawColor(200, 215, 240);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(MARGIN + 2, y, CONTENT_W - 4, boxH, 2, 2, 'S');
+
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(60, 70, 110);
   doc.text(lines, MARGIN + 6, y + 5);
 
   return y + boxH + 3;
@@ -135,20 +189,17 @@ export function useExportTutorialPDF() {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
       // ========== COVER PAGE ==========
-      // Background gradient simulation
       doc.setFillColor(14, 110, 184);
       doc.rect(0, 0, PAGE_W, PAGE_H / 2, 'F');
       doc.setFillColor(120, 50, 150);
       doc.rect(0, PAGE_H / 2, PAGE_W, PAGE_H / 2, 'F');
 
-      // Decorative circles
-      doc.setFillColor(255, 255, 255, 15);
       doc.setGState(doc.GState({ opacity: 0.08 }));
+      doc.setFillColor(255, 255, 255);
       doc.circle(160, 40, 50, 'F');
       doc.circle(50, 250, 40, 'F');
       doc.setGState(doc.GState({ opacity: 1 }));
 
-      // Title
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(36);
@@ -162,20 +213,18 @@ export function useExportTutorialPDF() {
       doc.text('Tutorial visual e detalhado de cada tela,', PAGE_W / 2, 155, { align: 'center' });
       doc.text('modal e funcionalidade do sistema.', PAGE_W / 2, 163, { align: 'center' });
 
-      // Date
       doc.setFontSize(11);
       const now = new Date();
       const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-      doc.text(`Gerado em ${dateStr}`, PAGE_W / 2, 200, { align: 'center' });
+      doc.text('Gerado em ' + dateStr, PAGE_W / 2, 200, { align: 'center' });
 
-      // Table of contents
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Conteúdo:', PAGE_W / 2, 225, { align: 'center' });
+      doc.text('Conteudo:', PAGE_W / 2, 225, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
       sections.forEach((s, i) => {
-        doc.text(`${i + 1}. ${s.title} — ${s.subtitle}`, PAGE_W / 2, 237 + i * 8, { align: 'center' });
+        doc.text((i + 1) + '. ' + sanitize(s.title) + ' - ' + sanitize(s.subtitle), PAGE_W / 2, 237 + i * 8, { align: 'center' });
       });
 
       // ========== SECTIONS ==========
@@ -200,12 +249,12 @@ export function useExportTutorialPDF() {
         doc.setTextColor(color[0], color[1], color[2]);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(20);
-        doc.text(section.title, MARGIN + 16, y + 8);
+        doc.text(sanitize(section.title), MARGIN + 16, y + 8);
 
         doc.setTextColor(120, 120, 120);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        doc.text(section.subtitle, MARGIN + 16, y + 14);
+        doc.text(sanitize(section.subtitle), MARGIN + 16, y + 14);
 
         y += 22;
 
@@ -219,10 +268,8 @@ export function useExportTutorialPDF() {
 
           y = ensureSpace(doc, y, fittedH + 4);
 
-          // Shadow
           doc.setFillColor(230, 230, 230);
           doc.roundedRect(MARGIN + 1, y + 1, imgW, fittedH, 2, 2, 'F');
-
           doc.addImage(mainB64, 'JPEG', MARGIN, y, imgW, fittedH);
           y += fittedH + 6;
         }
@@ -240,11 +287,16 @@ export function useExportTutorialPDF() {
         for (let ssi = 0; ssi < section.subScreens.length; ssi++) {
           const sub = section.subScreens[ssi];
 
-          // Estimate needed height for title + image preview
-          const estH = 60; // minimum estimate
-          y = ensureSpace(doc, y, estH);
+          // Better height estimation: title(12) + description + bullets + tips
+          const descLines = wrapText(doc, sub.description, CONTENT_W);
+          const estDescH = descLines.length * 4.5;
+          const estBulletsH = sub.bullets.length * 12;
+          const estTipsH = (sub.tips?.length || 0) * 15;
+          const minEstH = 14 + estDescH + Math.min(estBulletsH, 40); // At minimum, title + desc + some bullets
 
-          // Separator line between sub-screens
+          y = ensureSpace(doc, y, Math.min(minEstH, 60));
+
+          // Separator line
           if (ssi > 0) {
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
@@ -252,8 +304,8 @@ export function useExportTutorialPDF() {
             y += 6;
           }
 
-          // Sub-screen number badge + title
-          y = ensureSpace(doc, y, 12);
+          // Sub-screen title
+          y = ensureSpace(doc, y, 14);
           doc.setFillColor(color[0], color[1], color[2]);
           doc.circle(MARGIN + 4, y + 3, 4, 'F');
           doc.setTextColor(255, 255, 255);
@@ -264,8 +316,14 @@ export function useExportTutorialPDF() {
           doc.setTextColor(40, 40, 40);
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(13);
-          doc.text(sub.title, MARGIN + 12, y + 5);
+          // Wrap title if too long
+          const titleLines = doc.splitTextToSize(sanitize(sub.title), CONTENT_W - 14);
+          doc.text(titleLines[0], MARGIN + 12, y + 5);
           y += 12;
+          if (titleLines.length > 1) {
+            doc.text(titleLines.slice(1), MARGIN + 12, y);
+            y += (titleLines.length - 1) * 6;
+          }
 
           // Sub-screen image
           const subB64 = await loadImageAsBase64(sub.image);
@@ -287,10 +345,14 @@ export function useExportTutorialPDF() {
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(9.5);
           doc.setTextColor(60, 60, 60);
-          const descLines = wrapText(doc, sub.description, CONTENT_W);
-          y = ensureSpace(doc, y, descLines.length * 4.5 + 4);
-          doc.text(descLines, MARGIN, y);
-          y += descLines.length * 4.5 + 4;
+          // Re-wrap since we already calculated above
+          const descWrapped = wrapText(doc, sub.description, CONTENT_W);
+          for (const line of descWrapped) {
+            y = ensureSpace(doc, y, 5);
+            doc.text(line, MARGIN, y + 3);
+            y += 4.5;
+          }
+          y += 3;
 
           // Bullets
           for (const bullet of sub.bullets) {
@@ -320,7 +382,7 @@ export function useExportTutorialPDF() {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(18);
-      doc.text('Pronto para começar! 🚀', PAGE_W / 2, y + 10, { align: 'center' });
+      doc.text('Pronto para comecar!', PAGE_W / 2, y + 10, { align: 'center' });
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
