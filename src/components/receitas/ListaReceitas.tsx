@@ -28,7 +28,8 @@ export function ListaReceitas() {
   const [tiposProduto, setTiposProduto] = useState<Array<{ id: string; nome: string }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [markupsDisponiveis, setMarkupsDisponiveis] = useState<Array<{ id: string; nome: string }>>([]);
-
+  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
   useEffect(() => {
     loadTiposProduto();
   }, []);
