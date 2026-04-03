@@ -437,6 +437,8 @@ export function MarkupCard({
               {isApplying ? 'Aplicando...' : (isSelected ? 'Selecionado' : 'Selecionar')}
             </Button>
           </div>
+            </>
+          )}
         </CardContent>
       )}
     </Card>
