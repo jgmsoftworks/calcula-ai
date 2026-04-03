@@ -59,7 +59,10 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                      (receita.custo_mao_obra || 0) + 
                      (receita.custo_sub_receitas || 0);
 
-  const lucroBruto = receita.preco_venda - custoTotal;
+  const custoBase = (receita.markup?.tipo === 'sub_receita' || !receita.rendimento_valor || receita.rendimento_valor <= 0)
+    ? custoTotal
+    : custoTotal / receita.rendimento_valor;
+  const lucroBruto = receita.preco_venda - custoBase;
 
   // Use preloaded data if available, otherwise fallback to individual fetch
   useEffect(() => {
