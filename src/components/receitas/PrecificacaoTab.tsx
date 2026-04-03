@@ -27,6 +27,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   const [markupSubReceita, setMarkupSubReceita] = useState<any | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
+  const [isLoadingConfigs, setIsLoadingConfigs] = useState(true);
 
   useEffect(() => {
     const calcularCustoTotal = () => {
@@ -101,10 +103,38 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     }
   }, [user]);
 
+  // Prefetch all markup configs in a single query
+  const loadMarkupConfigs = useCallback(async () => {
+    if (!user) {
+      setIsLoadingConfigs(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('user_configurations')
+        .select('type, configuration')
+        .eq('user_id', user.id)
+        .ilike('type', 'markup_%');
+      
+      if (error) throw error;
+      
+      const map: Record<string, any> = {};
+      (data || []).forEach((item: any) => {
+        map[item.type] = item.configuration;
+      });
+      setMarkupConfigsMap(map);
+    } catch (error) {
+      console.error('Erro ao carregar configs de markup:', error);
+    } finally {
+      setIsLoadingConfigs(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     loadMarkups();
     loadMarkupSubReceita();
-  }, [loadMarkups, loadMarkupSubReceita]);
+    loadMarkupConfigs();
+  }, [loadMarkups, loadMarkupSubReceita, loadMarkupConfigs]);
 
   useEffect(() => {
     if (!user) return;
@@ -452,6 +482,10 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           alwaysExpanded={true}
           isApplying={isApplying}
           rendimentoValor={formData.rendimento_valor}
+          preloadedDetalhes={
+            markupConfigsMap[`markup_${selectedMarkup.nome.toLowerCase().replace(/\s+/g, '_')}`] ?? null
+          }
+          isLoadingPreloaded={isLoadingConfigs}
         />
       )}
     </div>
