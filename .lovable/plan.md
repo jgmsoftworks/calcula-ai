@@ -1,30 +1,45 @@
 
+Problema
 
-## Problema
+Na tela inicial de receitas, o mesmo atraso acontece porque o `ReceitaCard` ainda carrega os detalhes do markup sozinho, depois que o card já apareceu. Resultado:
+- a lista renderiza primeiro
+- o `Lucro Líquido` entra vazio ou com fallback
+- alguns instantes depois cada card faz sua query em `user_configurations`
+- então o valor “corrige” e muda na tela
 
-Quando o usuário abre uma receita na aba de Precificação, cada `MarkupCard` faz sua própria query individual ao Supabase para buscar detalhes de `user_configurations` (linha 75-80 do MarkupCard.tsx). Enquanto essa query não retorna, os percentuais de custos indiretos (impostos, taxas, comissoes) ficam em 0, fazendo Lucro Liquido = Lucro Bruto. Ao carregar, os valores "pulam" para os corretos. O skeleton atual resolve o flash visual, mas o loading demora porque sao N queries separadas (uma por card).
+Pelo código, isso ocorre em `src/components/receitas/ReceitaCard.tsx`, enquanto a aba de precificação já foi otimizada em `PrecificacaoTab.tsx` para buscar tudo em lote.
 
-Alem disso, o `PrecificacaoTab` ja faz a mesma query em `handleSelectMarkup` (linha 150-156), duplicando o trabalho.
+Plano
 
-## Solucao: Prefetch no pai (sem mudancas no banco)
+1. Padronizar a estratégia da lista de receitas com a aba de precificação
+- mover a busca dos detalhes de markup para `ListaReceitas.tsx`
+- fazer uma única leitura de `user_configurations` com `type ilike 'markup_%'`
+- guardar em um mapa por chave (`markup_nome_normalizado`)
 
-Buscar todas as configs de markup em uma unica query no `PrecificacaoTab` e passar como prop. Zero alteracoes no banco de dados.
+2. Parar as queries individuais em cada `ReceitaCard`
+- adicionar prop opcional para receber os detalhes já pré-carregados
+- remover a dependência de fetch por card quando os dados vierem do componente pai
+- manter fallback seguro só se o card for usado em outro lugar sem preload
 
-## Mudancas
+3. Evitar o “piscado” do Lucro Líquido na listagem
+- enquanto a lista estiver carregando os configs dos markups, mostrar estado estável no bloco de `Lucro Líquido`
+- usar skeleton ou placeholder consistente no próprio card, sem mostrar valor parcial incorreto
 
-### `src/components/receitas/PrecificacaoTab.tsx`
-- Adicionar `useEffect` que faz uma unica query: `supabase.from('user_configurations').select('*').eq('user_id', user.id).ilike('type', 'markup_%')`
-- Armazenar resultado em um `Map<string, any>` (chave = type, valor = configuration)
-- Passar para cada `MarkupCard` via nova prop `preloadedDetalhes`
+4. Reaproveitar a lógica já existente
+- seguir o mesmo padrão já aplicado em `PrecificacaoTab.tsx` e `MarkupCard.tsx`
+- manter a mesma fórmula atual de lucro líquido, sem alterar cálculo nem estrutura do banco
 
-### `src/components/receitas/MarkupCard.tsx`
-- Adicionar prop opcional `preloadedDetalhes?: MarkupDetalhado | null`
-- Se `preloadedDetalhes` fornecido: usar direto, setar `isLoadingDetalhes = false` imediatamente
-- Se nao fornecido: manter fallback atual (query individual)
-- Resultado: de N queries para 1, loading de ~500-1000ms para ~150ms
+5. Garantir segurança e não mexer no banco
+- não haverá migration
+- não haverá alteração de tabela, coluna, índice, RLS ou função SQL
+- será apenas otimização de leitura no frontend, usando a mesma tabela `user_configurations`
 
-### Seguranca
-- Nenhuma migracao SQL
-- Nenhuma alteracao em tabelas ou RLS
-- Apenas otimizacao de leitura no frontend
+Arquivos envolvidos
+- `src/components/receitas/ListaReceitas.tsx`
+- `src/components/receitas/ReceitaCard.tsx`
 
+Detalhes técnicos
+- Hoje o gargalo está no `useEffect` do `ReceitaCard`, que faz `select configuration from user_configurations` por card.
+- A melhoria mais eficiente e mais segura é trocar N queries por 1 query no componente pai.
+- Isso reduz latência, elimina atualização visual tardia e segue exatamente a abordagem já usada na precificação.
+- Se quiser deixar ainda mais robusto depois, dá para centralizar isso num hook compartilhado de configs de markup, mas para esta correção o caminho mais direto é `ListaReceitas` + `ReceitaCard`.
