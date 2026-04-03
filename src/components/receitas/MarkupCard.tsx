@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MarkupDetalhado {
   periodo: string;
