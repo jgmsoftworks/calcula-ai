@@ -103,10 +103,38 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     }
   }, [user]);
 
+  // Prefetch all markup configs in a single query
+  const loadMarkupConfigs = useCallback(async () => {
+    if (!user) {
+      setIsLoadingConfigs(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('user_configurations')
+        .select('type, configuration')
+        .eq('user_id', user.id)
+        .ilike('type', 'markup_%');
+      
+      if (error) throw error;
+      
+      const map: Record<string, any> = {};
+      (data || []).forEach((item: any) => {
+        map[item.type] = item.configuration;
+      });
+      setMarkupConfigsMap(map);
+    } catch (error) {
+      console.error('Erro ao carregar configs de markup:', error);
+    } finally {
+      setIsLoadingConfigs(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     loadMarkups();
     loadMarkupSubReceita();
-  }, [loadMarkups, loadMarkupSubReceita]);
+    loadMarkupConfigs();
+  }, [loadMarkups, loadMarkupSubReceita, loadMarkupConfigs]);
 
   useEffect(() => {
     if (!user) return;
