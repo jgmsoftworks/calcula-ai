@@ -64,7 +64,10 @@ export function MarkupCard({
   // Carregar detalhes do markup de user_configurations
   useEffect(() => {
     const carregarDetalhes = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoadingDetalhes(false);
+        return;
+      }
       
       try {
         const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
@@ -78,15 +81,14 @@ export function MarkupCard({
         
         if (error) {
           console.error('Erro ao carregar detalhes do markup:', error);
+          setIsLoadingDetalhes(false);
           return;
         }
         
         if (data?.configuration) {
           const config = data.configuration as unknown as MarkupDetalhado;
           
-          // Verificar se faltam campos e completar com dados do markup base
           if (config.lucroDesejado === undefined || config.markupIdeal === undefined) {
-            console.log('⚠️ Dados incompletos no tooltip, usando dados do markup base');
             setDetalhes({
               ...config,
               lucroDesejado: config.lucroDesejado ?? markup.margem_lucro,
@@ -98,6 +100,8 @@ export function MarkupCard({
         }
       } catch (error) {
         console.error('Erro ao carregar detalhes:', error);
+      } finally {
+        setIsLoadingDetalhes(false);
       }
     };
     
