@@ -28,14 +28,38 @@ export function ListaReceitas() {
   const [tiposProduto, setTiposProduto] = useState<Array<{ id: string; nome: string }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [markupsDisponiveis, setMarkupsDisponiveis] = useState<Array<{ id: string; nome: string }>>([]);
-
+  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
   useEffect(() => {
     loadTiposProduto();
+    loadMarkupConfigs();
   }, []);
 
   useEffect(() => {
     loadReceitas();
   }, [search, tipoFilter, subReceitaFilter]);
+
+  const loadMarkupConfigs = async () => {
+    if (!user) return;
+    setLoadingConfigs(true);
+    try {
+      const { data } = await supabase
+        .from('user_configurations')
+        .select('type, configuration')
+        .eq('user_id', user.id)
+        .ilike('type', 'markup_%');
+      
+      const map: Record<string, any> = {};
+      data?.forEach((item) => {
+        map[item.type] = item.configuration;
+      });
+      setMarkupConfigsMap(map);
+    } catch (error) {
+      console.error('Erro ao carregar configs de markup:', error);
+    } finally {
+      setLoadingConfigs(false);
+    }
+  };
 
   // Ref para debounce do real-time
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -258,14 +282,22 @@ export function ListaReceitas() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {receitas.map((receita) => (
-                <ReceitaCard
-                  key={receita.id}
-                  receita={receita}
-                  onEdit={handleEdit}
-                  onDelete={loadReceitas}
-                />
-              ))}
+              {receitas.map((receita) => {
+                const configKey = receita.markup?.nome
+                  ? `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`
+                  : null;
+                const preloadedDetalhes = configKey ? markupConfigsMap[configKey] || null : null;
+                return (
+                  <ReceitaCard
+                    key={receita.id}
+                    receita={receita}
+                    onEdit={handleEdit}
+                    onDelete={loadReceitas}
+                    preloadedDetalhes={preloadedDetalhes}
+                    isLoadingPreloaded={loadingConfigs}
+                  />
+                );
+              })}
             </div>
           )}
         </CardContent>

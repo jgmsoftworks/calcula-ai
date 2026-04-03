@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Download, Eye, Package, Copy, Clock, Users, Layers, BoxSelect, Tag, TrendingUp } from 'lucide-react';
+import { Edit, Trash2, Download, Eye, Package, Copy, Clock, Users, Layers, BoxSelect, Tag, TrendingUp, Loader2 } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useExportReceitaPDF } from '@/hooks/useExportReceitaPDF';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,9 +34,11 @@ interface ReceitaCardProps {
   receita: ReceitaComDados;
   onEdit: (receita: ReceitaComDados) => void;
   onDelete: () => void;
+  preloadedDetalhes?: any | null;
+  isLoadingPreloaded?: boolean;
 }
 
-export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
+export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLoadingPreloaded }: ReceitaCardProps) {
   const { deleteReceita, fetchReceitaCompleta, duplicarReceita } = useReceitas();
   const { user } = useAuth();
   const { exportarReceitaPDF, exporting: exportingPDF } = useExportReceitaPDF();
@@ -44,6 +47,7 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(true);
 
   const handleDelete = async () => {
     const success = await deleteReceita(receita.id);
@@ -57,10 +61,20 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
 
   const lucroBruto = receita.preco_venda - custoTotal;
 
+  // Use preloaded data if available, otherwise fallback to individual fetch
   useEffect(() => {
+    if (preloadedDetalhes !== undefined) {
+      // Data provided by parent
+      setMarkupDetalhes(preloadedDetalhes);
+      setIsLoadingDetalhes(isLoadingPreloaded || false);
+      return;
+    }
+    
+    // Fallback: fetch individually
     const carregarMarkupDetalhes = async () => {
       if (!receita.markup?.nome || !user) {
         setMarkupDetalhes(null);
+        setIsLoadingDetalhes(false);
         return;
       }
       const configKey = `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
@@ -75,9 +89,10 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
       } else {
         setMarkupDetalhes(null);
       }
+      setIsLoadingDetalhes(false);
     };
     carregarMarkupDetalhes();
-  }, [receita.markup, user]);
+  }, [receita.markup, user, preloadedDetalhes, isLoadingPreloaded]);
 
   const calcularLucroLiquido = () => {
     if (!markupDetalhes || !receita.markup) return 0;
@@ -249,12 +264,16 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
             </div>
             <div className="rounded-xl bg-muted/50 p-3 text-center">
               <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Lucro Líquido</div>
-              <div className={cn(
-                "text-lg font-bold font-display",
-                !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
-              )}>
-                {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
-              </div>
+              {isLoadingDetalhes ? (
+                <Skeleton className="h-7 w-20 mx-auto" />
+              ) : (
+                <div className={cn(
+                  "text-lg font-bold font-display",
+                  !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                )}>
+                  {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
+                </div>
+              )}
             </div>
           </div>
         </div>
