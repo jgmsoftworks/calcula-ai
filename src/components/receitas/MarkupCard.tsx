@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MarkupDetalhado {
   periodo: string;
@@ -49,6 +50,7 @@ export function MarkupCard({
 }: MarkupCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
   const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(null);
+  const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -62,7 +64,10 @@ export function MarkupCard({
   // Carregar detalhes do markup de user_configurations
   useEffect(() => {
     const carregarDetalhes = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoadingDetalhes(false);
+        return;
+      }
       
       try {
         const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
@@ -76,15 +81,14 @@ export function MarkupCard({
         
         if (error) {
           console.error('Erro ao carregar detalhes do markup:', error);
+          setIsLoadingDetalhes(false);
           return;
         }
         
         if (data?.configuration) {
           const config = data.configuration as unknown as MarkupDetalhado;
           
-          // Verificar se faltam campos e completar com dados do markup base
           if (config.lucroDesejado === undefined || config.markupIdeal === undefined) {
-            console.log('⚠️ Dados incompletos no tooltip, usando dados do markup base');
             setDetalhes({
               ...config,
               lucroDesejado: config.lucroDesejado ?? markup.margem_lucro,
@@ -96,6 +100,8 @@ export function MarkupCard({
         }
       } catch (error) {
         console.error('Erro ao carregar detalhes:', error);
+      } finally {
+        setIsLoadingDetalhes(false);
       }
     };
     
@@ -286,6 +292,21 @@ export function MarkupCard({
 
       {expanded && (
         <CardContent className="space-y-4">
+          {isLoadingDetalhes ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+            </div>
+          ) : (
+            <>
           <div className="grid grid-cols-3 gap-4">
             <Card className="bg-purple-50 dark:bg-purple-950">
               <CardHeader className="pb-2">
@@ -417,6 +438,8 @@ export function MarkupCard({
               {isApplying ? 'Aplicando...' : (isSelected ? 'Selecionado' : 'Selecionar')}
             </Button>
           </div>
+            </>
+          )}
         </CardContent>
       )}
     </Card>
