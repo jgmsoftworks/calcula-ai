@@ -1,45 +1,46 @@
 
-Problema
 
-Na tela inicial de receitas, o mesmo atraso acontece porque o `ReceitaCard` ainda carrega os detalhes do markup sozinho, depois que o card já apareceu. Resultado:
-- a lista renderiza primeiro
-- o `Lucro Líquido` entra vazio ou com fallback
-- alguns instantes depois cada card faz sua query em `user_configurations`
-- então o valor “corrige” e muda na tela
+## Problema: Lucro Bruto calculado de forma diferente na lista vs precificação
 
-Pelo código, isso ocorre em `src/components/receitas/ReceitaCard.tsx`, enquanto a aba de precificação já foi otimizada em `PrecificacaoTab.tsx` para buscar tudo em lote.
+### O que está acontecendo
 
-Plano
+Na **tela inicial de receitas** (ReceitaCard), o Lucro Bruto é calculado assim:
 
-1. Padronizar a estratégia da lista de receitas com a aba de precificação
-- mover a busca dos detalhes de markup para `ListaReceitas.tsx`
-- fazer uma única leitura de `user_configurations` com `type ilike 'markup_%'`
-- guardar em um mapa por chave (`markup_nome_normalizado`)
+```
+Lucro Bruto = Preço de Venda - Custo Total (do lote inteiro)
+55,71 - 247,84 = -192,13
+```
 
-2. Parar as queries individuais em cada `ReceitaCard`
-- adicionar prop opcional para receber os detalhes já pré-carregados
-- remover a dependência de fetch por card quando os dados vierem do componente pai
-- manter fallback seguro só se o card for usado em outro lugar sem preload
+Na **aba de Precificação** (MarkupCard), o Lucro Bruto é calculado assim:
 
-3. Evitar o “piscado” do Lucro Líquido na listagem
-- enquanto a lista estiver carregando os configs dos markups, mostrar estado estável no bloco de `Lucro Líquido`
-- usar skeleton ou placeholder consistente no próprio card, sem mostrar valor parcial incorreto
+```
+custoBase = Custo Total ÷ Rendimento = 247,84 ÷ 12 = 20,65
+Lucro Bruto = Preço de Venda - custoBase (por unidade)
+55,71 - 20,65 = 35,06
+```
 
-4. Reaproveitar a lógica já existente
-- seguir o mesmo padrão já aplicado em `PrecificacaoTab.tsx` e `MarkupCard.tsx`
-- manter a mesma fórmula atual de lucro líquido, sem alterar cálculo nem estrutura do banco
+O Preço de Venda é **por unidade**, mas na tela inicial o código compara esse preço unitário contra o **custo total do lote** (247,84 de 12 unidades), gerando um valor absurdamente negativo. Na precificação, o custo é corretamente dividido pelo rendimento antes da comparação. O Lucro Líquido já faz a divisão correta (por isso mostra R$ 3,90 em ambas as telas).
 
-5. Garantir segurança e não mexer no banco
-- não haverá migration
-- não haverá alteração de tabela, coluna, índice, RLS ou função SQL
-- será apenas otimização de leitura no frontend, usando a mesma tabela `user_configurations`
+### Solução
 
-Arquivos envolvidos
-- `src/components/receitas/ListaReceitas.tsx`
-- `src/components/receitas/ReceitaCard.tsx`
+Corrigir o cálculo do Lucro Bruto no `ReceitaCard` para dividir o custo total pelo rendimento, igualando à fórmula do `MarkupCard`.
 
-Detalhes técnicos
-- Hoje o gargalo está no `useEffect` do `ReceitaCard`, que faz `select configuration from user_configurations` por card.
-- A melhoria mais eficiente e mais segura é trocar N queries por 1 query no componente pai.
-- Isso reduz latência, elimina atualização visual tardia e segue exatamente a abordagem já usada na precificação.
-- Se quiser deixar ainda mais robusto depois, dá para centralizar isso num hook compartilhado de configs de markup, mas para esta correção o caminho mais direto é `ListaReceitas` + `ReceitaCard`.
+### Mudança
+
+**`src/components/receitas/ReceitaCard.tsx`** (1 linha):
+
+Linha 62, trocar:
+```ts
+const lucroBruto = receita.preco_venda - custoTotal;
+```
+
+Por:
+```ts
+const custoBase = (receita.markup?.tipo === 'sub_receita' || !receita.rendimento_valor || receita.rendimento_valor <= 0)
+  ? custoTotal
+  : custoTotal / receita.rendimento_valor;
+const lucroBruto = receita.preco_venda - custoBase;
+```
+
+Isso aplica a mesma lógica do MarkupCard: se for sub-receita, usa custo total; senão, divide pelo rendimento. Nenhuma alteração no banco de dados.
+
