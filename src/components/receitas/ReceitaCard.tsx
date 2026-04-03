@@ -264,12 +264,16 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
             </div>
             <div className="rounded-xl bg-muted/50 p-3 text-center">
               <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Lucro Líquido</div>
-              <div className={cn(
-                "text-lg font-bold font-display",
-                !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
-              )}>
-                {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
-              </div>
+              {isLoadingDetalhes ? (
+                <Skeleton className="h-7 w-20 mx-auto" />
+              ) : (
+                <div className={cn(
+                  "text-lg font-bold font-display",
+                  !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                )}>
+                  {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
+                </div>
+              )}
             </div>
           </div>
         </div>

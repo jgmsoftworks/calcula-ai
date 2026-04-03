@@ -282,14 +282,22 @@ export function ListaReceitas() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {receitas.map((receita) => (
-                <ReceitaCard
-                  key={receita.id}
-                  receita={receita}
-                  onEdit={handleEdit}
-                  onDelete={loadReceitas}
-                />
-              ))}
+              {receitas.map((receita) => {
+                const configKey = receita.markup?.nome
+                  ? `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`
+                  : null;
+                const preloadedDetalhes = configKey ? markupConfigsMap[configKey] || null : null;
+                return (
+                  <ReceitaCard
+                    key={receita.id}
+                    receita={receita}
+                    onEdit={handleEdit}
+                    onDelete={loadReceitas}
+                    preloadedDetalhes={preloadedDetalhes}
+                    isLoadingPreloaded={loadingConfigs}
+                  />
+                );
+              })}
             </div>
           )}
         </CardContent>
