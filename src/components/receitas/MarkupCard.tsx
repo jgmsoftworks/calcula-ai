@@ -36,6 +36,8 @@ interface MarkupCardProps {
   alwaysExpanded?: boolean;
   isApplying?: boolean;
   rendimentoValor?: number;
+  preloadedDetalhes?: any | null;
+  isLoadingPreloaded?: boolean;
 }
 
 export function MarkupCard({ 
