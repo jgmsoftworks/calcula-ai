@@ -32,11 +32,34 @@ export function ListaReceitas() {
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   useEffect(() => {
     loadTiposProduto();
+    loadMarkupConfigs();
   }, []);
 
   useEffect(() => {
     loadReceitas();
   }, [search, tipoFilter, subReceitaFilter]);
+
+  const loadMarkupConfigs = async () => {
+    if (!user) return;
+    setLoadingConfigs(true);
+    try {
+      const { data } = await supabase
+        .from('user_configurations')
+        .select('type, configuration')
+        .eq('user_id', user.id)
+        .ilike('type', 'markup_%');
+      
+      const map: Record<string, any> = {};
+      data?.forEach((item) => {
+        map[item.type] = item.configuration;
+      });
+      setMarkupConfigsMap(map);
+    } catch (error) {
+      console.error('Erro ao carregar configs de markup:', error);
+    } finally {
+      setLoadingConfigs(false);
+    }
+  };
 
   // Ref para debounce do real-time
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
