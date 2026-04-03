@@ -308,6 +308,7 @@ export function MarkupCard({
           ) : (
             <>
           <div className="grid grid-cols-3 gap-4">
+            <Card className="bg-purple-50 dark:bg-purple-950">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
                   Markup da Categoria
