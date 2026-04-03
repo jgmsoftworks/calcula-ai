@@ -34,9 +34,11 @@ interface ReceitaCardProps {
   receita: ReceitaComDados;
   onEdit: (receita: ReceitaComDados) => void;
   onDelete: () => void;
+  preloadedDetalhes?: any | null;
+  isLoadingPreloaded?: boolean;
 }
 
-export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
+export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLoadingPreloaded }: ReceitaCardProps) {
   const { deleteReceita, fetchReceitaCompleta, duplicarReceita } = useReceitas();
   const { user } = useAuth();
   const { exportarReceitaPDF, exporting: exportingPDF } = useExportReceitaPDF();
@@ -45,6 +47,7 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(true);
 
   const handleDelete = async () => {
     const success = await deleteReceita(receita.id);
@@ -58,10 +61,20 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
 
   const lucroBruto = receita.preco_venda - custoTotal;
 
+  // Use preloaded data if available, otherwise fallback to individual fetch
   useEffect(() => {
+    if (preloadedDetalhes !== undefined) {
+      // Data provided by parent
+      setMarkupDetalhes(preloadedDetalhes);
+      setIsLoadingDetalhes(isLoadingPreloaded || false);
+      return;
+    }
+    
+    // Fallback: fetch individually
     const carregarMarkupDetalhes = async () => {
       if (!receita.markup?.nome || !user) {
         setMarkupDetalhes(null);
+        setIsLoadingDetalhes(false);
         return;
       }
       const configKey = `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
@@ -76,9 +89,10 @@ export function ReceitaCard({ receita, onEdit, onDelete }: ReceitaCardProps) {
       } else {
         setMarkupDetalhes(null);
       }
+      setIsLoadingDetalhes(false);
     };
     carregarMarkupDetalhes();
-  }, [receita.markup, user]);
+  }, [receita.markup, user, preloadedDetalhes, isLoadingPreloaded]);
 
   const calcularLucroLiquido = () => {
     if (!markupDetalhes || !receita.markup) return 0;
