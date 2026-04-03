@@ -50,6 +50,7 @@ export function MarkupCard({
 }: MarkupCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
   const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(null);
+  const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
