@@ -48,11 +48,16 @@ export function MarkupCard({
   onSelect,
   alwaysExpanded = false,
   isApplying = false,
-  rendimentoValor
+  rendimentoValor,
+  preloadedDetalhes,
+  isLoadingPreloaded = false
 }: MarkupCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
-  const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(null);
-  const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(true);
+  const hasPreloaded = preloadedDetalhes !== undefined;
+  const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(
+    hasPreloaded ? (preloadedDetalhes as MarkupDetalhado | null) : null
+  );
+  const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(hasPreloaded ? isLoadingPreloaded : true);
   const { user } = useAuth();
 
   useEffect(() => {
