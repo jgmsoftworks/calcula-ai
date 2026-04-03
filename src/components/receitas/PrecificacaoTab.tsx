@@ -27,6 +27,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   const [markupSubReceita, setMarkupSubReceita] = useState<any | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
+  const [isLoadingConfigs, setIsLoadingConfigs] = useState(true);
 
   useEffect(() => {
     const calcularCustoTotal = () => {
