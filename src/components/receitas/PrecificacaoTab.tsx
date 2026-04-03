@@ -482,6 +482,10 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           alwaysExpanded={true}
           isApplying={isApplying}
           rendimentoValor={formData.rendimento_valor}
+          preloadedDetalhes={
+            markupConfigsMap[`markup_${selectedMarkup.nome.toLowerCase().replace(/\s+/g, '_')}`] ?? null
+          }
+          isLoadingPreloaded={isLoadingConfigs}
         />
       )}
     </div>

@@ -68,8 +68,30 @@ export function MarkupCard({
     }
   }, [isSelected, alwaysExpanded]);
 
-  // Carregar detalhes do markup de user_configurations
+  // Use preloaded data when available
   useEffect(() => {
+    if (hasPreloaded) {
+      if (preloadedDetalhes) {
+        const config = preloadedDetalhes as MarkupDetalhado;
+        if (config.lucroDesejado === undefined || config.markupIdeal === undefined) {
+          setDetalhes({
+            ...config,
+            lucroDesejado: config.lucroDesejado ?? markup.margem_lucro,
+            markupIdeal: config.markupIdeal ?? markup.markup_ideal
+          });
+        } else {
+          setDetalhes(config);
+        }
+      }
+      setIsLoadingDetalhes(isLoadingPreloaded);
+      return;
+    }
+  }, [hasPreloaded, preloadedDetalhes, isLoadingPreloaded, markup.margem_lucro, markup.markup_ideal]);
+
+  // Fallback: Carregar detalhes do markup de user_configurations (only if not preloaded)
+  useEffect(() => {
+    if (hasPreloaded) return;
+    
     const carregarDetalhes = async () => {
       if (!user) {
         setIsLoadingDetalhes(false);
@@ -113,7 +135,7 @@ export function MarkupCard({
     };
     
     carregarDetalhes();
-  }, [user, markup.nome, markup.margem_lucro, markup.markup_ideal]);
+  }, [hasPreloaded, user, markup.nome, markup.margem_lucro, markup.markup_ideal]);
 
   // Real-time updates para detalhes do markup
   useEffect(() => {
