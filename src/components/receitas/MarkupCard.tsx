@@ -292,8 +292,22 @@ export function MarkupCard({
 
       {expanded && (
         <CardContent className="space-y-4">
+          {isLoadingDetalhes ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+            </div>
+          ) : (
+            <>
           <div className="grid grid-cols-3 gap-4">
-            <Card className="bg-purple-50 dark:bg-purple-950">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
                   Markup da Categoria
