@@ -171,44 +171,44 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
         {/* Top gradient accent line */}
         <div className="h-1 w-full bg-gradient-to-r from-[hsl(205,96%,46%)] via-[hsl(273,63%,42%)] to-[hsl(25,95%,51%)]" />
         
-        <div className="p-5">
+        <div className="p-3 md:p-5">
           {/* Header row */}
-          <div className="flex items-start gap-4 mb-4">
+          <div className="flex flex-wrap items-start gap-3 md:gap-4 mb-3 md:mb-4">
             {/* Number badge */}
-            <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-xl font-bold font-display">{receita.numero_sequencial}</span>
+            <div className="flex-shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-secondary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-base md:text-xl font-bold font-display">{receita.numero_sequencial}</span>
             </div>
 
             {/* Title & meta */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold font-display truncate">{receita.nome}</h3>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <h3 className="text-base md:text-lg font-bold font-display truncate">{receita.nome}</h3>
+              <div className="flex items-center gap-1.5 md:gap-2 mt-1 md:mt-1.5 flex-wrap">
                 {receita.tipo_produto?.nome && (
-                  <Badge variant="secondary" className="text-xs font-medium bg-accent/10 text-accent border-accent/20 gap-1">
+                  <Badge variant="secondary" className="text-[10px] md:text-xs font-medium bg-accent/10 text-accent border-accent/20 gap-1">
                     <Tag className="h-3 w-3" />
                     {receita.tipo_produto.nome}
                   </Badge>
                 )}
                 {isSubReceita && (
-                  <Badge className="text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 gap-1" variant="outline">
+                  <Badge className="text-[10px] md:text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 gap-1" variant="outline">
                     <Package className="h-3 w-3" />
                     Sub-receita
                   </Badge>
                 )}
                 {receita.markup?.nome && !isSubReceita && (
-                  <Badge variant="outline" className="text-xs font-medium bg-primary/5 text-primary border-primary/20 gap-1">
+                  <Badge variant="outline" className="text-[10px] md:text-xs font-medium bg-primary/5 text-primary border-primary/20 gap-1">
                     <TrendingUp className="h-3 w-3" />
                     {receita.markup.nome}
                   </Badge>
                 )}
-                <span className="text-xs text-muted-foreground">
+                <span className="text-[10px] md:text-xs text-muted-foreground">
                   Rend: {receita.rendimento_valor || 0} {receita.rendimento_unidade || 'un'}
                 </span>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+            {/* Actions — full width row on mobile */}
+            <div className="flex items-center gap-0.5 w-full md:w-auto justify-end opacity-100 md:opacity-60 group-hover:opacity-100 transition-opacity">
               <ActionButton icon={Download} title="Baixar PDF" onClick={handleDownloadPDF} disabled={exportingPDF} />
               <ActionButton icon={Eye} title="Visualizar" onClick={handleOpenPreview} disabled={loadingPreview} />
               <ActionButton icon={Edit} title="Editar" onClick={() => onEdit(receita)} />
@@ -234,16 +234,16 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           </div>
 
           {/* Stats pills row */}
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <div className="grid grid-cols-3 md:flex md:items-center gap-1.5 md:gap-2 mb-3 md:mb-4">
             <StatPill icon={Clock} label="Tempo" value={`${receita.tempo_preparo_total || 0} min`} />
             <StatPill icon={Users} label="M.O." value={`${receita.tempo_preparo_mao_obra || 0} min`} />
             <StatPill label="Ingredientes" value={receita.total_ingredientes || 0} />
-            <StatPill icon={Layers} label="Sub-receitas" value={receita.total_sub_receitas || 0} />
-            <StatPill icon={BoxSelect} label="Embalagens" value={receita.total_embalagens || 0} />
+            <StatPill icon={Layers} label="Sub-rec." value={receita.total_sub_receitas || 0} />
+            <StatPill icon={BoxSelect} label="Embal." value={receita.total_embalagens || 0} />
           </div>
 
           {/* Financial grid */}
-          <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-2 mb-2 md:mb-3">
             <FinancialCell label="Mão de Obra" value={receita.custo_mao_obra || 0} />
             <FinancialCell label="Matéria-Prima" value={receita.custo_ingredientes || 0} />
             <FinancialCell label="Embalagem" value={receita.custo_embalagens || 0} />
@@ -251,27 +251,27 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           </div>
 
           {/* Bottom financial row */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl bg-muted/50 p-3 text-center">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Preço Venda</div>
-              <div className="text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>
+          <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+            <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Preço Venda</div>
+              <div className="text-sm md:text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>
             </div>
-            <div className="rounded-xl bg-muted/50 p-3 text-center">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Lucro Bruto</div>
+            <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Bruto</div>
               <div className={cn(
-                "text-lg font-bold font-display",
+                "text-sm md:text-lg font-bold font-display",
                 lucroBruto > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
               )}>
                 R$ {formatBRL(lucroBruto)}
               </div>
             </div>
-            <div className="rounded-xl bg-muted/50 p-3 text-center">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Lucro Líquido</div>
+            <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Líquido</div>
               {isLoadingDetalhes ? (
-                <Skeleton className="h-7 w-20 mx-auto" />
+                <Skeleton className="h-5 md:h-7 w-16 md:w-20 mx-auto" />
               ) : (
                 <div className={cn(
-                  "text-lg font-bold font-display",
+                  "text-sm md:text-lg font-bold font-display",
                   !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
                 )}>
                   {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
@@ -293,9 +293,9 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 
 function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; value: string | number }) {
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs">
+    <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-1 rounded-lg bg-muted/60 text-[10px] md:text-xs">
       {Icon && <Icon className="h-3 w-3 text-muted-foreground" />}
-      <span className="text-muted-foreground">{label}</span>
+      <span className="hidden md:inline text-muted-foreground">{label}</span>
       <span className="font-semibold">{value}</span>
     </div>
   );
@@ -304,18 +304,18 @@ function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; val
 function FinancialCell({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div className={cn(
-      "rounded-xl p-3 text-center transition-colors",
+      "rounded-xl p-2 md:p-3 text-center transition-colors",
       highlight 
         ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-md shadow-primary/15" 
         : "bg-muted/50"
     )}>
       <div className={cn(
-        "text-[11px] font-medium uppercase tracking-wider mb-1",
+        "text-[10px] md:text-[11px] font-medium uppercase tracking-wider mb-0.5 md:mb-1",
         highlight ? "text-primary-foreground/80" : "text-muted-foreground"
       )}>
         {label}
       </div>
-      <div className={cn("text-sm font-bold font-display", highlight && "text-primary-foreground")}>
+      <div className={cn("text-xs md:text-sm font-bold font-display", highlight && "text-primary-foreground")}>
         R$ {formatBRL(value)}
       </div>
     </div>
