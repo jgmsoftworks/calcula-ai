@@ -450,8 +450,13 @@ export function GeralTab({
           </div>
         </div>
       </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO 2: Nome da Receita (largura total) */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
+        <CardContent className="p-6">
       <div className="space-y-2">
         <Label htmlFor="nome">Nome da Receita *</Label>
         <Input
