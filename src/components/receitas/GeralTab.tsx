@@ -207,35 +207,6 @@ export function GeralTab({
 
   return (
     <div className="space-y-6">
-      {/* Indicador de Markup Ativo */}
-      {markupInfo && (
-        <Card className="glass-card overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-primary to-secondary" />
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-primary">Markup Ativo</Badge>
-                <span className="font-semibold">{markupInfo.nome}</span>
-                {markupInfo.tipo === 'sub_receita' && (
-                  <Badge className="bg-green-500 text-white">
-                    Disponível como Sub-receita
-                  </Badge>
-                )}
-              </div>
-              {onTabChange && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onTabChange('precificacao')}
-                >
-                  Alterar Markup
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* SEÇÃO 1: Imagem + Conservação lado a lado */}
       <Card className="glass-card overflow-hidden">
