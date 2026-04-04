@@ -148,7 +148,7 @@ export function SubReceitasTab({
     <div className="space-y-4">
       {/* Card explicativo */}
       {!hasMarkup ? (
-        <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+        <Card className="glass-card overflow-hidden border-amber-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
