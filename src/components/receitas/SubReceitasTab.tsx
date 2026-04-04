@@ -189,7 +189,7 @@ export function SubReceitasTab({
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-950">
+        <Card className="glass-card overflow-hidden border-green-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Package className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
