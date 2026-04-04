@@ -90,10 +90,12 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
     <>
       <div className="space-y-6">
         {/* Seção: Dados do Produto */}
-        <div className="space-y-4 border rounded-lg p-4">
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+          <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            <h3 className="font-semibold">Dados do Produto</h3>
+            <Package className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold font-display">Dados do Produto</h3>
           </div>
 
           {/* Tipo de Produto */}
