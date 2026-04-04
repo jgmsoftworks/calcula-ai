@@ -209,7 +209,8 @@ export function GeralTab({
     <div className="space-y-6">
       {/* Indicador de Markup Ativo */}
       {markupInfo && (
-        <Card className="border-primary border-2">
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-primary to-secondary" />
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -237,7 +238,10 @@ export function GeralTab({
       )}
 
       {/* SEÇÃO 1: Imagem + Conservação lado a lado */}
-      <div className="grid grid-cols-[300px_1fr] gap-6">
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+        <CardContent className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
         {/* Upload de Imagem */}
         <div className="space-y-2">
           <Label>Imagem da Receita</Label>
@@ -446,8 +450,13 @@ export function GeralTab({
           </div>
         </div>
       </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO 2: Nome da Receita (largura total) */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
+        <CardContent className="p-6">
       <div className="space-y-2">
         <Label htmlFor="nome">Nome da Receita *</Label>
         <Input
@@ -458,8 +467,13 @@ export function GeralTab({
           required
         />
       </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO 3: Modo de Preparo (largura total) */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
+        <CardContent className="p-6">
       <div className="space-y-2">
         <Label>Passos de Preparo</Label>
         <div className="space-y-3">
@@ -547,8 +561,13 @@ export function GeralTab({
           </div>
         </div>
       </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO 4: Observações (largura total) */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
+        <CardContent className="p-6">
       <div className="space-y-2">
         <Label htmlFor="observacoes">Observações</Label>
         <Textarea
@@ -559,6 +578,8 @@ export function GeralTab({
           rows={4}
         />
       </div>
+        </CardContent>
+      </Card>
 
       {/* Modal de Crop de Imagem */}
       {imageToCrop && (

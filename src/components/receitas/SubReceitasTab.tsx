@@ -148,7 +148,7 @@ export function SubReceitasTab({
     <div className="space-y-4">
       {/* Card explicativo */}
       {!hasMarkup ? (
-        <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+        <Card className="glass-card overflow-hidden border-amber-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -170,7 +170,7 @@ export function SubReceitasTab({
           </CardContent>
         </Card>
       ) : allSubReceitas.length === 0 ? (
-        <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
+        <Card className="glass-card overflow-hidden border-blue-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Package className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -189,7 +189,7 @@ export function SubReceitasTab({
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-950">
+        <Card className="glass-card overflow-hidden border-green-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Package className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -221,7 +221,7 @@ export function SubReceitasTab({
           </div>
 
           {receitas.length > 0 && (
-            <div className="border rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
+            <div className="border border-green-200 bg-green-50/50 dark:bg-green-950/50 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
               {receitas.map((r) => (
                 <div
                   key={r.id}
@@ -257,8 +257,11 @@ export function SubReceitasTab({
         </>
       )}
 
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
+        <CardContent className="p-6">
       {subReceitas.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-lg">
+        <div className="text-center py-8 text-muted-foreground">
           Nenhuma sub-receita adicionada
         </div>
       ) : (
@@ -320,6 +323,8 @@ export function SubReceitasTab({
           </Table>
         </div>
       )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

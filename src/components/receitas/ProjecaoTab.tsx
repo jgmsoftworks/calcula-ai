@@ -2,6 +2,7 @@ import { Label } from '@/components/ui/label';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Receita } from '@/types/receitas';
 import { Package, Clock, Plus, Trash2 } from 'lucide-react';
 import { TiposProdutoModal } from './TiposProdutoModal';
@@ -89,10 +90,12 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
     <>
       <div className="space-y-6">
         {/* Seção: Dados do Produto */}
-        <div className="space-y-4 border rounded-lg p-4">
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+          <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            <h3 className="font-semibold">Dados do Produto</h3>
+            <Package className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold font-display">Dados do Produto</h3>
           </div>
 
           {/* Tipo de Produto */}
@@ -155,13 +158,16 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
               </Select>
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Seção: Tempos de Preparo */}
-        <div className="space-y-4 border rounded-lg p-4">
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
+          <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            <h3 className="font-semibold">Tempos de Preparo</h3>
+            <Clock className="h-5 w-5 text-accent" />
+            <h3 className="font-semibold font-display">Tempos de Preparo</h3>
           </div>
 
           {/* Tempo de Preparo Total */}
@@ -252,7 +258,8 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
               </Button>
             )}
           </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modais */}
