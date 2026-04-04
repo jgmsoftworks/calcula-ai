@@ -170,7 +170,7 @@ export function SubReceitasTab({
           </CardContent>
         </Card>
       ) : allSubReceitas.length === 0 ? (
-        <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
+        <Card className="glass-card overflow-hidden border-blue-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Package className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
