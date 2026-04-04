@@ -467,8 +467,13 @@ export function GeralTab({
           required
         />
       </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO 3: Modo de Preparo (largura total) */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
+        <CardContent className="p-6">
       <div className="space-y-2">
         <Label>Passos de Preparo</Label>
         <div className="space-y-3">
