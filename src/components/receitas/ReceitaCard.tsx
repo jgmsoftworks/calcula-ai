@@ -304,18 +304,18 @@ function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; val
 function FinancialCell({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div className={cn(
-      "rounded-xl p-3 text-center transition-colors",
+      "rounded-xl p-2 md:p-3 text-center transition-colors",
       highlight 
         ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-md shadow-primary/15" 
         : "bg-muted/50"
     )}>
       <div className={cn(
-        "text-[11px] font-medium uppercase tracking-wider mb-1",
+        "text-[10px] md:text-[11px] font-medium uppercase tracking-wider mb-0.5 md:mb-1",
         highlight ? "text-primary-foreground/80" : "text-muted-foreground"
       )}>
         {label}
       </div>
-      <div className={cn("text-sm font-bold font-display", highlight && "text-primary-foreground")}>
+      <div className={cn("text-xs md:text-sm font-bold font-display", highlight && "text-primary-foreground")}>
         R$ {formatBRL(value)}
       </div>
     </div>
