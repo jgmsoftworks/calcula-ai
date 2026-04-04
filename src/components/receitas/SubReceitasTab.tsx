@@ -323,6 +323,8 @@ export function SubReceitasTab({
           </Table>
         </div>
       )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

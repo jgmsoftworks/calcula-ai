@@ -258,7 +258,8 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
               </Button>
             )}
           </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modais */}

@@ -561,8 +561,13 @@ export function GeralTab({
           </div>
         </div>
       </div>
+        </CardContent>
+      </Card>
 
       {/* SEÇÃO 4: Observações (largura total) */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
+        <CardContent className="p-6">
       <div className="space-y-2">
         <Label htmlFor="observacoes">Observações</Label>
         <Textarea
@@ -573,6 +578,8 @@ export function GeralTab({
           rows={4}
         />
       </div>
+        </CardContent>
+      </Card>
 
       {/* Modal de Crop de Imagem */}
       {imageToCrop && (
