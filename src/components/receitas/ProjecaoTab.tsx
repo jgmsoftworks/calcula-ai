@@ -2,6 +2,7 @@ import { Label } from '@/components/ui/label';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Receita } from '@/types/receitas';
 import { Package, Clock, Plus, Trash2 } from 'lucide-react';
 import { TiposProdutoModal } from './TiposProdutoModal';
