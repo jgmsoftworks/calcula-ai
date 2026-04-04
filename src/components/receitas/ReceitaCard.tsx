@@ -293,9 +293,9 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 
 function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; value: string | number }) {
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs">
+    <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-1 rounded-lg bg-muted/60 text-[10px] md:text-xs">
       {Icon && <Icon className="h-3 w-3 text-muted-foreground" />}
-      <span className="text-muted-foreground">{label}</span>
+      <span className="hidden md:inline text-muted-foreground">{label}</span>
       <span className="font-semibold">{value}</span>
     </div>
   );
