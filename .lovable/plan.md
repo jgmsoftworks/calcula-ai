@@ -1,46 +1,42 @@
 
 
-## Problema: Lucro Bruto calculado de forma diferente na lista vs precificação
+## Problema
 
-### O que está acontecendo
+No celular (390px), o ReceitaCard fica apertado e feio porque:
+1. **Header**: número + nome + 5 botões de ação ficam espremidos numa linha só, o nome fica truncado em "M.."
+2. **Stats pills**: 5 pills em wrap ficam em 3 linhas ocupando muito espaço vertical
+3. **Grid financeiro 4 colunas**: os 4 blocos (Mão de Obra, Matéria-Prima, Embalagem, Custo Total) ficam muito estreitos, texto quebra feio
+4. **Grid financeiro 3 colunas**: Preço Venda / Lucro Bruto / Lucro Líquido também fica apertado
 
-Na **tela inicial de receitas** (ReceitaCard), o Lucro Bruto é calculado assim:
+No desktop está perfeito e não será alterado.
 
-```
-Lucro Bruto = Preço de Venda - Custo Total (do lote inteiro)
-55,71 - 247,84 = -192,13
-```
+## Solução: Layout responsivo com breakpoints Tailwind
 
-Na **aba de Precificação** (MarkupCard), o Lucro Bruto é calculado assim:
+Usar classes responsivas (`md:`) para manter o layout desktop intacto e criar um layout mobile mais limpo.
 
-```
-custoBase = Custo Total ÷ Rendimento = 247,84 ÷ 12 = 20,65
-Lucro Bruto = Preço de Venda - custoBase (por unidade)
-55,71 - 20,65 = 35,06
-```
+## Mudanças em `src/components/receitas/ReceitaCard.tsx`
 
-O Preço de Venda é **por unidade**, mas na tela inicial o código compara esse preço unitário contra o **custo total do lote** (247,84 de 12 unidades), gerando um valor absurdamente negativo. Na precificação, o custo é corretamente dividido pelo rendimento antes da comparação. O Lucro Líquido já faz a divisão correta (por isso mostra R$ 3,90 em ambas as telas).
+### Header (mobile)
+- Reorganizar em 2 linhas: número + nome na primeira, botões de ação na segunda
+- Mobile: `flex-wrap` no header, ações vão para baixo do título
+- Desktop: mantém tudo na mesma linha (comportamento atual)
 
-### Solução
+### Stats pills (mobile)
+- Esconder labels no mobile, mostrar só ícone + valor para economizar espaço
+- Ou: usar grid 2 colunas no mobile, flex row no desktop
 
-Corrigir o cálculo do Lucro Bruto no `ReceitaCard` para dividir o custo total pelo rendimento, igualando à fórmula do `MarkupCard`.
+### Grid financeiro de custos (mobile)
+- `grid-cols-2 md:grid-cols-4` — no celular, 2x2 ao invés de 4 colunas
 
-### Mudança
+### Grid financeiro inferior (mobile)
+- `grid-cols-1 md:grid-cols-3` ou `grid-cols-3` mantido mas com texto menor
+- Reduzir font-size dos valores no mobile: `text-base md:text-lg`
 
-**`src/components/receitas/ReceitaCard.tsx`** (1 linha):
+### Badges e rendimento (mobile)
+- Mover rendimento para uma linha separada no mobile
 
-Linha 62, trocar:
-```ts
-const lucroBruto = receita.preco_venda - custoTotal;
-```
-
-Por:
-```ts
-const custoBase = (receita.markup?.tipo === 'sub_receita' || !receita.rendimento_valor || receita.rendimento_valor <= 0)
-  ? custoTotal
-  : custoTotal / receita.rendimento_valor;
-const lucroBruto = receita.preco_venda - custoBase;
-```
-
-Isso aplica a mesma lógica do MarkupCard: se for sub-receita, usa custo total; senão, divide pelo rendimento. Nenhuma alteração no banco de dados.
+### Detalhes técnicos
+- Apenas classes Tailwind responsivas (`md:` breakpoint = 768px)
+- Zero alteração na lógica, cálculos ou props
+- O layout desktop permanece 100% idêntico
 
