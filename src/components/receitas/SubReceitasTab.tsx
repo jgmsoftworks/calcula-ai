@@ -221,7 +221,7 @@ export function SubReceitasTab({
           </div>
 
           {receitas.length > 0 && (
-            <div className="border rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
+            <div className="border border-green-200 bg-green-50/50 dark:bg-green-950/50 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
               {receitas.map((r) => (
                 <div
                   key={r.id}
