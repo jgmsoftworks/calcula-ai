@@ -158,13 +158,16 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
               </Select>
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Seção: Tempos de Preparo */}
-        <div className="space-y-4 border rounded-lg p-4">
+        <Card className="glass-card overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
+          <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            <h3 className="font-semibold">Tempos de Preparo</h3>
+            <Clock className="h-5 w-5 text-accent" />
+            <h3 className="font-semibold font-display">Tempos de Preparo</h3>
           </div>
 
           {/* Tempo de Preparo Total */}
