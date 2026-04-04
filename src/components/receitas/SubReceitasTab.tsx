@@ -257,8 +257,11 @@ export function SubReceitasTab({
         </>
       )}
 
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
+        <CardContent className="p-6">
       {subReceitas.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-lg">
+        <div className="text-center py-8 text-muted-foreground">
           Nenhuma sub-receita adicionada
         </div>
       ) : (
