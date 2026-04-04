@@ -146,8 +146,8 @@ export function SubReceitasTab({
 
   return (
     <div className="space-y-4">
-      {/* Card explicativo */}
-      {!hasMarkup ? (
+      {/* Card explicativo - apenas quando não há markup configurado */}
+      {!hasMarkup && (
         <Card className="glass-card overflow-hidden border-amber-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -165,41 +165,6 @@ export function SubReceitasTab({
                   <li>Voltar às suas receitas e selecionar esse markup nas receitas que deseja usar como sub-receitas</li>
                   <li>Finalizar essas receitas (status "Finalizada")</li>
                 </ol>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : allSubReceitas.length === 0 ? (
-        <Card className="glass-card overflow-hidden border-blue-500/50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Package className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                  Nenhuma Sub-receita Disponível
-                </h4>
-                <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-                  Você tem o markup de sub-receitas configurado, mas ainda não vinculou nenhuma receita a ele.
-                </p>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Para criar sub-receitas: Vá até a aba <strong>6 Precificação</strong> de qualquer receita finalizada e selecione o <strong>Markup de Sub-receitas</strong>. Essa receita ficará disponível aqui para ser usada como sub-receita.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="glass-card overflow-hidden border-green-500/50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Package className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                  {allSubReceitas.length} Sub-receita{allSubReceitas.length !== 1 ? 's' : ''} Disponível{allSubReceitas.length !== 1 ? 'is' : ''}
-                </h4>
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  Busque e clique em uma sub-receita abaixo para adicioná-la nesta receita.
-                </p>
               </div>
             </div>
           </CardContent>
