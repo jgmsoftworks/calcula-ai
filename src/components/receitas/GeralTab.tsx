@@ -3,12 +3,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { TemperatureInput } from '@/components/ui/temperature-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Plus, Trash2, Loader2, ArrowRight, Edit } from 'lucide-react';
+import { Camera, Plus, Trash2, Loader2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropperModal } from '@/components/ui/image-cropper-modal';
@@ -207,35 +206,6 @@ export function GeralTab({
 
   return (
     <div className="space-y-6">
-      {/* Indicador de Markup Ativo */}
-      {markupInfo && (
-        <Card className="glass-card overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-primary to-secondary" />
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-primary">Markup Ativo</Badge>
-                <span className="font-semibold">{markupInfo.nome}</span>
-                {markupInfo.tipo === 'sub_receita' && (
-                  <Badge className="bg-green-500 text-white">
-                    Disponível como Sub-receita
-                  </Badge>
-                )}
-              </div>
-              {onTabChange && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onTabChange('precificacao')}
-                >
-                  Alterar Markup
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* SEÇÃO 1: Imagem + Conservação lado a lado */}
       <Card className="glass-card overflow-hidden">
