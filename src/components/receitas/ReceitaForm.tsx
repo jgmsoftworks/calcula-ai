@@ -13,6 +13,7 @@ import { PrecificacaoTab } from './PrecificacaoTab';
 import type { Receita, ReceitaCompleta } from '@/types/receitas';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 // Tipos para itens temporários em modo criação
@@ -61,6 +62,12 @@ interface ReceitaFormProps {
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
+  const { user } = useAuth();
+  
+  // Prefetched data for child tabs
+  const [prefetchedProdutos, setPrefetchedProdutos] = useState<any[]>([]);
+  const [prefetchedSubReceitas, setPrefetchedSubReceitas] = useState<any[]>([]);
+  const [hasSubReceitaMarkup, setHasSubReceitaMarkup] = useState(true);
   const [activeTab, setActiveTab] = useState('geral');
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState({
@@ -116,6 +123,49 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       setActiveTab(tabs[currentTabIndex + 1]);
     }
   };
+
+  // Prefetch produtos and sub-receitas once when modal opens
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchProdutos = async () => {
+      const { data } = await supabase
+        .from('produtos')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('ativo', true)
+        .order('nome');
+      setPrefetchedProdutos(data || []);
+    };
+    
+    const fetchSubReceitas = async () => {
+      const { data: markupData } = await supabase
+        .from('markups')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('tipo', 'sub_receita')
+        .eq('ativo', true)
+        .maybeSingle();
+      
+      if (!markupData) {
+        setHasSubReceitaMarkup(false);
+        setPrefetchedSubReceitas([]);
+        return;
+      }
+      
+      setHasSubReceitaMarkup(true);
+      const { data } = await supabase
+        .from('receitas')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('markup_id', markupData.id)
+        .order('nome');
+      setPrefetchedSubReceitas(data || []);
+    };
+    
+    fetchProdutos();
+    fetchSubReceitas();
+  }, [user]);
 
   useEffect(() => {
     if (receita) {
@@ -633,6 +683,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
               onAddTemp={handleAddIngredienteTemp}
               onRemoveTemp={handleRemoveIngredienteTemp}
               onUpdateQuantidadeTemp={handleUpdateQuantidadeIngredienteTemp}
+              prefetchedProdutos={prefetchedProdutos}
             />
             </TabsContent>
 
@@ -645,6 +696,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 onAddTemp={handleAddSubReceitaTemp}
                 onRemoveTemp={handleRemoveSubReceitaTemp}
                 onUpdateQuantidadeTemp={handleUpdateQuantidadeSubReceitaTemp}
+                prefetchedSubReceitas={prefetchedSubReceitas}
+                hasSubReceitaMarkup={hasSubReceitaMarkup}
               />
             </TabsContent>
 
@@ -657,6 +710,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
               onAddTemp={handleAddEmbalagemTemp}
               onRemoveTemp={handleRemoveEmbalagemTemp}
               onUpdateQuantidadeTemp={handleUpdateQuantidadeEmbalagemTemp}
+              prefetchedProdutos={prefetchedProdutos}
             />
             </TabsContent>
 
