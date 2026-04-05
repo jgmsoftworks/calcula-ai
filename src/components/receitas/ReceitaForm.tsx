@@ -544,6 +544,32 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           );
         }
         
+        // Processar mão de obra
+        const maoObraOriginais = receitaCompleta?.mao_obra?.map(mo => mo.id) || [];
+        const maoObraAtuais = tempMaoObra.map(mo => mo.id);
+        
+        const maoObraParaDeletar = maoObraOriginais.filter(id => !maoObraAtuais.includes(id));
+        const maoObraParaInserir = tempMaoObra.filter(mo => !maoObraOriginais.includes(mo.id));
+        
+        if (maoObraParaDeletar.length > 0) {
+          await supabase.from('receita_mao_obra').delete().in('id', maoObraParaDeletar);
+        }
+        
+        if (maoObraParaInserir.length > 0) {
+          await supabase.from('receita_mao_obra').insert(
+            maoObraParaInserir.map(mo => ({
+              receita_id: receita!.id,
+              funcionario_id: mo.funcionario_id,
+              funcionario_nome: mo.funcionario_nome,
+              funcionario_cargo: mo.funcionario_cargo,
+              custo_por_hora: mo.custo_por_hora,
+              tempo: mo.tempo,
+              unidade_tempo: mo.unidade_tempo,
+              valor_total: mo.valor_total,
+            }))
+          );
+        }
+        
         if (imageFile) {
           await uploadImagemReceita(imageFile, receita!.id);
         }
