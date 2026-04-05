@@ -416,7 +416,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               onChange={(value) => onFormChange('preco_venda', value)}
               disabled={isMarkupSubReceitaAtual}
               className={cn(
-                "text-3xl font-bold font-display border-0 p-0 h-auto bg-transparent focus:ring-0 focus-visible:ring-0",
+                "!text-3xl font-bold font-display border-0 p-0 !h-auto bg-transparent focus:ring-0 focus-visible:ring-0",
                 isMarkupSubReceitaAtual 
                   ? 'text-muted-foreground cursor-not-allowed' 
                   : 'text-primary'
@@ -446,7 +446,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               tipo="quantidade_continua"
               value={formData.peso_unitario || 0}
               onChange={(value) => onFormChange('peso_unitario', value)}
-              className="text-3xl font-bold font-display text-foreground border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
+              className="!text-3xl font-bold font-display text-foreground border-0 p-0 !h-auto bg-transparent focus-visible:ring-0"
               placeholder="0"
             />
           </CardContent>
