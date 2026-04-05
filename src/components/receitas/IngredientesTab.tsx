@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaCompleta } from '@/types/receitas';
 

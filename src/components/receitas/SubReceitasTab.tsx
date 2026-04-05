@@ -6,9 +6,8 @@ import { Plus, Trash2, Search, Info, Package } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { formatBRL, formatNumber } from '@/lib/formatters';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaCompleta, Receita } from '@/types/receitas';
 
