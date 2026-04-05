@@ -13,6 +13,7 @@ import { PrecificacaoTab } from './PrecificacaoTab';
 import type { Receita, ReceitaCompleta } from '@/types/receitas';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 // Tipos para itens temporários em modo criação
