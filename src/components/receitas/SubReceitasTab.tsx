@@ -20,16 +20,15 @@ interface TempSubReceita {
 }
 
 interface SubReceitasTabProps {
-  // Modo edição
   receita?: ReceitaCompleta;
   onUpdate?: () => void;
-  
-  // Modo criação
   mode: 'create' | 'edit';
   tempSubReceitas?: TempSubReceita[];
   onAddTemp?: (subReceita: any, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
   onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
+  prefetchedSubReceitas?: any[];
+  hasSubReceitaMarkup?: boolean;
 }
 
 export function SubReceitasTab({ 
@@ -39,80 +38,23 @@ export function SubReceitasTab({
   tempSubReceitas = [], 
   onAddTemp, 
   onRemoveTemp,
-  onUpdateQuantidadeTemp 
+  onUpdateQuantidadeTemp,
+  prefetchedSubReceitas,
+  hasSubReceitaMarkup = true
 }: SubReceitasTabProps) {
-  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [receitas, setReceitas] = useState<any[]>([]);
-  const [allSubReceitas, setAllSubReceitas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMarkup, setHasMarkup] = useState(true);
 
-  // Carregar sub-receitas disponíveis automaticamente
-  useEffect(() => {
-    loadAvailableSubReceitas();
-  }, [user]);
+  // Filter out current recipe in edit mode
+  const allSubReceitas = (prefetchedSubReceitas || []).filter(r => 
+    mode === 'edit' && receita?.id ? r.id !== receita.id : true
+  );
 
-  const loadAvailableSubReceitas = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      // Buscar o markup de sub-receitas ativo do usuário
-      const { data: markupData, error: markupError } = await supabase
-        .from('markups')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('tipo', 'sub_receita')
-        .eq('ativo', true)
-        .maybeSingle();
-
-      if (markupError) throw markupError;
-
-      // Se não houver markup de sub-receitas configurado
-      if (!markupData) {
-        setHasMarkup(false);
-        setAllSubReceitas([]);
-        setReceitas([]);
-        setLoading(false);
-        return;
-      }
-
-      setHasMarkup(true);
-
-      // Buscar TODAS as receitas vinculadas ao markup de sub-receitas
-      const { data, error } = await supabase
-        .from('receitas')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('markup_id', markupData.id)
-        .order('nome');
-      
-      // Filtrar receita atual apenas em modo edição
-      if (mode === 'edit' && receita?.id) {
-        const filtered = (data || []).filter(r => r.id !== receita.id);
-        setAllSubReceitas(filtered);
-        setReceitas(filtered);
-      } else {
-        setAllSubReceitas(data || []);
-        setReceitas(data || []);
-      }
-
-    } catch (error: any) {
-      console.error('Erro ao buscar sub-receitas:', error);
-      toast.error('Erro ao carregar sub-receitas');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filtrar em tempo real conforme usuário digita
   useEffect(() => {
     if (!search.trim()) {
       setReceitas(allSubReceitas);
       return;
     }
-
     const filtered = allSubReceitas.filter(r => 
       r.nome.toLowerCase().includes(search.toLowerCase())
     );

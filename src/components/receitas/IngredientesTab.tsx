@@ -19,16 +19,14 @@ interface TempIngrediente {
 }
 
 interface IngredientesTabProps {
-  // Modo edição
   receita?: ReceitaCompleta;
   onUpdate?: () => void;
-  
-  // Modo criação
   mode: 'create' | 'edit';
   tempIngredientes?: TempIngrediente[];
   onAddTemp?: (produto: any, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
   onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
+  prefetchedProdutos?: any[];
 }
 
 export function IngredientesTab({ 
@@ -38,28 +36,13 @@ export function IngredientesTab({
   tempIngredientes = [], 
   onAddTemp, 
   onRemoveTemp,
-  onUpdateQuantidadeTemp
+  onUpdateQuantidadeTemp,
+  prefetchedProdutos
 }: IngredientesTabProps) {
-  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [produtos, setProdutos] = useState<any[]>([]);
-  const [allProdutos, setAllProdutos] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadProdutos();
-  }, [user]);
-
-  const loadProdutos = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('produtos')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('ativo', true)
-      .order('nome');
-    setAllProdutos(data || []);
-    setProdutos(data || []);
-  };
+  const allProdutos = prefetchedProdutos || [];
 
   useEffect(() => {
     if (!search.trim()) {
