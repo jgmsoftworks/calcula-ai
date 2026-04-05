@@ -44,7 +44,7 @@ interface MaoObraModalProps {
   }) => void;
 }
 
-export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate }: MaoObraModalProps) => {
+export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode = false, onAddTemp }: MaoObraModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
