@@ -446,7 +446,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               tipo="quantidade_continua"
               value={formData.peso_unitario || 0}
               onChange={(value) => onFormChange('peso_unitario', value)}
-              className="text-3xl font-bold font-display text-foreground border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
+              className="!text-3xl font-bold font-display text-foreground border-0 p-0 !h-auto bg-transparent focus-visible:ring-0"
               placeholder="0"
             />
           </CardContent>
