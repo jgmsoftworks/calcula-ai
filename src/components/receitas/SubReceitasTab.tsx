@@ -8,7 +8,6 @@ import { NumericInput } from '@/components/ui/numeric-input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { formatBRL, formatNumber } from '@/lib/formatters';
-import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaCompleta, Receita } from '@/types/receitas';
 
 interface TempSubReceita {

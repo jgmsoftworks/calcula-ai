@@ -7,7 +7,6 @@ import { Plus, Trash2, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { formatBRL, formatNumber } from '@/lib/formatters';
-import { formatBRL, formatNumber } from '@/lib/formatters';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempEmbalagem {
