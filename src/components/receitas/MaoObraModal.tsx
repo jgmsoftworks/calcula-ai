@@ -32,6 +32,16 @@ interface MaoObraModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: () => void;
+  tempMode?: boolean;
+  onAddTemp?: (maoObra: {
+    funcionario_id: string;
+    funcionario_nome: string;
+    funcionario_cargo: string;
+    custo_por_hora: number;
+    tempo: number;
+    unidade_tempo: string;
+    valor_total: number;
+  }) => void;
 }
 
 export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate }: MaoObraModalProps) => {
