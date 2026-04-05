@@ -416,7 +416,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               onChange={(value) => onFormChange('preco_venda', value)}
               disabled={isMarkupSubReceitaAtual}
               className={cn(
-                "text-3xl font-bold font-display border-0 p-0 h-auto bg-transparent focus:ring-0 focus-visible:ring-0",
+                "!text-3xl font-bold font-display border-0 p-0 !h-auto bg-transparent focus:ring-0 focus-visible:ring-0",
                 isMarkupSubReceitaAtual 
                   ? 'text-muted-foreground cursor-not-allowed' 
                   : 'text-primary'
