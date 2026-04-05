@@ -451,7 +451,7 @@ export function MarkupCard({
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <span className="font-medium">Faturamento Bruto (total)</span>
               <div className="text-right">
-                <span className="font-bold">R$ {formatBRL(precoSugerido)}</span>
+                <span className="font-bold">R$ {formatBRL(markup.tipo !== 'sub_receita' ? precoVenda * (rendimentoValor || 1) : precoVenda)}</span>
                 <span className="text-muted-foreground ml-2">(100%)</span>
               </div>
             </div>
