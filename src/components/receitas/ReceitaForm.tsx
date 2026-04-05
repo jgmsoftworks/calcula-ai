@@ -665,22 +665,26 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 receita={isCreating ? {} : receitaCompleta}
                 formData={formData}
                 onFormChange={handleFormChange}
+                tempMaoObra={tempMaoObra}
+                onAddMaoObraTemp={handleAddMaoObraTemp}
+                onRemoveMaoObraTemp={handleRemoveMaoObraTemp}
               />
             </TabsContent>
 
             <TabsContent value="precificacao" className="mt-0">
               <PrecificacaoTab
                 mode={isCreating ? 'create' : 'edit'}
-                receita={isCreating ? {
+                receita={{
+                  ...receitaCompleta,
                   ingredientes: tempIngredientes,
                   embalagens: tempEmbalagens,
                   sub_receitas: tempSubReceitas,
-                  mao_obra: [],
+                  mao_obra: tempMaoObra,
                   rendimento_valor: formData.rendimento_valor,
                   rendimento_unidade: formData.rendimento_unidade,
                   preco_venda: formData.preco_venda,
                   markup_id: formData.markup_id,
-                } : receitaCompleta}
+                }}
                 formData={formData}
                 onFormChange={handleFormChange}
                 onUpdate={loadReceitaCompleta}
