@@ -62,6 +62,12 @@ interface ReceitaFormProps {
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
+  const { user } = useAuth();
+  
+  // Prefetched data for child tabs
+  const [prefetchedProdutos, setPrefetchedProdutos] = useState<any[]>([]);
+  const [prefetchedSubReceitas, setPrefetchedSubReceitas] = useState<any[]>([]);
+  const [hasSubReceitaMarkup, setHasSubReceitaMarkup] = useState(true);
   const [activeTab, setActiveTab] = useState('geral');
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState({
