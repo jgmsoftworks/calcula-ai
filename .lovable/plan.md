@@ -1,25 +1,28 @@
 
 
-## Problema (resumo simples)
+## Problema
 
-Quando você está criando ou editando uma receita e vai adicionando ingredientes, embalagens ou mão de obra, a aba de precificação às vezes não atualiza os valores na hora. Ela fica mostrando números antigos (ou zerados) até você salvar, sair e entrar de novo. Aí "magicamente" corrige.
+O "Faturamento Bruto (total)" usa o **preço sugerido** pelo markup, mas deveria usar o **preço de venda** que você digitou. E quando tem mais de 1 unidade, precisa multiplicar pelo rendimento.
 
-**Por quê?** Porque a aba de precificação olha para os dados salvos no banco, e não para o que você acabou de digitar nas abas anteriores. Como você ainda não salvou, ela não enxerga as mudanças.
+## Solução
 
-## Solução (resumo simples)
+No `MarkupCard.tsx`, trocar:
 
-Fazer a aba de precificação olhar para o que você está digitando **agora**, em vez de olhar para o banco de dados. Assim, conforme você adiciona um ingrediente ou muda o rendimento, o custo e o lucro já atualizam na hora, sem precisar salvar e reabrir.
+```
+Faturamento Bruto = precoSugerido  ← errado
+```
 
-## Segurança do banco de dados
+Por:
 
-- **Zero alteração no banco de dados.** Nenhuma tabela nova, nenhuma migração, nenhuma mudança em regras de segurança.
-- A correção é 100% visual/frontend: apenas passa as informações que já existem na tela para o lugar certo.
-- O fluxo de salvar continua igual: só grava no banco quando você clica em "Salvar" ou "Atualizar".
+```
+Faturamento Bruto = precoVenda × rendimentoValor  ← correto
+```
 
-## Arquivos alterados
+Para sub-receitas (sem rendimento unitário), usa `precoVenda` direto.
 
-- `ReceitaForm.tsx` — passa os dados temporários (que já existem) para a aba de precificação
-- `ProjecaoTab.tsx` — permite que a mão de obra também fique no estado temporário (como já funciona para ingredientes e embalagens)
+## Arquivo alterado
 
-Nada mais.
+- `src/components/receitas/MarkupCard.tsx` — uma linha: substituir `precoSugerido` por `precoVenda * (rendimentoValor || 1)` no campo de Faturamento Bruto.
+
+Zero alteração no banco de dados.
 
