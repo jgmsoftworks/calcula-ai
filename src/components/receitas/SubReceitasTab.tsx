@@ -89,7 +89,7 @@ export function SubReceitasTab({
   return (
     <div className="space-y-4">
       {/* Card explicativo - apenas quando não há markup configurado */}
-      {!hasMarkup && (
+      {!hasSubReceitaMarkup && (
         <Card className="glass-card overflow-hidden border-amber-500/50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
