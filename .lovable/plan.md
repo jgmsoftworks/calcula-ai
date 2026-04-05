@@ -1,42 +1,25 @@
 
 
-## Problema
+## Problema (resumo simples)
 
-No celular (390px), o ReceitaCard fica apertado e feio porque:
-1. **Header**: número + nome + 5 botões de ação ficam espremidos numa linha só, o nome fica truncado em "M.."
-2. **Stats pills**: 5 pills em wrap ficam em 3 linhas ocupando muito espaço vertical
-3. **Grid financeiro 4 colunas**: os 4 blocos (Mão de Obra, Matéria-Prima, Embalagem, Custo Total) ficam muito estreitos, texto quebra feio
-4. **Grid financeiro 3 colunas**: Preço Venda / Lucro Bruto / Lucro Líquido também fica apertado
+Quando você está criando ou editando uma receita e vai adicionando ingredientes, embalagens ou mão de obra, a aba de precificação às vezes não atualiza os valores na hora. Ela fica mostrando números antigos (ou zerados) até você salvar, sair e entrar de novo. Aí "magicamente" corrige.
 
-No desktop está perfeito e não será alterado.
+**Por quê?** Porque a aba de precificação olha para os dados salvos no banco, e não para o que você acabou de digitar nas abas anteriores. Como você ainda não salvou, ela não enxerga as mudanças.
 
-## Solução: Layout responsivo com breakpoints Tailwind
+## Solução (resumo simples)
 
-Usar classes responsivas (`md:`) para manter o layout desktop intacto e criar um layout mobile mais limpo.
+Fazer a aba de precificação olhar para o que você está digitando **agora**, em vez de olhar para o banco de dados. Assim, conforme você adiciona um ingrediente ou muda o rendimento, o custo e o lucro já atualizam na hora, sem precisar salvar e reabrir.
 
-## Mudanças em `src/components/receitas/ReceitaCard.tsx`
+## Segurança do banco de dados
 
-### Header (mobile)
-- Reorganizar em 2 linhas: número + nome na primeira, botões de ação na segunda
-- Mobile: `flex-wrap` no header, ações vão para baixo do título
-- Desktop: mantém tudo na mesma linha (comportamento atual)
+- **Zero alteração no banco de dados.** Nenhuma tabela nova, nenhuma migração, nenhuma mudança em regras de segurança.
+- A correção é 100% visual/frontend: apenas passa as informações que já existem na tela para o lugar certo.
+- O fluxo de salvar continua igual: só grava no banco quando você clica em "Salvar" ou "Atualizar".
 
-### Stats pills (mobile)
-- Esconder labels no mobile, mostrar só ícone + valor para economizar espaço
-- Ou: usar grid 2 colunas no mobile, flex row no desktop
+## Arquivos alterados
 
-### Grid financeiro de custos (mobile)
-- `grid-cols-2 md:grid-cols-4` — no celular, 2x2 ao invés de 4 colunas
+- `ReceitaForm.tsx` — passa os dados temporários (que já existem) para a aba de precificação
+- `ProjecaoTab.tsx` — permite que a mão de obra também fique no estado temporário (como já funciona para ingredientes e embalagens)
 
-### Grid financeiro inferior (mobile)
-- `grid-cols-1 md:grid-cols-3` ou `grid-cols-3` mantido mas com texto menor
-- Reduzir font-size dos valores no mobile: `text-base md:text-lg`
-
-### Badges e rendimento (mobile)
-- Mover rendimento para uma linha separada no mobile
-
-### Detalhes técnicos
-- Apenas classes Tailwind responsivas (`md:` breakpoint = 768px)
-- Zero alteração na lógica, cálculos ou props
-- O layout desktop permanece 100% idêntico
+Nada mais.
 
