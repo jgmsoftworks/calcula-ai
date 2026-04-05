@@ -60,9 +60,11 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
   useEffect(() => {
     if (open && user) {
       fetchFuncionarios();
-      fetchMaoObra();
+      if (!tempMode) {
+        fetchMaoObra();
+      }
     }
-  }, [open, user, receitaId]);
+  }, [open, user, receitaId, tempMode]);
 
   useEffect(() => {
     calcularValorTotal();
