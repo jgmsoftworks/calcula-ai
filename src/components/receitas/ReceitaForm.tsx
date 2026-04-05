@@ -410,6 +410,25 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           if (errorPassos) throw errorPassos;
         }
 
+        // Inserir mão de obra
+        if (tempMaoObra.length > 0) {
+          const { error: errorMaoObra } = await supabase
+            .from('receita_mao_obra')
+            .insert(
+              tempMaoObra.map(mo => ({
+                receita_id: novaReceita.id,
+                funcionario_id: mo.funcionario_id,
+                funcionario_nome: mo.funcionario_nome,
+                funcionario_cargo: mo.funcionario_cargo,
+                custo_por_hora: mo.custo_por_hora,
+                tempo: mo.tempo,
+                unidade_tempo: mo.unidade_tempo,
+                valor_total: mo.valor_total,
+              }))
+            );
+          
+          if (errorMaoObra) throw errorMaoObra;
+
         // Upload de imagem se houver
         if (imageFile) {
           await uploadImagemReceita(imageFile, novaReceita.id);
