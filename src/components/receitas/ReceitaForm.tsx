@@ -428,6 +428,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             );
           
           if (errorMaoObra) throw errorMaoObra;
+        }
 
         // Upload de imagem se houver
         if (imageFile) {
