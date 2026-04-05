@@ -174,6 +174,17 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         ordem: p.ordem,
         descricao: p.descricao,
       })) || []);
+
+      setTempMaoObra(receitaCompleta.mao_obra?.map(mo => ({
+        id: mo.id,
+        funcionario_id: mo.funcionario_id,
+        funcionario_nome: mo.funcionario_nome,
+        funcionario_cargo: mo.funcionario_cargo,
+        custo_por_hora: mo.custo_por_hora,
+        tempo: mo.tempo,
+        unidade_tempo: mo.unidade_tempo || 'horas',
+        valor_total: mo.valor_total,
+      })) || []);
     }
   }, [receitaCompleta, receita, isCreating]);
 
