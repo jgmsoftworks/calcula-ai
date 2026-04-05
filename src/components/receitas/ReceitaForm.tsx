@@ -91,6 +91,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [tempSubReceitas, setTempSubReceitas] = useState<TempSubReceita[]>([]);
   const [tempEmbalagens, setTempEmbalagens] = useState<TempEmbalagem[]>([]);
   const [tempPassos, setTempPassos] = useState<TempPasso[]>([]);
+  const [tempMaoObra, setTempMaoObra] = useState<TempMaoObra[]>([]);
   
   // Estado para markup atual selecionado
   const [markupAtual, setMarkupAtual] = useState<{ tipo: string } | null>(null);
