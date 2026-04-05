@@ -124,6 +124,49 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   };
 
+  // Prefetch produtos and sub-receitas once when modal opens
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchProdutos = async () => {
+      const { data } = await supabase
+        .from('produtos')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('ativo', true)
+        .order('nome');
+      setPrefetchedProdutos(data || []);
+    };
+    
+    const fetchSubReceitas = async () => {
+      const { data: markupData } = await supabase
+        .from('markups')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('tipo', 'sub_receita')
+        .eq('ativo', true)
+        .maybeSingle();
+      
+      if (!markupData) {
+        setHasSubReceitaMarkup(false);
+        setPrefetchedSubReceitas([]);
+        return;
+      }
+      
+      setHasSubReceitaMarkup(true);
+      const { data } = await supabase
+        .from('receitas')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('markup_id', markupData.id)
+        .order('nome');
+      setPrefetchedSubReceitas(data || []);
+    };
+    
+    fetchProdutos();
+    fetchSubReceitas();
+  }, [user]);
+
   useEffect(() => {
     if (receita) {
       loadReceitaCompleta();
