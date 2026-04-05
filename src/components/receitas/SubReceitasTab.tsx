@@ -113,7 +113,7 @@ export function SubReceitasTab({
         </Card>
       )}
 
-      {hasMarkup && allSubReceitas.length > 0 && (
+      {hasSubReceitaMarkup && allSubReceitas.length > 0 && (
         <>
           <div className="flex gap-2">
             <div className="relative flex-1">
