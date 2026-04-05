@@ -322,6 +322,19 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     toast.success('Passo removido');
   };
 
+  const handleAddMaoObraTemp = (maoObra: Omit<TempMaoObra, 'id'>) => {
+    setTempMaoObra([...tempMaoObra, {
+      ...maoObra,
+      id: crypto.randomUUID(),
+    }]);
+    toast.success('Mão de obra adicionada');
+  };
+
+  const handleRemoveMaoObraTemp = (id: string) => {
+    setTempMaoObra(tempMaoObra.filter(mo => mo.id !== id));
+    toast.success('Mão de obra removida');
+  };
+
   const handleSave = async () => {
     if (!formData.nome.trim()) {
       toast.error('Nome da receita é obrigatório');
