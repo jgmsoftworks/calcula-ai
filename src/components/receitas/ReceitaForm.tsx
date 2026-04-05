@@ -43,6 +43,17 @@ interface TempPasso {
   descricao: string;
 }
 
+interface TempMaoObra {
+  id: string;
+  funcionario_id: string;
+  funcionario_nome: string;
+  funcionario_cargo: string;
+  custo_por_hora: number;
+  tempo: number;
+  unidade_tempo: string;
+  valor_total: number;
+}
+
 interface ReceitaFormProps {
   receita: Receita | null;
   onClose: () => void;
