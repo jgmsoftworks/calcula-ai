@@ -10,32 +10,40 @@ import { MaoObraModal } from './MaoObraModal';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { formatBRL, formatNumber } from '@/lib/formatters';
+import { formatBRL } from '@/lib/formatters';
+
+interface TempMaoObra {
+  id: string;
+  funcionario_id: string;
+  funcionario_nome: string;
+  funcionario_cargo: string;
+  custo_por_hora: number;
+  tempo: number;
+  unidade_tempo: string;
+  valor_total: number;
+}
 
 interface ProjecaoTabProps {
   mode?: 'create' | 'edit';
   receita: Receita | any;
   formData: any;
   onFormChange: (field: string, value: any) => void;
+  tempMaoObra?: TempMaoObra[];
+  onAddMaoObraTemp?: (maoObra: Omit<TempMaoObra, 'id'>) => void;
+  onRemoveMaoObraTemp?: (id: string) => void;
 }
 
-export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: ProjecaoTabProps) => {
+export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, tempMaoObra = [], onAddMaoObraTemp, onRemoveMaoObraTemp }: ProjecaoTabProps) => {
   const { user } = useAuth();
   const [tiposProduto, setTiposProduto] = useState<any[]>([]);
   const [tiposModalOpen, setTiposModalOpen] = useState(false);
   const [maoObraModalOpen, setMaoObraModalOpen] = useState(false);
-  const [maoObraList, setMaoObraList] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchTiposProduto();
-      
-      // Só buscar mão de obra em modo edição com receita válida
-      if (mode === 'edit' && receita?.id) {
-        fetchMaoObra();
-      }
     }
-  }, [user, receita?.id, mode]);
+  }, [user]);
 
   const fetchTiposProduto = async () => {
     if (!user) return;
@@ -54,37 +62,17 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
     }
   };
 
-  const fetchMaoObra = async () => {
-    if (!user || !receita?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('receita_mao_obra')
-        .select('*')
-        .eq('receita_id', receita.id);
-
-      if (error) throw error;
-      setMaoObraList(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar mão de obra:', error);
+  const handleRemoveMaoObra = (id: string) => {
+    if (onRemoveMaoObraTemp) {
+      onRemoveMaoObraTemp(id);
     }
   };
 
-  const handleRemoveMaoObra = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('receita_mao_obra')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      fetchMaoObra();
-    } catch (error) {
-      console.error('Erro ao remover mão de obra:', error);
-    }
+  const handleMaoObraAdded = () => {
+    // No-op: the MaoObraModal in temp mode calls onAddMaoObraTemp directly
   };
 
-  const totalMaoObra = maoObraList.reduce((sum, mo) => sum + (mo.valor_total || 0), 0);
+  const totalMaoObra = tempMaoObra.reduce((sum, mo) => sum + (mo.valor_total || 0), 0);
 
   return (
     <>
@@ -201,13 +189,9 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
           <div className="space-y-3">
             <Label>Tempo de Mão de Obra Direta</Label>
 
-            {mode === 'create' ? (
-              <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
-                <p>Cadastro de mão de obra fica disponível após salvar a receita pela primeira vez.</p>
-              </div>
-            ) : maoObraList.length > 0 ? (
+            {tempMaoObra.length > 0 ? (
               <div className="space-y-2">
-                {maoObraList.map((mo) => (
+                {tempMaoObra.map((mo) => (
                   <div
                     key={mo.id}
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -246,17 +230,15 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
               </div>
             )}
 
-            {mode === 'edit' && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setMaoObraModalOpen(true)}
-                type="button"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Mão de Obra
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setMaoObraModalOpen(true)}
+              type="button"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Mão de Obra
+            </Button>
           </div>
           </CardContent>
         </Card>
@@ -272,14 +254,14 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange }: 
         }}
       />
 
-      {mode === 'edit' && receita?.id && (
-        <MaoObraModal
-          receitaId={receita.id}
-          open={maoObraModalOpen}
-          onOpenChange={setMaoObraModalOpen}
-          onUpdate={fetchMaoObra}
-        />
-      )}
+      <MaoObraModal
+        receitaId={receita?.id || 'temp'}
+        open={maoObraModalOpen}
+        onOpenChange={setMaoObraModalOpen}
+        onUpdate={handleMaoObraAdded}
+        tempMode={true}
+        onAddTemp={onAddMaoObraTemp}
+      />
     </>
   );
 };
