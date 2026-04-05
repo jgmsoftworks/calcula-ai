@@ -32,9 +32,19 @@ interface MaoObraModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: () => void;
+  tempMode?: boolean;
+  onAddTemp?: (maoObra: {
+    funcionario_id: string;
+    funcionario_nome: string;
+    funcionario_cargo: string;
+    custo_por_hora: number;
+    tempo: number;
+    unidade_tempo: string;
+    valor_total: number;
+  }) => void;
 }
 
-export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate }: MaoObraModalProps) => {
+export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode = false, onAddTemp }: MaoObraModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
@@ -50,9 +60,11 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate }: MaoObr
   useEffect(() => {
     if (open && user) {
       fetchFuncionarios();
-      fetchMaoObra();
+      if (!tempMode) {
+        fetchMaoObra();
+      }
     }
-  }, [open, user, receitaId]);
+  }, [open, user, receitaId, tempMode]);
 
   useEffect(() => {
     calcularValorTotal();
@@ -135,6 +147,28 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate }: MaoObr
 
     const funcionario = funcionarios.find(f => f.id === selectedFuncionario);
     if (!funcionario) return;
+
+    if (tempMode && onAddTemp) {
+      // Modo temporário: apenas chamar callback, sem salvar no banco
+      onAddTemp({
+        funcionario_id: selectedFuncionario,
+        funcionario_nome: funcionario.nome,
+        funcionario_cargo: funcionario.cargo || '',
+        custo_por_hora: funcionario.custo_por_hora,
+        tempo: tempo,
+        unidade_tempo: unidadeTempo,
+        valor_total: valorTotal,
+      });
+
+      // Resetar form
+      setSelectedFuncionario('');
+      setTempo(0);
+      setUnidadeTempo('horas');
+      setValorTotal(0);
+      
+      onOpenChange(false);
+      return;
+    }
 
     setLoading(true);
     try {

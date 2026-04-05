@@ -43,6 +43,17 @@ interface TempPasso {
   descricao: string;
 }
 
+interface TempMaoObra {
+  id: string;
+  funcionario_id: string;
+  funcionario_nome: string;
+  funcionario_cargo: string;
+  custo_por_hora: number;
+  tempo: number;
+  unidade_tempo: string;
+  valor_total: number;
+}
+
 interface ReceitaFormProps {
   receita: Receita | null;
   onClose: () => void;
@@ -80,6 +91,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [tempSubReceitas, setTempSubReceitas] = useState<TempSubReceita[]>([]);
   const [tempEmbalagens, setTempEmbalagens] = useState<TempEmbalagem[]>([]);
   const [tempPassos, setTempPassos] = useState<TempPasso[]>([]);
+  const [tempMaoObra, setTempMaoObra] = useState<TempMaoObra[]>([]);
   
   // Estado para markup atual selecionado
   const [markupAtual, setMarkupAtual] = useState<{ tipo: string } | null>(null);
@@ -161,6 +173,17 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         id: p.id,
         ordem: p.ordem,
         descricao: p.descricao,
+      })) || []);
+
+      setTempMaoObra(receitaCompleta.mao_obra?.map(mo => ({
+        id: mo.id,
+        funcionario_id: mo.funcionario_id,
+        funcionario_nome: mo.funcionario_nome,
+        funcionario_cargo: mo.funcionario_cargo,
+        custo_por_hora: mo.custo_por_hora,
+        tempo: mo.tempo,
+        unidade_tempo: mo.unidade_tempo || 'horas',
+        valor_total: mo.valor_total,
       })) || []);
     }
   }, [receitaCompleta, receita, isCreating]);
@@ -299,6 +322,19 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     toast.success('Passo removido');
   };
 
+  const handleAddMaoObraTemp = (maoObra: Omit<TempMaoObra, 'id'>) => {
+    setTempMaoObra([...tempMaoObra, {
+      ...maoObra,
+      id: crypto.randomUUID(),
+    }]);
+    toast.success('Mão de obra adicionada');
+  };
+
+  const handleRemoveMaoObraTemp = (id: string) => {
+    setTempMaoObra(tempMaoObra.filter(mo => mo.id !== id));
+    toast.success('Mão de obra removida');
+  };
+
   const handleSave = async () => {
     if (!formData.nome.trim()) {
       toast.error('Nome da receita é obrigatório');
@@ -372,6 +408,26 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             );
           
           if (errorPassos) throw errorPassos;
+        }
+
+        // Inserir mão de obra
+        if (tempMaoObra.length > 0) {
+          const { error: errorMaoObra } = await supabase
+            .from('receita_mao_obra')
+            .insert(
+              tempMaoObra.map(mo => ({
+                receita_id: novaReceita.id,
+                funcionario_id: mo.funcionario_id,
+                funcionario_nome: mo.funcionario_nome,
+                funcionario_cargo: mo.funcionario_cargo,
+                custo_por_hora: mo.custo_por_hora,
+                tempo: mo.tempo,
+                unidade_tempo: mo.unidade_tempo,
+                valor_total: mo.valor_total,
+              }))
+            );
+          
+          if (errorMaoObra) throw errorMaoObra;
         }
 
         // Upload de imagem se houver
@@ -489,6 +545,32 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           );
         }
         
+        // Processar mão de obra
+        const maoObraOriginais = receitaCompleta?.mao_obra?.map(mo => mo.id) || [];
+        const maoObraAtuais = tempMaoObra.map(mo => mo.id);
+        
+        const maoObraParaDeletar = maoObraOriginais.filter(id => !maoObraAtuais.includes(id));
+        const maoObraParaInserir = tempMaoObra.filter(mo => !maoObraOriginais.includes(mo.id));
+        
+        if (maoObraParaDeletar.length > 0) {
+          await supabase.from('receita_mao_obra').delete().in('id', maoObraParaDeletar);
+        }
+        
+        if (maoObraParaInserir.length > 0) {
+          await supabase.from('receita_mao_obra').insert(
+            maoObraParaInserir.map(mo => ({
+              receita_id: receita!.id,
+              funcionario_id: mo.funcionario_id,
+              funcionario_nome: mo.funcionario_nome,
+              funcionario_cargo: mo.funcionario_cargo,
+              custo_por_hora: mo.custo_por_hora,
+              tempo: mo.tempo,
+              unidade_tempo: mo.unidade_tempo,
+              valor_total: mo.valor_total,
+            }))
+          );
+        }
+        
         if (imageFile) {
           await uploadImagemReceita(imageFile, receita!.id);
         }
@@ -584,22 +666,26 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 receita={isCreating ? {} : receitaCompleta}
                 formData={formData}
                 onFormChange={handleFormChange}
+                tempMaoObra={tempMaoObra}
+                onAddMaoObraTemp={handleAddMaoObraTemp}
+                onRemoveMaoObraTemp={handleRemoveMaoObraTemp}
               />
             </TabsContent>
 
             <TabsContent value="precificacao" className="mt-0">
               <PrecificacaoTab
                 mode={isCreating ? 'create' : 'edit'}
-                receita={isCreating ? {
+                receita={{
+                  ...receitaCompleta,
                   ingredientes: tempIngredientes,
                   embalagens: tempEmbalagens,
                   sub_receitas: tempSubReceitas,
-                  mao_obra: [],
+                  mao_obra: tempMaoObra,
                   rendimento_valor: formData.rendimento_valor,
                   rendimento_unidade: formData.rendimento_unidade,
                   preco_venda: formData.preco_venda,
                   markup_id: formData.markup_id,
-                } : receitaCompleta}
+                }}
                 formData={formData}
                 onFormChange={handleFormChange}
                 onUpdate={loadReceitaCompleta}
