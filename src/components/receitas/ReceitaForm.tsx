@@ -696,6 +696,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 onAddTemp={handleAddSubReceitaTemp}
                 onRemoveTemp={handleRemoveSubReceitaTemp}
                 onUpdateQuantidadeTemp={handleUpdateQuantidadeSubReceitaTemp}
+                prefetchedSubReceitas={prefetchedSubReceitas}
+                hasSubReceitaMarkup={hasSubReceitaMarkup}
               />
             </TabsContent>
 
