@@ -207,7 +207,25 @@ export function GeralTab({
   return (
     <div className="space-y-6">
 
-      {/* SEÇÃO 1: Imagem + Conservação lado a lado */}
+      {/* SEÇÃO 1: Nome da Receita (largura total) - PRIMEIRO */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
+        <CardContent className="p-6">
+      <div className="space-y-2">
+        <Label htmlFor="nome">Nome da Receita *</Label>
+        <Input
+          id="nome"
+          value={formData.nome || ''}
+          onChange={(e) => onFormChange('nome', e.target.value)}
+          placeholder="Nome da receita"
+          required
+          autoFocus
+        />
+      </div>
+        </CardContent>
+      </Card>
+
+      {/* SEÇÃO 2: Imagem + Conservação lado a lado */}
       <Card className="glass-card overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
         <CardContent className="p-6">
@@ -419,23 +437,6 @@ export function GeralTab({
             </div>
           </div>
         </div>
-      </div>
-        </CardContent>
-      </Card>
-
-      {/* SEÇÃO 2: Nome da Receita (largura total) */}
-      <Card className="glass-card overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
-        <CardContent className="p-6">
-      <div className="space-y-2">
-        <Label htmlFor="nome">Nome da Receita *</Label>
-        <Input
-          id="nome"
-          value={formData.nome || ''}
-          onChange={(e) => onFormChange('nome', e.target.value)}
-          placeholder="Nome da receita"
-          required
-        />
       </div>
         </CardContent>
       </Card>
