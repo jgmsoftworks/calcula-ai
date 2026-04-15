@@ -1,0 +1,1 @@
+ALTER TABLE public.affiliate_links ADD COLUMN source_channel TEXT NOT NULL DEFAULT 'direto';

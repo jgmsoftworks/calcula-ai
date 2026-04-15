@@ -230,6 +230,7 @@ export type Database = {
           is_active: boolean
           link_code: string
           product_type: string
+          source_channel: string
           updated_at: string
         }
         Insert: {
@@ -241,6 +242,7 @@ export type Database = {
           is_active?: boolean
           link_code: string
           product_type?: string
+          source_channel?: string
           updated_at?: string
         }
         Update: {
@@ -252,6 +254,7 @@ export type Database = {
           is_active?: boolean
           link_code?: string
           product_type?: string
+          source_channel?: string
           updated_at?: string
         }
         Relationships: [
