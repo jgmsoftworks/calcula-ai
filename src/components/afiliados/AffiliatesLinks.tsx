@@ -216,7 +216,6 @@ export function AffiliatesLinks() {
                         {(link as any).source_channel || 'direto'}
                       </Badge>
                     </TableCell>
-                    </TableCell>
                     <TableCell>
                       <Badge variant="default" className="bg-gradient-primary text-white">
                         Link Geral
