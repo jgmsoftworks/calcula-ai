@@ -1,47 +1,58 @@
 
 
-## Plano: Desativar Afiliados + Preparar Admin Master para Instagram Ads
+## Plan: Fix All Error-Level Security Findings
 
-### 1. Botao de Ativar/Desativar Afiliado na lista
+### 1. Realtime Messages No RLS
+**Action**: Ignore — the `realtime.messages` table is in a Supabase-reserved schema (`realtime`). We cannot create RLS policies on reserved schemas. The app does not use Realtime subscriptions for sensitive cross-user data; all sensitive tables use per-user RLS already.
 
-**`src/components/afiliados/AffiliatesList.tsx`**
-- Adicionar um botao de toggle (ativar/desativar) na coluna de Acoes, ao lado do botao de editar
-- Usar `updateAffiliate(id, { status: 'inactive' })` ou `{ status: 'active' }` conforme estado atual
-- Afiliados inativos aparecem com badge vermelho "Inativo" (ja existe no `getStatusBadge`)
+### 2. Profiles Self-Escalation (profiles_role_plan_self_update)
+**Action**: Fix via SQL migration — replace the current UPDATE policy with two separate policies:
+- **Regular users**: can update their own profile but a trigger silently reverts `is_admin`, `role`, `plan`, and `plan_expires_at` changes
+- The existing `prevent_is_admin_self_update` trigger only covers `is_admin`. We need to expand it to also protect `role`, `plan`, and `plan_expires_at`.
 
-### 2. Preparar Admin Master para rastreamento de campanhas Instagram
+**Migration SQL**:
+```sql
+-- Expand the existing trigger to protect all sensitive fields
+CREATE OR REPLACE FUNCTION public.prevent_is_admin_self_update()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT has_role_or_higher('admin'::app_role, auth.uid()) THEN
+    NEW.is_admin := OLD.is_admin;
+    NEW.role := OLD.role;
+    NEW.plan := OLD.plan;
+    NEW.plan_expires_at := OLD.plan_expires_at;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+```
 
-**`src/hooks/useAdminDashboardMetrics.tsx`**
-- Expandir a interface `AdminMetrics` com campo `campaigns` para rastrear canais de aquisicao (Instagram, orgânico, afiliados)
-- Buscar dados de `affiliate_links` com filtro por `product_type` para identificar canais
-- Calcular metricas por canal: leads (cliques), conversoes, taxa de conversao, receita, custo (comissoes), CPL, LTV/CAC
+### 3. Stripe Events Public Readable (stripe_events_public_readable)
+**Action**: Fix via SQL migration — drop the permissive policy and create an admin-only SELECT policy.
+```sql
+DROP POLICY IF EXISTS "Sistema pode gerenciar eventos Stripe" ON public.stripe_events;
+CREATE POLICY "Admins can manage Stripe events" ON public.stripe_events
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Admins can read Stripe events" ON public.stripe_events
+  FOR SELECT TO authenticated USING (has_role_or_higher('admin'::app_role));
+```
 
-**`src/components/admin/AdminChannelComparison.tsx`**
-- Adicionar coluna "Origem" na tabela de canais
-- Destacar visualmente canais Instagram vs Orgânico vs Afiliados
-- Adicionar totalizadores na ultima linha
+### 4. Sensitive Data Access Log Public Insert
+**Action**: Fix via SQL migration — drop the permissive INSERT policy and restrict to service_role only.
+```sql
+DROP POLICY IF EXISTS "allow" ON public.sensitive_data_access_log;
+CREATE POLICY "Service role can insert audit logs" ON public.sensitive_data_access_log
+  FOR INSERT TO service_role WITH CHECK (true);
+```
 
-**`src/pages/Afiliados.tsx`**
-- Na aba de Links, preparar para que links possam ser categorizados por canal (Instagram, Facebook, etc.) — isso permite que ao criar um link de afiliado, se defina a origem da campanha
+### 5. Create Backup Unauthenticated Access
+**Action**: Fix edge function — make auth mandatory. Return 401 if no auth header or invalid token. Move admin check outside the `if (user)` block.
 
-**`src/components/afiliados/AffiliatesLinks.tsx`**
-- Adicionar campo "Canal/Origem" ao criar links (ex: Instagram, Facebook, Google, WhatsApp, Outro)
-- Isso permite rastrear de onde veio cada conversao
+### 6. jspdf Critical Vulnerability
+**Action**: Update `jspdf` to latest version (v3.0.1+ should have the fix). Run `npm install jspdf@latest`.
 
-### 3. Campo `source_channel` nos links de afiliado
-
-Como a tabela `affiliate_links` nao tem um campo de canal, sera necessario criar uma migration para adicionar `source_channel TEXT DEFAULT 'direto'` a tabela `affiliate_links`. Isso permite categorizar cada link como "instagram", "facebook", "whatsapp", "google", "direto" etc.
-
-### Arquivos alterados
-1. **`src/components/afiliados/AffiliatesList.tsx`** — botao ativar/desativar
-2. **`src/hooks/useAdminDashboardMetrics.tsx`** — metricas por canal de origem
-3. **`src/components/admin/AdminChannelComparison.tsx`** — visual melhorado com origens
-4. **`src/components/afiliados/AffiliatesLinks.tsx`** — campo de canal ao criar link
-5. **Migration SQL** — adicionar coluna `source_channel` em `affiliate_links`
-
-### Resultado
-- Admin pode desativar/reativar afiliados direto da lista
-- Links de afiliado podem ser etiquetados por canal (Instagram, Facebook, etc.)
-- Dashboard admin mostra metricas de conversao por canal de origem
-- Ao turbinar posts no Instagram com link de afiliado tagueado, voce ve exatamente quantos cliques, conversoes e receita vieram daquele canal
+### Files changed
+1. **SQL Migration** — profiles trigger expansion, stripe_events policies, sensitive_data_access_log policies
+2. **`supabase/functions/create-backup/index.ts`** — mandatory auth
+3. **`package.json`** — jspdf update
 
