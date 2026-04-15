@@ -38,7 +38,10 @@ serve(async (req) => {
     }
 
     // Verificar se é admin
-    const { data: isAdmin } = await supabaseAdmin.rpc('user_is_admin');
+    const { data: isAdmin } = await supabaseAdmin.rpc('has_role_or_higher', {
+      required_role: 'admin',
+      check_user_id: user.id
+    });
     
     if (!isAdmin) {
       return new Response(
@@ -129,8 +132,7 @@ serve(async (req) => {
     console.error('[GET-USER-BY-EMAIL] Erro:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Erro ao buscar usuário',
-        details: error 
+        error: 'Erro interno ao buscar usuário'
       }),
       { 
         status: 500,
