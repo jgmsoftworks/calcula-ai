@@ -5,8 +5,6 @@ import {
   Package, 
   BarChart3,
   DollarSign,
-  Users,
-  Crown,
   Filter,
   ArrowDownRight,
   ArrowUpRight,
@@ -18,10 +16,13 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useAdminData } from '@/hooks/useAdminData';
+import { useAdminDashboardMetrics } from '@/hooks/useAdminDashboardMetrics';
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { CmvCard } from '@/components/dashboard/CmvCard';
+import { AdminFunnel } from '@/components/admin/AdminFunnel';
+import { AdminKPICards } from '@/components/admin/AdminKPICards';
+import { AdminChannelComparison } from '@/components/admin/AdminChannelComparison';
+import { AdminRevenueChart } from '@/components/admin/AdminRevenueChart';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -30,40 +31,66 @@ const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user, isAdmin } = useAuth();
   const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
-  const { data: adminData, refreshData: refreshAdminData } = useAdminData();
+  const { metrics: adminMetrics, refreshMetrics } = useAdminDashboardMetrics();
 
-  const isAdminView = isAdmin;
-  const currentData = isAdminView ? adminData : data;
-  const currentRefresh = isAdminView ? refreshAdminData : refreshData;
   const dateLocale = i18n.language === 'pt-BR' ? ptBR : enUS;
 
-  const adminStats = [
-    {
-      title: t('dashboard.totalUsers'),
-      value: adminData.totalUsers.toString(),
-      icon: Users,
-      gradient: 'from-[#0483e4] to-[#2c4dc7]',
-      iconBg: 'bg-[#0483e4]/10',
-      iconColor: 'text-[#0483e4]',
-    },
-    {
-      title: t('dashboard.activeSubscriptions'),
-      value: adminData.activeSubscriptions.toString(),
-      icon: Crown,
-      gradient: 'from-[#7328b1] to-[#af1188]',
-      iconBg: 'bg-[#7328b1]/10',
-      iconColor: 'text-[#7328b1]',
-    },
-    {
-      title: t('dashboard.monthlyRevenue'),
-      value: `R$ ${adminData.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: DollarSign,
-      gradient: 'from-[#dd0b52] to-[#f96e0c]',
-      iconBg: 'bg-[#dd0b52]/10',
-      iconColor: 'text-[#dd0b52]',
-    },
-  ];
+  const loading = isAdmin ? adminMetrics.loading : data.loading;
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4 animate-fade-in">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground text-sm">{t('dashboard.loadingData')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== ADMIN MASTER DASHBOARD ==========
+  if (isAdmin) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold font-display text-foreground">
+              Painel Administrativo
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {format(new Date(), "EEEE, dd 'de' MMMM", { locale: dateLocale })}
+            </p>
+          </div>
+          <Button 
+            onClick={refreshMetrics} 
+            variant="outline" 
+            size="sm"
+            className="gap-1.5 rounded-xl h-9 border-border/50"
+          >
+            <RefreshCcw className="h-3.5 w-3.5" />
+            Atualizar
+          </Button>
+        </div>
+
+        {/* KPI Cards */}
+        <AdminKPICards metrics={adminMetrics} />
+
+        {/* Funnel + Charts */}
+        <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+          <AdminFunnel metrics={adminMetrics} />
+          <div className="space-y-4">
+            <AdminRevenueChart metrics={adminMetrics} />
+          </div>
+        </div>
+
+        {/* Channel Comparison */}
+        <AdminChannelComparison metrics={adminMetrics} />
+      </div>
+    );
+  }
+
+  // ========== USER DASHBOARD ==========
   const userStats = [
     {
       title: t('dashboard.stockValue'),
@@ -91,61 +118,44 @@ const Dashboard = () => {
     },
   ];
 
-  const stats = isAdminView ? adminStats : userStats;
-
-  if (currentData.loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4 animate-fade-in">
-          <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground text-sm">{t('dashboard.loadingData')}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-display text-foreground">
-            {isAdminView ? t('dashboard.adminPanel') : t('dashboard.hello', { name: user?.email?.split('@')[0] || 'user' })}
+            {t('dashboard.hello', { name: user?.email?.split('@')[0] || 'user' })}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: dateLocale })}
           </p>
         </div>
-        
         <div className="flex items-center gap-2">
-          {!isAdminView && (
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 rounded-xl h-9 border-border/50">
-                  <Filter className="h-3.5 w-3.5" />
-                  {t('dashboard.filters')}
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>{t('dashboard.filters')}</SheetTitle>
-                  <SheetDescription>{t('dashboard.customizePeriod')}</SheetDescription>
-                </SheetHeader>
-                <div className="py-6">
-                  <DashboardFilters
-                    currentPeriod={filters.period}
-                    startDate={filters.startDate}
-                    endDate={filters.endDate}
-                    onPeriodChange={(period) => updateFilters({ period })}
-                    onDateRangeChange={(startDate, endDate) => updateFilters({ startDate, endDate })}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-          )}
-          
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl h-9 border-border/50">
+                <Filter className="h-3.5 w-3.5" />
+                {t('dashboard.filters')}
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>{t('dashboard.filters')}</SheetTitle>
+                <SheetDescription>{t('dashboard.customizePeriod')}</SheetDescription>
+              </SheetHeader>
+              <div className="py-6">
+                <DashboardFilters
+                  currentPeriod={filters.period}
+                  startDate={filters.startDate}
+                  endDate={filters.endDate}
+                  onPeriodChange={(period) => updateFilters({ period })}
+                  onDateRangeChange={(startDate, endDate) => updateFilters({ startDate, endDate })}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
           <Button 
-            onClick={currentRefresh} 
+            onClick={refreshData} 
             variant="outline" 
             size="sm"
             className="gap-1.5 rounded-xl h-9 border-border/50"
@@ -158,21 +168,16 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-        {stats.map((stat, i) => {
+        {userStats.map((stat, i) => {
           const Icon = stat.icon;
-          const delay = i * 100;
           return (
-            <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${delay}ms` }}>
+            <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
               <div className={`h-1 bg-gradient-to-r ${stat.gradient}`} />
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      {stat.title}
-                    </p>
-                    <p className="text-3xl font-bold font-display text-foreground">
-                      {stat.value}
-                    </p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.title}</p>
+                    <p className="text-3xl font-bold font-display text-foreground">{stat.value}</p>
                   </div>
                   <div className={`p-3 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
                     <Icon className={`h-6 w-6 ${stat.iconColor}`} />
@@ -185,138 +190,102 @@ const Dashboard = () => {
       </div>
 
       {/* Daily Movements Chart */}
-      {!isAdminView && (
-        <Card className="glass-card overflow-hidden">
-          <div className="h-1 bg-gradient-brand-horizontal" />
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">{t('dashboard.dailyMovements')}</CardTitle>
-            <CardDescription className="text-xs mt-0.5">
-              {t('dashboard.dailyMovementsDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-64">
-              {data.dailyMovements.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={data.dailyMovements} 
-                    margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-                    <XAxis 
-                      dataKey="day" 
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => `R$${(value / 1).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px',
-                        padding: '8px 12px',
-                        fontSize: '12px',
-                      }}
-                      formatter={(value: number, name: string) => [
-                        `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                        name === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')
-                      ]}
-                      labelFormatter={(label) => `${t('dashboard.day')} ${label}`}
-                    />
-                    <Legend 
-                      formatter={(value) => value === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')}
-                    />
-                    <Bar dataKey="entradas" fill="#16a34a" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="saidas" fill="#7328b1" radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <div className="text-center space-y-2">
-                    <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
-                    <p className="text-xs">{t('dashboard.noData')}</p>
-                  </div>
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-brand-horizontal" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-display">{t('dashboard.dailyMovements')}</CardTitle>
+          <CardDescription className="text-xs mt-0.5">{t('dashboard.dailyMovementsDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="h-64">
+            {data.dailyMovements.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.dailyMovements} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                  <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${(value / 1).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '8px 12px', fontSize: '12px' }}
+                    formatter={(value: number, name: string) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, name === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')]}
+                    labelFormatter={(label) => `${t('dashboard.day')} ${label}`}
+                  />
+                  <Legend formatter={(value) => value === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')} />
+                  <Bar dataKey="entradas" fill="#16a34a" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="saidas" fill="#7328b1" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center space-y-2">
+                  <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
+                  <p className="text-xs">{t('dashboard.noData')}</p>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Saldo Inicial + CMV % */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.initialBalance')}</p>
+                {data.cmvResult.breakdown.estoqueInicial !== null ? (
+                  <div>
+                    <p className="text-3xl font-bold font-display text-foreground">
+                      R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    {data.cmvResult.breakdown.estoqueInicialEstimado && (
+                      <span className="text-xs text-muted-foreground mt-1 inline-block">{t('dashboard.estimated')}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">{t('dashboard.noEstimateData')}</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-[#0483e4]/10 group-hover:scale-110 transition-transform">
+                <Warehouse className="h-6 w-6 text-[#0483e4]" />
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Saldo Inicial + CMV % */}
-      {!isAdminView && (
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
-            <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    {t('dashboard.initialBalance')}
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.cmvPercent')}</p>
+                {!data.cmvResult.cmvDisponivel ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">{t('dashboard.unavailable')}</span>
+                  </div>
+                ) : data.cmvResult.cmvPercentual !== null ? (
+                  <p className="text-3xl font-bold font-display text-foreground">
+                    {data.cmvResult.cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                   </p>
-                  {data.cmvResult.breakdown.estoqueInicial !== null ? (
-                    <div>
-                      <p className="text-3xl font-bold font-display text-foreground">
-                        R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                      {data.cmvResult.breakdown.estoqueInicialEstimado && (
-                        <span className="text-xs text-muted-foreground mt-1 inline-block">{t('dashboard.estimated')}</span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{t('dashboard.noEstimateData')}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 rounded-xl bg-[#0483e4]/10 group-hover:scale-110 transition-transform">
-                  <Warehouse className="h-6 w-6 text-[#0483e4]" />
-                </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">{t('dashboard.noSales')}</span>
+                  </div>
+                )}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
-            <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    {t('dashboard.cmvPercent')}
-                  </p>
-                  {!data.cmvResult.cmvDisponivel ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{t('dashboard.unavailable')}</span>
-                    </div>
-                  ) : data.cmvResult.cmvPercentual !== null ? (
-                    <p className="text-3xl font-bold font-display text-foreground">
-                      {data.cmvResult.cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                    </p>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{t('dashboard.noSales')}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 rounded-xl bg-[#dd0b52]/10 group-hover:scale-110 transition-transform">
-                  <TrendingDown className="h-6 w-6 text-[#dd0b52]" />
-                </div>
+              <div className="p-3 rounded-xl bg-[#dd0b52]/10 group-hover:scale-110 transition-transform">
+                <TrendingDown className="h-6 w-6 text-[#dd0b52]" />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
