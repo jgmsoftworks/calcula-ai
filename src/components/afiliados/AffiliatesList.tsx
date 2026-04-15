@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, DollarSign } from "lucide-react";
+import { Plus, Edit, DollarSign, Power } from "lucide-react";
 import { useAffiliates } from "@/hooks/useAffiliates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -197,6 +197,16 @@ export function AffiliatesList() {
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm" onClick={() => handleEdit(affiliate)}>
                       <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={affiliate.status === 'active' ? 'destructive' : 'default'}
+                      size="sm"
+                      onClick={() => updateAffiliate(affiliate.id, {
+                        status: affiliate.status === 'active' ? 'inactive' : 'active'
+                      })}
+                      title={affiliate.status === 'active' ? 'Desativar afiliado' : 'Ativar afiliado'}
+                    >
+                      <Power className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

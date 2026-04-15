@@ -305,7 +305,7 @@ export const useAffiliates = () => {
   };
 
   // Criar link de afiliado
-  const createAffiliateLink = async (affiliateId: string, productType: 'all' | 'professional_monthly' | 'professional_yearly' | 'enterprise_monthly' | 'enterprise_yearly') => {
+  const createAffiliateLink = async (affiliateId: string, productType: 'all' | 'professional_monthly' | 'professional_yearly' | 'enterprise_monthly' | 'enterprise_yearly', sourceChannel: string = 'direto') => {
     try {
       // Gerar código único
       const { data: codeData, error: codeError } = await supabase
@@ -318,7 +318,8 @@ export const useAffiliates = () => {
         .insert([{
           affiliate_id: affiliateId,
           link_code: codeData,
-          product_type: productType
+          product_type: productType,
+          source_channel: sourceChannel
         }])
         .select()
         .single();
