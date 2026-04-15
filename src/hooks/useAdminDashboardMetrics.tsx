@@ -67,7 +67,7 @@ export const useAdminDashboardMetrics = () => {
         supabase.from('affiliates').select('id, name, total_commissions, total_sales, status, created_at').eq('status', 'active'),
         supabase.from('affiliate_sales').select('affiliate_id, sale_amount, commission_amount, status, sale_date, plan_type'),
         supabase.from('affiliate_commissions').select('amount, status, paid_at'),
-        supabase.from('affiliate_links').select('affiliate_id, clicks_count, conversions_count'),
+        supabase.from('affiliate_links').select('affiliate_id, clicks_count, conversions_count, source_channel'),
       ]);
 
       const profiles = profilesRes.data || [];
