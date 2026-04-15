@@ -48,31 +48,37 @@ Deno.serve(async (req) => {
       logStep('No request body provided, using defaults');
     }
 
-    // Get the requesting user
+    // Get the requesting user - authentication is mandatory
     const authHeader = req.headers.get('authorization');
-    let user = null;
-    if (authHeader) {
-      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(
-        authHeader.replace('Bearer ', '')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-      if (!authError) {
-        user = authUser;
-      }
+    }
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Check if user is admin using secure RPC function
-    if (user) {
-      const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role_or_higher', {
-        required_role: 'admin',
-        check_user_id: user.id
-      });
+    const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role_or_higher', {
+      required_role: 'admin',
+      check_user_id: user.id
+    });
 
-      if (roleError || !isAdmin) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized. Admin access required.' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (roleError || !isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized. Admin access required.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Create backup record
