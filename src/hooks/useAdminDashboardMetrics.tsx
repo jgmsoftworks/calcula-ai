@@ -135,7 +135,7 @@ export const useAdminDashboardMetrics = () => {
         });
       }
 
-      // Channel comparison
+      // Channel comparison - group by source_channel
       const organicUsers = profiles.length - sales.length;
       const organicPaid = Math.max(0, assinantes - sales.filter(s => s.status === 'confirmed').length);
 
@@ -153,25 +153,39 @@ export const useAdminDashboardMetrics = () => {
         },
       ];
 
-      // Per-affiliate channels
-      affiliates.forEach(aff => {
-        const affSales = sales.filter(s => s.affiliate_id === aff.id && s.status === 'confirmed');
-        const affLinks = links.filter(l => l.affiliate_id === aff.id);
-        const affClicks = affLinks.reduce((s, l) => s + (l.clicks_count || 0), 0);
-        const affConversions = affSales.length;
-        const affRevenue = affSales.reduce((s, sale) => s + Number(sale.sale_amount), 0);
-        const affCost = affSales.reduce((s, sale) => s + Number(sale.commission_amount), 0);
+      // Group links by source_channel
+      const channelMap = new Map<string, { clicks: number; conversions: number; affiliateIds: Set<string> }>();
+      links.forEach((l: any) => {
+        const ch = l.source_channel || 'direto';
+        if (!channelMap.has(ch)) channelMap.set(ch, { clicks: 0, conversions: 0, affiliateIds: new Set() });
+        const entry = channelMap.get(ch)!;
+        entry.clicks += (l.clicks_count || 0);
+        entry.conversions += (l.conversions_count || 0);
+        entry.affiliateIds.add(l.affiliate_id);
+      });
+
+      const channelLabels: Record<string, string> = {
+        direto: 'Direto', instagram: 'Instagram', facebook: 'Facebook',
+        google: 'Google Ads', whatsapp: 'WhatsApp', tiktok: 'TikTok',
+        youtube: 'YouTube', outro: 'Outro',
+      };
+
+      channelMap.forEach((data, key) => {
+        const affIds = Array.from(data.affiliateIds);
+        const channelSales = sales.filter(s => s.status === 'confirmed' && affIds.includes(s.affiliate_id));
+        const channelRevenue = channelSales.reduce((s, sale) => s + Number(sale.sale_amount), 0);
+        const channelCost = channelSales.reduce((s, sale) => s + Number(sale.commission_amount), 0);
 
         channels.push({
-          name: aff.name,
-          leads: affClicks,
-          conversions: affConversions,
-          conversionRate: affClicks > 0 ? (affConversions / affClicks) * 100 : 0,
-          revenue: affRevenue,
-          cost: affCost,
-          cpl: affClicks > 0 ? affCost / affClicks : 0,
-          ltv: affConversions > 0 ? affRevenue / affConversions : 0,
-          ltvCac: affCost > 0 ? affRevenue / affCost : 0,
+          name: channelLabels[key] || key,
+          leads: data.clicks,
+          conversions: channelSales.length,
+          conversionRate: data.clicks > 0 ? (channelSales.length / data.clicks) * 100 : 0,
+          revenue: channelRevenue,
+          cost: channelCost,
+          cpl: data.clicks > 0 ? channelCost / data.clicks : 0,
+          ltv: channelSales.length > 0 ? channelRevenue / channelSales.length : 0,
+          ltvCac: channelCost > 0 ? channelRevenue / channelCost : 0,
         });
       });
 
