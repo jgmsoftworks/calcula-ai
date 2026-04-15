@@ -1,78 +1,47 @@
 
 
-## Dashboard Admin Master - Funil de Conversao e Metricas Avancadas
+## Plano: Desativar Afiliados + Preparar Admin Master para Instagram Ads
 
-### Objetivo
-Criar uma dashboard administrativa de nivel profissional exclusiva para o admin master, inspirada no funil de vendas da imagem enviada. A dashboard substituira o conteudo atual do admin no Dashboard.tsx com metricas reais do negocio.
+### 1. Botao de Ativar/Desativar Afiliado na lista
 
-### Dados disponiveis no banco
-Com base nas tabelas existentes, podemos calcular metricas reais:
-- **Total de cadastros** (profiles): usuarios registrados
-- **Verificacao de email**: profiles com email confirmado (via edge function)
-- **Distribuicao por plano**: free vs professional vs enterprise
-- **Conversao free -> pago**: taxa real
-- **Receita mensal**: baseada em assinantes ativos x preco do plano
-- **Afiliados**: vendas, comissoes, cliques em links
-- **Crescimento mensal**: usuarios por mes
+**`src/components/afiliados/AffiliatesList.tsx`**
+- Adicionar um botao de toggle (ativar/desativar) na coluna de Acoes, ao lado do botao de editar
+- Usar `updateAffiliate(id, { status: 'inactive' })` ou `{ status: 'active' }` conforme estado atual
+- Afiliados inativos aparecem com badge vermelho "Inativo" (ja existe no `getStatusBadge`)
 
-### O que sera construido
+### 2. Preparar Admin Master para rastreamento de campanhas Instagram
 
-**1. Funil de Conversao Visual** (inspirado na imagem)
-Um funil SVG/CSS com as etapas:
-- Cadastros Totais (topo)
-- Email Verificado
-- Usuarios Ativos (ultimo acesso < 30 dias)
-- Assinantes (plano pago)
-- Enterprise (plano top)
+**`src/hooks/useAdminDashboardMetrics.tsx`**
+- Expandir a interface `AdminMetrics` com campo `campaigns` para rastrear canais de aquisicao (Instagram, orgânico, afiliados)
+- Buscar dados de `affiliate_links` com filtro por `product_type` para identificar canais
+- Calcular metricas por canal: leads (cliques), conversoes, taxa de conversao, receita, custo (comissoes), CPL, LTV/CAC
 
-Cada etapa mostra o numero absoluto, percentual de conversao entre etapas, e taxa geral.
+**`src/components/admin/AdminChannelComparison.tsx`**
+- Adicionar coluna "Origem" na tabela de canais
+- Destacar visualmente canais Instagram vs Orgânico vs Afiliados
+- Adicionar totalizadores na ultima linha
 
-**2. Cards de KPIs Principais**
-- MRR (Monthly Recurring Revenue) - calculado real por plano
-- ARR (Annual Recurring Revenue)
-- Ticket Medio
-- Churn estimado (usuarios que nao acessam ha 30+ dias)
-- LTV estimado
-- CAC (se dados de afiliados disponiveis)
-- ROAS dos afiliados
+**`src/pages/Afiliados.tsx`**
+- Na aba de Links, preparar para que links possam ser categorizados por canal (Instagram, Facebook, etc.) — isso permite que ao criar um link de afiliado, se defina a origem da campanha
 
-**3. Tabela Comparativa de Canais** (inspirada na segunda imagem)
-Comparacao entre canais de aquisicao:
-- Organico vs Afiliado 1 vs Afiliado 2...
-- CPL, Conversao, LTV, LTV/CAC por canal
+**`src/components/afiliados/AffiliatesLinks.tsx`**
+- Adicionar campo "Canal/Origem" ao criar links (ex: Instagram, Facebook, Google, WhatsApp, Outro)
+- Isso permite rastrear de onde veio cada conversao
 
-**4. Graficos**
-- Evolucao de MRR (ultimos 6 meses)
-- Distribuicao de planos (donut chart)
-- Crescimento de usuarios (line chart)
+### 3. Campo `source_channel` nos links de afiliado
 
-### Arquivos
+Como a tabela `affiliate_links` nao tem um campo de canal, sera necessario criar uma migration para adicionar `source_channel TEXT DEFAULT 'direto'` a tabela `affiliate_links`. Isso permite categorizar cada link como "instagram", "facebook", "whatsapp", "google", "direto" etc.
 
-1. **`src/hooks/useAdminDashboardMetrics.tsx`** (novo) - Hook que busca e calcula todas as metricas reais do banco (profiles, affiliates, affiliate_sales, affiliate_commissions, affiliate_links)
+### Arquivos alterados
+1. **`src/components/afiliados/AffiliatesList.tsx`** — botao ativar/desativar
+2. **`src/hooks/useAdminDashboardMetrics.tsx`** — metricas por canal de origem
+3. **`src/components/admin/AdminChannelComparison.tsx`** — visual melhorado com origens
+4. **`src/components/afiliados/AffiliatesLinks.tsx`** — campo de canal ao criar link
+5. **Migration SQL** — adicionar coluna `source_channel` em `affiliate_links`
 
-2. **`src/components/admin/AdminFunnel.tsx`** (novo) - Componente visual do funil de conversao com CSS gradients (estilo da imagem: tons de azul/roxo)
-
-3. **`src/components/admin/AdminKPICards.tsx`** (novo) - Grid de cards com MRR, ARR, LTV, Churn, Ticket Medio, ROAS
-
-4. **`src/components/admin/AdminChannelComparison.tsx`** (novo) - Tabela comparativa por canal/afiliado
-
-5. **`src/components/admin/AdminRevenueChart.tsx`** (novo) - Graficos de evolucao MRR e distribuicao de planos
-
-6. **`src/pages/Dashboard.tsx`** (alterado) - Quando `isAdmin`, renderizar os novos componentes em vez do layout atual simplificado
-
-7. **`src/hooks/useAdminData.tsx`** (alterado) - Expandir para incluir dados de affiliate_sales, affiliate_links para metricas de aquisicao
-
-### Estilo Visual
-- Funil com gradiente de azul claro (topo) a roxo escuro (base), similar a imagem
-- Cards com glassmorphism consistente com o design system existente
-- Numeros grandes e destaque visual nas metricas principais
-- Setas de conexao entre etapas do funil mostrando taxas de conversao
-- Tabela com fundo escuro e bordas azuis como na segunda imagem
-
-### Calculos das metricas
-- **MRR**: (assinantes professional x 49.90) + (assinantes enterprise x 89.90)
-- **Churn**: usuarios com last_sign_in > 30 dias / total ativos
-- **LTV**: MRR / churn rate
-- **Conversao**: (assinantes pagos / total cadastros) x 100
-- **ROAS afiliados**: receita gerada por afiliados / comissoes pagas
+### Resultado
+- Admin pode desativar/reativar afiliados direto da lista
+- Links de afiliado podem ser etiquetados por canal (Instagram, Facebook, etc.)
+- Dashboard admin mostra metricas de conversao por canal de origem
+- Ao turbinar posts no Instagram com link de afiliado tagueado, voce ve exatamente quantos cliques, conversoes e receita vieram daquele canal
 
