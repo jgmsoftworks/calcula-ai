@@ -47,6 +47,18 @@ export function AffiliatesLinks() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAffiliate, setSelectedAffiliate] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<'all'>('all');
+  const [selectedChannel, setSelectedChannel] = useState<string>('direto');
+
+  const channelOptions = [
+    { value: 'direto', label: 'Direto' },
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'facebook', label: 'Facebook' },
+    { value: 'google', label: 'Google Ads' },
+    { value: 'whatsapp', label: 'WhatsApp' },
+    { value: 'tiktok', label: 'TikTok' },
+    { value: 'youtube', label: 'YouTube' },
+    { value: 'outro', label: 'Outro' },
+  ];
 
   const handleCreateLink = async () => {
     if (!selectedAffiliate) {
@@ -59,10 +71,11 @@ export function AffiliatesLinks() {
     }
 
     try {
-      await createAffiliateLink(selectedAffiliate, 'all');
+      await createAffiliateLink(selectedAffiliate, 'all', selectedChannel);
       setIsDialogOpen(false);
       setSelectedAffiliate("");
       setSelectedProduct('all');
+      setSelectedChannel('direto');
     } catch (error) {
       // Erro já tratado no hook
     }
@@ -131,6 +144,25 @@ export function AffiliatesLinks() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Canal de Origem</label>
+                  <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o canal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {channelOptions.map(ch => (
+                        <SelectItem key={ch.value} value={ch.value}>
+                          {ch.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use para rastrear de onde vêm as conversões (ex: post turbinado no Instagram)
+                  </p>
                 </div>
                 
                 <div className="p-4 bg-muted rounded-lg">
