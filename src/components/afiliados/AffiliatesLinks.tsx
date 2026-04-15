@@ -191,6 +191,7 @@ export function AffiliatesLinks() {
                 <TableRow>
                   <TableHead>Código</TableHead>
                   <TableHead>Afiliado</TableHead>
+                  <TableHead>Canal</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Cupons</TableHead>
                   <TableHead>Cliques</TableHead>
@@ -209,6 +210,12 @@ export function AffiliatesLinks() {
                     </TableCell>
                     <TableCell>
                       {link.affiliate?.name || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {(link as any).source_channel || 'direto'}
+                      </Badge>
+                    </TableCell>
                     </TableCell>
                     <TableCell>
                       <Badge variant="default" className="bg-gradient-primary text-white">
