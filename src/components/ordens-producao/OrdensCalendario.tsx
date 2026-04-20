@@ -21,7 +21,7 @@ const statusDot: Record<string, string> = {
   cancelada: 'bg-destructive',
 };
 
-export function OrdensCalendario({ ordens, onSelectDay, onCreateForDay }: Props) {
+export function OrdensCalendario({ ordens, onSelectDay }: Props) {
   const [cursor, setCursor] = useState(new Date());
 
   const dias = useMemo(() => {
