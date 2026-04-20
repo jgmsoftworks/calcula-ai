@@ -192,26 +192,6 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
         </DialogHeader>
 
         <div className="space-y-6">
-          <div>
-            <Label>Título da Ordem</Label>
-            <Input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              onBlur={async () => {
-                if (isDraft) return;
-                const nextTitulo = titulo.trim();
-                if (!nextTitulo) {
-                  setTitulo(activeOrdem.titulo);
-                  return;
-                }
-
-                if (nextTitulo === activeOrdem.titulo) return;
-
-                await atualizarOrdem(activeOrdem.id, { titulo: nextTitulo });
-              }}
-              placeholder="Ex: Produção do dia"
-            />
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Status da Ordem</Label>
