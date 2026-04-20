@@ -225,7 +225,9 @@ export function OrdemProducaoCardInline({
   };
 
   const handleSaveEdit = async () => {
-    if (!item || !draftRefId || saving) return;
+    if (!item || saving) return;
+    if (draftItemType === 'receita' && !draftRefId) return;
+    if (draftItemType === 'tarefa_avulsa' && !draftDescricaoTarefa.trim()) return;
 
     setSaving(true);
     const selectedFuncionario = funcionarios.find((funcionario) => funcionario.id === draftFuncionarioId);
@@ -233,7 +235,8 @@ export function OrdemProducaoCardInline({
     const itemUpdates: Partial<OrdemProducaoItem> = {
       tipo_item: draftItemType,
       receita_id: draftItemType === 'receita' ? draftRefId : null,
-      tarefa_avulsa_id: draftItemType === 'tarefa_avulsa' ? draftRefId : null,
+      tarefa_avulsa_id: null,
+      descricao_customizada: draftItemType === 'tarefa_avulsa' ? draftDescricaoTarefa.trim() : null,
       quantidade: Number(draftQuantidade) || 1,
       funcionario_id: draftFuncionarioId || null,
       funcionario_nome: selectedFuncionario?.nome || null,
