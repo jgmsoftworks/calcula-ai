@@ -37,11 +37,11 @@ export default function OrdensProducaoDia() {
     [ordens, data]
   );
 
-  const currentSelected = selected?.id.startsWith('draft-')
-    ? selected
-    : selected
-      ? ordens.find(o => o.id === selected.id) || selected
-      : null;
+  const currentSelected = useMemo(() => {
+    if (!selected) return null;
+    if (selected.id.startsWith('draft-')) return selected;
+    return ordens.find(o => o.id === selected.id) || selected;
+  }, [selected, ordens]);
 
   const handleCreate = () => {
     if (!data || !isValidDate) return;
