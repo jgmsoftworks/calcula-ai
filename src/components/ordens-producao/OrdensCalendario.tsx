@@ -77,7 +77,7 @@ export function OrdensCalendario({ ordens, onSelectDay, onCreateForDay }: Props)
           return (
             <button
               key={key}
-              onClick={() => dayOrders.length > 0 ? onSelectDay(dia, dayOrders) : onCreateForDay(dia)}
+              onClick={() => onSelectDay(dia, dayOrders)}
               className={cn(
                 "group relative aspect-square rounded-lg border p-2 text-left transition-all hover:border-primary hover:shadow-sm flex flex-col",
                 !inMonth && "opacity-30",
