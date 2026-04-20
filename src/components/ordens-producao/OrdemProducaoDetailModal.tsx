@@ -481,15 +481,13 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
 
                   {tipoItem === 'tarefa_avulsa' && (
                     <div className="md:col-span-2">
-                      <Label>Tarefa avulsa</Label>
-                      <Select value={refId} onValueChange={setRefId}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {tarefasAvulsas.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Descrição da tarefa</Label>
+                      <Textarea
+                        value={descricaoTarefa}
+                        onChange={(e) => setDescricaoTarefa(e.target.value)}
+                        placeholder="Descreva o que deve ser feito (ex: Limpar bancadas e organizar utensílios)"
+                        rows={3}
+                      />
                     </div>
                   )}
 
