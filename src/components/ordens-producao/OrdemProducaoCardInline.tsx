@@ -485,19 +485,28 @@ export function OrdemProducaoCardInline({
               </div>
 
               <div className="md:col-span-2">
-                <Label>{draftItemType === 'receita' ? 'Receita' : 'Tarefa avulsa'}</Label>
-                <Select value={draftRefId} onValueChange={setDraftRefId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(draftItemType === 'receita' ? receitas : tarefasAvulsas).map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>{draftItemType === 'receita' ? 'Receita' : 'Descrição da tarefa'}</Label>
+                {draftItemType === 'receita' ? (
+                  <Select value={draftRefId} onValueChange={setDraftRefId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {receitas.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Textarea
+                    value={draftDescricaoTarefa}
+                    onChange={(e) => setDraftDescricaoTarefa(e.target.value)}
+                    placeholder="Descreva o que deve ser feito (ex: Limpar bancadas e organizar utensílios)"
+                    rows={3}
+                  />
+                )}
               </div>
 
               <div>
