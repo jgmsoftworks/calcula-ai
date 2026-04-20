@@ -119,6 +119,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
 
   const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa'>('receita');
   const [refId, setRefId] = useState('');
+  const [descricaoTarefa, setDescricaoTarefa] = useState('');
   const [quantidade, setQuantidade] = useState('1');
   const [funcId, setFuncId] = useState('');
   const [inicioPrev, setInicioPrev] = useState('');
