@@ -30,7 +30,7 @@ interface Props {
   ordem: OrdemProducao | null;
   ordens: OrdemProducao[];
   tarefasAvulsas: TarefaAvulsa[];
-  criarOrdem: (input: { titulo: string; descricao?: string; data_prevista?: string; observacoes?: string }) => Promise<OrdemProducao | null>;
+  criarOrdem: (input: { titulo: string; descricao?: string; data_prevista?: string; observacoes?: string }) => Promise<(Omit<OrdemProducao, 'status'> & { status: string }) | null>;
   atualizarOrdem: (id: string, updates: Partial<OrdemProducao>) => Promise<boolean>;
   deletarOrdem: (id: string) => Promise<boolean>;
   adicionarItem: (ordemId: string, item: Partial<OrdemProducaoItem>) => Promise<boolean>;
