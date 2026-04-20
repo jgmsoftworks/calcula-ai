@@ -163,10 +163,16 @@ export function OrdemProducaoCardInline({
     })();
   }, [user]);
 
-  const receitaInfo = item?.tipo_item === 'receita' && item?.receita_id
-    ? receitas.find((r) => r.id === item.receita_id)
+  const activeTipo = editing ? draftItemType : item?.tipo_item;
+  const activeReceitaId = editing
+    ? (draftItemType === 'receita' ? draftRefId : '')
+    : (item?.tipo_item === 'receita' ? item?.receita_id : '');
+  const receitaInfo = activeTipo === 'receita' && activeReceitaId
+    ? receitas.find((r) => r.id === activeReceitaId)
     : null;
-  const qtdReceita = item?.quantidade || 1;
+  const qtdReceita = editing
+    ? (Number(draftQuantidade) || 1)
+    : (item?.quantidade || 1);
   const rendTotal = (receitaInfo?.rendimento_valor || 0) * qtdReceita;
 
   const handleQuickStatus = async (nextStatus: OrdemProducaoItem['status']) => {
