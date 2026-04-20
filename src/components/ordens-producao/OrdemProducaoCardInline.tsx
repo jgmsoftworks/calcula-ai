@@ -42,12 +42,22 @@ export function OrdemProducaoCardInline({ ordem }: Props) {
 
   const handleStart = async () => {
     if (!item) return;
-    await atualizarItem(item.id, { status: 'em_andamento', hora_inicio_real: new Date().toISOString() } as any);
+    console.log('[OP] Iniciar item', item.id);
+    const ok = await atualizarItem(item.id, { status: 'em_andamento', hora_inicio_real: new Date().toISOString() });
+    console.log('[OP] Iniciar resultado:', ok);
+    if (ok) {
+      await atualizarOrdem(ordem.id, { status: 'em_andamento' });
+    }
   };
 
   const handleFinish = async () => {
     if (!item) return;
-    await atualizarItem(item.id, { status: 'concluido', hora_fim_real: new Date().toISOString() } as any);
+    console.log('[OP] Concluir item', item.id);
+    const ok = await atualizarItem(item.id, { status: 'concluido', hora_fim_real: new Date().toISOString() });
+    console.log('[OP] Concluir resultado:', ok);
+    if (ok) {
+      await atualizarOrdem(ordem.id, { status: 'concluida' });
+    }
   };
 
   return (
