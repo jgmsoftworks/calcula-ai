@@ -269,19 +269,53 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
           {/* Adicionar item */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
             <h4 className="font-semibold text-sm">Adicionar item à ordem</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label>Tipo</Label>
-                <Select value={tipoItem} onValueChange={(v: any) => { setTipoItem(v); setRefId(''); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="receita">Receita</SelectItem>
-                    <SelectItem value="custom">Tarefa avulsa</SelectItem>
-                  </SelectContent>
-                </Select>
+
+            {/* Tipo - linha própria com 2 colunas */}
+            <div>
+              <Label className="mb-2 block">Tipo</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setTipoItem('receita'); setRefId(''); }}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium",
+                    tipoItem === 'receita'
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background hover:border-primary/50 text-muted-foreground"
+                  )}
+                >
+                  <span className={cn(
+                    "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                    tipoItem === 'receita' ? "border-primary" : "border-muted-foreground"
+                  )}>
+                    {tipoItem === 'receita' && <span className="h-2 w-2 rounded-full bg-primary" />}
+                  </span>
+                  Receita
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTipoItem('custom'); setRefId(''); }}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium",
+                    tipoItem === 'custom'
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background hover:border-primary/50 text-muted-foreground"
+                  )}
+                >
+                  <span className={cn(
+                    "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                    tipoItem === 'custom' ? "border-primary" : "border-muted-foreground"
+                  )}>
+                    {tipoItem === 'custom' && <span className="h-2 w-2 rounded-full bg-primary" />}
+                  </span>
+                  Tarefa avulsa
+                </button>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {tipoItem === 'receita' && (
-                <div>
+                <div className="md:col-span-2">
                   <Label>Receita</Label>
                   <Popover>
                     <PopoverTrigger asChild>
