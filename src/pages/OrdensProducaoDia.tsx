@@ -14,7 +14,16 @@ import { ptBR } from 'date-fns/locale';
 export default function OrdensProducaoDia() {
   const { data } = useParams<{ data: string }>();
   const navigate = useNavigate();
-  const { ordens, tarefasAvulsas, loading, criarTarefaAvulsa, deletarTarefaAvulsa } = useOrdensProducao();
+  const {
+    ordens,
+    tarefasAvulsas,
+    loading,
+    criarTarefaAvulsa,
+    deletarTarefaAvulsa,
+    atualizarOrdem,
+    deletarOrdem,
+    atualizarItem,
+  } = useOrdensProducao();
 
   const [tarefasOpen, setTarefasOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -103,8 +112,15 @@ export default function OrdensProducaoDia() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {ordensDoDia.map(o => (
-            <OrdemProducaoCardInline key={o.id} ordem={o} />
+          {ordensDoDia.map((o) => (
+            <OrdemProducaoCardInline
+              key={o.id}
+              ordem={o}
+              onUpdateOrder={atualizarOrdem}
+              onDeleteOrder={deletarOrdem}
+              onUpdateItem={atualizarItem}
+              tarefasAvulsas={tarefasAvulsas}
+            />
           ))}
         </div>
       )}
