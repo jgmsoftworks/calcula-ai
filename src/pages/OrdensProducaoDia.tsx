@@ -42,14 +42,13 @@ export default function OrdensProducaoDia() {
 
   const handleCreate = () => {
     if (!data || !isValidDate) return;
-    const dataLabel = format(dateObj!, 'dd/MM/yyyy');
     const nextNumero = ordens.reduce((max, ordem) => Math.max(max, ordem.numero_sequencial), 0) + 1;
 
     setSelected({
       id: `draft-${data}-${Date.now()}`,
       user_id: '',
       numero_sequencial: nextNumero,
-      titulo: `Produção ${dataLabel}`,
+      titulo: `OP #${String(nextNumero).padStart(4, '0')}`,
       descricao: null,
       data_prevista: data,
       status: 'pendente',

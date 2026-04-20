@@ -63,7 +63,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
     setSavingOrder(true);
 
-    const nextTitulo = overrides?.titulo?.trim() || titulo.trim() || activeOrdem.titulo;
+    const nextTitulo = `OP #${String(activeOrdem.numero_sequencial).padStart(4, '0')}`;
     const nextDataPrevista = overrides?.data_prevista ?? dataPrevista ?? activeOrdem.data_prevista ?? undefined;
     const nextStatus = overrides?.status ?? status;
 
@@ -192,26 +192,6 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
         </DialogHeader>
 
         <div className="space-y-6">
-          <div>
-            <Label>Título da Ordem</Label>
-            <Input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              onBlur={async () => {
-                if (isDraft) return;
-                const nextTitulo = titulo.trim();
-                if (!nextTitulo) {
-                  setTitulo(activeOrdem.titulo);
-                  return;
-                }
-
-                if (nextTitulo === activeOrdem.titulo) return;
-
-                await atualizarOrdem(activeOrdem.id, { titulo: nextTitulo });
-              }}
-              placeholder="Ex: Produção do dia"
-            />
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Status da Ordem</Label>
@@ -368,7 +348,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
         {isDraft && (
           <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-background">
-            <Button onClick={handleSaveOrder} disabled={!titulo.trim() || savingOrder}>
+            <Button onClick={handleSaveOrder} disabled={savingOrder}>
               {savingOrder ? 'Salvando...' : 'Salvar ordem'}
             </Button>
           </div>
