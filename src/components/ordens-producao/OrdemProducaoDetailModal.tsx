@@ -271,5 +271,25 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
         </div>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar criação da ordem?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ordem ainda não tem itens adicionados. Se você sair agora, ela será descartada.
+            Deseja realmente cancelar?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Sim, descartar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
