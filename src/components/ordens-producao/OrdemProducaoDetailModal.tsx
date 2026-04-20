@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Play, CheckCircle, Clock, Check, ChevronsUpDown } from 'lucide-react';
@@ -118,6 +119,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
 
   const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa'>('receita');
   const [refId, setRefId] = useState('');
+  const [descricaoTarefa, setDescricaoTarefa] = useState('');
   const [quantidade, setQuantidade] = useState('1');
   const [funcId, setFuncId] = useState('');
   const [inicioPrev, setInicioPrev] = useState('');
@@ -130,6 +132,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
     setConfirmCloseOpen(false);
     setTipoItem('receita');
     setRefId('');
+    setDescricaoTarefa('');
     setQuantidade('1');
     setFuncId('');
     setInicioPrev('');
@@ -161,11 +164,12 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
   const handleSaveOrder = async () => {
     if (!activeOrdem || savingOrder) return;
 
-    if (!refId) {
-      toast({
-        title: tipoItem === 'receita' ? 'Selecione uma receita' : 'Selecione uma tarefa',
-        variant: 'destructive',
-      });
+    if (tipoItem === 'receita' && !refId) {
+      toast({ title: 'Selecione uma receita', variant: 'destructive' });
+      return;
+    }
+    if (tipoItem === 'tarefa_avulsa' && !descricaoTarefa.trim()) {
+      toast({ title: 'Descreva a tarefa a ser realizada', variant: 'destructive' });
       return;
     }
 
@@ -190,7 +194,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
     const added = await adicionarItem(created.id, {
       tipo_item: tipoItem,
       receita_id: tipoItem === 'receita' ? refId : null,
-      tarefa_avulsa_id: tipoItem === 'tarefa_avulsa' ? refId : null,
+      tarefa_avulsa_id: null,
+      descricao_customizada: tipoItem === 'tarefa_avulsa' ? descricaoTarefa.trim() : null,
       quantidade: Number(quantidade) || 1,
       funcionario_id: funcId || null,
       funcionario_nome: func?.nome || null,
@@ -250,6 +255,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
 
   const itemLabel = (it: OrdemProducaoItem) => {
     if (it.tipo_item === 'receita') return it.receita?.nome || 'Receita';
+    if (it.descricao_customizada) return it.descricao_customizada;
     if (it.tarefa_avulsa) return it.tarefa_avulsa.nome;
     return 'Tarefa';
   };
@@ -475,15 +481,13 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
 
                   {tipoItem === 'tarefa_avulsa' && (
                     <div className="md:col-span-2">
-                      <Label>Tarefa avulsa</Label>
-                      <Select value={refId} onValueChange={setRefId}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {tarefasAvulsas.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Descrição da tarefa</Label>
+                      <Textarea
+                        value={descricaoTarefa}
+                        onChange={(e) => setDescricaoTarefa(e.target.value)}
+                        placeholder="Descreva o que deve ser feito (ex: Limpar bancadas e organizar utensílios)"
+                        rows={3}
+                      />
                     </div>
                   )}
 

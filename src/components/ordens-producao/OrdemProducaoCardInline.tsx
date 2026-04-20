@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Play, CheckCircle, Clock, Pencil, RotateCcw, Save, X } from 'lucide-react';
 import { OrdemProducao, OrdemProducaoItem, TarefaAvulsa } from '@/hooks/useOrdensProducao';
@@ -54,6 +55,7 @@ const statusOrdemConfig: Record<string, { label: string; className: string }> = 
 
 const itemLabel = (it: OrdemProducaoItem) => {
   if (it.tipo_item === 'receita') return it.receita?.nome || 'Receita';
+  if (it.descricao_customizada) return it.descricao_customizada;
   if (it.tarefa_avulsa) return it.tarefa_avulsa.nome;
   return 'Tarefa';
 };
@@ -135,7 +137,8 @@ export function OrdemProducaoCardInline({
 
   const [draftOrderStatus, setDraftOrderStatus] = useState<OrdemProducao['status']>(ordem.status);
   const [draftItemType, setDraftItemType] = useState<'receita' | 'tarefa_avulsa'>(item?.tipo_item || 'receita');
-  const [draftRefId, setDraftRefId] = useState(item?.receita_id || item?.tarefa_avulsa_id || '');
+  const [draftRefId, setDraftRefId] = useState(item?.receita_id || '');
+  const [draftDescricaoTarefa, setDraftDescricaoTarefa] = useState(item?.descricao_customizada || '');
   const [draftQuantidade, setDraftQuantidade] = useState(String(item?.quantidade || 1));
   const [draftFuncionarioId, setDraftFuncionarioId] = useState(item?.funcionario_id || '');
   const [draftItemStatus, setDraftItemStatus] = useState<OrdemProducaoItem['status']>(item?.status || 'pendente');
@@ -145,7 +148,8 @@ export function OrdemProducaoCardInline({
   useEffect(() => {
     setDraftOrderStatus(ordem.status);
     setDraftItemType(item?.tipo_item || 'receita');
-    setDraftRefId(item?.receita_id || item?.tarefa_avulsa_id || '');
+    setDraftRefId(item?.receita_id || '');
+    setDraftDescricaoTarefa(item?.descricao_customizada || '');
     setDraftQuantidade(String(item?.quantidade || 1));
     setDraftFuncionarioId(item?.funcionario_id || '');
     setDraftItemStatus(item?.status || 'pendente');
@@ -181,21 +185,18 @@ export function OrdemProducaoCardInline({
   const activeReceitaId = editing
     ? (draftItemType === 'receita' ? draftRefId : '')
     : (item?.tipo_item === 'receita' ? item?.receita_id : '');
-  const activeTarefaId = editing
-    ? (draftItemType === 'tarefa_avulsa' ? draftRefId : '')
-    : (item?.tipo_item === 'tarefa_avulsa' ? item?.tarefa_avulsa_id : '');
+  const activeDescricaoTarefa = editing
+    ? (draftItemType === 'tarefa_avulsa' ? draftDescricaoTarefa : '')
+    : (item?.tipo_item === 'tarefa_avulsa' ? item?.descricao_customizada : '');
   const receitaInfo = activeTipo === 'receita' && activeReceitaId
     ? receitas.find((r) => r.id === activeReceitaId)
-    : null;
-  const tarefaInfo = activeTipo === 'tarefa_avulsa' && activeTarefaId
-    ? tarefasAvulsas.find((t) => t.id === activeTarefaId)
     : null;
   const qtdReceita = editing
     ? Math.max(1, Number(draftQuantidade) || 1)
     : (item?.quantidade || 1);
   const rendTotal = (receitaInfo?.rendimento_valor || 0) * qtdReceita;
   const previewItemLabel = editing
-    ? (activeTipo === 'receita' ? receitaInfo?.nome || 'Receita' : tarefaInfo?.nome || 'Tarefa')
+    ? (activeTipo === 'receita' ? receitaInfo?.nome || 'Receita' : (activeDescricaoTarefa || 'Tarefa'))
     : (item ? itemLabel(item) : '');
   const previewItemStatus = editing ? draftItemStatus : item?.status;
   const previewFuncionarioNome = editing
@@ -224,7 +225,9 @@ export function OrdemProducaoCardInline({
   };
 
   const handleSaveEdit = async () => {
-    if (!item || !draftRefId || saving) return;
+    if (!item || saving) return;
+    if (draftItemType === 'receita' && !draftRefId) return;
+    if (draftItemType === 'tarefa_avulsa' && !draftDescricaoTarefa.trim()) return;
 
     setSaving(true);
     const selectedFuncionario = funcionarios.find((funcionario) => funcionario.id === draftFuncionarioId);
@@ -232,7 +235,8 @@ export function OrdemProducaoCardInline({
     const itemUpdates: Partial<OrdemProducaoItem> = {
       tipo_item: draftItemType,
       receita_id: draftItemType === 'receita' ? draftRefId : null,
-      tarefa_avulsa_id: draftItemType === 'tarefa_avulsa' ? draftRefId : null,
+      tarefa_avulsa_id: null,
+      descricao_customizada: draftItemType === 'tarefa_avulsa' ? draftDescricaoTarefa.trim() : null,
       quantidade: Number(draftQuantidade) || 1,
       funcionario_id: draftFuncionarioId || null,
       funcionario_nome: selectedFuncionario?.nome || null,
@@ -481,19 +485,28 @@ export function OrdemProducaoCardInline({
               </div>
 
               <div className="md:col-span-2">
-                <Label>{draftItemType === 'receita' ? 'Receita' : 'Tarefa avulsa'}</Label>
-                <Select value={draftRefId} onValueChange={setDraftRefId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(draftItemType === 'receita' ? receitas : tarefasAvulsas).map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>{draftItemType === 'receita' ? 'Receita' : 'Descrição da tarefa'}</Label>
+                {draftItemType === 'receita' ? (
+                  <Select value={draftRefId} onValueChange={setDraftRefId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {receitas.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Textarea
+                    value={draftDescricaoTarefa}
+                    onChange={(e) => setDraftDescricaoTarefa(e.target.value)}
+                    placeholder="Descreva o que deve ser feito (ex: Limpar bancadas e organizar utensílios)"
+                    rows={3}
+                  />
+                )}
               </div>
 
               <div>
@@ -546,7 +559,7 @@ export function OrdemProducaoCardInline({
                 <Button variant="outline" onClick={() => setEditing(false)}>
                   <X className="h-3.5 w-3.5 mr-1" /> Cancelar
                 </Button>
-                <Button onClick={handleSaveEdit} disabled={saving || !draftRefId}>
+                <Button onClick={handleSaveEdit} disabled={saving || (draftItemType === 'receita' ? !draftRefId : !draftDescricaoTarefa.trim())}>
                   <Save className="h-3.5 w-3.5 mr-1" /> {saving ? 'Salvando...' : 'Salvar alterações'}
                 </Button>
               </div>
