@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 interface Props {
   ordens: OrdemProducao[];
   onSelectDay: (date: Date, ordensDoDia: OrdemProducao[]) => void;
-  onCreateForDay: (date: Date) => void;
 }
 
 const statusDot: Record<string, string> = {
