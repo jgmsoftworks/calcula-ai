@@ -331,15 +331,23 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
+                      <Command
+                        filter={(value, search) => {
+                          if (!search) return 1;
+                          return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                        }}
+                      >
                         <CommandInput placeholder="Digite o nome da receita..." />
-                        <CommandList>
+                        <CommandList
+                          onWheel={(e) => e.stopPropagation()}
+                          onTouchMove={(e) => e.stopPropagation()}
+                        >
                           <CommandEmpty>Nenhuma receita encontrada.</CommandEmpty>
                           <CommandGroup>
                             {receitas.map((r) => (
                               <CommandItem
                                 key={r.id}
-                                value={r.nome}
+                                value={`${r.nome}__${r.id}`}
                                 onSelect={() => setRefId(r.id)}
                               >
                                 <Check className={cn('mr-2 h-4 w-4 shrink-0', refId === r.id ? 'opacity-100 text-primary' : 'opacity-0')} />
