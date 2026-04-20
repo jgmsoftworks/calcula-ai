@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ClipboardList, Plus, Sparkles, Loader2 } from 'lucide-react';
+
 import { useOrdensProducao, OrdemProducao } from '@/hooks/useOrdensProducao';
 import { OrdemProducaoCard } from '@/components/ordens-producao/OrdemProducaoCard';
 import { OrdemProducaoDetailModal } from '@/components/ordens-producao/OrdemProducaoDetailModal';
