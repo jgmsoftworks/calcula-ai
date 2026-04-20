@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Play, CheckCircle, Clock, Check, ChevronsUpDown } from 'lucide-react';
@@ -17,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { OrdemProducao, OrdemProducaoItem, useOrdensProducao, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
 
 interface Props {
   open: boolean;
@@ -37,7 +41,12 @@ interface ReceitaOpt {
   embalagens: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
   sub_receitas: { quantidade: number; sub_receita: { nome: string; rendimento_unidade: string | null } | null }[];
 }
-interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
+
+interface FuncionarioOpt {
+  id: string;
+  nome: string;
+  cargo: string | null;
+}
 
 const fmtQtd = (n: number) => {
   const r = Math.round(n * 1000) / 1000;
@@ -45,37 +54,55 @@ const fmtQtd = (n: number) => {
 };
 
 const statusLabels: Record<string, string> = {
-  pendente: 'Pendente', em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado',
+  pendente: 'Pendente',
+  em_andamento: 'Em andamento',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
 };
 
 export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas, onPersisted }: Props) {
   const { user } = useAuth();
-  const { criarOrdem, atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
+  const { ordens, criarOrdem, atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [activeOrdem, setActiveOrdem] = useState<OrdemProducao | null>(ordem);
-  const [titulo, setTitulo] = useState('');
   const [status, setStatus] = useState<OrdemProducao['status']>('pendente');
   const [dataPrevista, setDataPrevista] = useState('');
 
+  const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa'>('receita');
+  const [refId, setRefId] = useState('');
+  const [quantidade, setQuantidade] = useState('1');
+  const [funcId, setFuncId] = useState('');
+  const [inicioPrev, setInicioPrev] = useState('');
+  const [fimPrev, setFimPrev] = useState('');
+
   useEffect(() => {
     setActiveOrdem(ordem);
-    setTitulo(ordem?.titulo || '');
     setStatus((ordem?.status as OrdemProducao['status']) || 'pendente');
     setDataPrevista(ordem?.data_prevista || '');
     setConfirmCloseOpen(false);
+    setTipoItem('receita');
+    setRefId('');
+    setQuantidade('1');
+    setFuncId('');
+    setInicioPrev('');
+    setFimPrev('');
   }, [ordem, open]);
+
+  useEffect(() => {
+    if (!activeOrdem || activeOrdem.id.startsWith('draft-')) return;
+    const latest = ordens.find((item) => item.id === activeOrdem.id);
+    if (latest) setActiveOrdem(latest);
+  }, [ordens, activeOrdem?.id]);
 
   const isDraft = !activeOrdem || activeOrdem.id.startsWith('draft-');
   const hasItens = (activeOrdem?.itens?.length || 0) > 0;
 
-  const ensurePersistedOrder = async (overrides?: Partial<Pick<OrdemProducao, 'titulo' | 'status' | 'data_prevista'>>) => {
+  const ensurePersistedOrder = async (overrides?: Partial<Pick<OrdemProducao, 'status' | 'data_prevista'>>) => {
     if (!activeOrdem) return null;
-
     if (!isDraft) return activeOrdem;
-
     if (savingOrder) return null;
 
     setSavingOrder(true);
@@ -134,17 +161,9 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     await ensurePersistedOrder();
   };
 
-  // form para adicionar item
-  const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa' | 'custom'>('receita');
-  const [refId, setRefId] = useState('');
-  const [descCustom, setDescCustom] = useState('');
-  const [quantidade, setQuantidade] = useState('1');
-  const [funcId, setFuncId] = useState('');
-  const [inicioPrev, setInicioPrev] = useState('');
-  const [fimPrev, setFimPrev] = useState('');
-
   useEffect(() => {
     if (!user || !open) return;
+
     (async () => {
       const [{ data: r, error: receitasError }, { data: f, error: funcionariosError }] = await Promise.all([
         supabase
@@ -161,13 +180,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
         supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
 
-      if (receitasError) {
-        console.error('Erro ao carregar receitas da OP:', receitasError);
-      }
-
-      if (funcionariosError) {
-        console.error('Erro ao carregar funcionários da OP:', funcionariosError);
-      }
+      if (receitasError) console.error('Erro ao carregar receitas da OP:', receitasError);
+      if (funcionariosError) console.error('Erro ao carregar funcionários da OP:', funcionariosError);
 
       setReceitas((r as any) || []);
       setFuncionarios((f as any) || []);
@@ -177,25 +191,30 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   if (!activeOrdem) return null;
 
   const handleAddItem = async () => {
-    if (!activeOrdem || isDraft) return;
+    if (!activeOrdem || isDraft || !refId) return;
 
-    const func = funcionarios.find(x => x.id === funcId);
-    const item: any = {
-      tipo_item: tipoItem === 'custom' ? 'tarefa_avulsa' : tipoItem,
+    const func = funcionarios.find((x) => x.id === funcId);
+    const item: Partial<OrdemProducaoItem> = {
+      tipo_item: tipoItem,
       receita_id: tipoItem === 'receita' ? refId : null,
       tarefa_avulsa_id: tipoItem === 'tarefa_avulsa' ? refId : null,
-      descricao_customizada: tipoItem === 'custom' ? descCustom : null,
+      descricao_customizada: null,
       quantidade: Number(quantidade) || 1,
       funcionario_id: funcId || null,
       funcionario_nome: func?.nome || null,
       hora_inicio_prevista: inicioPrev || null,
       hora_fim_prevista: fimPrev || null,
     };
-    if (tipoItem !== 'custom' && !refId) return;
-    if (tipoItem === 'custom' && !descCustom.trim()) return;
 
-    await adicionarItem(activeOrdem.id, item);
-    setRefId(''); setDescCustom(''); setQuantidade('1'); setFuncId(''); setInicioPrev(''); setFimPrev('');
+    const added = await adicionarItem(activeOrdem.id, item);
+    if (!added) return;
+
+    setRefId('');
+    setQuantidade('1');
+    setFuncId('');
+    setInicioPrev('');
+    setFimPrev('');
+    setTipoItem('receita');
   };
 
   const handleStart = async (item: OrdemProducaoItem) => {
@@ -209,340 +228,355 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   const itemLabel = (item: OrdemProducaoItem) => {
     if (item.tipo_item === 'receita') return item.receita?.nome || 'Receita';
     if (item.tarefa_avulsa) return item.tarefa_avulsa.nome;
-    return item.descricao_customizada || 'Tarefa';
+    return 'Tarefa';
   };
 
   const calcDuracao = (ini: string | null, fim: string | null) => {
     if (!ini || !fim) return null;
     const ms = new Date(fim).getTime() - new Date(ini).getTime();
     const min = Math.round(ms / 60000);
-    return `${Math.floor(min/60)}h ${min%60}min`;
+    return `${Math.floor(min / 60)}h ${min % 60}min`;
   };
 
   return (
     <>
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>OP #{String(activeOrdem.numero_sequencial).padStart(4, '0')}</DialogTitle>
-        </DialogHeader>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>OP #{String(activeOrdem.numero_sequencial).padStart(4, '0')}</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label>Status da Ordem</Label>
-              <Select value={status} onValueChange={async (v) => {
-                const nextStatus = v as OrdemProducao['status'];
-                setStatus(nextStatus);
-
-                if (isDraft) return;
-                if (nextStatus === activeOrdem.status) return;
-
-                await atualizarOrdem(activeOrdem.id, { status: nextStatus });
-              }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluida">Concluída</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Data prevista</Label>
-              <Input
-                type="date"
-                value={dataPrevista}
-                onChange={(e) => setDataPrevista(e.target.value)}
-                onBlur={async () => {
-                  if (isDraft) return;
-                  const nextDataPrevista = dataPrevista || null;
-                  if ((activeOrdem.data_prevista || null) === nextDataPrevista) return;
-
-                  await atualizarOrdem(activeOrdem.id, { data_prevista: nextDataPrevista });
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Adicionar item */}
-          <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-            <h4 className="font-semibold text-sm">Adicionar item à ordem</h4>
-
-            {/* Tipo - linha própria com 2 colunas */}
-            <div>
-              <Label className="mb-2 block">Tipo</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setTipoItem('receita'); setRefId(''); }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium",
-                    tipoItem === 'receita'
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background hover:border-primary/50 text-muted-foreground"
-                  )}
-                >
-                  <span className={cn(
-                    "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                    tipoItem === 'receita' ? "border-primary" : "border-muted-foreground"
-                  )}>
-                    {tipoItem === 'receita' && <span className="h-2 w-2 rounded-full bg-primary" />}
-                  </span>
-                  Receita
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setTipoItem('custom'); setRefId(''); }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium",
-                    tipoItem === 'custom'
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background hover:border-primary/50 text-muted-foreground"
-                  )}
-                >
-                  <span className={cn(
-                    "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                    tipoItem === 'custom' ? "border-primary" : "border-muted-foreground"
-                  )}>
-                    {tipoItem === 'custom' && <span className="h-2 w-2 rounded-full bg-primary" />}
-                  </span>
-                  Tarefa avulsa
-                </button>
-              </div>
-            </div>
-
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {tipoItem === 'receita' && (
-                <div className="md:col-span-2">
-                  <Label>Receita</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between font-normal"
-                      >
-                        {refId
-                          ? receitas.find((r) => r.id === refId)?.nome
-                          : 'Selecione ou digite...'}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command
-                        filter={(value, search) => {
-                          if (!search) return 1;
-                          return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-                        }}
-                      >
-                        <CommandInput placeholder="Digite o nome da receita..." />
-                        <CommandList
-                          onWheel={(e) => e.stopPropagation()}
-                          onTouchMove={(e) => e.stopPropagation()}
-                        >
-                          <CommandEmpty>Nenhuma receita encontrada.</CommandEmpty>
-                          <CommandGroup>
-                            {receitas.map((r) => (
-                              <CommandItem
-                                key={r.id}
-                                value={`${r.nome}__${r.id}`}
-                                onSelect={() => setRefId(r.id)}
-                              >
-                                <Check className={cn('mr-2 h-4 w-4 shrink-0', refId === r.id ? 'opacity-100 text-primary' : 'opacity-0')} />
-                                <span className="flex-1 truncate font-medium">{r.nome}</span>
-                                {r.tipo_produto?.nome && (
-                                  <span className="ml-3 shrink-0 text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
-                                    {r.tipo_produto.nome}
-                                  </span>
-                                )}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-              {tipoItem === 'receita' && refId && (() => {
-                const r = receitas.find(x => x.id === refId);
-                if (!r) return null;
-                const qtd = Number(quantidade) || 1;
-                const rend = (r.rendimento_valor || 0) * qtd;
-                return (
-                  <div className="md:col-span-2 p-3 rounded-lg bg-background border space-y-2">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="text-sm font-semibold">{r.nome}</div>
-                      {r.tipo_produto?.nome && <Badge variant="outline" className="text-xs">{r.tipo_produto.nome}</Badge>}
-                    </div>
-                    {r.rendimento_valor != null && (
-                      <p className="text-xs text-muted-foreground">
-                        Rendimento por receita: <span className="font-medium text-foreground">{fmtQtd(r.rendimento_valor)} {r.rendimento_unidade || ''}</span>
-                        {qtd > 1 && <> • Total para {qtd}x: <span className="font-semibold text-primary">{fmtQtd(rend)} {r.rendimento_unidade || ''}</span></>}
-                      </p>
-                    )}
-                    {r.ingredientes?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold mt-2 mb-1">Ingredientes</p>
-                        <ul className="text-xs space-y-0.5 text-muted-foreground">
-                          {r.ingredientes.map((i, idx) => i.produto && (
-                            <li key={idx} className="flex justify-between gap-2">
-                              <span className="truncate">{i.produto.nome}</span>
-                              <span className="font-medium text-foreground shrink-0">{fmtQtd(i.quantidade * qtd)} {i.produto.unidade_uso || i.produto.unidade_compra}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {r.embalagens?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold mt-2 mb-1">Embalagens</p>
-                        <ul className="text-xs space-y-0.5 text-muted-foreground">
-                          {r.embalagens.map((e, idx) => e.produto && (
-                            <li key={idx} className="flex justify-between gap-2">
-                              <span className="truncate">{e.produto.nome}</span>
-                              <span className="font-medium text-foreground shrink-0">{fmtQtd(e.quantidade * qtd)} {e.produto.unidade_uso || e.produto.unidade_compra}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {r.sub_receitas?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold mt-2 mb-1">Sub-receitas</p>
-                        <ul className="text-xs space-y-0.5 text-muted-foreground">
-                          {r.sub_receitas.map((s, idx) => s.sub_receita && (
-                            <li key={idx} className="flex justify-between gap-2">
-                              <span className="truncate">{s.sub_receita.nome}</span>
-                              <span className="font-medium text-foreground shrink-0">{fmtQtd(s.quantidade * qtd)} {s.sub_receita.rendimento_unidade || ''}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {tipoItem === 'tarefa_avulsa' && (
-                <div>
-                  <Label>Tarefa</Label>
-                  <Select value={refId} onValueChange={setRefId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {tarefasAvulsas.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {tipoItem === 'custom' && (
-                <div>
-                  <Label>Descrição</Label>
-                  <Input value={descCustom} onChange={(e) => setDescCustom(e.target.value)} placeholder="Ex: Limpar bancada" />
-                </div>
-              )}
               <div>
-                <Label>Quantidade</Label>
-                <Input type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
-              </div>
-              <div>
-                <Label>Funcionário</Label>
-                <Select value={funcId} onValueChange={setFuncId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <Label>Status da Ordem</Label>
+                <Select
+                  value={status}
+                  onValueChange={async (v) => {
+                    const nextStatus = v as OrdemProducao['status'];
+                    setStatus(nextStatus);
+
+                    if (isDraft) return;
+                    if (nextStatus === activeOrdem.status) return;
+
+                    await atualizarOrdem(activeOrdem.id, { status: nextStatus });
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {funcionarios.map(f => <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>)}
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
-                <Label>Início previsto</Label>
-                <Input type="datetime-local" value={inicioPrev} onChange={(e) => setInicioPrev(e.target.value)} />
-              </div>
-              <div>
-                <Label>Fim previsto</Label>
-                <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
+                <Label>Data prevista</Label>
+                <Input
+                  type="date"
+                  value={dataPrevista}
+                  onChange={(e) => setDataPrevista(e.target.value)}
+                  onBlur={async () => {
+                    if (isDraft) return;
+                    const nextDataPrevista = dataPrevista || null;
+                    if ((activeOrdem.data_prevista || null) === nextDataPrevista) return;
+                    await atualizarOrdem(activeOrdem.id, { data_prevista: nextDataPrevista });
+                  }}
+                />
               </div>
             </div>
-            <Button onClick={handleAddItem} className="w-full md:w-auto" disabled={isDraft}>
-              <Plus className="h-4 w-4 mr-2" /> Adicionar à ordem
-            </Button>
-          </div>
 
-          {/* Lista de itens */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Itens da Ordem ({activeOrdem.itens?.length || 0})</h4>
-            {(!activeOrdem.itens || activeOrdem.itens.length === 0) ? (
-              <p className="text-sm text-muted-foreground text-center py-6">Nenhum item adicionado.</p>
-            ) : activeOrdem.itens.map(item => {
-              const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
-              return (
-                <div key={item.id} className="p-3 border rounded-lg space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{itemLabel(item)}</span>
-                        <Badge variant="outline" className="text-xs">x{item.quantidade}</Badge>
-                        <Badge variant="secondary" className="text-xs">{statusLabels[item.status]}</Badge>
-                      </div>
-                      {item.funcionario_nome && <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>}
-                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-3">
-                        {item.hora_inicio_prevista && <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>}
-                        {item.hora_inicio_real && <span className="text-primary">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
-                        {item.hora_fim_real && <span className="text-primary">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
-                        {dur && <span className="font-semibold"><Clock className="h-3 w-3 inline" /> {dur}</span>}
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      {item.status === 'pendente' && (
-                        <Button size="sm" variant="outline" onClick={() => handleStart(item)}>
-                          <Play className="h-3.5 w-3.5" />
-                        </Button>
+            {!isDraft && (
+              <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                <h4 className="font-semibold text-sm">Adicionar item à ordem</h4>
+
+                <div>
+                  <Label className="mb-2 block">Tipo</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoItem('receita');
+                        setRefId('');
+                      }}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium',
+                        tipoItem === 'receita'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background hover:border-primary/50 text-muted-foreground'
                       )}
-                      {item.status === 'em_andamento' && (
-                        <Button size="sm" variant="outline" onClick={() => handleFinish(item)}>
-                          <CheckCircle className="h-3.5 w-3.5" />
-                        </Button>
+                    >
+                      <span
+                        className={cn(
+                          'h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                          tipoItem === 'receita' ? 'border-primary' : 'border-muted-foreground'
+                        )}
+                      >
+                        {tipoItem === 'receita' && <span className="h-2 w-2 rounded-full bg-primary" />}
+                      </span>
+                      Receita
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoItem('tarefa_avulsa');
+                        setRefId('');
+                      }}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium',
+                        tipoItem === 'tarefa_avulsa'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background hover:border-primary/50 text-muted-foreground'
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => removerItem(item.id)} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    >
+                      <span
+                        className={cn(
+                          'h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                          tipoItem === 'tarefa_avulsa' ? 'border-primary' : 'border-muted-foreground'
+                        )}
+                      >
+                        {tipoItem === 'tarefa_avulsa' && <span className="h-2 w-2 rounded-full bg-primary" />}
+                      </span>
+                      Tarefa avulsa
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {isDraft && (
-          <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-background">
-            <Button onClick={handleSaveOrder} disabled={savingOrder}>
-              {savingOrder ? 'Salvando...' : 'Salvar ordem'}
-            </Button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {tipoItem === 'receita' && (
+                    <div className="md:col-span-2">
+                      <Label>Receita</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                            {refId ? receitas.find((r) => r.id === refId)?.nome : 'Selecione ou digite...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                          <Command
+                            filter={(value, search) => {
+                              if (!search) return 1;
+                              return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                            }}
+                          >
+                            <CommandInput placeholder="Digite o nome da receita..." />
+                            <CommandList onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+                              <CommandEmpty>Nenhuma receita encontrada.</CommandEmpty>
+                              <CommandGroup>
+                                {receitas.map((r) => (
+                                  <CommandItem key={r.id} value={`${r.nome}__${r.id}`} onSelect={() => setRefId(r.id)}>
+                                    <Check className={cn('mr-2 h-4 w-4 shrink-0', refId === r.id ? 'opacity-100 text-primary' : 'opacity-0')} />
+                                    <span className="flex-1 truncate font-medium">{r.nome}</span>
+                                    {r.tipo_produto?.nome && (
+                                      <span className="ml-3 shrink-0 text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
+                                        {r.tipo_produto.nome}
+                                      </span>
+                                    )}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
 
-    <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Cancelar criação da ordem?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Esta ordem ainda não tem itens adicionados. Se você sair agora, ela será descartada.
-            Deseja realmente cancelar?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Continuar editando</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Sim, descartar
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+                  {tipoItem === 'receita' && refId && (() => {
+                    const r = receitas.find((x) => x.id === refId);
+                    if (!r) return null;
+                    const qtd = Number(quantidade) || 1;
+                    const rend = (r.rendimento_valor || 0) * qtd;
+
+                    return (
+                      <div className="md:col-span-2 p-3 rounded-lg bg-background border space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="text-sm font-semibold">{r.nome}</div>
+                          {r.tipo_produto?.nome && <Badge variant="outline" className="text-xs">{r.tipo_produto.nome}</Badge>}
+                        </div>
+
+                        {r.rendimento_valor != null && (
+                          <p className="text-xs text-muted-foreground">
+                            Rendimento por receita:{' '}
+                            <span className="font-medium text-foreground">{fmtQtd(r.rendimento_valor)} {r.rendimento_unidade || ''}</span>
+                            {qtd > 1 && (
+                              <>
+                                {' '}• Total para {qtd}x:{' '}
+                                <span className="font-semibold text-primary">{fmtQtd(rend)} {r.rendimento_unidade || ''}</span>
+                              </>
+                            )}
+                          </p>
+                        )}
+
+                        {r.ingredientes?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold mt-2 mb-1">Ingredientes</p>
+                            <ul className="text-xs space-y-0.5 text-muted-foreground">
+                              {r.ingredientes.map((i, idx) => i.produto && (
+                                <li key={idx} className="flex justify-between gap-2">
+                                  <span className="truncate">{i.produto.nome}</span>
+                                  <span className="font-medium text-foreground shrink-0">{fmtQtd(i.quantidade * qtd)} {i.produto.unidade_uso || i.produto.unidade_compra}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {r.embalagens?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold mt-2 mb-1">Embalagens</p>
+                            <ul className="text-xs space-y-0.5 text-muted-foreground">
+                              {r.embalagens.map((e, idx) => e.produto && (
+                                <li key={idx} className="flex justify-between gap-2">
+                                  <span className="truncate">{e.produto.nome}</span>
+                                  <span className="font-medium text-foreground shrink-0">{fmtQtd(e.quantidade * qtd)} {e.produto.unidade_uso || e.produto.unidade_compra}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {r.sub_receitas?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold mt-2 mb-1">Sub-receitas</p>
+                            <ul className="text-xs space-y-0.5 text-muted-foreground">
+                              {r.sub_receitas.map((s, idx) => s.sub_receita && (
+                                <li key={idx} className="flex justify-between gap-2">
+                                  <span className="truncate">{s.sub_receita.nome}</span>
+                                  <span className="font-medium text-foreground shrink-0">{fmtQtd(s.quantidade * qtd)} {s.sub_receita.rendimento_unidade || ''}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {tipoItem === 'tarefa_avulsa' && (
+                    <div className="md:col-span-2">
+                      <Label>Tarefa avulsa</Label>
+                      <Select value={refId} onValueChange={setRefId}>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {tarefasAvulsas.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Quantidade</Label>
+                    <Input type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+                  </div>
+
+                  <div>
+                    <Label>Funcionário</Label>
+                    <Select value={funcId} onValueChange={setFuncId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {funcionarios.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Início previsto</Label>
+                    <Input type="datetime-local" value={inicioPrev} onChange={(e) => setInicioPrev(e.target.value)} />
+                  </div>
+
+                  <div>
+                    <Label>Fim previsto</Label>
+                    <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
+                  </div>
+                </div>
+
+                <Button onClick={handleAddItem} className="w-full md:w-auto">
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar item
+                </Button>
+              </div>
+            )}
+
+            {!isDraft && hasItens && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Itens da ordem</h4>
+                {activeOrdem.itens?.map((item) => {
+                  const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
+                  return (
+                    <div key={item.id} className="p-3 border rounded-lg space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-sm">{itemLabel(item)}</span>
+                            <Badge variant="outline" className="text-xs">x{item.quantidade}</Badge>
+                            <Badge variant="secondary" className="text-xs">{statusLabels[item.status]}</Badge>
+                          </div>
+                          {item.funcionario_nome && <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>}
+                          <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-3">
+                            {item.hora_inicio_prevista && <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>}
+                            {item.hora_inicio_real && <span className="text-primary">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
+                            {item.hora_fim_real && <span className="text-primary">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
+                            {dur && <span className="font-semibold"><Clock className="h-3 w-3 inline" /> {dur}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          {item.status === 'pendente' && (
+                            <Button size="sm" variant="outline" onClick={() => handleStart(item)}>
+                              <Play className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {item.status === 'em_andamento' && (
+                            <Button size="sm" variant="outline" onClick={() => handleFinish(item)}>
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => removerItem(item.id)} className="text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {isDraft && (
+            <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-background">
+              <Button onClick={handleSaveOrder} disabled={savingOrder}>
+                {savingOrder ? 'Salvando...' : 'Salvar ordem'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar criação da ordem?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ordem ainda não tem itens adicionados. Se você sair agora, ela será descartada.
+              Deseja realmente cancelar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sim, descartar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
