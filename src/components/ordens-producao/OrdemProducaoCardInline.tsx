@@ -332,6 +332,82 @@ export function OrdemProducaoCardInline({
             )}
           </div>
 
+          {receitaInfo && (
+            <div className="space-y-2 rounded-lg border bg-background p-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-sm font-semibold">{receitaInfo.nome}</div>
+                {receitaInfo.tipo_produto?.nome && (
+                  <Badge variant="outline" className="text-xs">{receitaInfo.tipo_produto.nome}</Badge>
+                )}
+              </div>
+
+              {receitaInfo.rendimento_valor != null && (
+                <p className="text-xs text-muted-foreground">
+                  Rendimento por receita:{' '}
+                  <span className="font-medium text-foreground">
+                    {fmtQtd(receitaInfo.rendimento_valor)} {receitaInfo.rendimento_unidade || ''}
+                  </span>
+                  {qtdReceita > 1 && (
+                    <>
+                      {' '}• Total para {qtdReceita}x:{' '}
+                      <span className="font-semibold text-primary">
+                        {fmtQtd(rendTotal)} {receitaInfo.rendimento_unidade || ''}
+                      </span>
+                    </>
+                  )}
+                </p>
+              )}
+
+              {receitaInfo.ingredientes && receitaInfo.ingredientes.length > 0 && (
+                <div>
+                  <p className="mb-1 mt-2 text-xs font-semibold">Ingredientes</p>
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {receitaInfo.ingredientes.map((i, idx) => i.produto && (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{i.produto.nome}</span>
+                        <span className="shrink-0 font-medium text-foreground">
+                          {fmtQtd(i.quantidade * qtdReceita)} {i.produto.unidade_uso || i.produto.unidade_compra}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {receitaInfo.embalagens && receitaInfo.embalagens.length > 0 && (
+                <div>
+                  <p className="mb-1 mt-2 text-xs font-semibold">Embalagens</p>
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {receitaInfo.embalagens.map((e, idx) => e.produto && (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{e.produto.nome}</span>
+                        <span className="shrink-0 font-medium text-foreground">
+                          {fmtQtd(e.quantidade * qtdReceita)} {e.produto.unidade_uso || e.produto.unidade_compra}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {receitaInfo.sub_receitas && receitaInfo.sub_receitas.length > 0 && (
+                <div>
+                  <p className="mb-1 mt-2 text-xs font-semibold">Sub-receitas</p>
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {receitaInfo.sub_receitas.map((s, idx) => s.sub_receita && (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{s.sub_receita.nome}</span>
+                        <span className="shrink-0 font-medium text-foreground">
+                          {fmtQtd(s.quantidade * qtdReceita)} {s.sub_receita.rendimento_unidade || ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {editing && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t pt-3">
               <div>
