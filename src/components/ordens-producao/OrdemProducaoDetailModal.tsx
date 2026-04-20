@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +14,7 @@ import { Plus, Trash2, Play, CheckCircle, Clock } from 'lucide-react';
 import { OrdemProducao, OrdemProducaoItem, useOrdensProducao, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
 
 interface Props {
   open: boolean;
@@ -27,9 +32,27 @@ const statusLabels: Record<string, string> = {
 
 export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas }: Props) {
   const { user } = useAuth();
-  const { atualizarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
+  const { atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
+  const hasItens = (ordem?.itens?.length || 0) > 0;
+
+  const handleOpenChange = (next: boolean) => {
+    // Se está fechando E a ordem ainda não tem itens, pedir confirmação
+    if (!next && !hasItens && ordem) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    onOpenChange(next);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (ordem) await deletarOrdem(ordem.id);
+    setConfirmCloseOpen(false);
+    onOpenChange(false);
+  };
 
   // form para adicionar item
   const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa' | 'custom'>('receita');
@@ -96,7 +119,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>OP #{String(ordem.numero_sequencial).padStart(4, '0')}</DialogTitle>
@@ -247,5 +271,25 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
         </div>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar criação da ordem?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ordem ainda não tem itens adicionados. Se você sair agora, ela será descartada.
+            Deseja realmente cancelar?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Sim, descartar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
