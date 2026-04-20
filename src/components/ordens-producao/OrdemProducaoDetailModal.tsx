@@ -348,7 +348,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
         {isDraft && (
           <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-background">
-            <Button onClick={handleSaveOrder} disabled={!titulo.trim() || savingOrder}>
+            <Button onClick={handleSaveOrder} disabled={savingOrder}>
               {savingOrder ? 'Salvando...' : 'Salvar ordem'}
             </Button>
           </div>
