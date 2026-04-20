@@ -132,6 +132,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
     setConfirmCloseOpen(false);
     setTipoItem('receita');
     setRefId('');
+    setDescricaoTarefa('');
     setQuantidade('1');
     setFuncId('');
     setInicioPrev('');
