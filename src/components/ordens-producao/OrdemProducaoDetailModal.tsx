@@ -147,7 +147,17 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     if (!user || !open) return;
     (async () => {
       const [{ data: r }, { data: f }] = await Promise.all([
-        supabase.from('receitas').select('id, nome').eq('user_id', user.id).order('nome'),
+        supabase
+          .from('receitas')
+          .select(`
+            id, nome, rendimento_valor, rendimento_unidade,
+            tipo_produto:tipos_produto(nome),
+            ingredientes:receita_ingredientes(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
+            embalagens:receita_embalagens(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
+            sub_receitas:receita_sub_receitas(quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(nome, rendimento_unidade))
+          `)
+          .eq('user_id', user.id)
+          .order('nome'),
         supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
       setReceitas((r as any) || []);
