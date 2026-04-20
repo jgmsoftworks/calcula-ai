@@ -1,11 +1,30 @@
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Play, CheckCircle, Clock } from 'lucide-react';
-import { OrdemProducao, OrdemProducaoItem, useOrdensProducao } from '@/hooks/useOrdensProducao';
+import { Trash2, Play, CheckCircle, Clock, Pencil, RotateCcw, Save, X } from 'lucide-react';
+import { OrdemProducao, OrdemProducaoItem, TarefaAvulsa } from '@/hooks/useOrdensProducao';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Props {
   ordem: OrdemProducao;
+  tarefasAvulsas: TarefaAvulsa[];
+  onUpdateOrder: (id: string, updates: Partial<OrdemProducao>) => Promise<boolean>;
+  onDeleteOrder: (id: string) => Promise<boolean>;
+  onUpdateItem: (id: string, updates: Partial<OrdemProducaoItem>) => Promise<boolean>;
+}
+
+interface ReceitaOption {
+  id: string;
+  nome: string;
+}
+
+interface FuncionarioOption {
+  id: string;
+  nome: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -16,16 +35,24 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusOrdemConfig: Record<string, { label: string; className: string }> = {
-  pendente: { label: 'Pendente', className: 'bg-muted text-muted-foreground' },
-  em_andamento: { label: 'Em Andamento', className: 'bg-blue-500/15 text-blue-700 dark:text-blue-300' },
-  concluida: { label: 'Concluída', className: 'bg-green-500/15 text-green-700 dark:text-green-300' },
-  cancelada: { label: 'Cancelada', className: 'bg-destructive/15 text-destructive' },
+  pendente: { label: 'Pendente', className: 'border-border bg-muted text-muted-foreground' },
+  em_andamento: { label: 'Em andamento', className: 'border-primary/20 bg-primary/10 text-primary' },
+  concluida: { label: 'Concluída', className: 'border-border bg-secondary text-secondary-foreground' },
+  cancelada: { label: 'Cancelada', className: 'border-destructive/20 bg-destructive/10 text-destructive' },
 };
 
 const itemLabel = (it: OrdemProducaoItem) => {
   if (it.tipo_item === 'receita') return it.receita?.nome || 'Receita';
   if (it.tarefa_avulsa) return it.tarefa_avulsa.nome;
   return 'Tarefa';
+};
+
+const toDatetimeLocal = (value: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60000);
+  return localDate.toISOString().slice(0, 16);
 };
 
 const calcDuracao = (ini: string | null, fim: string | null) => {
@@ -35,47 +62,153 @@ const calcDuracao = (ini: string | null, fim: string | null) => {
   return `${Math.floor(min / 60)}h ${min % 60}min`;
 };
 
-export function OrdemProducaoCardInline({ ordem }: Props) {
-  const { atualizarOrdem, deletarOrdem, atualizarItem } = useOrdensProducao();
+const getStatusAdjustments = (nextStatus: OrdemProducaoItem['status'], currentItem: OrdemProducaoItem) => {
+  if (nextStatus === 'pendente') {
+    return {
+      status: nextStatus,
+      hora_inicio_real: null,
+      hora_fim_real: null,
+    } satisfies Partial<OrdemProducaoItem>;
+  }
+
+  if (nextStatus === 'em_andamento') {
+    return {
+      status: nextStatus,
+      hora_inicio_real: currentItem.hora_inicio_real || new Date().toISOString(),
+      hora_fim_real: null,
+    } satisfies Partial<OrdemProducaoItem>;
+  }
+
+  if (nextStatus === 'concluido') {
+    return {
+      status: nextStatus,
+      hora_inicio_real: currentItem.hora_inicio_real || new Date().toISOString(),
+      hora_fim_real: new Date().toISOString(),
+    } satisfies Partial<OrdemProducaoItem>;
+  }
+
+  return {
+    status: nextStatus,
+  } satisfies Partial<OrdemProducaoItem>;
+};
+
+export function OrdemProducaoCardInline({
+  ordem,
+  tarefasAvulsas,
+  onUpdateOrder,
+  onDeleteOrder,
+  onUpdateItem,
+}: Props) {
+  const { user } = useAuth();
   const item = ordem.itens?.[0] || null;
   const statusOrdem = statusOrdemConfig[ordem.status] || statusOrdemConfig.pendente;
 
-  const handleStart = async () => {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [receitas, setReceitas] = useState<ReceitaOption[]>([]);
+  const [funcionarios, setFuncionarios] = useState<FuncionarioOption[]>([]);
+
+  const [draftOrderStatus, setDraftOrderStatus] = useState<OrdemProducao['status']>(ordem.status);
+  const [draftItemType, setDraftItemType] = useState<'receita' | 'tarefa_avulsa'>(item?.tipo_item || 'receita');
+  const [draftRefId, setDraftRefId] = useState(item?.receita_id || item?.tarefa_avulsa_id || '');
+  const [draftQuantidade, setDraftQuantidade] = useState(String(item?.quantidade || 1));
+  const [draftFuncionarioId, setDraftFuncionarioId] = useState(item?.funcionario_id || '');
+  const [draftItemStatus, setDraftItemStatus] = useState<OrdemProducaoItem['status']>(item?.status || 'pendente');
+  const [draftInicioPrev, setDraftInicioPrev] = useState(toDatetimeLocal(item?.hora_inicio_prevista || null));
+  const [draftFimPrev, setDraftFimPrev] = useState(toDatetimeLocal(item?.hora_fim_prevista || null));
+
+  useEffect(() => {
+    setDraftOrderStatus(ordem.status);
+    setDraftItemType(item?.tipo_item || 'receita');
+    setDraftRefId(item?.receita_id || item?.tarefa_avulsa_id || '');
+    setDraftQuantidade(String(item?.quantidade || 1));
+    setDraftFuncionarioId(item?.funcionario_id || '');
+    setDraftItemStatus(item?.status || 'pendente');
+    setDraftInicioPrev(toDatetimeLocal(item?.hora_inicio_prevista || null));
+    setDraftFimPrev(toDatetimeLocal(item?.hora_fim_prevista || null));
+  }, [ordem, item]);
+
+  useEffect(() => {
+    if (!editing || !user) return;
+
+    (async () => {
+      const [{ data: receitasData }, { data: funcionariosData }] = await Promise.all([
+        supabase.from('receitas').select('id, nome').eq('user_id', user.id).order('nome'),
+        supabase.from('folha_pagamento').select('id, nome').eq('user_id', user.id).eq('ativo', true).order('nome'),
+      ]);
+
+      setReceitas((receitasData as ReceitaOption[]) || []);
+      setFuncionarios((funcionariosData as FuncionarioOption[]) || []);
+    })();
+  }, [editing, user]);
+
+  const handleQuickStatus = async (nextStatus: OrdemProducaoItem['status']) => {
     if (!item) return;
-    console.log('[OP] Iniciar item', item.id);
-    const ok = await atualizarItem(item.id, { status: 'em_andamento', hora_inicio_real: new Date().toISOString() });
-    console.log('[OP] Iniciar resultado:', ok);
-    if (ok) {
-      await atualizarOrdem(ordem.id, { status: 'em_andamento' });
-    }
+
+    const ok = await onUpdateItem(item.id, getStatusAdjustments(nextStatus, item));
+    if (!ok) return;
+
+    const nextOrderStatus: OrdemProducao['status'] =
+      nextStatus === 'concluido'
+        ? 'concluida'
+        : nextStatus === 'cancelado'
+          ? 'cancelada'
+          : nextStatus === 'em_andamento'
+            ? 'em_andamento'
+            : 'pendente';
+
+    await onUpdateOrder(ordem.id, { status: nextOrderStatus });
   };
 
-  const handleFinish = async () => {
-    if (!item) return;
-    console.log('[OP] Concluir item', item.id);
-    const ok = await atualizarItem(item.id, { status: 'concluido', hora_fim_real: new Date().toISOString() });
-    console.log('[OP] Concluir resultado:', ok);
-    if (ok) {
-      await atualizarOrdem(ordem.id, { status: 'concluida' });
+  const handleSaveEdit = async () => {
+    if (!item || !draftRefId || saving) return;
+
+    setSaving(true);
+    const selectedFuncionario = funcionarios.find((funcionario) => funcionario.id === draftFuncionarioId);
+
+    const itemUpdates: Partial<OrdemProducaoItem> = {
+      tipo_item: draftItemType,
+      receita_id: draftItemType === 'receita' ? draftRefId : null,
+      tarefa_avulsa_id: draftItemType === 'tarefa_avulsa' ? draftRefId : null,
+      quantidade: Number(draftQuantidade) || 1,
+      funcionario_id: draftFuncionarioId || null,
+      funcionario_nome: selectedFuncionario?.nome || null,
+      hora_inicio_prevista: draftInicioPrev ? new Date(draftInicioPrev).toISOString() : null,
+      hora_fim_prevista: draftFimPrev ? new Date(draftFimPrev).toISOString() : null,
+      ...getStatusAdjustments(draftItemStatus, item),
+    };
+
+    const itemOk = await onUpdateItem(item.id, itemUpdates);
+    if (!itemOk) {
+      setSaving(false);
+      return;
+    }
+
+    const orderOk = await onUpdateOrder(ordem.id, { status: draftOrderStatus });
+    setSaving(false);
+
+    if (orderOk) {
+      setEditing(false);
     }
   };
 
   return (
-    <div className="p-4 border rounded-lg space-y-3 bg-card hover:border-primary/50 transition-colors">
+    <div className="space-y-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span className="text-xs font-mono text-muted-foreground">
             OP #{String(ordem.numero_sequencial).padStart(4, '0')}
           </span>
-          <Badge className={statusOrdem.className} variant="secondary">
+          <Badge className={statusOrdem.className} variant="outline">
             {statusOrdem.label}
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 flex-wrap">
           <Select
             value={ordem.status}
-            onValueChange={async (v) => {
-              await atualizarOrdem(ordem.id, { status: v as OrdemProducao['status'] });
+            onValueChange={async (value) => {
+              await onUpdateOrder(ordem.id, { status: value as OrdemProducao['status'] });
             }}
           >
             <SelectTrigger className="h-8 w-[150px] text-xs">
@@ -83,15 +216,22 @@ export function OrdemProducaoCardInline({ ordem }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="pendente">Pendente</SelectItem>
-              <SelectItem value="em_andamento">Em Andamento</SelectItem>
+              <SelectItem value="em_andamento">Em andamento</SelectItem>
               <SelectItem value="concluida">Concluída</SelectItem>
               <SelectItem value="cancelada">Cancelada</SelectItem>
             </SelectContent>
           </Select>
+
+          {item && !editing && (
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => deletarOrdem(ordem.id)}
+            onClick={() => onDeleteOrder(ordem.id)}
             className="h-8 w-8 text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
@@ -100,7 +240,7 @@ export function OrdemProducaoCardInline({ ordem }: Props) {
       </div>
 
       {item ? (
-        <div className="p-3 border rounded-lg bg-muted/30">
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -108,10 +248,12 @@ export function OrdemProducaoCardInline({ ordem }: Props) {
                 <Badge variant="outline" className="text-xs">x{item.quantidade}</Badge>
                 <Badge variant="secondary" className="text-xs">{statusLabels[item.status]}</Badge>
               </div>
+
               {item.funcionario_nome && (
-                <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>
+                <p className="mt-1 text-xs text-muted-foreground">👤 {item.funcionario_nome}</p>
               )}
-              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
+
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 {item.hora_inicio_prevista && (
                   <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>
                 )}
@@ -125,28 +267,155 @@ export function OrdemProducaoCardInline({ ordem }: Props) {
                   const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
                   return dur ? (
                     <span className="font-semibold">
-                      <Clock className="h-3 w-3 inline" /> {dur}
+                      <Clock className="inline h-3 w-3" /> {dur}
                     </span>
                   ) : null;
                 })()}
               </div>
             </div>
-            <div className="flex gap-1 shrink-0">
-              {item.status === 'pendente' && (
-                <Button size="sm" variant="outline" onClick={handleStart}>
-                  <Play className="h-3.5 w-3.5 mr-1" /> Iniciar
-                </Button>
-              )}
-              {item.status === 'em_andamento' && (
-                <Button size="sm" variant="outline" onClick={handleFinish}>
-                  <CheckCircle className="h-3.5 w-3.5 mr-1" /> Concluir
-                </Button>
-              )}
-            </div>
+
+            {!editing && (
+              <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                {item.status === 'pendente' && (
+                  <Button size="sm" variant="outline" onClick={() => handleQuickStatus('em_andamento')}>
+                    <Play className="h-3.5 w-3.5 mr-1" /> Iniciar
+                  </Button>
+                )}
+                {item.status === 'em_andamento' && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => handleQuickStatus('pendente')}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" /> Voltar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleQuickStatus('concluido')}>
+                      <CheckCircle className="h-3.5 w-3.5 mr-1" /> Concluir
+                    </Button>
+                  </>
+                )}
+                {item.status === 'concluido' && (
+                  <Button size="sm" variant="outline" onClick={() => handleQuickStatus('em_andamento')}>
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reabrir
+                  </Button>
+                )}
+                {item.status === 'cancelado' && (
+                  <Button size="sm" variant="outline" onClick={() => handleQuickStatus('pendente')}>
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reativar
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
+
+          {editing && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t pt-3">
+              <div>
+                <Label>Tipo</Label>
+                <Select
+                  value={draftItemType}
+                  onValueChange={(value: 'receita' | 'tarefa_avulsa') => {
+                    setDraftItemType(value);
+                    setDraftRefId('');
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receita">Receita</SelectItem>
+                    <SelectItem value="tarefa_avulsa">Tarefa avulsa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Status do item</Label>
+                <Select value={draftItemStatus} onValueChange={(value) => setDraftItemStatus(value as OrdemProducaoItem['status'])}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_andamento">Em andamento</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>{draftItemType === 'receita' ? 'Receita' : 'Tarefa avulsa'}</Label>
+                <Select value={draftRefId} onValueChange={setDraftRefId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(draftItemType === 'receita' ? receitas : tarefasAvulsas).map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Status da OP</Label>
+                <Select value={draftOrderStatus} onValueChange={(value) => setDraftOrderStatus(value as OrdemProducao['status'])}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_andamento">Em andamento</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Quantidade</Label>
+                <Input type="number" min="1" value={draftQuantidade} onChange={(e) => setDraftQuantidade(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>Funcionário</Label>
+                <Select value={draftFuncionarioId} onValueChange={setDraftFuncionarioId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {funcionarios.map((funcionario) => (
+                      <SelectItem key={funcionario.id} value={funcionario.id}>
+                        {funcionario.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Início previsto</Label>
+                <Input type="datetime-local" value={draftInicioPrev} onChange={(e) => setDraftInicioPrev(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>Fim previsto</Label>
+                <Input type="datetime-local" value={draftFimPrev} onChange={(e) => setDraftFimPrev(e.target.value)} />
+              </div>
+
+              <div className="md:col-span-2 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditing(false)}>
+                  <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={saving || !draftRefId}>
+                  <Save className="h-3.5 w-3.5 mr-1" /> {saving ? 'Salvando...' : 'Salvar alterações'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground italic">Sem item vinculado.</p>
+        <p className="text-xs italic text-muted-foreground">Sem item vinculado.</p>
       )}
     </div>
   );
