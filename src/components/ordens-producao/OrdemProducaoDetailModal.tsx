@@ -32,9 +32,27 @@ const statusLabels: Record<string, string> = {
 
 export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas }: Props) {
   const { user } = useAuth();
-  const { atualizarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
+  const { atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
+  const hasItens = (ordem?.itens?.length || 0) > 0;
+
+  const handleOpenChange = (next: boolean) => {
+    // Se está fechando E a ordem ainda não tem itens, pedir confirmação
+    if (!next && !hasItens && ordem) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    onOpenChange(next);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (ordem) await deletarOrdem(ordem.id);
+    setConfirmCloseOpen(false);
+    onOpenChange(false);
+  };
 
   // form para adicionar item
   const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa' | 'custom'>('receita');
