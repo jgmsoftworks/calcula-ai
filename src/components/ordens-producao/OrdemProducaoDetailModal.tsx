@@ -19,7 +19,7 @@ import { Trash2, Play, CheckCircle, Clock, Check, ChevronsUpDown } from 'lucide-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { OrdemProducao, OrdemProducaoItem, useOrdensProducao, TarefaAvulsa } from '@/hooks/useOrdensProducao';
+import { OrdemProducao, OrdemProducaoItem, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,14 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ordem: OrdemProducao | null;
+  ordens: OrdemProducao[];
   tarefasAvulsas: TarefaAvulsa[];
+  criarOrdem: (input: { titulo: string; descricao?: string; data_prevista?: string; observacoes?: string }) => Promise<OrdemProducao | null>;
+  atualizarOrdem: (id: string, updates: Partial<OrdemProducao>) => Promise<boolean>;
+  deletarOrdem: (id: string) => Promise<boolean>;
+  adicionarItem: (ordemId: string, item: Partial<OrdemProducaoItem>) => Promise<boolean>;
+  atualizarItem: (id: string, updates: Partial<OrdemProducaoItem>) => Promise<boolean>;
+  removerItem: (id: string) => Promise<boolean>;
   onPersisted?: (ordem: OrdemProducao) => void;
 }
 
@@ -61,10 +68,46 @@ const statusLabels: Record<string, string> = {
   cancelado: 'Cancelado',
 };
 
-export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas, onPersisted }: Props) {
+const orderStatusToItemStatus: Record<OrdemProducao['status'], OrdemProducaoItem['status']> = {
+  pendente: 'pendente',
+  em_andamento: 'em_andamento',
+  concluida: 'concluido',
+  cancelada: 'cancelado',
+};
+
+const getStatusAdjustments = (nextStatus: OrdemProducaoItem['status'], currentItem: OrdemProducaoItem) => {
+  if (nextStatus === 'pendente') {
+    return {
+      status: nextStatus,
+      hora_inicio_real: null,
+      hora_fim_real: null,
+    } satisfies Partial<OrdemProducaoItem>;
+  }
+
+  if (nextStatus === 'em_andamento') {
+    return {
+      status: nextStatus,
+      hora_inicio_real: currentItem.hora_inicio_real || new Date().toISOString(),
+      hora_fim_real: null,
+    } satisfies Partial<OrdemProducaoItem>;
+  }
+
+  if (nextStatus === 'concluido') {
+    return {
+      status: nextStatus,
+      hora_inicio_real: currentItem.hora_inicio_real || new Date().toISOString(),
+      hora_fim_real: new Date().toISOString(),
+    } satisfies Partial<OrdemProducaoItem>;
+  }
+
+  return {
+    status: nextStatus,
+  } satisfies Partial<OrdemProducaoItem>;
+};
+
+export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, tarefasAvulsas, criarOrdem, atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem, onPersisted }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { ordens, criarOrdem, atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -237,6 +280,13 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                     setStatus(nextStatus);
                     if (isDraft) return;
                     if (nextStatus === activeOrdem.status) return;
+                    if (item) {
+                      const itemOk = await atualizarItem(item.id, getStatusAdjustments(orderStatusToItemStatus[nextStatus], item));
+                      if (!itemOk) {
+                        setStatus(activeOrdem.status);
+                        return;
+                      }
+                    }
                     await atualizarOrdem(activeOrdem.id, { status: nextStatus });
                   }}
                 >

@@ -18,11 +18,14 @@ export default function OrdensProducaoDia() {
     ordens,
     tarefasAvulsas,
     loading,
+    criarOrdem,
     criarTarefaAvulsa,
     deletarTarefaAvulsa,
     atualizarOrdem,
     deletarOrdem,
+    adicionarItem,
     atualizarItem,
+    removerItem,
   } = useOrdensProducao();
 
   const [tarefasOpen, setTarefasOpen] = useState(false);
@@ -129,7 +132,14 @@ export default function OrdensProducaoDia() {
         open={detailOpen}
         onOpenChange={handleDetailOpenChange}
         ordem={currentSelected}
+        ordens={ordens}
         tarefasAvulsas={tarefasAvulsas}
+        criarOrdem={criarOrdem}
+        atualizarOrdem={atualizarOrdem}
+        deletarOrdem={deletarOrdem}
+        adicionarItem={adicionarItem}
+        atualizarItem={atualizarItem}
+        removerItem={removerItem}
         onPersisted={setSelected}
       />
 
