@@ -119,7 +119,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>OP #{String(ordem.numero_sequencial).padStart(4, '0')}</DialogTitle>
