@@ -164,11 +164,12 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
   const handleSaveOrder = async () => {
     if (!activeOrdem || savingOrder) return;
 
-    if (!refId) {
-      toast({
-        title: tipoItem === 'receita' ? 'Selecione uma receita' : 'Selecione uma tarefa',
-        variant: 'destructive',
-      });
+    if (tipoItem === 'receita' && !refId) {
+      toast({ title: 'Selecione uma receita', variant: 'destructive' });
+      return;
+    }
+    if (tipoItem === 'tarefa_avulsa' && !descricaoTarefa.trim()) {
+      toast({ title: 'Descreva a tarefa a ser realizada', variant: 'destructive' });
       return;
     }
 
@@ -193,7 +194,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
     const added = await adicionarItem(created.id, {
       tipo_item: tipoItem,
       receita_id: tipoItem === 'receita' ? refId : null,
-      tarefa_avulsa_id: tipoItem === 'tarefa_avulsa' ? refId : null,
+      tarefa_avulsa_id: null,
+      descricao_customizada: tipoItem === 'tarefa_avulsa' ? descricaoTarefa.trim() : null,
       quantidade: Number(quantidade) || 1,
       funcionario_id: funcId || null,
       funcionario_nome: func?.nome || null,
