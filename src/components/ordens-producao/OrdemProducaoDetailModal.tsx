@@ -101,6 +101,10 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     onOpenChange(false);
   };
 
+  const handleSaveOrder = async () => {
+    await ensurePersistedOrder();
+  };
+
   // form para adicionar item
   const [tipoItem, setTipoItem] = useState<'receita' | 'tarefa_avulsa' | 'custom'>('receita');
   const [refId, setRefId] = useState('');
@@ -183,6 +187,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               onBlur={async () => {
+                if (isDraft) return;
                 const nextTitulo = titulo.trim();
                 if (!nextTitulo) {
                   setTitulo(activeOrdem.titulo);
@@ -191,10 +196,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
                 if (nextTitulo === activeOrdem.titulo) return;
 
-                const persistedOrder = await ensurePersistedOrder({ titulo: nextTitulo });
-                if (!persistedOrder || persistedOrder.titulo === nextTitulo) return;
-
-                await atualizarOrdem(persistedOrder.id, { titulo: nextTitulo });
+                await atualizarOrdem(activeOrdem.id, { titulo: nextTitulo });
               }}
               placeholder="Ex: Produção do dia"
             />
@@ -206,12 +208,10 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                 const nextStatus = v as OrdemProducao['status'];
                 setStatus(nextStatus);
 
+                if (isDraft) return;
                 if (nextStatus === activeOrdem.status) return;
 
-                const persistedOrder = await ensurePersistedOrder({ status: nextStatus });
-                if (!persistedOrder || persistedOrder.status === nextStatus) return;
-
-                await atualizarOrdem(persistedOrder.id, { status: nextStatus });
+                await atualizarOrdem(activeOrdem.id, { status: nextStatus });
               }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -229,21 +229,35 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                 value={dataPrevista}
                 onChange={(e) => setDataPrevista(e.target.value)}
                 onBlur={async () => {
+                  if (isDraft) return;
                   const nextDataPrevista = dataPrevista || null;
                   if ((activeOrdem.data_prevista || null) === nextDataPrevista) return;
 
-                  const persistedOrder = await ensurePersistedOrder({ data_prevista: nextDataPrevista });
-                  if (!persistedOrder || (persistedOrder.data_prevista || null) === nextDataPrevista) return;
-
-                  await atualizarOrdem(persistedOrder.id, { data_prevista: nextDataPrevista });
+                  await atualizarOrdem(activeOrdem.id, { data_prevista: nextDataPrevista });
                 }}
               />
             </div>
           </div>
 
+          {isDraft && (
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed bg-muted/30 p-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Esta ordem ainda não foi criada. Clique em salvar para registrar a OP e liberar os itens.
+              </p>
+              <Button onClick={handleSaveOrder} disabled={!titulo.trim()}>
+                Salvar ordem
+              </Button>
+            </div>
+          )}
+
           {/* Adicionar item */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
             <h4 className="font-semibold text-sm">Adicionar item à ordem</h4>
+            {isDraft && (
+              <p className="text-sm text-muted-foreground">
+                Salve a ordem primeiro para adicionar receitas, tarefas e equipe.
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label>Tipo</Label>
@@ -306,7 +320,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                 <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
               </div>
             </div>
-            <Button onClick={handleAddItem} className="w-full md:w-auto">
+            <Button onClick={handleAddItem} className="w-full md:w-auto" disabled={isDraft}>
               <Plus className="h-4 w-4 mr-2" /> Adicionar à ordem
             </Button>
           </div>
