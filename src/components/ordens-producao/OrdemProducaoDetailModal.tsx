@@ -27,8 +27,22 @@ interface Props {
   onPersisted?: (ordem: OrdemProducao) => void;
 }
 
-interface ReceitaOpt { id: string; nome: string; }
+interface ReceitaOpt {
+  id: string;
+  nome: string;
+  rendimento_valor: number | null;
+  rendimento_unidade: string | null;
+  tipo_produto?: { nome: string } | null;
+  ingredientes: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
+  embalagens: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
+  sub_receitas: { quantidade: number; sub_receita: { nome: string; rendimento_unidade: string | null } | null }[];
+}
 interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
+
+const fmtQtd = (n: number) => {
+  const r = Math.round(n * 1000) / 1000;
+  return r.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+};
 
 const statusLabels: Record<string, string> = {
   pendente: 'Pendente', em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado',
