@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Sparkles, Loader2 } from 'lucide-react';
+import { ClipboardList, Loader2 } from 'lucide-react';
 import { useOrdensProducao, OrdemProducao } from '@/hooks/useOrdensProducao';
 import { OrdemProducaoDetailModal } from '@/components/ordens-producao/OrdemProducaoDetailModal';
 import { TarefasAvulsasModal } from '@/components/ordens-producao/TarefasAvulsasModal';
@@ -43,12 +43,6 @@ export default function OrdensProducao() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-2">
-        <Button variant="outline" onClick={() => setTarefasOpen(true)}>
-          <Sparkles className="h-4 w-4 mr-2" /> Tarefas avulsas
-        </Button>
-      </div>
-
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : (
@@ -56,14 +50,13 @@ export default function OrdensProducao() {
           <OrdensCalendario
             ordens={ordens}
             onSelectDay={handleSelectDay}
-            onCreateForDay={handleCreateForDay}
           />
 
           {ordens.length === 0 && (
             <Card className="p-8 text-center bg-muted/30 border-dashed">
               <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Clique em qualquer dia do calendário para criar uma ordem de produção.
+                Clique em qualquer dia do calendário para visualizar e criar ordens de produção.
               </p>
             </Card>
           )}
@@ -78,6 +71,7 @@ export default function OrdensProducao() {
         onOpenOrdem={(o) => { setSelected(o); setDiaOpen(false); setDetailOpen(true); }}
         onCreateNew={() => diaSelecionado && handleCreateForDay(diaSelecionado)}
         onDelete={deletarOrdem}
+        onOpenTarefasAvulsas={() => setTarefasOpen(true)}
       />
 
       <OrdemProducaoDetailModal

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { OrdemProducao } from '@/hooks/useOrdensProducao';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,6 +14,7 @@ interface Props {
   onOpenOrdem: (o: OrdemProducao) => void;
   onCreateNew: () => void;
   onDelete: (id: string) => void;
+  onOpenTarefasAvulsas: () => void;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -23,16 +24,21 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   cancelada: { label: 'Cancelada', className: 'bg-destructive/15 text-destructive' },
 };
 
-export function DiaOrdensModal({ open, onOpenChange, date, ordens, onOpenOrdem, onCreateNew, onDelete }: Props) {
+export function DiaOrdensModal({ open, onOpenChange, date, ordens, onOpenOrdem, onCreateNew, onDelete, onOpenTarefasAvulsas }: Props) {
   if (!date) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="capitalize">
-            {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </DialogTitle>
+          <div className="flex items-start justify-between gap-2 pr-6">
+            <DialogTitle className="capitalize">
+              {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={onOpenTarefasAvulsas}>
+              <Sparkles className="h-4 w-4 mr-2" /> Tarefas avulsas
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-3">

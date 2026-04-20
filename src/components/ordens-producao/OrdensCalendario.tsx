@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 interface Props {
   ordens: OrdemProducao[];
   onSelectDay: (date: Date, ordensDoDia: OrdemProducao[]) => void;
-  onCreateForDay: (date: Date) => void;
 }
 
 const statusDot: Record<string, string> = {
@@ -22,7 +21,7 @@ const statusDot: Record<string, string> = {
   cancelada: 'bg-destructive',
 };
 
-export function OrdensCalendario({ ordens, onSelectDay, onCreateForDay }: Props) {
+export function OrdensCalendario({ ordens, onSelectDay }: Props) {
   const [cursor, setCursor] = useState(new Date());
 
   const dias = useMemo(() => {
@@ -77,7 +76,7 @@ export function OrdensCalendario({ ordens, onSelectDay, onCreateForDay }: Props)
           return (
             <button
               key={key}
-              onClick={() => dayOrders.length > 0 ? onSelectDay(dia, dayOrders) : onCreateForDay(dia)}
+              onClick={() => onSelectDay(dia, dayOrders)}
               className={cn(
                 "group relative aspect-square rounded-lg border p-2 text-left transition-all hover:border-primary hover:shadow-sm flex flex-col",
                 !inMonth && "opacity-30",
