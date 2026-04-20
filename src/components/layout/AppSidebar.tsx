@@ -10,6 +10,7 @@ import {
   Crown,
   Users,
   ArrowRightFromLine,
+  ClipboardList,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -43,6 +44,7 @@ export function AppSidebar() {
     { title: t('nav.estoque'), url: '/estoque', icon: Package },
     { title: t('nav.movimentacao'), url: '/movimentacao', icon: TrendingUp },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
+    { title: 'Ordens de Produção', url: '/ordens-producao', icon: ClipboardList },
     { title: t('nav.custos'), url: '/custos', icon: TrendingUp },
     { title: t('nav.precificacao'), url: '/precificacao', icon: Calculator },
   ];
