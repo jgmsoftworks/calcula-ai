@@ -291,18 +291,20 @@ export function OrdemProducaoCardInline({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold truncate">{itemLabel(item)}</span>
-                <Badge variant="outline" className="text-xs">x{item.quantidade}</Badge>
-                <Badge variant="secondary" className="text-xs">{statusLabels[item.status]}</Badge>
+                <span className="font-semibold truncate">{previewItemLabel}</span>
+                <Badge variant="outline" className="text-xs">x{qtdReceita}</Badge>
+                {previewItemStatus && (
+                  <Badge variant="secondary" className="text-xs">{statusLabels[previewItemStatus]}</Badge>
+                )}
               </div>
 
-              {item.funcionario_nome && (
-                <p className="mt-1 text-xs text-muted-foreground">👤 {item.funcionario_nome}</p>
+              {previewFuncionarioNome && (
+                <p className="mt-1 text-xs text-muted-foreground">👤 {previewFuncionarioNome}</p>
               )}
 
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                {item.hora_inicio_prevista && (
-                  <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>
+                {previewInicioPrev && (
+                  <span>Prev. {new Date(previewInicioPrev).toLocaleString('pt-BR')}</span>
                 )}
                 {item.hora_inicio_real && (
                   <span className="text-primary">Início: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>
