@@ -227,20 +227,15 @@ const Auth = () => {
         <div className="w-full max-w-[420px] space-y-6 animate-fade-in">
           
           {/* Logo */}
-          <div className="text-center space-y-3">
+          <div className="text-center">
             <img 
               src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png" 
               alt="CalculaAi Logo" 
-              className="h-16 w-auto mx-auto"
+              className="h-24 w-auto mx-auto"
             />
-            <div>
-              <h1 className="text-3xl font-bold font-display text-gradient-brand">
-                CalculaAi
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('auth.smartPricing')}
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {t('auth.smartPricing')}
+            </p>
           </div>
 
           {/* Auth Card */}
