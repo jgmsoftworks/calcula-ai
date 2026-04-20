@@ -103,6 +103,20 @@ const getStatusAdjustments = (nextStatus: OrdemProducaoItem['status'], currentIt
   } satisfies Partial<OrdemProducaoItem>;
 };
 
+const orderStatusToItemStatus: Record<OrdemProducao['status'], OrdemProducaoItem['status']> = {
+  pendente: 'pendente',
+  em_andamento: 'em_andamento',
+  concluida: 'concluido',
+  cancelada: 'cancelado',
+};
+
+const itemStatusToOrderStatus: Record<OrdemProducaoItem['status'], OrdemProducao['status']> = {
+  pendente: 'pendente',
+  em_andamento: 'em_andamento',
+  concluido: 'concluida',
+  cancelado: 'cancelada',
+};
+
 export function OrdemProducaoCardInline({
   ordem,
   tarefasAvulsas,
@@ -195,16 +209,18 @@ export function OrdemProducaoCardInline({
     const ok = await onUpdateItem(item.id, getStatusAdjustments(nextStatus, item));
     if (!ok) return;
 
-    const nextOrderStatus: OrdemProducao['status'] =
-      nextStatus === 'concluido'
-        ? 'concluida'
-        : nextStatus === 'cancelado'
-          ? 'cancelada'
-          : nextStatus === 'em_andamento'
-            ? 'em_andamento'
-            : 'pendente';
+    await onUpdateOrder(ordem.id, { status: itemStatusToOrderStatus[nextStatus] });
+  };
 
-    await onUpdateOrder(ordem.id, { status: nextOrderStatus });
+  const handleOrderStatusChange = async (nextStatus: OrdemProducao['status']) => {
+    if (nextStatus === ordem.status) return;
+
+    if (item) {
+      const itemOk = await onUpdateItem(item.id, getStatusAdjustments(orderStatusToItemStatus[nextStatus], item));
+      if (!itemOk) return;
+    }
+
+    await onUpdateOrder(ordem.id, { status: nextStatus });
   };
 
   const handleSaveEdit = async () => {
@@ -254,9 +270,7 @@ export function OrdemProducaoCardInline({
         <div className="flex items-center gap-2 flex-wrap">
           <Select
             value={ordem.status}
-            onValueChange={async (value) => {
-              await onUpdateOrder(ordem.id, { status: value as OrdemProducao['status'] });
-            }}
+            onValueChange={(value) => handleOrderStatusChange(value as OrdemProducao['status'])}
           >
             <SelectTrigger className="h-8 w-[150px] text-xs">
               <SelectValue />
