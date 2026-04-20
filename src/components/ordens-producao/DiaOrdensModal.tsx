@@ -24,16 +24,21 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   cancelada: { label: 'Cancelada', className: 'bg-destructive/15 text-destructive' },
 };
 
-export function DiaOrdensModal({ open, onOpenChange, date, ordens, onOpenOrdem, onCreateNew, onDelete }: Props) {
+export function DiaOrdensModal({ open, onOpenChange, date, ordens, onOpenOrdem, onCreateNew, onDelete, onOpenTarefasAvulsas }: Props) {
   if (!date) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="capitalize">
-            {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </DialogTitle>
+          <div className="flex items-start justify-between gap-2 pr-6">
+            <DialogTitle className="capitalize">
+              {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={onOpenTarefasAvulsas}>
+              <Sparkles className="h-4 w-4 mr-2" /> Tarefas avulsas
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-3">
