@@ -575,6 +575,7 @@ export function OrdemProducaoCardInline({
       ) : (
         <p className="text-xs italic text-muted-foreground">Sem item vinculado.</p>
       )}
+      </div>
     </div>
   );
 }
