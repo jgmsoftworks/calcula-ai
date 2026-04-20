@@ -10,7 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Play, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Trash2, Play, CheckCircle, Clock, Check, ChevronsUpDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import { OrdemProducao, OrdemProducaoItem, useOrdensProducao, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -247,12 +250,40 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
               {tipoItem === 'receita' && (
                 <div>
                   <Label>Receita</Label>
-                  <Select value={refId} onValueChange={setRefId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {receitas.map(r => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between font-normal"
+                      >
+                        {refId
+                          ? receitas.find((r) => r.id === refId)?.nome
+                          : 'Selecione ou digite...'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Digite o nome da receita..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma receita encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {receitas.map((r) => (
+                              <CommandItem
+                                key={r.id}
+                                value={r.nome}
+                                onSelect={() => setRefId(r.id)}
+                              >
+                                <Check className={cn('mr-2 h-4 w-4', refId === r.id ? 'opacity-100' : 'opacity-0')} />
+                                {r.nome}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
               {tipoItem === 'tarefa_avulsa' && (
