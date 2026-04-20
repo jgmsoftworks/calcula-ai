@@ -559,7 +559,7 @@ export function OrdemProducaoCardInline({
                 <Button variant="outline" onClick={() => setEditing(false)}>
                   <X className="h-3.5 w-3.5 mr-1" /> Cancelar
                 </Button>
-                <Button onClick={handleSaveEdit} disabled={saving || !draftRefId}>
+                <Button onClick={handleSaveEdit} disabled={saving || (draftItemType === 'receita' ? !draftRefId : !draftDescricaoTarefa.trim())}>
                   <Save className="h-3.5 w-3.5 mr-1" /> {saving ? 'Salvando...' : 'Salvar alterações'}
                 </Button>
               </div>
