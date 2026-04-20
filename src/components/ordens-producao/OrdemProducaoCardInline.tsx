@@ -167,13 +167,27 @@ export function OrdemProducaoCardInline({
   const activeReceitaId = editing
     ? (draftItemType === 'receita' ? draftRefId : '')
     : (item?.tipo_item === 'receita' ? item?.receita_id : '');
+  const activeTarefaId = editing
+    ? (draftItemType === 'tarefa_avulsa' ? draftRefId : '')
+    : (item?.tipo_item === 'tarefa_avulsa' ? item?.tarefa_avulsa_id : '');
   const receitaInfo = activeTipo === 'receita' && activeReceitaId
     ? receitas.find((r) => r.id === activeReceitaId)
     : null;
+  const tarefaInfo = activeTipo === 'tarefa_avulsa' && activeTarefaId
+    ? tarefasAvulsas.find((t) => t.id === activeTarefaId)
+    : null;
   const qtdReceita = editing
-    ? (Number(draftQuantidade) || 1)
+    ? Math.max(1, Number(draftQuantidade) || 1)
     : (item?.quantidade || 1);
   const rendTotal = (receitaInfo?.rendimento_valor || 0) * qtdReceita;
+  const previewItemLabel = editing
+    ? (activeTipo === 'receita' ? receitaInfo?.nome || 'Receita' : tarefaInfo?.nome || 'Tarefa')
+    : (item ? itemLabel(item) : '');
+  const previewItemStatus = editing ? draftItemStatus : item?.status;
+  const previewFuncionarioNome = editing
+    ? (funcionarios.find((funcionario) => funcionario.id === draftFuncionarioId)?.nome || null)
+    : (item?.funcionario_nome || null);
+  const previewInicioPrev = editing ? draftInicioPrev : toDatetimeLocal(item?.hora_inicio_prevista || null);
 
   const handleQuickStatus = async (nextStatus: OrdemProducaoItem['status']) => {
     if (!item) return;
