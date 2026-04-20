@@ -15,13 +15,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Play, CheckCircle, Clock, Check, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Play, CheckCircle, Clock, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { OrdemProducao, OrdemProducaoItem, useOrdensProducao, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
@@ -62,6 +63,7 @@ const statusLabels: Record<string, string> = {
 
 export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas, onPersisted }: Props) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { ordens, criarOrdem, atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
@@ -98,67 +100,70 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   }, [ordens, activeOrdem?.id]);
 
   const isDraft = !activeOrdem || activeOrdem.id.startsWith('draft-');
-  const hasItens = (activeOrdem?.itens?.length || 0) > 0;
-
-  const ensurePersistedOrder = async (overrides?: Partial<Pick<OrdemProducao, 'status' | 'data_prevista'>>) => {
-    if (!activeOrdem) return null;
-    if (!isDraft) return activeOrdem;
-    if (savingOrder) return null;
-
-    setSavingOrder(true);
-
-    const nextTitulo = `OP #${String(activeOrdem.numero_sequencial).padStart(4, '0')}`;
-    const nextDataPrevista = overrides?.data_prevista ?? dataPrevista ?? activeOrdem.data_prevista ?? undefined;
-    const nextStatus = overrides?.status ?? status;
-
-    const created = await criarOrdem({
-      titulo: nextTitulo,
-      data_prevista: nextDataPrevista || undefined,
-      descricao: activeOrdem.descricao || undefined,
-      observacoes: activeOrdem.observacoes || undefined,
-    });
-
-    if (!created) {
-      setSavingOrder(false);
-      return null;
-    }
-
-    let persisted: OrdemProducao = { ...(created as OrdemProducao), itens: [] };
-
-    if (nextStatus !== 'pendente') {
-      const updated = await atualizarOrdem(created.id, { status: nextStatus });
-      if (!updated) {
-        setSavingOrder(false);
-        return null;
-      }
-      persisted = { ...persisted, status: nextStatus };
-    }
-
-    setActiveOrdem(persisted);
-    onPersisted?.(persisted);
-    setSavingOrder(false);
-
-    return persisted;
-  };
+  const item = activeOrdem?.itens?.[0] || null;
 
   const handleOpenChange = (next: boolean) => {
-    if (!next && !hasItens && activeOrdem) {
+    if (!next && isDraft && activeOrdem) {
       setConfirmCloseOpen(true);
       return;
     }
     onOpenChange(next);
   };
 
-  const handleConfirmCancel = async () => {
-    if (activeOrdem && !isDraft) {
-      await deletarOrdem(activeOrdem.id);
-    }
+  const handleConfirmCancel = () => {
     setConfirmCloseOpen(false);
     onOpenChange(false);
   };
 
   const handleSaveOrder = async () => {
-    await ensurePersistedOrder();
+    if (!activeOrdem || savingOrder) return;
+
+    if (!refId) {
+      toast({
+        title: tipoItem === 'receita' ? 'Selecione uma receita' : 'Selecione uma tarefa',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSavingOrder(true);
+
+    const titulo = `OP #${String(activeOrdem.numero_sequencial).padStart(4, '0')}`;
+    const created = await criarOrdem({
+      titulo,
+      data_prevista: dataPrevista || undefined,
+    });
+
+    if (!created) {
+      setSavingOrder(false);
+      return;
+    }
+
+    if (status !== 'pendente') {
+      await atualizarOrdem(created.id, { status });
+    }
+
+    const func = funcionarios.find((x) => x.id === funcId);
+    const added = await adicionarItem(created.id, {
+      tipo_item: tipoItem,
+      receita_id: tipoItem === 'receita' ? refId : null,
+      tarefa_avulsa_id: tipoItem === 'tarefa_avulsa' ? refId : null,
+      quantidade: Number(quantidade) || 1,
+      funcionario_id: funcId || null,
+      funcionario_nome: func?.nome || null,
+      hora_inicio_prevista: inicioPrev || null,
+      hora_fim_prevista: fimPrev || null,
+    });
+
+    setSavingOrder(false);
+
+    if (!added) {
+      await deletarOrdem(created.id);
+      return;
+    }
+
+    onPersisted?.({ ...(created as OrdemProducao), status, itens: [] });
+    onOpenChange(false);
   };
 
   useEffect(() => {
@@ -190,44 +195,19 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
   if (!activeOrdem) return null;
 
-  const handleAddItem = async () => {
-    if (!activeOrdem || isDraft || !refId) return;
-
-    const func = funcionarios.find((x) => x.id === funcId);
-    const item: Partial<OrdemProducaoItem> = {
-      tipo_item: tipoItem,
-      receita_id: tipoItem === 'receita' ? refId : null,
-      tarefa_avulsa_id: tipoItem === 'tarefa_avulsa' ? refId : null,
-      descricao_customizada: null,
-      quantidade: Number(quantidade) || 1,
-      funcionario_id: funcId || null,
-      funcionario_nome: func?.nome || null,
-      hora_inicio_prevista: inicioPrev || null,
-      hora_fim_prevista: fimPrev || null,
-    };
-
-    const added = await adicionarItem(activeOrdem.id, item);
-    if (!added) return;
-
-    setRefId('');
-    setQuantidade('1');
-    setFuncId('');
-    setInicioPrev('');
-    setFimPrev('');
-    setTipoItem('receita');
-  };
-
-  const handleStart = async (item: OrdemProducaoItem) => {
+  const handleStart = async () => {
+    if (!item) return;
     await atualizarItem(item.id, { status: 'em_andamento', hora_inicio_real: new Date().toISOString() } as any);
   };
 
-  const handleFinish = async (item: OrdemProducaoItem) => {
+  const handleFinish = async () => {
+    if (!item) return;
     await atualizarItem(item.id, { status: 'concluido', hora_fim_real: new Date().toISOString() } as any);
   };
 
-  const itemLabel = (item: OrdemProducaoItem) => {
-    if (item.tipo_item === 'receita') return item.receita?.nome || 'Receita';
-    if (item.tarefa_avulsa) return item.tarefa_avulsa.nome;
+  const itemLabel = (it: OrdemProducaoItem) => {
+    if (it.tipo_item === 'receita') return it.receita?.nome || 'Receita';
+    if (it.tarefa_avulsa) return it.tarefa_avulsa.nome;
     return 'Tarefa';
   };
 
@@ -255,10 +235,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                   onValueChange={async (v) => {
                     const nextStatus = v as OrdemProducao['status'];
                     setStatus(nextStatus);
-
                     if (isDraft) return;
                     if (nextStatus === activeOrdem.status) return;
-
                     await atualizarOrdem(activeOrdem.id, { status: nextStatus });
                   }}
                 >
@@ -288,19 +266,14 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
               </div>
             </div>
 
-            {!isDraft && (
+            {isDraft ? (
               <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                <h4 className="font-semibold text-sm">Adicionar item à ordem</h4>
-
                 <div>
                   <Label className="mb-2 block">Tipo</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setTipoItem('receita');
-                        setRefId('');
-                      }}
+                      onClick={() => { setTipoItem('receita'); setRefId(''); }}
                       className={cn(
                         'flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium',
                         tipoItem === 'receita'
@@ -308,12 +281,10 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                           : 'border-border bg-background hover:border-primary/50 text-muted-foreground'
                       )}
                     >
-                      <span
-                        className={cn(
-                          'h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0',
-                          tipoItem === 'receita' ? 'border-primary' : 'border-muted-foreground'
-                        )}
-                      >
+                      <span className={cn(
+                        'h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                        tipoItem === 'receita' ? 'border-primary' : 'border-muted-foreground'
+                      )}>
                         {tipoItem === 'receita' && <span className="h-2 w-2 rounded-full bg-primary" />}
                       </span>
                       Receita
@@ -321,10 +292,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setTipoItem('tarefa_avulsa');
-                        setRefId('');
-                      }}
+                      onClick={() => { setTipoItem('tarefa_avulsa'); setRefId(''); }}
                       className={cn(
                         'flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium',
                         tipoItem === 'tarefa_avulsa'
@@ -332,12 +300,10 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                           : 'border-border bg-background hover:border-primary/50 text-muted-foreground'
                       )}
                     >
-                      <span
-                        className={cn(
-                          'h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0',
-                          tipoItem === 'tarefa_avulsa' ? 'border-primary' : 'border-muted-foreground'
-                        )}
-                      >
+                      <span className={cn(
+                        'h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                        tipoItem === 'tarefa_avulsa' ? 'border-primary' : 'border-muted-foreground'
+                      )}>
                         {tipoItem === 'tarefa_avulsa' && <span className="h-2 w-2 rounded-full bg-primary" />}
                       </span>
                       Tarefa avulsa
@@ -498,56 +464,54 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                     <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
                   </div>
                 </div>
-
-                <Button onClick={handleAddItem} className="w-full md:w-auto">
-                  <Plus className="h-4 w-4 mr-2" /> Adicionar item
-                </Button>
               </div>
-            )}
-
-            {!isDraft && hasItens && (
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm">Itens da ordem</h4>
-                {activeOrdem.itens?.map((item) => {
-                  const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
-                  return (
-                    <div key={item.id} className="p-3 border rounded-lg space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm">{itemLabel(item)}</span>
-                            <Badge variant="outline" className="text-xs">x{item.quantidade}</Badge>
-                            <Badge variant="secondary" className="text-xs">{statusLabels[item.status]}</Badge>
-                          </div>
-                          {item.funcionario_nome && <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>}
-                          <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-3">
-                            {item.hora_inicio_prevista && <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>}
-                            {item.hora_inicio_real && <span className="text-primary">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
-                            {item.hora_fim_real && <span className="text-primary">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
-                            {dur && <span className="font-semibold"><Clock className="h-3 w-3 inline" /> {dur}</span>}
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          {item.status === 'pendente' && (
-                            <Button size="sm" variant="outline" onClick={() => handleStart(item)}>
-                              <Play className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          {item.status === 'em_andamento' && (
-                            <Button size="sm" variant="outline" onClick={() => handleFinish(item)}>
-                              <CheckCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          <Button size="sm" variant="ghost" onClick={() => removerItem(item.id)} className="text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
+            ) : item ? (
+              <div className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold">{itemLabel(item)}</span>
+                      <Badge variant="outline" className="text-xs">x{item.quantidade}</Badge>
+                      <Badge variant="secondary" className="text-xs">{statusLabels[item.status]}</Badge>
                     </div>
-                  );
-                })}
+                    {item.funcionario_nome && <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>}
+                    <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-3">
+                      {item.hora_inicio_prevista && <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>}
+                      {item.hora_inicio_real && <span className="text-primary">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
+                      {item.hora_fim_real && <span className="text-primary">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
+                      {(() => {
+                        const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
+                        return dur ? <span className="font-semibold"><Clock className="h-3 w-3 inline" /> {dur}</span> : null;
+                      })()}
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {item.status === 'pendente' && (
+                      <Button size="sm" variant="outline" onClick={handleStart}>
+                        <Play className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {item.status === 'em_andamento' && (
+                      <Button size="sm" variant="outline" onClick={handleFinish}>
+                        <CheckCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        await removerItem(item.id);
+                        await deletarOrdem(activeOrdem.id);
+                        onOpenChange(false);
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            )}
+            ) : null}
           </div>
 
           {isDraft && (
@@ -565,8 +529,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar criação da ordem?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ordem ainda não tem itens adicionados. Se você sair agora, ela será descartada.
-              Deseja realmente cancelar?
+              Esta ordem ainda não foi salva. Deseja realmente cancelar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
