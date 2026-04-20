@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { Card } from '@/components/ui/card';
 import { ArrowLeft, Plus, Sparkles, Loader2, ClipboardList } from 'lucide-react';
 import { useOrdensProducao, OrdemProducao } from '@/hooks/useOrdensProducao';
