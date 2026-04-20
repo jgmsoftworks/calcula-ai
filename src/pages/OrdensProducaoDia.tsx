@@ -34,15 +34,38 @@ export default function OrdensProducaoDia() {
     [ordens, data]
   );
 
-  const currentSelected = selected ? ordens.find(o => o.id === selected.id) || selected : null;
+  const currentSelected = selected?.id.startsWith('draft-')
+    ? selected
+    : selected
+      ? ordens.find(o => o.id === selected.id) || selected
+      : null;
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!data || !isValidDate) return;
     const dataLabel = format(dateObj!, 'dd/MM/yyyy');
-    const created = await criarOrdem({ titulo: `Produção ${dataLabel}`, data_prevista: data });
-    if (created) {
-      setSelected(created as any);
-      setDetailOpen(true);
+    const nextNumero = ordens.reduce((max, ordem) => Math.max(max, ordem.numero_sequencial), 0) + 1;
+
+    setSelected({
+      id: `draft-${data}-${Date.now()}`,
+      user_id: '',
+      numero_sequencial: nextNumero,
+      titulo: `Produção ${dataLabel}`,
+      descricao: null,
+      data_prevista: data,
+      status: 'pendente',
+      observacoes: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      itens: [],
+    });
+    setDetailOpen(true);
+  };
+
+  const handleDetailOpenChange = (next: boolean) => {
+    setDetailOpen(next);
+
+    if (!next) {
+      setSelected(null);
     }
   };
 
@@ -117,9 +140,10 @@ export default function OrdensProducaoDia() {
 
       <OrdemProducaoDetailModal
         open={detailOpen}
-        onOpenChange={setDetailOpen}
+        onOpenChange={handleDetailOpenChange}
         ordem={currentSelected}
         tarefasAvulsas={tarefasAvulsas}
+        onPersisted={setSelected}
       />
 
       <TarefasAvulsasModal

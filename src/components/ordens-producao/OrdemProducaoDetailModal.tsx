@@ -21,6 +21,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   ordem: OrdemProducao | null;
   tarefasAvulsas: TarefaAvulsa[];
+  onPersisted?: (ordem: OrdemProducao) => void;
 }
 
 interface ReceitaOpt { id: string; nome: string; }
@@ -30,18 +31,62 @@ const statusLabels: Record<string, string> = {
   pendente: 'Pendente', em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado',
 };
 
-export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas }: Props) {
+export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvulsas, onPersisted }: Props) {
   const { user } = useAuth();
-  const { atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
+  const { criarOrdem, atualizarOrdem, deletarOrdem, adicionarItem, atualizarItem, removerItem } = useOrdensProducao();
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [activeOrdem, setActiveOrdem] = useState<OrdemProducao | null>(ordem);
+  const [titulo, setTitulo] = useState('');
+  const [status, setStatus] = useState<OrdemProducao['status']>('pendente');
+  const [dataPrevista, setDataPrevista] = useState('');
 
-  const hasItens = (ordem?.itens?.length || 0) > 0;
+  useEffect(() => {
+    setActiveOrdem(ordem);
+    setTitulo(ordem?.titulo || '');
+    setStatus((ordem?.status as OrdemProducao['status']) || 'pendente');
+    setDataPrevista(ordem?.data_prevista || '');
+    setConfirmCloseOpen(false);
+  }, [ordem, open]);
+
+  const isDraft = !activeOrdem || activeOrdem.id.startsWith('draft-');
+  const hasItens = (activeOrdem?.itens?.length || 0) > 0;
+
+  const ensurePersistedOrder = async (overrides?: Partial<Pick<OrdemProducao, 'titulo' | 'status' | 'data_prevista'>>) => {
+    if (!activeOrdem) return null;
+
+    if (!isDraft) return activeOrdem;
+
+    const nextTitulo = overrides?.titulo?.trim() || titulo.trim() || activeOrdem.titulo;
+    const nextDataPrevista = overrides?.data_prevista ?? dataPrevista ?? activeOrdem.data_prevista ?? undefined;
+    const nextStatus = overrides?.status ?? status;
+
+    const created = await criarOrdem({
+      titulo: nextTitulo,
+      data_prevista: nextDataPrevista || undefined,
+      descricao: activeOrdem.descricao || undefined,
+      observacoes: activeOrdem.observacoes || undefined,
+    });
+
+    if (!created) return null;
+
+    let persisted: OrdemProducao = { ...(created as OrdemProducao), itens: [] };
+
+    if (nextStatus !== 'pendente') {
+      const updated = await atualizarOrdem(created.id, { status: nextStatus });
+      if (!updated) return null;
+      persisted = { ...persisted, status: nextStatus };
+    }
+
+    setActiveOrdem(persisted);
+    onPersisted?.(persisted);
+
+    return persisted;
+  };
 
   const handleOpenChange = (next: boolean) => {
-    // Se está fechando E a ordem ainda não tem itens, pedir confirmação
-    if (!next && !hasItens && ordem) {
+    if (!next && !hasItens && activeOrdem) {
       setConfirmCloseOpen(true);
       return;
     }
@@ -49,7 +94,9 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   };
 
   const handleConfirmCancel = async () => {
-    if (ordem) await deletarOrdem(ordem.id);
+    if (activeOrdem && !isDraft) {
+      await deletarOrdem(activeOrdem.id);
+    }
     setConfirmCloseOpen(false);
     onOpenChange(false);
   };
@@ -75,9 +122,12 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     })();
   }, [user, open]);
 
-  if (!ordem) return null;
+  if (!activeOrdem) return null;
 
   const handleAddItem = async () => {
+    const persistedOrder = await ensurePersistedOrder();
+    if (!persistedOrder) return;
+
     const func = funcionarios.find(x => x.id === funcId);
     const item: any = {
       tipo_item: tipoItem === 'custom' ? 'tarefa_avulsa' : tipoItem,
@@ -93,7 +143,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     if (tipoItem !== 'custom' && !refId) return;
     if (tipoItem === 'custom' && !descCustom.trim()) return;
 
-    await adicionarItem(ordem.id, item);
+    await adicionarItem(persistedOrder.id, item);
     setRefId(''); setDescCustom(''); setQuantidade('1'); setFuncId(''); setInicioPrev(''); setFimPrev('');
   };
 
@@ -123,22 +173,46 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>OP #{String(ordem.numero_sequencial).padStart(4, '0')}</DialogTitle>
+          <DialogTitle>OP #{String(activeOrdem.numero_sequencial).padStart(4, '0')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           <div>
             <Label>Título da Ordem</Label>
             <Input
-              defaultValue={ordem.titulo}
-              onBlur={(e) => { if (e.target.value.trim() && e.target.value !== ordem.titulo) atualizarOrdem(ordem.id, { titulo: e.target.value.trim() }); }}
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              onBlur={async () => {
+                const nextTitulo = titulo.trim();
+                if (!nextTitulo) {
+                  setTitulo(activeOrdem.titulo);
+                  return;
+                }
+
+                if (nextTitulo === activeOrdem.titulo) return;
+
+                const persistedOrder = await ensurePersistedOrder({ titulo: nextTitulo });
+                if (!persistedOrder || persistedOrder.titulo === nextTitulo) return;
+
+                await atualizarOrdem(persistedOrder.id, { titulo: nextTitulo });
+              }}
               placeholder="Ex: Produção do dia"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Status da Ordem</Label>
-              <Select value={ordem.status} onValueChange={(v) => atualizarOrdem(ordem.id, { status: v as any })}>
+              <Select value={status} onValueChange={async (v) => {
+                const nextStatus = v as OrdemProducao['status'];
+                setStatus(nextStatus);
+
+                if (nextStatus === activeOrdem.status) return;
+
+                const persistedOrder = await ensurePersistedOrder({ status: nextStatus });
+                if (!persistedOrder || persistedOrder.status === nextStatus) return;
+
+                await atualizarOrdem(persistedOrder.id, { status: nextStatus });
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pendente">Pendente</SelectItem>
@@ -150,7 +224,20 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
             </div>
             <div>
               <Label>Data prevista</Label>
-              <Input type="date" defaultValue={ordem.data_prevista || ''} onBlur={(e) => atualizarOrdem(ordem.id, { data_prevista: e.target.value || null })} />
+              <Input
+                type="date"
+                value={dataPrevista}
+                onChange={(e) => setDataPrevista(e.target.value)}
+                onBlur={async () => {
+                  const nextDataPrevista = dataPrevista || null;
+                  if ((activeOrdem.data_prevista || null) === nextDataPrevista) return;
+
+                  const persistedOrder = await ensurePersistedOrder({ data_prevista: nextDataPrevista });
+                  if (!persistedOrder || (persistedOrder.data_prevista || null) === nextDataPrevista) return;
+
+                  await atualizarOrdem(persistedOrder.id, { data_prevista: nextDataPrevista });
+                }}
+              />
             </div>
           </div>
 
@@ -226,10 +313,10 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
           {/* Lista de itens */}
           <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Itens da Ordem ({ordem.itens?.length || 0})</h4>
-            {(!ordem.itens || ordem.itens.length === 0) ? (
+            <h4 className="font-semibold text-sm">Itens da Ordem ({activeOrdem.itens?.length || 0})</h4>
+            {(!activeOrdem.itens || activeOrdem.itens.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-6">Nenhum item adicionado.</p>
-            ) : ordem.itens.map(item => {
+            ) : activeOrdem.itens.map(item => {
               const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
               return (
                 <div key={item.id} className="p-3 border rounded-lg space-y-2">
@@ -243,8 +330,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                       {item.funcionario_nome && <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>}
                       <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-3">
                         {item.hora_inicio_prevista && <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>}
-                        {item.hora_inicio_real && <span className="text-blue-600 dark:text-blue-400">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
-                        {item.hora_fim_real && <span className="text-green-600 dark:text-green-400">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
+                        {item.hora_inicio_real && <span className="text-primary">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
+                        {item.hora_fim_real && <span className="text-primary">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
                         {dur && <span className="font-semibold"><Clock className="h-3 w-3 inline" /> {dur}</span>}
                       </div>
                     </div>
