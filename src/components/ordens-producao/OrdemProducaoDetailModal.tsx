@@ -255,6 +255,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, ordens, ta
 
   const itemLabel = (it: OrdemProducaoItem) => {
     if (it.tipo_item === 'receita') return it.receita?.nome || 'Receita';
+    if (it.descricao_customizada) return it.descricao_customizada;
     if (it.tarefa_avulsa) return it.tarefa_avulsa.nome;
     return 'Tarefa';
   };
