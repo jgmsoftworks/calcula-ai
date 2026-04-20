@@ -308,12 +308,12 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                                 value={r.nome}
                                 onSelect={() => setRefId(r.id)}
                               >
-                                <Check className={cn('mr-2 h-4 w-4', refId === r.id ? 'opacity-100' : 'opacity-0')} />
-                                <span className="flex-1 truncate">{r.nome}</span>
+                                <Check className={cn('mr-2 h-4 w-4 shrink-0', refId === r.id ? 'opacity-100 text-primary' : 'opacity-0')} />
+                                <span className="flex-1 truncate font-medium">{r.nome}</span>
                                 {r.tipo_produto?.nome && (
-                                  <Badge variant="secondary" className="ml-2 text-[10px] shrink-0">
+                                  <span className="ml-3 shrink-0 text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
                                     {r.tipo_produto.nome}
-                                  </Badge>
+                                  </span>
                                 )}
                               </CommandItem>
                             ))}
