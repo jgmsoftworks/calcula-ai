@@ -1,29 +1,19 @@
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useParams, Navigate } from 'react-router-dom';
 import { ListaProdutos } from '@/components/estoque/ListaProdutos';
 import { HistoricoGeral } from '@/components/estoque/HistoricoGeral';
-import { useTranslation } from 'react-i18next';
 
 export default function Estoque() {
-  const [activeTab, setActiveTab] = useState('produtos');
-  const { t } = useTranslation();
+  const { secao } = useParams<{ secao?: string }>();
 
-  return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="produtos">{t('pages.estoque.listaProdutos')}</TabsTrigger>
-          <TabsTrigger value="historico">{t('pages.estoque.historicoGeral')}</TabsTrigger>
-        </TabsList>
+  if (!secao) return <Navigate to="/estoque/produtos" replace />;
 
-        <TabsContent value="produtos">
-          <ListaProdutos />
-        </TabsContent>
+  if (secao === 'historico') {
+    return <div className="space-y-6"><HistoricoGeral /></div>;
+  }
 
-        <TabsContent value="historico">
-          <HistoricoGeral />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  if (secao === 'produtos') {
+    return <div className="space-y-6"><ListaProdutos /></div>;
+  }
+
+  return <Navigate to="/estoque/produtos" replace />;
 }
