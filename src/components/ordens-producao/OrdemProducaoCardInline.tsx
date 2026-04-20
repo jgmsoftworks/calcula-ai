@@ -260,67 +260,73 @@ export function OrdemProducaoCardInline({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40">
-      <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className="text-xs font-mono text-muted-foreground">
-            OP #{String(ordem.numero_sequencial).padStart(4, '0')}
-          </span>
-          <Badge className={statusOrdem.className} variant="outline">
-            {statusOrdem.label}
-          </Badge>
-        </div>
+    <div className="group relative overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/30">
+      <div className={`absolute inset-x-0 top-0 h-1 ${
+        ordem.status === 'concluida' ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' :
+        ordem.status === 'em_andamento' ? 'bg-gradient-to-r from-primary to-primary/60' :
+        ordem.status === 'cancelada' ? 'bg-gradient-to-r from-destructive/60 to-destructive' :
+        'bg-gradient-to-r from-muted-foreground/30 to-muted-foreground/10'
+      }`} />
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select
-            value={ordem.status}
-            onValueChange={(value) => handleOrderStatusChange(value as OrdemProducao['status'])}
-          >
-            <SelectTrigger className="h-8 w-[150px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pendente">Pendente</SelectItem>
-              <SelectItem value="em_andamento">Em andamento</SelectItem>
-              <SelectItem value="concluida">Concluída</SelectItem>
-              <SelectItem value="cancelada">Cancelada</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="space-y-3 p-4 pt-5">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="text-[11px] font-mono font-semibold tracking-wider text-muted-foreground uppercase">
+              OP #{String(ordem.numero_sequencial).padStart(4, '0')}
+            </span>
+          </div>
 
-          {item && !editing && (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select
+              value={ordem.status}
+              onValueChange={(value) => handleOrderStatusChange(value as OrdemProducao['status'])}
+            >
+              <SelectTrigger className={`h-8 w-[150px] text-xs font-medium ${statusOrdem.className}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="em_andamento">Em andamento</SelectItem>
+                <SelectItem value="concluida">Concluída</SelectItem>
+                <SelectItem value="cancelada">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {item && !editing && (
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="h-8 px-2 text-muted-foreground hover:text-foreground">
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+              </Button>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDeleteOrder(ordem.id)}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
-          )}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDeleteOrder(ordem.id)}
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          </div>
         </div>
-      </div>
 
       {item ? (
         <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold truncate">{previewItemLabel}</span>
-                <Badge variant="outline" className="text-xs">x{qtdReceita}</Badge>
-                {previewItemStatus && (
-                  <Badge variant="secondary" className="text-xs">{statusLabels[previewItemStatus]}</Badge>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="font-semibold text-base truncate">{previewItemLabel}</span>
+                {qtdReceita > 1 && (
+                  <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                    {qtdReceita} <span className="opacity-70">receitas</span>
+                  </span>
                 )}
               </div>
 
               {previewFuncionarioNome && (
-                <p className="mt-1 text-xs text-muted-foreground">👤 {previewFuncionarioNome}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">👤 {previewFuncionarioNome}</p>
               )}
 
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 {previewInicioPrev && (
                   <span>Prev. {new Date(previewInicioPrev).toLocaleString('pt-BR')}</span>
                 )}
@@ -569,6 +575,7 @@ export function OrdemProducaoCardInline({
       ) : (
         <p className="text-xs italic text-muted-foreground">Sem item vinculado.</p>
       )}
+      </div>
     </div>
   );
 }
