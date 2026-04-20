@@ -231,7 +231,7 @@ const Auth = () => {
             <img 
               src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png" 
               alt="CalculaAi Logo" 
-              className="h-24 w-auto mx-auto"
+              className="h-40 w-auto mx-auto"
             />
           </div>
 
