@@ -29,6 +29,7 @@ import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
 import Tutorial from "./pages/Tutorial";
 import OrdensProducao from "./pages/OrdensProducao";
+import OrdensProducaoDia from "./pages/OrdensProducaoDia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => (
                 <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
                 <Route path="/tutorial" element={<AppLayout><Tutorial /></AppLayout>} />
                 <Route path="/ordens-producao" element={<AppLayout><OrdensProducao /></AppLayout>} />
+                <Route path="/ordens-producao/dia/:data" element={<AppLayout><OrdensProducaoDia /></AppLayout>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
