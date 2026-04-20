@@ -146,7 +146,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   useEffect(() => {
     if (!user || !open) return;
     (async () => {
-      const [{ data: r }, { data: f }] = await Promise.all([
+      const [{ data: r, error: receitasError }, { data: f, error: funcionariosError }] = await Promise.all([
         supabase
           .from('receitas')
           .select(`
@@ -154,12 +154,21 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
             tipo_produto:tipos_produto(nome),
             ingredientes:receita_ingredientes(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
             embalagens:receita_embalagens(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
-            sub_receitas:receita_sub_receitas(quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(nome, rendimento_unidade))
+            sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(nome, rendimento_unidade))
           `)
           .eq('user_id', user.id)
           .order('nome'),
         supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
+
+      if (receitasError) {
+        console.error('Erro ao carregar receitas da OP:', receitasError);
+      }
+
+      if (funcionariosError) {
+        console.error('Erro ao carregar funcionários da OP:', funcionariosError);
+      }
+
       setReceitas((r as any) || []);
       setFuncionarios((f as any) || []);
     })();
