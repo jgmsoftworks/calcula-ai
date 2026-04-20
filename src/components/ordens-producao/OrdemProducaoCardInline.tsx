@@ -20,12 +20,23 @@ interface Props {
 interface ReceitaOption {
   id: string;
   nome: string;
+  rendimento_valor: number | null;
+  rendimento_unidade: string | null;
+  tipo_produto?: { nome: string } | null;
+  ingredientes?: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
+  embalagens?: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
+  sub_receitas?: { quantidade: number; sub_receita: { nome: string; rendimento_unidade: string | null } | null }[];
 }
 
 interface FuncionarioOption {
   id: string;
   nome: string;
 }
+
+const fmtQtd = (n: number) => {
+  const r = Math.round(n * 1000) / 1000;
+  return r.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+};
 
 const statusLabels: Record<string, string> = {
   pendente: 'Pendente',
@@ -129,18 +140,34 @@ export function OrdemProducaoCardInline({
   }, [ordem, item]);
 
   useEffect(() => {
-    if (!editing || !user) return;
+    if (!user) return;
 
     (async () => {
       const [{ data: receitasData }, { data: funcionariosData }] = await Promise.all([
-        supabase.from('receitas').select('id, nome').eq('user_id', user.id).order('nome'),
+        supabase
+          .from('receitas')
+          .select(`
+            id, nome, rendimento_valor, rendimento_unidade,
+            tipo_produto:tipos_produto(nome),
+            ingredientes:receita_ingredientes(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
+            embalagens:receita_embalagens(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
+            sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(nome, rendimento_unidade))
+          `)
+          .eq('user_id', user.id)
+          .order('nome'),
         supabase.from('folha_pagamento').select('id, nome').eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
 
-      setReceitas((receitasData as ReceitaOption[]) || []);
+      setReceitas((receitasData as any as ReceitaOption[]) || []);
       setFuncionarios((funcionariosData as FuncionarioOption[]) || []);
     })();
-  }, [editing, user]);
+  }, [user]);
+
+  const receitaInfo = item?.tipo_item === 'receita' && item?.receita_id
+    ? receitas.find((r) => r.id === item.receita_id)
+    : null;
+  const qtdReceita = item?.quantidade || 1;
+  const rendTotal = (receitaInfo?.rendimento_valor || 0) * qtdReceita;
 
   const handleQuickStatus = async (nextStatus: OrdemProducaoItem['status']) => {
     if (!item) return;
@@ -304,6 +331,82 @@ export function OrdemProducaoCardInline({
               </div>
             )}
           </div>
+
+          {receitaInfo && (
+            <div className="space-y-2 rounded-lg border bg-background p-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-sm font-semibold">{receitaInfo.nome}</div>
+                {receitaInfo.tipo_produto?.nome && (
+                  <Badge variant="outline" className="text-xs">{receitaInfo.tipo_produto.nome}</Badge>
+                )}
+              </div>
+
+              {receitaInfo.rendimento_valor != null && (
+                <p className="text-xs text-muted-foreground">
+                  Rendimento por receita:{' '}
+                  <span className="font-medium text-foreground">
+                    {fmtQtd(receitaInfo.rendimento_valor)} {receitaInfo.rendimento_unidade || ''}
+                  </span>
+                  {qtdReceita > 1 && (
+                    <>
+                      {' '}• Total para {qtdReceita}x:{' '}
+                      <span className="font-semibold text-primary">
+                        {fmtQtd(rendTotal)} {receitaInfo.rendimento_unidade || ''}
+                      </span>
+                    </>
+                  )}
+                </p>
+              )}
+
+              {receitaInfo.ingredientes && receitaInfo.ingredientes.length > 0 && (
+                <div>
+                  <p className="mb-1 mt-2 text-xs font-semibold">Ingredientes</p>
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {receitaInfo.ingredientes.map((i, idx) => i.produto && (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{i.produto.nome}</span>
+                        <span className="shrink-0 font-medium text-foreground">
+                          {fmtQtd(i.quantidade * qtdReceita)} {i.produto.unidade_uso || i.produto.unidade_compra}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {receitaInfo.embalagens && receitaInfo.embalagens.length > 0 && (
+                <div>
+                  <p className="mb-1 mt-2 text-xs font-semibold">Embalagens</p>
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {receitaInfo.embalagens.map((e, idx) => e.produto && (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{e.produto.nome}</span>
+                        <span className="shrink-0 font-medium text-foreground">
+                          {fmtQtd(e.quantidade * qtdReceita)} {e.produto.unidade_uso || e.produto.unidade_compra}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {receitaInfo.sub_receitas && receitaInfo.sub_receitas.length > 0 && (
+                <div>
+                  <p className="mb-1 mt-2 text-xs font-semibold">Sub-receitas</p>
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {receitaInfo.sub_receitas.map((s, idx) => s.sub_receita && (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{s.sub_receita.nome}</span>
+                        <span className="shrink-0 font-medium text-foreground">
+                          {fmtQtd(s.quantidade * qtdReceita)} {s.sub_receita.rendimento_unidade || ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {editing && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t pt-3">
