@@ -137,7 +137,8 @@ export function OrdemProducaoCardInline({
 
   const [draftOrderStatus, setDraftOrderStatus] = useState<OrdemProducao['status']>(ordem.status);
   const [draftItemType, setDraftItemType] = useState<'receita' | 'tarefa_avulsa'>(item?.tipo_item || 'receita');
-  const [draftRefId, setDraftRefId] = useState(item?.receita_id || item?.tarefa_avulsa_id || '');
+  const [draftRefId, setDraftRefId] = useState(item?.receita_id || '');
+  const [draftDescricaoTarefa, setDraftDescricaoTarefa] = useState(item?.descricao_customizada || '');
   const [draftQuantidade, setDraftQuantidade] = useState(String(item?.quantidade || 1));
   const [draftFuncionarioId, setDraftFuncionarioId] = useState(item?.funcionario_id || '');
   const [draftItemStatus, setDraftItemStatus] = useState<OrdemProducaoItem['status']>(item?.status || 'pendente');
@@ -147,7 +148,8 @@ export function OrdemProducaoCardInline({
   useEffect(() => {
     setDraftOrderStatus(ordem.status);
     setDraftItemType(item?.tipo_item || 'receita');
-    setDraftRefId(item?.receita_id || item?.tarefa_avulsa_id || '');
+    setDraftRefId(item?.receita_id || '');
+    setDraftDescricaoTarefa(item?.descricao_customizada || '');
     setDraftQuantidade(String(item?.quantidade || 1));
     setDraftFuncionarioId(item?.funcionario_id || '');
     setDraftItemStatus(item?.status || 'pendente');
