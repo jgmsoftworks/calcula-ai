@@ -55,10 +55,10 @@ export function AppSidebar() {
       icon: Package,
       children: [
         { title: 'Lista de Produtos', url: '/estoque/produtos', icon: Boxes },
+        { title: 'Movimentação', url: '/estoque/movimentacao', icon: TrendingUp },
         { title: 'Histórico Geral', url: '/estoque/historico', icon: History },
       ],
     },
-    { title: t('nav.movimentacao'), url: '/movimentacao', icon: TrendingUp },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
     { title: 'Ordens de Produção', url: '/ordens-producao', icon: ClipboardList },
     { title: t('nav.custos'), url: '/custos', icon: TrendingUp },
