@@ -59,7 +59,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     if (!isDraft) return activeOrdem;
 
     const nextTitulo = overrides?.titulo?.trim() || titulo.trim() || activeOrdem.titulo;
-    const nextDataPrevista = overrides?.data_prevista ?? dataPrevista || activeOrdem.data_prevista || undefined;
+    const nextDataPrevista = overrides?.data_prevista ?? dataPrevista ?? activeOrdem.data_prevista ?? undefined;
     const nextStatus = overrides?.status ?? status;
 
     const created = await criarOrdem({
@@ -71,7 +71,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
     if (!created) return null;
 
-    let persisted = { ...created, itens: created.itens || [] } as OrdemProducao;
+    let persisted: OrdemProducao = { ...(created as OrdemProducao), itens: [] };
 
     if (nextStatus !== 'pendente') {
       const updated = await atualizarOrdem(created.id, { status: nextStatus });
@@ -330,8 +330,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                       {item.funcionario_nome && <p className="text-xs text-muted-foreground mt-1">👤 {item.funcionario_nome}</p>}
                       <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-3">
                         {item.hora_inicio_prevista && <span>Prev. {new Date(item.hora_inicio_prevista).toLocaleString('pt-BR')}</span>}
-                        {item.hora_inicio_real && <span className="text-blue-600 dark:text-blue-400">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
-                        {item.hora_fim_real && <span className="text-green-600 dark:text-green-400">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
+                        {item.hora_inicio_real && <span className="text-primary">Início real: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>}
+                        {item.hora_fim_real && <span className="text-primary">Fim real: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>}
                         {dur && <span className="font-semibold"><Clock className="h-3 w-3 inline" /> {dur}</span>}
                       </div>
                     </div>
