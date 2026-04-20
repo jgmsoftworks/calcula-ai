@@ -9,6 +9,7 @@ import { Trash2, Play, CheckCircle, Clock, Pencil, RotateCcw, Save, X } from 'lu
 import { OrdemProducao, OrdemProducaoItem, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatDateTimeBrasilia } from '@/lib/dateUtils';
 
 interface Props {
   ordem: OrdemProducao;
@@ -326,24 +327,31 @@ export function OrdemProducaoCardInline({
                 <p className="mt-1.5 text-xs text-muted-foreground">👤 {previewFuncionarioNome}</p>
               )}
 
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                {previewInicioPrev && (
-                  <span>Prev. {new Date(previewInicioPrev).toLocaleString('pt-BR')}</span>
-                )}
-                {item.hora_inicio_real && (
-                  <span className="text-primary">Início: {new Date(item.hora_inicio_real).toLocaleString('pt-BR')}</span>
-                )}
-                {item.hora_fim_real && (
-                  <span className="text-primary">Fim: {new Date(item.hora_fim_real).toLocaleString('pt-BR')}</span>
-                )}
-                {(() => {
-                  const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
-                  return dur ? (
-                    <span className="font-semibold">
-                      <Clock className="inline h-3 w-3" /> {dur}
-                    </span>
-                  ) : null;
-                })()}
+              <div className="mt-2 space-y-1 text-xs">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className="font-semibold text-muted-foreground min-w-[70px]">Previsão:</span>
+                  <span className="text-muted-foreground">
+                    {item.hora_inicio_prevista ? formatDateTimeBrasilia(item.hora_inicio_prevista) : '—'}
+                    <span className="mx-1.5 opacity-60">→</span>
+                    {item.hora_fim_prevista ? formatDateTimeBrasilia(item.hora_fim_prevista) : '—'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className="font-semibold text-primary min-w-[70px]">Realizado:</span>
+                  <span className="text-foreground">
+                    {item.hora_inicio_real ? formatDateTimeBrasilia(item.hora_inicio_real) : '—'}
+                    <span className="mx-1.5 opacity-60">→</span>
+                    {item.hora_fim_real ? formatDateTimeBrasilia(item.hora_fim_real) : '—'}
+                  </span>
+                  {(() => {
+                    const dur = calcDuracao(item.hora_inicio_real, item.hora_fim_real);
+                    return dur ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">
+                        <Clock className="h-3 w-3" /> {dur}
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
               </div>
             </div>
 
