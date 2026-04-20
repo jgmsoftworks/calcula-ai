@@ -99,10 +99,18 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>OP #{String(ordem.numero_sequencial).padStart(4, '0')} — {ordem.titulo}</DialogTitle>
+          <DialogTitle>OP #{String(ordem.numero_sequencial).padStart(4, '0')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
+          <div>
+            <Label>Título da Ordem</Label>
+            <Input
+              defaultValue={ordem.titulo}
+              onBlur={(e) => { if (e.target.value.trim() && e.target.value !== ordem.titulo) atualizarOrdem(ordem.id, { titulo: e.target.value.trim() }); }}
+              placeholder="Ex: Produção do dia"
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Status da Ordem</Label>
