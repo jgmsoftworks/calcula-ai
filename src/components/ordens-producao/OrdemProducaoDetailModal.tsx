@@ -37,6 +37,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [activeOrdem, setActiveOrdem] = useState<OrdemProducao | null>(ordem);
   const [titulo, setTitulo] = useState('');
   const [status, setStatus] = useState<OrdemProducao['status']>('pendente');
@@ -58,6 +59,10 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
     if (!isDraft) return activeOrdem;
 
+    if (savingOrder) return null;
+
+    setSavingOrder(true);
+
     const nextTitulo = overrides?.titulo?.trim() || titulo.trim() || activeOrdem.titulo;
     const nextDataPrevista = overrides?.data_prevista ?? dataPrevista ?? activeOrdem.data_prevista ?? undefined;
     const nextStatus = overrides?.status ?? status;
@@ -69,18 +74,25 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
       observacoes: activeOrdem.observacoes || undefined,
     });
 
-    if (!created) return null;
+    if (!created) {
+      setSavingOrder(false);
+      return null;
+    }
 
     let persisted: OrdemProducao = { ...(created as OrdemProducao), itens: [] };
 
     if (nextStatus !== 'pendente') {
       const updated = await atualizarOrdem(created.id, { status: nextStatus });
-      if (!updated) return null;
+      if (!updated) {
+        setSavingOrder(false);
+        return null;
+      }
       persisted = { ...persisted, status: nextStatus };
     }
 
     setActiveOrdem(persisted);
     onPersisted?.(persisted);
+    setSavingOrder(false);
 
     return persisted;
   };
@@ -129,8 +141,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
   if (!activeOrdem) return null;
 
   const handleAddItem = async () => {
-    const persistedOrder = await ensurePersistedOrder();
-    if (!persistedOrder) return;
+    if (!activeOrdem || isDraft) return;
 
     const func = funcionarios.find(x => x.id === funcId);
     const item: any = {
@@ -147,7 +158,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     if (tipoItem !== 'custom' && !refId) return;
     if (tipoItem === 'custom' && !descCustom.trim()) return;
 
-    await adicionarItem(persistedOrder.id, item);
+    await adicionarItem(activeOrdem.id, item);
     setRefId(''); setDescCustom(''); setQuantidade('1'); setFuncId(''); setInicioPrev(''); setFimPrev('');
   };
 
@@ -244,8 +255,8 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
               <p className="text-sm text-muted-foreground">
                 Esta ordem ainda não foi criada. Clique em salvar para registrar a OP e liberar os itens.
               </p>
-              <Button onClick={handleSaveOrder} disabled={!titulo.trim()}>
-                Salvar ordem
+              <Button onClick={handleSaveOrder} disabled={!titulo.trim() || savingOrder}>
+                {savingOrder ? 'Salvando...' : 'Salvar ordem'}
               </Button>
             </div>
           )}
