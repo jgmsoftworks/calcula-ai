@@ -9,6 +9,7 @@ import { Trash2, Play, CheckCircle, Clock, Pencil, RotateCcw, Save, X } from 'lu
 import { OrdemProducao, OrdemProducaoItem, TarefaAvulsa } from '@/hooks/useOrdensProducao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { formatDateTimeBrasilia } from '@/lib/dateUtils';
 
 interface Props {
   ordem: OrdemProducao;
