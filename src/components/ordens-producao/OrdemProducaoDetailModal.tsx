@@ -250,25 +250,9 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
             </div>
           </div>
 
-          {isDraft && (
-            <div className="flex flex-col gap-2 rounded-lg border border-dashed bg-muted/30 p-4 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Esta ordem ainda não foi criada. Clique em salvar para registrar a OP e liberar os itens.
-              </p>
-              <Button onClick={handleSaveOrder} disabled={!titulo.trim() || savingOrder}>
-                {savingOrder ? 'Salvando...' : 'Salvar ordem'}
-              </Button>
-            </div>
-          )}
-
           {/* Adicionar item */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
             <h4 className="font-semibold text-sm">Adicionar item à ordem</h4>
-            {isDraft && (
-              <p className="text-sm text-muted-foreground">
-                Salve a ordem primeiro para adicionar receitas, tarefas e equipe.
-              </p>
-            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label>Tipo</Label>
@@ -381,6 +365,14 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
             })}
           </div>
         </div>
+
+        {isDraft && (
+          <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-background">
+            <Button onClick={handleSaveOrder} disabled={!titulo.trim() || savingOrder}>
+              {savingOrder ? 'Salvando...' : 'Salvar ordem'}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
 
