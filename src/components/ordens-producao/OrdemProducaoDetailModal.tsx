@@ -27,8 +27,22 @@ interface Props {
   onPersisted?: (ordem: OrdemProducao) => void;
 }
 
-interface ReceitaOpt { id: string; nome: string; }
+interface ReceitaOpt {
+  id: string;
+  nome: string;
+  rendimento_valor: number | null;
+  rendimento_unidade: string | null;
+  tipo_produto?: { nome: string } | null;
+  ingredientes: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
+  embalagens: { quantidade: number; produto: { nome: string; unidade_uso: string | null; unidade_compra: string } | null }[];
+  sub_receitas: { quantidade: number; sub_receita: { nome: string; rendimento_unidade: string | null } | null }[];
+}
 interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
+
+const fmtQtd = (n: number) => {
+  const r = Math.round(n * 1000) / 1000;
+  return r.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+};
 
 const statusLabels: Record<string, string> = {
   pendente: 'Pendente', em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado',
@@ -133,7 +147,17 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
     if (!user || !open) return;
     (async () => {
       const [{ data: r }, { data: f }] = await Promise.all([
-        supabase.from('receitas').select('id, nome').eq('user_id', user.id).order('nome'),
+        supabase
+          .from('receitas')
+          .select(`
+            id, nome, rendimento_valor, rendimento_unidade,
+            tipo_produto:tipos_produto(nome),
+            ingredientes:receita_ingredientes(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
+            embalagens:receita_embalagens(quantidade, produto:produtos(nome, unidade_uso, unidade_compra)),
+            sub_receitas:receita_sub_receitas(quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(nome, rendimento_unidade))
+          `)
+          .eq('user_id', user.id)
+          .order('nome'),
         supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
       setReceitas((r as any) || []);
@@ -286,6 +310,65 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                   </Popover>
                 </div>
               )}
+              {tipoItem === 'receita' && refId && (() => {
+                const r = receitas.find(x => x.id === refId);
+                if (!r) return null;
+                const qtd = Number(quantidade) || 1;
+                const rend = (r.rendimento_valor || 0) * qtd;
+                return (
+                  <div className="md:col-span-2 p-3 rounded-lg bg-background border space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="text-sm font-semibold">{r.nome}</div>
+                      {r.tipo_produto?.nome && <Badge variant="outline" className="text-xs">{r.tipo_produto.nome}</Badge>}
+                    </div>
+                    {r.rendimento_valor != null && (
+                      <p className="text-xs text-muted-foreground">
+                        Rendimento por receita: <span className="font-medium text-foreground">{fmtQtd(r.rendimento_valor)} {r.rendimento_unidade || ''}</span>
+                        {qtd > 1 && <> • Total para {qtd}x: <span className="font-semibold text-primary">{fmtQtd(rend)} {r.rendimento_unidade || ''}</span></>}
+                      </p>
+                    )}
+                    {r.ingredientes?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mt-2 mb-1">Ingredientes</p>
+                        <ul className="text-xs space-y-0.5 text-muted-foreground">
+                          {r.ingredientes.map((i, idx) => i.produto && (
+                            <li key={idx} className="flex justify-between gap-2">
+                              <span className="truncate">{i.produto.nome}</span>
+                              <span className="font-medium text-foreground shrink-0">{fmtQtd(i.quantidade * qtd)} {i.produto.unidade_uso || i.produto.unidade_compra}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {r.embalagens?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mt-2 mb-1">Embalagens</p>
+                        <ul className="text-xs space-y-0.5 text-muted-foreground">
+                          {r.embalagens.map((e, idx) => e.produto && (
+                            <li key={idx} className="flex justify-between gap-2">
+                              <span className="truncate">{e.produto.nome}</span>
+                              <span className="font-medium text-foreground shrink-0">{fmtQtd(e.quantidade * qtd)} {e.produto.unidade_uso || e.produto.unidade_compra}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {r.sub_receitas?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mt-2 mb-1">Sub-receitas</p>
+                        <ul className="text-xs space-y-0.5 text-muted-foreground">
+                          {r.sub_receitas.map((s, idx) => s.sub_receita && (
+                            <li key={idx} className="flex justify-between gap-2">
+                              <span className="truncate">{s.sub_receita.nome}</span>
+                              <span className="font-medium text-foreground shrink-0">{fmtQtd(s.quantidade * qtd)} {s.sub_receita.rendimento_unidade || ''}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {tipoItem === 'tarefa_avulsa' && (
                 <div>
                   <Label>Tarefa</Label>
