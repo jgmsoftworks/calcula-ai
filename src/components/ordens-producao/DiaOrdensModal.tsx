@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { OrdemProducao } from '@/hooks/useOrdensProducao';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,6 +14,7 @@ interface Props {
   onOpenOrdem: (o: OrdemProducao) => void;
   onCreateNew: () => void;
   onDelete: (id: string) => void;
+  onOpenTarefasAvulsas: () => void;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
