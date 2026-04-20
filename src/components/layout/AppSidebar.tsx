@@ -158,26 +158,56 @@ export function AppSidebar() {
             <SidebarMenu className="space-y-0.5">
               {navigationItems.map((item) => {
                 const active = isActive(item.url);
+                const hasChildren = !!item.children?.length;
+                const expanded = hasChildren && active && !isCollapsed;
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
+                      <NavLink
+                        to={item.url}
                         end={item.url === '/'}
                         className={`
                           relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                           transition-all duration-200 group
-                          ${active 
-                            ? 'bg-primary text-primary-foreground shadow-brand' 
+                          ${active
+                            ? 'bg-primary text-primary-foreground shadow-brand'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                           }
                           ${isCollapsed ? 'justify-center px-2' : ''}
                         `}
                       >
                         <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${active ? '' : 'group-hover:text-primary'} transition-colors`} />
-                        {!isCollapsed && <span>{item.title}</span>}
+                        {!isCollapsed && <span className="flex-1">{item.title}</span>}
+                        {hasChildren && !isCollapsed && (
+                          <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''} opacity-70`} />
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
+
+                    {expanded && (
+                      <div className="mt-0.5 ml-4 pl-3 border-l border-border/50 space-y-0.5">
+                        {item.children!.map((child) => {
+                          const childActive = currentPath === child.url || currentPath.startsWith(child.url + '/');
+                          return (
+                            <NavLink
+                              key={child.url}
+                              to={child.url}
+                              className={`
+                                flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                                transition-all duration-200
+                                ${childActive
+                                  ? 'bg-primary/10 text-primary font-medium'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                }
+                              `}
+                            >
+                              <child.icon className="h-4 w-4 flex-shrink-0" />
+                              <span>{child.title}</span>
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+                    )}
                   </SidebarMenuItem>
                 );
               })}
