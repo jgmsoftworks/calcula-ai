@@ -11,6 +11,9 @@ import {
   Users,
   ArrowRightFromLine,
   ClipboardList,
+  ChevronDown,
+  History,
+  Boxes,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -39,9 +42,22 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
 
-  const businessNavigationItems = [
+  const businessNavigationItems: Array<{
+    title: string;
+    url: string;
+    icon: typeof Home;
+    children?: { title: string; url: string; icon: typeof Home }[];
+  }> = [
     { title: t('nav.dashboard'), url: '/', icon: Home },
-    { title: t('nav.estoque'), url: '/estoque', icon: Package },
+    {
+      title: t('nav.estoque'),
+      url: '/estoque',
+      icon: Package,
+      children: [
+        { title: 'Lista de Produtos', url: '/estoque/produtos', icon: Boxes },
+        { title: 'Histórico Geral', url: '/estoque/historico', icon: History },
+      ],
+    },
     { title: t('nav.movimentacao'), url: '/movimentacao', icon: TrendingUp },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
     { title: 'Ordens de Produção', url: '/ordens-producao', icon: ClipboardList },
@@ -54,7 +70,12 @@ export function AppSidebar() {
     { title: t('nav.planos'), url: '/planos', icon: Crown },
   ];
 
-  const adminNavigationItems = [
+  const adminNavigationItems: Array<{
+    title: string;
+    url: string;
+    icon: typeof Home;
+    children?: { title: string; url: string; icon: typeof Home }[];
+  }> = [
     { title: t('nav.dashboard'), url: '/', icon: Home },
     { title: t('nav.usuarios'), url: '/admin-usuarios', icon: Users },
     { title: t('nav.afiliados'), url: '/afiliados', icon: Crown },
