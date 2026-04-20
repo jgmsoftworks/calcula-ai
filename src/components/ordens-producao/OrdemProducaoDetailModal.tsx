@@ -240,8 +240,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="receita">Receita</SelectItem>
-                    <SelectItem value="tarefa_avulsa">Tarefa cadastrada</SelectItem>
-                    <SelectItem value="custom">Tarefa avulsa (texto livre)</SelectItem>
+                    <SelectItem value="custom">Tarefa avulsa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
