@@ -63,7 +63,7 @@ export function OrdemProducaoDetailModal({ open, onOpenChange, ordem, tarefasAvu
 
     setSavingOrder(true);
 
-    const nextTitulo = overrides?.titulo?.trim() || titulo.trim() || activeOrdem.titulo;
+    const nextTitulo = `OP #${String(activeOrdem.numero_sequencial).padStart(4, '0')}`;
     const nextDataPrevista = overrides?.data_prevista ?? dataPrevista ?? activeOrdem.data_prevista ?? undefined;
     const nextStatus = overrides?.status ?? status;
 
