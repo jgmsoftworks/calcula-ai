@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Sparkles, Loader2 } from 'lucide-react';
+import { ClipboardList, Loader2 } from 'lucide-react';
 import { useOrdensProducao, OrdemProducao } from '@/hooks/useOrdensProducao';
 import { OrdemProducaoDetailModal } from '@/components/ordens-producao/OrdemProducaoDetailModal';
 import { TarefasAvulsasModal } from '@/components/ordens-producao/TarefasAvulsasModal';
