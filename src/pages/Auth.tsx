@@ -233,9 +233,6 @@ const Auth = () => {
               alt="CalculaAi Logo" 
               className="h-24 w-auto mx-auto"
             />
-            <p className="text-sm text-muted-foreground mt-2">
-              {t('auth.smartPricing')}
-            </p>
           </div>
 
           {/* Auth Card */}
