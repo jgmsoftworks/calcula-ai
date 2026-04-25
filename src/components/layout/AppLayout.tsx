@@ -199,30 +199,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               <NotificationCenter />
             </div>
             
-            {/* Email Verification Alert */}
-            {user && !emailVerified && (
-              <div className="px-4 pb-3">
-                <Alert className="border-orange/30 bg-orange/5 text-foreground">
-                  <Mail className="h-4 w-4 text-orange" />
-                  <AlertDescription className="flex items-center justify-between text-sm">
-                    <span>{t('header.confirmEmail')}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResendConfirmation}
-                      disabled={isResending}
-                      className="ml-2 h-7 text-xs border-orange/30 hover:bg-orange/10"
-                    >
-                      {isResending ? (
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                      ) : (
-                        t('header.resend')
-                      )}
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
+            {/* Confirmação de e-mail desativada no Supabase — banner removido */}
           </header>
 
           {/* Main Content */}
