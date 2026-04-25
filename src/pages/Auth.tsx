@@ -129,6 +129,14 @@ const Auth = () => {
         toast({ title: t('auth.emailAlreadyExists'), description: t('auth.emailAlreadyExistsDesc'), variant: "destructive" });
         return;
       }
+      // Se o Supabase retornou sessão ativa (confirmação de email desativada),
+      // o usuário já está logado — navegar direto para o app.
+      if (data?.session) {
+        toast({ title: t('auth.accountCreated'), description: t('auth.welcomeBack') });
+        navigate('/');
+        return;
+      }
+      // Caso contrário, exibir mensagem para confirmar email
       toast({ title: t('auth.accountCreated'), description: t('auth.confirmEmail') });
       setShowResendConfirmation(true);
     } catch (error: any) {

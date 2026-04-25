@@ -1227,6 +1227,137 @@ export type Database = {
           },
         ]
       }
+      ordens_producao: {
+        Row: {
+          created_at: string
+          data_prevista: string | null
+          descricao: string | null
+          id: string
+          numero_sequencial: number
+          observacoes: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_prevista?: string | null
+          descricao?: string | null
+          id?: string
+          numero_sequencial: number
+          observacoes?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_prevista?: string | null
+          descricao?: string | null
+          id?: string
+          numero_sequencial?: number
+          observacoes?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ordens_producao_itens: {
+        Row: {
+          created_at: string
+          descricao_customizada: string | null
+          funcionario_id: string | null
+          funcionario_nome: string | null
+          hora_fim_prevista: string | null
+          hora_fim_real: string | null
+          hora_inicio_prevista: string | null
+          hora_inicio_real: string | null
+          id: string
+          observacoes: string | null
+          ordem: number | null
+          ordem_id: string
+          quantidade: number | null
+          receita_id: string | null
+          status: string
+          tarefa_avulsa_id: string | null
+          tipo_item: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao_customizada?: string | null
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
+          hora_fim_prevista?: string | null
+          hora_fim_real?: string | null
+          hora_inicio_prevista?: string | null
+          hora_inicio_real?: string | null
+          id?: string
+          observacoes?: string | null
+          ordem?: number | null
+          ordem_id: string
+          quantidade?: number | null
+          receita_id?: string | null
+          status?: string
+          tarefa_avulsa_id?: string | null
+          tipo_item: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao_customizada?: string | null
+          funcionario_id?: string | null
+          funcionario_nome?: string | null
+          hora_fim_prevista?: string | null
+          hora_fim_real?: string | null
+          hora_inicio_prevista?: string | null
+          hora_inicio_real?: string | null
+          id?: string
+          observacoes?: string | null
+          ordem?: number | null
+          ordem_id?: string
+          quantidade?: number | null
+          receita_id?: string | null
+          status?: string
+          tarefa_avulsa_id?: string | null
+          tipo_item?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_producao_itens_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_producao_itens_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_producao_itens_receita_id_fkey"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_producao_itens_tarefa_avulsa_id_fkey"
+            columns: ["tarefa_avulsa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_avulsas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean
@@ -2017,6 +2148,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefas_avulsas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          tempo_estimado_minutos: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          tempo_estimado_minutos?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tempo_estimado_minutos?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tipos_produto: {
         Row: {
           created_at: string | null
@@ -2243,6 +2407,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      gerar_proximo_numero_op: { Args: { p_user_id: string }; Returns: number }
       get_backup_data: { Args: { backup_id: string }; Returns: Json }
       get_employee_basic_info: {
         Args: never
