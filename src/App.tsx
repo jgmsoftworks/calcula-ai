@@ -28,8 +28,6 @@ import AffiliateRedirect from "./pages/AffiliateRedirect";
 import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
 import Tutorial from "./pages/Tutorial";
-import OrdensProducao from "./pages/OrdensProducao";
-import OrdensProducaoDia from "./pages/OrdensProducaoDia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,7 +62,6 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<AppLayout><Index /></AppLayout>} />
                 <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
-                <Route path="/estoque/:secao" element={<AppLayout><Estoque /></AppLayout>} />
                 <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
                 <Route path="/movimentacao" element={<AppLayout><Movimentacao /></AppLayout>} />
                 <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />
@@ -73,8 +70,6 @@ const App = () => (
                 <Route path="/perfil" element={<AppLayout><PerfilNegocio /></AppLayout>} />
                 <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
                 <Route path="/tutorial" element={<AppLayout><Tutorial /></AppLayout>} />
-                <Route path="/ordens-producao" element={<AppLayout><OrdensProducao /></AppLayout>} />
-                <Route path="/ordens-producao/dia/:data" element={<AppLayout><OrdensProducaoDia /></AppLayout>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

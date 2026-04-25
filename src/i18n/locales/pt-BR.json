@@ -40,8 +40,7 @@
     "receitas": { "title": "Receitas", "description": "Crie e precifique receitas", "listaReceitas": "Lista de Receitas", "historicoGeral": "Histórico Geral" },
     "perfil": { "title": "Perfil", "description": "Configurações da empresa" },
     "planos": { "title": "Planos", "description": "Gerencie sua assinatura" },
-    "tutorial": { "title": "Tutorial", "description": "Aprenda a usar o sistema" },
-    "ordensProducao": { "title": "Ordens de Produção", "description": "Calendário e gestão das ordens" }
+    "tutorial": { "title": "Tutorial", "description": "Aprenda a usar o sistema" }
   },
   "dashboard": {
     "hello": "Olá, {{name}}",

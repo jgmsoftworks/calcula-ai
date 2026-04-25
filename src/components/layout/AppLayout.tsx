@@ -49,12 +49,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/receitas': 'receitas',
       '/planos': 'planos',
       '/tutorial': 'tutorial',
-      '/ordens-producao': 'ordensProducao',
     };
-    let key = pageMap[pathname];
-    if (!key && pathname.startsWith('/ordens-producao')) {
-      key = 'ordensProducao';
-    }
+    const key = pageMap[pathname];
     if (key) {
       return {
         title: t(`pages.${key}.title`),

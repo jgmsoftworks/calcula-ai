@@ -77,10 +77,6 @@
     "tutorial": {
       "title": "Tutorial",
       "description": "Learn how to use the system"
-    },
-    "ordensProducao": {
-      "title": "Production Orders",
-      "description": "Calendar and order management"
     }
   },
   "dashboard": {
