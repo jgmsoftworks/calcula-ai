@@ -115,6 +115,8 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 
   const lucroLiquido = calcularLucroLiquido();
 
+  const isSubReceita = receita.markup?.tipo === 'sub_receita';
+
   // CMV da receita = (Custo / Preço de Venda) × 100
   // Para sub-receitas o preço efetivo = custo (mesmo se preco_venda no banco estiver 0)
   const precoEfetivo = isSubReceita
