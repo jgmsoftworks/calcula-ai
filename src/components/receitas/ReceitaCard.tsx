@@ -274,18 +274,8 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
               <div className="text-sm md:text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
-              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1 flex items-center justify-center gap-1">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">
                 CMV
-                <TooltipProvider delayDuration={200}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help text-muted-foreground/70">ⓘ</span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[220px]">
-                      <p className="text-xs">Custo de Mercadoria Vendida: % do preço consumido pelo custo da receita. Verde ≤30%, Amarelo ≤45%, Vermelho &gt;45%.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
               <div className={cn("text-sm md:text-lg font-bold font-display", cmvColor)}>
                 {cmvPercentual === null ? '—' : `${cmvPercentual.toFixed(1).replace('.', ',')}%`}
