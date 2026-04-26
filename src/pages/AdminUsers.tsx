@@ -579,7 +579,71 @@ export default function AdminUsers() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal de edição de plano */}
+      {/* Dialog de confirmação para exclusão de usuário */}
+      <AlertDialog
+        open={!!deleteAction}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteAction(null);
+            setDeleteConfirmInput("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Excluir usuário permanentemente
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Você está prestes a excluir <strong>{deleteAction?.userName}</strong> ({deleteAction?.email}).
+                </p>
+                <p className="text-destructive font-medium">
+                  Esta ação é IRREVERSÍVEL. Todos os dados deste usuário (receitas, produtos, despesas, markups, configurações, etc.) serão apagados do banco de dados.
+                </p>
+                <p>
+                  O e-mail ficará livre para um novo cadastro.
+                </p>
+                <div className="pt-2">
+                  <label className="text-sm font-medium block mb-2">
+                    Para confirmar, digite o e-mail do usuário:
+                  </label>
+                  <Input
+                    value={deleteConfirmInput}
+                    onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                    placeholder={deleteAction?.email}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={
+                !deleteAction ||
+                deleteConfirmInput.trim().toLowerCase() !== deleteAction.email.trim().toLowerCase() ||
+                !!deletingUserId
+              }
+              onClick={() => {
+                if (deleteAction) {
+                  handleDeleteUser(deleteAction.userId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingUserId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Excluir Permanentemente"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {editingUser && (
         <EditUserPlanModal
           open={!!editingUser}
