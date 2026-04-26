@@ -115,9 +115,15 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 
   const lucroLiquido = calcularLucroLiquido();
 
+  const isSubReceita = receita.markup?.tipo === 'sub_receita';
+
   // CMV da receita = (Custo / Preço de Venda) × 100
-  const cmvPercentual = receita.preco_venda > 0
-    ? (custoBase / receita.preco_venda) * 100
+  // Para sub-receitas o preço efetivo = custo (mesmo se preco_venda no banco estiver 0)
+  const precoEfetivo = isSubReceita
+    ? (receita.preco_venda > 0 ? receita.preco_venda : custoBase)
+    : receita.preco_venda;
+  const cmvPercentual = precoEfetivo > 0
+    ? (custoBase / precoEfetivo) * 100
     : null;
 
   const cmvColor = cmvPercentual === null
@@ -156,8 +162,6 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
       setDuplicating(false);
     }
   };
-
-  const isSubReceita = receita.markup?.tipo === 'sub_receita';
 
   const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" }: any) => (
     <TooltipProvider delayDuration={200}>
@@ -270,18 +274,8 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
               <div className="text-sm md:text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
-              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1 flex items-center justify-center gap-1">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">
                 CMV
-                <TooltipProvider delayDuration={200}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help text-muted-foreground/70">ⓘ</span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[220px]">
-                      <p className="text-xs">Custo de Mercadoria Vendida: % do preço consumido pelo custo da receita. Verde ≤30%, Amarelo ≤45%, Vermelho &gt;45%.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
               <div className={cn("text-sm md:text-lg font-bold font-display", cmvColor)}>
                 {cmvPercentual === null ? '—' : `${cmvPercentual.toFixed(1).replace('.', ',')}%`}
