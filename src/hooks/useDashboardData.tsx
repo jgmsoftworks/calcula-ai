@@ -175,6 +175,20 @@ export const useDashboardData = () => {
           .eq('user_id', user.id)
           .gte('data_hora', monthStart)
           .lte('data_hora', monthEnd),
+
+        // Receitas do usuário com markup e custos para calcular CMV médio
+        supabase
+          .from('receitas')
+          .select(`
+            preco_venda,
+            rendimento_valor,
+            custo_ingredientes,
+            custo_embalagens,
+            custo_mao_obra,
+            custo_sub_receitas,
+            markup:markups(tipo)
+          `)
+          .eq('user_id', user.id),
       ]);
 
       // ===== CMV REAL =====
