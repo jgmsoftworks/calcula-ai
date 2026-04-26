@@ -142,6 +142,7 @@ export const useDashboardData = () => {
         saidasMes,
         produtosEstoque,
         allMovimentacoesMes,
+        receitasParaCmv,
       ] = await Promise.all([
         // Entradas do mês para cálculo de Compras
         supabase
