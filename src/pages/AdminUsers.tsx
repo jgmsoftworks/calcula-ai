@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck } from "lucide-react";
+import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -58,9 +58,17 @@ export default function AdminUsers() {
     userId: string;
     email: string;
   } | null>(null);
+  const [deleteAction, setDeleteAction] = useState<{
+    userId: string;
+    email: string;
+    userName: string;
+  } | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [confirmingEmailUserId, setConfirmingEmailUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<MergedUser | null>(null);
+  const { user: currentAdminUser } = useAuth();
 
   useEffect(() => {
     if (isAdmin) {
