@@ -42,7 +42,7 @@ interface MergedUser {
 }
 
 export default function AdminUsers() {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, user: currentAdminUser } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<MergedUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -68,7 +68,6 @@ export default function AdminUsers() {
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [confirmingEmailUserId, setConfirmingEmailUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<MergedUser | null>(null);
-  const { user: currentAdminUser } = useAuth();
 
   useEffect(() => {
     if (isAdmin) {
