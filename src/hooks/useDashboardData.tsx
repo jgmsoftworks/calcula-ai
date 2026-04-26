@@ -199,6 +199,43 @@ export const useDashboardData = () => {
         allMovimentacoesMes.data || []
       );
 
+      // ===== CMV MÉDIO DAS RECEITAS (exclui sub-receitas) =====
+      // Aplica a mesma fórmula do ReceitaCard: (custoBase / precoEfetivo) * 100
+      const receitasValidas = (receitasParaCmv.data || []).filter(
+        (r: any) => r.markup?.tipo !== 'sub_receita'
+      );
+
+      const cmvsIndividuais: number[] = [];
+      receitasValidas.forEach((r: any) => {
+        const custoTotal =
+          (r.custo_ingredientes || 0) +
+          (r.custo_embalagens || 0) +
+          (r.custo_mao_obra || 0) +
+          (r.custo_sub_receitas || 0);
+
+        const custoBase =
+          !r.rendimento_valor || r.rendimento_valor <= 0
+            ? custoTotal
+            : custoTotal / r.rendimento_valor;
+
+        const precoVenda = r.preco_venda || 0;
+
+        if (precoVenda > 0) {
+          cmvsIndividuais.push((custoBase / precoVenda) * 100);
+        } else if (custoBase > 0) {
+          // Sem preço mas com custo: trata como 100% (perda total)
+          cmvsIndividuais.push(100);
+        }
+      });
+
+      if (cmvsIndividuais.length > 0) {
+        const cmvMedio =
+          cmvsIndividuais.reduce((sum, v) => sum + v, 0) / cmvsIndividuais.length;
+        cmvResult.cmvPercentual = cmvMedio;
+        cmvResult.cmvDisponivel = true;
+      }
+
+
       // Valor em estoque (EF)
       const valorEmEstoque = calculateEstoqueFinal(produtosEstoque.data || []);
 
