@@ -206,6 +206,7 @@ export default function AdminUsers() {
     }
   };
 
+  const filteredUsers = users.filter((user) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       searchTerm === "" ||
