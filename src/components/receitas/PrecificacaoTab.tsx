@@ -402,16 +402,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                   <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     CMV
                   </CardTitle>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help text-muted-foreground/70 text-xs">ⓘ</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[260px]">
-                        <p className="text-xs">Custo de Mercadoria Vendida: % do preço consumido pelo custo da receita. Verde ≤30%, Amarelo ≤45%, Vermelho &gt;45%.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
               </CardHeader>
               <CardContent className="pb-4">
