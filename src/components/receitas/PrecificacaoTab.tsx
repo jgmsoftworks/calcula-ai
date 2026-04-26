@@ -471,7 +471,91 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         </Card>
       </div>
 
-      {/* Markup details card */}
+      {/* Custo Unitário & CMV */}
+      {(() => {
+        const rendimento = formData.rendimento_valor || receita?.rendimento_valor || 0;
+        const isSubReceita = selectedMarkup?.tipo === 'sub_receita';
+        const custoUnitario = isSubReceita || rendimento <= 0
+          ? custoTotal
+          : custoTotal / rendimento;
+        const precoVenda = formData.preco_venda || 0;
+        const cmv = precoVenda > 0 ? (custoUnitario / precoVenda) * 100 : null;
+        const cmvColor = cmv === null
+          ? 'text-muted-foreground'
+          : cmv <= 30
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : cmv <= 45
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-destructive';
+
+        return (
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="overflow-hidden">
+              <div className="h-0.5 bg-secondary/40" />
+              <CardHeader className="pb-2 pt-4">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-secondary" />
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Custo Unitário
+                  </CardTitle>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help text-muted-foreground/70 text-xs">ⓘ</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[240px]">
+                        <p className="text-xs">Custo total da receita dividido pelo rendimento (custo de uma unidade).</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </CardHeader>
+              <CardContent className="pb-4">
+                <p className="text-3xl font-bold font-display text-foreground">
+                  R$ {formatBRL(custoUnitario)}
+                </p>
+                {!isSubReceita && rendimento > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Rendimento: {rendimento} {formData.rendimento_unidade || receita?.rendimento_unidade || 'un'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden">
+              <div className="h-0.5 bg-primary/40" />
+              <CardHeader className="pb-2 pt-4">
+                <div className="flex items-center gap-2">
+                  <PieChart className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    CMV
+                  </CardTitle>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help text-muted-foreground/70 text-xs">ⓘ</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px]">
+                        <p className="text-xs">Custo de Mercadoria Vendida: % do preço consumido pelo custo da receita. Verde ≤30%, Amarelo ≤45%, Vermelho &gt;45%.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </CardHeader>
+              <CardContent className="pb-4">
+                <p className={cn("text-3xl font-bold font-display", cmvColor)}>
+                  {cmv === null ? '—' : `${cmv.toFixed(1).replace('.', ',')}%`}
+                </p>
+                {cmv !== null && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {cmv <= 30 ? 'Excelente margem' : cmv <= 45 ? 'Margem saudável' : 'Margem comprimida'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
       {selectedMarkup && (
         <MarkupCard
           key={selectedMarkup.id}
