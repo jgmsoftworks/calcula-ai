@@ -288,7 +288,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                 CMV
               </div>
               <div className={cn("text-sm md:text-lg font-bold font-display", cmvColor)}>
-                {cmvPercentual === null ? '—' : `${cmvPercentual.toFixed(1).replace('.', ',')}%`}
+                {cmvDisplay}
               </div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
