@@ -380,16 +380,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                   <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Custo Unitário
                   </CardTitle>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help text-muted-foreground/70 text-xs">ⓘ</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[240px]">
-                        <p className="text-xs">Custo total da receita dividido pelo rendimento (custo de uma unidade).</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
               </CardHeader>
               <CardContent className="pb-4">
