@@ -163,8 +163,6 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
     }
   };
 
-  const isSubReceita = receita.markup?.tipo === 'sub_receita';
-
   const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" }: any) => (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
