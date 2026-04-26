@@ -115,6 +115,19 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 
   const lucroLiquido = calcularLucroLiquido();
 
+  // CMV da receita = (Custo / Preço de Venda) × 100
+  const cmvPercentual = receita.preco_venda > 0
+    ? (custoBase / receita.preco_venda) * 100
+    : null;
+
+  const cmvColor = cmvPercentual === null
+    ? 'text-muted-foreground'
+    : cmvPercentual <= 30
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : cmvPercentual <= 45
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-destructive';
+
   const handleOpenPreview = async () => {
     setLoadingPreview(true);
     try {
