@@ -168,7 +168,44 @@ export default function AdminUsers() {
     }
   };
 
-  const filteredUsers = users.filter((user) => {
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      setDeletingUserId(userId);
+
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+        body: { userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Usuário excluído",
+        description: data?.message || "Usuário removido com sucesso.",
+      });
+
+      await fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir usuário",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUserId(null);
+      setDeleteAction(null);
+      setDeleteConfirmInput("");
+    }
+  };
+
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       searchTerm === "" ||
