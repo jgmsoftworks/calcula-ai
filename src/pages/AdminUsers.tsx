@@ -467,6 +467,31 @@ export default function AdminUsers() {
                           "Tornar Fornecedor"
                         )}
                       </Button>
+                      {currentAdminUser?.id !== user.user_id && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={deletingUserId === user.user_id}
+                          onClick={() => {
+                            setDeleteConfirmInput("");
+                            setDeleteAction({
+                              userId: user.user_id,
+                              email: user.email || "",
+                              userName: user.full_name || user.business_name || "este usuário",
+                            });
+                          }}
+                          title="Excluir usuário permanentemente"
+                        >
+                          {deletingUserId === user.user_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
