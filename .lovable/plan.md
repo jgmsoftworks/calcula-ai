@@ -1,40 +1,34 @@
+## Plano: Excluir usuários pelo painel ADM
 
+### Objetivo
+Adicionar um botão "Excluir Usuário" em cada card da tela de Gerenciar Usuários (`/admin-users`) para que o admin master possa apagar completamente o usuário — tanto do `auth.users` quanto de todos os dados associados no banco — permitindo que o e-mail seja reutilizado em um novo cadastro.
 
-## Plan: Fix Remaining Error-Level Security Findings
+### Mudanças
 
-### Analysis
+**1. Nova Edge Function: `admin-delete-user`**
+- Recebe `userId` no body.
+- Valida que o chamador está autenticado e possui role `admin` (via `has_role_or_higher`).
+- Bloqueia o admin de excluir a si mesmo (proteção contra perda de acesso).
+- Usa o `service_role` para deletar o usuário do `auth.users` via `supabaseAdmin.auth.admin.deleteUser(userId)`.
+- Como praticamente todas as tabelas usam `user_id = auth.uid()` sem foreign key direta, será feita uma limpeza explícita de dados em ordem segura nas principais tabelas: `profiles`, `produtos`, `receitas` (e dependentes), `markups`, `movimentacoes`, `comprovantes`, `despesas_fixas`, `categorias_despesas_fixas`, `encargos_venda`, `folha_pagamento`, `categorias`, `marcas`, `tipos_produto`, `fornecedores`, `user_roles`, `user_configurations`, `notifications`, `estoque_fechamentos_mensais`, `ordens_producao` (+ itens), `affiliates` (se existir vinculado), `coupon_redemptions`, `backup_history` e `admin_actions` referentes a ele.
+- Registra a ação em `admin_actions` (action_type `delete_user`) com email/nome para auditoria.
+- Retorna mensagem de sucesso.
 
-1. **sensitive_data_access_log_public_insert** — The previous migration (20260415013808) tried `DROP POLICY IF EXISTS "allow"` but the actual policy name is `"System can insert audit logs"`. The fix never applied. Need to drop the correct policy name and recreate it scoped to `service_role`.
+**2. Frontend: `src/pages/AdminUsers.tsx`**
+- Adicionar botão vermelho "Excluir" (ícone Trash2) em cada card, ao lado dos botões existentes.
+- Abrir um `AlertDialog` de confirmação **com dupla validação**: o admin precisa digitar o e-mail do usuário no input para liberar o botão "Excluir Permanentemente".
+- Texto do diálogo deixa claro: "Esta ação é IRREVERSÍVEL. Todos os dados do usuário (receitas, produtos, despesas, configurações) serão apagados. O e-mail ficará livre para novo cadastro."
+- Após sucesso: toast de confirmação e refresh da lista.
+- Esconder o botão de excluir para o próprio usuário logado.
 
-2. **user_roles_admin_bypass** — The trigger function `prevent_is_admin_self_update` was expanded to protect `is_admin`, `role`, `plan`, `plan_expires_at`. However, the `user_is_admin()` SQL function still exists and checks `profiles.is_admin` directly. If any RLS policy uses it, a user could theoretically benefit from a stale `is_admin=true`. The trigger prevents setting it, so the real fix is to **drop the `user_is_admin()` function** entirely (no code references it) so no future policy can accidentally use it, or replace its body to use `has_role_or_higher`.
+### Segurança
+- Verificação de role `admin` server-side (não confia no cliente).
+- Auto-exclusão bloqueada.
+- Auditoria gravada em `admin_actions`.
+- Confirmação dupla no UI (digitar e-mail) para evitar acidentes.
 
-3. **realtime_messages_no_policies** — Cannot create RLS on `realtime.messages` (reserved schema). Will ignore with explanation.
+### Arquivos
+- **Novo:** `supabase/functions/admin-delete-user/index.ts`
+- **Editado:** `src/pages/AdminUsers.tsx` (botão + diálogo de confirmação + handler)
 
-### Changes
-
-**1. SQL Migration**
-
-```sql
--- Fix: Drop the ACTUAL old policy on sensitive_data_access_log
-DROP POLICY IF EXISTS "System can insert audit logs" ON public.sensitive_data_access_log;
-CREATE POLICY "Service role inserts audit logs" ON public.sensitive_data_access_log
-  FOR INSERT TO service_role WITH CHECK (true);
-
--- Fix: Replace user_is_admin() to delegate to has_role_or_higher
--- This ensures any lingering usage is safe
-CREATE OR REPLACE FUNCTION public.user_is_admin()
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT has_role_or_higher('admin'::app_role, auth.uid());
-$$;
-```
-
-**2. Security findings management**
-- Mark `sensitive_data_access_log_public_insert` as fixed
-- Mark `user_roles_admin_bypass` as fixed
-- Ignore `realtime_messages_no_policies` (reserved schema)
-
-### Files
-- New SQL migration (single file)
-- No application code changes needed
-
+Nenhuma migração SQL é necessária — tudo é feito via service role na edge function.
