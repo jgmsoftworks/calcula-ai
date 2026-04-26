@@ -438,6 +438,125 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           </div>
         );
       })()}
+
+      {/* Markup Selector */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-display">Markup da Receita</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Selecione o markup para calcular a precificação
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {hasNoMarkups ? (
+            <div className="text-center py-8 text-muted-foreground border border-dashed border-border/60 rounded-2xl">
+              <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500/70" />
+              <p className="font-semibold text-sm">Nenhum markup configurado</p>
+              <p className="text-xs mt-1 text-muted-foreground">Vá para a aba Precificação para criar seus markups.</p>
+            </div>
+          ) : (
+            <>
+              {/* Custom markup selector */}
+              <Popover open={selectorOpen} onOpenChange={setSelectorOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      "w-full justify-between h-auto py-3 px-4 rounded-xl border-border/60",
+                      "hover:bg-muted/50 transition-all",
+                      selectedMarkup && "border-primary/30 bg-primary/[0.03]"
+                    )}
+                  >
+                    {selectedMarkup ? (
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0",
+                          selectedMarkup.tipo === 'sub_receita'
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-primary/10 text-primary"
+                        )}>
+                          {selectedMarkup.tipo === 'sub_receita' 
+                            ? <Package className="h-4 w-4" /> 
+                            : <TrendingUp className="h-4 w-4" />
+                          }
+                        </div>
+                        <div className="text-left">
+                          <div className="font-semibold text-sm">{selectedMarkup.nome}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {selectedMarkup.tipo === 'sub_receita' 
+                              ? 'Sub-receita • Preço = Custo' 
+                              : `Markup ${selectedMarkup.markup_ideal.toFixed(4)} • ${selectedMarkup.periodo} meses`
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Selecione um markup...</span>
+                    )}
+                    <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2 rounded-xl" align="start">
+                  <div className="space-y-1">
+                    {markupSubReceita && (
+                      <MarkupOption
+                        markup={markupSubReceita}
+                        isSelected={formData.markup_id === markupSubReceita.id}
+                        onSelect={() => handleSelectMarkup(markupSubReceita.id)}
+                        type="sub_receita"
+                      />
+                    )}
+                    {markupSubReceita && markups.length > 0 && (
+                      <div className="border-t border-border/40 my-1.5" />
+                    )}
+                    {markups.map((m) => (
+                      <MarkupOption
+                        key={m.id}
+                        markup={m}
+                        isSelected={formData.markup_id === m.id}
+                        onSelect={() => handleSelectMarkup(m.id)}
+                        type="normal"
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Warning if no markup selected */}
+              {!formData.markup_id && (
+                <div className="flex items-center gap-3 p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Selecione um markup para ativar os cálculos de precificação.
+                  </p>
+                </div>
+              )}
+
+              {/* Sub-recipe info */}
+              {isMarkupSubReceitaAtual && (
+                <div className="flex items-start gap-3 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-xl">
+                  <Info className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-sm text-emerald-900 dark:text-emerald-100">Sub-receita</h4>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                      O preço de venda é igual ao custo total. Esta receita ficará disponível para uso dentro de outras receitas.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {selectedMarkup && (
         <MarkupCard
           key={selectedMarkup.id}
