@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck } from "lucide-react";
+import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -42,7 +42,7 @@ interface MergedUser {
 }
 
 export default function AdminUsers() {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, user: currentAdminUser } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<MergedUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -58,6 +58,13 @@ export default function AdminUsers() {
     userId: string;
     email: string;
   } | null>(null);
+  const [deleteAction, setDeleteAction] = useState<{
+    userId: string;
+    email: string;
+    userName: string;
+  } | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [confirmingEmailUserId, setConfirmingEmailUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<MergedUser | null>(null);
@@ -158,6 +165,44 @@ export default function AdminUsers() {
     } finally {
       setConfirmingEmailUserId(null);
       setConfirmEmailAction(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      setDeletingUserId(userId);
+
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+        body: { userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Usuário excluído",
+        description: data?.message || "Usuário removido com sucesso.",
+      });
+
+      await fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir usuário",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUserId(null);
+      setDeleteAction(null);
+      setDeleteConfirmInput("");
     }
   };
 
@@ -422,6 +467,31 @@ export default function AdminUsers() {
                           "Tornar Fornecedor"
                         )}
                       </Button>
+                      {currentAdminUser?.id !== user.user_id && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={deletingUserId === user.user_id}
+                          onClick={() => {
+                            setDeleteConfirmInput("");
+                            setDeleteAction({
+                              userId: user.user_id,
+                              email: user.email || "",
+                              userName: user.full_name || user.business_name || "este usuário",
+                            });
+                          }}
+                          title="Excluir usuário permanentemente"
+                        >
+                          {deletingUserId === user.user_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -509,7 +579,71 @@ export default function AdminUsers() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal de edição de plano */}
+      {/* Dialog de confirmação para exclusão de usuário */}
+      <AlertDialog
+        open={!!deleteAction}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteAction(null);
+            setDeleteConfirmInput("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Excluir usuário permanentemente
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Você está prestes a excluir <strong>{deleteAction?.userName}</strong> ({deleteAction?.email}).
+                </p>
+                <p className="text-destructive font-medium">
+                  Esta ação é IRREVERSÍVEL. Todos os dados deste usuário (receitas, produtos, despesas, markups, configurações, etc.) serão apagados do banco de dados.
+                </p>
+                <p>
+                  O e-mail ficará livre para um novo cadastro.
+                </p>
+                <div className="pt-2">
+                  <label className="text-sm font-medium block mb-2">
+                    Para confirmar, digite o e-mail do usuário:
+                  </label>
+                  <Input
+                    value={deleteConfirmInput}
+                    onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                    placeholder={deleteAction?.email}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={
+                !deleteAction ||
+                deleteConfirmInput.trim().toLowerCase() !== deleteAction.email.trim().toLowerCase() ||
+                !!deletingUserId
+              }
+              onClick={() => {
+                if (deleteAction) {
+                  handleDeleteUser(deleteAction.userId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingUserId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Excluir Permanentemente"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {editingUser && (
         <EditUserPlanModal
           open={!!editingUser}
