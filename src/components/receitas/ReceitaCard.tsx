@@ -118,13 +118,23 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
   const isSubReceita = receita.markup?.tipo === 'sub_receita';
 
   // CMV da receita = (Custo / Preço de Venda) × 100
-  // Para sub-receitas o preço efetivo = custo (mesmo se preco_venda no banco estiver 0)
+  // Para sub-receitas, preço efetivo = custo (sempre 100%)
+  // Para demais receitas: se preço = 0 e custo > 0 → CMV "infinito" (>100%)
+  // Só mostra "—" quando não há custo nem preço (receita totalmente vazia)
   const precoEfetivo = isSubReceita
     ? (receita.preco_venda > 0 ? receita.preco_venda : custoBase)
     : receita.preco_venda;
-  const cmvPercentual = precoEfetivo > 0
-    ? (custoBase / precoEfetivo) * 100
-    : null;
+
+  let cmvPercentual: number | null = null;
+  let cmvDisplay = '—';
+  if (precoEfetivo > 0) {
+    cmvPercentual = (custoBase / precoEfetivo) * 100;
+    cmvDisplay = `${cmvPercentual.toFixed(1).replace('.', ',')}%`;
+  } else if (custoBase > 0) {
+    // Preço de venda zerado mas há custo → prejuízo total
+    cmvPercentual = 999;
+    cmvDisplay = '>100%';
+  }
 
   const cmvColor = cmvPercentual === null
     ? 'text-muted-foreground'
@@ -278,7 +288,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                 CMV
               </div>
               <div className={cn("text-sm md:text-lg font-bold font-display", cmvColor)}>
-                {cmvPercentual === null ? '—' : `${cmvPercentual.toFixed(1).replace('.', ',')}%`}
+                {cmvDisplay}
               </div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
