@@ -116,8 +116,12 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
   const lucroLiquido = calcularLucroLiquido();
 
   // CMV da receita = (Custo / Preço de Venda) × 100
-  const cmvPercentual = receita.preco_venda > 0
-    ? (custoBase / receita.preco_venda) * 100
+  // Para sub-receitas o preço efetivo = custo (mesmo se preco_venda no banco estiver 0)
+  const precoEfetivo = isSubReceita
+    ? (receita.preco_venda > 0 ? receita.preco_venda : custoBase)
+    : receita.preco_venda;
+  const cmvPercentual = precoEfetivo > 0
+    ? (custoBase / precoEfetivo) * 100
     : null;
 
   const cmvColor = cmvPercentual === null
