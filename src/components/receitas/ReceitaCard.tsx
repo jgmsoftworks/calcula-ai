@@ -264,10 +264,28 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           </div>
 
           {/* Bottom financial row */}
-          <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-2">
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Preço Venda</div>
               <div className="text-sm md:text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>
+            </div>
+            <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1 flex items-center justify-center gap-1">
+                CMV
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help text-muted-foreground/70">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[220px]">
+                      <p className="text-xs">Custo de Mercadoria Vendida: % do preço consumido pelo custo da receita. Verde ≤30%, Amarelo ≤45%, Vermelho &gt;45%.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className={cn("text-sm md:text-lg font-bold font-display", cmvColor)}>
+                {cmvPercentual === null ? '—' : `${cmvPercentual.toFixed(1).replace('.', ',')}%`}
+              </div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Bruto</div>
@@ -278,6 +296,20 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                 R$ {formatBRL(lucroBruto)}
               </div>
             </div>
+            <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
+              <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Líquido</div>
+              {isLoadingDetalhes ? (
+                <Skeleton className="h-5 md:h-7 w-16 md:w-20 mx-auto" />
+              ) : (
+                <div className={cn(
+                  "text-sm md:text-lg font-bold font-display",
+                  !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                )}>
+                  {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
+                </div>
+              )}
+            </div>
+          </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Líquido</div>
               {isLoadingDetalhes ? (
