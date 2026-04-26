@@ -427,6 +427,20 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                 <span className="font-semibold">Preço de Venda:</span>
                 <span className="font-bold">{formatBRL(precoVenda)}</span>
               </div>
+              {precoVenda > 0 && (() => {
+                const cmv = (custoTotal / precoVenda) * 100;
+                const cmvColor = cmv <= 30
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : cmv <= 45
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-destructive';
+                return (
+                  <div className="flex justify-between text-lg">
+                    <span className="font-semibold">CMV:</span>
+                    <span className={`font-bold ${cmvColor}`}>{cmv.toFixed(1).replace('.', ',')}%</span>
+                  </div>
+                );
+              })()}
               {receita.markup && (
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-muted-foreground">Markup aplicado:</span>

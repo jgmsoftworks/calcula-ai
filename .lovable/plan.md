@@ -1,34 +1,34 @@
-## Plano: Excluir usuários pelo painel ADM
+## Plano: Indicador CMV por Receita
 
-### Objetivo
-Adicionar um botão "Excluir Usuário" em cada card da tela de Gerenciar Usuários (`/admin-users`) para que o admin master possa apagar completamente o usuário — tanto do `auth.users` quanto de todos os dados associados no banco — permitindo que o e-mail seja reutilizado em um novo cadastro.
+### Conceito do CMV por receita
+Diferente do CMV global do Dashboard (que usa EI + Compras - EF do estoque do mês), o **CMV de uma receita individual** é o percentual do preço de venda que é "comido" pelo custo de produção daquela receita:
 
-### Mudanças
+```
+CMV% (receita) = (Custo Total da Receita / Preço de Venda) × 100
+```
 
-**1. Nova Edge Function: `admin-delete-user`**
-- Recebe `userId` no body.
-- Valida que o chamador está autenticado e possui role `admin` (via `has_role_or_higher`).
-- Bloqueia o admin de excluir a si mesmo (proteção contra perda de acesso).
-- Usa o `service_role` para deletar o usuário do `auth.users` via `supabaseAdmin.auth.admin.deleteUser(userId)`.
-- Como praticamente todas as tabelas usam `user_id = auth.uid()` sem foreign key direta, será feita uma limpeza explícita de dados em ordem segura nas principais tabelas: `profiles`, `produtos`, `receitas` (e dependentes), `markups`, `movimentacoes`, `comprovantes`, `despesas_fixas`, `categorias_despesas_fixas`, `encargos_venda`, `folha_pagamento`, `categorias`, `marcas`, `tipos_produto`, `fornecedores`, `user_roles`, `user_configurations`, `notifications`, `estoque_fechamentos_mensais`, `ordens_producao` (+ itens), `affiliates` (se existir vinculado), `coupon_redemptions`, `backup_history` e `admin_actions` referentes a ele.
-- Registra a ação em `admin_actions` (action_type `delete_user`) com email/nome para auditoria.
-- Retorna mensagem de sucesso.
+Onde:
+- **Custo Total da Receita** = `custo_ingredientes + custo_embalagens + custo_mão_obra + custo_sub_receitas` (já calculado no `ReceitaCard`, normalizado por unidade quando tem rendimento).
+- **Preço de Venda** = `receita.preco_venda`.
 
-**2. Frontend: `src/pages/AdminUsers.tsx`**
-- Adicionar botão vermelho "Excluir" (ícone Trash2) em cada card, ao lado dos botões existentes.
-- Abrir um `AlertDialog` de confirmação **com dupla validação**: o admin precisa digitar o e-mail do usuário no input para liberar o botão "Excluir Permanentemente".
-- Texto do diálogo deixa claro: "Esta ação é IRREVERSÍVEL. Todos os dados do usuário (receitas, produtos, despesas, configurações) serão apagados. O e-mail ficará livre para novo cadastro."
-- Após sucesso: toast de confirmação e refresh da lista.
-- Esconder o botão de excluir para o próprio usuário logado.
+### Interpretação visual (faixas)
+- **CMV ≤ 30%** → Verde (excelente, alta margem).
+- **CMV 30%–45%** → Amarelo (saudável, padrão da indústria food service).
+- **CMV > 45%** → Vermelho (atenção, margem comprimida).
+- **Sem preço de venda** → exibir "—".
 
-### Segurança
-- Verificação de role `admin` server-side (não confia no cliente).
-- Auto-exclusão bloqueada.
-- Auditoria gravada em `admin_actions`.
-- Confirmação dupla no UI (digitar e-mail) para evitar acidentes.
+### Onde aparece
+1. **`ReceitaCard.tsx`** — adicionar o indicador CMV ao lado/junto dos cards financeiros existentes (Preço Venda, Lucro Bruto, Lucro Líquido). A linha inferior passa de 3 colunas para 4, mantendo o layout responsivo (em mobile vira 2x2).
+2. **`ReceitaPreviewModal.tsx`** — também exibir o CMV junto às métricas financeiras do preview, para consistência.
 
-### Arquivos
-- **Novo:** `supabase/functions/admin-delete-user/index.ts`
-- **Editado:** `src/pages/AdminUsers.tsx` (botão + diálogo de confirmação + handler)
+### Banco de dados
+**NENHUMA alteração no banco.** O cálculo é puramente derivado de campos já existentes (`custo_ingredientes`, `custo_embalagens`, `custo_mao_obra`, `custo_sub_receitas`, `preco_venda`, `rendimento_valor`). Nada será migrado, criado ou deletado.
 
-Nenhuma migração SQL é necessária — tudo é feito via service role na edge function.
+### Arquivos modificados
+- `src/components/receitas/ReceitaCard.tsx` — adicionar célula CMV no grid inferior + função utilitária local de cálculo e cor.
+- `src/components/receitas/ReceitaPreviewModal.tsx` — adicionar exibição do CMV nas métricas financeiras.
+
+### Observações técnicas
+- Para sub-receitas (markup tipo `sub_receita`), o CMV tende a ser ~100% (preço = custo). Isso é matematicamente correto e será exibido normalmente.
+- Quando `preco_venda = 0` ou inexistente, o componente exibe "—" para evitar divisão por zero.
+- Sem chamadas extras ao banco — tudo derivado dos dados já carregados em `ReceitaComDados`.
