@@ -181,16 +181,20 @@ export function useMarkupInitializer() {
         const totalPercentuais = totalEncargos + bloco.lucroDesejado;
         const markupIdealCorreto = totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.25;
 
+        const ehSubReceita =
+          bloco.id === 'subreceita-fixo' ||
+          bloco.nome.toLowerCase().includes('sub');
+
         const markupData = {
           user_id: user.id,
           nome: bloco.nome,
-          tipo: bloco.nome.toLowerCase().includes('sub') ? 'sub_receita' : 'normal',
+          tipo: ehSubReceita ? 'sub_receita' : 'normal',
           periodo: bloco.periodo,
           margem_lucro: bloco.lucroDesejado,
           gasto_sobre_faturamento: categorias.gastoSobreFaturamento,
           encargos_sobre_venda: categorias.impostos + categorias.taxasMeiosPagamento + categorias.comissoesPlataformas + categorias.outros,
-          markup_ideal: markupIdealCorreto,
-          markup_aplicado: markupIdealCorreto,
+          markup_ideal: ehSubReceita ? 1.0 : markupIdealCorreto,
+          markup_aplicado: ehSubReceita ? 1.0 : markupIdealCorreto,
           preco_sugerido: categorias.valorEmReal,
           despesas_fixas_selecionadas: despesasFixasSelecionadas,
           folha_pagamento_selecionada: folhaPagamentoSelecionada,
