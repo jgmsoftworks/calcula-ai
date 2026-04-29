@@ -1,0 +1,1 @@
+UPDATE public.profiles SET plan='enterprise', plan_expires_at = now() + interval '30 days', updated_at = now() WHERE user_id='2e06deb6-d65e-42a0-8af3-254c054d6888';
