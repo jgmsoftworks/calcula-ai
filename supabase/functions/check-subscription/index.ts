@@ -182,7 +182,7 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = logError(error, "Main function execution");
     
-    // Fallback seguro: sempre retornar plano free em caso de erro
+    // Fallback seguro: preservar plano manual ativo quando existir; só usar free se não houver plano pago válido
     try {
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
@@ -195,6 +195,30 @@ serve(async (req) => {
         
         const { data: userData } = await supabaseClient.auth.getUser(token);
         if (userData.user) {
+          const { data: currentProfile } = await supabaseClient
+            .from('profiles')
+            .select('plan, plan_expires_at')
+            .eq('user_id', userData.user.id)
+            .maybeSingle();
+
+          const currentPlan = currentProfile?.plan || 'free';
+          const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
+          const hasActiveManualPlan = currentPlan !== 'free' && (
+            !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
+          );
+
+          if (hasActiveManualPlan) {
+            return new Response(JSON.stringify({ 
+              subscribed: true, 
+              plan: currentPlan,
+              subscription_end: currentPlanExpiresAt,
+              warning: "Assinatura Stripe indisponível; plano manual ativo preservado."
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            });
+          }
+
           await supabaseClient
             .from('profiles')
             .upsert({ 
