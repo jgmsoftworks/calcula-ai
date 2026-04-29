@@ -65,11 +65,36 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    const { data: currentProfile } = await supabaseClient
+      .from('profiles')
+      .select('plan, plan_expires_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const currentPlan = currentProfile?.plan || 'free';
+    const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
+    const hasActiveManualPlan = currentPlan !== 'free' && (
+      !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
+    );
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating to free plan");
+      if (hasActiveManualPlan) {
+        logStep("No customer found, preserving active manual plan", { currentPlan, currentPlanExpiresAt });
+
+        return new Response(JSON.stringify({ 
+          subscribed: true,
+          plan: currentPlan,
+          subscription_end: currentPlanExpiresAt
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      logStep("No customer found and no active manual plan, updating to free plan");
       
       // Atualizar perfil para plano free
       await supabaseClient
@@ -121,7 +146,20 @@ serve(async (req) => {
           plan_expires_at: subscriptionEnd
         });
     } else {
-      logStep("No active subscription found, updating to free");
+      if (hasActiveManualPlan) {
+        logStep("No active subscription found, preserving active manual plan", { currentPlan, currentPlanExpiresAt });
+
+        return new Response(JSON.stringify({
+          subscribed: true,
+          plan: currentPlan,
+          subscription_end: currentPlanExpiresAt
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      logStep("No active subscription found and no active manual plan, updating to free");
       
       // Atualizar perfil para plano free
       await supabaseClient
@@ -144,7 +182,7 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = logError(error, "Main function execution");
     
-    // Fallback seguro: sempre retornar plano free em caso de erro
+    // Fallback seguro: preservar plano manual ativo quando existir; só usar free se não houver plano pago válido
     try {
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
@@ -157,6 +195,30 @@ serve(async (req) => {
         
         const { data: userData } = await supabaseClient.auth.getUser(token);
         if (userData.user) {
+          const { data: currentProfile } = await supabaseClient
+            .from('profiles')
+            .select('plan, plan_expires_at')
+            .eq('user_id', userData.user.id)
+            .maybeSingle();
+
+          const currentPlan = currentProfile?.plan || 'free';
+          const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
+          const hasActiveManualPlan = currentPlan !== 'free' && (
+            !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
+          );
+
+          if (hasActiveManualPlan) {
+            return new Response(JSON.stringify({ 
+              subscribed: true, 
+              plan: currentPlan,
+              subscription_end: currentPlanExpiresAt,
+              warning: "Assinatura Stripe indisponível; plano manual ativo preservado."
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            });
+          }
+
           await supabaseClient
             .from('profiles')
             .upsert({ 
