@@ -687,14 +687,19 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   };
 
   const criarNovoBloco = async () => {
+    // Contar apenas blocos NORMAIS (sub-receita é liberada para todos os planos)
+    const blocosNormais = blocos.filter(
+      (b) => b.id !== 'subreceita-fixo' && !b.nome.toLowerCase().includes('sub')
+    );
+
     // Verificar limite antes de adicionar
     const limitCheck = await checkLimit('markups');
-    
+
     if (!limitCheck.allowed) {
       if (limitCheck.reason === 'limit_exceeded') {
         toast({
           title: 'Limite atingido',
-          description: `Você atingiu o limite de ${limitCheck.maxAllowed} blocos de markup do seu plano. Faça upgrade para criar mais blocos.`,
+          description: `Você já tem ${limitCheck.currentCount ?? blocosNormais.length} de ${limitCheck.maxAllowed} blocos de markup do plano ${limitCheck.plan ?? ''}. Faça upgrade para criar mais blocos.`,
           variant: 'destructive',
         });
         setShowUpgradeModal(true);
@@ -707,7 +712,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     // 🎯 NOVO: Criação direta sem modal complexo
     const novoBloco: MarkupBlock = {
       id: Date.now().toString(),
-      nome: `Markup ${blocos.length + 1}`,
+      nome: `Markup ${blocosNormais.length + 1}`,
       gastoSobreFaturamento: 0,
       impostos: 0,
       taxasMeiosPagamento: 0,
