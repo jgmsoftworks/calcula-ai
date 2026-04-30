@@ -9,6 +9,7 @@ import {
   ChefHat,
   Crown,
   Users,
+  CreditCard,
   ArrowRightFromLine,
 } from 'lucide-react';
 import {
@@ -60,6 +61,7 @@ export function AppSidebar() {
 
   const adminItems = [
     { title: t('nav.gerenciarUsuarios'), url: '/admin/usuarios', icon: Users },
+    { title: 'Painel Stripe', url: '/admin/stripe', icon: CreditCard },
     { title: t('nav.configuracoes'), url: '/admin-configuracoes', icon: Building2 },
   ];
 
