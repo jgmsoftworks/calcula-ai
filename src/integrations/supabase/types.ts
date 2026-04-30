@@ -1137,6 +1137,93 @@ export type Database = {
           },
         ]
       }
+      nf_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          error_message: string | null
+          id: string
+          issued_at: string | null
+          nf_external_id: string | null
+          nf_number: string | null
+          nf_pdf_url: string | null
+          nf_provider: string | null
+          nf_xml_url: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          issued_at?: string | null
+          nf_external_id?: string | null
+          nf_number?: string | null
+          nf_pdf_url?: string | null
+          nf_provider?: string | null
+          nf_xml_url?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          issued_at?: string | null
+          nf_external_id?: string | null
+          nf_number?: string | null
+          nf_pdf_url?: string | null
+          nf_provider?: string | null
+          nf_xml_url?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nf_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1357,6 +1444,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_links: {
+        Row: {
+          active: boolean
+          billing: string
+          created_at: string
+          id: string
+          notes: string | null
+          plan_type: string
+          price_id: string | null
+          updated_at: string
+          updated_by: string | null
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          billing: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          plan_type: string
+          price_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          url: string
+        }
+        Update: {
+          active?: boolean
+          billing?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          plan_type?: string
+          price_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          url?: string
+        }
+        Relationships: []
       }
       produtos: {
         Row: {
@@ -2094,6 +2220,36 @@ export type Database = {
           processed?: boolean | null
           processed_at?: string
           stripe_event_id?: string
+        }
+        Relationships: []
+      }
+      stripe_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
         }
         Relationships: []
       }

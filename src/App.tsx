@@ -23,6 +23,7 @@ import Planos from "./pages/Planos";
 import PerfilNegocio from "./pages/PerfilNegocio";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
+import AdminStripe from "./pages/AdminStripe";
 import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
 import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
                 <Route path="/admin/usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
                 <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
+                <Route path="/admin/stripe" element={<AppLayout><AdminStripe /></AppLayout>} />
                 <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
                 <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
