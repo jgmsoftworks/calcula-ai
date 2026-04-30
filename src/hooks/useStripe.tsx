@@ -101,8 +101,8 @@ export const useStripe = () => {
         return;
       }
 
-      const planKey = `${planType}_${billing}` as keyof typeof DIRECT_CHECKOUT_LINKS;
-      const directCheckoutUrl = DIRECT_CHECKOUT_LINKS[planKey];
+      const planKey = `${planType}_${billing}`;
+      const directCheckoutUrl = await getCheckoutLink(planType, billing);
 
       if (directCheckoutUrl) {
         console.log('[CHECKOUT] Usando link direto do Stripe:', { planKey, directCheckoutUrl });
