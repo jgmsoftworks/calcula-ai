@@ -635,10 +635,19 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   };
 
+  const tabLabels: Record<string, string> = {
+    'geral': '1 Geral',
+    'ingredientes': '2 Ingredientes',
+    'sub-receitas': '3 Sub-receitas',
+    'embalagens': '4 Embalagens',
+    'projecao': '5 Projeção',
+    'precificacao': '6 Precificação',
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent 
-        className="w-full max-w-[95vw] lg:max-w-[1000px] h-[90vh] max-h-[810px] flex flex-col p-0 overflow-hidden"
+        className="w-full max-w-[95vw] lg:max-w-[1000px] h-[95vh] md:h-[90vh] md:max-h-[810px] flex flex-col p-0 overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 py-4 border-b shrink-0">
@@ -647,8 +656,23 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           {/* TabsList FIXA - fora da área de scroll */}
-          <div className="px-6 py-4 border-b shrink-0 bg-background">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1">
+          <div className="px-2 md:px-6 py-2 md:py-4 border-b shrink-0 bg-background">
+            <div className="md:hidden">
+              <div className="flex items-center justify-between px-2 mb-2">
+                <span className="text-xs font-medium text-muted-foreground">Etapa {currentTabIndex + 1} de {tabs.length}</span>
+                <span className="text-sm font-semibold truncate">{tabLabels[activeTab]}</span>
+              </div>
+              <div className="overflow-x-auto -mx-2 px-2 no-scrollbar">
+                <TabsList className="inline-flex w-auto h-auto gap-1 p-1">
+                  {tabs.map((t) => (
+                    <TabsTrigger key={t} value={t} className="whitespace-nowrap text-xs px-3 py-2">
+                      {tabLabels[t]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+            </div>
+            <TabsList className="hidden md:grid w-full grid-cols-6 gap-1">
               <TabsTrigger value="geral">1 Geral</TabsTrigger>
               <TabsTrigger value="ingredientes">2 Ingredientes</TabsTrigger>
               <TabsTrigger value="sub-receitas">3 Sub-receitas</TabsTrigger>
@@ -659,7 +683,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </div>
 
           {/* Área de SCROLL - só o conteúdo */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 md:py-4">
             <TabsContent value="geral" className="mt-0">
               <GeralTab
                 receita={receitaCompleta}
@@ -748,30 +772,27 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </div>
         </Tabs>
 
-      <div className="flex justify-between items-center px-6 py-4 border-t shrink-0 bg-background">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentTabIndex === 0}
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Anterior
+      <div className="flex justify-between items-center gap-2 px-3 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
+          <Button variant="outline" size="sm" onClick={handlePrevious} disabled={currentTabIndex === 0}>
+            <ChevronLeft className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Anterior</span>
           </Button>
 
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose}>
             Cancelar
           </Button>
 
-          <Button onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
+          <Button size="sm" onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {currentTabIndex === tabs.length - 1 
-              ? (receita ? 'Atualizar Receita' : 'Criar Receita')
+            {currentTabIndex === tabs.length - 1
+              ? (receita ? 'Atualizar' : 'Criar')
               : 'Próximo'
             }
-            {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-2" />}
+            {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-1 md:ml-2" />}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
