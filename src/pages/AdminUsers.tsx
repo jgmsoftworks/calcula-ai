@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck, Trash2 } from "lucide-react";
+import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck, Trash2, Phone, MessageCircle, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -36,10 +36,19 @@ interface MergedUser {
   business_name: string | null;
   plan: string;
   cnpj_cpf: string | null;
+  phone: string | null;
+  celular: string | null;
+  whatsapp: string | null;
+  telefone_comercial: string | null;
   has_profile: boolean;
   eh_fornecedor: boolean;
   fornecedor_id: string | null;
 }
+
+const getPrimaryPhone = (u: { phone: string | null; celular: string | null; whatsapp: string | null; telefone_comercial: string | null }) =>
+  u.whatsapp || u.celular || u.phone || u.telefone_comercial || null;
+
+const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
 export default function AdminUsers() {
   const { isAdmin, loading, user: currentAdminUser } = useAuth();
@@ -305,6 +314,70 @@ export default function AdminUsers() {
         </Badge>
       </div>
 
+      {(() => {
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const newUsers = users
+          .filter(u => new Date(u.created_at).getTime() >= sevenDaysAgo)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        if (newUsers.length === 0) return null;
+        return (
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Novos Usuários (últimos 7 dias)
+                <Badge variant="secondary" className="ml-2">{newUsers.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {newUsers.map(u => {
+                  const phone = getPrimaryPhone(u);
+                  return (
+                    <div key={u.user_id} className="rounded-xl border border-border/40 bg-card/60 p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold truncate">
+                          {u.full_name || u.business_name || u.email?.split('@')[0] || 'Sem nome'}
+                        </p>
+                        {getPlanBadge(u.plan)}
+                      </div>
+                      {u.email && (
+                        <a href={`mailto:${u.email}`} className="text-xs text-muted-foreground hover:underline flex items-center gap-1 truncate">
+                          <Mail className="h-3 w-3 shrink-0" /> {u.email}
+                        </a>
+                      )}
+                      {phone ? (
+                        <div className="flex items-center gap-2 text-xs">
+                          <a href={`tel:${onlyDigits(phone)}`} className="flex items-center gap-1 hover:underline">
+                            <Phone className="h-3 w-3" /> {phone}
+                          </a>
+                          {u.whatsapp && (
+                            <a
+                              href={`https://wa.me/55${onlyDigits(u.whatsapp)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-emerald-600 hover:underline"
+                            >
+                              <MessageCircle className="h-3 w-3" /> WhatsApp
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Sem telefone cadastrado</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Cadastro: {new Date(u.created_at).toLocaleDateString('pt-BR')} ({formatLastSignIn(u.created_at)})
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
@@ -378,7 +451,25 @@ export default function AdminUsers() {
                         {user.email && (
                           <p className="flex items-center gap-2">
                             <Mail className="h-3 w-3" />
-                            {user.email}
+                            <a href={`mailto:${user.email}`} className="hover:underline">{user.email}</a>
+                          </p>
+                        )}
+                        {getPrimaryPhone(user) && (
+                          <p className="flex items-center gap-2">
+                            <Phone className="h-3 w-3" />
+                            <a href={`tel:${onlyDigits(getPrimaryPhone(user)!)}`} className="hover:underline">
+                              {getPrimaryPhone(user)}
+                            </a>
+                            {user.whatsapp && (
+                              <a
+                                href={`https://wa.me/55${onlyDigits(user.whatsapp)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-emerald-600 hover:underline ml-2"
+                              >
+                                <MessageCircle className="h-3 w-3" /> WhatsApp
+                              </a>
+                            )}
                           </p>
                         )}
                         {user.business_name && (
