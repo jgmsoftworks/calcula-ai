@@ -772,30 +772,22 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </div>
         </Tabs>
 
-      <div className="flex justify-between items-center px-6 py-4 border-t shrink-0 bg-background">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentTabIndex === 0}
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Anterior
+      <div className="flex justify-between items-center gap-2 px-3 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
+          <Button variant="outline" size="sm" onClick={handlePrevious} disabled={currentTabIndex === 0}>
+            <ChevronLeft className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Anterior</span>
           </Button>
 
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose}>
             Cancelar
           </Button>
 
-          <Button onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
+          <Button size="sm" onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {currentTabIndex === tabs.length - 1 
-              ? (receita ? 'Atualizar Receita' : 'Criar Receita')
+            {currentTabIndex === tabs.length - 1
+              ? (receita ? 'Atualizar' : 'Criar')
               : 'Próximo'
             }
-            {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-2" />}
+            {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-1 md:ml-2" />}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
