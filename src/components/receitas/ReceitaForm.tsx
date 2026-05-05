@@ -647,8 +647,23 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           {/* TabsList FIXA - fora da área de scroll */}
-          <div className="px-6 py-4 border-b shrink-0 bg-background">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1">
+          <div className="px-2 md:px-6 py-2 md:py-4 border-b shrink-0 bg-background">
+            <div className="md:hidden">
+              <div className="flex items-center justify-between px-2 mb-2">
+                <span className="text-xs font-medium text-muted-foreground">Etapa {currentTabIndex + 1} de {tabs.length}</span>
+                <span className="text-sm font-semibold truncate">{tabLabels[activeTab]}</span>
+              </div>
+              <div className="overflow-x-auto -mx-2 px-2 no-scrollbar">
+                <TabsList className="inline-flex w-auto h-auto gap-1 p-1">
+                  {tabs.map((t) => (
+                    <TabsTrigger key={t} value={t} className="whitespace-nowrap text-xs px-3 py-2">
+                      {tabLabels[t]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+            </div>
+            <TabsList className="hidden md:grid w-full grid-cols-6 gap-1">
               <TabsTrigger value="geral">1 Geral</TabsTrigger>
               <TabsTrigger value="ingredientes">2 Ingredientes</TabsTrigger>
               <TabsTrigger value="sub-receitas">3 Sub-receitas</TabsTrigger>
