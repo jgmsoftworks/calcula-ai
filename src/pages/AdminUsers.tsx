@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck, Trash2 } from "lucide-react";
+import { Loader2, Search, Store, User, Crown, Building2, Mail, Clock, Calendar, CheckCircle, AlertCircle, MailCheck, Trash2, Phone, MessageCircle, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
