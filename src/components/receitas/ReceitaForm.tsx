@@ -791,3 +791,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-1 md:ml-2" />}
           </Button>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
