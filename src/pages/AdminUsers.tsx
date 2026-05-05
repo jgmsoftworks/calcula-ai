@@ -314,6 +314,70 @@ export default function AdminUsers() {
         </Badge>
       </div>
 
+      {(() => {
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const newUsers = users
+          .filter(u => new Date(u.created_at).getTime() >= sevenDaysAgo)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        if (newUsers.length === 0) return null;
+        return (
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Novos Usuários (últimos 7 dias)
+                <Badge variant="secondary" className="ml-2">{newUsers.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {newUsers.map(u => {
+                  const phone = getPrimaryPhone(u);
+                  return (
+                    <div key={u.user_id} className="rounded-xl border border-border/40 bg-card/60 p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold truncate">
+                          {u.full_name || u.business_name || u.email?.split('@')[0] || 'Sem nome'}
+                        </p>
+                        {getPlanBadge(u.plan)}
+                      </div>
+                      {u.email && (
+                        <a href={`mailto:${u.email}`} className="text-xs text-muted-foreground hover:underline flex items-center gap-1 truncate">
+                          <Mail className="h-3 w-3 shrink-0" /> {u.email}
+                        </a>
+                      )}
+                      {phone ? (
+                        <div className="flex items-center gap-2 text-xs">
+                          <a href={`tel:${onlyDigits(phone)}`} className="flex items-center gap-1 hover:underline">
+                            <Phone className="h-3 w-3" /> {phone}
+                          </a>
+                          {u.whatsapp && (
+                            <a
+                              href={`https://wa.me/55${onlyDigits(u.whatsapp)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-emerald-600 hover:underline"
+                            >
+                              <MessageCircle className="h-3 w-3" /> WhatsApp
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Sem telefone cadastrado</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Cadastro: {new Date(u.created_at).toLocaleDateString('pt-BR')} ({formatLastSignIn(u.created_at)})
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
