@@ -635,6 +635,15 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   };
 
+  const tabLabels: Record<string, string> = {
+    'geral': '1 Geral',
+    'ingredientes': '2 Ingredientes',
+    'sub-receitas': '3 Sub-receitas',
+    'embalagens': '4 Embalagens',
+    'projecao': '5 Projeção',
+    'precificacao': '6 Precificação',
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent 
