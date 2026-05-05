@@ -36,10 +36,19 @@ interface MergedUser {
   business_name: string | null;
   plan: string;
   cnpj_cpf: string | null;
+  phone: string | null;
+  celular: string | null;
+  whatsapp: string | null;
+  telefone_comercial: string | null;
   has_profile: boolean;
   eh_fornecedor: boolean;
   fornecedor_id: string | null;
 }
+
+const getPrimaryPhone = (u: { phone: string | null; celular: string | null; whatsapp: string | null; telefone_comercial: string | null }) =>
+  u.whatsapp || u.celular || u.phone || u.telefone_comercial || null;
+
+const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
 export default function AdminUsers() {
   const { isAdmin, loading, user: currentAdminUser } = useAuth();
