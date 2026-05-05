@@ -176,7 +176,41 @@ export function SubReceitasTab({
               Total: R$ {formatBRL(total)}
             </Badge>
           </div>
-          <Table>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
+            {subReceitas.map((subReceita) => {
+              if (!subReceita.sub_receita) return null;
+              const custoUnitario = subReceita.sub_receita.rendimento_valor && subReceita.sub_receita.rendimento_valor > 0
+                ? subReceita.sub_receita.preco_venda / subReceita.sub_receita.rendimento_valor
+                : subReceita.sub_receita.preco_venda;
+              const custoTotal = custoUnitario * subReceita.quantidade;
+              const unidade = subReceita.sub_receita.rendimento_unidade || 'un';
+              return (
+                <div key={subReceita.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-sm flex-1">{subReceita.sub_receita.nome}</p>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSubReceita(subReceita.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <NumericInput
+                      value={subReceita.quantidade}
+                      onChange={(e) => handleUpdateQuantidade(subReceita.id, Number(e.target.value))}
+                      className="w-24 text-right"
+                      min={0}
+                      step={0.01}
+                    />
+                    <span className="text-xs text-muted-foreground">{unidade}</span>
+                    <span className="ml-auto text-sm font-semibold">R$ {formatBRL(custoTotal)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Unit: R$ {formatNumber(custoUnitario, 4)}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Sub-receita</TableHead>
