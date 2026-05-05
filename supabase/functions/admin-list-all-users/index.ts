@@ -106,6 +106,10 @@ serve(async (req) => {
         business_name: profile?.business_name || null,
         plan: profile?.plan || 'free',
         cnpj_cpf: profile?.cnpj_cpf || null,
+        phone: profile?.phone || null,
+        celular: profile?.celular || null,
+        whatsapp: profile?.whatsapp || null,
+        telefone_comercial: profile?.telefone_comercial || null,
         has_profile: !!profile,
         // Fornecedor status
         eh_fornecedor: fornecedor?.eh_fornecedor || false,
