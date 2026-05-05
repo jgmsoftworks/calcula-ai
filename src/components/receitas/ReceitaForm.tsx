@@ -683,7 +683,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </div>
 
           {/* Área de SCROLL - só o conteúdo */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 md:py-4">
             <TabsContent value="geral" className="mt-0">
               <GeralTab
                 receita={receitaCompleta}
