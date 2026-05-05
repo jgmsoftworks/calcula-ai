@@ -70,7 +70,7 @@ serve(async (req) => {
     // Get all profiles
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, full_name, business_name, plan, created_at, cnpj_cpf');
+      .select('user_id, full_name, business_name, plan, created_at, cnpj_cpf, phone, celular, whatsapp, telefone_comercial');
 
     if (profilesError) {
       throw profilesError;
