@@ -387,7 +387,25 @@ export default function AdminUsers() {
                         {user.email && (
                           <p className="flex items-center gap-2">
                             <Mail className="h-3 w-3" />
-                            {user.email}
+                            <a href={`mailto:${user.email}`} className="hover:underline">{user.email}</a>
+                          </p>
+                        )}
+                        {getPrimaryPhone(user) && (
+                          <p className="flex items-center gap-2">
+                            <Phone className="h-3 w-3" />
+                            <a href={`tel:${onlyDigits(getPrimaryPhone(user)!)}`} className="hover:underline">
+                              {getPrimaryPhone(user)}
+                            </a>
+                            {user.whatsapp && (
+                              <a
+                                href={`https://wa.me/55${onlyDigits(user.whatsapp)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-emerald-600 hover:underline ml-2"
+                              >
+                                <MessageCircle className="h-3 w-3" /> WhatsApp
+                              </a>
+                            )}
                           </p>
                         )}
                         {user.business_name && (
