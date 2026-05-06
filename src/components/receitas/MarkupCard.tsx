@@ -235,13 +235,13 @@ export function MarkupCard({
         className={alwaysExpanded ? "" : "cursor-pointer"} 
         onClick={alwaysExpanded ? undefined : () => setExpanded(!expanded)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base">{markup.nome}</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <CardTitle className="text-base truncate">{markup.nome}</CardTitle>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md p-4">
                   <div className="space-y-3 text-sm">
@@ -305,11 +305,11 @@ export function MarkupCard({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{markup.tipo}</Badge>
-            <Badge variant="secondary">{markup.periodo} meses</Badge>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{markup.tipo}</Badge>
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{markup.periodo}m</Badge>
             {isSelected && (
-              <Badge className="bg-primary text-primary-foreground font-semibold flex items-center gap-1">
+              <Badge className="bg-primary text-primary-foreground font-semibold flex items-center gap-1 text-[10px] px-2 py-0.5">
                 <Check className="h-3 w-3" />
                 Selecionado
               </Badge>
