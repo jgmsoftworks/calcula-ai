@@ -136,23 +136,56 @@ export function useExportReceitaPDF() {
       // Criar PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      let currentY = 15;
-      
-      // ============================================================================
-      // CABEÇALHO - Nome da receita centralizado
-      // ============================================================================
-      doc.setFontSize(16);
+
+      // PALETA DA MARCA (CalculaAi)
+      const BRAND = {
+        blue: [4, 131, 228] as [number, number, number],
+        indigo: [44, 77, 199] as [number, number, number],
+        purple: [115, 40, 177] as [number, number, number],
+        magenta: [175, 17, 136] as [number, number, number],
+        rose: [221, 11, 82] as [number, number, number],
+        orange: [249, 110, 12] as [number, number, number],
+        ink: [30, 30, 45] as [number, number, number],
+        muted: [110, 116, 134] as [number, number, number],
+        border: [225, 228, 235] as [number, number, number],
+        soft: [245, 247, 251] as [number, number, number],
+      };
+
+      const drawBrandGradient = (x: number, y: number, w: number, h: number) => {
+        const stops = [BRAND.blue, BRAND.indigo, BRAND.purple, BRAND.magenta, BRAND.rose, BRAND.orange];
+        const steps = 60;
+        const stepW = w / steps;
+        for (let i = 0; i < steps; i++) {
+          const t = i / (steps - 1);
+          const seg = t * (stops.length - 1);
+          const idx = Math.floor(seg);
+          const local = seg - idx;
+          const a = stops[idx];
+          const b = stops[Math.min(idx + 1, stops.length - 1)];
+          const r = Math.round(a[0] + (b[0] - a[0]) * local);
+          const g = Math.round(a[1] + (b[1] - a[1]) * local);
+          const bl = Math.round(a[2] + (b[2] - a[2]) * local);
+          doc.setFillColor(r, g, bl);
+          doc.rect(x + i * stepW, y, stepW + 0.3, h, 'F');
+        }
+      };
+
+      // Faixa de gradiente no topo da página
+      drawBrandGradient(0, 0, pageWidth, 4);
+
+      let currentY = 12;
+
+      // CABEÇALHO - Nome da receita
+      doc.setFontSize(17);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
+      doc.setTextColor(BRAND.ink[0], BRAND.ink[1], BRAND.ink[2]);
       const nomeReceita = receita.nome.toUpperCase();
       doc.text(nomeReceita, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 4;
+
+      // Linha gradiente fininha sob o título
+      drawBrandGradient(15, currentY, pageWidth - 30, 1);
       currentY += 8;
-      
-      // Linha horizontal abaixo do nome
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.5);
-      doc.line(15, currentY, pageWidth - 15, currentY);
-      currentY += 10;
       
       // ============================================================================
       // TRÊS COLUNAS: Esquerda (Logo + Empresa) | Centro (Foto) | Direita (Dados)
@@ -188,20 +221,20 @@ export function useExportReceitaPDF() {
       if (logoBase64) {
         try {
           doc.addImage(logoBase64, 'PNG', colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
-          doc.setDrawColor(200, 200, 200);
+          doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
           doc.setLineWidth(0.3);
           doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
         } catch (error) {
           console.error('Erro ao adicionar logo da empresa:', error);
-          doc.setFillColor(240, 240, 240);
+          doc.setFillColor(BRAND.soft[0], BRAND.soft[1], BRAND.soft[2]);
           doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight, 'F');
-          doc.setDrawColor(200, 200, 200);
+          doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
           doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
         }
       } else {
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(BRAND.soft[0], BRAND.soft[1], BRAND.soft[2]);
         doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight, 'F');
-        doc.setDrawColor(200, 200, 200);
+        doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
         doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, logoHeight);
       }
       yEsquerda += logoHeight;
@@ -218,7 +251,7 @@ export function useExportReceitaPDF() {
       doc.setTextColor(0, 0, 0);
       
       dadosEmpresa.forEach((dado) => {
-        doc.setDrawColor(200, 200, 200);
+        doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
         doc.setLineWidth(0.3);
         doc.rect(colEsquerdaX, yEsquerda, colEsquerdaWidth, dadosEmpresaRowHeight);
         doc.text(dado.substring(0, 25), colEsquerdaX + 2, yEsquerda + dadosEmpresaRowHeight * 0.65);
@@ -231,23 +264,23 @@ export function useExportReceitaPDF() {
       if (receitaImageBase64) {
         try {
           doc.addImage(receitaImageBase64, 'JPEG', colCentroX, currentY, colCentroWidth, alturaBloco);
-          doc.setDrawColor(200, 200, 200);
+          doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
           doc.setLineWidth(0.3);
           doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco);
         } catch (error) {
           console.error('Erro ao adicionar foto do produto:', error);
-          doc.setFillColor(240, 240, 240);
+          doc.setFillColor(BRAND.soft[0], BRAND.soft[1], BRAND.soft[2]);
           doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco, 'F');
-          doc.setDrawColor(200, 200, 200);
+          doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
           doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco);
           doc.setFontSize(9);
           doc.setTextColor(150, 150, 150);
           doc.text('Sem imagem', colCentroX + colCentroWidth / 2, currentY + alturaBloco / 2, { align: 'center' });
         }
       } else {
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(BRAND.soft[0], BRAND.soft[1], BRAND.soft[2]);
         doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco, 'F');
-        doc.setDrawColor(200, 200, 200);
+        doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
         doc.rect(colCentroX, currentY, colCentroWidth, alturaBloco);
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
@@ -264,7 +297,7 @@ export function useExportReceitaPDF() {
       const espacoEntreCards = 2;
       
       // Card "Dados" - Cabeçalho
-      doc.setFillColor(100, 100, 100);
+      doc.setFillColor(BRAND.indigo[0], BRAND.indigo[1], BRAND.indigo[2]);
       doc.rect(colDireitaX, yDireita, colDireitaWidth, cardHeaderHeight, 'F');
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
@@ -291,7 +324,7 @@ export function useExportReceitaPDF() {
       doc.setTextColor(0, 0, 0);
       
       dadosReceita.forEach((dado) => {
-        doc.setDrawColor(200, 200, 200);
+        doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
         doc.setLineWidth(0.3);
         doc.rect(colDireitaX, yDireita, colDireitaWidth, cardDadosRowHeight);
         
@@ -308,7 +341,7 @@ export function useExportReceitaPDF() {
       yDireita += espacoEntreCards; // Espaço entre cards
       
       // Card "Conservação" - Cabeçalho
-      doc.setFillColor(100, 100, 100);
+      doc.setFillColor(BRAND.indigo[0], BRAND.indigo[1], BRAND.indigo[2]);
       doc.rect(colDireitaX, yDireita, colDireitaWidth, cardHeaderHeight, 'F');
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
@@ -329,11 +362,11 @@ export function useExportReceitaPDF() {
       const headerY = yDireita;
       
       // Fundo cinza claro no cabeçalho
-      doc.setFillColor(220, 220, 220);
+      doc.setFillColor(232, 238, 250);
       doc.rect(colDireitaX, headerY, colDireitaWidth, conservacaoRowHeight, 'F');
       
       // Bordas e texto do cabeçalho
-      doc.setDrawColor(200, 200, 200);
+      doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
       doc.setLineWidth(0.3);
       doc.setFontSize(6);
       doc.setFont('helvetica', 'bold');
@@ -452,7 +485,7 @@ export function useExportReceitaPDF() {
         if (items.length === 0) return;
 
         // Título com fundo (compacto para caber na metade)
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(BRAND.soft[0], BRAND.soft[1], BRAND.soft[2]);
         doc.rect(colunaEsquerdaX, tabelasY, larguraColunaEsquerda, 6, 'F');
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
@@ -467,8 +500,8 @@ export function useExportReceitaPDF() {
         const lineHeight = 4;
 
         // Cabeçalho com fundo cinza escuro
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(220, 220, 220);
+        doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
+        doc.setFillColor(232, 238, 250);
         doc.rect(colunaEsquerdaX, tableStartY, totalWidth, 7, 'FD');
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -508,7 +541,7 @@ export function useExportReceitaPDF() {
           }
 
           // Retângulo da linha com bordas (altura dinâmica)
-          doc.setDrawColor(200, 200, 200);
+          doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
           doc.rect(colunaEsquerdaX, tabelasY, totalWidth, rowHeight);
 
           // Bordas verticais entre colunas
@@ -590,7 +623,7 @@ export function useExportReceitaPDF() {
         
         // Função para desenhar cabeçalho do modo de preparo
         const drawModoPreparoHeader = (y: number) => {
-          doc.setFillColor(240, 240, 240);
+          doc.setFillColor(BRAND.soft[0], BRAND.soft[1], BRAND.soft[2]);
           doc.rect(colunaDireitaX, y, larguraColunaDireita, 6, 'F');
           doc.setFontSize(9);
           doc.setFont('helvetica', 'bold');
@@ -685,7 +718,7 @@ export function useExportReceitaPDF() {
         const footerY = doc.internal.pageSize.getHeight() - 15;
         
         // Linha separadora acima do rodapé
-        doc.setDrawColor(200, 200, 200);
+        doc.setDrawColor(BRAND.border[0], BRAND.border[1], BRAND.border[2]);
         doc.setLineWidth(0.3);
         doc.line(20, footerY - 3, pageWidth - 20, footerY - 3);
         
