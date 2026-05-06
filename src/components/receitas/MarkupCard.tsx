@@ -235,13 +235,13 @@ export function MarkupCard({
         className={alwaysExpanded ? "" : "cursor-pointer"} 
         onClick={alwaysExpanded ? undefined : () => setExpanded(!expanded)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base">{markup.nome}</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <CardTitle className="text-base truncate">{markup.nome}</CardTitle>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md p-4">
                   <div className="space-y-3 text-sm">
@@ -305,11 +305,11 @@ export function MarkupCard({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{markup.tipo}</Badge>
-            <Badge variant="secondary">{markup.periodo} meses</Badge>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{markup.tipo}</Badge>
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{markup.periodo}m</Badge>
             {isSelected && (
-              <Badge className="bg-primary text-primary-foreground font-semibold flex items-center gap-1">
+              <Badge className="bg-primary text-primary-foreground font-semibold flex items-center gap-1 text-[10px] px-2 py-0.5">
                 <Check className="h-3 w-3" />
                 Selecionado
               </Badge>
@@ -323,7 +323,7 @@ export function MarkupCard({
         <CardContent className="space-y-4">
           {isLoadingDetalhes ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2 md:gap-4">
                 <Skeleton className="h-24 w-full rounded-lg" />
                 <Skeleton className="h-24 w-full rounded-lg" />
                 <Skeleton className="h-24 w-full rounded-lg" />
@@ -336,48 +336,48 @@ export function MarkupCard({
             </div>
           ) : (
             <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 md:gap-4">
             <Card className="bg-purple-50 dark:bg-purple-950">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className="pb-1 md:pb-2 px-2 md:px-6 pt-2 md:pt-6">
+                <CardTitle className="text-[11px] md:text-sm font-medium leading-tight">
                   Markup da Categoria
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              <CardContent className="px-2 md:px-6 pb-2 md:pb-6">
+                <p className="text-base md:text-2xl font-bold text-purple-600 dark:text-purple-400 break-all">
                   {formatNumber(markup.markup_ideal, 4)}
                 </p>
               </CardContent>
             </Card>
 
             <Card className="bg-purple-50 dark:bg-purple-950">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className="pb-1 md:pb-2 px-2 md:px-6 pt-2 md:pt-6">
+                <CardTitle className="text-[11px] md:text-sm font-medium leading-tight">
                   Markup Aplicado
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              <CardContent className="px-2 md:px-6 pb-2 md:pb-6">
+                <p className="text-base md:text-2xl font-bold text-purple-600 dark:text-purple-400 break-all">
                   {formatNumber(markupAplicado, 4)}
                 </p>
               </CardContent>
             </Card>
 
             <Card className="bg-blue-50 dark:bg-blue-950">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className="pb-1 md:pb-2 px-2 md:px-6 pt-2 md:pt-6">
+                <CardTitle className="text-[11px] md:text-sm font-medium leading-tight">
                   Sugestão de Preço
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1">
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <CardContent className="space-y-1 px-2 md:px-6 pb-2 md:pb-6">
+                <p className="text-base md:text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
                   R$ {formatBRL(precoSugerido)}
                 </p>
                 {valorEmRealBloco > 0 ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <p className="text-xs text-muted-foreground cursor-help">
+                        <p className="text-[10px] md:text-xs text-muted-foreground cursor-help leading-tight">
                           Base R$ {formatBRL(baseCalculo)} ÷ {formatNumber(1 - (totalPercentuais/100), 4)}
                         </p>
                       </TooltipTrigger>
@@ -399,7 +399,7 @@ export function MarkupCard({
                     </Tooltip>
                   </TooltipProvider>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] md:text-xs text-muted-foreground leading-tight">
                     (R$ {formatBRL(custoTotal)} × {formatNumber(markup.markup_ideal, 4)})
                   </p>
                 )}
