@@ -662,14 +662,57 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
                 <span className="text-xs font-medium text-muted-foreground">Etapa {currentTabIndex + 1} de {tabs.length}</span>
                 <span className="text-sm font-semibold truncate">{tabLabels[activeTab]}</span>
               </div>
-              <div className="overflow-x-auto -mx-2 px-2 no-scrollbar">
-                <TabsList className="inline-flex w-auto h-auto gap-1 p-1">
-                  {tabs.map((t) => (
-                    <TabsTrigger key={t} value={t} className="whitespace-nowrap text-xs px-3 py-2">
-                      {tabLabels[t]}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => {
+                    const el = document.getElementById('mobile-tabs-scroll');
+                    el?.scrollBy({ left: -120, behavior: 'smooth' });
+                  }}
+                  aria-label="Rolar etapas para a esquerda"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div
+                  id="mobile-tabs-scroll"
+                  className="flex-1 overflow-x-auto no-scrollbar"
+                  style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' as any }}
+                >
+                  <TabsList className="inline-flex w-auto h-auto gap-1 p-1">
+                    {tabs.map((t) => (
+                      <TabsTrigger
+                        key={t}
+                        value={t}
+                        className="whitespace-nowrap text-xs px-3 py-2"
+                        onClick={() => {
+                          setTimeout(() => {
+                            document
+                              .querySelector(`#mobile-tabs-scroll [data-state="active"]`)
+                              ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                          }, 50);
+                        }}
+                      >
+                        {tabLabels[t]}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => {
+                    const el = document.getElementById('mobile-tabs-scroll');
+                    el?.scrollBy({ left: 120, behavior: 'smooth' });
+                  }}
+                  aria-label="Rolar etapas para a direita"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             <TabsList className="hidden md:grid w-full grid-cols-6 gap-1">
