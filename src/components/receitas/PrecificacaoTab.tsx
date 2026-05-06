@@ -371,7 +371,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               : 'text-destructive';
 
         return (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <Card className="overflow-hidden">
               <div className="h-0.5 bg-secondary/40" />
               <CardHeader className="pb-2 pt-4">
