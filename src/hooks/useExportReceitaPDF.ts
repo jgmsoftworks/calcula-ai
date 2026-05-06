@@ -136,23 +136,56 @@ export function useExportReceitaPDF() {
       // Criar PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      let currentY = 15;
-      
-      // ============================================================================
-      // CABEÇALHO - Nome da receita centralizado
-      // ============================================================================
-      doc.setFontSize(16);
+
+      // PALETA DA MARCA (CalculaAi)
+      const BRAND = {
+        blue: [4, 131, 228] as [number, number, number],
+        indigo: [44, 77, 199] as [number, number, number],
+        purple: [115, 40, 177] as [number, number, number],
+        magenta: [175, 17, 136] as [number, number, number],
+        rose: [221, 11, 82] as [number, number, number],
+        orange: [249, 110, 12] as [number, number, number],
+        ink: [30, 30, 45] as [number, number, number],
+        muted: [110, 116, 134] as [number, number, number],
+        border: [225, 228, 235] as [number, number, number],
+        soft: [245, 247, 251] as [number, number, number],
+      };
+
+      const drawBrandGradient = (x: number, y: number, w: number, h: number) => {
+        const stops = [BRAND.blue, BRAND.indigo, BRAND.purple, BRAND.magenta, BRAND.rose, BRAND.orange];
+        const steps = 60;
+        const stepW = w / steps;
+        for (let i = 0; i < steps; i++) {
+          const t = i / (steps - 1);
+          const seg = t * (stops.length - 1);
+          const idx = Math.floor(seg);
+          const local = seg - idx;
+          const a = stops[idx];
+          const b = stops[Math.min(idx + 1, stops.length - 1)];
+          const r = Math.round(a[0] + (b[0] - a[0]) * local);
+          const g = Math.round(a[1] + (b[1] - a[1]) * local);
+          const bl = Math.round(a[2] + (b[2] - a[2]) * local);
+          doc.setFillColor(r, g, bl);
+          doc.rect(x + i * stepW, y, stepW + 0.3, h, 'F');
+        }
+      };
+
+      // Faixa de gradiente no topo da página
+      drawBrandGradient(0, 0, pageWidth, 4);
+
+      let currentY = 12;
+
+      // CABEÇALHO - Nome da receita
+      doc.setFontSize(17);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
+      doc.setTextColor(BRAND.ink[0], BRAND.ink[1], BRAND.ink[2]);
       const nomeReceita = receita.nome.toUpperCase();
       doc.text(nomeReceita, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 4;
+
+      // Linha gradiente fininha sob o título
+      drawBrandGradient(15, currentY, pageWidth - 30, 1);
       currentY += 8;
-      
-      // Linha horizontal abaixo do nome
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.5);
-      doc.line(15, currentY, pageWidth - 15, currentY);
-      currentY += 10;
       
       // ============================================================================
       // TRÊS COLUNAS: Esquerda (Logo + Empresa) | Centro (Foto) | Direita (Dados)
