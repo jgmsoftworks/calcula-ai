@@ -270,7 +270,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           <CardTitle className="text-base font-display">Resumo de Custos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
             <CostItem label="Ingredientes" value={custoIngredientes} />
             <CostItem label="Embalagens" value={custoEmbalagens} />
             <CostItem label="Mão de Obra" value={custoMaoObra} />
@@ -281,7 +281,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       </Card>
 
       {/* Price / Weight inputs */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <Card className="overflow-hidden">
           <div className="h-0.5 bg-primary/40" />
           <CardHeader className="pb-2 pt-4">
@@ -299,7 +299,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               onChange={(value) => onFormChange('preco_venda', value)}
               disabled={isMarkupSubReceitaAtual}
               className={cn(
-                "!text-3xl font-bold font-display border-0 p-0 !h-auto bg-transparent focus:ring-0 focus-visible:ring-0",
+                "!text-2xl md:!text-2xl md:text-3xl font-bold font-display border-0 p-0 !h-auto bg-transparent focus:ring-0 focus-visible:ring-0",
                 isMarkupSubReceitaAtual 
                   ? 'text-muted-foreground cursor-not-allowed' 
                   : 'text-primary'
@@ -329,7 +329,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               tipo="quantidade_continua"
               value={formData.peso_unitario || 0}
               onChange={(value) => onFormChange('peso_unitario', value)}
-              className="!text-3xl font-bold font-display text-foreground border-0 p-0 !h-auto bg-transparent focus-visible:ring-0"
+              className="!text-2xl md:!text-2xl md:text-3xl font-bold font-display text-foreground border-0 p-0 !h-auto bg-transparent focus-visible:ring-0"
               placeholder="0"
             />
           </CardContent>
@@ -346,7 +346,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
             </div>
           </CardHeader>
           <CardContent className="pb-4">
-            <p className="text-3xl font-bold font-display text-secondary">
+            <p className="text-2xl md:text-3xl font-bold font-display text-secondary">
               R$ {formatBRL(precoKg)}
             </p>
           </CardContent>
@@ -371,7 +371,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               : 'text-destructive';
 
         return (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <Card className="overflow-hidden">
               <div className="h-0.5 bg-secondary/40" />
               <CardHeader className="pb-2 pt-4">
@@ -383,7 +383,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                 </div>
               </CardHeader>
               <CardContent className="pb-4">
-                <p className="text-3xl font-bold font-display text-foreground">
+                <p className="text-2xl md:text-3xl font-bold font-display text-foreground">
                   R$ {formatBRL(custoUnitario)}
                 </p>
                 {!isSubReceita && rendimento > 0 && (
@@ -405,7 +405,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                 </div>
               </CardHeader>
               <CardContent className="pb-4">
-                <p className={cn("text-3xl font-bold font-display", cmvColor)}>
+                <p className={cn("text-2xl md:text-3xl font-bold font-display", cmvColor)}>
                   {cmv === null ? '—' : `${cmv.toFixed(1).replace('.', ',')}%`}
                 </p>
                 {cmv !== null && (
