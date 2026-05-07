@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, User, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { calcularCustoTotalFuncionario } from '@/lib/folhaPagamentoUtils';
 
 interface Funcionario {
   id: string;
