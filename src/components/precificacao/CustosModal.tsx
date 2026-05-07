@@ -40,13 +40,12 @@ interface DespesaFixa {
   ativo: boolean;
 }
 
-interface FolhaPagamento {
+interface FolhaPagamento extends FuncionarioCusto {
   id: string;
   nome: string;
-  custo_por_hora: number;
+  custo_por_hora?: number;
   ativo: boolean;
-  salario_base: number;
-  horas_totais_mes: number;
+  horas_totais_mes?: number;
 }
 
 interface EncargoVenda {
