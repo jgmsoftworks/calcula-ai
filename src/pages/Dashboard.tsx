@@ -33,6 +33,12 @@ const Dashboard = () => {
   const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
   const { metrics: adminMetrics, refreshMetrics } = useAdminDashboardMetrics();
 
+  const displayName =
+    (user?.user_metadata as any)?.business_name ||
+    (user?.user_metadata as any)?.full_name ||
+    user?.email?.split('@')[0] ||
+    'user';
+
   const dateLocale = i18n.language === 'pt-BR' ? ptBR : enUS;
 
   const loading = isAdmin ? adminMetrics.loading : data.loading;
@@ -124,7 +130,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-display text-foreground">
-            {t('dashboard.hello', { name: user?.email?.split('@')[0] || 'user' })}
+            {t('dashboard.hello', { name: displayName })}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: dateLocale })}
