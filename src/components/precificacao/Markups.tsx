@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
+import { calcularCustoTotalFuncionario } from '@/lib/folhaPagamentoUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
