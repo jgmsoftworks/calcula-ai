@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { calcularCustoTotalFuncionario, type FuncionarioCusto } from '@/lib/folhaPagamentoUtils';
 
 interface MarkupBlock {
   id: string;
