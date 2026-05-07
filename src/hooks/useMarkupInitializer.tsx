@@ -116,8 +116,8 @@ export function useMarkupInitializer() {
           }
         } else {
           const mesesAtras = parseInt(String(periodoSelecionado), 10);
-          const dataLimite = new Date();
-          dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+          const hoje = new Date();
+          const dataLimite = new Date(hoje.getFullYear(), hoje.getMonth() - mesesAtras + 1, 1);
 
           const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
           
@@ -181,9 +181,7 @@ export function useMarkupInitializer() {
         const totalPercentuais = totalEncargos + bloco.lucroDesejado;
         const markupIdealCorreto = totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.25;
 
-        const ehSubReceita =
-          bloco.id === 'subreceita-fixo' ||
-          bloco.nome.toLowerCase().includes('sub');
+        const ehSubReceita = bloco.id === 'subreceita-fixo';
 
         const markupData = {
           user_id: user.id,
