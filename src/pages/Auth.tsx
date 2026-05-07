@@ -9,6 +9,7 @@ import {
   Lock, 
   User, 
   Building2, 
+  Phone,
   ArrowRight,
   Shield,
   CheckCircle,
@@ -68,6 +69,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -114,7 +116,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await signUp(email, password, fullName, businessName);
+      const { data, error } = await signUp(email, password, fullName, businessName, phone);
       if (error) {
         let errorMessage = t('auth.tryAgain');
         if (error.message.includes("Password should be at least")) errorMessage = t('auth.passwordMinLength');
@@ -323,6 +325,7 @@ const Auth = () => {
                     <form onSubmit={handleSignup} className="space-y-3">
                       <InputField id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
                       <InputField id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
+                      <InputField id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
                       <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
                       <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
                       

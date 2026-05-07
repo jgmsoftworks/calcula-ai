@@ -9,7 +9,7 @@ interface AuthContextType {
   emailVerified: boolean;
   isAdmin: boolean;
   isFornecedor: boolean;
-  signUp: (email: string, password: string, fullName?: string, businessName?: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, password: string, fullName?: string, businessName?: string, phone?: string) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -58,7 +58,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     user_id: session.user.id,
                     full_name: session.user.user_metadata?.full_name,
                     business_name: session.user.user_metadata?.business_name,
+                    phone: session.user.user_metadata?.phone,
+                    celular: session.user.user_metadata?.phone,
+                    whatsapp: session.user.user_metadata?.phone,
                   });
+              } else if (session.user.user_metadata?.phone || session.user.user_metadata?.full_name || session.user.user_metadata?.business_name) {
+                // Backfill profile fields if they are empty (first-time after signup)
+                await supabase
+                  .from('profiles')
+                  .update({
+                    full_name: session.user.user_metadata?.full_name ?? undefined,
+                    business_name: session.user.user_metadata?.business_name ?? undefined,
+                    phone: session.user.user_metadata?.phone ?? undefined,
+                    celular: session.user.user_metadata?.phone ?? undefined,
+                    whatsapp: session.user.user_metadata?.phone ?? undefined,
+                  })
+                  .eq('user_id', session.user.id)
+                  .or('full_name.is.null,phone.is.null,business_name.is.null');
               }
 
               // Use security definer function to check admin status
@@ -96,7 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName?: string, businessName?: string) => {
+  const signUp = async (email: string, password: string, fullName?: string, businessName?: string, phone?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -107,6 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         data: {
           full_name: fullName,
           business_name: businessName,
+          phone: phone,
         }
       }
     });

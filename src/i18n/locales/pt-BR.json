@@ -122,6 +122,8 @@
     "minChars": "Mínimo 6 caracteres",
     "namePlaceholder": "Seu nome",
     "businessPlaceholder": "Sua empresa",
+    "phone": "Telefone",
+    "phonePlaceholder": "(11) 99999-9999",
     "forgotPassword": "Esqueceu sua senha?",
     "loginWithGoogle": "Entrar com Google",
     "signupWithGoogle": "Cadastrar com Google",
