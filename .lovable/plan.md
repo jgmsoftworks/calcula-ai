@@ -1,49 +1,29 @@
-## Problema
+## Correções no cálculo de Markup
 
-Na tela **Precificação → Markup → Custos**, na aba "Folha de Pagamento", o custo total mostrado por funcionário (e usado no cálculo do "Gasto sobre Faturamento") **não bate** com o custo total mostrado em **Custos → Folha de Pagamento**.
+Aplicar 3 correções pontuais (sem mexer no banco, sem alterar estrutura de dados).
 
-### Por quê
+### 1. Receita com "sub" no nome sendo tratada como sub-receita
+**Arquivos:** `src/components/precificacao/Markups.tsx` (linha 555) e `src/hooks/useMarkupInitializer.tsx` (linhas 163-165).
 
-Hoje o modal de Markup (`CustosModal.tsx`) e o cálculo no `Markups.tsx` calculam o custo do funcionário assim:
+Hoje qualquer bloco cujo nome contém "sub" (Subway, Submarino, Substituto…) é classificado como `sub_receita`, travando o preço de venda. Trocar para considerar **apenas** `bloco.id === 'subreceita-fixo'`.
 
-```ts
-custoMensal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2)
-```
+### 2. Filtro de meses com off-by-one
+**Arquivos:** `src/components/precificacao/Markups.tsx` (linhas 222-226) e `src/hooks/useMarkupInitializer.tsx` (linhas 100-104).
 
-Isso gera divergência por 3 motivos:
+Hoje `dataLimite = hoje - N meses` varia conforme o dia atual. Normalizar para o **dia 1 do mês inicial da janela**: `new Date(ano, mês - N + 1, 1)`. Garante exatamente N meses sempre.
 
-1. **Arredondamento duplo**: `custo_por_hora` é salvo no banco já arredondado para 2 casas (`Math.round(... * 100)/100`). Multiplicar de volta por `horas_totais_mes` perde centavos/reais (ex.: custo real R$ 3.000,00 vira R$ 2.999,82).
-2. **Fallback errado de 173,2 horas**: funcionários antigos sem `horas_totais_mes` salvo recebem 173,2h, que não corresponde à jornada real cadastrada.
-3. **Dados desatualizados**: se o funcionário foi cadastrado/editado antes de o campo `custo_por_hora` ser populado corretamente, o modal mostra um valor defasado, enquanto a tela de Folha de Pagamento recalcula tudo na hora a partir de salário + encargos.
+### 3. Rótulo enganoso em `preco_sugerido`
+**Arquivo:** `src/components/precificacao/Markups.tsx` (linha 562).
 
-A tela de Folha de Pagamento (`FolhaPagamento.tsx → calculateCustoTotal`) calcula direto:
-`salario_base + adicional - desconto + FGTS + INSS + RAT + Férias + VT + VA + VR + Plano + Outros`.
+O campo `preco_sugerido` na verdade guarda o "valor em real" (taxa fixa). Manter o comportamento por compatibilidade, mas adicionar comentário `TODO` deixando claro que numa próxima iteração a coluna correta deve ser criada (`valor_em_real`). Sem mudança funcional agora.
 
-Esse é o valor "verdadeiro" que o usuário vê.
+### O que NÃO muda
+- Banco de dados: nenhuma migração, nenhuma coluna alterada, nenhum dado apagado.
+- Markup duplicado (`markup_aplicado = markup_ideal`): adiado.
+- Lucro líquido: mantido como está.
+- Cálculo da folha de pagamento: já corrigido na rodada anterior.
 
-## Solução
-
-Padronizar o cálculo do custo total do funcionário em **um único helper** e usá-lo nos três lugares (Folha de Pagamento, CustosModal, Markups), eliminando o caminho `custo_por_hora × horas_totais_mes`.
-
-### Mudanças
-
-1. **Criar `src/lib/folhaPagamentoUtils.ts`**
-   - Função `calcularCustoTotalFuncionario(funcionario)` replicando exatamente a lógica de `calculateCustoTotal` de `FolhaPagamento.tsx` (soma salário + adicional − desconto + todos os encargos, usando `percent` quando preenchido senão `valor`).
-   - Tipo `FuncionarioCusto` com os campos necessários.
-
-2. **`src/components/precificacao/CustosModal.tsx`**
-   - Ajustar o `select` da query de `folha_pagamento` para trazer todos os campos de encargos (`fgts_*`, `inss_*`, `rat_*`, `ferias_*`, `vale_*_*`, `plano_saude_*`, `outros_*`, `adicional`, `desconto`).
-   - Substituir o cálculo de `custoMensal` (linha 372-377 e linha 732) por `calcularCustoTotalFuncionario(funcionario)`.
-
-3. **`src/components/precificacao/Markups.tsx`**
-   - Ajustar o `select` em `folha_pagamento` (linha 183) para trazer os mesmos campos.
-   - Substituir o cálculo de `custoMensal` (linha 244-250) por `calcularCustoTotalFuncionario(funcionario)`.
-
-4. **`src/components/custos/FolhaPagamento.tsx`**
-   - Refatorar `calculateCustoTotal` para chamar o helper compartilhado (mantém comportamento atual, só centraliza).
-
-### Resultado
-
-O valor exibido e usado no markup será **exatamente** o mesmo da tela de Folha de Pagamento, sem perda por arredondamento e sem fallback de 173,2h. A nota mental existente (`mem://features/folha-pagamento-markup-cost-calculation`) será atualizada para refletir a nova fonte de verdade (cálculo direto a partir dos campos do funcionário, em vez de `custo_por_hora × horas`).
-
-Nenhuma mudança de banco de dados é necessária.
+### Impacto pro usuário
+- Receitas com "sub" no nome voltam a permitir edição livre de preço.
+- Média de faturamento fica precisa em N meses exatos.
+- Nenhuma quebra visual ou de fluxo.

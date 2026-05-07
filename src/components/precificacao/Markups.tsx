@@ -220,8 +220,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         } else {
             // Para outros períodos: calcular a média
             const mesesAtras = parseInt(String(periodoSelecionado), 10);
-            const dataLimite = new Date();
-            dataLimite.setMonth(dataLimite.getMonth() - mesesAtras);
+            // Normaliza para o dia 1 do mês inicial da janela (evita off-by-one)
+            const hoje = new Date();
+            const dataLimite = new Date(hoje.getFullYear(), hoje.getMonth() - mesesAtras + 1, 1);
 
             const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
             
@@ -552,13 +553,15 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         const markupData = {
           user_id: user.id,
           nome: bloco.nome,
-          tipo: bloco.id === 'subreceita-fixo' ? 'sub_receita' : (bloco.nome.toLowerCase().includes('sub') ? 'sub_receita' : 'normal'),
+          tipo: bloco.id === 'subreceita-fixo' ? 'sub_receita' : 'normal',
           periodo: bloco.periodo,
           margem_lucro: bloco.lucroDesejado,
           gasto_sobre_faturamento: calculatedFinal.gastoSobreFaturamento,
           encargos_sobre_venda: calculatedFinal.impostos + calculatedFinal.taxasMeiosPagamento + calculatedFinal.comissoesPlataformas + calculatedFinal.outros,
           markup_ideal: markupIdealCorreto,
           markup_aplicado: markupIdealCorreto,
+          // NOTE: preco_sugerido guarda o "valor em real" (taxa fixa) por compatibilidade.
+          // TODO: migrar para coluna dedicada `valor_em_real` numa próxima iteração.
           preco_sugerido: calculatedFinal.valorEmReal,
           despesas_fixas_selecionadas: despesasFixasSelecionadas,
           folha_pagamento_selecionada: folhaPagamentoSelecionada,
