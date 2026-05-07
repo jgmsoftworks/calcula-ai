@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { calcularCustoTotalFuncionario, type FuncionarioCusto } from '@/lib/folhaPagamentoUtils';
 
 interface MarkupBlock {
   id: string;
@@ -39,13 +40,12 @@ interface DespesaFixa {
   ativo: boolean;
 }
 
-interface FolhaPagamento {
+interface FolhaPagamento extends FuncionarioCusto {
   id: string;
   nome: string;
-  custo_por_hora: number;
+  custo_por_hora?: number;
   ativo: boolean;
-  salario_base: number;
-  horas_totais_mes: number;
+  horas_totais_mes?: number;
 }
 
 interface EncargoVenda {
@@ -109,7 +109,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       // Carregar folha de pagamento (apenas mão de obra indireta)
       const { data: folha, error: folhaError } = await supabase
         .from('folha_pagamento')
-        .select('id, nome, custo_por_hora, ativo, tipo_mao_obra, salario_base, horas_totais_mes')
+        .select('*')
         .eq('user_id', user.id)
         .eq('tipo_mao_obra', 'indireta')
         .eq('ativo', true)
@@ -370,10 +370,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     });
     
     const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
-      // Sempre usar custo_por_hora * horas_totais_mes para obter o custo total
-      // Se custo_por_hora não estiver disponível, o custo será zero (indica dados incompletos)
-      const custoMensal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2);
-      return acc + custoMensal;
+      // Custo total mensal real do funcionário (salário + encargos), via helper compartilhado
+      return acc + calcularCustoTotalFuncionario(funcionario);
     }, 0);
     
     console.log('💰 Total folha pagamento considerada:', totalFolhaPagamento, 'de', folhaConsiderada.length, 'funcionários');
@@ -729,7 +727,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
                   </div>
                 ) : (
                   folhaPagamento.map((funcionario) => {
-                    const custoTotal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2);
+                    const custoTotal = calcularCustoTotalFuncionario(funcionario);
                     return (
                     <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">

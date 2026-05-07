@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustosModal } from './CustosModal';
 import { supabase } from '@/integrations/supabase/client';
+import { calcularCustoTotalFuncionario } from '@/lib/folhaPagamentoUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
@@ -243,10 +244,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
             // Somar folha de pagamento marcada como "Considerar" E ATIVA
             const folhaConsiderada = folhaPagamento ? folhaPagamento.filter(f => config[f.id] && f.ativo) : [];
             const totalFolhaPagamento = folhaConsiderada.reduce((acc, funcionario) => {
-                // Sempre usar custo_por_hora * horas_totais_mes para obter o custo total
-                // Se custo_por_hora não estiver disponível, o custo será zero (indica dados incompletos)
-                const custoMensal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2);
-                return acc + Number(custoMensal);
+                // Custo total mensal real (salário + encargos), via helper compartilhado
+                return acc + calcularCustoTotalFuncionario(funcionario);
             }, 0);
             
             const totalGastos = totalDespesasFixas + totalFolhaPagamento;

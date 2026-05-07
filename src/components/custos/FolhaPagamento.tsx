@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, User, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { calcularCustoTotalFuncionario } from '@/lib/folhaPagamentoUtils';
 
 interface Funcionario {
   id: string;
@@ -583,22 +584,8 @@ export function FolhaPagamento() {
   };
 
   const calculateCustoTotal = (funcionario: Funcionario) => {
-    const salarioBase = funcionario.salario_base;
-    const adicional = funcionario.adicional || 0;
-    const desconto = funcionario.desconto || 0;
-    
-    // Usa os valores numéricos diretamente, sem converter para string
-    const fgtsTotal = calculateItemValue(funcionario.fgts_percent, funcionario.fgts_valor, salarioBase);
-    const inssTotal = calculateItemValue(funcionario.inss_percent, funcionario.inss_valor, salarioBase);
-    const ratTotal = calculateItemValue(funcionario.rat_percent, funcionario.rat_valor, salarioBase);
-    const feriasTotal = calculateItemValue(funcionario.ferias_percent, funcionario.ferias_valor, salarioBase);
-    const vtTotal = calculateItemValue(funcionario.vale_transporte_percent, funcionario.vale_transporte_valor, salarioBase);
-    const vaTotal = calculateItemValue(funcionario.vale_alimentacao_percent, funcionario.vale_alimentacao_valor, salarioBase);
-    const vrTotal = calculateItemValue(funcionario.vale_refeicao_percent, funcionario.vale_refeicao_valor, salarioBase);
-    const planoTotal = calculateItemValue(funcionario.plano_saude_percent, funcionario.plano_saude_valor, salarioBase);
-    const outrosTotal = calculateItemValue(funcionario.outros_percent, funcionario.outros_valor, salarioBase);
-    
-    return Math.round((salarioBase + adicional - desconto + fgtsTotal + inssTotal + ratTotal + feriasTotal + vtTotal + vaTotal + vrTotal + planoTotal + outrosTotal) * 100) / 100;
+    // Fonte de verdade única: mesmo helper usado nos cálculos de Markup
+    return calcularCustoTotalFuncionario(funcionario);
   };
 
   const getTotalFolha = () => {
