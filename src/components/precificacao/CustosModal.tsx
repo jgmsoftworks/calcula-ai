@@ -727,7 +727,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
                   </div>
                 ) : (
                   folhaPagamento.map((funcionario) => {
-                    const custoTotal = (funcionario.custo_por_hora || 0) * (funcionario.horas_totais_mes || 173.2);
+                    const custoTotal = calcularCustoTotalFuncionario(funcionario);
                     return (
                     <div key={funcionario.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
