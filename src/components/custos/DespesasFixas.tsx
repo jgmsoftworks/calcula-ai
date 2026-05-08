@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Calendar, Package } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -44,7 +45,8 @@ export function DespesasFixas() {
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
-    valor: ''
+    valor: '',
+    categoria_id: null as string | null
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -107,12 +109,13 @@ export function DespesasFixas() {
     try {
       const valorNumerico = parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0;
       
+      const categoriaFinal = formData.categoria_id ?? (selectedCategory && selectedCategory !== 'sem-categoria' ? selectedCategory : null);
       const despesaData = {
         user_id: user.id,
         nome: formData.nome,
         descricao: formData.descricao || null,
         valor: valorNumerico,
-        categoria_id: selectedCategory, // Usar a categoria selecionada na sidebar
+        categoria_id: categoriaFinal,
         ativo: true
       };
 
@@ -149,7 +152,7 @@ export function DespesasFixas() {
 
       setIsModalOpen(false);
       setEditingDespesa(null);
-      setFormData({ nome: '', descricao: '', valor: '' });
+      setFormData({ nome: '', descricao: '', valor: '', categoria_id: null });
       loadDespesas();
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
@@ -166,7 +169,8 @@ export function DespesasFixas() {
     setFormData({
       nome: despesa.nome,
       descricao: despesa.descricao || '',
-      valor: formatCurrencyInput(despesa.valor)
+      valor: formatCurrencyInput(despesa.valor),
+      categoria_id: despesa.categoria_id ?? null
     });
     setIsModalOpen(true);
   };
@@ -198,7 +202,12 @@ export function DespesasFixas() {
 
   const handleNewDespesa = () => {
     setEditingDespesa(null);
-    setFormData({ nome: '', descricao: '', valor: '' });
+    setFormData({
+      nome: '',
+      descricao: '',
+      valor: '',
+      categoria_id: selectedCategory && selectedCategory !== 'sem-categoria' ? selectedCategory : null
+    });
     setIsModalOpen(true);
   };
 
@@ -370,22 +379,20 @@ export function DespesasFixas() {
           <CardContent>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium font-display">Lista de Despesas</h3>
-              {selectedCategory && selectedCategory !== 'sem-categoria' && (
-                <Button onClick={handleNewDespesa} variant="outline" size="sm" className="gap-1.5 h-8 rounded-xl text-xs border-border/50">
-                  <Plus className="h-3 w-3" />
-                  Adicionar
-                </Button>
-              )}
+              <Button onClick={handleNewDespesa} variant="outline" size="sm" className="gap-1.5 h-8 rounded-xl text-xs border-border/50">
+                <Plus className="h-3 w-3" />
+                Adicionar Despesa
+              </Button>
             </div>
 
             {filteredDespesas.length === 0 ? (
               <div className="text-center py-12 rounded-xl bg-muted/30 border border-dashed border-border/50">
                 <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-medium font-display text-muted-foreground mb-1">
-                  {selectedCategory ? 'Nenhuma despesa nesta categoria' : 'Selecione uma categoria'}
+                  Nenhuma despesa cadastrada
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedCategory ? 'Clique em Adicionar para começar.' : 'Escolha uma categoria na sidebar.'}
+                  Clique em "Adicionar Despesa" para começar.
                 </p>
               </div>
             ) : (
@@ -460,6 +467,35 @@ export function DespesasFixas() {
                 onChange={(valor) => setFormData({ ...formData, valor: formatCurrencyInput(valor) })}
                 min={0}
               />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Categoria (opcional)</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsCategoriaModalOpen(true)}
+                  className="h-6 text-[10px] gap-1 px-2"
+                >
+                  <Plus className="h-3 w-3" />
+                  Nova categoria
+                </Button>
+              </div>
+              <Select
+                value={formData.categoria_id ?? 'none'}
+                onValueChange={(v) => setFormData({ ...formData, categoria_id: v === 'none' ? null : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="descricao" className="text-xs">Descrição (opcional)</Label>
