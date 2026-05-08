@@ -151,7 +151,7 @@ export function DespesasFixas() {
 
       setIsModalOpen(false);
       setEditingDespesa(null);
-      setFormData({ nome: '', descricao: '', valor: '' });
+      setFormData({ nome: '', descricao: '', valor: '', categoria_id: null });
       loadDespesas();
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
