@@ -378,22 +378,20 @@ export function DespesasFixas() {
           <CardContent>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium font-display">Lista de Despesas</h3>
-              {selectedCategory && selectedCategory !== 'sem-categoria' && (
-                <Button onClick={handleNewDespesa} variant="outline" size="sm" className="gap-1.5 h-8 rounded-xl text-xs border-border/50">
-                  <Plus className="h-3 w-3" />
-                  Adicionar
-                </Button>
-              )}
+              <Button onClick={handleNewDespesa} variant="outline" size="sm" className="gap-1.5 h-8 rounded-xl text-xs border-border/50">
+                <Plus className="h-3 w-3" />
+                Adicionar Despesa
+              </Button>
             </div>
 
             {filteredDespesas.length === 0 ? (
               <div className="text-center py-12 rounded-xl bg-muted/30 border border-dashed border-border/50">
                 <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-medium font-display text-muted-foreground mb-1">
-                  {selectedCategory ? 'Nenhuma despesa nesta categoria' : 'Selecione uma categoria'}
+                  Nenhuma despesa cadastrada
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedCategory ? 'Clique em Adicionar para começar.' : 'Escolha uma categoria na sidebar.'}
+                  Clique em "Adicionar Despesa" para começar.
                 </p>
               </div>
             ) : (
