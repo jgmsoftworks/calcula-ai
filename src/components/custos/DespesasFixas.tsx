@@ -168,7 +168,8 @@ export function DespesasFixas() {
     setFormData({
       nome: despesa.nome,
       descricao: despesa.descricao || '',
-      valor: formatCurrencyInput(despesa.valor)
+      valor: formatCurrencyInput(despesa.valor),
+      categoria_id: despesa.categoria_id ?? null
     });
     setIsModalOpen(true);
   };
