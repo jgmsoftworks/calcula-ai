@@ -468,6 +468,35 @@ export function DespesasFixas() {
               />
             </div>
             <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Categoria (opcional)</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsCategoriaModalOpen(true)}
+                  className="h-6 text-[10px] gap-1 px-2"
+                >
+                  <Plus className="h-3 w-3" />
+                  Nova categoria
+                </Button>
+              </div>
+              <Select
+                value={formData.categoria_id ?? 'none'}
+                onValueChange={(v) => setFormData({ ...formData, categoria_id: v === 'none' ? null : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="descricao" className="text-xs">Descrição (opcional)</Label>
               <Textarea
                 id="descricao"
