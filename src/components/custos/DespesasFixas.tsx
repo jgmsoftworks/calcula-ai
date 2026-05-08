@@ -290,15 +290,22 @@ export function DespesasFixas() {
               </Button>
             </div>
             
-            {/* Total geral */}
-            <div className="mb-4 p-3 rounded-xl bg-[#0483e4]/5 border border-[#0483e4]/20">
+            {/* Total geral - clicável para mostrar todas */}
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`w-full mb-4 p-3 rounded-xl border transition-all text-left ${
+                selectedCategory === null
+                  ? 'bg-[#0483e4]/10 border-[#0483e4]/40'
+                  : 'bg-[#0483e4]/5 border-[#0483e4]/20 hover:bg-[#0483e4]/10'
+              }`}
+            >
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-muted-foreground">Total Geral</span>
+                <span className="text-xs font-medium text-muted-foreground">Total Geral (todas)</span>
                 <span className="text-sm font-bold font-display text-[#0483e4]">
                   {formatters.valor(getTotalDespesas())}
                 </span>
               </div>
-            </div>
+            </button>
 
             <div className="space-y-1">
               {categorias.map((categoria) => (
