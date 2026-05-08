@@ -201,7 +201,12 @@ export function DespesasFixas() {
 
   const handleNewDespesa = () => {
     setEditingDespesa(null);
-    setFormData({ nome: '', descricao: '', valor: '' });
+    setFormData({
+      nome: '',
+      descricao: '',
+      valor: '',
+      categoria_id: selectedCategory && selectedCategory !== 'sem-categoria' ? selectedCategory : null
+    });
     setIsModalOpen(true);
   };
 
