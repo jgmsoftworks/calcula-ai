@@ -44,7 +44,8 @@ export function DespesasFixas() {
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
-    valor: ''
+    valor: '',
+    categoria_id: null as string | null
   });
   const { user } = useAuth();
   const { toast } = useToast();
