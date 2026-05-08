@@ -108,12 +108,13 @@ export function DespesasFixas() {
     try {
       const valorNumerico = parseFloat(formData.valor.replace(/\./g, '').replace(',', '.')) || 0;
       
+      const categoriaFinal = formData.categoria_id ?? (selectedCategory && selectedCategory !== 'sem-categoria' ? selectedCategory : null);
       const despesaData = {
         user_id: user.id,
         nome: formData.nome,
         descricao: formData.descricao || null,
         valor: valorNumerico,
-        categoria_id: selectedCategory, // Usar a categoria selecionada na sidebar
+        categoria_id: categoriaFinal,
         ativo: true
       };
 
