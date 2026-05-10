@@ -1,29 +1,33 @@
-## Correções no cálculo de Markup
+## Quadrado de Consumo Médio (abaixo do botão "Sugerir fotos")
 
-Aplicar 3 correções pontuais (sem mexer no banco, sem alterar estrutura de dados).
+Adicionar um card informativo no `ProdutoForm.tsx`, logo abaixo do botão "Sugerir fotos", que mostra estatísticas de movimentação dos últimos 90 dias do produto.
 
-### 1. Receita com "sub" no nome sendo tratada como sub-receita
-**Arquivos:** `src/components/precificacao/Markups.tsx` (linha 555) e `src/hooks/useMarkupInitializer.tsx` (linhas 163-165).
+### O que mostrará
 
-Hoje qualquer bloco cujo nome contém "sub" (Subway, Submarino, Substituto…) é classificado como `sub_receita`, travando o preço de venda. Trocar para considerar **apenas** `bloco.id === 'subreceita-fixo'`.
+Card compacto com 3 linhas:
+- **Total entradas** (90d) — soma de quantidade das movimentações tipo `entrada`
+- **Total saídas** (90d) — soma de quantidade das movimentações tipo `saida`
+- **Consumo médio mensal** — `total_saidas / 3` (90 dias = 3 meses), formatado com unidade de compra
 
-### 2. Filtro de meses com off-by-one
-**Arquivos:** `src/components/precificacao/Markups.tsx` (linhas 222-226) e `src/hooks/useMarkupInitializer.tsx` (linhas 100-104).
+Quando não houver movimentação, exibe "Sem movimentações nos últimos 90 dias".
+Quando o produto for novo (sem ID), o card não aparece.
 
-Hoje `dataLimite = hoje - N meses` varia conforme o dia atual. Normalizar para o **dia 1 do mês inicial da janela**: `new Date(ano, mês - N + 1, 1)`. Garante exatamente N meses sempre.
+### Componente novo
 
-### 3. Rótulo enganoso em `preco_sugerido`
-**Arquivo:** `src/components/precificacao/Markups.tsx` (linha 562).
+`src/components/estoque/ConsumoMedioCard.tsx`
+- Props: `produtoId: string`, `unidade: string`
+- Busca via `supabase.from('movimentacoes')` filtrando `produto_id`, `user_id`, `data_hora >= now - 90d`
+- Soma agrupada por tipo (entrada/saida)
+- Loading skeleton enquanto carrega
+- Layout: card com `bg-muted/30`, `rounded-lg`, `p-3`, fonte pequena, ícones (TrendingUp/TrendingDown/BarChart3 do lucide-react)
+- Usa `formatNumber()` de `@/lib/formatters`
 
-O campo `preco_sugerido` na verdade guarda o "valor em real" (taxa fixa). Manter o comportamento por compatibilidade, mas adicionar comentário `TODO` deixando claro que numa próxima iteração a coluna correta deve ser criada (`valor_em_real`). Sem mudança funcional agora.
+### Edição em `ProdutoForm.tsx`
 
-### O que NÃO muda
-- Banco de dados: nenhuma migração, nenhuma coluna alterada, nenhum dado apagado.
-- Markup duplicado (`markup_aplicado = markup_ideal`): adiado.
-- Lucro líquido: mantido como está.
-- Cálculo da folha de pagamento: já corrigido na rodada anterior.
+Inserir `<ConsumoMedioCard produtoId={produto.id} unidade={watch('unidade_compra')} />` na coluna esquerda da foto, logo após o `SugestaoFotosModal`, condicionado a `produto?.id` existir (apenas em modo edição).
 
-### Impacto pro usuário
-- Receitas com "sub" no nome voltam a permitir edição livre de preço.
-- Média de faturamento fica precisa em N meses exatos.
-- Nenhuma quebra visual ou de fluxo.
+### Notas técnicas
+
+- Reutiliza tabela `movimentacoes` já existente — sem mudanças no schema.
+- Cálculo client-side (poucos registros por produto, OK).
+- 90 dias = `new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()`.
