@@ -27,6 +27,7 @@ import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoProduto } from './HistoricoProduto';
 import { SugestaoFotosModal } from './SugestaoFotosModal';
+import { ConsumoMedioCard } from './ConsumoMedioCard';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
@@ -296,6 +297,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                       setImagePreview(previewUrl);
                     }}
                   />
+                  {produto?.id && (
+                    <ConsumoMedioCard
+                      produtoId={produto.id}
+                      unidade={watch('unidade_compra') || 'un'}
+                    />
+                  )}
                 </div>
 
                 {/* Campos do formulário */}
