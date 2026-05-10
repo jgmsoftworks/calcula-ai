@@ -35,15 +35,53 @@ serve(async (req) => {
       throw new Error('PIXABAY_API_KEY não configurada');
     }
 
-    const { productName } = await req.json();
+    const { productName, barcode } = await req.json();
 
-    if (!productName) {
+    if (!productName && !barcode) {
       return new Response(
-        JSON.stringify({ error: 'Nome do produto é obrigatório' }),
+        JSON.stringify({ error: 'Nome do produto ou código de barras é obrigatório' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
+      );
+    }
+
+    // 1) Tentar OpenFoodFacts via barcode
+    if (barcode) {
+      try {
+        logStep('Buscando OpenFoodFacts por barcode', { barcode });
+        const offResp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
+        if (offResp.ok) {
+          const offData = await offResp.json();
+          const p = offData?.product;
+          if (p) {
+            const candidates = [
+              p.image_front_url,
+              p.image_url,
+              p.image_ingredients_url,
+              p.image_packaging_url,
+            ].filter((u: any) => typeof u === 'string' && u.length > 0);
+            const unique = Array.from(new Set(candidates));
+            if (unique.length > 0) {
+              logStep('Imagens OpenFoodFacts encontradas', { count: unique.length });
+              return new Response(
+                JSON.stringify({ images: unique, source: 'openfoodfacts' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+        }
+        logStep('OpenFoodFacts sem resultado, fallback Pixabay');
+      } catch (e) {
+        logError(e, 'OpenFoodFacts lookup failed');
+      }
+    }
+
+    if (!productName) {
+      return new Response(
+        JSON.stringify({ images: [], message: 'Sem nome para buscar', fallback: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

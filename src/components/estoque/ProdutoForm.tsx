@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import { CodigosBarrasInput } from './CodigosBarrasInput';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoProduto } from './HistoricoProduto';
+import { SugestaoFotosModal } from './SugestaoFotosModal';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
@@ -42,6 +43,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   const [saving, setSaving] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [sugestaoOpen, setSugestaoOpen] = useState(false);
   
   // Ensure all values are valid before setting as defaults
   const defaultValues = produto ? {
@@ -273,6 +275,27 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                   <p className="text-xs text-muted-foreground">
                     Clique para selecionar
                   </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={!watch('nome') && (!codigosBarras || codigosBarras.length === 0)}
+                    onClick={() => setSugestaoOpen(true)}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Sugerir fotos
+                  </Button>
+                  <SugestaoFotosModal
+                    open={sugestaoOpen}
+                    onOpenChange={setSugestaoOpen}
+                    productName={watch('nome') || undefined}
+                    barcode={codigosBarras?.[0]}
+                    onSelect={(file, previewUrl) => {
+                      setSelectedImageFile(file);
+                      setImagePreview(previewUrl);
+                    }}
+                  />
                 </div>
 
                 {/* Campos do formulário */}
