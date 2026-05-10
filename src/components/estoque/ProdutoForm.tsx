@@ -43,6 +43,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   const [saving, setSaving] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [sugestaoOpen, setSugestaoOpen] = useState(false);
   
   // Ensure all values are valid before setting as defaults
   const defaultValues = produto ? {
