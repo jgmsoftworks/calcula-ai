@@ -223,6 +223,7 @@ export function ListaProdutos() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">Imagem</TableHead>
               <TableHead>Código</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Marcas</TableHead>
@@ -237,13 +238,13 @@ export function ListaProdutos() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   Carregando produtos...
                 </TableCell>
               </TableRow>
             ) : produtos.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   Nenhum produto encontrado
                 </TableCell>
               </TableRow>
@@ -254,6 +255,19 @@ export function ListaProdutos() {
 
                 return (
                   <TableRow key={`${produto.id}-${refreshKey}`}>
+                    <TableCell>
+                      {produto.imagem_url ? (
+                        <img
+                          src={produto.imagem_url}
+                          alt={produto.nome}
+                          className="h-12 w-12 rounded-md object-cover bg-muted"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                          {produto.nome.substring(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-mono">{produto.codigo_interno}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
