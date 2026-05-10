@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { formatNumber } from '@/lib/formatters';
+import { formatNumber, formatters } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ConsumoMedioCardProps {
