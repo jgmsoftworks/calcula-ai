@@ -25,6 +25,7 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { CodigosBarrasInput } from './CodigosBarrasInput';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
+import { HistoricoProduto } from './HistoricoProduto';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
