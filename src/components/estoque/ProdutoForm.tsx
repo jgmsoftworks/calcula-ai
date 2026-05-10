@@ -25,6 +25,7 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { CodigosBarrasInput } from './CodigosBarrasInput';
 import { MarcasSelector } from './MarcasSelector';
 import { CategoriasSelector } from './CategoriasSelector';
+import { HistoricoProduto } from './HistoricoProduto';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
@@ -438,9 +439,13 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsContent>
 
             <TabsContent value="historico" className="mt-4">
-              <Card className="p-8 text-center text-muted-foreground">
-                <p>Histórico de movimentações será exibido aqui</p>
-              </Card>
+              {produto ? (
+                <HistoricoProduto produtoId={produto.id} />
+              ) : (
+                <Card className="p-8 text-center text-muted-foreground">
+                  <p>Salve o produto para visualizar o histórico.</p>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
 
