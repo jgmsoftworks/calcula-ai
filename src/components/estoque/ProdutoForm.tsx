@@ -438,9 +438,13 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsContent>
 
             <TabsContent value="historico" className="mt-4">
-              <Card className="p-8 text-center text-muted-foreground">
-                <p>Histórico de movimentações será exibido aqui</p>
-              </Card>
+              {produto ? (
+                <HistoricoProduto produtoId={produto.id} />
+              ) : (
+                <Card className="p-8 text-center text-muted-foreground">
+                  <p>Salve o produto para visualizar o histórico.</p>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
 
