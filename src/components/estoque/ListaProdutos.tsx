@@ -238,13 +238,13 @@ export function ListaProdutos() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   Carregando produtos...
                 </TableCell>
               </TableRow>
             ) : produtos.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   Nenhum produto encontrado
                 </TableCell>
               </TableRow>
