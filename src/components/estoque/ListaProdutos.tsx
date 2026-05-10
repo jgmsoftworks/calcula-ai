@@ -223,6 +223,7 @@ export function ListaProdutos() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">Imagem</TableHead>
               <TableHead>Código</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Marcas</TableHead>
