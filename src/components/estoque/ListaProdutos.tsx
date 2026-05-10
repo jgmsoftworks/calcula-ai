@@ -255,6 +255,19 @@ export function ListaProdutos() {
 
                 return (
                   <TableRow key={`${produto.id}-${refreshKey}`}>
+                    <TableCell>
+                      {produto.imagem_url ? (
+                        <img
+                          src={produto.imagem_url}
+                          alt={produto.nome}
+                          className="h-12 w-12 rounded-md object-cover bg-muted"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                          {produto.nome.substring(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-mono">{produto.codigo_interno}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
