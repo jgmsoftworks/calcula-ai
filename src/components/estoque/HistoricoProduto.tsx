@@ -82,9 +82,9 @@ export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm">{m.motivo || '-'}</TableCell>
-                <TableCell className="text-right">{formatters.number(m.quantidade)}</TableCell>
-                <TableCell className="text-right">{formatters.currency(m.custo_aplicado || 0)}</TableCell>
-                <TableCell className="text-right">{formatters.currency(m.subtotal || 0)}</TableCell>
+                <TableCell className="text-right">{formatters.quantidadeContinua(m.quantidade)}</TableCell>
+                <TableCell className="text-right">{formatters.valor(m.custo_aplicado || 0)}</TableCell>
+                <TableCell className="text-right">{formatters.valor(m.subtotal || 0)}</TableCell>
                 <TableCell className="text-sm">{m.responsavel || '-'}</TableCell>
                 <TableCell className="text-sm">
                   {m.comprovantes?.numero ? `#${m.comprovantes.numero}` : '-'}
