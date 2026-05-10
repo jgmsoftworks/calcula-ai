@@ -87,23 +87,12 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               {formatNumber(entradas, 2)} {unidade}
             </span>
           </div>
-          {entradas > 0 && (
-            <div className="flex items-center justify-between text-xs pl-5">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <DollarSign className="h-3 w-3" />
-                Preço médio
-              </span>
-              <span className="font-medium">
-                {formatters.valor(precoMedio)} / {unidade}
-              </span>
-            </div>
-          )}
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <TrendingDown className="h-3.5 w-3.5 text-red-600" />
               Saídas
             </span>
-            <span className="font-medium">
+            <span className="font-medium whitespace-nowrap">
               {formatNumber(saidas, 2)} {unidade}
             </span>
           </div>
@@ -112,10 +101,21 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               <BarChart3 className="h-3.5 w-3.5 text-primary" />
               Média/mês
             </span>
-            <span className="font-semibold text-primary">
+            <span className="font-semibold text-primary whitespace-nowrap">
               {formatNumber(mediaMensal, 2)} {unidade}
             </span>
           </div>
+          {entradas > 0 && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 text-foreground font-medium">
+                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                Preço médio
+              </span>
+              <span className="font-semibold text-primary whitespace-nowrap">
+                {formatters.valor(precoMedio)}/{unidade}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
