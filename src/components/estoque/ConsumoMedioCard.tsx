@@ -64,6 +64,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
 
   const semMovimento = entradas === 0 && saidas === 0;
   const mediaMensal = saidas / 3;
+  const precoMedio = entradas > 0 ? valorEntradas / entradas : 0;
 
   return (
     <div className="rounded-lg bg-muted/30 p-3 space-y-2 border border-border/50">
