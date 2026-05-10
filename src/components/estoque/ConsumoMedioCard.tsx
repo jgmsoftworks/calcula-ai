@@ -15,6 +15,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
   const [loading, setLoading] = useState(true);
   const [entradas, setEntradas] = useState(0);
   const [saidas, setSaidas] = useState(0);
+  const [valorEntradas, setValorEntradas] = useState(0);
 
   useEffect(() => {
     if (!user || !produtoId) return;
@@ -24,20 +25,26 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
       const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from('movimentacoes')
-        .select('tipo, quantidade')
+        .select('tipo, quantidade, custo_aplicado, subtotal')
         .eq('produto_id', produtoId)
         .eq('user_id', user.id)
         .gte('data_hora', desde);
 
       if (!error && data) {
-        let e = 0, s = 0;
+        let e = 0, s = 0, vE = 0;
         for (const m of data) {
           const q = Number(m.quantidade) || 0;
-          if (m.tipo === 'entrada') e += q;
-          else if (m.tipo === 'saida') s += q;
+          if (m.tipo === 'entrada') {
+            e += q;
+            const sub = Number(m.subtotal) || (Number(m.custo_aplicado) || 0) * q;
+            vE += sub;
+          } else if (m.tipo === 'saida') {
+            s += q;
+          }
         }
         setEntradas(e);
         setSaidas(s);
+        setValorEntradas(vE);
       }
       setLoading(false);
     };
