@@ -297,6 +297,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                       setImagePreview(previewUrl);
                     }}
                   />
+                  {produto?.id && (
+                    <ConsumoMedioCard
+                      produtoId={produto.id}
+                      unidade={watch('unidade_compra') || 'un'}
+                    />
+                  )}
                 </div>
 
                 {/* Campos do formulário */}
