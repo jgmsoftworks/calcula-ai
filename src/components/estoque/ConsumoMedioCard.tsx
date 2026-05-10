@@ -66,6 +66,11 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
   const mediaMensal = saidas / 3;
   const precoMedio = entradas > 0 ? valorEntradas / entradas : 0;
 
+  const fmtQtd = (n: number) =>
+    Number.isInteger(n)
+      ? new Intl.NumberFormat('pt-BR').format(n)
+      : new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
   return (
     <div className="rounded-lg bg-muted/30 p-3 space-y-2 border border-border/50">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -84,7 +89,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               Entradas
             </span>
             <span className="font-medium">
-              {formatNumber(entradas, 2)} {unidade}
+              {fmtQtd(entradas)} {unidade}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs">
@@ -93,7 +98,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               Saídas
             </span>
             <span className="font-medium whitespace-nowrap">
-              {formatNumber(saidas, 2)} {unidade}
+              {fmtQtd(saidas)} {unidade}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50">
@@ -102,7 +107,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               Média/mês
             </span>
             <span className="font-semibold text-primary whitespace-nowrap">
-              {formatNumber(mediaMensal, 2)} {unidade}
+              {fmtQtd(mediaMensal)} {unidade}
             </span>
           </div>
           {entradas > 0 && (
