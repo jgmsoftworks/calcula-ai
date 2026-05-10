@@ -66,6 +66,11 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
   const mediaMensal = saidas / 3;
   const precoMedio = entradas > 0 ? valorEntradas / entradas : 0;
 
+  const fmtQtd = (n: number) =>
+    Number.isInteger(n)
+      ? new Intl.NumberFormat('pt-BR').format(n)
+      : new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
   return (
     <div className="rounded-lg bg-muted/30 p-3 space-y-2 border border-border/50">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
