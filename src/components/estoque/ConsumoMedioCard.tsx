@@ -87,6 +87,17 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               {formatNumber(entradas, 2)} {unidade}
             </span>
           </div>
+          {entradas > 0 && (
+            <div className="flex items-center justify-between text-xs pl-5">
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <DollarSign className="h-3 w-3" />
+                Preço médio
+              </span>
+              <span className="font-medium">
+                {formatters.valor(precoMedio)} / {unidade}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <TrendingDown className="h-3.5 w-3.5 text-red-600" />
