@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { formatNumber } from '@/lib/formatters';
+import { formatNumber, formatters } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ConsumoMedioCardProps {
@@ -15,6 +15,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
   const [loading, setLoading] = useState(true);
   const [entradas, setEntradas] = useState(0);
   const [saidas, setSaidas] = useState(0);
+  const [valorEntradas, setValorEntradas] = useState(0);
 
   useEffect(() => {
     if (!user || !produtoId) return;
@@ -24,20 +25,26 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
       const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from('movimentacoes')
-        .select('tipo, quantidade')
+        .select('tipo, quantidade, custo_aplicado, subtotal')
         .eq('produto_id', produtoId)
         .eq('user_id', user.id)
         .gte('data_hora', desde);
 
       if (!error && data) {
-        let e = 0, s = 0;
+        let e = 0, s = 0, vE = 0;
         for (const m of data) {
           const q = Number(m.quantidade) || 0;
-          if (m.tipo === 'entrada') e += q;
-          else if (m.tipo === 'saida') s += q;
+          if (m.tipo === 'entrada') {
+            e += q;
+            const sub = Number(m.subtotal) || (Number(m.custo_aplicado) || 0) * q;
+            vE += sub;
+          } else if (m.tipo === 'saida') {
+            s += q;
+          }
         }
         setEntradas(e);
         setSaidas(s);
+        setValorEntradas(vE);
       }
       setLoading(false);
     };
@@ -57,6 +64,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
 
   const semMovimento = entradas === 0 && saidas === 0;
   const mediaMensal = saidas / 3;
+  const precoMedio = entradas > 0 ? valorEntradas / entradas : 0;
 
   return (
     <div className="rounded-lg bg-muted/30 p-3 space-y-2 border border-border/50">
@@ -79,6 +87,17 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               {formatNumber(entradas, 2)} {unidade}
             </span>
           </div>
+          {entradas > 0 && (
+            <div className="flex items-center justify-between text-xs pl-5">
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <DollarSign className="h-3 w-3" />
+                Preço médio
+              </span>
+              <span className="font-medium">
+                {formatters.valor(precoMedio)} / {unidade}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <TrendingDown className="h-3.5 w-3.5 text-red-600" />
