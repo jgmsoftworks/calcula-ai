@@ -89,7 +89,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               Entradas
             </span>
             <span className="font-medium">
-              {formatNumber(entradas, 2)} {unidade}
+              {fmtQtd(entradas)} {unidade}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs">
@@ -98,7 +98,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               Saídas
             </span>
             <span className="font-medium whitespace-nowrap">
-              {formatNumber(saidas, 2)} {unidade}
+              {fmtQtd(saidas)} {unidade}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50">
@@ -107,7 +107,7 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
               Média/mês
             </span>
             <span className="font-semibold text-primary whitespace-nowrap">
-              {formatNumber(mediaMensal, 2)} {unidade}
+              {fmtQtd(mediaMensal)} {unidade}
             </span>
           </div>
           {entradas > 0 && (
