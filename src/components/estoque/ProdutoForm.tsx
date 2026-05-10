@@ -275,6 +275,27 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                   <p className="text-xs text-muted-foreground">
                     Clique para selecionar
                   </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={!watch('nome') && (!codigosBarras || codigosBarras.length === 0)}
+                    onClick={() => setSugestaoOpen(true)}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Sugerir fotos
+                  </Button>
+                  <SugestaoFotosModal
+                    open={sugestaoOpen}
+                    onOpenChange={setSugestaoOpen}
+                    productName={watch('nome') || undefined}
+                    barcode={codigosBarras?.[0]}
+                    onSelect={(file, previewUrl) => {
+                      setSelectedImageFile(file);
+                      setImagePreview(previewUrl);
+                    }}
+                  />
                 </div>
 
                 {/* Campos do formulário */}
