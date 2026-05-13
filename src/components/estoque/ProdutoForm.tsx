@@ -209,10 +209,10 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="estoque" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="estoque">Estoque & Custos</TabsTrigger>
-              <TabsTrigger value="modo-uso">Modo de Uso</TabsTrigger>
-              <TabsTrigger value="historico" disabled={!produto}>
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger value="estoque" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
+              <TabsTrigger value="modo-uso" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Modo de Uso</TabsTrigger>
+              <TabsTrigger value="historico" disabled={!produto} className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">
                 Histórico
               </TabsTrigger>
             </TabsList>
