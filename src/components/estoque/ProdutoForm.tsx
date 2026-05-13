@@ -200,7 +200,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
       onOpenChange={onOpenChange}
       key={produto?.id || 'new-product'}
     >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {produto ? 'Editar Produto' : 'Criar Produto'}
@@ -209,10 +209,10 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="estoque" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="estoque">Estoque & Custos</TabsTrigger>
-              <TabsTrigger value="modo-uso">Modo de Uso</TabsTrigger>
-              <TabsTrigger value="historico" disabled={!produto}>
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger value="estoque" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
+              <TabsTrigger value="modo-uso" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Modo de Uso</TabsTrigger>
+              <TabsTrigger value="historico" disabled={!produto} className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">
                 Histórico
               </TabsTrigger>
             </TabsList>
@@ -308,7 +308,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 {/* Campos do formulário */}
                 <div className="space-y-4">
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Nome do Produto *</Label>
                       <Input
@@ -353,7 +353,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <Label>Unidade de Compra *</Label>
                       <Select
@@ -393,7 +393,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Estoque Atual *</Label>
                       <NumericInputPtBr
@@ -426,7 +426,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 </p>
               </Card>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label>Unidade de Uso</Label>
                   <Select
