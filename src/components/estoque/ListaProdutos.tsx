@@ -1,6 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
@@ -44,7 +57,8 @@ export function ListaProdutos() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   // Filtros
   const [search, setSearch] = useState('');
   const [unidadeFiltro, setUnidadeFiltro] = useState<string>('todas');
@@ -52,10 +66,16 @@ export function ListaProdutos() {
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('todas');
   const [abaixoMinimo, setAbaixoMinimo] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  
+
   // Dados dos filtros
   const [marcas, setMarcas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
+
+  const activeFiltersCount =
+    (unidadeFiltro !== 'todas' ? 1 : 0) +
+    (marcaSelecionada !== 'todas' ? 1 : 0) +
+    (categoriaSelecionada !== 'todas' ? 1 : 0) +
+    (abaixoMinimo ? 1 : 0);
 
   const loadProdutos = async (forceRefresh = false) => {
     setLoading(true);
@@ -70,7 +90,6 @@ export function ListaProdutos() {
       abaixoMinimo,
     });
     if (data) {
-      // Cria NOVOS objetos para quebrar referências em cache
       const novosProdutos = data.map(p => ({
         ...p,
         nome: String(p.nome || '').trim(),
@@ -87,7 +106,6 @@ export function ListaProdutos() {
     loadProdutos(true);
   };
 
-  // Carregar marcas e categorias
   useEffect(() => {
     const loadFiltros = async () => {
       const [marcasData, categoriasData] = await Promise.all([
@@ -119,7 +137,8 @@ export function ListaProdutos() {
     loadProdutos();
   };
 
-  const handleDelete = async (produto: Produto) => {
+  const handleDelete = async (produto: Produto, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (confirm(`Tem certeza que deseja remover o produto "${produto.nome}"?`)) {
       const success = await deleteProduto(produto.id);
       if (success) {
@@ -128,10 +147,66 @@ export function ListaProdutos() {
     }
   };
 
+  const filtrosInternos = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Marca</Label>
+        <Select value={marcaSelecionada} onValueChange={setMarcaSelecionada}>
+          <SelectTrigger><SelectValue placeholder="Todas as marcas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as Marcas</SelectItem>
+            {marcas.map((marca) => (
+              <SelectItem key={marca.id} value={marca.nome}>{marca.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Categoria</Label>
+        <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
+          <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as Categorias</SelectItem>
+            {categorias.map((categoria) => (
+              <SelectItem key={categoria.id} value={categoria.nome}>{categoria.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Unidade</Label>
+        <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
+          <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas</SelectItem>
+            <SelectItem value="un">UN</SelectItem>
+            <SelectItem value="kg">KG</SelectItem>
+            <SelectItem value="g">G</SelectItem>
+            <SelectItem value="l">L</SelectItem>
+            <SelectItem value="ml">ML</SelectItem>
+            <SelectItem value="cx">CX</SelectItem>
+            <SelectItem value="pc">PC</SelectItem>
+            <SelectItem value="fd">FD</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center space-x-2 pt-2">
+        <Checkbox
+          id="abaixo-minimo"
+          checked={abaixoMinimo}
+          onCheckedChange={(checked) => setAbaixoMinimo(checked as boolean)}
+        />
+        <Label htmlFor="abaixo-minimo" className="cursor-pointer">
+          Abaixo do mínimo
+        </Label>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      {/* Filtros */}
-      <Card className="p-4">
+      {/* ===== Filtros Desktop ===== */}
+      <Card className="p-4 hidden md:block">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="md:col-span-2">
             <Input
@@ -142,37 +217,27 @@ export function ListaProdutos() {
           </div>
 
           <Select value={marcaSelecionada} onValueChange={setMarcaSelecionada}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas as marcas" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Todas as marcas" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as Marcas</SelectItem>
               {marcas.map((marca) => (
-                <SelectItem key={marca.id} value={marca.nome}>
-                  {marca.nome}
-                </SelectItem>
+                <SelectItem key={marca.id} value={marca.nome}>{marca.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas as categorias" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as Categorias</SelectItem>
               {categorias.map((categoria) => (
-                <SelectItem key={categoria.id} value={categoria.nome}>
-                  {categoria.nome}
-                </SelectItem>
+                <SelectItem key={categoria.id} value={categoria.nome}>{categoria.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas as unidades" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Todas as unidades" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas</SelectItem>
               <SelectItem value="un">UN</SelectItem>
@@ -188,11 +253,11 @@ export function ListaProdutos() {
 
           <div className="flex items-center space-x-2">
             <Checkbox
-              id="abaixo-minimo"
+              id="abaixo-minimo-desktop"
               checked={abaixoMinimo}
               onCheckedChange={(checked) => setAbaixoMinimo(checked as boolean)}
             />
-            <Label htmlFor="abaixo-minimo" className="cursor-pointer">
+            <Label htmlFor="abaixo-minimo-desktop" className="cursor-pointer">
               Abaixo do mínimo
             </Label>
           </div>
@@ -218,8 +283,58 @@ export function ListaProdutos() {
         </div>
       </Card>
 
-      {/* Tabela */}
-      <Card>
+      {/* ===== Filtros Mobile ===== */}
+      <Card className="p-3 md:hidden space-y-3">
+        <Input
+          placeholder="Buscar produto..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="flex-1 relative">
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filtros
+                {activeFiltersCount > 0 && (
+                  <Badge className="ml-2 h-5 min-w-5 px-1.5">{activeFiltersCount}</Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] sm:max-w-sm">
+              <SheetHeader>
+                <SheetTitle>Filtros</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">{filtrosInternos}</div>
+            </SheetContent>
+          </Sheet>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleForceRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Recarregar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportarProdutos}>
+                <Download className="h-4 w-4 mr-2" /> Exportar Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportModalOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" /> Importar Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <Button onClick={handleCreate} className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Criar Produto
+        </Button>
+      </Card>
+
+      {/* ===== Tabela Desktop ===== */}
+      <Card className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -237,31 +352,18 @@ export function ListaProdutos() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-8">
-                  Carregando produtos...
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8">Carregando produtos...</TableCell></TableRow>
             ) : produtos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                  Nenhum produto encontrado
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</TableCell></TableRow>
             ) : (
               produtos.map((produto) => {
                 const valorEstoque = produto.custo_unitario * produto.estoque_atual;
                 const estoqueAbaixo = produto.estoque_minimo > 0 && produto.estoque_atual < produto.estoque_minimo;
-
                 return (
                   <TableRow key={`${produto.id}-${refreshKey}`}>
                     <TableCell>
                       {produto.imagem_url ? (
-                        <img
-                          src={produto.imagem_url}
-                          alt={produto.nome}
-                          className="h-12 w-12 rounded-md object-cover bg-muted"
-                        />
+                        <img src={produto.imagem_url} alt={produto.nome} className="h-12 w-12 rounded-md object-cover bg-muted" />
                       ) : (
                         <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
                           {produto.nome.substring(0, 1).toUpperCase()}
@@ -283,55 +385,33 @@ export function ListaProdutos() {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {produto.marcas?.slice(0, 2).map((marca, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {marca}
-                          </Badge>
+                          <Badge key={i} variant="outline" className="text-xs">{marca}</Badge>
                         ))}
                         {produto.marcas && produto.marcas.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{produto.marcas.length - 2}
-                          </Badge>
+                          <Badge variant="outline" className="text-xs">+{produto.marcas.length - 2}</Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {produto.categorias?.slice(0, 2).map((categoria, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {categoria}
-                          </Badge>
+                          <Badge key={i} variant="outline" className="text-xs">{categoria}</Badge>
                         ))}
                         {produto.categorias && produto.categorias.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{produto.categorias.length - 2}
-                          </Badge>
+                          <Badge variant="outline" className="text-xs">+{produto.categorias.length - 2}</Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="uppercase">{produto.unidade_compra}</TableCell>
-                    <TableCell className="text-right">
-                      {formatters.quantidadeContinua(produto.estoque_atual)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatters.valor(produto.custo_unitario)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatters.valor(valorEstoque)}
-                    </TableCell>
+                    <TableCell className="text-right">{formatters.quantidadeContinua(produto.estoque_atual)}</TableCell>
+                    <TableCell className="text-right">{formatters.valor(produto.custo_unitario)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatters.valor(valorEstoque)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEdit(produto)}
-                        >
+                        <Button size="icon" variant="ghost" onClick={() => handleEdit(produto)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDelete(produto)}
-                        >
+                        <Button size="icon" variant="ghost" onClick={() => handleDelete(produto)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -343,6 +423,85 @@ export function ListaProdutos() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* ===== Lista Mobile (cards) ===== */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <Card className="p-6 text-center text-sm text-muted-foreground">Carregando produtos...</Card>
+        ) : produtos.length === 0 ? (
+          <Card className="p-6 text-center text-sm text-muted-foreground">Nenhum produto encontrado</Card>
+        ) : (
+          produtos.map((produto) => {
+            const valorEstoque = produto.custo_unitario * produto.estoque_atual;
+            const estoqueAbaixo = produto.estoque_minimo > 0 && produto.estoque_atual < produto.estoque_minimo;
+            return (
+              <Card
+                key={`${produto.id}-${refreshKey}`}
+                className="p-3 active:scale-[0.99] transition-transform cursor-pointer"
+                onClick={() => handleEdit(produto)}
+              >
+                <div className="flex gap-3">
+                  {produto.imagem_url ? (
+                    <img src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 rounded-lg object-cover bg-muted flex-shrink-0" />
+                  ) : (
+                    <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center text-lg font-semibold text-muted-foreground flex-shrink-0">
+                      {produto.nome.substring(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-sm leading-tight truncate">{produto.nome}</h4>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                          {produto.codigo_interno} · <span className="uppercase">{produto.unidade_compra}</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 -mr-1 -mt-1 flex-shrink-0"
+                        onClick={(e) => handleDelete(produto, e)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {estoqueAbaixo && (
+                      <Badge variant="destructive" className="text-[10px] gap-1 mt-1 h-5">
+                        <AlertCircle className="h-3 w-3" />
+                        Abaixo do mínimo
+                      </Badge>
+                    )}
+                    {(produto.marcas?.length || produto.categorias?.length) ? (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {produto.marcas?.slice(0, 2).map((m, i) => (
+                          <Badge key={`m-${i}`} variant="outline" className="text-[10px] h-5">{m}</Badge>
+                        ))}
+                        {produto.categorias?.slice(0, 2).map((c, i) => (
+                          <Badge key={`c-${i}`} variant="outline" className="text-[10px] h-5">{c}</Badge>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Estoque</p>
+                    <p className="font-medium">{formatters.quantidadeContinua(produto.estoque_atual)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Custo</p>
+                    <p className="font-medium">{formatters.valor(produto.custo_unitario)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-muted-foreground">Valor total</p>
+                    <p className="font-semibold text-primary">{formatters.valor(valorEstoque)}</p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
 
       <ProdutoForm
         produto={produtoSelecionado}
