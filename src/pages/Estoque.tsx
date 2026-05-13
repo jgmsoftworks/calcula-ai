@@ -12,8 +12,14 @@ export default function Estoque() {
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="produtos">{t('pages.estoque.listaProdutos')}</TabsTrigger>
-          <TabsTrigger value="historico">{t('pages.estoque.historicoGeral')}</TabsTrigger>
+          <TabsTrigger value="produtos">
+            <span className="hidden md:inline">{t('pages.estoque.listaProdutos')}</span>
+            <span className="md:hidden">Produtos</span>
+          </TabsTrigger>
+          <TabsTrigger value="historico">
+            <span className="hidden md:inline">{t('pages.estoque.historicoGeral')}</span>
+            <span className="md:hidden">Histórico</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="produtos">
