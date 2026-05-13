@@ -353,7 +353,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <Label>Unidade de Compra *</Label>
                       <Select
