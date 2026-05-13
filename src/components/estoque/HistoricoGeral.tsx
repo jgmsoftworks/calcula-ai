@@ -1,6 +1,7 @@
 // Fixed: All SelectItem values are non-empty - verified 2025-01-05
 import { useState, useEffect } from 'react';
-import { Calendar, FileText } from 'lucide-react';
+import { Calendar, FileText, SlidersHorizontal } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
