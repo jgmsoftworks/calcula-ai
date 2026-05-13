@@ -200,7 +200,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
       onOpenChange={onOpenChange}
       key={produto?.id || 'new-product'}
     >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {produto ? 'Editar Produto' : 'Criar Produto'}
