@@ -71,6 +71,7 @@ const App = () => (
                 <Route path="/admin/usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
                 <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
                 <Route path="/admin/stripe" element={<AppLayout><AdminStripe /></AppLayout>} />
+                <Route path="/admin/security" element={<AppLayout><AdminSecurity /></AppLayout>} />
                 <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
                 <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
