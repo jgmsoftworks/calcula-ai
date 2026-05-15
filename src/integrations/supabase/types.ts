@@ -2388,6 +2388,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_consents: {
+        Row: {
+          accepted: boolean
+          anonymous_id: string | null
+          consent_type: string
+          created_at: string
+          id: string
+          ip: string | null
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string | null
+          version: string
+        }
+        Insert: {
+          accepted: boolean
+          anonymous_id?: string | null
+          consent_type: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          version?: string
+        }
+        Update: {
+          accepted?: boolean
+          anonymous_id?: string | null
+          consent_type?: string
+          created_at?: string
+          id?: string
+          ip?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
