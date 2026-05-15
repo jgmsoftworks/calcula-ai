@@ -1,65 +1,92 @@
-## Problema
+# Plano — Correção do duplo load + Pente fino LGPD/Segurança
 
-No celular (390px), a página **Estoque** fica ruim porque:
+## 1. Bug do "duplo load" em toda navegação
 
-1. **Aba "Lista de Produtos"** usa uma `<Table>` com 10 colunas (Imagem, Código, Nome, Marcas, Categorias, Unidade, Estoque, Custo, Valor, Ações). No mobile a tabela estoura horizontalmente, texto fica espremido e cada linha ocupa muito espaço vertical sem hierarquia.
-2. **Filtros** (busca, marca, categoria, unidade, checkbox "Abaixo do mínimo") empilham em 1 coluna ocupando uma tela inteira antes do conteúdo aparecer.
-3. **Botões de ação** (Criar, Recarregar, Exportar, Importar) ficam todos visíveis em linha quebrando feio.
-4. **Aba "Histórico Geral"** tem o mesmo problema: tabela de 9 colunas + 4 filtros sempre visíveis.
-5. As **TabsList** ocupam largura total mas os títulos ("Lista de Produtos" / "Histórico Geral") quase não cabem.
+### Causa raiz
+Em `src/App.tsx`, cada rota é declarada como `<Route element={<AppLayout><Page/></AppLayout>}/>`. Como o `AppLayout` é instanciado **dentro** do `element` de cada `<Route>`, o React Router **remonta** o `AppLayout` inteiro a cada navegação (Sidebar + Header + Providers locais).
 
-## Solução
+Dentro do `AppLayout`:
+- `isReady` começa `false` e só vira `true` após `setTimeout(..., 100ms)` → spinner aparece por ~100ms a cada navegação.
+- O bloco `hasAuthFragment` roda em todo mount (3s timer), mas só ativa se houver `#access_token` na URL.
+- `useMarkupInitializer` roda novamente.
 
-Manter o layout desktop atual intacto e criar uma versão mobile (`<md`) baseada em cards e filtros recolhíveis.
+Resultado: ao clicar num item da sidebar, o usuário vê: página atual → spinner (100ms) → nova página. Parece "carregar duas vezes".
 
-### 1. `ListaProdutos.tsx` (aba Produtos)
+### Correção
+Converter `AppLayout` em **layout route** do React Router (mount único):
 
-**Filtros (mobile)**
-- Mostrar apenas a barra de busca + um botão "Filtros" com ícone que abre um `Sheet` lateral contendo: Marca, Categoria, Unidade, checkbox "Abaixo do mínimo".
-- Badge no botão Filtros indicando quantos filtros ativos.
+```tsx
+<Routes>
+  <Route path="/auth" element={<Auth />} />
+  {/* rotas públicas... */}
+  <Route element={<AppLayoutRoute />}>   {/* usa <Outlet/> */}
+    <Route path="/" element={<Index />} />
+    <Route path="/estoque" element={<Estoque />} />
+    {/* etc */}
+  </Route>
+</Routes>
+```
 
-**Ações (mobile)**
-- "Criar Produto" como botão primário em largura total.
-- Os outros (Recarregar, Exportar, Importar) entram num menu `DropdownMenu` "Mais ações" com ícone de três pontos.
+E em `AppLayout` substituir `{children}` por `<Outlet />`. Remover também o `setTimeout(100ms)` artificial — usar apenas `loading` do `useAuth` para o spinner inicial.
 
-**Listagem (mobile)**
-- Substituir `<Table>` por uma lista de **cards** (`<md:hidden`), cada card com:
-  - Linha 1: imagem 56x56 à esquerda + nome em destaque + badge "Abaixo do mínimo" se aplicável.
-  - Linha 2 (sob o nome): código mono pequeno + unidade em uppercase.
-  - Linha 3: grid 2 colunas → "Estoque: X un" / "Custo: R$ X" e abaixo "Valor em estoque" destacado.
-  - Marcas/categorias como chips pequenos limitados a 2 + "+N".
-  - Tap no card abre o modal de edição; ícone de lixeira no canto para excluir (com confirm já existente).
-- Em `≥md`, manter a `<Table>` atual sem alterações.
+Adicionar componente `ScrollToTop` (já é boa prática com múltiplas rotas).
 
-### 2. `HistoricoGeral.tsx` (aba Histórico)
+## 2. Pente fino — Pré-publicação
 
-**Filtros (mobile)**
-- Período: dois inputs de data lado a lado (grid 2 colunas).
-- Tipo + Responsável dentro de um `Sheet` "Filtros" com botão acima da lista.
+### 2.1 Auditoria estática
+- `tsc --noEmit` (build do harness) + `eslint`.
+- Rodar `supabase--linter` e revisar findings críticos restantes (sem alterar nada que afete produção sem aprovação).
+- Conferir que `cspReporter`, `consent` e `turnstile` (desligado) estão OK.
 
-**Listagem (mobile)**
-- Cards no lugar da tabela:
-  - Topo: badge "Entrada"/"Saída" + data/hora à direita.
-  - Nome do produto em destaque.
-  - Linha de métricas: Quantidade · Custo · **Subtotal** (negrito).
-  - Rodapé: Responsável · Origem · badge comprovante (#número) se existir.
-- Em `≥md`, manter a `<Table>` atual.
+### 2.2 Testes automatizados (Vitest — já configurado)
+Adicionar/garantir testes que cobrem fluxos sensíveis **sem tocar produção**:
 
-### 3. `Estoque.tsx` (tabs)
+- **Smoke render**: `App` renderiza sem crash em rota `/auth`, `/`, `/estoque`, `/receitas`, `/minha-privacidade`.
+- **Navegação sem flash**: ao trocar de rota com `MemoryRouter`, `AppLayout` mantém mesmo instance (ref estável) e não dispara `loading` de novo.
+- **CookieBanner**: aparece quando `consent` ausente, persiste escolha, não bloqueia render.
+- **MinhaPrivacidade**: renderiza, botões de export/delete chamam edge function correta (mock).
+- **CSP reporter**: continua enviando via `sendBeacon` (já existe).
+- **Turnstile**: fail-open quando flag desligada (já existe).
+- **Consent gate**: GA/analytics não dispara antes de aceite (verificar em `index.html` / lib).
 
-- Encurtar rótulos das abas no mobile: "Produtos" / "Histórico" (manter completos no desktop usando `hidden md:inline` / `md:hidden`).
-- Garantir que o container da página tenha `px-3` no mobile para não colar nas bordas.
+### 2.3 Verificação manual via browser tool
+- `/auth` carrega; signup/login form visível.
+- Navegar `/` → `/estoque` → `/receitas` → `/precificacao` confirmando que **não há mais flash**.
+- `/minha-privacidade` lista ações LGPD.
+- `/admin/security` exibe dashboard (com user admin).
+- Banner de cookies aparece em sessão limpa.
+
+### 2.4 LGPD — checklist de conformidade
+- [ ] Política de Privacidade, Termos, Cookies acessíveis sem login (`/politica-de-privacidade`, `/termos-de-uso`, `/cookies`).
+- [ ] Cookie banner com opção granular + link para política.
+- [ ] Página `/minha-privacidade` com export de dados + solicitação de deleção.
+- [ ] Edge functions `export-my-data`, `request-account-deletion`, `purge-deleted-accounts` deployadas.
+- [ ] Audit log com retenção (`cleanup-audit-logs`).
+- [ ] CSP Report-Only ativo coletando.
+- [ ] Tabela `csp_violations` com RLS.
+- [ ] Nenhum dado sensível em logs do client.
+
+## 3. Plano de rollback
+- Mudança de rotas é **estritamente UI**. Rollback = reverter `App.tsx` e `AppLayout.tsx` ao commit anterior.
+- Sem migrations. Sem mudança em Stripe/Auth/Storage/RLS.
+
+## 4. Relatório final (após execução)
+Entregarei:
+- Lista de arquivos alterados (esperado: `src/App.tsx`, `src/components/layout/AppLayout.tsx`, `src/components/ScrollToTop.tsx` novo, novos `*.test.tsx`).
+- Resultados Vitest (passou/falhou).
+- Checklist LGPD marcado.
+- Score residual (Segurança app, LGPD, Regressão).
+- Confirmação de zero impacto em Stripe/Auth/Storage/imagens.
 
 ## Detalhes técnicos
+- `AppLayoutRoute` será wrapper fino: `const AppLayoutRoute = () => (<AppLayout><Outlet/></AppLayout>)`.
+- Manter `AppLayout` aceitando `children` por compat, mas usar `<Outlet/>` quando children ausente.
+- Remover `setTimeout(100)` e `isReady` — usar apenas `loading` do auth.
+- Manter o handler de `hasAuthFragment` (necessário para callback OAuth).
+- `ScrollToTop` registrado uma vez dentro do `BrowserRouter`.
 
-- Usar `useIsMobile()` (já existe em `src/hooks/use-mobile.tsx`) **ou** classes Tailwind (`md:hidden` / `hidden md:block`) para alternar entre cards e tabela. Preferir classes Tailwind para evitar re-render extra; usar o hook só quando precisar de comportamento JS diferente.
-- Componente `Sheet` (`src/components/ui/sheet.tsx`) para o painel de filtros no mobile.
-- `DropdownMenu` (já presente) para "Mais ações".
-- Reutilizar `formatters.valor` / `formatters.quantidadeContinua`.
-- Sem alterações em hooks, dados ou regras de negócio — somente apresentação.
-
-## Arquivos a alterar
-
-- `src/components/estoque/ListaProdutos.tsx`
-- `src/components/estoque/HistoricoGeral.tsx`
-- `src/pages/Estoque.tsx`
+## Fora do escopo (não fazer agora)
+- Buckets privados (Fase A) — adiado.
+- CSP enforce — manter Report-Only.
+- Revogar grants de `anon` em funções `SECURITY DEFINER` — adiado (precisa auditoria por função).
+- Turnstile real — continua scaffold desligado.

@@ -7,7 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ActivityProvider } from "@/contexts/ActivityContext";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { AppLayoutRoute } from "@/components/layout/AppLayoutRoute";
+import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthSuccess from "./pages/AuthSuccess";
@@ -55,6 +56,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <ScrollToTop />
               <CookieBanner />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
@@ -67,25 +69,27 @@ const App = () => (
                 <Route path="/ref/:code" element={<AffiliateRedirect />} />
                 <Route path="/aff/:code" element={<AffiliateRedirect />} />
                 <Route path="/affiliate/:code" element={<AffiliatePlanSelector />} />
-                <Route path="/afiliados" element={<AppLayout><Afiliados /></AppLayout>} />
-                <Route path="/admin/usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
-                <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
-                <Route path="/admin/stripe" element={<AppLayout><AdminStripe /></AppLayout>} />
-                <Route path="/admin/security" element={<AppLayout><AdminSecurity /></AppLayout>} />
-                <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
-                <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-                <Route path="/estoque" element={<AppLayout><Estoque /></AppLayout>} />
-                <Route path="/receitas" element={<AppLayout><Receitas /></AppLayout>} />
-                <Route path="/movimentacao" element={<AppLayout><Movimentacao /></AppLayout>} />
-                <Route path="/custos" element={<AppLayout><Custos /></AppLayout>} />
-                <Route path="/precificacao" element={<AppLayout><Precificacao /></AppLayout>} />
-                <Route path="/planos" element={<AppLayout><Planos /></AppLayout>} />
-                <Route path="/perfil" element={<AppLayout><PerfilNegocio /></AppLayout>} />
-                <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
-                <Route path="/tutorial" element={<AppLayout><Tutorial /></AppLayout>} />
-                <Route path="/minha-privacidade" element={<AppLayout><MinhaPrivacidade /></AppLayout>} />
+                <Route element={<AppLayoutRoute />}>
+                  <Route path="/afiliados" element={<Afiliados />} />
+                  <Route path="/admin/usuarios" element={<AdminUsers />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/stripe" element={<AdminStripe />} />
+                  <Route path="/admin/security" element={<AdminSecurity />} />
+                  <Route path="/admin-usuarios" element={<AdminUsers />} />
+                  <Route path="/admin-configuracoes" element={<AdminSettings />} />
+                  <Route path="/" element={<Index />} />
+                  <Route path="/estoque" element={<Estoque />} />
+                  <Route path="/receitas" element={<Receitas />} />
+                  <Route path="/movimentacao" element={<Movimentacao />} />
+                  <Route path="/custos" element={<Custos />} />
+                  <Route path="/precificacao" element={<Precificacao />} />
+                  <Route path="/planos" element={<Planos />} />
+                  <Route path="/perfil" element={<PerfilNegocio />} />
+                  <Route path="/notificacoes" element={<NotificacoesPainel />} />
+                  <Route path="/tutorial" element={<Tutorial />} />
+                  <Route path="/minha-privacidade" element={<MinhaPrivacidade />} />
+                </Route>
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

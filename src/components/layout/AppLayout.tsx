@@ -33,7 +33,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const currentTheme = theme || resolvedTheme || 'light';
   const location = useLocation();
   const navigate = useNavigate();
-  const [isReady, setIsReady] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
   const { toast } = useToast();
@@ -97,14 +96,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     i18n.changeLanguage(lang);
   };
 
-  useEffect(() => {
-    if (!loading) {
-      const timer = setTimeout(() => setIsReady(true), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [loading]);
-
-  if (loading || !isReady || hasAuthFragment) {
+  if (loading || hasAuthFragment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4 animate-fade-in">
