@@ -31,6 +31,7 @@ import NotificacoesPainel from "./pages/NotificacoesPainel";
 import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 import MinhaPrivacidade from "./pages/MinhaPrivacidade";
+import AdminSecurity from "./pages/AdminSecurity";
 import PoliticaPrivacidade from "./pages/legal/PoliticaPrivacidade";
 import TermosUso from "./pages/legal/TermosUso";
 import PoliticaCookies from "./pages/legal/PoliticaCookies";
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/admin/usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
                 <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
                 <Route path="/admin/stripe" element={<AppLayout><AdminStripe /></AppLayout>} />
+                <Route path="/admin/security" element={<AppLayout><AdminSecurity /></AppLayout>} />
                 <Route path="/admin-usuarios" element={<AppLayout><AdminUsers /></AppLayout>} />
                 <Route path="/admin-configuracoes" element={<AppLayout><AdminSettings /></AppLayout>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
