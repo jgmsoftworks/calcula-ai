@@ -356,8 +356,25 @@ const Auth = () => {
                       <InputField id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
                       <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
                       <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
-                      
-                      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
+
+                      <div className="space-y-2 pt-1">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <Checkbox id="acceptTerms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} className="mt-0.5" />
+                          <span className="text-xs text-muted-foreground leading-snug">
+                            Li e aceito os{' '}
+                            <Link to="/termos-de-uso" target="_blank" className="text-primary underline underline-offset-2">Termos de Uso</Link>.
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <Checkbox id="acceptPrivacy" checked={acceptPrivacy} onCheckedChange={(v) => setAcceptPrivacy(v === true)} className="mt-0.5" />
+                          <span className="text-xs text-muted-foreground leading-snug">
+                            Li e aceito a{' '}
+                            <Link to="/politica-de-privacidade" target="_blank" className="text-primary underline underline-offset-2">Política de Privacidade</Link>.
+                          </span>
+                        </label>
+                      </div>
+
+                      <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
                         {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                       </Button>
                       
