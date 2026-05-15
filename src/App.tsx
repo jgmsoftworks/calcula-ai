@@ -30,6 +30,11 @@ import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
 import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
+import PoliticaPrivacidade from "./pages/legal/PoliticaPrivacidade";
+import TermosUso from "./pages/legal/TermosUso";
+import PoliticaCookies from "./pages/legal/PoliticaCookies";
+import { CookieConsentProvider } from "@/hooks/useCookieConsent";
+import { CookieBanner } from "@/components/legal/CookieBanner";
 
 const queryClient = new QueryClient();
 
@@ -43,12 +48,17 @@ const App = () => (
     >
       <AuthProvider>
         <ActivityProvider>
+          <CookieConsentProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <CookieBanner />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/termos-de-uso" element={<TermosUso />} />
+                <Route path="/cookies" element={<PoliticaCookies />} />
                 <Route path="/auth/success" element={<AuthSuccess />} />
                 <Route path="/auth/stripe-complete" element={<AuthStripeComplete />} />
                 <Route path="/checkout" element={<Checkout />} />
@@ -77,6 +87,7 @@ const App = () => (
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
+          </CookieConsentProvider>
         </ActivityProvider>
       </AuthProvider>
     </ThemeProvider>
