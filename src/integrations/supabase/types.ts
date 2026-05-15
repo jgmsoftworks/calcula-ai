@@ -712,6 +712,60 @@ export type Database = {
           },
         ]
       }
+      csp_violations: {
+        Row: {
+          blocked_uri: string | null
+          column_number: number | null
+          created_at: string
+          document_uri: string | null
+          effective_directive: string | null
+          id: string
+          line_number: number | null
+          original_policy: string | null
+          raw: Json | null
+          referrer: string | null
+          source_file: string | null
+          status_code: number | null
+          user_agent: string | null
+          user_id: string | null
+          violated_directive: string | null
+        }
+        Insert: {
+          blocked_uri?: string | null
+          column_number?: number | null
+          created_at?: string
+          document_uri?: string | null
+          effective_directive?: string | null
+          id?: string
+          line_number?: number | null
+          original_policy?: string | null
+          raw?: Json | null
+          referrer?: string | null
+          source_file?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          violated_directive?: string | null
+        }
+        Update: {
+          blocked_uri?: string | null
+          column_number?: number | null
+          created_at?: string
+          document_uri?: string | null
+          effective_directive?: string | null
+          id?: string
+          line_number?: number | null
+          original_policy?: string | null
+          raw?: Json | null
+          referrer?: string | null
+          source_file?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          violated_directive?: string | null
+        }
+        Relationships: []
+      }
       data_export_requests: {
         Row: {
           completed_at: string | null
