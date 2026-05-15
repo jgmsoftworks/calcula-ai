@@ -64,6 +64,7 @@ export function AppSidebar() {
   const adminItems = [
     { title: t('nav.gerenciarUsuarios'), url: '/admin/usuarios', icon: Users },
     { title: 'Painel Stripe', url: '/admin/stripe', icon: CreditCard },
+    { title: 'Segurança', url: '/admin/security', icon: ShieldCheck },
     { title: t('nav.configuracoes'), url: '/admin-configuracoes', icon: Building2 },
   ];
 
