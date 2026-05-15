@@ -30,6 +30,7 @@ import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
 import NotificacoesPainel from "./pages/NotificacoesPainel";
 import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
+import MinhaPrivacidade from "./pages/MinhaPrivacidade";
 import PoliticaPrivacidade from "./pages/legal/PoliticaPrivacidade";
 import TermosUso from "./pages/legal/TermosUso";
 import PoliticaCookies from "./pages/legal/PoliticaCookies";
@@ -82,6 +83,7 @@ const App = () => (
                 <Route path="/perfil" element={<AppLayout><PerfilNegocio /></AppLayout>} />
                 <Route path="/notificacoes" element={<AppLayout><NotificacoesPainel /></AppLayout>} />
                 <Route path="/tutorial" element={<AppLayout><Tutorial /></AppLayout>} />
+                <Route path="/minha-privacidade" element={<AppLayout><MinhaPrivacidade /></AppLayout>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
