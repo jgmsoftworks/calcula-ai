@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Mail, 
@@ -21,8 +22,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client';
+import { CONSENT_VERSION } from '@/lib/consent';
 
 const InputField = ({ id, label, icon: Icon, type = "text", placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
@@ -77,6 +80,8 @@ const Auth = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showLoginResend, setShowLoginResend] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
@@ -114,6 +119,14 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms || !acceptPrivacy) {
+      toast({
+        title: 'Aceite necessário',
+        description: 'Para criar sua conta, é necessário ler e aceitar os Termos de Uso e a Política de Privacidade.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await signUp(email, password, fullName, businessName, phone);
@@ -131,6 +144,21 @@ const Auth = () => {
         toast({ title: t('auth.emailAlreadyExists'), description: t('auth.emailAlreadyExistsDesc'), variant: "destructive" });
         return;
       }
+
+      // Registrar consentimentos LGPD (Termos + Privacidade) — se houver user_id, vincula
+      const newUserId = data?.user?.id ?? null;
+      if (newUserId) {
+        const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+        try {
+          await supabase.from('user_consents').insert([
+            { user_id: newUserId, consent_type: 'terms_of_use', accepted: true, version: CONSENT_VERSION, user_agent: ua },
+            { user_id: newUserId, consent_type: 'privacy_policy', accepted: true, version: CONSENT_VERSION, user_agent: ua },
+          ] as any);
+        } catch (consentErr) {
+          console.warn('[auth] Falha ao registrar consentimentos legais', consentErr);
+        }
+      }
+
       // Se o Supabase retornou sessão ativa (confirmação de email desativada),
       // o usuário já está logado — navegar direto para o app.
       if (data?.session) {
@@ -328,8 +356,25 @@ const Auth = () => {
                       <InputField id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
                       <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
                       <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
-                      
-                      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
+
+                      <div className="space-y-2 pt-1">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <Checkbox id="acceptTerms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} className="mt-0.5" />
+                          <span className="text-xs text-muted-foreground leading-snug">
+                            Li e aceito os{' '}
+                            <Link to="/termos-de-uso" target="_blank" className="text-primary underline underline-offset-2">Termos de Uso</Link>.
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <Checkbox id="acceptPrivacy" checked={acceptPrivacy} onCheckedChange={(v) => setAcceptPrivacy(v === true)} className="mt-0.5" />
+                          <span className="text-xs text-muted-foreground leading-snug">
+                            Li e aceito a{' '}
+                            <Link to="/politica-de-privacidade" target="_blank" className="text-primary underline underline-offset-2">Política de Privacidade</Link>.
+                          </span>
+                        </label>
+                      </div>
+
+                      <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
                         {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                       </Button>
                       
