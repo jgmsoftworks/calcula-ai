@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.auto-fechamento-mensal]
 verify_jwt = false
+
+[functions.purge-deleted-accounts]
+verify_jwt = false
