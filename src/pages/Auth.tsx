@@ -80,6 +80,8 @@ const Auth = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showLoginResend, setShowLoginResend] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
@@ -117,6 +119,14 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms || !acceptPrivacy) {
+      toast({
+        title: 'Aceite necessário',
+        description: 'Para criar sua conta, é necessário ler e aceitar os Termos de Uso e a Política de Privacidade.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await signUp(email, password, fullName, businessName, phone);
@@ -134,6 +144,21 @@ const Auth = () => {
         toast({ title: t('auth.emailAlreadyExists'), description: t('auth.emailAlreadyExistsDesc'), variant: "destructive" });
         return;
       }
+
+      // Registrar consentimentos LGPD (Termos + Privacidade) — se houver user_id, vincula
+      const newUserId = data?.user?.id ?? null;
+      if (newUserId) {
+        const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+        try {
+          await supabase.from('user_consents').insert([
+            { user_id: newUserId, consent_type: 'terms_of_use', accepted: true, version: CONSENT_VERSION, user_agent: ua },
+            { user_id: newUserId, consent_type: 'privacy_policy', accepted: true, version: CONSENT_VERSION, user_agent: ua },
+          ] as any);
+        } catch (consentErr) {
+          console.warn('[auth] Falha ao registrar consentimentos legais', consentErr);
+        }
+      }
+
       // Se o Supabase retornou sessão ativa (confirmação de email desativada),
       // o usuário já está logado — navegar direto para o app.
       if (data?.session) {
