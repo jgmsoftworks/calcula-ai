@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          email_snapshot: string | null
+          id: string
+          ip_address: string | null
+          purged_at: string | null
+          reason: string | null
+          requested_at: string
+          scheduled_for: string
+          status: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          email_snapshot?: string | null
+          id?: string
+          ip_address?: string | null
+          purged_at?: string | null
+          reason?: string | null
+          requested_at?: string
+          scheduled_for: string
+          status?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          email_snapshot?: string | null
+          id?: string
+          ip_address?: string | null
+          purged_at?: string | null
+          reason?: string | null
+          requested_at?: string
+          scheduled_for?: string
+          status?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_actions: {
         Row: {
           action_type: string
@@ -666,6 +711,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          records_count: Json | null
+          requested_at: string
+          status: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          records_count?: Json | null
+          requested_at?: string
+          status?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          records_count?: Json | null
+          requested_at?: string
+          status?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       despesas_fixas: {
         Row: {
@@ -1558,6 +1639,9 @@ export type Database = {
           cor_secundaria: string | null
           created_at: string
           data_abertura: string | null
+          deletion_reason: string | null
+          deletion_requested_at: string | null
+          deletion_scheduled_for: string | null
           descricao_empresa: string | null
           email_comercial: string | null
           estado: string | null
@@ -1606,6 +1690,9 @@ export type Database = {
           cor_secundaria?: string | null
           created_at?: string
           data_abertura?: string | null
+          deletion_reason?: string | null
+          deletion_requested_at?: string | null
+          deletion_scheduled_for?: string | null
           descricao_empresa?: string | null
           email_comercial?: string | null
           estado?: string | null
@@ -1654,6 +1741,9 @@ export type Database = {
           cor_secundaria?: string | null
           created_at?: string
           data_abertura?: string | null
+          deletion_reason?: string | null
+          deletion_requested_at?: string | null
+          deletion_scheduled_for?: string | null
           descricao_empresa?: string | null
           email_comercial?: string | null
           estado?: string | null
@@ -2651,6 +2741,10 @@ export type Database = {
       initialize_user_filters: {
         Args: { user_uuid: string }
         Returns: undefined
+      }
+      is_account_deletion_pending: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       recalcular_todas_receitas: {
         Args: { p_user_id?: string }

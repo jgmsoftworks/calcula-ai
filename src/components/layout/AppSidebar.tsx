@@ -11,6 +11,7 @@ import {
   Users,
   CreditCard,
   ArrowRightFromLine,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -51,6 +52,7 @@ export function AppSidebar() {
   const businessItems = [
     { title: t('nav.perfil'), url: '/perfil', icon: Building2 },
     { title: t('nav.planos'), url: '/planos', icon: Crown },
+    { title: 'Minha Privacidade', url: '/minha-privacidade', icon: ShieldCheck },
   ];
 
   const adminNavigationItems = [

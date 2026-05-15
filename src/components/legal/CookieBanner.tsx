@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Cookie, Settings2, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +13,12 @@ export function CookieBanner() {
   const [analytics, setAnalytics] = useState(consent?.analytics ?? false);
   const [marketing, setMarketing] = useState(consent?.marketing ?? false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const h = () => openPreferences();
+    window.addEventListener('open-cookie-preferences', h);
+    return () => window.removeEventListener('open-cookie-preferences', h);
+  }, [openPreferences]);
 
   const handle = async (fn: () => Promise<void>) => {
     setBusy(true);
