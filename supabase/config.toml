@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.purge-deleted-accounts]
 verify_jwt = false
+
+[functions.cleanup-audit-logs]
+verify_jwt = false
