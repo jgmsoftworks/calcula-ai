@@ -22,13 +22,21 @@
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/95440d80-7f1d-4da4-8946-c827ebe5e0b4/id-preview-9c9bdc5d--ac17244e-6d9b-412a-86b9-4aefcc03057a.lovable.app-1775248120971.png">
 
-    <!-- Google tag (gtag.js) - GA4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HN35ZG4EPG"></script>
+    <!-- Google Consent Mode v2 — DEFAULT DENY (LGPD).
+         O script do GA é carregado dinamicamente após consentimento em src/lib/consent.ts. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){ dataLayer.push(arguments); }
-      gtag('js', new Date());
-      gtag('config', 'G-HN35ZG4EPG'); // seu Measurement ID
+      window.gtag = gtag;
+      gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        functionality_storage: 'granted',
+        security_storage: 'granted',
+        wait_for_update: 500
+      });
     </script>
     
   
