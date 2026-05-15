@@ -31,6 +31,7 @@ import NotificacoesPainel from "./pages/NotificacoesPainel";
 import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 import MinhaPrivacidade from "./pages/MinhaPrivacidade";
+import AdminSecurity from "./pages/AdminSecurity";
 import PoliticaPrivacidade from "./pages/legal/PoliticaPrivacidade";
 import TermosUso from "./pages/legal/TermosUso";
 import PoliticaCookies from "./pages/legal/PoliticaCookies";
