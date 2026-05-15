@@ -8,7 +8,7 @@ describe("cspReporter", () => {
 
   it("envia relatório quando o navegador dispara securitypolicyviolation", () => {
     const beacon = vi.fn().mockReturnValue(true);
-    Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: beacon });
+    vi.spyOn(navigator, "sendBeacon").mockImplementation(beacon as any);
 
     initCspReporter();
 
