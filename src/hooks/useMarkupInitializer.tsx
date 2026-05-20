@@ -303,7 +303,8 @@ export function useMarkupInitializer() {
 
       return () => clearTimeout(timer);
     }
-  }, [user?.id, inicializarMarkups]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return { inicializarMarkups };
 }
