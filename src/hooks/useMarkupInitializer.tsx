@@ -61,18 +61,18 @@ export function useMarkupInitializer() {
 
     try {
       isInitializing.current = true;
-      console.log('🚀 [MARKUP INITIALIZER] Inicializando markups automaticamente...');
+      log.debug('🚀 Inicializando markups automaticamente...');
 
       // Carregar blocos de markups
       const configBlocos = await loadConfiguration('markups_blocos');
       const blocos: MarkupBlock[] = (configBlocos && Array.isArray(configBlocos)) ? configBlocos as MarkupBlock[] : [];
 
       if (blocos.length === 0) {
-        console.log('📦 [MARKUP INITIALIZER] Nenhum bloco encontrado');
+        log.debug('📦 Nenhum bloco encontrado');
         return;
       }
 
-      console.log(`📦 [MARKUP INITIALIZER] ${blocos.length} blocos encontrados`);
+      log.debug(`📦 ${blocos.length} blocos encontrados`);
 
       // Buscar dados base uma só vez
       const [
@@ -91,7 +91,7 @@ export function useMarkupInitializer() {
         ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
         : [];
 
-      console.log(`💰 [MARKUP INITIALIZER] Dados base carregados:`, {
+      log.debug(`💰 Dados base carregados:`, {
         despesas: despesasFixas?.length || 0,
         folha: folhaPagamento?.length || 0,
         encargos: encargosVenda?.length || 0,
@@ -104,7 +104,7 @@ export function useMarkupInitializer() {
         const config = await loadConfiguration(configKey);
 
         if (!config || typeof config !== 'object') {
-          console.log(`⚠️ [MARKUP INITIALIZER] Sem configuração para ${bloco.nome}`);
+          log.debug(`⚠️ Sem configuração para ${bloco.nome}`);
           continue;
         }
 
@@ -203,7 +203,7 @@ export function useMarkupInitializer() {
           ativo: true
         };
 
-        console.log(`💾 [MARKUP INITIALIZER] Salvando ${bloco.nome}:`, markupData);
+        log.debug(`💾 Salvando ${bloco.nome}:`, markupData);
 
         // Verificar se o markup já existe antes de tentar salvar
         const { data: existingMarkup } = await supabase
@@ -221,7 +221,7 @@ export function useMarkupInitializer() {
             .eq('id', existingMarkup.id);
 
           if (updateError) {
-            console.error(`❌ [MARKUP INITIALIZER] Erro ao atualizar ${bloco.nome}:`, updateError);
+            log.error(`❌ Erro ao atualizar ${bloco.nome}:`, updateError);
             continue;
           }
         } else {
@@ -231,7 +231,7 @@ export function useMarkupInitializer() {
             .insert(markupData);
 
           if (insertError) {
-            console.error(`❌ [MARKUP INITIALIZER] Erro ao inserir ${bloco.nome}:`, insertError);
+            log.error(`❌ Erro ao inserir ${bloco.nome}:`, insertError);
             continue;
           }
         }
@@ -251,9 +251,9 @@ export function useMarkupInitializer() {
         
         try {
           await saveConfiguration(tooltipConfigKey, configIndividual);
-          console.log(`💾 [MARKUP INITIALIZER] Configuração individual salva para tooltip: ${tooltipConfigKey}`, configIndividual);
+          log.debug(`💾 Configuração individual salva para tooltip: ${tooltipConfigKey}`, configIndividual);
         } catch (error) {
-          console.error(`❌ [MARKUP INITIALIZER] Erro ao salvar tooltip config:`, error);
+          log.error(`❌ Erro ao salvar tooltip config:`, error);
         }
 
         // Também sincronizar com user_configurations para manter consistência
@@ -275,16 +275,16 @@ export function useMarkupInitializer() {
 
             // Salvar configuração atualizada usando saveConfiguration
             await saveConfiguration('markups_blocos', blocosConfig);
-            console.log(`🔄 [MARKUP INITIALIZER] Sincronizado ${bloco.nome} com user_configurations`);
+            log.debug(`🔄 Sincronizado ${bloco.nome} com user_configurations`);
           }
         } catch (error) {
-          console.error(`❌ [MARKUP INITIALIZER] Erro ao sincronizar blocos:`, error);
+          log.error(`❌ Erro ao sincronizar blocos:`, error);
         }
       }
 
-      console.log('✅ [MARKUP INITIALIZER] Markups inicializados com sucesso!');
+      log.debug('✅ Markups inicializados com sucesso!');
     } catch (error) {
-      console.error('❌ [MARKUP INITIALIZER] Erro ao inicializar markups:', error);
+      log.error('❌ Erro ao inicializar markups:', error);
     } finally {
       isInitializing.current = false;
     }
@@ -293,7 +293,7 @@ export function useMarkupInitializer() {
   // Executar quando o usuário logar (com debounce e proteção)
   useEffect(() => {
     if (user?.id && !isInitializing.current) {
-      console.log('👤 [MARKUP INITIALIZER] Usuário logado, inicializando markups...');
+      log.debug('👤 Usuário logado, inicializando markups...');
       // Delay maior para garantir que outras configurações já foram carregadas
       const timer = setTimeout(() => {
         if (!isInitializing.current) {
