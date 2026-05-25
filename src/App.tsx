@@ -25,6 +25,7 @@ import PerfilNegocio from "./pages/PerfilNegocio";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import AdminStripe from "./pages/AdminStripe";
+import AdminInadimplencia from "./pages/AdminInadimplencia";
 import Checkout from "./pages/Checkout";
 import AffiliateRedirect from "./pages/AffiliateRedirect";
 import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
@@ -75,6 +76,7 @@ const App = () => (
                   <Route path="/admin/usuarios" element={<AdminUsers />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/stripe" element={<AdminStripe />} />
+                  <Route path="/admin/inadimplencia" element={<AdminInadimplencia />} />
                   <Route path="/admin/security" element={<AdminSecurity />} />
                   <Route path="/admin-usuarios" element={<AdminUsers />} />
                   <Route path="/admin-configuracoes" element={<AdminSettings />} />
