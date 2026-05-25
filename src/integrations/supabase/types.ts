@@ -1681,6 +1681,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_blocked_at: string | null
           bairro: string | null
           business_name: string | null
           business_type: string | null
@@ -1725,6 +1726,7 @@ export type Database = {
           responsavel_telefone: string | null
           role: string
           setor_atividade: string | null
+          subscription_status: string
           telefone_comercial: string | null
           updated_at: string
           user_id: string
@@ -1732,6 +1734,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          access_blocked_at?: string | null
           bairro?: string | null
           business_name?: string | null
           business_type?: string | null
@@ -1776,6 +1779,7 @@ export type Database = {
           responsavel_telefone?: string | null
           role?: string
           setor_atividade?: string | null
+          subscription_status?: string
           telefone_comercial?: string | null
           updated_at?: string
           user_id: string
@@ -1783,6 +1787,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          access_blocked_at?: string | null
           bairro?: string | null
           business_name?: string | null
           business_type?: string | null
@@ -1827,6 +1832,7 @@ export type Database = {
           responsavel_telefone?: string | null
           role?: string
           setor_atividade?: string | null
+          subscription_status?: string
           telefone_comercial?: string | null
           updated_at?: string
           user_id?: string
@@ -2394,6 +2400,78 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: string | null
+        }
+        Relationships: []
+      }
+      subscription_issues: {
+        Row: {
+          admin_notes: string | null
+          amount_due: number | null
+          attempt_count: number | null
+          contacted_at: string | null
+          contacted_by: string | null
+          created_at: string
+          currency: string | null
+          email: string
+          failure_code: string | null
+          failure_reason: string | null
+          grace_period_ends_at: string | null
+          id: string
+          issue_type: string
+          next_retry_at: string | null
+          resolved_at: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_due?: number | null
+          attempt_count?: number | null
+          contacted_at?: string | null
+          contacted_by?: string | null
+          created_at?: string
+          currency?: string | null
+          email: string
+          failure_code?: string | null
+          failure_reason?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          issue_type: string
+          next_retry_at?: string | null
+          resolved_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_due?: number | null
+          attempt_count?: number | null
+          contacted_at?: string | null
+          contacted_by?: string | null
+          created_at?: string
+          currency?: string | null
+          email?: string
+          failure_code?: string | null
+          failure_reason?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          issue_type?: string
+          next_retry_at?: string | null
+          resolved_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
