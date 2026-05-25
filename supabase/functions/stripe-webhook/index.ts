@@ -34,6 +34,133 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
 };
 
+const GRACE_PERIOD_DAYS = 7;
+
+const findUserByEmail = async (supabaseClient: any, email: string) => {
+  const { data: users } = await supabaseClient.auth.admin.listUsers();
+  return users?.users?.find((u: any) => u.email === email) || null;
+};
+
+const upsertSubscriptionIssue = async (
+  supabaseClient: any,
+  payload: {
+    user_id?: string | null;
+    email: string;
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+    stripe_invoice_id?: string | null;
+    issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due';
+    amount_due?: number;
+    currency?: string;
+    attempt_count?: number;
+    next_retry_at?: string | null;
+    grace_period_ends_at?: string | null;
+    failure_reason?: string | null;
+    failure_code?: string | null;
+  }
+) => {
+  try {
+    // Try to find an open issue for this subscription/email to update instead of duplicating
+    const { data: existing } = await supabaseClient
+      .from('subscription_issues')
+      .select('id')
+      .eq('email', payload.email)
+      .in('status', ['pending', 'contacted'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await supabaseClient
+        .from('subscription_issues')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      return existing.id;
+    }
+
+    const { data: inserted, error } = await supabaseClient
+      .from('subscription_issues')
+      .insert({ ...payload, status: 'pending' })
+      .select('id')
+      .single();
+    if (error) {
+      console.error('[STRIPE-WEBHOOK] Failed to insert subscription_issue', error);
+    }
+    return inserted?.id || null;
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] upsertSubscriptionIssue error', err);
+    return null;
+  }
+};
+
+const resolveOpenSubscriptionIssues = async (supabaseClient: any, email: string) => {
+  try {
+    await supabaseClient
+      .from('subscription_issues')
+      .update({
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('email', email)
+      .in('status', ['pending', 'contacted']);
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] resolveOpenSubscriptionIssues error', err);
+  }
+};
+
+const updateProfileSubscriptionStatus = async (
+  supabaseClient: any,
+  user_id: string,
+  status: 'active' | 'past_due' | 'canceled',
+  access_blocked_at: string | null
+) => {
+  try {
+    await supabaseClient
+      .from('profiles')
+      .update({
+        subscription_status: status,
+        access_blocked_at,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user_id);
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] updateProfileSubscriptionStatus error', err);
+  }
+};
+
+const notifyUserOfIssue = async (
+  supabaseClient: any,
+  user_id: string,
+  issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due'
+) => {
+  const messages: Record<string, { title: string; message: string }> = {
+    payment_failed: {
+      title: 'Falha no pagamento da assinatura',
+      message: 'Tivemos um problema ao processar o pagamento da sua assinatura. Por favor, regularize para manter o acesso. Seus dados estão seguros e salvos.',
+    },
+    past_due: {
+      title: 'Pagamento em atraso',
+      message: 'Sua assinatura está com pagamento em atraso. Regularize para evitar o bloqueio do acesso. Nada será perdido — seus dados ficam salvos.',
+    },
+    subscription_canceled: {
+      title: 'Assinatura cancelada — acesso bloqueado',
+      message: 'Sua assinatura foi cancelada e o acesso foi bloqueado. Todos os seus dados permanecem salvos. Para voltar a usar, reative o plano.',
+    },
+  };
+  const m = messages[issue_type];
+  try {
+    await supabaseClient.from('notifications').insert({
+      user_id,
+      title: m.title,
+      message: m.message,
+      type: 'warning',
+    });
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] notifyUserOfIssue error', err);
+  }
+};
+
 const createUserFromCustomer = async (supabaseClient: any, customer: any, planType: string) => {
   logStep("Creating new user from Stripe customer", { 
     customerEmail: customer.email, 
@@ -283,11 +410,33 @@ serve(async (req) => {
           if (user) {
             await updateUserProfile(supabaseClient, user, planType, subscriptionEnd, customer);
 
+            // Atualizar status da assinatura conforme estado real no Stripe
+            if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
+              const graceEnds = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
+              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'past_due', null);
+              await upsertSubscriptionIssue(supabaseClient, {
+                user_id: user.id,
+                email: customerEmail,
+                stripe_customer_id: customer.id,
+                stripe_subscription_id: subscription.id,
+                issue_type: 'past_due',
+                grace_period_ends_at: graceEnds,
+                failure_reason: `Assinatura em status: ${subscription.status}`,
+              });
+              await notifyUserOfIssue(supabaseClient, user.id, 'past_due');
+            } else if (subscription.status === 'active' || subscription.status === 'trialing') {
+              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'active', null);
+              await resolveOpenSubscriptionIssues(supabaseClient, customerEmail);
+            } else if (subscription.status === 'canceled') {
+              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'canceled', new Date().toISOString());
+            }
+
             logStep(`Successfully processed subscription ${event.type}`, {
               userId: user.id,
               email: user.email,
               planType,
-              subscriptionEnd
+              subscriptionEnd,
+              subscriptionStatus: subscription.status
             });
           } else {
             logError(null, "User is undefined after creation/retrieval", {
@@ -376,6 +525,18 @@ serve(async (req) => {
               userId: deletedUser.id,
               newPlan: verifyDowngrade?.plan || 'unknown'
             });
+
+            // Registrar issue de cancelamento e bloquear acesso imediatamente
+            await updateProfileSubscriptionStatus(supabaseClient, deletedUser.id, 'canceled', new Date().toISOString());
+            await upsertSubscriptionIssue(supabaseClient, {
+              user_id: deletedUser.id,
+              email: deletedCustomerEmail,
+              stripe_customer_id: deletedCustomer.id,
+              stripe_subscription_id: deletedSubscription.id,
+              issue_type: 'subscription_canceled',
+              failure_reason: 'Assinatura cancelada no Stripe',
+            });
+            await notifyUserOfIssue(supabaseClient, deletedUser.id, 'subscription_canceled');
           } else {
             logStep('User not found for downgrade', { customerEmail: deletedCustomerEmail });
           }
@@ -523,6 +684,21 @@ serve(async (req) => {
           subscriptionId: invoice.subscription
         });
 
+        // Marcar issues abertas como resolvidas e restaurar acesso
+        try {
+          const paidCustomer = await stripe.customers.retrieve(invoice.customer as string);
+          const paidEmail = (paidCustomer as Stripe.Customer).email;
+          if (paidEmail) {
+            await resolveOpenSubscriptionIssues(supabaseClient, paidEmail);
+            const paidUser = await findUserByEmail(supabaseClient, paidEmail);
+            if (paidUser) {
+              await updateProfileSubscriptionStatus(supabaseClient, paidUser.id, 'active', null);
+            }
+          }
+        } catch (err) {
+          logError(err, 'Error resolving subscription issues on payment_succeeded', { invoiceId: invoice.id });
+        }
+
         // Processar comissões recorrentes se houver assinatura
         if (invoice.subscription) {
           try {
@@ -624,8 +800,43 @@ serve(async (req) => {
           subscriptionId: failedInvoice.subscription
         });
 
-        // Implementar lógica para pagamentos falhos
-        // Como notificações, suspensão de conta temporária, etc.
+        try {
+          const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string);
+          if (failedCustomer && !(failedCustomer as any).deleted) {
+            const failedEmail = (failedCustomer as Stripe.Customer).email;
+            if (failedEmail) {
+              const failedUser = await findUserByEmail(supabaseClient, failedEmail);
+              const graceEnds = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
+              const reason = (failedInvoice as any).last_finalization_error?.message
+                || (failedInvoice as any).billing_reason
+                || 'Cartão recusado ou problema no pagamento';
+
+              await upsertSubscriptionIssue(supabaseClient, {
+                user_id: failedUser?.id || null,
+                email: failedEmail,
+                stripe_customer_id: (failedCustomer as Stripe.Customer).id,
+                stripe_subscription_id: failedInvoice.subscription as string | null,
+                stripe_invoice_id: failedInvoice.id,
+                issue_type: 'payment_failed',
+                amount_due: (failedInvoice.amount_due || 0) / 100,
+                currency: failedInvoice.currency || 'brl',
+                attempt_count: failedInvoice.attempt_count || 0,
+                next_retry_at: failedInvoice.next_payment_attempt
+                  ? new Date(failedInvoice.next_payment_attempt * 1000).toISOString()
+                  : null,
+                grace_period_ends_at: graceEnds,
+                failure_reason: reason,
+              });
+
+              if (failedUser) {
+                await updateProfileSubscriptionStatus(supabaseClient, failedUser.id, 'past_due', null);
+                await notifyUserOfIssue(supabaseClient, failedUser.id, 'payment_failed');
+              }
+            }
+          }
+        } catch (err) {
+          logError(err, 'Error processing failed payment', { invoiceId: failedInvoice.id });
+        }
         break;
 
       default:
