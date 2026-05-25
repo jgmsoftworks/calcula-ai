@@ -12,6 +12,7 @@ import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Globe } from 'lucide-react'
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
+import { SubscriptionStatusGate } from '@/components/subscription/SubscriptionStatusGate';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { useTranslation } from 'react-i18next';
 import {
@@ -118,6 +119,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <SidebarProvider>
+      <SubscriptionStatusGate>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         
@@ -204,6 +206,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
         <WhatsAppSupportButton />
       </div>
+      </SubscriptionStatusGate>
     </SidebarProvider>
   );
 };
