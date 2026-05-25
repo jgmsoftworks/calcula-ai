@@ -525,6 +525,18 @@ serve(async (req) => {
               userId: deletedUser.id,
               newPlan: verifyDowngrade?.plan || 'unknown'
             });
+
+            // Registrar issue de cancelamento e bloquear acesso imediatamente
+            await updateProfileSubscriptionStatus(supabaseClient, deletedUser.id, 'canceled', new Date().toISOString());
+            await upsertSubscriptionIssue(supabaseClient, {
+              user_id: deletedUser.id,
+              email: deletedCustomerEmail,
+              stripe_customer_id: deletedCustomer.id,
+              stripe_subscription_id: deletedSubscription.id,
+              issue_type: 'subscription_canceled',
+              failure_reason: 'Assinatura cancelada no Stripe',
+            });
+            await notifyUserOfIssue(supabaseClient, deletedUser.id, 'subscription_canceled');
           } else {
             logStep('User not found for downgrade', { customerEmail: deletedCustomerEmail });
           }
