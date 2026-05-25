@@ -410,11 +410,33 @@ serve(async (req) => {
           if (user) {
             await updateUserProfile(supabaseClient, user, planType, subscriptionEnd, customer);
 
+            // Atualizar status da assinatura conforme estado real no Stripe
+            if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
+              const graceEnds = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
+              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'past_due', null);
+              await upsertSubscriptionIssue(supabaseClient, {
+                user_id: user.id,
+                email: customerEmail,
+                stripe_customer_id: customer.id,
+                stripe_subscription_id: subscription.id,
+                issue_type: 'past_due',
+                grace_period_ends_at: graceEnds,
+                failure_reason: `Assinatura em status: ${subscription.status}`,
+              });
+              await notifyUserOfIssue(supabaseClient, user.id, 'past_due');
+            } else if (subscription.status === 'active' || subscription.status === 'trialing') {
+              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'active', null);
+              await resolveOpenSubscriptionIssues(supabaseClient, customerEmail);
+            } else if (subscription.status === 'canceled') {
+              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'canceled', new Date().toISOString());
+            }
+
             logStep(`Successfully processed subscription ${event.type}`, {
               userId: user.id,
               email: user.email,
               planType,
-              subscriptionEnd
+              subscriptionEnd,
+              subscriptionStatus: subscription.status
             });
           } else {
             logError(null, "User is undefined after creation/retrieval", {
