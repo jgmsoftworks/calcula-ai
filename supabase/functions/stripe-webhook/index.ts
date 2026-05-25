@@ -684,6 +684,21 @@ serve(async (req) => {
           subscriptionId: invoice.subscription
         });
 
+        // Marcar issues abertas como resolvidas e restaurar acesso
+        try {
+          const paidCustomer = await stripe.customers.retrieve(invoice.customer as string);
+          const paidEmail = (paidCustomer as Stripe.Customer).email;
+          if (paidEmail) {
+            await resolveOpenSubscriptionIssues(supabaseClient, paidEmail);
+            const paidUser = await findUserByEmail(supabaseClient, paidEmail);
+            if (paidUser) {
+              await updateProfileSubscriptionStatus(supabaseClient, paidUser.id, 'active', null);
+            }
+          }
+        } catch (err) {
+          logError(err, 'Error resolving subscription issues on payment_succeeded', { invoiceId: invoice.id });
+        }
+
         // Processar comissões recorrentes se houver assinatura
         if (invoice.subscription) {
           try {
