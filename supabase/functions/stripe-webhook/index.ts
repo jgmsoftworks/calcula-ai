@@ -34,6 +34,133 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
 };
 
+const GRACE_PERIOD_DAYS = 7;
+
+const findUserByEmail = async (supabaseClient: any, email: string) => {
+  const { data: users } = await supabaseClient.auth.admin.listUsers();
+  return users?.users?.find((u: any) => u.email === email) || null;
+};
+
+const upsertSubscriptionIssue = async (
+  supabaseClient: any,
+  payload: {
+    user_id?: string | null;
+    email: string;
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+    stripe_invoice_id?: string | null;
+    issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due';
+    amount_due?: number;
+    currency?: string;
+    attempt_count?: number;
+    next_retry_at?: string | null;
+    grace_period_ends_at?: string | null;
+    failure_reason?: string | null;
+    failure_code?: string | null;
+  }
+) => {
+  try {
+    // Try to find an open issue for this subscription/email to update instead of duplicating
+    const { data: existing } = await supabaseClient
+      .from('subscription_issues')
+      .select('id')
+      .eq('email', payload.email)
+      .in('status', ['pending', 'contacted'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await supabaseClient
+        .from('subscription_issues')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      return existing.id;
+    }
+
+    const { data: inserted, error } = await supabaseClient
+      .from('subscription_issues')
+      .insert({ ...payload, status: 'pending' })
+      .select('id')
+      .single();
+    if (error) {
+      console.error('[STRIPE-WEBHOOK] Failed to insert subscription_issue', error);
+    }
+    return inserted?.id || null;
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] upsertSubscriptionIssue error', err);
+    return null;
+  }
+};
+
+const resolveOpenSubscriptionIssues = async (supabaseClient: any, email: string) => {
+  try {
+    await supabaseClient
+      .from('subscription_issues')
+      .update({
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('email', email)
+      .in('status', ['pending', 'contacted']);
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] resolveOpenSubscriptionIssues error', err);
+  }
+};
+
+const updateProfileSubscriptionStatus = async (
+  supabaseClient: any,
+  user_id: string,
+  status: 'active' | 'past_due' | 'canceled',
+  access_blocked_at: string | null
+) => {
+  try {
+    await supabaseClient
+      .from('profiles')
+      .update({
+        subscription_status: status,
+        access_blocked_at,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user_id);
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] updateProfileSubscriptionStatus error', err);
+  }
+};
+
+const notifyUserOfIssue = async (
+  supabaseClient: any,
+  user_id: string,
+  issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due'
+) => {
+  const messages: Record<string, { title: string; message: string }> = {
+    payment_failed: {
+      title: 'Falha no pagamento da assinatura',
+      message: 'Tivemos um problema ao processar o pagamento da sua assinatura. Por favor, regularize para manter o acesso. Seus dados estão seguros e salvos.',
+    },
+    past_due: {
+      title: 'Pagamento em atraso',
+      message: 'Sua assinatura está com pagamento em atraso. Regularize para evitar o bloqueio do acesso. Nada será perdido — seus dados ficam salvos.',
+    },
+    subscription_canceled: {
+      title: 'Assinatura cancelada — acesso bloqueado',
+      message: 'Sua assinatura foi cancelada e o acesso foi bloqueado. Todos os seus dados permanecem salvos. Para voltar a usar, reative o plano.',
+    },
+  };
+  const m = messages[issue_type];
+  try {
+    await supabaseClient.from('notifications').insert({
+      user_id,
+      title: m.title,
+      message: m.message,
+      type: 'warning',
+    });
+  } catch (err) {
+    console.error('[STRIPE-WEBHOOK] notifyUserOfIssue error', err);
+  }
+};
+
 const createUserFromCustomer = async (supabaseClient: any, customer: any, planType: string) => {
   logStep("Creating new user from Stripe customer", { 
     customerEmail: customer.email, 
