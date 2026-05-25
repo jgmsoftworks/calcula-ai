@@ -785,8 +785,43 @@ serve(async (req) => {
           subscriptionId: failedInvoice.subscription
         });
 
-        // Implementar lógica para pagamentos falhos
-        // Como notificações, suspensão de conta temporária, etc.
+        try {
+          const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string);
+          if (failedCustomer && !(failedCustomer as any).deleted) {
+            const failedEmail = (failedCustomer as Stripe.Customer).email;
+            if (failedEmail) {
+              const failedUser = await findUserByEmail(supabaseClient, failedEmail);
+              const graceEnds = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
+              const reason = (failedInvoice as any).last_finalization_error?.message
+                || (failedInvoice as any).billing_reason
+                || 'Cartão recusado ou problema no pagamento';
+
+              await upsertSubscriptionIssue(supabaseClient, {
+                user_id: failedUser?.id || null,
+                email: failedEmail,
+                stripe_customer_id: (failedCustomer as Stripe.Customer).id,
+                stripe_subscription_id: failedInvoice.subscription as string | null,
+                stripe_invoice_id: failedInvoice.id,
+                issue_type: 'payment_failed',
+                amount_due: (failedInvoice.amount_due || 0) / 100,
+                currency: failedInvoice.currency || 'brl',
+                attempt_count: failedInvoice.attempt_count || 0,
+                next_retry_at: failedInvoice.next_payment_attempt
+                  ? new Date(failedInvoice.next_payment_attempt * 1000).toISOString()
+                  : null,
+                grace_period_ends_at: graceEnds,
+                failure_reason: reason,
+              });
+
+              if (failedUser) {
+                await updateProfileSubscriptionStatus(supabaseClient, failedUser.id, 'past_due', null);
+                await notifyUserOfIssue(supabaseClient, failedUser.id, 'payment_failed');
+              }
+            }
+          }
+        } catch (err) {
+          logError(err, 'Error processing failed payment', { invoiceId: failedInvoice.id });
+        }
         break;
 
       default:
