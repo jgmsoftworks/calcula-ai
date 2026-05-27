@@ -378,8 +378,8 @@ export const EncargosVenda = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Header labels */}
-          <div className={`grid gap-3 mb-3 ${categoria === 'outros' ? 'grid-cols-[1fr_80px_90px_56px]' : 'grid-cols-[1fr_80px_90px]'}`}>
+          {/* Header labels - hidden on mobile, labels are inline */}
+          <div className={`hidden md:grid gap-3 mb-3 ${categoria === 'outros' ? 'grid-cols-[1fr_80px_90px_56px]' : 'grid-cols-[1fr_80px_90px]'}`}>
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Nome</p>
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">%</p>
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">R$</p>
@@ -393,8 +393,9 @@ export const EncargosVenda = () => {
                 className="rounded-xl bg-muted/40 border border-border/30 p-3 hover:border-border/60 transition-all animate-slide-up"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
-                <div className={`grid gap-3 items-center ${categoria === 'outros' ? 'grid-cols-[1fr_80px_90px_56px]' : 'grid-cols-[1fr_80px_90px]'}`}>
-                  <Label className="text-xs font-medium truncate">{encargo.nome}</Label>
+                <div className={`grid gap-2 md:gap-3 items-center grid-cols-2 ${categoria === 'outros' ? 'md:grid-cols-[1fr_80px_90px_56px]' : 'md:grid-cols-[1fr_80px_90px]'}`}>
+                  <Label className="text-xs font-medium truncate col-span-2 md:col-span-1">{encargo.nome}</Label>
+
                   
                   <NumericInputPtBr
                     tipo="percentual"
