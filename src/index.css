@@ -438,3 +438,9 @@ html { scroll-behavior: smooth; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Fluid page titles — escalonam suavemente entre notebook e monitor grande */
+.page-title {
+  font-size: clamp(1.5rem, 1.1rem + 0.6vw, 2rem);
+  line-height: 1.15;
+}
