@@ -168,53 +168,109 @@ export function AffiliatesList() {
       </CardHeader>
       
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>1ª Venda</TableHead>
-              <TableHead>Recorrente</TableHead>
-              <TableHead>R$/hora</TableHead>
-              <TableHead>Total Vendas</TableHead>
-              <TableHead>Clientes</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {affiliates.map((affiliate) => (
-              <TableRow key={affiliate.id}>
-                <TableCell className="font-medium">{affiliate.name}</TableCell>
-                <TableCell>{affiliate.email}</TableCell>
-                <TableCell>{getStatusBadge(affiliate.status)}</TableCell>
-                <TableCell>{(affiliate as any).commission_first_sale_pct || 40}%</TableCell>
-                <TableCell>{(affiliate as any).commission_recurring_pct || 20}%</TableCell>
-                <TableCell>R$ {formatBRL((affiliate as any).support_hourly_rate || 10)}</TableCell>
-                <TableCell>R$ {formatBRL(affiliate.total_sales)}</TableCell>
-                <TableCell>{affiliate.total_customers}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(affiliate)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={affiliate.status === 'active' ? 'destructive' : 'default'}
-                      size="sm"
-                      onClick={() => updateAffiliate(affiliate.id, {
-                        status: affiliate.status === 'active' ? 'inactive' : 'active'
-                      })}
-                      title={affiliate.status === 'active' ? 'Desativar afiliado' : 'Ativar afiliado'}
-                    >
-                      <Power className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+        {/* Desktop table */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>1ª Venda</TableHead>
+                <TableHead>Recorrente</TableHead>
+                <TableHead>R$/hora</TableHead>
+                <TableHead>Total Vendas</TableHead>
+                <TableHead>Clientes</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
+            </TableHeader>
+            <TableBody>
+              {affiliates.map((affiliate) => (
+                <TableRow key={affiliate.id}>
+                  <TableCell className="font-medium">{affiliate.name}</TableCell>
+                  <TableCell>{affiliate.email}</TableCell>
+                  <TableCell>{getStatusBadge(affiliate.status)}</TableCell>
+                  <TableCell>{(affiliate as any).commission_first_sale_pct || 40}%</TableCell>
+                  <TableCell>{(affiliate as any).commission_recurring_pct || 20}%</TableCell>
+                  <TableCell>R$ {formatBRL((affiliate as any).support_hourly_rate || 10)}</TableCell>
+                  <TableCell>R$ {formatBRL(affiliate.total_sales)}</TableCell>
+                  <TableCell>{affiliate.total_customers}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(affiliate)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={affiliate.status === 'active' ? 'destructive' : 'default'}
+                        size="sm"
+                        onClick={() => updateAffiliate(affiliate.id, {
+                          status: affiliate.status === 'active' ? 'inactive' : 'active'
+                        })}
+                        title={affiliate.status === 'active' ? 'Desativar afiliado' : 'Ativar afiliado'}
+                      >
+                        <Power className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden space-y-2">
+          {affiliates.map((affiliate) => (
+            <Card key={affiliate.id} className="p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm truncate">{affiliate.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{affiliate.email}</p>
+                </div>
+                {getStatusBadge(affiliate.status)}
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t text-xs">
+                <div>
+                  <p className="text-muted-foreground">1ª Venda</p>
+                  <p className="font-medium">{(affiliate as any).commission_first_sale_pct || 40}%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Recorrente</p>
+                  <p className="font-medium">{(affiliate as any).commission_recurring_pct || 20}%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">R$/hora</p>
+                  <p className="font-medium">R$ {formatBRL((affiliate as any).support_hourly_rate || 10)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Vendas</p>
+                  <p className="font-medium">R$ {formatBRL(affiliate.total_sales)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Clientes</p>
+                  <p className="font-medium">{affiliate.total_customers}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(affiliate)}>
+                  <Edit className="h-3 w-3 mr-1" /> Editar
+                </Button>
+                <Button
+                  variant={affiliate.status === 'active' ? 'destructive' : 'default'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => updateAffiliate(affiliate.id, {
+                    status: affiliate.status === 'active' ? 'inactive' : 'active'
+                  })}
+                >
+                  <Power className="h-3 w-3 mr-1" />
+                  {affiliate.status === 'active' ? 'Desativar' : 'Ativar'}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+
         {affiliates.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum afiliado cadastrado
