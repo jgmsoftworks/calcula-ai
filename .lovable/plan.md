@@ -1,79 +1,63 @@
-## Objetivo
-Quando o pagamento de um cliente falhar ou a assinatura for cancelada:
-1. **Admin** vê uma aba dedicada no painel master com a lista de clientes inadimplentes + dados de contato (telefone, whatsapp, email) para acionamento manual.
-2. **Cliente** vê um banner/modal grande e persistente avisando do problema, listando o que vai perder se não pagar, e deixando claro que **nada será apagado** — apenas o acesso fica bloqueado até a regularização.
+# Revisão Mobile Completa
 
-## O que muda
+## Diagnóstico atual
 
-### 1. Banco — nova tabela `subscription_issues`
-Registra cada problema de cobrança para o admin agir e para o app saber que precisa mostrar o aviso.
+Rodei uma varredura no projeto. Os problemas de "ter que arrastar pro lado" no mobile vêm de três padrões repetidos:
 
-Campos relevantes:
-- `user_id`, `email`, `stripe_customer_id`, `stripe_subscription_id`, `stripe_invoice_id`
-- `issue_type`: `payment_failed` | `subscription_canceled` | `past_due`
-- `status`: `pending` (precisa contato) | `contacted` | `resolved` | `ignored`
-- `amount_due`, `attempt_count`, `next_retry_at`, `grace_period_ends_at`
-- `failure_reason` (texto vindo do Stripe), `admin_notes`
-- `contacted_by`, `contacted_at`, `resolved_at`
-- `created_at`, `updated_at`
+1. **Tabelas largas sem versão mobile** — usadas em Receitas (Ingredientes, Embalagens, Sub-receitas, Preview), Afiliados (Lista, Vendas, Comissões, Cupons, Pagamentos, Relatórios, Links, Suporte), Estoque (Histórico geral e por produto), Admin (Stripe, Security, Backup, Comparação de canais) e Custos (Folha de pagamento).
+2. **Abas/filtros que vazam da tela** — barras de filtros do Estoque/Movimentação no desktop foram adaptadas (já tem `md:hidden` + Sheet), mas Receitas, Custos, Precificação e Dashboard ainda usam grids `md:grid-cols-X` sem reflow real ou usam `overflow-x-auto` como muleta.
+3. **Modais e formulários grandes** — `ReceitaForm`, `ProdutoForm`, `CustosModal`, `MarkupCard`, `MaoObraModal`, `EditUserPlanModal` viram scroll lateral em telas <400px porque assumem largura de notebook.
 
-RLS:
-- Admin (`has_role_or_higher('admin')`): SELECT/UPDATE de tudo.
-- Usuário: SELECT apenas dos próprios registros (para o banner do cliente).
-- INSERT só via service role (webhook).
+Só 3 telas (ListaProdutos do Estoque, ListaReceitas e Movimentação) têm versão mobile dedicada. As outras ~25 telas/seções renderizam o layout desktop "espremido".
 
-Também adiciono em `profiles`:
-- `subscription_status` (`active` | `past_due` | `canceled` | `grace`) — leitura rápida pro front sem joins.
-- `access_blocked_at` — quando o acesso passou a ser bloqueado (após o período de carência).
+## O que vou entregar
 
-### 2. Webhook do Stripe — `stripe-webhook/index.ts`
-Completar os eventos que hoje só logam:
+Plano em **3 fases** (1 PR/fase) para você validar visualmente entre cada uma. Padrão único:
 
-- **`invoice.payment_failed`** → cria/atualiza linha em `subscription_issues` com `issue_type='payment_failed'`, define `grace_period_ends_at = now() + 7 dias`, atualiza `profiles.subscription_status='past_due'`. NÃO faz downgrade ainda.
-- **`customer.subscription.deleted`** (já existe) → criar registro `issue_type='subscription_canceled'`, marcar `profiles.subscription_status='canceled'` e `access_blocked_at=now()`. O downgrade do plano já existe — mantemos.
-- **`customer.subscription.updated`** com `status='past_due'` ou `unpaid` → idem `payment_failed`.
-- **`invoice.payment_succeeded` / subscription voltando para `active`** → marca o issue mais recente como `resolved`, limpa `subscription_status` e `access_blocked_at`.
+- **Tabelas → cards verticais** no mobile (`md:hidden` cards + `hidden md:block` tabela), seguindo o modelo que já existe em `ListaProdutos.tsx`. Cada card mostra: identificador no topo, 2-4 métricas em grid 2x2, ações em menu `⋮`.
+- **Filtros longos → Sheet lateral** (`SlidersHorizontal` + badge de contagem), idem padrão Estoque.
+- **Ações secundárias → DropdownMenu `⋮`** no header da tela; primária fica como botão full-width.
+- **Modais → `max-w-[95vw] h-[90vh]`** com conteúdo em `space-y-3` empilhado, sem grids horizontais no mobile.
+- **Abas com muitos itens (Receitas)** → scroll horizontal *intencional* só na barra de abas com snap, mas conteúdo de cada aba empilhado.
 
-### 3. Painel Admin — nova aba "Inadimplência"
-Nova rota `/admin/inadimplencia` (ou aba dentro de `AdminUsers`). Componente lista:
-- Cliente (nome, email)
-- Telefone / WhatsApp (com botão "Abrir WhatsApp" usando `wa.me` + mensagem pré-pronta)
-- Tipo do problema (badge: Falha de pagamento / Cancelada / Em atraso)
-- Valor devido, tentativas, próxima retentativa
-- Motivo da falha (vindo do Stripe — cartão recusado, expirado, etc.)
-- Status interno (Pendente / Contatado / Resolvido / Ignorado)
-- Ações: marcar como "Contatado" (com campo de notas), "Resolvido", "Ignorado"
+Nenhuma mudança de lógica/negócio. Tudo é apresentação e responsividade.
 
-Filtros: status, tipo, período. Ordenação por `created_at` desc.
-Acesso protegido por `has_role_or_higher('admin')`.
-Card no dashboard admin mostrando contador de `pending`.
+### Fase 1 — Receitas (módulo mais usado)
+- `IngredientesTab`, `EmbalagensTa`, `SubReceitasTab`: substituir `<Table>` por cards empilhados no mobile (nome + qtd + custo unit + custo total em grid 2x2, ações em `⋮`).
+- `PrecificacaoTab` + `MarkupCard`: reorganizar grid de custos/markup em coluna única, popover de seleção full-width.
+- `ProjecaoTab`: cards de cenários empilhados em vez de comparação lado-a-lado.
+- `ReceitaPreviewModal`: usar `Drawer` no mobile em vez de Dialog largo.
+- `ReceitaForm` / `GeralTab`: campos full-width, remover `md:grid-cols-2` no mobile.
 
-### 4. Cliente — Banner de aviso bloqueante
-Componente `SubscriptionIssueBanner` montado dentro de `AppLayout` (todas as rotas autenticadas):
+### Fase 2 — Custos, Precificação, Dashboard e Movimentação
+- `FolhaPagamento`, `DespesasFixas`, `EncargosVenda`: tabelas → cards.
+- `Markups`, `MediaFaturamento`, `CustosModal`, `MaoObraModal`: formulários em coluna única, modais em `Drawer` no mobile.
+- `Dashboard` (`CmvCard`, `FinancialHealthScore`, `InsightsCard`, gráficos): KPIs empilhados (2 por linha máx.), gráficos com altura fixa e legenda abaixo.
+- `Movimentacao`: carrinho como bottom-sheet em vez de coluna lateral; lista de produtos em grid 2 colunas com cards compactos.
 
-- Lê `profiles.subscription_status` (ou query em `subscription_issues` do próprio user).
-- Se `past_due` (dentro do período de carência): banner amarelo no topo, **não bloqueia uso**, com botão "Regularizar pagamento" → abre Stripe customer portal.
-- Se `canceled` ou `access_blocked_at` setado: tela cheia (modal não-dismissível) com:
-  - Título grande: "Seu acesso está bloqueado"
-  - Mensagem tranquilizadora: **"Nenhum dado foi perdido. Tudo que você cadastrou (receitas, produtos, markups, movimentações, folha de pagamento) continua salvo e te esperando."**
-  - Lista do que está bloqueado (recursos do plano que ele tinha)
-  - Botão primário: "Regularizar pagamento" (customer portal)
-  - Botão secundário: "Falar com suporte" (WhatsApp já existente)
-  - Logout disponível
-
-Hook `useSubscriptionStatus` consulta `profiles.subscription_status` e revalida quando volta da janela do Stripe.
-
-### 5. Notificações
-- Quando webhook detecta falha → insere também em `notifications` (já existe) para o user com mensagem amigável.
-- Edge function opcional `notify-admin-overdue` que envia email para o admin quando há novos `pending` (deixar como follow-up, fora desse escopo).
-
-## Fora do escopo
-- Cobrança automática por email/SMS pro cliente (Stripe já faz Smart Retries).
-- Política de retenção (apagar dados após X meses no free) — discutimos antes mas não foi pedido aqui.
-- Exportação automática dos dados antes do bloqueio.
+### Fase 3 — Admin, Afiliados, Estoque secundário, Auth
+- Todas as tabelas de Afiliados (8 telas) → cards.
+- `AdminUsers`, `AdminStripe`, `AdminSecurity`, `AdminInadimplencia`, `BackupPanel`, `AdminChannelComparison` → cards + filtros em Sheet.
+- `HistoricoGeral`, `HistoricoProduto`, `ConsumoMedioCard` (Estoque) → cards de movimentação com data em destaque.
+- `Auth`, `Planos`, `AffiliatePlanSelector`, `PerfilNegocio`, `Checkout`: revisar paddings, larguras de inputs, ajustar `max-w` para `100%` no mobile.
+- `EditUserPlanModal`, `ProdutoForm`: virar Drawer no mobile.
 
 ## Detalhes técnicos
-- Período de carência: **7 dias** após primeira falha antes de bloquear (configurável depois).
-- O bloqueio é apenas de UI/rota — RLS continua permitindo o user ler os próprios dados (nada é apagado, e quando ele pagar o acesso volta instantâneo).
-- WhatsApp do admin: gera link `https://wa.me/{telefone_cliente}?text=Olá%20{nome}...` com mensagem template editável.
-- O webhook usa service role; o front usa anon key + RLS.
+
+- Breakpoint único: `md` (768px), igual ao já usado.
+- Reaproveitar `useIsMobile()` quando precisar de lógica condicional (não só CSS).
+- Componente novo `MobileListCard` em `src/components/ui/` para padronizar (header + grid de métricas + ações), evitando copy-paste em ~20 lugares.
+- Componente novo `MobileFiltersSheet` encapsulando o padrão `Sheet + SlidersHorizontal + badge`.
+- Sidebar do app no mobile já usa `Sheet` (shadcn) — sem mudança.
+- Zero impacto em desktop: tudo dentro de `md:hidden` / `hidden md:block` ou `useIsMobile()`.
+
+## Fora do escopo
+
+- Mudanças de funcionalidade, regras de negócio ou banco.
+- Redesign visual (cores, tipografia, glassmorphism) — mantém identidade atual.
+- Versão tablet (>=md continua igual ao desktop).
+- Telas legais (`PoliticaCookies`, `TermosUso`, etc.) que já são texto fluido.
+
+## Como vamos validar
+
+A cada fase eu te aviso e você abre o preview no viewport mobile (375px) pra checar as telas afetadas. Se algo ficar estranho, eu ajusto antes de seguir pra próxima fase.
