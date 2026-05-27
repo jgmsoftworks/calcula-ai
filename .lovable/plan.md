@@ -1,63 +1,74 @@
-# Revisão Mobile Completa
+# Desktop fluido — todas as resoluções (1280px → 4K)
 
-## Diagnóstico atual
+## Diagnóstico
 
-Rodei uma varredura no projeto. Os problemas de "ter que arrastar pro lado" no mobile vêm de três padrões repetidos:
+A raiz do problema é única e está no `AppLayout.tsx`:
 
-1. **Tabelas largas sem versão mobile** — usadas em Receitas (Ingredientes, Embalagens, Sub-receitas, Preview), Afiliados (Lista, Vendas, Comissões, Cupons, Pagamentos, Relatórios, Links, Suporte), Estoque (Histórico geral e por produto), Admin (Stripe, Security, Backup, Comparação de canais) e Custos (Folha de pagamento).
-2. **Abas/filtros que vazam da tela** — barras de filtros do Estoque/Movimentação no desktop foram adaptadas (já tem `md:hidden` + Sheet), mas Receitas, Custos, Precificação e Dashboard ainda usam grids `md:grid-cols-X` sem reflow real ou usam `overflow-x-auto` como muleta.
-3. **Modais e formulários grandes** — `ReceitaForm`, `ProdutoForm`, `CustosModal`, `MarkupCard`, `MaoObraModal`, `EditUserPlanModal` viram scroll lateral em telas <400px porque assumem largura de notebook.
+```tsx
+<div className="container max-w-7xl mx-auto p-4 lg:p-6">
+```
 
-Só 3 telas (ListaProdutos do Estoque, ListaReceitas e Movimentação) têm versão mobile dedicada. As outras ~25 telas/seções renderizam o layout desktop "espremido".
+`max-w-7xl` = 1280px. Isso significa que **todo monitor acima de 1280px renderiza o app na mesma largura** (1280), com o resto virando borda vazia. Daí:
+
+- Em **1366px** → fica "espremido" porque sobram só 80px de respiro e o padding interno é o mesmo de telas grandes.
+- Em **1920px** → 640px de vazio lateral; o conteúdo parece uma "ilha" no meio.
+- Em **2560px / 4K / ultrawide** → metade da tela vazia.
+
+Somado a isso, os grids internos usam só breakpoint `md:` (768px). Pulam direto de 1 coluna para X colunas e não reaproveitam o espaço extra dos monitores grandes (KPIs, cards de receita, listas de produtos). E as tabelas grandes (Afiliados, Admin, Custos) não têm `whitespace-nowrap` / proporção de coluna, então em telas estreitas algumas colunas viram 3 linhas e em telas largas viram colunas gigantes com texto perdido.
 
 ## O que vou entregar
 
-Plano em **3 fases** (1 PR/fase) para você validar visualmente entre cada uma. Padrão único:
+Plano em **3 partes**, tudo só em apresentação/responsividade (zero mudança de lógica).
 
-- **Tabelas → cards verticais** no mobile (`md:hidden` cards + `hidden md:block` tabela), seguindo o modelo que já existe em `ListaProdutos.tsx`. Cada card mostra: identificador no topo, 2-4 métricas em grid 2x2, ações em menu `⋮`.
-- **Filtros longos → Sheet lateral** (`SlidersHorizontal` + badge de contagem), idem padrão Estoque.
-- **Ações secundárias → DropdownMenu `⋮`** no header da tela; primária fica como botão full-width.
-- **Modais → `max-w-[95vw] h-[90vh]`** com conteúdo em `space-y-3` empilhado, sem grids horizontais no mobile.
-- **Abas com muitos itens (Receitas)** → scroll horizontal *intencional* só na barra de abas com snap, mas conteúdo de cada aba empilhado.
+### 1. Container fluido por faixa de resolução
 
-Nenhuma mudança de lógica/negócio. Tudo é apresentação e responsividade.
+Trocar o `max-w-7xl` fixo por um container que respira em cada faixa:
 
-### Fase 1 — Receitas (módulo mais usado)
-- `IngredientesTab`, `EmbalagensTa`, `SubReceitasTab`: substituir `<Table>` por cards empilhados no mobile (nome + qtd + custo unit + custo total em grid 2x2, ações em `⋮`).
-- `PrecificacaoTab` + `MarkupCard`: reorganizar grid de custos/markup em coluna única, popover de seleção full-width.
-- `ProjecaoTab`: cards de cenários empilhados em vez de comparação lado-a-lado.
-- `ReceitaPreviewModal`: usar `Drawer` no mobile em vez de Dialog largo.
-- `ReceitaForm` / `GeralTab`: campos full-width, remover `md:grid-cols-2` no mobile.
+| Faixa | max-w aplicado | Padding lateral |
+|------|----------------|------------------|
+| <1280px (notebook 13") | `100%` | `px-4` |
+| 1280-1536px | `max-w-[1280px]` | `px-6` |
+| 1536-1920px | `max-w-[1480px]` | `px-8` |
+| 1920-2560px | `max-w-[1680px]` | `px-10` |
+| 2560px+ (4K/ultrawide) | `max-w-[1880px]` | `px-12` |
 
-### Fase 2 — Custos, Precificação, Dashboard e Movimentação
-- `FolhaPagamento`, `DespesasFixas`, `EncargosVenda`: tabelas → cards.
-- `Markups`, `MediaFaturamento`, `CustosModal`, `MaoObraModal`: formulários em coluna única, modais em `Drawer` no mobile.
-- `Dashboard` (`CmvCard`, `FinancialHealthScore`, `InsightsCard`, gráficos): KPIs empilhados (2 por linha máx.), gráficos com altura fixa e legenda abaixo.
-- `Movimentacao`: carrinho como bottom-sheet em vez de coluna lateral; lista de produtos em grid 2 colunas com cards compactos.
+Implementação: classe Tailwind com breakpoints `xl:`, `2xl:` e um breakpoint customizado `3xl` (1920px) e `4xl` (2560px) adicionados no `tailwind.config.ts`. Resultado: app preenche bem o monitor sem virar "ilha" no 1920+ e sem ficar grudado nas bordas no 1366.
 
-### Fase 3 — Admin, Afiliados, Estoque secundário, Auth
-- Todas as tabelas de Afiliados (8 telas) → cards.
-- `AdminUsers`, `AdminStripe`, `AdminSecurity`, `AdminInadimplencia`, `BackupPanel`, `AdminChannelComparison` → cards + filtros em Sheet.
-- `HistoricoGeral`, `HistoricoProduto`, `ConsumoMedioCard` (Estoque) → cards de movimentação com data em destaque.
-- `Auth`, `Planos`, `AffiliatePlanSelector`, `PerfilNegocio`, `Checkout`: revisar paddings, larguras de inputs, ajustar `max-w` para `100%` no mobile.
-- `EditUserPlanModal`, `ProdutoForm`: virar Drawer no mobile.
+### 2. Grids/colunas que respiram
 
-## Detalhes técnicos
+Adicionar tier extra `xl:` e `2xl:` nos grids principais que hoje param em `md:`:
 
-- Breakpoint único: `md` (768px), igual ao já usado.
-- Reaproveitar `useIsMobile()` quando precisar de lógica condicional (não só CSS).
-- Componente novo `MobileListCard` em `src/components/ui/` para padronizar (header + grid de métricas + ações), evitando copy-paste em ~20 lugares.
-- Componente novo `MobileFiltersSheet` encapsulando o padrão `Sheet + SlidersHorizontal + badge`.
-- Sidebar do app no mobile já usa `Sheet` (shadcn) — sem mudança.
-- Zero impacto em desktop: tudo dentro de `md:hidden` / `hidden md:block` ou `useIsMobile()`.
+- **Dashboard KPIs**: hoje `md:grid-cols-4`. Vai virar `md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5` para aproveitar 1920+ sem inflar cada card.
+- **Receitas (lista de cards)** e **Estoque (lista de produtos)**: adicionar `2xl:grid-cols-5` / `3xl:grid-cols-6` para evitar cards gigantes em monitor grande.
+- **Receitas — abas internas (Ingredientes, Embalagens, Sub-receitas, Precificação)**: trocar grids `md:grid-cols-2` por `md:grid-cols-2 xl:grid-cols-3` quando fizer sentido.
+- **Custos (FolhaPagamento, DespesasFixas, EncargosVenda)**: linhas mais espaçadas em monitor grande, mantendo proporção dos inputs.
+
+### 3. Tabelas com colunas proporcionais
+
+Padronizar as tabelas largas (Afiliados, Admin, Custos, Histórico) com:
+
+- `whitespace-nowrap` nas colunas numéricas e de status (data, valor, %, ações) — para não quebrarem em telas estreitas.
+- `min-w-0 truncate` nas colunas de texto longo (email, nome) — para encolherem com elegância em vez de empurrar a tabela.
+- `w-[Xpx]` / `w-[X%]` definindo proporção de cada coluna (em vez de deixar o navegador decidir).
+- Tipografia: cabeçalho `text-xs`, conteúdo `text-sm` constante (hoje varia entre tabelas).
+
+### 4. Tipografia e ícones fluidos (ajuste fino)
+
+Adicionar no `index.css` `clamp()` para títulos de página (`h1` da página) — escalam suavemente entre 1.5rem (1280) e 2rem (1920+), em vez de pular degraus. Ícones de header já estão bem; não mexer.
+
+## Como vou validar
+
+Subo as mudanças e te aviso pra você abrir o preview em 3 larguras representativas (uso o seletor do navegador):
+
+1. **1366×768** (notebook) — checar se respira sem espremer.
+2. **1920×1080** (monitor padrão) — checar se preenche sem virar ilha.
+3. **2560×1440** ou simulado (ultrawide) — checar se não vira deserto lateral.
+
+Se algum grid específico ficar estranho em alguma faixa, ajusto pontualmente antes de fechar.
 
 ## Fora do escopo
 
-- Mudanças de funcionalidade, regras de negócio ou banco.
-- Redesign visual (cores, tipografia, glassmorphism) — mantém identidade atual.
-- Versão tablet (>=md continua igual ao desktop).
-- Telas legais (`PoliticaCookies`, `TermosUso`, etc.) que já são texto fluido.
-
-## Como vamos validar
-
-A cada fase eu te aviso e você abre o preview no viewport mobile (375px) pra checar as telas afetadas. Se algo ficar estranho, eu ajusto antes de seguir pra próxima fase.
+- Mobile (já entregue nas fases anteriores).
+- Mudanças de cor, tipografia base, glassmorphism — identidade visual mantida.
+- Lógica, banco, regras de negócio.
+- Telas legais (já fluidas).
