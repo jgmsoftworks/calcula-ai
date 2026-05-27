@@ -281,7 +281,7 @@ export function ListaReceitas() {
               {t('receitas.noRecipes')}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 3xl:grid-cols-2 gap-4">
               {receitas.map((receita) => {
                 const configKey = receita.markup?.nome
                   ? `markup_${receita.markup.nome.toLowerCase().replace(/\s+/g, '_')}`

@@ -198,7 +198,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
-            <div className="container max-w-7xl mx-auto p-4 lg:p-6">
+            <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12">
               {children}
             </div>
           </main>
