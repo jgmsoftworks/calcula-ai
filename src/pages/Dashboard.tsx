@@ -173,7 +173,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3 3xl:grid-cols-6">
         {userStats.map((stat, i) => {
           const Icon = stat.icon;
           return (
