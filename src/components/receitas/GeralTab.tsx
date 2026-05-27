@@ -228,8 +228,9 @@ export function GeralTab({
       {/* SEÇÃO 2: Imagem + Conservação lado a lado */}
       <Card className="glass-card overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
-        <CardContent className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
+        <CardContent className="p-3 md:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-4 md:gap-6">
+
         {/* Upload de Imagem */}
         <div className="space-y-2">
           <Label>Imagem da Receita</Label>
@@ -297,10 +298,10 @@ export function GeralTab({
         {/* Conservação */}
         <div className="space-y-3">
           <Label>Conservação</Label>
-          <div className="space-y-4 border rounded-lg p-4">
+          <div className="space-y-4 border rounded-lg p-3 md:p-4">
             {/* Congelado */}
-            <div className="grid grid-cols-[120px_1fr_1fr_110px] gap-4 items-end">
-              <Label className="text-sm font-medium pb-2">Congelado</Label>
+            <div className="grid grid-cols-2 md:grid-cols-[120px_1fr_1fr_110px] gap-2 md:gap-4 items-end">
+              <Label className="text-sm font-medium pb-0 md:pb-2 col-span-2 md:col-span-1">Congelado</Label>
               <div className="space-y-1.5">
                 <Label htmlFor="temp_congelado" className="text-xs text-muted-foreground">Temp. °C</Label>
                 <TemperatureInput
@@ -326,27 +327,29 @@ export function GeralTab({
                   placeholder="90"
                 />
               </div>
-              <Select
-                value={formData.conservacao?.congelado?.unidade || 'dias'}
-                onValueChange={(value) => onFormChange('conservacao', {
-                  ...formData.conservacao,
-                  congelado: { ...formData.conservacao?.congelado, unidade: value }
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="horas">horas</SelectItem>
-                  <SelectItem value="dias">dias</SelectItem>
-                  <SelectItem value="meses">meses</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="col-span-2 md:col-span-1">
+                <Select
+                  value={formData.conservacao?.congelado?.unidade || 'dias'}
+                  onValueChange={(value) => onFormChange('conservacao', {
+                    ...formData.conservacao,
+                    congelado: { ...formData.conservacao?.congelado, unidade: value }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="horas">horas</SelectItem>
+                    <SelectItem value="dias">dias</SelectItem>
+                    <SelectItem value="meses">meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Refrigerado */}
-            <div className="grid grid-cols-[120px_1fr_1fr_110px] gap-4 items-end">
-              <Label className="text-sm font-medium pb-2">Refrigerado</Label>
+            <div className="grid grid-cols-2 md:grid-cols-[120px_1fr_1fr_110px] gap-2 md:gap-4 items-end border-t md:border-t-0 pt-4 md:pt-0">
+              <Label className="text-sm font-medium pb-0 md:pb-2 col-span-2 md:col-span-1">Refrigerado</Label>
               <div className="space-y-1.5">
                 <Label htmlFor="temp_refrigerado" className="text-xs text-muted-foreground">Temp. °C</Label>
                 <TemperatureInput
@@ -372,27 +375,29 @@ export function GeralTab({
                   placeholder="15"
                 />
               </div>
-              <Select
-                value={formData.conservacao?.refrigerado?.unidade || 'dias'}
-                onValueChange={(value) => onFormChange('conservacao', {
-                  ...formData.conservacao,
-                  refrigerado: { ...formData.conservacao?.refrigerado, unidade: value }
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="horas">horas</SelectItem>
-                  <SelectItem value="dias">dias</SelectItem>
-                  <SelectItem value="meses">meses</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="col-span-2 md:col-span-1">
+                <Select
+                  value={formData.conservacao?.refrigerado?.unidade || 'dias'}
+                  onValueChange={(value) => onFormChange('conservacao', {
+                    ...formData.conservacao,
+                    refrigerado: { ...formData.conservacao?.refrigerado, unidade: value }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="horas">horas</SelectItem>
+                    <SelectItem value="dias">dias</SelectItem>
+                    <SelectItem value="meses">meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Ambiente */}
-            <div className="grid grid-cols-[120px_1fr_1fr_110px] gap-4 items-end">
-              <Label className="text-sm font-medium pb-2">Ambiente</Label>
+            <div className="grid grid-cols-2 md:grid-cols-[120px_1fr_1fr_110px] gap-2 md:gap-4 items-end border-t md:border-t-0 pt-4 md:pt-0">
+              <Label className="text-sm font-medium pb-0 md:pb-2 col-span-2 md:col-span-1">Ambiente</Label>
               <div className="space-y-1.5">
                 <Label htmlFor="temp_ambiente" className="text-xs text-muted-foreground">Temp. °C</Label>
                 <TemperatureInput
@@ -418,24 +423,27 @@ export function GeralTab({
                   placeholder="0"
                 />
               </div>
-              <Select
-                value={formData.conservacao?.ambiente?.unidade || 'horas'}
-                onValueChange={(value) => onFormChange('conservacao', {
-                  ...formData.conservacao,
-                  ambiente: { ...formData.conservacao?.ambiente, unidade: value }
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="horas">horas</SelectItem>
-                  <SelectItem value="dias">dias</SelectItem>
-                  <SelectItem value="meses">meses</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="col-span-2 md:col-span-1">
+                <Select
+                  value={formData.conservacao?.ambiente?.unidade || 'horas'}
+                  onValueChange={(value) => onFormChange('conservacao', {
+                    ...formData.conservacao,
+                    ambiente: { ...formData.conservacao?.ambiente, unidade: value }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="horas">horas</SelectItem>
+                    <SelectItem value="dias">dias</SelectItem>
+                    <SelectItem value="meses">meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
         </CardContent>

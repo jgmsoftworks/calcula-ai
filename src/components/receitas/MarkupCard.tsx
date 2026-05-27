@@ -336,7 +336,8 @@ export function MarkupCard({
             </div>
           ) : (
             <>
-          <div className="grid grid-cols-3 gap-2 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-4">
+
             <Card className="bg-purple-50 dark:bg-purple-950">
               <CardHeader className="pb-1 md:pb-2 px-2 md:px-6 pt-2 md:pt-6">
                 <CardTitle className="text-[11px] md:text-sm font-medium leading-tight">

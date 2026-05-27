@@ -190,7 +190,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                 <Package className="h-5 w-5" />
                 Ingredientes
               </h3>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -237,7 +237,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                 <ChefHat className="h-5 w-5" />
                 Sub-receitas
               </h3>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -285,7 +285,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                 <Package className="h-5 w-5" />
                 Embalagens
               </h3>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -332,7 +332,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                 <Users className="h-5 w-5" />
                 Mão de Obra
               </h3>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

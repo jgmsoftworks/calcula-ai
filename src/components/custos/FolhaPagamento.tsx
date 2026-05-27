@@ -672,8 +672,8 @@ export function FolhaPagamento() {
                     { label: 'Plano de Saúde', percentKey: 'plano_saude_percent', valorKey: 'plano_saude_valor' },
                     { label: 'Outros', percentKey: 'outros_percent', valorKey: 'outros_valor' }
                   ].map((encargo) => (
-                    <div key={encargo.label} className="grid grid-cols-[1fr_110px_130px] gap-3 items-center">
-                      <Label className="text-xs font-medium">{encargo.label}</Label>
+                    <div key={encargo.label} className="grid grid-cols-2 md:grid-cols-[1fr_110px_130px] gap-2 md:gap-3 items-center">
+                      <Label className="text-xs font-medium col-span-2 md:col-span-1">{encargo.label}</Label>
                       <div className="relative">
                         <Input type="text" value={formData[encargo.percentKey as keyof typeof formData]} onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)} onKeyDown={handleInputKeyDown} onWheel={handleInputWheel} placeholder="0,00" className="pr-6 h-8 text-sm" autoComplete="off" />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
@@ -683,6 +683,7 @@ export function FolhaPagamento() {
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
                       </div>
                     </div>
+
                   ))}
                 </div>
 
