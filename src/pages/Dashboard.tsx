@@ -173,7 +173,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3 3xl:grid-cols-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {userStats.map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -233,7 +233,7 @@ const Dashboard = () => {
       </Card>
 
       {/* Saldo Inicial + CMV % */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 3xl:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
           <CardContent className="p-6">
