@@ -53,11 +53,11 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[95vw] lg:max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-[95vw] lg:max-w-5xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center gap-2">
-            <ChefHat className="h-6 w-6" />
-            Preview da Receita #{receita.numero_sequencial}
+          <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2 pr-6">
+            <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
+            <span className="truncate">Preview da Receita #{receita.numero_sequencial}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -75,7 +75,8 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
           {/* Informações Gerais */}
           <section className="bg-muted/30 p-4 rounded-lg">
             <h3 className="font-semibold text-lg mb-3">Informações Gerais</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
               <div>
                 <p className="text-sm text-muted-foreground">Nome</p>
                 <p className="font-medium">{receita.nome}</p>
