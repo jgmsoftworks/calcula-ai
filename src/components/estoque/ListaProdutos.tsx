@@ -38,6 +38,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
@@ -55,6 +65,8 @@ export function ListaProdutos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
+  const [produtoParaExcluir, setProdutoParaExcluir] = useState<Produto | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -139,11 +151,19 @@ export function ListaProdutos() {
 
   const handleDelete = async (produto: Produto, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (confirm(`Tem certeza que deseja remover o produto "${produto.nome}"?`)) {
-      const success = await deleteProduto(produto.id);
-      if (success) {
-        loadProdutos();
-      }
+    setProdutoParaExcluir(produto);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!produtoParaExcluir) return;
+
+    setExcluindo(true);
+    const success = await deleteProduto(produtoParaExcluir.id);
+    setExcluindo(false);
+
+    if (success) {
+      setProdutoParaExcluir(null);
+      loadProdutos();
     }
   };
 
@@ -509,6 +529,33 @@ export function ListaProdutos() {
         onOpenChange={setModalOpen}
         onSuccess={loadProdutos}
       />
+
+      <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => !open && setProdutoParaExcluir(null)}>
+        <AlertDialogContent className="max-w-md rounded-2xl border-border/70 bg-background/95 shadow-2xl backdrop-blur-xl">
+          <AlertDialogHeader className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive sm:mx-0">
+              <Trash2 className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
+              O produto <span className="font-semibold text-foreground">{produtoParaExcluir?.nome}</span> será removido da lista de estoque. Essa ação não apaga o histórico já registrado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              onClick={(event) => {
+                event.preventDefault();
+                confirmarExclusao();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindo ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
         <DialogContent className="max-w-2xl">
