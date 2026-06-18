@@ -57,6 +57,8 @@ import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { useExportProdutos } from '@/hooks/useExportProdutos';
 import { useMarcasCategorias } from '@/hooks/useMarcasCategorias';
 import { formatters } from '@/lib/formatters';
+import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 export function ListaProdutos() {
   const { fetchProdutos, deleteProduto } = useEstoque();
@@ -67,6 +69,8 @@ export function ListaProdutos() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
   const [produtoParaExcluir, setProdutoParaExcluir] = useState<Produto | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [receitasUsando, setReceitasUsando] = useState<{ id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }[]>([]);
+  const [verificandoUso, setVerificandoUso] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -152,6 +156,34 @@ export function ListaProdutos() {
   const handleDelete = async (produto: Produto, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setProdutoParaExcluir(produto);
+    setReceitasUsando([]);
+    setVerificandoUso(true);
+
+    try {
+      const [ingRes, embRes] = await Promise.all([
+        supabase
+          .from('receita_ingredientes')
+          .select('receita_id, receitas:receita_id(id, nome)')
+          .eq('produto_id', produto.id),
+        supabase
+          .from('receita_embalagens')
+          .select('receita_id, receitas:receita_id(id, nome)')
+          .eq('produto_id', produto.id),
+      ]);
+
+      const map = new Map<string, { id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }>();
+      (ingRes.data || []).forEach((r: any) => {
+        if (r.receitas) map.set(r.receitas.id, { id: r.receitas.id, nome: r.receitas.nome, tipo: 'ingrediente' });
+      });
+      (embRes.data || []).forEach((r: any) => {
+        if (r.receitas && !map.has(r.receitas.id)) {
+          map.set(r.receitas.id, { id: r.receitas.id, nome: r.receitas.nome, tipo: 'embalagem' });
+        }
+      });
+      setReceitasUsando(Array.from(map.values()));
+    } finally {
+      setVerificandoUso(false);
+    }
   };
 
   const confirmarExclusao = async () => {
@@ -530,22 +562,26 @@ export function ListaProdutos() {
         onSuccess={loadProdutos}
       />
 
-      <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => !open && setProdutoParaExcluir(null)}>
-        <AlertDialogContent className="max-w-md overflow-hidden rounded-3xl border border-border/60 bg-background/95 p-0 shadow-[0_25px_80px_-15px_rgba(244,63,94,0.35)] backdrop-blur-2xl">
+      <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => { if (!open) { setProdutoParaExcluir(null); setReceitasUsando([]); } }}>
+        <AlertDialogContent className={`max-w-md overflow-hidden rounded-3xl border border-border/60 bg-background/95 p-0 backdrop-blur-2xl ${receitasUsando.length > 0 ? 'shadow-[0_25px_80px_-15px_rgba(245,158,11,0.4)]' : 'shadow-[0_25px_80px_-15px_rgba(244,63,94,0.35)]'}`}>
           {/* Gradient header */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-rose-500/15 via-red-500/10 to-orange-500/15 px-6 pt-7 pb-5">
-            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-rose-500/20 blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-500/20 blur-3xl" />
+          <div className={`relative overflow-hidden px-6 pt-7 pb-5 ${receitasUsando.length > 0 ? 'bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-yellow-500/15' : 'bg-gradient-to-br from-rose-500/15 via-red-500/10 to-orange-500/15'}`}>
+            <div className={`absolute -top-10 -right-10 h-32 w-32 rounded-full blur-3xl ${receitasUsando.length > 0 ? 'bg-amber-500/20' : 'bg-rose-500/20'}`} />
+            <div className={`absolute -bottom-10 -left-10 h-32 w-32 rounded-full blur-3xl ${receitasUsando.length > 0 ? 'bg-orange-500/20' : 'bg-orange-500/20'}`} />
             <div className="relative flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 ring-4 ring-background/60">
-                <Trash2 className="h-6 w-6" />
+              <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ring-4 ring-background/60 ${receitasUsando.length > 0 ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/40' : 'bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/40'}`}>
+                {receitasUsando.length > 0 ? (
+                  <AlertCircle className="h-6 w-6" />
+                ) : (
+                  <Trash2 className="h-6 w-6" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <AlertDialogTitle className="text-xl font-bold tracking-tight">
-                  Excluir produto?
+                  {receitasUsando.length > 0 ? 'Produto em uso' : 'Excluir produto?'}
                 </AlertDialogTitle>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  Esta ação não pode ser desfeita
+                  {receitasUsando.length > 0 ? 'Não pode ser excluído agora' : 'Esta ação não pode ser desfeita'}
                 </p>
               </div>
             </div>
@@ -553,21 +589,61 @@ export function ListaProdutos() {
 
           {/* Body */}
           <div className="px-6 py-5 space-y-4">
-            <AlertDialogDescription className="text-[15px] leading-relaxed text-foreground/80">
-              Você está prestes a remover{' '}
-              <span className="font-semibold text-foreground">"{produtoParaExcluir?.nome}"</span>{' '}
-              da sua lista de estoque.
-            </AlertDialogDescription>
-
-            <div className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="m10.29 3.86-8.18 14a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71-3l-8.18-14a2 2 0 0 0-3.42 0Z"/></svg>
+            {verificandoUso ? (
+              <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Verificando uso em receitas...
               </div>
-              <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
-                O histórico de movimentações e fichas técnicas já registradas{' '}
-                <span className="font-semibold">serão preservados</span>.
-              </p>
-            </div>
+            ) : receitasUsando.length > 0 ? (
+              <>
+                <AlertDialogDescription className="text-[15px] leading-relaxed text-foreground/80">
+                  O produto{' '}
+                  <span className="font-semibold text-foreground">"{produtoParaExcluir?.nome}"</span>{' '}
+                  está sendo usado em{' '}
+                  <span className="font-semibold text-foreground">
+                    {receitasUsando.length} {receitasUsando.length === 1 ? 'receita' : 'receitas'}
+                  </span>
+                  . Remova-o das receitas antes de excluir.
+                </AlertDialogDescription>
+
+                <div className="max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-muted/30 divide-y divide-border/50">
+                  {receitasUsando.map((r) => (
+                    <Link
+                      key={r.id}
+                      to={`/receitas?id=${r.id}`}
+                      onClick={() => { setProdutoParaExcluir(null); setReceitasUsando([]); }}
+                      className="flex items-center justify-between gap-3 px-4 py-2.5 transition hover:bg-background"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{r.nome}</p>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {r.tipo === 'ingrediente' ? 'Ingrediente' : 'Embalagem'}
+                        </p>
+                      </div>
+                      <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertDialogDescription className="text-[15px] leading-relaxed text-foreground/80">
+                  Você está prestes a remover{' '}
+                  <span className="font-semibold text-foreground">"{produtoParaExcluir?.nome}"</span>{' '}
+                  da sua lista de estoque.
+                </AlertDialogDescription>
+
+                <div className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                    <AlertCircle className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+                    O histórico de movimentações já registrado{' '}
+                    <span className="font-semibold">será preservado</span>.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           <AlertDialogFooter className="flex-row gap-2 border-t border-border/50 bg-muted/30 px-6 py-4 sm:gap-2">
@@ -575,18 +651,20 @@ export function ListaProdutos() {
               disabled={excluindo}
               className="mt-0 flex-1 rounded-xl border-border/60 hover:bg-background"
             >
-              Cancelar
+              {receitasUsando.length > 0 ? 'Entendi' : 'Cancelar'}
             </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={excluindo}
-              onClick={(event) => {
-                event.preventDefault();
-                confirmarExclusao();
-              }}
-              className="flex-1 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-red-700 hover:shadow-rose-500/50"
-            >
-              {excluindo ? 'Excluindo...' : 'Sim, excluir'}
-            </AlertDialogAction>
+            {receitasUsando.length === 0 && !verificandoUso && (
+              <AlertDialogAction
+                disabled={excluindo}
+                onClick={(event) => {
+                  event.preventDefault();
+                  confirmarExclusao();
+                }}
+                className="flex-1 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-red-700 hover:shadow-rose-500/50"
+              >
+                {excluindo ? 'Excluindo...' : 'Sim, excluir'}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
