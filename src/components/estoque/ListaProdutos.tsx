@@ -610,7 +610,7 @@ export function ListaProdutos() {
                   {receitasUsando.map((r) => (
                     <Link
                       key={r.id}
-                      to={`/receitas/editar/${r.id}`}
+                      to={`/receitas?id=${r.id}`}
                       onClick={() => { setProdutoParaExcluir(null); setReceitasUsando([]); }}
                       className="flex items-center justify-between gap-3 px-4 py-2.5 transition hover:bg-background"
                     >
