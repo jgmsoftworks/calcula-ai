@@ -38,6 +38,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
@@ -55,6 +65,8 @@ export function ListaProdutos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
+  const [produtoParaExcluir, setProdutoParaExcluir] = useState<Produto | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -139,11 +151,19 @@ export function ListaProdutos() {
 
   const handleDelete = async (produto: Produto, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (confirm(`Tem certeza que deseja remover o produto "${produto.nome}"?`)) {
-      const success = await deleteProduto(produto.id);
-      if (success) {
-        loadProdutos();
-      }
+    setProdutoParaExcluir(produto);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!produtoParaExcluir) return;
+
+    setExcluindo(true);
+    const success = await deleteProduto(produtoParaExcluir.id);
+    setExcluindo(false);
+
+    if (success) {
+      setProdutoParaExcluir(null);
+      loadProdutos();
     }
   };
 
