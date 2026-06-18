@@ -69,6 +69,8 @@ export function ListaProdutos() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
   const [produtoParaExcluir, setProdutoParaExcluir] = useState<Produto | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [receitasUsando, setReceitasUsando] = useState<{ id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }[]>([]);
+  const [verificandoUso, setVerificandoUso] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
