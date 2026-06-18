@@ -531,27 +531,61 @@ export function ListaProdutos() {
       />
 
       <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => !open && setProdutoParaExcluir(null)}>
-        <AlertDialogContent className="max-w-md rounded-2xl border-border/70 bg-background/95 shadow-2xl backdrop-blur-xl">
-          <AlertDialogHeader className="space-y-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive sm:mx-0">
-              <Trash2 className="h-6 w-6" />
+        <AlertDialogContent className="max-w-md overflow-hidden rounded-3xl border border-border/60 bg-background/95 p-0 shadow-[0_25px_80px_-15px_rgba(244,63,94,0.35)] backdrop-blur-2xl">
+          {/* Gradient header */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-rose-500/15 via-red-500/10 to-orange-500/15 px-6 pt-7 pb-5">
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-rose-500/20 blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-500/20 blur-3xl" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/40 ring-4 ring-background/60">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                  Excluir produto?
+                </AlertDialogTitle>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Esta ação não pode ser desfeita
+                </p>
+              </div>
             </div>
-            <AlertDialogTitle>Remover produto?</AlertDialogTitle>
-            <AlertDialogDescription className="leading-relaxed">
-              O produto <span className="font-semibold text-foreground">{produtoParaExcluir?.nome}</span> será removido da lista de estoque. Essa ação não apaga o histórico já registrado.
+          </div>
+
+          {/* Body */}
+          <div className="px-6 py-5 space-y-4">
+            <AlertDialogDescription className="text-[15px] leading-relaxed text-foreground/80">
+              Você está prestes a remover{' '}
+              <span className="font-semibold text-foreground">"{produtoParaExcluir?.nome}"</span>{' '}
+              da sua lista de estoque.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-0">
-            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+
+            <div className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="m10.29 3.86-8.18 14a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71-3l-8.18-14a2 2 0 0 0-3.42 0Z"/></svg>
+              </div>
+              <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+                O histórico de movimentações e fichas técnicas já registradas{' '}
+                <span className="font-semibold">serão preservados</span>.
+              </p>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="flex-row gap-2 border-t border-border/50 bg-muted/30 px-6 py-4 sm:gap-2">
+            <AlertDialogCancel
+              disabled={excluindo}
+              className="mt-0 flex-1 rounded-xl border-border/60 hover:bg-background"
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={excluindo}
               onClick={(event) => {
                 event.preventDefault();
                 confirmarExclusao();
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="flex-1 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-red-700 hover:shadow-rose-500/50"
             >
-              {excluindo ? 'Removendo...' : 'Remover'}
+              {excluindo ? 'Excluindo...' : 'Sim, excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
