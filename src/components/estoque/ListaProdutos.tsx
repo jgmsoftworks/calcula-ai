@@ -57,6 +57,8 @@ import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { useExportProdutos } from '@/hooks/useExportProdutos';
 import { useMarcasCategorias } from '@/hooks/useMarcasCategorias';
 import { formatters } from '@/lib/formatters';
+import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 export function ListaProdutos() {
   const { fetchProdutos, deleteProduto } = useEstoque();
