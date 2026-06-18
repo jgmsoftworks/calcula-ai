@@ -530,6 +530,33 @@ export function ListaProdutos() {
         onSuccess={loadProdutos}
       />
 
+      <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => !open && setProdutoParaExcluir(null)}>
+        <AlertDialogContent className="max-w-md rounded-2xl border-border/70 bg-background/95 shadow-2xl backdrop-blur-xl">
+          <AlertDialogHeader className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive sm:mx-0">
+              <Trash2 className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
+              O produto <span className="font-semibold text-foreground">{produtoParaExcluir?.nome}</span> será removido da lista de estoque. Essa ação não apaga o histórico já registrado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              onClick={(event) => {
+                event.preventDefault();
+                confirmarExclusao();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindo ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
