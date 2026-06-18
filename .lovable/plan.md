@@ -1,21 +1,19 @@
-## Problema
-Ao "apagar" um produto, o sistema faz **soft delete** (`ativo = false`). O código interno (ex: 643) continua existindo no banco, e o índice único `(user_id, codigo_interno)` bloqueia a reutilização — mesmo o produto não aparecendo mais na lista.
+## Correção proposta
 
-## Solução
-Tornar o índice único **parcial**: só vale para produtos ativos. Assim, códigos de produtos desativados ficam livres para reuso.
+O problema não é no formulário: a migração anterior criou o índice correto, mas ficou uma trava antiga no banco chamada `unique_codigo_interno_per_user`, que ainda impede reutilizar o código de produto apagado.
 
-### 1. Migration (banco)
-- Remover a constraint/índice único atual de `produtos (user_id, codigo_interno)`.
-- Criar índice único parcial: `UNIQUE (user_id, codigo_interno) WHERE ativo = true`.
-- Atualizar a função `gerar_proximo_codigo_interno` para considerar apenas produtos ativos (`WHERE user_id = p_user_id AND ativo = true`), evitando pular números de produtos desativados.
+### O que vou fazer
 
-### 2. Código (frontend)
-Nenhuma mudança necessária — `createProduto` e `updateProduto` já tratam erro `23505` com a mensagem correta, que agora só dispara em conflito real com produto ativo.
+1. **Remover a constraint antiga** `unique_codigo_interno_per_user` da tabela `produtos`.
+2. **Remover o índice antigo com o mesmo nome**, se ainda existir.
+3. **Manter apenas a regra correta**: código interno único somente entre produtos ativos (`ativo = true`).
+4. **Conferir no banco** se sobrará somente o índice parcial `produtos_user_codigo_ativo_unique`.
 
-## Validação
-- Criar produto código 643 → apagar → criar novo com 643 → deve funcionar.
-- Tentar criar dois produtos ativos com mesmo código → deve continuar bloqueando.
+### Resultado esperado
 
-## Fora de escopo
-- Hard delete de produtos (mantém histórico em movimentações/receitas).
-- Mudanças visuais.
+- Produto apagado/inativo com código `643` não bloqueia mais um novo produto com código `643`.
+- Dois produtos ativos com o mesmo código continuam bloqueados normalmente.
+
+### Detalhe técnico
+
+A correção será feita via migration Supabase, sem alterar layout nem fluxo do estoque.
