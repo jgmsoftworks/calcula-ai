@@ -1,26 +1,21 @@
 ## Problema
+Ao "apagar" um produto, o sistema faz **soft delete** (`ativo = false`). O código interno (ex: 643) continua existindo no banco, e o índice único `(user_id, codigo_interno)` bloqueia a reutilização — mesmo o produto não aparecendo mais na lista.
 
-No celular, o modal "Preview da Receita" (`ReceitaPreviewModal.tsx`) está com:
-- Conteúdo cortado nas laterais (sem padding interno suficiente)
-- Tabelas (Sub-receitas, Ingredientes, Embalagens, Mão de Obra) com overflow horizontal mas sem rolagem perceptível — colunas espremidas e texto quebrando em pedaços ("CARNE / DE / SECA")
-- Grid "Informações Gerais" forçando 2 colunas no mobile, deixando valores cortados ("1 Unidade (un...")
-- Título grande demais ocupando muito espaço
-- Footer/botões podem sair da área visível
+## Solução
+Tornar o índice único **parcial**: só vale para produtos ativos. Assim, códigos de produtos desativados ficam livres para reuso.
 
-## Solução (apenas UI/responsividade — sem mudar lógica)
+### 1. Migration (banco)
+- Remover a constraint/índice único atual de `produtos (user_id, codigo_interno)`.
+- Criar índice único parcial: `UNIQUE (user_id, codigo_interno) WHERE ativo = true`.
+- Atualizar a função `gerar_proximo_codigo_interno` para considerar apenas produtos ativos (`WHERE user_id = p_user_id AND ativo = true`), evitando pular números de produtos desativados.
 
-**1. `src/components/receitas/ReceitaPreviewModal.tsx`**
-- `DialogContent`: trocar `w-full max-w-[95vw]` por `max-w-[100vw] sm:max-w-[95vw] lg:max-w-5xl`, adicionar `p-4 sm:p-6` e garantir `overflow-x-hidden` no container externo.
-- `DialogTitle`: `text-xl sm:text-2xl` para caber no mobile.
-- Grid "Informações Gerais": `grid-cols-1 sm:grid-cols-2` (em vez de sempre 2 colunas).
-- Cada bloco de tabela: envolver em wrapper com `-mx-4 sm:mx-0` + `overflow-x-auto` real, e adicionar `min-w-[560px]` na `<Table>` para forçar rolagem horizontal limpa em vez de quebrar texto em sílabas.
-- Resumo Financeiro: usar `grid-cols-1 sm:grid-cols-2` se hoje for fixo.
+### 2. Código (frontend)
+Nenhuma mudança necessária — `createProduto` e `updateProduto` já tratam erro `23505` com a mensagem correta, que agora só dispara em conflito real com produto ativo.
 
-**2. Validação**
-- Testar no viewport mobile (375px) abrindo o preview de uma receita com sub-receitas.
-- Conferir que: título cabe, info geral empilha em 1 coluna, tabelas rolam horizontalmente sem cortar texto, botões do footer aparecem.
+## Validação
+- Criar produto código 643 → apagar → criar novo com 643 → deve funcionar.
+- Tentar criar dois produtos ativos com mesmo código → deve continuar bloqueando.
 
 ## Fora de escopo
-- Outras telas (já ajustadas em iterações anteriores)
-- Lógica de cálculo, dados, queries
-- Mudanças de design system / cores / tipografia
+- Hard delete de produtos (mantém histórico em movimentações/receitas).
+- Mudanças visuais.
