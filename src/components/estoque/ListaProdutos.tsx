@@ -156,6 +156,34 @@ export function ListaProdutos() {
   const handleDelete = async (produto: Produto, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setProdutoParaExcluir(produto);
+    setReceitasUsando([]);
+    setVerificandoUso(true);
+
+    try {
+      const [ingRes, embRes] = await Promise.all([
+        supabase
+          .from('receita_ingredientes')
+          .select('receita_id, receitas:receita_id(id, nome)')
+          .eq('produto_id', produto.id),
+        supabase
+          .from('receita_embalagens')
+          .select('receita_id, receitas:receita_id(id, nome)')
+          .eq('produto_id', produto.id),
+      ]);
+
+      const map = new Map<string, { id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }>();
+      (ingRes.data || []).forEach((r: any) => {
+        if (r.receitas) map.set(r.receitas.id, { id: r.receitas.id, nome: r.receitas.nome, tipo: 'ingrediente' });
+      });
+      (embRes.data || []).forEach((r: any) => {
+        if (r.receitas && !map.has(r.receitas.id)) {
+          map.set(r.receitas.id, { id: r.receitas.id, nome: r.receitas.nome, tipo: 'embalagem' });
+        }
+      });
+      setReceitasUsando(Array.from(map.values()));
+    } finally {
+      setVerificandoUso(false);
+    }
   };
 
   const confirmarExclusao = async () => {
