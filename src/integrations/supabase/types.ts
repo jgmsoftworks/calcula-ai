@@ -1619,6 +1619,78 @@ export type Database = {
         }
         Relationships: []
       }
+      perdas: {
+        Row: {
+          created_at: string
+          custo_total: number
+          custo_unitario: number
+          data_perda: string
+          id: string
+          motivo: string
+          motivo_outro: string | null
+          nome_item: string
+          observacao: string | null
+          produto_id: string | null
+          quantidade: number
+          receita_id: string | null
+          responsavel: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_total?: number
+          custo_unitario?: number
+          data_perda?: string
+          id?: string
+          motivo: string
+          motivo_outro?: string | null
+          nome_item: string
+          observacao?: string | null
+          produto_id?: string | null
+          quantidade: number
+          receita_id?: string | null
+          responsavel?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_total?: number
+          custo_unitario?: number
+          data_perda?: string
+          id?: string
+          motivo?: string
+          motivo_outro?: string | null
+          nome_item?: string
+          observacao?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          receita_id?: string | null
+          responsavel?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perdas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perdas_receita_id_fkey"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean
