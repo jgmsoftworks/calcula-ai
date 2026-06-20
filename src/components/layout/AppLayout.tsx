@@ -44,6 +44,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/estoque': 'estoque',
       '/estoque/movimentacoes': 'movimentacao',
       '/estoque/historico': 'estoque',
+      '/estoque/perdas': 'estoque',
       '/estoque/relatorios': 'estoque',
       '/movimentacao': 'movimentacao',
       '/custos': 'custos',
@@ -57,6 +58,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     if (key) {
       const titleMap: Record<string, string> = {
         '/estoque/historico': 'Histórico Geral',
+        '/estoque/perdas': 'Perdas',
         '/estoque/relatorios': 'Relatórios de Estoque',
       };
       return {
