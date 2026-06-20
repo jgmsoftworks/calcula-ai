@@ -84,8 +84,11 @@ const App = () => (
                   <Route path="/admin-configuracoes" element={<AdminSettings />} />
                   <Route path="/" element={<Index />} />
                   <Route path="/estoque" element={<Estoque />} />
+                  <Route path="/estoque/movimentacoes" element={<Movimentacao />} />
+                  <Route path="/estoque/historico" element={<EstoqueHistorico />} />
+                  <Route path="/estoque/relatorios" element={<RelatoriosEstoque />} />
                   <Route path="/receitas" element={<Receitas />} />
-                  <Route path="/movimentacao" element={<Movimentacao />} />
+                  <Route path="/movimentacao" element={<Navigate to="/estoque/movimentacoes" replace />} />
                   <Route path="/custos" element={<Custos />} />
                   <Route path="/precificacao" element={<Precificacao />} />
                   <Route path="/planos" element={<Planos />} />
