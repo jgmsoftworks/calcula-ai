@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Package, ChefHat, ChevronsUpDown, Check } from 'lucide-react';
-import { NumericInputPTBR } from '@/components/ui/numeric-input-ptbr';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePerdas, MOTIVOS_PERDA, MotivoPerda } from '@/hooks/usePerdas';
@@ -195,7 +195,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label>Quantidade</Label>
-            <NumericInputPTBR value={quantidade} onChange={setQuantidade} decimals={2} />
+            <NumericInputPtBr value={quantidade} onChange={setQuantidade} decimals={2} />
           </div>
           <div className="space-y-2">
             <Label>Custo total</Label>
