@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   History,
   FileBarChart,
+  AlertOctagon,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -58,6 +59,7 @@ export function AppSidebar() {
         { title: t('nav.listaProdutos'), url: '/estoque', icon: List, exact: true },
         { title: t('nav.movimentacoes'), url: '/estoque/movimentacoes', icon: ArrowLeftRight },
         { title: t('nav.historicoGeral'), url: '/estoque/historico', icon: History },
+        { title: 'Perdas', url: '/estoque/perdas', icon: AlertOctagon },
         { title: t('nav.relatorios'), url: '/estoque/relatorios', icon: FileBarChart },
       ],
     },
