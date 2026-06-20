@@ -156,19 +156,37 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
-              {navigationItems.map((item) => {
-                const active = isActive(item.url);
+              {navigationItems.map((item: any) => {
+                const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+                const parentMatched =
+                  item.url === '/'
+                    ? currentPath === '/'
+                    : currentPath === item.url || currentPath.startsWith(item.url + '/') || (item.url === '/estoque' && currentPath.startsWith('/movimentacao'));
+
+                if (hasChildren && !isCollapsed) {
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <CollapsibleSubmenu
+                        item={item}
+                        parentMatched={parentMatched}
+                        currentPath={currentPath}
+                      />
+                    </SidebarMenuItem>
+                  );
+                }
+
+                const active = parentMatched;
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
+                      <NavLink
+                        to={item.url}
                         end={item.url === '/'}
                         className={`
                           relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                           transition-all duration-200 group
-                          ${active 
-                            ? 'bg-primary text-primary-foreground shadow-brand' 
+                          ${active
+                            ? 'bg-primary text-primary-foreground shadow-brand'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                           }
                           ${isCollapsed ? 'justify-center px-2' : ''}
