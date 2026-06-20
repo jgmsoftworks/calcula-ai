@@ -266,3 +266,71 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
+interface CollapsibleSubmenuProps {
+  item: {
+    title: string;
+    url: string;
+    icon: any;
+    children: Array<{ title: string; url: string; icon: any; exact?: boolean }>;
+  };
+  parentMatched: boolean;
+  currentPath: string;
+}
+
+function CollapsibleSubmenu({ item, parentMatched, currentPath }: CollapsibleSubmenuProps) {
+  const [open, setOpen] = useState(parentMatched);
+
+  useEffect(() => {
+    if (parentMatched) setOpen(true);
+  }, [parentMatched]);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className={`
+            relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+            transition-all duration-200 group
+            ${parentMatched
+              ? 'bg-primary/10 text-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }
+          `}
+        >
+          <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${parentMatched ? 'text-primary' : 'group-hover:text-primary'} transition-colors`} />
+          <span className="flex-1 text-left">{item.title}</span>
+          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+        <div className="ml-3 mt-1 space-y-0.5 border-l border-border/40 pl-3">
+          {item.children.map((child) => {
+            const childActive = child.exact
+              ? currentPath === child.url
+              : currentPath === child.url || currentPath.startsWith(child.url + '/');
+            return (
+              <NavLink
+                key={child.url}
+                to={child.url}
+                end={child.exact}
+                className={`
+                  relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium
+                  transition-all duration-200 group
+                  ${childActive
+                    ? 'bg-primary text-primary-foreground shadow-brand'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }
+                `}
+              >
+                <child.icon className={`h-4 w-4 flex-shrink-0 ${childActive ? '' : 'group-hover:text-primary'} transition-colors`} />
+                <span>{child.title}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
