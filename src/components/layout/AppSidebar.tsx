@@ -50,8 +50,17 @@ export function AppSidebar() {
 
   const businessNavigationItems = [
     { title: t('nav.dashboard'), url: '/', icon: Home },
-    { title: t('nav.estoque'), url: '/estoque', icon: Package },
-    { title: t('nav.movimentacao'), url: '/movimentacao', icon: TrendingUp },
+    {
+      title: t('nav.estoque'),
+      url: '/estoque',
+      icon: Package,
+      children: [
+        { title: t('nav.listaProdutos'), url: '/estoque', icon: List, exact: true },
+        { title: t('nav.movimentacoes'), url: '/estoque/movimentacoes', icon: ArrowLeftRight },
+        { title: t('nav.historicoGeral'), url: '/estoque/historico', icon: History },
+        { title: t('nav.relatorios'), url: '/estoque/relatorios', icon: FileBarChart },
+      ],
+    },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
     { title: t('nav.custos'), url: '/custos', icon: TrendingUp },
     { title: t('nav.precificacao'), url: '/precificacao', icon: Calculator },
