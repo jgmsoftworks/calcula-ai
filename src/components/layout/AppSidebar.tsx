@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   Calculator,
   Home,
@@ -13,7 +14,13 @@ import {
   ArrowRightFromLine,
   ShieldCheck,
   AlertTriangle,
+  ChevronDown,
+  List,
+  ArrowLeftRight,
+  History,
+  FileBarChart,
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Sidebar,
   SidebarContent,
