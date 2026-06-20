@@ -18,6 +18,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Custos from "./pages/Custos";
 import Precificacao from "./pages/Precificacao";
 import Estoque from "./pages/Estoque";
+import EstoqueHistorico from "./pages/EstoqueHistorico";
+import RelatoriosEstoque from "./pages/RelatoriosEstoque";
 import Movimentacao from "./pages/Movimentacao";
 import Receitas from "./pages/Receitas";
 import Planos from "./pages/Planos";
