@@ -42,6 +42,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     const pageMap: Record<string, string> = {
       '/': 'dashboard',
       '/estoque': 'estoque',
+      '/estoque/movimentacoes': 'movimentacao',
+      '/estoque/historico': 'estoque',
+      '/estoque/relatorios': 'estoque',
       '/movimentacao': 'movimentacao',
       '/custos': 'custos',
       '/precificacao': 'precificacao',
@@ -52,8 +55,12 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     };
     const key = pageMap[pathname];
     if (key) {
+      const titleMap: Record<string, string> = {
+        '/estoque/historico': 'Histórico Geral',
+        '/estoque/relatorios': 'Relatórios de Estoque',
+      };
       return {
-        title: t(`pages.${key}.title`),
+        title: titleMap[pathname] || t(`pages.${key}.title`),
         description: t(`pages.${key}.description`),
       };
     }
