@@ -268,7 +268,12 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-10">
                   {receitaSel ? (
-                    <span className="truncate text-sm">#{receitaSel.numero_sequencial} {receitaSel.nome}</span>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
+                        <ChefHat className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="truncate text-left text-sm">#{receitaSel.numero_sequencial} {receitaSel.nome}</span>
+                    </div>
                   ) : (
                     'Selecionar receita...'
                   )}
@@ -293,17 +298,22 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                           key={r.id}
                           value={`${r.numero_sequencial} ${r.nome}`}
                           onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}
-                          className="items-center justify-between gap-2 py-1.5 px-2 cursor-pointer"
+                          className="items-center gap-2 py-1.5 px-2 cursor-pointer"
                         >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <Check className={cn('h-4 w-4 shrink-0', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
-                            <span className="text-sm truncate">#{r.numero_sequencial} {r.nome}</span>
+                          <Check className={cn('h-4 w-4 shrink-0', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
+                          <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
+                            <ChefHat className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          {r.rendimento_valor ? (
-                            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                              {r.rendimento_valor}{r.rendimento_unidade ? ` ${r.rendimento_unidade}` : ''}
-                            </span>
-                          ) : null}
+                          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                            <div className="flex items-center justify-between gap-2 min-w-0">
+                              <span className="font-medium text-sm truncate">#{r.numero_sequencial} {r.nome}</span>
+                              {r.rendimento_valor ? (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">
+                                  {r.rendimento_valor}{r.rendimento_unidade ? ` ${r.rendimento_unidade}` : ''}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </div>
                         </CommandItem>
                       ))}
                     </CommandGroup>
