@@ -18,8 +18,9 @@ import {
   List,
   ArrowLeftRight,
   History,
-  FileBarChart,
+  
   AlertOctagon,
+  BarChart3,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -60,12 +61,20 @@ export function AppSidebar() {
         { title: t('nav.movimentacoes'), url: '/estoque/movimentacoes', icon: ArrowLeftRight },
         { title: t('nav.historicoGeral'), url: '/estoque/historico', icon: History },
         { title: 'Perdas', url: '/estoque/perdas', icon: AlertOctagon },
-        { title: t('nav.relatorios'), url: '/estoque/relatorios', icon: FileBarChart },
       ],
     },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
     { title: t('nav.custos'), url: '/custos', icon: TrendingUp },
     { title: t('nav.precificacao'), url: '/precificacao', icon: Calculator },
+    {
+      title: 'Relatórios',
+      url: '/relatorios',
+      icon: BarChart3,
+      children: [
+        { title: 'Estoque', url: '/relatorios/estoque', icon: Package },
+        { title: 'Perdas', url: '/relatorios/perdas', icon: AlertOctagon },
+      ],
+    },
   ];
 
   const businessItems = [

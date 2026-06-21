@@ -45,7 +45,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/estoque/movimentacoes': 'movimentacao',
       '/estoque/historico': 'estoque',
       '/estoque/perdas': 'estoque',
-      '/estoque/relatorios': 'estoque',
+      '/relatorios/estoque': 'estoque',
+      '/relatorios/perdas': 'estoque',
       '/movimentacao': 'movimentacao',
       '/custos': 'custos',
       '/precificacao': 'precificacao',
@@ -59,7 +60,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       const titleMap: Record<string, string> = {
         '/estoque/historico': 'Histórico Geral',
         '/estoque/perdas': 'Perdas',
-        '/estoque/relatorios': 'Relatórios de Estoque',
+        '/relatorios/estoque': 'Relatórios de Estoque',
+        '/relatorios/perdas': 'Relatórios de Perdas',
       };
       return {
         title: titleMap[pathname] || t(`pages.${key}.title`),

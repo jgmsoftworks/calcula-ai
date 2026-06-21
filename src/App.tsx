@@ -20,6 +20,7 @@ import Precificacao from "./pages/Precificacao";
 import Estoque from "./pages/Estoque";
 import EstoqueHistorico from "./pages/EstoqueHistorico";
 import RelatoriosEstoque from "./pages/RelatoriosEstoque";
+import RelatoriosPerdas from "./pages/RelatoriosPerdas";
 import Perdas from "./pages/Perdas";
 import Movimentacao from "./pages/Movimentacao";
 import Receitas from "./pages/Receitas";
@@ -88,7 +89,10 @@ const App = () => (
                   <Route path="/estoque/movimentacoes" element={<Movimentacao />} />
                   <Route path="/estoque/historico" element={<EstoqueHistorico />} />
                   <Route path="/estoque/perdas" element={<Perdas />} />
-                  <Route path="/estoque/relatorios" element={<RelatoriosEstoque />} />
+                  <Route path="/estoque/relatorios" element={<Navigate to="/relatorios/estoque" replace />} />
+                  <Route path="/relatorios" element={<Navigate to="/relatorios/estoque" replace />} />
+                  <Route path="/relatorios/estoque" element={<RelatoriosEstoque />} />
+                  <Route path="/relatorios/perdas" element={<RelatoriosPerdas />} />
                   <Route path="/receitas" element={<Receitas />} />
                   <Route path="/movimentacao" element={<Navigate to="/estoque/movimentacoes" replace />} />
                   <Route path="/custos" element={<Custos />} />
