@@ -257,27 +257,43 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             </Popover>
           </TabsContent>
 
-          <TabsContent value="receita" className="space-y-2">
+          <TabsContent value="receita" className="space-y-2 mt-0">
             <Label>Receita</Label>
             <Popover open={popoverReceitaOpen} onOpenChange={setPopoverReceitaOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  {receitaSel ? `#${receitaSel.numero_sequencial} ${receitaSel.nome}` : 'Selecionar receita...'}
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-10">
+                  {receitaSel ? (
+                    <span className="truncate text-sm">#{receitaSel.numero_sequencial} {receitaSel.nome}</span>
+                  ) : (
+                    'Selecionar receita...'
+                  )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
+                align="start"
+                side="bottom"
+                sideOffset={4}
+              >
                 <Command>
                   <CommandInput placeholder="Buscar receita..." />
-                  <CommandList onWheel={handleWheel} className="max-h-[360px]">
+                  <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhuma receita.</CommandEmpty>
                     <CommandGroup>
                       {receitas.map(r => (
-                        <CommandItem key={r.id} value={`${r.numero_sequencial} ${r.nome}`} onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}>
-                          <Check className={cn('mr-2 h-4 w-4', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
-                          <span className="flex-1 truncate">#{r.numero_sequencial} {r.nome}</span>
+                        <CommandItem
+                          key={r.id}
+                          value={`${r.numero_sequencial} ${r.nome}`}
+                          onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}
+                          className="items-center justify-between gap-2 py-1.5 px-2 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Check className={cn('h-4 w-4 shrink-0', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
+                            <span className="text-sm truncate">#{r.numero_sequencial} {r.nome}</span>
+                          </div>
                           {r.rendimento_valor ? (
-                            <span className="text-xs text-muted-foreground ml-2">
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
                               {r.rendimento_valor}{r.rendimento_unidade ? ` ${r.rendimento_unidade}` : ''}
                             </span>
                           ) : null}
