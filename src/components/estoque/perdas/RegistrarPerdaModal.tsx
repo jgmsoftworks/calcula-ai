@@ -215,6 +215,8 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 align="start"
                 side="bottom"
                 sideOffset={4}
+                avoidCollisions
+                collisionPadding={8}
               >
                 <Command>
                   <CommandInput placeholder="Buscar por nome, marca ou categoria..." />
@@ -278,6 +280,8 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 align="start"
                 side="bottom"
                 sideOffset={4}
+                avoidCollisions
+                collisionPadding={8}
               >
                 <Command>
                   <CommandInput placeholder="Buscar receita..." />
