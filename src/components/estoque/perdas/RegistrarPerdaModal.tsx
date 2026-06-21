@@ -158,11 +158,22 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     const variant: 'destructive' | 'secondary' | 'outline' =
       qtd <= 0 ? 'destructive' : (min > 0 && qtd <= min ? 'secondary' : 'outline');
     return (
-      <Badge variant={variant} className="text-[10px] px-1.5 py-0 shrink-0">
+      <Badge variant={variant} className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">
         {qtd} {p.unidade_compra}
       </Badge>
     );
   };
+
+  const tagBadge = (label: string, key: 'marca' | 'categoria') => (
+    <Badge
+      key={`${key}-${label}`}
+      variant={key === 'marca' ? 'secondary' : 'outline'}
+      className="text-[10px] px-1 py-0 max-w-[7rem] truncate"
+      title={label}
+    >
+      {label}
+    </Badge>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
