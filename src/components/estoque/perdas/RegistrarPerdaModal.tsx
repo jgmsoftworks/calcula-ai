@@ -221,13 +221,15 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhum produto.</CommandEmpty>
                     <CommandGroup>
-                      {produtos.map(p => (
-                        <CommandItem
-                          key={p.id}
-                          value={p.nome}
-                          onSelect={() => { setProdutoId(p.id); setPopoverProdutoOpen(false); }}
-                          className="items-center gap-2 py-1.5 px-2 cursor-pointer"
-                        >
+                      {produtos.map(p => {
+                        const searchValue = [p.nome, ...(p.marcas || []), ...(p.categorias || [])].join(' ').toLowerCase();
+                        return (
+                          <CommandItem
+                            key={p.id}
+                            value={searchValue}
+                            onSelect={() => { setProdutoId(p.id); setPopoverProdutoOpen(false); }}
+                            className="items-center gap-2 py-1.5 px-2 cursor-pointer"
+                          >
                           <Check className={cn('h-4 w-4 shrink-0', produtoId === p.id ? 'opacity-100' : 'opacity-0')} />
                           {p.imagem_url ? (
                             <img src={p.imagem_url} alt="" className="h-9 w-9 rounded object-cover shrink-0" />
