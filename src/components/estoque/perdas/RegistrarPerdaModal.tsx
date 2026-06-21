@@ -251,7 +251,8 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                             ) : null}
                           </div>
                         </CommandItem>
-                      ))}
+                      );
+                    })}
                     </CommandGroup>
                   </CommandList>
                 </Command>
