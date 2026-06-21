@@ -195,7 +195,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label>Quantidade</Label>
-            <NumericInputPtBr value={quantidade} onChange={setQuantidade} />
+            <NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} />
           </div>
           <div className="space-y-2">
             <Label>Custo total</Label>
