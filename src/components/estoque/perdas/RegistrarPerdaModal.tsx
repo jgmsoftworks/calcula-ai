@@ -158,30 +158,41 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     const variant: 'destructive' | 'secondary' | 'outline' =
       qtd <= 0 ? 'destructive' : (min > 0 && qtd <= min ? 'secondary' : 'outline');
     return (
-      <Badge variant={variant} className="text-[10px] px-1.5 py-0 shrink-0">
+      <Badge variant={variant} className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">
         {qtd} {p.unidade_compra}
       </Badge>
     );
   };
 
+  const tagBadge = (label: string, key: 'marca' | 'categoria') => (
+    <Badge
+      key={`${key}-${label}`}
+      variant={key === 'marca' ? 'secondary' : 'outline'}
+      className="text-[10px] px-1 py-0 max-w-[7rem] truncate"
+      title={label}
+    >
+      {label}
+    </Badge>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="mb-1">
           <DialogTitle>Registrar Perda</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tipo} onValueChange={(v) => setTipo(v as 'produto' | 'receita')} className="space-y-4">
+        <Tabs value={tipo} onValueChange={(v) => setTipo(v as 'produto' | 'receita')} className="space-y-3">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="produto" className="gap-2"><Package className="h-4 w-4" /> Produto</TabsTrigger>
             <TabsTrigger value="receita" className="gap-2"><ChefHat className="h-4 w-4" /> Receita</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="produto" className="space-y-2">
+          <TabsContent value="produto" className="space-y-2 mt-0">
             <Label>Produto</Label>
             <Popover open={popoverProdutoOpen} onOpenChange={setPopoverProdutoOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-auto py-2">
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-10">
                   {produtoSel ? (
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       {produtoSel.imagem_url ? (
@@ -191,7 +202,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                           <Package className="h-4 w-4 text-muted-foreground" />
                         </div>
                       )}
-                      <span className="truncate text-left">{produtoSel.nome}</span>
+                      <span className="truncate text-left text-sm">{produtoSel.nome}</span>
                     </div>
                   ) : (
                     'Selecionar produto...'
@@ -199,48 +210,51 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                avoidCollisions
+                collisionPadding={8}
+              >
                 <Command>
                   <CommandInput placeholder="Buscar por nome, marca ou categoria..." />
-                  <CommandList onWheel={handleWheel} className="max-h-[360px]">
+                  <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhum produto.</CommandEmpty>
                     <CommandGroup>
                       {produtos.map(p => {
-                        const searchValue = [p.nome, ...(p.marcas || []), ...(p.categorias || [])].join(' ');
+                        const searchValue = [p.nome, ...(p.marcas || []), ...(p.categorias || [])].join(' ').toLowerCase();
                         return (
                           <CommandItem
                             key={p.id}
                             value={searchValue}
                             onSelect={() => { setProdutoId(p.id); setPopoverProdutoOpen(false); }}
-                            className="items-start py-2"
+                            className="items-center gap-2 py-1.5 px-2 cursor-pointer"
                           >
-                            <Check className={cn('mr-2 mt-1 h-4 w-4 shrink-0', produtoId === p.id ? 'opacity-100' : 'opacity-0')} />
-                            {p.imagem_url ? (
-                              <img src={p.imagem_url} alt="" className="h-10 w-10 rounded object-cover shrink-0 mr-2" />
-                            ) : (
-                              <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0 mr-2">
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <span className="font-medium truncate">{p.nome}</span>
-                                {estoqueBadge(p)}
-                              </div>
-                              {(p.marcas?.length || p.categorias?.length) ? (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {p.marcas?.slice(0, 2).map((m, i) => (
-                                    <Badge key={`m-${i}`} variant="outline" className="text-[10px] px-1 py-0">{m}</Badge>
-                                  ))}
-                                  {p.categorias?.slice(0, 2).map((c, i) => (
-                                    <Badge key={`c-${i}`} variant="secondary" className="text-[10px] px-1 py-0">{c}</Badge>
-                                  ))}
-                                </div>
-                              ) : null}
+                          <Check className={cn('h-4 w-4 shrink-0', produtoId === p.id ? 'opacity-100' : 'opacity-0')} />
+                          {p.imagem_url ? (
+                            <img src={p.imagem_url} alt="" className="h-9 w-9 rounded object-cover shrink-0" />
+                          ) : (
+                            <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
+                              <Package className="h-4 w-4 text-muted-foreground" />
                             </div>
-                          </CommandItem>
-                        );
-                      })}
+                          )}
+                          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                            <div className="flex items-center justify-between gap-2 min-w-0">
+                              <span className="font-medium text-sm truncate">{p.nome}</span>
+                              {estoqueBadge(p)}
+                            </div>
+                            {(p.marcas?.length || p.categorias?.length) ? (
+                              <div className="flex flex-wrap gap-1">
+                                {p.marcas?.slice(0, 1).map(m => tagBadge(m, 'marca'))}
+                                {p.categorias?.slice(0, 1).map(c => tagBadge(c, 'categoria'))}
+                              </div>
+                            ) : null}
+                          </div>
+                        </CommandItem>
+                      );
+                    })}
                     </CommandGroup>
                   </CommandList>
                 </Command>
@@ -248,27 +262,45 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             </Popover>
           </TabsContent>
 
-          <TabsContent value="receita" className="space-y-2">
+          <TabsContent value="receita" className="space-y-2 mt-0">
             <Label>Receita</Label>
             <Popover open={popoverReceitaOpen} onOpenChange={setPopoverReceitaOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  {receitaSel ? `#${receitaSel.numero_sequencial} ${receitaSel.nome}` : 'Selecionar receita...'}
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-10">
+                  {receitaSel ? (
+                    <span className="truncate text-sm">#{receitaSel.numero_sequencial} {receitaSel.nome}</span>
+                  ) : (
+                    'Selecionar receita...'
+                  )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                avoidCollisions
+                collisionPadding={8}
+              >
                 <Command>
                   <CommandInput placeholder="Buscar receita..." />
-                  <CommandList onWheel={handleWheel} className="max-h-[360px]">
+                  <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhuma receita.</CommandEmpty>
                     <CommandGroup>
                       {receitas.map(r => (
-                        <CommandItem key={r.id} value={`${r.numero_sequencial} ${r.nome}`} onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}>
-                          <Check className={cn('mr-2 h-4 w-4', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
-                          <span className="flex-1 truncate">#{r.numero_sequencial} {r.nome}</span>
+                        <CommandItem
+                          key={r.id}
+                          value={`${r.numero_sequencial} ${r.nome}`}
+                          onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}
+                          className="items-center justify-between gap-2 py-1.5 px-2 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <Check className={cn('h-4 w-4 shrink-0', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
+                            <span className="text-sm truncate">#{r.numero_sequencial} {r.nome}</span>
+                          </div>
                           {r.rendimento_valor ? (
-                            <span className="text-xs text-muted-foreground ml-2">
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
                               {r.rendimento_valor}{r.rendimento_unidade ? ` ${r.rendimento_unidade}` : ''}
                             </span>
                           ) : null}
