@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -22,8 +23,21 @@ interface Props {
   onSaved: () => void;
 }
 
-interface ProdutoOpt { id: string; nome: string; custo_unitario: number; unidade_compra: string; estoque_atual: number; }
+interface ProdutoOpt {
+  id: string;
+  nome: string;
+  custo_unitario: number;
+  unidade_compra: string;
+  estoque_atual: number;
+  estoque_minimo: number | null;
+  imagem_url: string | null;
+  marcas: string[] | null;
+  categorias: string[] | null;
+}
 interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rendimento_valor: number | null; rendimento_unidade: string | null; }
+interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
+
+const RESPONSAVEL_OUTRO = '__outro__';
 
 export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
@@ -31,13 +45,15 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const [tipo, setTipo] = useState<'produto' | 'receita'>('produto');
   const [produtos, setProdutos] = useState<ProdutoOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
+  const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
   const [produtoId, setProdutoId] = useState<string>('');
   const [receitaId, setReceitaId] = useState<string>('');
   const [quantidade, setQuantidade] = useState<number>(1);
   const [motivo, setMotivo] = useState<MotivoPerda>('Vencimento');
   const [motivoOutro, setMotivoOutro] = useState('');
   const [observacao, setObservacao] = useState('');
-  const [responsavel, setResponsavel] = useState('');
+  const [responsavelSel, setResponsavelSel] = useState<string>('');
+  const [responsavelOutro, setResponsavelOutro] = useState('');
   const [saving, setSaving] = useState(false);
   const [custoReceitaUnit, setCustoReceitaUnit] = useState(0);
   const [popoverProdutoOpen, setPopoverProdutoOpen] = useState(false);
@@ -46,12 +62,20 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   useEffect(() => {
     if (!open || !user) return;
     (async () => {
-      const [{ data: ps }, { data: rs }] = await Promise.all([
-        supabase.from('produtos').select('id, nome, custo_unitario, unidade_compra, estoque_atual').eq('user_id', user.id).eq('ativo', true).order('nome'),
-        supabase.from('receitas').select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade').eq('user_id', user.id).order('nome'),
+      const [{ data: ps }, { data: rs }, { data: fs }] = await Promise.all([
+        supabase.from('produtos')
+          .select('id, nome, custo_unitario, unidade_compra, estoque_atual, estoque_minimo, imagem_url, marcas, categorias')
+          .eq('user_id', user.id).eq('ativo', true).order('nome'),
+        supabase.from('receitas')
+          .select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade')
+          .eq('user_id', user.id).order('nome'),
+        supabase.from('folha_pagamento')
+          .select('id, nome, cargo')
+          .eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
       setProdutos((ps as any) || []);
       setReceitas((rs as any) || []);
+      setFuncionarios((fs as any) || []);
     })();
   }, [open, user]);
 
@@ -65,12 +89,12 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       setMotivo('Vencimento');
       setMotivoOutro('');
       setObservacao('');
-      setResponsavel('');
+      setResponsavelSel('');
+      setResponsavelOutro('');
       setCustoReceitaUnit(0);
     }
   }, [open]);
 
-  // Calcular custo unitário quando receita selecionada
   useEffect(() => {
     if (tipo === 'receita' && receitaId) {
       (async () => {
@@ -90,7 +114,14 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const custoUnit = tipo === 'produto' ? (produtoSel?.custo_unitario || 0) : custoReceitaUnit;
   const custoTotal = quantidade * custoUnit;
 
-  const podeSalvar = quantidade > 0 && (tipo === 'produto' ? !!produtoId : !!receitaId) && (motivo !== 'Outro' || motivoOutro.trim().length > 0);
+  const responsavelFinal = responsavelSel === RESPONSAVEL_OUTRO
+    ? responsavelOutro.trim()
+    : (funcionarios.find(f => f.id === responsavelSel)?.nome || '');
+
+  const podeSalvar =
+    quantidade > 0 &&
+    (tipo === 'produto' ? !!produtoId : !!receitaId) &&
+    (motivo !== 'Outro' || motivoOutro.trim().length > 0);
 
   const handleSalvar = async () => {
     if (!podeSalvar) return;
@@ -106,13 +137,31 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       motivo,
       motivo_outro: motivoOutro,
       observacao,
-      responsavel,
+      responsavel: responsavelFinal,
     });
     setSaving(false);
     if (ok) {
       onSaved();
       onOpenChange(false);
     }
+  };
+
+  // Garante scroll com a roda do mouse dentro do Popover
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.currentTarget.scrollTop += e.deltaY;
+    e.stopPropagation();
+  };
+
+  const estoqueBadge = (p: ProdutoOpt) => {
+    const qtd = p.estoque_atual ?? 0;
+    const min = p.estoque_minimo ?? 0;
+    const variant: 'destructive' | 'secondary' | 'outline' =
+      qtd <= 0 ? 'destructive' : (min > 0 && qtd <= min ? 'secondary' : 'outline');
+    return (
+      <Badge variant={variant} className="text-[10px] px-1.5 py-0 shrink-0">
+        {qtd} {p.unidade_compra}
+      </Badge>
+    );
   };
 
   return (
@@ -132,24 +181,66 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <Label>Produto</Label>
             <Popover open={popoverProdutoOpen} onOpenChange={setPopoverProdutoOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  {produtoSel ? produtoSel.nome : 'Selecionar produto...'}
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-auto py-2">
+                  {produtoSel ? (
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {produtoSel.imagem_url ? (
+                        <img src={produtoSel.imagem_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <span className="truncate text-left">{produtoSel.nome}</span>
+                    </div>
+                  ) : (
+                    'Selecionar produto...'
+                  )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Buscar produto..." />
-                  <CommandList>
+                  <CommandInput placeholder="Buscar por nome, marca ou categoria..." />
+                  <CommandList onWheel={handleWheel} className="max-h-[360px]">
                     <CommandEmpty>Nenhum produto.</CommandEmpty>
                     <CommandGroup>
-                      {produtos.map(p => (
-                        <CommandItem key={p.id} value={p.nome} onSelect={() => { setProdutoId(p.id); setPopoverProdutoOpen(false); }}>
-                          <Check className={cn('mr-2 h-4 w-4', produtoId === p.id ? 'opacity-100' : 'opacity-0')} />
-                          <span className="flex-1 truncate">{p.nome}</span>
-                          <span className="text-xs text-muted-foreground ml-2">Estq: {p.estoque_atual}</span>
-                        </CommandItem>
-                      ))}
+                      {produtos.map(p => {
+                        const searchValue = [p.nome, ...(p.marcas || []), ...(p.categorias || [])].join(' ');
+                        return (
+                          <CommandItem
+                            key={p.id}
+                            value={searchValue}
+                            onSelect={() => { setProdutoId(p.id); setPopoverProdutoOpen(false); }}
+                            className="items-start py-2"
+                          >
+                            <Check className={cn('mr-2 mt-1 h-4 w-4 shrink-0', produtoId === p.id ? 'opacity-100' : 'opacity-0')} />
+                            {p.imagem_url ? (
+                              <img src={p.imagem_url} alt="" className="h-10 w-10 rounded object-cover shrink-0 mr-2" />
+                            ) : (
+                              <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0 mr-2">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-medium truncate">{p.nome}</span>
+                                {estoqueBadge(p)}
+                              </div>
+                              {(p.marcas?.length || p.categorias?.length) ? (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {p.marcas?.slice(0, 2).map((m, i) => (
+                                    <Badge key={`m-${i}`} variant="outline" className="text-[10px] px-1 py-0">{m}</Badge>
+                                  ))}
+                                  {p.categorias?.slice(0, 2).map((c, i) => (
+                                    <Badge key={`c-${i}`} variant="secondary" className="text-[10px] px-1 py-0">{c}</Badge>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
                     </CommandGroup>
                   </CommandList>
                 </Command>
@@ -169,13 +260,18 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Buscar receita..." />
-                  <CommandList>
+                  <CommandList onWheel={handleWheel} className="max-h-[360px]">
                     <CommandEmpty>Nenhuma receita.</CommandEmpty>
                     <CommandGroup>
                       {receitas.map(r => (
                         <CommandItem key={r.id} value={`${r.numero_sequencial} ${r.nome}`} onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}>
                           <Check className={cn('mr-2 h-4 w-4', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
                           <span className="flex-1 truncate">#{r.numero_sequencial} {r.nome}</span>
+                          {r.rendimento_valor ? (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {r.rendimento_valor}{r.rendimento_unidade ? ` ${r.rendimento_unidade}` : ''}
+                            </span>
+                          ) : null}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -218,7 +314,26 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
 
         <div className="space-y-2">
           <Label>Responsável</Label>
-          <Input placeholder="Quem registrou a perda" value={responsavel} onChange={e => setResponsavel(e.target.value)} />
+          <Select value={responsavelSel} onValueChange={setResponsavelSel}>
+            <SelectTrigger>
+              <SelectValue placeholder={funcionarios.length ? 'Selecione um funcionário' : 'Nenhum funcionário cadastrado'} />
+            </SelectTrigger>
+            <SelectContent>
+              {funcionarios.map(f => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.nome}{f.cargo ? ` — ${f.cargo}` : ''}
+                </SelectItem>
+              ))}
+              <SelectItem value={RESPONSAVEL_OUTRO}>Outro (digitar)</SelectItem>
+            </SelectContent>
+          </Select>
+          {responsavelSel === RESPONSAVEL_OUTRO && (
+            <Input
+              placeholder="Nome do responsável"
+              value={responsavelOutro}
+              onChange={e => setResponsavelOutro(e.target.value)}
+            />
+          )}
         </div>
 
         <div className="space-y-2">
