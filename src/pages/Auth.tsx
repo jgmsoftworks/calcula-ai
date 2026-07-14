@@ -262,36 +262,35 @@ const Auth = () => {
       </div>
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.1fr_minmax(440px,0.9fr)]">
-        {/* Hero side — desktop only */}
-        <div className="relative hidden lg:flex flex-col justify-between p-10 xl:p-14 overflow-hidden">
-          <div className="max-w-xl space-y-5 animate-fade-in">
-            <h1 className="text-4xl xl:text-5xl font-bold font-display leading-[1.1] text-foreground">
+        {/* Hero side — desktop only, image cobre toda a coluna */}
+        <div
+          className="relative hidden lg:flex flex-col justify-between p-10 xl:p-14 overflow-hidden bg-cover bg-center"
+          style={{ backgroundImage: `url(${new URL('../assets/auth-hero.jpg', import.meta.url).href})` }}
+        >
+          {/* Overlay para legibilidade do texto */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/40 to-transparent pointer-events-none" />
+
+          <div className="relative max-w-xl space-y-5 animate-fade-in">
+            <h1 className="text-4xl xl:text-5xl font-bold font-display leading-[1.1] text-foreground drop-shadow-sm">
               {t('auth.heroTitle1', 'Precificação')}<br />
               {t('auth.heroTitle2', 'inteligente para')}<br />
               <span className="text-gradient-brand">{t('auth.heroTitle3', 'quem vende sabor')}</span>
             </h1>
-            <p className="text-base xl:text-lg text-muted-foreground max-w-md leading-relaxed">
+            <p className="text-base xl:text-lg text-foreground/80 max-w-md leading-relaxed">
               {t('auth.heroSubtitle', 'Transforme receitas em lucro com clareza nos custos, preços e margem do seu negócio.')}
             </p>
           </div>
 
-          <div className="relative flex-1 flex items-center justify-center my-6">
-            <img
-              src={new URL('../assets/auth-hero.jpg', import.meta.url).href}
-              alt="CalculaAi - Precificação inteligente"
-              className="w-full max-w-xl h-auto object-contain drop-shadow-2xl rounded-3xl"
-            />
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 max-w-md flex items-start gap-3 animate-fade-in">
+          <div className="relative glass-card rounded-2xl p-4 max-w-md flex items-start gap-3 animate-fade-in backdrop-blur-xl">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <CheckCircle className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground leading-snug">
+            <p className="text-sm text-foreground/80 leading-snug">
               {t('auth.heroFooter', 'Feito para confeiteiros, padarias, doces, cafés e todos que vivem de transformar ingredientes em experiências inesquecíveis.')}
             </p>
           </div>
         </div>
+
 
         {/* Auth side */}
         <div className="flex items-center justify-center p-4 sm:p-6 lg:p-10">
