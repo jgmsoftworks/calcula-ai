@@ -30,7 +30,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-import authHero from '@/assets/auth-hero.jpg';
+import heroScene from '@/assets/auth-hero-scene.jpg';
+import heroChefMan from '@/assets/auth-hero-chef-man.png';
+import heroChefWoman from '@/assets/auth-hero-chef-woman.png';
+import heroAssistant from '@/assets/auth-hero-assistant.png';
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
@@ -247,130 +250,141 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Background gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
-        <div className="absolute -bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
-        <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-[#dd0b52]/5 blur-[100px]" />
-      </div>
-
+    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-background grid lg:grid-cols-[62%_38%]">
       {/* Language toggle */}
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-4 right-4 z-30">
         <Button
           variant="ghost"
           size="sm"
-          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground"
+          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground bg-background/60 backdrop-blur-md"
           onClick={toggleLanguage}
         >
           {i18n.language === 'pt-BR' ? '🇺🇸 EN' : '🇧🇷 PT'}
         </Button>
       </div>
 
-      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.63fr_1fr]">
-        {/* Hero side — desktop only */}
-        <div className="relative hidden lg:flex flex-col justify-between p-10 xl:p-14 overflow-hidden">
-          {/* Background image */}
-          <img
-            src={authHero}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-            width={1280}
-            height={1280}
-          />
-          {/* Overlay para legibilidade */}
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/30 to-background/60 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/50 pointer-events-none" />
+      {/* ============ HERO — coluna esquerda (desktop) ============ */}
+      <div className="relative hidden lg:block overflow-hidden">
+        {/* CAMADA 1 — Cenário */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroScene})` }}
+          aria-hidden="true"
+        />
+        {/* Overlay muito leve para preservar cores vivas */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-white/25 pointer-events-none" aria-hidden="true" />
 
-          {/* Título superior */}
-          <div className="relative max-w-xl space-y-5 animate-fade-in">
-            <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold font-display leading-[1.05] text-foreground drop-shadow-sm">
-              {t('auth.heroTitle1')}<br />
-              {t('auth.heroTitle2')}<br />
-              <span className="text-gradient-brand">{t('auth.heroTitle3')}</span>
-            </h1>
-            <p className="text-base xl:text-lg text-foreground/75 max-w-md leading-relaxed">
-              {t('auth.heroSubtitle')}
-            </p>
+        {/* CAMADA 2 — Personagens (PNG transparentes) */}
+        <img
+          src={heroChefMan}
+          alt=""
+          aria-hidden="true"
+          className="absolute left-[3%] bottom-0 h-[70%] xl:h-[74%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none"
+        />
+        <img
+          src={heroChefWoman}
+          alt=""
+          aria-hidden="true"
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[82%] xl:h-[86%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none z-[1]"
+        />
+        <img
+          src={heroAssistant}
+          alt=""
+          aria-hidden="true"
+          className="absolute right-[3%] bottom-0 h-[68%] xl:h-[72%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none"
+        />
+
+        {/* CAMADA 3 — Conteúdo HTML */}
+        {/* Título superior esquerdo */}
+        <div className="absolute top-10 xl:top-14 left-8 xl:left-12 max-w-xl space-y-4 animate-fade-in z-10">
+          <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold font-display leading-[1.05] text-foreground drop-shadow-sm">
+            {t('auth.heroTitle1')}<br />
+            {t('auth.heroTitle2')}<br />
+            <span className="text-gradient-brand">{t('auth.heroTitle3')}</span>
+          </h1>
+          <p className="text-base xl:text-lg text-foreground/80 max-w-md leading-relaxed">
+            {t('auth.heroSubtitle')}
+          </p>
+        </div>
+
+        {/* Cards flutuantes — direita superior */}
+        <div className="absolute right-6 xl:right-10 top-28 xl:top-32 flex flex-col gap-3 w-[210px] xl:w-[230px] z-10">
+          <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              <PieChart className="h-3.5 w-3.5 text-primary" />
+              {t('auth.heroCardCostTitle')}
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold font-display text-foreground">R$ 6,45</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">{t('auth.heroCardCostUnit')}</div>
           </div>
 
-          {/* Cards flutuantes de precificação */}
-          <div className="absolute right-6 xl:right-10 top-24 xl:top-28 flex flex-col gap-3 w-[220px] xl:w-[240px] pointer-events-none">
-            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
-              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                <PieChart className="h-3.5 w-3.5 text-primary" />
-                {t('auth.heroCardCostTitle')}
-              </div>
-              <div className="mt-1.5 flex items-baseline gap-1.5">
-                <span className="text-2xl font-bold font-display text-foreground">R$ 6,45</span>
-              </div>
-              <div className="text-[11px] text-muted-foreground">{t('auth.heroCardCostUnit')}</div>
+          <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              <Sparkles className="h-3.5 w-3.5 text-secondary" />
+              {t('auth.heroCardPriceTitle')}
             </div>
-
-            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
-              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                <Sparkles className="h-3.5 w-3.5 text-secondary" />
-                {t('auth.heroCardPriceTitle')}
-              </div>
-              <div className="mt-1.5 flex items-baseline gap-1.5">
-                <span className="text-2xl font-bold font-display text-gradient-brand">R$ 12,90</span>
-              </div>
-              <div className="text-[11px] text-emerald-600 font-medium">+28% vs custo</div>
+            <div className="mt-1.5 flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold font-display text-gradient-brand">R$ 12,90</span>
             </div>
-
-            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
-              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-                {t('auth.heroCardMarginTitle')}
-              </div>
-              <div className="mt-1.5 text-2xl font-bold font-display text-foreground">38,6%</div>
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                <div className="h-full w-[38.6%] rounded-full bg-gradient-brand-horizontal" />
-              </div>
-            </div>
+            <div className="text-[11px] text-emerald-600 font-medium">+28% vs custo</div>
           </div>
 
-          {/* Cards inferiores */}
-          <div className="absolute left-6 xl:left-10 bottom-40 xl:bottom-44 hidden xl:flex flex-col gap-3 w-[240px] pointer-events-none">
-            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                {t('auth.heroCardShareTitle')}
-              </div>
-              <div className="space-y-1.5">
-                {[
-                  { label: t('auth.heroCardShareIngredients'), value: 42, color: 'bg-[#0483e4]' },
-                  { label: t('auth.heroCardShareLabor'), value: 20, color: 'bg-[#7328b1]' },
-                  { label: t('auth.heroCardSharePackaging'), value: 18, color: 'bg-[#dd0b52]' },
-                  { label: t('auth.heroCardShareOthers'), value: 20, color: 'bg-[#f96e0c]' },
-                ].map((r) => (
-                  <div key={r.label} className="flex items-center gap-2 text-[11px]">
-                    <span className={`h-2 w-2 rounded-full ${r.color}`} />
-                    <span className="text-foreground/80 flex-1">{r.label}</span>
-                    <span className="font-semibold text-foreground">{r.value}%</span>
-                  </div>
-                ))}
-              </div>
+          <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+              {t('auth.heroCardMarginTitle')}
+            </div>
+            <div className="mt-1.5 text-2xl font-bold font-display text-foreground">38,6%</div>
+            <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-full w-[38.6%] rounded-full bg-gradient-brand-horizontal" />
             </div>
           </div>
+        </div>
 
-          <div className="absolute right-6 xl:right-10 bottom-40 xl:bottom-44 hidden xl:block w-[240px] pointer-events-none">
-            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
-              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                <Trophy className="h-3.5 w-3.5 text-[#f96e0c]" />
-                {t('auth.heroCardTopTitle')}
-              </div>
-              <div className="mt-1.5 text-base font-bold font-display text-foreground leading-tight">
-                {t('auth.heroCardTopName')}
-              </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                {t('auth.heroCardTopMargin')}: <span className="font-semibold text-emerald-600">45,2%</span>
-              </div>
+        {/* Card esquerdo — Participação dos custos */}
+        <div className="absolute left-8 xl:left-12 bottom-40 xl:bottom-44 w-[230px] z-10">
+          <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              {t('auth.heroCardShareTitle')}
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { label: t('auth.heroCardShareIngredients'), value: 42, color: 'bg-[#0483e4]' },
+                { label: t('auth.heroCardShareLabor'), value: 20, color: 'bg-[#7328b1]' },
+                { label: t('auth.heroCardSharePackaging'), value: 18, color: 'bg-[#dd0b52]' },
+                { label: t('auth.heroCardShareOthers'), value: 20, color: 'bg-[#f96e0c]' },
+              ].map((r) => (
+                <div key={r.label} className="flex items-center gap-2 text-[11px]">
+                  <span className={`h-2 w-2 rounded-full ${r.color}`} />
+                  <span className="text-foreground/80 flex-1">{r.label}</span>
+                  <span className="font-semibold text-foreground">{r.value}%</span>
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* Rodapé */}
-          <div className="relative glass-card rounded-2xl p-4 max-w-md flex items-start gap-3 animate-fade-in backdrop-blur-xl">
+        {/* Card direito — Top produto */}
+        <div className="absolute right-6 xl:right-10 bottom-40 xl:bottom-44 w-[220px] z-10">
+          <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              <Trophy className="h-3.5 w-3.5 text-[#f96e0c]" />
+              {t('auth.heroCardTopTitle')}
+            </div>
+            <div className="mt-1.5 text-base font-bold font-display text-foreground leading-tight">
+              {t('auth.heroCardTopName')}
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              {t('auth.heroCardTopMargin')}: <span className="font-semibold text-emerald-600">45,2%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Rodapé */}
+        <div className="absolute left-8 xl:left-12 bottom-6 xl:bottom-8 max-w-md z-10">
+          <div className="glass-card rounded-2xl p-4 flex items-start gap-3 animate-fade-in backdrop-blur-xl">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <CheckCircle className="h-4 w-4 text-primary" />
             </div>
@@ -379,10 +393,16 @@ const Auth = () => {
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Auth side */}
-        <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10">
-          <div className="w-full max-w-[520px] space-y-5 animate-fade-in">
+      {/* ============ AUTH — coluna direita ============ */}
+      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 bg-background overflow-y-auto">
+        {/* Background gradient orbs (só nesta coluna) */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-1/2 -left-1/4 w-[400px] h-[400px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
+          <div className="absolute -bottom-1/4 -right-1/4 w-[400px] h-[400px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
+        </div>
+        <div className="relative w-full max-w-[520px] space-y-5 animate-fade-in">
 
             {/* Mobile: faixa gradiente decorativa */}
             <div className="lg:hidden h-1.5 w-24 rounded-full bg-gradient-brand-horizontal mx-auto" />
