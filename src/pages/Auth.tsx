@@ -401,13 +401,9 @@ const Auth = () => {
       </div>
 
       {/* ============ AUTH — coluna direita ============ */}
-      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 bg-background overflow-y-auto">
-        {/* Background gradient orbs (só nesta coluna) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-1/2 -left-1/4 w-[400px] h-[400px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
-          <div className="absolute -bottom-1/4 -right-1/4 w-[400px] h-[400px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
-        </div>
+      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
         <div className="relative w-full max-w-[520px] space-y-5 animate-fade-in">
+
 
             {/* Mobile: faixa gradiente decorativa */}
             <div className="lg:hidden h-1.5 w-24 rounded-full bg-gradient-brand-horizontal mx-auto" />
@@ -560,7 +556,9 @@ const Auth = () => {
             </p>
         </div>
       </div>
+      </div>
     </div>
+
   );
 };
 
