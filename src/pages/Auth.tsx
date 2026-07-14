@@ -553,7 +553,6 @@ const Auth = () => {
             <p className="text-center text-[11px] text-muted-foreground/60">
               {t('auth.copyright')}
             </p>
-          </div>
         </div>
       </div>
     </div>
