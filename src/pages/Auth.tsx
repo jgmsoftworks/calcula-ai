@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Mail, 
-  Lock, 
-  User, 
-  Building2, 
+import {
+  Mail,
+  Lock,
+  User,
+  Building2,
   Phone,
   ArrowRight,
   Shield,
@@ -18,7 +18,11 @@ import {
   KeyRound,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  TrendingUp,
+  Trophy,
+  PieChart,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -26,25 +30,31 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
+import authHero from '@/assets/auth-hero.jpg';
 
-const InputField = ({ id, label, icon: Icon, type = "text", placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
+const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
     <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
     <div className="relative">
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+      <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
         <Icon className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
       </div>
       <Input
         id={id}
-        type={showPassword !== undefined ? (showPassword ? "text" : "password") : type}
+        type={showPassword !== undefined ? (showPassword ? 'text' : 'password') : type}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="pl-10 h-11 rounded-xl bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-background transition-all text-sm"
+        className="pl-11 h-[52px] rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-sm"
         required={required}
       />
       {onTogglePassword && (
-        <button type="button" onClick={onTogglePassword} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground hover:text-foreground transition-colors"
+        >
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       )}
@@ -53,7 +63,7 @@ const InputField = ({ id, label, icon: Icon, type = "text", placeholder, value, 
 );
 
 const GoogleButton = ({ label, onClick, loading }: { label: string; onClick: () => void; loading: boolean }) => (
-  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className="w-full h-11 rounded-xl border-border/40 hover:bg-muted/50 transition-all text-sm">
+  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className="w-full h-[52px] rounded-[14px] border-border/60 hover:bg-muted/40 transition-all text-sm font-medium">
     <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -99,19 +109,19 @@ const Auth = () => {
       const { error } = await signIn(loginEmail, loginPassword);
       if (error) {
         let errorMessage = t('auth.checkCredentials');
-        if (error.message.includes("Invalid login credentials")) {
+        if (error.message.includes('Invalid login credentials')) {
           errorMessage = t('auth.wrongEmailPassword');
-        } else if (error.message.includes("Email not confirmed")) {
+        } else if (error.message.includes('Email not confirmed')) {
           errorMessage = t('auth.emailNotConfirmedDesc');
           setShowLoginResend(true);
         }
-        toast({ title: t('auth.loginError'), description: errorMessage, variant: "destructive" });
+        toast({ title: t('auth.loginError'), description: errorMessage, variant: 'destructive' });
         return;
       }
       toast({ title: t('auth.loginSuccess'), description: t('auth.welcomeBack') });
       navigate('/');
     } catch (error: any) {
-      toast({ title: t('auth.unexpectedError'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
+      toast({ title: t('auth.unexpectedError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -132,20 +142,19 @@ const Auth = () => {
       const { data, error } = await signUp(email, password, fullName, businessName, phone);
       if (error) {
         let errorMessage = t('auth.tryAgain');
-        if (error.message.includes("Password should be at least")) errorMessage = t('auth.passwordMinLength');
-        else if (error.message.includes("Unable to validate email")) errorMessage = t('auth.invalidEmail');
-        else if (error.message.includes("Signup requires a valid password")) errorMessage = t('auth.enterValidPassword');
-        else if (error.message.includes("User already registered")) errorMessage = t('auth.alreadyRegistered');
+        if (error.message.includes('Password should be at least')) errorMessage = t('auth.passwordMinLength');
+        else if (error.message.includes('Unable to validate email')) errorMessage = t('auth.invalidEmail');
+        else if (error.message.includes('Signup requires a valid password')) errorMessage = t('auth.enterValidPassword');
+        else if (error.message.includes('User already registered')) errorMessage = t('auth.alreadyRegistered');
         else errorMessage = error.message;
-        toast({ title: t('auth.signupError'), description: errorMessage, variant: "destructive" });
+        toast({ title: t('auth.signupError'), description: errorMessage, variant: 'destructive' });
         return;
       }
       if (data?.user?.identities?.length === 0) {
-        toast({ title: t('auth.emailAlreadyExists'), description: t('auth.emailAlreadyExistsDesc'), variant: "destructive" });
+        toast({ title: t('auth.emailAlreadyExists'), description: t('auth.emailAlreadyExistsDesc'), variant: 'destructive' });
         return;
       }
 
-      // Registrar consentimentos LGPD (Termos + Privacidade) — se houver user_id, vincula
       const newUserId = data?.user?.id ?? null;
       if (newUserId) {
         const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
@@ -159,18 +168,15 @@ const Auth = () => {
         }
       }
 
-      // Se o Supabase retornou sessão ativa (confirmação de email desativada),
-      // o usuário já está logado — navegar direto para o app.
       if (data?.session) {
         toast({ title: t('auth.accountCreated'), description: t('auth.welcomeBack') });
         navigate('/');
         return;
       }
-      // Caso contrário, exibir mensagem para confirmar email
       toast({ title: t('auth.accountCreated'), description: t('auth.confirmEmail') });
       setShowResendConfirmation(true);
     } catch (error: any) {
-      toast({ title: t('auth.unexpectedError'), description: t('auth.tryAgain'), variant: "destructive" });
+      toast({ title: t('auth.unexpectedError'), description: t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -186,7 +192,7 @@ const Auth = () => {
       setShowForgotPassword(false);
       setResetEmail('');
     } catch (error: any) {
-      toast({ title: t('auth.sendError'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
+      toast({ title: t('auth.sendError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -199,7 +205,7 @@ const Auth = () => {
       if (error) throw error;
       toast({ title: t('auth.emailResent'), description: t('auth.checkYourBox') });
     } catch (error: any) {
-      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
+      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -207,7 +213,7 @@ const Auth = () => {
 
   const handleLoginResend = async () => {
     if (!loginEmail) {
-      toast({ title: t('auth.emailNeeded'), description: t('auth.fillEmail'), variant: "destructive" });
+      toast({ title: t('auth.emailNeeded'), description: t('auth.fillEmail'), variant: 'destructive' });
       return;
     }
     setLoading(true);
@@ -216,7 +222,7 @@ const Auth = () => {
       if (error) throw error;
       toast({ title: t('auth.emailResent'), description: t('auth.checkYourBox') });
     } catch (error: any) {
-      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
+      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -228,7 +234,7 @@ const Auth = () => {
       const { error } = await signInWithGoogle();
       if (error) throw error;
     } catch (error: any) {
-      toast({ title: t('auth.googleError'), description: error.message || t('auth.tryAgain'), variant: "destructive" });
+      toast({ title: t('auth.googleError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
       setLoading(false);
     }
   };
@@ -261,192 +267,272 @@ const Auth = () => {
         </Button>
       </div>
 
-      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.1fr_minmax(440px,0.9fr)]">
-        {/* Hero side — desktop only, image cobre toda a coluna */}
-        <div
-          className="relative hidden lg:flex flex-col justify-between p-10 xl:p-14 overflow-hidden bg-cover bg-center"
-          style={{ backgroundImage: `url(${new URL('../assets/auth-hero.jpg', import.meta.url).href})` }}
-        >
-          {/* Overlay para legibilidade do texto */}
-          <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/40 to-transparent pointer-events-none" />
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.63fr_1fr]">
+        {/* Hero side — desktop only */}
+        <div className="relative hidden lg:flex flex-col justify-between p-10 xl:p-14 overflow-hidden">
+          {/* Background image */}
+          <img
+            src={authHero}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            width={1280}
+            height={1280}
+          />
+          {/* Overlay para legibilidade */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/30 to-background/60 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/50 pointer-events-none" />
 
+          {/* Título superior */}
           <div className="relative max-w-xl space-y-5 animate-fade-in">
-            <h1 className="text-4xl xl:text-5xl font-bold font-display leading-[1.1] text-foreground drop-shadow-sm">
-              {t('auth.heroTitle1', 'Precificação')}<br />
-              {t('auth.heroTitle2', 'inteligente para')}<br />
-              <span className="text-gradient-brand">{t('auth.heroTitle3', 'quem vende sabor')}</span>
+            <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold font-display leading-[1.05] text-foreground drop-shadow-sm">
+              {t('auth.heroTitle1')}<br />
+              {t('auth.heroTitle2')}<br />
+              <span className="text-gradient-brand">{t('auth.heroTitle3')}</span>
             </h1>
-            <p className="text-base xl:text-lg text-foreground/80 max-w-md leading-relaxed">
-              {t('auth.heroSubtitle', 'Transforme receitas em lucro com clareza nos custos, preços e margem do seu negócio.')}
+            <p className="text-base xl:text-lg text-foreground/75 max-w-md leading-relaxed">
+              {t('auth.heroSubtitle')}
             </p>
           </div>
 
+          {/* Cards flutuantes de precificação */}
+          <div className="absolute right-6 xl:right-10 top-24 xl:top-28 flex flex-col gap-3 w-[220px] xl:w-[240px] pointer-events-none">
+            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                <PieChart className="h-3.5 w-3.5 text-primary" />
+                {t('auth.heroCardCostTitle')}
+              </div>
+              <div className="mt-1.5 flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold font-display text-foreground">R$ 6,45</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground">{t('auth.heroCardCostUnit')}</div>
+            </div>
+
+            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                {t('auth.heroCardPriceTitle')}
+              </div>
+              <div className="mt-1.5 flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold font-display text-gradient-brand">R$ 12,90</span>
+              </div>
+              <div className="text-[11px] text-emerald-600 font-medium">+28% vs custo</div>
+            </div>
+
+            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                {t('auth.heroCardMarginTitle')}
+              </div>
+              <div className="mt-1.5 text-2xl font-bold font-display text-foreground">38,6%</div>
+              <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full w-[38.6%] rounded-full bg-gradient-brand-horizontal" />
+              </div>
+            </div>
+          </div>
+
+          {/* Cards inferiores */}
+          <div className="absolute left-6 xl:left-10 bottom-40 xl:bottom-44 hidden xl:flex flex-col gap-3 w-[240px] pointer-events-none">
+            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                {t('auth.heroCardShareTitle')}
+              </div>
+              <div className="space-y-1.5">
+                {[
+                  { label: t('auth.heroCardShareIngredients'), value: 42, color: 'bg-[#0483e4]' },
+                  { label: t('auth.heroCardShareLabor'), value: 20, color: 'bg-[#7328b1]' },
+                  { label: t('auth.heroCardSharePackaging'), value: 18, color: 'bg-[#dd0b52]' },
+                  { label: t('auth.heroCardShareOthers'), value: 20, color: 'bg-[#f96e0c]' },
+                ].map((r) => (
+                  <div key={r.label} className="flex items-center gap-2 text-[11px]">
+                    <span className={`h-2 w-2 rounded-full ${r.color}`} />
+                    <span className="text-foreground/80 flex-1">{r.label}</span>
+                    <span className="font-semibold text-foreground">{r.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute right-6 xl:right-10 bottom-40 xl:bottom-44 hidden xl:block w-[240px] pointer-events-none">
+            <div className="glass-card rounded-2xl p-3.5 backdrop-blur-xl animate-fade-in shadow-glass">
+              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                <Trophy className="h-3.5 w-3.5 text-[#f96e0c]" />
+                {t('auth.heroCardTopTitle')}
+              </div>
+              <div className="mt-1.5 text-base font-bold font-display text-foreground leading-tight">
+                {t('auth.heroCardTopName')}
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                {t('auth.heroCardTopMargin')}: <span className="font-semibold text-emerald-600">45,2%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Rodapé */}
           <div className="relative glass-card rounded-2xl p-4 max-w-md flex items-start gap-3 animate-fade-in backdrop-blur-xl">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <CheckCircle className="h-4 w-4 text-primary" />
             </div>
             <p className="text-sm text-foreground/80 leading-snug">
-              {t('auth.heroFooter', 'Feito para confeiteiros, padarias, doces, cafés e todos que vivem de transformar ingredientes em experiências inesquecíveis.')}
+              {t('auth.heroFooter')}
             </p>
           </div>
         </div>
 
-
         {/* Auth side */}
-        <div className="flex items-center justify-center p-4 sm:p-6 lg:p-10">
-          <div className="w-full max-w-[440px] space-y-5 animate-fade-in">
+        <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10">
+          <div className="w-full max-w-[520px] space-y-5 animate-fade-in">
 
-          {/* Logo */}
-          <div className="text-center lg:text-left space-y-2">
-            <div className="flex items-center justify-center lg:justify-start gap-3">
+            {/* Mobile: faixa gradiente decorativa */}
+            <div className="lg:hidden h-1.5 w-24 rounded-full bg-gradient-brand-horizontal mx-auto" />
+
+            {/* Logo (oficial, contém nome — não renderizar título separado) */}
+            <div className="flex justify-center lg:justify-start">
               <img
-                src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png"
-                alt="CalculaAi Logo"
-                className="h-12 w-auto"
+                src="/assets/logo-calculaai.png"
+                alt="CalculaAi"
+                className="h-14 lg:h-16 w-auto"
               />
-              <h1 className="text-3xl font-bold font-display text-gradient-brand">
-                CalculaAi
-              </h1>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground text-center lg:text-left -mt-2">
               {t('auth.smartPricing')}
             </p>
-          </div>
 
-          {/* Auth Card */}
-          <Card className="glass-card shadow-elevated border-0 overflow-hidden">
-            <div className="brand-line" />
-            
-            <CardContent className="p-6">
-              {showForgotPassword ? (
-                <div className="space-y-5 animate-fade-in">
-                  <div className="text-center space-y-2">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                      <KeyRound className="h-6 w-6 text-primary" />
+            {/* Auth Card */}
+            <Card className="bg-card/95 backdrop-blur-xl shadow-elevated border border-white/60 rounded-[28px] overflow-hidden">
+              <div className="brand-line" />
+
+              <CardContent className="p-6 sm:p-8">
+                {showForgotPassword ? (
+                  <div className="space-y-5 animate-fade-in">
+                    <div className="text-center space-y-2">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                        <KeyRound className="h-6 w-6 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-semibold font-display">{t('auth.recoverPassword')}</h3>
+                      <p className="text-sm text-muted-foreground">{t('auth.recoverInstructions')}</p>
                     </div>
-                    <h3 className="text-lg font-semibold font-display">{t('auth.recoverPassword')}</h3>
-                    <p className="text-sm text-muted-foreground">{t('auth.recoverInstructions')}</p>
+
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <InputField id="resetEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={resetEmail} onChange={(e: any) => setResetEmail(e.target.value)} />
+
+                      <Button type="submit" disabled={loading} className="w-full h-[54px] rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]">
+                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Mail className="h-4 w-4 mr-2" />{t('auth.sendInstructions')}</>}
+                      </Button>
+
+                      <Button type="button" variant="ghost" onClick={() => setShowForgotPassword(false)} className="w-full text-sm">
+                        {t('auth.backToLogin')}
+                      </Button>
+                    </form>
                   </div>
-                  
-                  <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <InputField id="resetEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={resetEmail} onChange={(e: any) => setResetEmail(e.target.value)} />
-                    
-                    <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
-                      {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Mail className="h-4 w-4 mr-2" />{t('auth.sendInstructions')}</>}
-                    </Button>
-                    
-                    <Button type="button" variant="ghost" onClick={() => setShowForgotPassword(false)} className="w-full text-sm">
-                      {t('auth.backToLogin')}
-                    </Button>
-                  </form>
-                </div>
-              ) : (
-                <Tabs defaultValue="login" className="space-y-5">
-                  <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl h-11">
-                    <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft rounded-lg text-sm font-medium transition-all">
-                      {t('auth.login')}
-                    </TabsTrigger>
-                    <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-soft rounded-lg text-sm font-medium transition-all">
-                      {t('auth.signup')}
-                    </TabsTrigger>
-                  </TabsList>
+                ) : (
+                  <Tabs defaultValue="login" className="space-y-5">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
+                      <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
+                        {t('auth.login')}
+                      </TabsTrigger>
+                      <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
+                        {t('auth.signup')}
+                      </TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="login" className="animate-fade-in space-y-4 mt-0">
-                    <form onSubmit={handleLogin} className="space-y-4">
-                      <InputField id="email" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
-                      <InputField id="password" label={t('auth.password')} icon={Lock} placeholder={t('auth.passwordPlaceholder')} value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
-                      
-                      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity">
-                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.login')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
-                      </Button>
-                      
-                      <Divider />
-                      <GoogleButton label={t('auth.loginWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
-                      
-                      <div className="text-center">
-                        <Button type="button" variant="link" onClick={() => setShowForgotPassword(true)} className="text-primary text-sm h-auto p-0">
-                          {t('auth.forgotPassword')}
+                    <TabsContent value="login" className="animate-fade-in space-y-4 mt-0">
+                      <form onSubmit={handleLogin} className="space-y-4">
+                        <InputField id="email" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
+                        <InputField id="password" label={t('auth.password')} icon={Lock} placeholder={t('auth.passwordPlaceholder')} value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
+
+                        <Button type="submit" disabled={loading} className="w-full h-[54px] rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]">
+                          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.login')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                         </Button>
-                      </div>
 
-                      {showLoginResend && (
-                        <div className="p-3 bg-orange/5 border border-orange/20 rounded-xl space-y-2 animate-fade-in">
-                          <p className="text-sm font-medium">{t('auth.emailNotConfirmed')}</p>
-                          <p className="text-xs text-muted-foreground">{t('auth.checkInbox')}</p>
-                          <Button type="button" onClick={handleLoginResend} disabled={loading} variant="outline" size="sm" className="w-full rounded-lg border-orange/30 text-sm">
-                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />{t('auth.resendConfirmation')}
+                        <Divider />
+                        <GoogleButton label={t('auth.loginWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
+
+                        <div className="text-center">
+                          <Button type="button" variant="link" onClick={() => setShowForgotPassword(true)} className="text-primary text-sm h-auto p-0">
+                            {t('auth.forgotPassword')}
                           </Button>
                         </div>
-                      )}
-                    </form>
-                  </TabsContent>
 
-                  <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
-                    <form onSubmit={handleSignup} className="space-y-3">
-                      <InputField id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
-                      <InputField id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
-                      <InputField id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
-                      <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
-                      <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
+                        {showLoginResend && (
+                          <div className="p-3 bg-orange/5 border border-orange/20 rounded-xl space-y-2 animate-fade-in">
+                            <p className="text-sm font-medium">{t('auth.emailNotConfirmed')}</p>
+                            <p className="text-xs text-muted-foreground">{t('auth.checkInbox')}</p>
+                            <Button type="button" onClick={handleLoginResend} disabled={loading} variant="outline" size="sm" className="w-full rounded-lg border-orange/30 text-sm">
+                              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />{t('auth.resendConfirmation')}
+                            </Button>
+                          </div>
+                        )}
+                      </form>
+                    </TabsContent>
 
-                      <div className="space-y-2 pt-1">
-                        <label className="flex items-start gap-2 cursor-pointer">
-                          <Checkbox id="acceptTerms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} className="mt-0.5" />
-                          <span className="text-xs text-muted-foreground leading-snug">
-                            Li e aceito os{' '}
-                            <Link to="/termos-de-uso" target="_blank" className="text-primary underline underline-offset-2">Termos de Uso</Link>.
-                          </span>
-                        </label>
-                        <label className="flex items-start gap-2 cursor-pointer">
-                          <Checkbox id="acceptPrivacy" checked={acceptPrivacy} onCheckedChange={(v) => setAcceptPrivacy(v === true)} className="mt-0.5" />
-                          <span className="text-xs text-muted-foreground leading-snug">
-                            Li e aceito a{' '}
-                            <Link to="/politica-de-privacidade" target="_blank" className="text-primary underline underline-offset-2">Política de Privacidade</Link>.
-                          </span>
-                        </label>
-                      </div>
+                    <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
+                      <form onSubmit={handleSignup} className="space-y-3">
+                        <InputField id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
+                        <InputField id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
+                        <InputField id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
+                        <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
+                        <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
 
-                      <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-11 rounded-xl bg-gradient-brand text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
-                        {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
-                      </Button>
-                      
-                      <Divider />
-                      <GoogleButton label={t('auth.signupWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
-                      
-                      {showResendConfirmation && (
-                        <div className="text-center space-y-2 p-3 bg-primary/5 rounded-xl">
-                          <p className="text-xs text-muted-foreground">{t('auth.didntReceive')}</p>
-                          <Button type="button" variant="ghost" size="sm" onClick={handleResendConfirmation} disabled={loading} className="text-primary text-xs">
-                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />{t('auth.resendEmail')}
-                          </Button>
+                        <div className="space-y-2 pt-1">
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <Checkbox id="acceptTerms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} className="mt-0.5" />
+                            <span className="text-xs text-muted-foreground leading-snug">
+                              Li e aceito os{' '}
+                              <Link to="/termos-de-uso" target="_blank" className="text-primary underline underline-offset-2">Termos de Uso</Link>.
+                            </span>
+                          </label>
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <Checkbox id="acceptPrivacy" checked={acceptPrivacy} onCheckedChange={(v) => setAcceptPrivacy(v === true)} className="mt-0.5" />
+                            <span className="text-xs text-muted-foreground leading-snug">
+                              Li e aceito a{' '}
+                              <Link to="/politica-de-privacidade" target="_blank" className="text-primary underline underline-offset-2">Política de Privacidade</Link>.
+                            </span>
+                          </label>
                         </div>
-                      )}
-                    </form>
-                  </TabsContent>
-                </Tabs>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Trust indicators */}
-          <div className="flex justify-center gap-6 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Shield className="h-3.5 w-3.5 text-primary" />
-              <span>{t('auth.secureData')}</span>
+                        <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-[54px] rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] disabled:opacity-50 disabled:hover:translate-y-0">
+                          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                        </Button>
+
+                        <Divider />
+                        <GoogleButton label={t('auth.signupWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
+
+                        {showResendConfirmation && (
+                          <div className="text-center space-y-2 p-3 bg-primary/5 rounded-xl">
+                            <p className="text-xs text-muted-foreground">{t('auth.didntReceive')}</p>
+                            <Button type="button" variant="ghost" size="sm" onClick={handleResendConfirmation} disabled={loading} className="text-primary text-xs">
+                              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />{t('auth.resendEmail')}
+                            </Button>
+                          </div>
+                        )}
+                      </form>
+                    </TabsContent>
+                  </Tabs>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Trust indicators */}
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-primary" />
+                <span>{t('auth.secureData')}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                <span>{t('auth.sslCertified')}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-secondary" />
+                <span>{t('auth.companies')}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-              <span>{t('auth.sslCertified')}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5 text-secondary" />
-              <span>{t('auth.companies')}</span>
-            </div>
-          </div>
-          
-          <p className="text-center text-[11px] text-muted-foreground/60">
-            {t('auth.copyright')}
-          </p>
+
+            <p className="text-center text-[11px] text-muted-foreground/60">
+              {t('auth.copyright')}
+            </p>
           </div>
         </div>
       </div>
