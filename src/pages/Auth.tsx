@@ -250,7 +250,18 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-background grid lg:grid-cols-[62%_38%]">
+    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-gradient-to-br from-background via-muted/40 to-background">
+      {/* Fundo compartilhado — orbs decorativos cobrindo a tela inteira */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+        <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
+        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
+        <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
+        <div className="absolute top-1/4 -right-[10%] w-[500px] h-[500px] rounded-full bg-[#f96e0c]/10 blur-[120px]" />
+      </div>
+
+      {/* Grid conteúdo */}
+      <div className="relative z-10 grid min-h-screen lg:h-screen lg:grid-cols-[62%_38%]">
+
       {/* Language toggle */}
       <div className="absolute top-4 right-4 z-30">
         <Button
@@ -264,13 +275,8 @@ const Auth = () => {
       </div>
 
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
-      <div className="relative hidden lg:block overflow-hidden bg-gradient-to-br from-background via-muted/40 to-background">
-        {/* Gradient orbs decorativos */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
-          <div className="absolute top-1/3 -right-1/4 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
-          <div className="absolute -bottom-1/4 left-1/3 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
-        </div>
+      <div className="relative hidden lg:block overflow-hidden">
+
 
 
         {/* CAMADA 2 — Personagens (PNG transparentes) */}
@@ -395,13 +401,9 @@ const Auth = () => {
       </div>
 
       {/* ============ AUTH — coluna direita ============ */}
-      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 bg-background overflow-y-auto">
-        {/* Background gradient orbs (só nesta coluna) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-1/2 -left-1/4 w-[400px] h-[400px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
-          <div className="absolute -bottom-1/4 -right-1/4 w-[400px] h-[400px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
-        </div>
+      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
         <div className="relative w-full max-w-[520px] space-y-5 animate-fade-in">
+
 
             {/* Mobile: faixa gradiente decorativa */}
             <div className="lg:hidden h-1.5 w-24 rounded-full bg-gradient-brand-horizontal mx-auto" />
@@ -554,7 +556,9 @@ const Auth = () => {
             </p>
         </div>
       </div>
+      </div>
     </div>
+
   );
 };
 
