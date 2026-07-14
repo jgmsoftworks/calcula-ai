@@ -30,7 +30,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-import heroScene from '@/assets/auth-hero-scene.jpg';
+
 import heroChefMan from '@/assets/auth-hero-chef-man.png';
 import heroChefWoman from '@/assets/auth-hero-chef-woman.png';
 import heroAssistant from '@/assets/auth-hero-assistant.png';
@@ -264,15 +264,14 @@ const Auth = () => {
       </div>
 
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
-      <div className="relative hidden lg:block overflow-hidden">
-        {/* CAMADA 1 — Cenário */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroScene})` }}
-          aria-hidden="true"
-        />
-        {/* Overlay muito leve para preservar cores vivas */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-white/25 pointer-events-none" aria-hidden="true" />
+      <div className="relative hidden lg:block overflow-hidden bg-gradient-to-br from-background via-muted/40 to-background">
+        {/* Gradient orbs decorativos */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
+          <div className="absolute top-1/3 -right-1/4 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
+          <div className="absolute -bottom-1/4 left-1/3 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
+        </div>
+
 
         {/* CAMADA 2 — Personagens (PNG transparentes) */}
         <img
