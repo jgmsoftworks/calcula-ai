@@ -279,24 +279,27 @@ const Auth = () => {
 
 
 
-        {/* CAMADA 2 — Personagens (PNG transparentes) */}
+        {/* CAMADA 2 — Personagens (PNG transparentes) com animação fluida */}
         <img
           src={heroChefMan}
           alt=""
           aria-hidden="true"
-          className="absolute left-[3%] bottom-0 h-[70%] xl:h-[74%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none"
+          style={{ transformOrigin: 'bottom center' }}
+          className="absolute left-[3%] bottom-0 h-[70%] xl:h-[74%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none motion-safe:animate-walk-right"
         />
         <img
           src={heroChefWoman}
           alt=""
           aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[82%] xl:h-[86%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none z-[1]"
+          style={{ transformOrigin: 'bottom center', animationDelay: '0.5s' }}
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[82%] xl:h-[86%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none z-[1] motion-safe:animate-chat-idle"
         />
         <img
           src={heroAssistant}
           alt=""
           aria-hidden="true"
-          className="absolute right-[3%] bottom-0 h-[68%] xl:h-[72%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none"
+          style={{ transformOrigin: 'bottom center', animationDelay: '1s' }}
+          className="absolute right-[3%] bottom-0 h-[68%] xl:h-[72%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none motion-safe:animate-run-left"
         />
 
         {/* CAMADA 3 — Conteúdo HTML */}
