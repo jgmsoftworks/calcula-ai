@@ -243,7 +243,7 @@ const Auth = () => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Background gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-[#0483e4]/8 blur-[120px]" />
         <div className="absolute -bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full bg-[#7328b1]/8 blur-[120px]" />
         <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-[#dd0b52]/5 blur-[100px]" />
@@ -261,24 +261,57 @@ const Auth = () => {
         </Button>
       </div>
 
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-[420px] space-y-6 animate-fade-in">
-          
-          {/* Logo */}
-          <div className="text-center space-y-3">
-            <img 
-              src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png" 
-              alt="CalculaAi Logo" 
-              className="h-16 w-auto mx-auto"
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.1fr_minmax(440px,0.9fr)]">
+        {/* Hero side — desktop only */}
+        <div className="relative hidden lg:flex flex-col justify-between p-10 xl:p-14 overflow-hidden">
+          <div className="max-w-xl space-y-5 animate-fade-in">
+            <h1 className="text-4xl xl:text-5xl font-bold font-display leading-[1.1] text-foreground">
+              {t('auth.heroTitle1', 'Precificação')}<br />
+              {t('auth.heroTitle2', 'inteligente para')}<br />
+              <span className="text-gradient-brand">{t('auth.heroTitle3', 'quem vende sabor')}</span>
+            </h1>
+            <p className="text-base xl:text-lg text-muted-foreground max-w-md leading-relaxed">
+              {t('auth.heroSubtitle', 'Transforme receitas em lucro com clareza nos custos, preços e margem do seu negócio.')}
+            </p>
+          </div>
+
+          <div className="relative flex-1 flex items-center justify-center my-6">
+            <img
+              src={new URL('../assets/auth-hero.jpg', import.meta.url).href}
+              alt="CalculaAi - Precificação inteligente"
+              className="w-full max-w-xl h-auto object-contain drop-shadow-2xl rounded-3xl"
             />
-            <div>
+          </div>
+
+          <div className="glass-card rounded-2xl p-4 max-w-md flex items-start gap-3 animate-fade-in">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground leading-snug">
+              {t('auth.heroFooter', 'Feito para confeiteiros, padarias, doces, cafés e todos que vivem de transformar ingredientes em experiências inesquecíveis.')}
+            </p>
+          </div>
+        </div>
+
+        {/* Auth side */}
+        <div className="flex items-center justify-center p-4 sm:p-6 lg:p-10">
+          <div className="w-full max-w-[440px] space-y-5 animate-fade-in">
+
+          {/* Logo */}
+          <div className="text-center lg:text-left space-y-2">
+            <div className="flex items-center justify-center lg:justify-start gap-3">
+              <img
+                src="/lovable-uploads/4b01991e-20ff-46b8-bab0-32a10b4650a6.png"
+                alt="CalculaAi Logo"
+                className="h-12 w-auto"
+              />
               <h1 className="text-3xl font-bold font-display text-gradient-brand">
                 CalculaAi
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('auth.smartPricing')}
-              </p>
             </div>
+            <p className="text-sm text-muted-foreground">
+              {t('auth.smartPricing')}
+            </p>
           </div>
 
           {/* Auth Card */}
