@@ -30,8 +30,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-
-
+import chefManImg from '@/assets/auth-hero-chef-man.png';
+import chefWomanImg from '@/assets/auth-hero-chef-woman.png';
+import assistantImg from '@/assets/auth-hero-assistant.png';
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
