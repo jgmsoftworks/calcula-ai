@@ -276,25 +276,26 @@ const Auth = () => {
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
       <div className="relative hidden lg:block overflow-hidden">
 
-        {/* CAMADA 2 — Personagens PNG com float suave */}
+        {/* CAMADA 2 — Personagens PNG parados no chão */}
         <img
           src={chefWomanImg}
           alt=""
           aria-hidden="true"
-          className="absolute left-[2%] bottom-0 h-[58%] xl:h-[62%] w-auto pointer-events-none select-none drop-shadow-2xl motion-safe:animate-hero-float-a z-[1]"
+          className="absolute left-[2%] bottom-0 h-[58%] xl:h-[62%] w-auto pointer-events-none select-none drop-shadow-2xl z-[1]"
         />
         <img
           src={chefManImg}
           alt=""
           aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[78%] xl:h-[82%] w-auto pointer-events-none select-none drop-shadow-2xl motion-safe:animate-hero-float-b z-[2]"
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[78%] xl:h-[82%] w-auto pointer-events-none select-none drop-shadow-2xl z-[2]"
         />
         <img
           src={assistantImg}
           alt=""
           aria-hidden="true"
-          className="absolute right-[2%] bottom-0 h-[72%] xl:h-[76%] w-auto pointer-events-none select-none drop-shadow-2xl motion-safe:animate-hero-float-c z-[1]"
+          className="absolute right-[2%] bottom-0 h-[72%] xl:h-[76%] w-auto pointer-events-none select-none drop-shadow-2xl z-[1]"
         />
+
 
 
         {/* CAMADA 3 — Conteúdo HTML */}
