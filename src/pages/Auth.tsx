@@ -283,16 +283,17 @@ const Auth = () => {
 
         {/* CAMADA 3 — Conteúdo HTML */}
         {/* Título superior esquerdo */}
-        <div className="absolute top-10 xl:top-14 left-8 xl:left-12 max-w-xl space-y-4 animate-fade-in z-10">
+        <div className="absolute top-1/2 -translate-y-1/2 right-6 xl:right-10 max-w-md space-y-4 animate-fade-in z-10 text-right">
           <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold font-display leading-[1.05] text-foreground drop-shadow-sm">
             {t('auth.heroTitle1')}<br />
             {t('auth.heroTitle2')}<br />
             <span className="text-gradient-brand">{t('auth.heroTitle3')}</span>
           </h1>
-          <p className="text-base xl:text-lg text-foreground/80 max-w-md leading-relaxed">
+          <p className="text-base xl:text-lg text-foreground/80 max-w-md leading-relaxed ml-auto">
             {t('auth.heroSubtitle')}
           </p>
         </div>
+
 
       </div>
 
