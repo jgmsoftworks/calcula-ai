@@ -31,9 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
 
-import heroChefMan from '@/assets/auth-hero-chef-man.png';
-import heroChefWoman from '@/assets/auth-hero-chef-woman.png';
-import heroAssistant from '@/assets/auth-hero-assistant.png';
+import { AnimatedChef } from '@/components/auth/AnimatedChef';
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
@@ -279,28 +277,45 @@ const Auth = () => {
 
 
 
-        {/* CAMADA 2 — Personagens (PNG transparentes) com animação fluida */}
-        <img
-          src={heroChefMan}
-          alt=""
-          aria-hidden="true"
-          style={{ transformOrigin: 'bottom center' }}
-          className="absolute left-[3%] bottom-0 h-[70%] xl:h-[74%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none motion-safe:animate-walk-right"
-        />
-        <img
-          src={heroChefWoman}
-          alt=""
-          aria-hidden="true"
-          style={{ transformOrigin: 'bottom center', animationDelay: '0.5s' }}
-          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[82%] xl:h-[86%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none z-[1] motion-safe:animate-chat-idle"
-        />
-        <img
-          src={heroAssistant}
-          alt=""
-          aria-hidden="true"
-          style={{ transformOrigin: 'bottom center', animationDelay: '1s' }}
-          className="absolute right-[3%] bottom-0 h-[68%] xl:h-[72%] w-auto object-contain drop-shadow-2xl pointer-events-none select-none motion-safe:animate-run-left"
-        />
+        {/* CAMADA 2 — Personagens em SVG articulado (pernas e braços de verdade) */}
+        {/* Chef Homem — anda pra direita e volta */}
+        <div className="absolute left-[4%] bottom-0 h-[70%] xl:h-[74%] pointer-events-none select-none motion-safe:chef-stroll-right">
+          <AnimatedChef
+            variant="walking"
+            jacket="#ffffff"
+            skin="#f4c9a0"
+            hair="#3a2418"
+            pants="#1f2937"
+            accent="#0483e4"
+            className="h-full w-auto drop-shadow-2xl"
+          />
+        </div>
+
+        {/* Chef Mulher — parada no centro, conversando/gesticulando */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[82%] xl:h-[86%] pointer-events-none select-none z-[1]">
+          <AnimatedChef
+            variant="talking"
+            jacket="#ffffff"
+            skin="#f6d5b3"
+            hair="#a0522d"
+            pants="#111827"
+            accent="#f96e0c"
+            className="h-full w-auto drop-shadow-2xl"
+          />
+        </div>
+
+        {/* Assistente — corre pra esquerda e volta */}
+        <div className="absolute right-[4%] bottom-0 h-[68%] xl:h-[72%] pointer-events-none select-none motion-safe:chef-stroll-left">
+          <AnimatedChef
+            variant="running"
+            jacket="#e0f2fe"
+            skin="#e8b48c"
+            hair="#1a1a1a"
+            pants="#374151"
+            accent="#8b5cf6"
+            className="h-full w-auto drop-shadow-2xl"
+          />
+        </div>
 
         {/* CAMADA 3 — Conteúdo HTML */}
         {/* Título superior esquerdo */}
