@@ -30,8 +30,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-
-
+import chefManImg from '@/assets/auth-hero-chef-man.png';
+import chefWomanImg from '@/assets/auth-hero-chef-woman.png';
+import assistantImg from '@/assets/auth-hero-assistant.png';
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
   <div className="space-y-1.5 group">
@@ -275,8 +276,25 @@ const Auth = () => {
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
       <div className="relative hidden lg:block overflow-hidden">
 
-
-
+        {/* CAMADA 2 — Personagens PNG com float suave */}
+        <img
+          src={chefWomanImg}
+          alt=""
+          aria-hidden="true"
+          className="absolute left-[2%] bottom-0 h-[58%] xl:h-[62%] w-auto pointer-events-none select-none drop-shadow-2xl motion-safe:animate-hero-float-a z-[1]"
+        />
+        <img
+          src={chefManImg}
+          alt=""
+          aria-hidden="true"
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[78%] xl:h-[82%] w-auto pointer-events-none select-none drop-shadow-2xl motion-safe:animate-hero-float-b z-[2]"
+        />
+        <img
+          src={assistantImg}
+          alt=""
+          aria-hidden="true"
+          className="absolute right-[2%] bottom-0 h-[72%] xl:h-[76%] w-auto pointer-events-none select-none drop-shadow-2xl motion-safe:animate-hero-float-c z-[1]"
+        />
 
 
         {/* CAMADA 3 — Conteúdo HTML */}
