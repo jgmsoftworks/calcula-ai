@@ -248,7 +248,7 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-gradient-to-br from-background via-muted/40 to-background">
+    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-[#f7f9fc]">
       {/* Fundo compartilhado — a arte continua por trás do login para não criar emenda */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
         <img
@@ -298,7 +298,7 @@ const Auth = () => {
 
 
       {/* ============ AUTH — coluna direita ============ */}
-      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto lg:bg-[#f7f9fc]">
+      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
         <div className="relative w-full max-w-[520px] space-y-5 animate-fade-in">
 
 
