@@ -249,8 +249,20 @@ const Auth = () => {
 
   return (
     <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-gradient-to-br from-background via-muted/40 to-background">
-      {/* Fundo compartilhado — orbs decorativos cobrindo a tela inteira */}
+      {/* Fundo compartilhado — a arte continua por trás do login para não criar emenda */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+        <img
+          src={heroSceneImg}
+          alt=""
+          className="hidden lg:block absolute inset-0 w-full h-full object-cover object-center select-none"
+        />
+        <div
+          className="hidden lg:block absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to right, hsl(var(--background) / 0) 0%, hsl(var(--background) / 0) 50%, hsl(var(--background) / 0.78) 70%, hsl(var(--background) / 0.96) 84%, hsl(var(--background)) 100%)',
+          }}
+        />
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
         <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
         <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
@@ -274,29 +286,6 @@ const Auth = () => {
 
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
       <div className="relative hidden lg:block overflow-hidden">
-
-        {/* CAMADA 2 — Cena hero única (chefs + bancada + cards flutuantes) */}
-        <img
-          src={heroSceneImg}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none z-[1]"
-        />
-        {/* Fade suave na borda direita → funde no branco da coluna do login */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 right-0 w-[18%] z-[2] pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(to right, hsl(var(--background) / 0) 0%, hsl(var(--background) / 0.6) 55%, hsl(var(--background)) 100%)',
-          }}
-        />
-
-
-
-
-
-
 
         {/* CAMADA 3 — Conteúdo HTML */}
         {/* Título superior esquerdo */}
