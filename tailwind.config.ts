@@ -167,6 +167,18 @@ export default {
 					'25%':     { transform: 'translateX(-25px) translateY(-8px) rotate(-1deg)' },
 					'50%':     { transform: 'translateX(-50px) translateY(0) rotate(-2deg)' },
 					'75%':     { transform: 'translateX(-25px) translateY(-8px) rotate(1deg)' }
+				},
+				'hero-float-a': {
+					'0%,100%': { transform: 'translateY(0) rotate(-1.5deg)' },
+					'50%':     { transform: 'translateY(-14px) rotate(1.5deg)' }
+				},
+				'hero-float-b': {
+					'0%,100%': { transform: 'translateX(-50%) translateY(0) rotate(0deg)' },
+					'50%':     { transform: 'translateX(-50%) translateY(-18px) rotate(-1deg)' }
+				},
+				'hero-float-c': {
+					'0%,100%': { transform: 'translateY(0) rotate(1.5deg)' },
+					'50%':     { transform: 'translateY(-16px) rotate(-1.5deg)' }
 				}
 			},
 			animation: {
@@ -174,7 +186,10 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'walk-right': 'walk-right 6s ease-in-out infinite',
 				'chat-idle': 'chat-idle 4s ease-in-out infinite',
-				'run-left': 'run-left 5s ease-in-out infinite'
+				'run-left': 'run-left 5s ease-in-out infinite',
+				'hero-float-a': 'hero-float-a 5.5s ease-in-out infinite',
+				'hero-float-b': 'hero-float-b 6.5s ease-in-out infinite 0.4s',
+				'hero-float-c': 'hero-float-c 5s ease-in-out infinite 0.8s'
 			}
 		}
 	},
