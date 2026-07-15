@@ -256,13 +256,7 @@ const Auth = () => {
           alt=""
           className="hidden lg:block absolute inset-0 w-full h-full object-cover object-center select-none"
         />
-        <div
-          className="hidden lg:block absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(to right, hsl(var(--background) / 0) 0%, hsl(var(--background) / 0) 50%, hsl(var(--background) / 0.78) 70%, hsl(var(--background) / 0.96) 84%, hsl(var(--background)) 100%)',
-          }}
-        />
+        <div className="hidden lg:block absolute inset-0 bg-background/10" />
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
         <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
         <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
@@ -324,7 +318,7 @@ const Auth = () => {
             </p>
 
             {/* Auth Card */}
-            <Card className="bg-card/95 backdrop-blur-xl shadow-elevated border border-white/60 rounded-[28px] overflow-hidden">
+            <Card className="bg-card/98 backdrop-blur-xl shadow-elevated border border-white/70 rounded-[28px] overflow-hidden">
               <div className="brand-line" />
 
               <CardContent className="p-6 sm:p-8">
