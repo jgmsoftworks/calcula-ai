@@ -275,28 +275,14 @@ const Auth = () => {
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
       <div className="relative hidden lg:block overflow-hidden">
 
-        {/* CAMADA 2 — Personagens PNG bem espaçados, sem sobreposição */}
-        {/* Chef mulher — canto inferior esquerdo */}
+        {/* CAMADA 2 — Cena hero única (chefs + bancada + cards flutuantes) */}
         <img
-          src={chefWomanImg}
+          src={heroSceneImg}
           alt=""
           aria-hidden="true"
-          className="absolute left-[1%] bottom-0 h-[52%] xl:h-[56%] w-auto max-w-[28%] object-contain object-bottom pointer-events-none select-none drop-shadow-2xl z-[1]"
+          className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none z-[1]"
         />
-        {/* Chef homem — centro, mais alto */}
-        <img
-          src={chefManImg}
-          alt=""
-          aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[70%] xl:h-[74%] w-auto max-w-[32%] object-contain object-bottom pointer-events-none select-none drop-shadow-2xl z-[2]"
-        />
-        {/* Assistente — canto inferior direito, encostada no login */}
-        <img
-          src={assistantImg}
-          alt=""
-          aria-hidden="true"
-          className="absolute right-[1%] bottom-0 h-[68%] xl:h-[72%] w-auto max-w-[28%] object-contain object-bottom pointer-events-none select-none drop-shadow-2xl z-[1]"
-        />
+
 
 
 
