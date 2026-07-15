@@ -298,7 +298,7 @@ const Auth = () => {
 
 
       {/* ============ AUTH — coluna direita ============ */}
-      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto lg:bg-[#f7f9fc]">
+      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
         <div className="relative w-full max-w-[520px] space-y-5 animate-fade-in">
 
 
