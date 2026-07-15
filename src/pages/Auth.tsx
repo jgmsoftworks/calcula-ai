@@ -248,7 +248,7 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-gradient-to-br from-background via-muted/40 to-background">
+    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-[#f7f9fc]">
       {/* Fundo compartilhado — a arte continua por trás do login para não criar emenda */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
         <img
