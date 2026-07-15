@@ -276,49 +276,29 @@ const Auth = () => {
       {/* ============ HERO — coluna esquerda (desktop) ============ */}
       <div className="relative hidden lg:block overflow-hidden">
 
-        {/* CAMADA 2 — Mesa/bancada de mármore atravessando o hero */}
-        <div className="absolute inset-x-0 bottom-0 h-[22%] z-[1] pointer-events-none">
-          {/* Tampo com veios de mármore */}
-          <div
-            className="absolute inset-x-0 top-0 h-[26px] rounded-t-md"
-            style={{
-              background:
-                'linear-gradient(180deg, #fdfcfa 0%, #f2eee8 55%, #d8d2c8 100%)',
-              boxShadow: '0 -2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
-            }}
-          />
-          {/* Frente da bancada */}
-          <div
-            className="absolute inset-x-0 top-[26px] bottom-0"
-            style={{
-              background:
-                'linear-gradient(180deg, #ece6dc 0%, #d2c9bc 60%, #b8ad9d 100%)',
-            }}
-          />
-        </div>
-
-        {/* CAMADA 3 — Personagens PNG posicionados atrás/na frente da mesa */}
-        {/* Chef mulher — sentada com cotovelos apoiados na mesa (esquerda) */}
+        {/* CAMADA 2 — Personagens PNG bem espaçados, sem sobreposição */}
+        {/* Chef mulher — canto inferior esquerdo */}
         <img
           src={chefWomanImg}
           alt=""
           aria-hidden="true"
-          className="absolute left-[1%] bottom-[8%] h-[62%] xl:h-[66%] w-auto pointer-events-none select-none drop-shadow-2xl z-[2]"
+          className="absolute left-[1%] bottom-0 h-[52%] xl:h-[56%] w-auto max-w-[28%] object-contain object-bottom pointer-events-none select-none drop-shadow-2xl z-[1]"
         />
-        {/* Chef homem — atrás no centro, mais baixo e recuado (efeito de profundidade) */}
+        {/* Chef homem — centro, mais alto */}
         <img
           src={chefManImg}
           alt=""
           aria-hidden="true"
-          className="absolute left-[38%] bottom-[18%] h-[64%] xl:h-[68%] w-auto pointer-events-none select-none drop-shadow-xl opacity-95 z-[1]"
+          className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[70%] xl:h-[74%] w-auto max-w-[32%] object-contain object-bottom pointer-events-none select-none drop-shadow-2xl z-[2]"
         />
-        {/* Assistente — em pé, encostada perto do login (direita) */}
+        {/* Assistente — canto inferior direito, encostada no login */}
         <img
           src={assistantImg}
           alt=""
           aria-hidden="true"
-          className="absolute right-[1%] bottom-0 h-[80%] xl:h-[84%] w-auto pointer-events-none select-none drop-shadow-2xl z-[3]"
+          className="absolute right-[1%] bottom-0 h-[68%] xl:h-[72%] w-auto max-w-[28%] object-contain object-bottom pointer-events-none select-none drop-shadow-2xl z-[1]"
         />
+
 
 
 
