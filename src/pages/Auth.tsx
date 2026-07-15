@@ -282,6 +282,16 @@ const Auth = () => {
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none z-[1]"
         />
+        {/* Fade suave na borda direita → funde no branco da coluna do login */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 right-0 w-[18%] z-[2] pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to right, hsl(var(--background) / 0) 0%, hsl(var(--background) / 0.6) 55%, hsl(var(--background)) 100%)',
+          }}
+        />
+
 
 
 
