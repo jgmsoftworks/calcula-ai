@@ -12,17 +12,10 @@ import {
   Building2,
   Phone,
   ArrowRight,
-  Shield,
-  CheckCircle,
-  Users,
   KeyRound,
   RefreshCw,
   Eye,
   EyeOff,
-  TrendingUp,
-  Trophy,
-  PieChart,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +23,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-import heroSceneImg from '@/assets/auth-hero-scene.jpg';
 
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
@@ -76,7 +68,7 @@ const GoogleButton = ({ label, onClick, loading }: { label: string; onClick: () 
 );
 
 const Auth = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -97,11 +89,6 @@ const Auth = () => {
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
-    i18n.changeLanguage(newLang);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,47 +235,9 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen m-0 p-0 overflow-hidden bg-[#f7f9fc]">
-      {/* Fundo decorativo suave */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
-        <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
-        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
-        <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
-        <div className="absolute top-1/4 -right-[10%] w-[500px] h-[500px] rounded-full bg-[#f96e0c]/10 blur-[120px]" />
-      </div>
-
-      {/* Language toggle */}
-      <div className="absolute top-4 right-4 z-30">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground bg-background/60 backdrop-blur-md"
-          onClick={toggleLanguage}
-        >
-          {i18n.language === 'pt-BR' ? '🇺🇸 EN' : '🇧🇷 PT'}
-        </Button>
-      </div>
-
-      {/* ============ AUTH — centralizado ============ */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
-        <div className="relative w-full max-w-[480px] space-y-5 animate-fade-in">
-
-            {/* Logo */}
-            <div className="flex justify-center">
-              <img
-                src="/assets/logo-calculaai.png"
-                alt="CalculaAi"
-                className="h-14 lg:h-16 w-auto"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground text-center -mt-2">
-              {t('auth.smartPricing')}
-            </p>
-
-
-            {/* Auth Card */}
-            <Card className="bg-card/98 backdrop-blur-xl shadow-elevated border border-white/70 rounded-[28px] overflow-hidden">
-              <div className="brand-line" />
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 sm:p-6">
+      <div className="w-full max-w-[440px]">
+            <Card className="border border-border shadow-none">
 
               <CardContent className="p-6 sm:p-8">
                 {showForgotPassword ? (
@@ -315,11 +264,11 @@ const Auth = () => {
                   </div>
                 ) : (
                   <Tabs defaultValue="login" className="space-y-5">
-                    <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
-                      <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted h-11">
+                      <TabsTrigger value="login" className="text-sm font-medium">
                         {t('auth.login')}
                       </TabsTrigger>
-                      <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
+                      <TabsTrigger value="signup" className="text-sm font-medium">
                         {t('auth.signup')}
                       </TabsTrigger>
                     </TabsList>
@@ -400,27 +349,6 @@ const Auth = () => {
                 )}
               </CardContent>
             </Card>
-
-            {/* Trust indicators */}
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5 text-primary" />
-                <span>{t('auth.secureData')}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
-                <span>{t('auth.sslCertified')}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-secondary" />
-                <span>{t('auth.companies')}</span>
-              </div>
-            </div>
-
-            <p className="text-center text-[11px] text-muted-foreground/60">
-              {t('auth.copyright')}
-            </p>
-        </div>
       </div>
     </div>
 
