@@ -248,23 +248,14 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen lg:h-screen m-0 p-0 overflow-hidden bg-[#f7f9fc]">
-      {/* Fundo compartilhado — a arte continua por trás do login para não criar emenda */}
+    <div className="relative w-full min-h-screen m-0 p-0 overflow-hidden bg-[#f7f9fc]">
+      {/* Fundo decorativo suave */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
-        <img
-          src={heroSceneImg}
-          alt=""
-          className="hidden lg:block absolute inset-0 w-full h-full object-cover object-center select-none"
-        />
-        <div className="hidden lg:block absolute inset-0 bg-background/10" />
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
         <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
         <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
         <div className="absolute top-1/4 -right-[10%] w-[500px] h-[500px] rounded-full bg-[#f96e0c]/10 blur-[120px]" />
       </div>
-
-      {/* Grid conteúdo */}
-      <div className="relative z-10 grid min-h-screen lg:h-screen lg:grid-cols-[62%_38%]">
 
       {/* Language toggle */}
       <div className="absolute top-4 right-4 z-30">
@@ -278,45 +269,22 @@ const Auth = () => {
         </Button>
       </div>
 
-      {/* ============ HERO — coluna esquerda (desktop) ============ */}
-      <div className="relative hidden lg:block overflow-hidden">
+      {/* ============ AUTH — centralizado ============ */}
+      <div className="relative z-10 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+        <div className="relative w-full max-w-[480px] space-y-5 animate-fade-in">
 
-        {/* CAMADA 3 — Conteúdo HTML */}
-        {/* Título superior esquerdo */}
-        <div className="absolute top-1/2 -translate-y-1/2 right-6 xl:right-10 max-w-md space-y-4 animate-fade-in z-10 text-right">
-          <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold font-display leading-[1.05] text-foreground drop-shadow-sm">
-            {t('auth.heroTitle1')}<br />
-            {t('auth.heroTitle2')}<br />
-            <span className="text-gradient-brand">{t('auth.heroTitle3')}</span>
-          </h1>
-          <p className="text-base xl:text-lg text-foreground/80 max-w-md leading-relaxed ml-auto">
-            {t('auth.heroSubtitle')}
-          </p>
-        </div>
-
-
-      </div>
-
-
-      {/* ============ AUTH — coluna direita ============ */}
-      <div className="relative flex items-center justify-center p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
-        <div className="relative w-full max-w-[520px] space-y-5 animate-fade-in">
-
-
-            {/* Mobile: faixa gradiente decorativa */}
-            <div className="lg:hidden h-1.5 w-24 rounded-full bg-gradient-brand-horizontal mx-auto" />
-
-            {/* Logo (oficial, contém nome — não renderizar título separado) */}
-            <div className="flex justify-center lg:justify-start">
+            {/* Logo */}
+            <div className="flex justify-center">
               <img
                 src="/assets/logo-calculaai.png"
                 alt="CalculaAi"
                 className="h-14 lg:h-16 w-auto"
               />
             </div>
-            <p className="text-sm text-muted-foreground text-center lg:text-left -mt-2">
+            <p className="text-sm text-muted-foreground text-center -mt-2">
               {t('auth.smartPricing')}
             </p>
+
 
             {/* Auth Card */}
             <Card className="bg-card/98 backdrop-blur-xl shadow-elevated border border-white/70 rounded-[28px] overflow-hidden">
@@ -453,7 +421,6 @@ const Auth = () => {
               {t('auth.copyright')}
             </p>
         </div>
-      </div>
       </div>
     </div>
 
