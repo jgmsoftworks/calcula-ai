@@ -430,6 +430,26 @@ function RecorrenteModal({
         </DialogHeader>
         <div className="space-y-4">
           <div>
+            <Label>Área</Label>
+            <Select value={areaId ?? '__none__'} onValueChange={(v) => setAreaId(v === '__none__' ? null : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">
+                  <span className="inline-flex items-center gap-2"><Link2Off className="h-3.5 w-3.5" /> Sem área</span>
+                </SelectItem>
+                {areas.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: a.cor }} />
+                      {a.nome}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label>Título *</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Assar bolos" autoFocus />
           </div>
