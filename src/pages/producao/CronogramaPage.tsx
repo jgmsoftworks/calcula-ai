@@ -389,6 +389,7 @@ function RecorrenteModal({
 
   useEffect(() => {
     if (!open) return;
+    setAreaId(tarefa ? (tarefa.area_id ?? null) : areaIdAtual);
     setTitulo(tarefa?.titulo ?? '');
     setVincularReceita(!!tarefa?.receita_id);
     setReceitaId(tarefa?.receita_id ?? '');
@@ -398,7 +399,7 @@ function RecorrenteModal({
     setHoraInicio(tarefa?.hora_inicio?.slice(0, 5) ?? '');
     setHoraFim(tarefa?.hora_fim?.slice(0, 5) ?? '');
     setObservacoes(tarefa?.observacoes ?? '');
-  }, [open, tarefa]);
+  }, [open, tarefa, areaIdAtual]);
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
   const canSave = !!titulo.trim() && !!funcionarioId && diasSemana.length > 0 && (!vincularReceita || !!receitaId);
