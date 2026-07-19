@@ -417,6 +417,17 @@ function NovaTarefaModal({
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Início previsto</Label>
+              <Input type="datetime-local" value={inicioPrev} onChange={(e) => setInicioPrev(e.target.value)} />
+            </div>
+            <div>
+              <Label>Fim previsto</Label>
+              <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
+            </div>
+          </div>
+
           <div>
             <Label>Observações</Label>
             <Textarea rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Opcional" />
