@@ -1691,6 +1691,110 @@ export type Database = {
           },
         ]
       }
+      producao_tarefas: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          data_producao: string
+          funcionario_id: string
+          id: string
+          iniciado_em: string | null
+          observacoes: string | null
+          ordem: number
+          quantidade: number | null
+          receita_id: string | null
+          status: Database["public"]["Enums"]["producao_status"]
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          data_producao: string
+          funcionario_id: string
+          id?: string
+          iniciado_em?: string | null
+          observacoes?: string | null
+          ordem?: number
+          quantidade?: number | null
+          receita_id?: string | null
+          status?: Database["public"]["Enums"]["producao_status"]
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          data_producao?: string
+          funcionario_id?: string
+          id?: string
+          iniciado_em?: string | null
+          observacoes?: string | null
+          ordem?: number
+          quantidade?: number | null
+          receita_id?: string | null
+          status?: Database["public"]["Enums"]["producao_status"]
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producao_tarefas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_receita_id_fkey"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      producao_tarefas_historico: {
+        Row: {
+          de_status: Database["public"]["Enums"]["producao_status"] | null
+          id: string
+          movido_em: string
+          movido_por: string | null
+          para_status: Database["public"]["Enums"]["producao_status"]
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          de_status?: Database["public"]["Enums"]["producao_status"] | null
+          id?: string
+          movido_em?: string
+          movido_por?: string | null
+          para_status: Database["public"]["Enums"]["producao_status"]
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          de_status?: Database["public"]["Enums"]["producao_status"] | null
+          id?: string
+          movido_em?: string
+          movido_por?: string | null
+          para_status?: Database["public"]["Enums"]["producao_status"]
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producao_tarefas_historico_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "producao_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean
@@ -2971,6 +3075,7 @@ export type Database = {
         | "viewer"
         | "fornecedor"
       discount_type: "trial_period" | "percentage" | "fixed"
+      producao_status: "a_fazer" | "em_producao" | "feito"
       tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
@@ -3108,6 +3213,7 @@ export const Constants = {
         "fornecedor",
       ],
       discount_type: ["trial_period", "percentage", "fixed"],
+      producao_status: ["a_fazer", "em_producao", "feito"],
       tipo_movimentacao: ["entrada", "saida"],
     },
   },
