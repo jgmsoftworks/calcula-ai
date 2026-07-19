@@ -6,7 +6,6 @@ import {
   endOfMonth,
   endOfWeek,
   format,
-  isSameDay,
   isSameMonth,
   isToday,
   startOfMonth,
@@ -14,23 +13,17 @@ import {
   subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
 import { Card } from '@/components/ui/card';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
 
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
 export default function AgendaPage() {
   const navigate = useNavigate();
   const [cursor, setCursor] = useState<Date>(new Date());
-  const [selected, setSelected] = useState<Date | null>(null);
+
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
@@ -98,19 +91,17 @@ export default function AgendaPage() {
           {days.map((day) => {
             const inMonth = isSameMonth(day, cursor);
             const today = isToday(day);
-            const isSelected = selected && isSameDay(day, selected);
             return (
               <button
                 key={day.toISOString()}
                 type="button"
-                onClick={() => setSelected(day)}
+                onClick={() => navigate(`/producao/agenda/${format(day, 'yyyy-MM-dd')}`)}
                 className={`
                   group relative aspect-square sm:aspect-[4/3] min-h-[60px] sm:min-h-[90px]
                   rounded-xl border text-left p-2 flex flex-col
                   transition-all duration-150
                   ${inMonth ? 'bg-card' : 'bg-muted/30'}
                   ${today ? 'border-primary shadow-brand' : 'border-border/60'}
-                  ${isSelected ? 'ring-2 ring-primary' : ''}
                   hover:border-primary hover:shadow-sm hover:-translate-y-0.5
                 `}
               >
@@ -128,44 +119,13 @@ export default function AgendaPage() {
                     format(day, 'd')
                   )}
                 </span>
-                {/* Placeholder futuro para eventos do dia */}
                 <div className="mt-auto" />
               </button>
             );
           })}
         </div>
       </Card>
-
-      {/* Day panel */}
-      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="capitalize">
-              {selected && format(selected, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </SheetTitle>
-            <SheetDescription>
-              Produções agendadas para este dia.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-3">
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={() => {
-                if (!selected) return;
-                navigate(`/producao/agenda/${format(selected, 'yyyy-MM-dd')}`);
-              }}
-            >
-              Entrar no dia
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Abra o quadro de produção para criar tarefas, vincular receitas e imprimir.
-            </p>
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
+
