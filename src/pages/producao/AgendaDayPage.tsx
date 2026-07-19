@@ -25,6 +25,8 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useProducaoTarefas, ProducaoStatus, ProducaoTarefa } from '@/hooks/useProducaoTarefas';
+import { useProducaoAreas } from '@/hooks/useProducaoAreas';
+import { useProducaoRecorrentes } from '@/hooks/useProducaoRecorrentes';
 import { formatTimeBrasilia } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
