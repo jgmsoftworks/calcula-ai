@@ -364,16 +364,18 @@ function AreaModal({ open, area, onClose, onSave }: {
 /* ---------------- Recorrente Modal ---------------- */
 
 function RecorrenteModal({
-  open, tarefa, areaId, funcionarios, receitas, onClose, onSave,
+  open, tarefa, areaIdAtual, areas, funcionarios, receitas, onClose, onSave,
 }: {
   open: boolean;
   tarefa?: ProducaoRecorrente;
-  areaId: string;
+  areaIdAtual: string | null;
+  areas: ProducaoArea[];
   funcionarios: FuncOpt[];
   receitas: ReceitaOpt[];
   onClose: () => void;
   onSave: (v: RecorrenteInput) => void;
 }) {
+  const [areaId, setAreaId] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
   const [receitaId, setReceitaId] = useState('');
