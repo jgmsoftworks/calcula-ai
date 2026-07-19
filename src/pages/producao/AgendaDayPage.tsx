@@ -36,7 +36,7 @@ const COLUNAS: { id: ProducaoStatus; label: string; icon: any; color: string }[]
   { id: 'feito', label: 'Feito', icon: CheckCircle2, color: 'text-emerald-600' },
 ];
 
-interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rendimento_valor: number | null; rendimento_unidade: string | null; foto_url: string | null; }
+interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rendimento_valor: number | null; rendimento_unidade: string | null; imagem_url: string | null; }
 interface FuncOpt { id: string; nome: string; cargo: string | null; }
 
 export default function AgendaDayPage() {
@@ -58,7 +58,7 @@ export default function AgendaDayPage() {
     (async () => {
       const [f, r] = await Promise.all([
         supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
-        supabase.from('receitas').select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade, foto_url').eq('user_id', user.id).order('nome'),
+        supabase.from('receitas').select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade, imagem_url').eq('user_id', user.id).order('nome'),
       ]);
       setFuncionarios((f.data ?? []) as FuncOpt[]);
       setReceitas((r.data ?? []) as ReceitaOpt[]);
@@ -345,7 +345,7 @@ function NovaTarefaModal({
                             <CommandItem key={r.id} value={r.nome} onSelect={() => { setReceitaId(r.id); setPopReceita(false); }}>
                               <Check className={cn('mr-2 h-4 w-4', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
                               <div className="flex items-center gap-2 min-w-0">
-                                {r.foto_url ? <img src={r.foto_url} alt="" className="h-7 w-7 rounded object-cover" /> : <div className="h-7 w-7 rounded bg-muted flex items-center justify-center"><ChefHat className="h-3.5 w-3.5 text-muted-foreground" /></div>}
+                                {r.imagem_url ? <img src={r.imagem_url} alt="" className="h-7 w-7 rounded object-cover" /> : <div className="h-7 w-7 rounded bg-muted flex items-center justify-center"><ChefHat className="h-3.5 w-3.5 text-muted-foreground" /></div>}
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium truncate">{r.nome}</p>
                                   {r.rendimento_valor ? <p className="text-[11px] text-muted-foreground">Rende {r.rendimento_valor} {r.rendimento_unidade ?? ''}</p> : null}
@@ -361,7 +361,7 @@ function NovaTarefaModal({
               </div>
               <div>
                 <Label>Quantidade</Label>
-                <NumericInputPtBr tipo="quantidade_continua" value={quantidade} onValueChange={(v) => setQuantidade(v ?? 0)} />
+                <NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={(v) => setQuantidade(v)} />
               </div>
             </>
           )}

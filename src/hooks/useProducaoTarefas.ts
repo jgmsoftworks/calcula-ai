@@ -20,7 +20,7 @@ export interface ProducaoTarefa {
   concluido_em: string | null;
   created_at: string;
   updated_at: string;
-  receita?: { id: string; nome: string; foto_url: string | null } | null;
+  receita?: { id: string; nome: string; imagem_url: string | null } | null;
   funcionario?: { id: string; nome: string; cargo: string | null } | null;
   historico?: Array<{
     id: string;
@@ -43,7 +43,7 @@ export function useProducaoTarefas(dataProducao: string) {
         .from('producao_tarefas')
         .select(`
           *,
-          receita:receitas(id, nome, foto_url),
+          receita:receitas(id, nome, imagem_url),
           funcionario:folha_pagamento(id, nome, cargo),
           historico:producao_tarefas_historico(id, de_status, para_status, movido_em)
         `)
