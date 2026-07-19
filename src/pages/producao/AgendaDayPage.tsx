@@ -362,20 +362,22 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
 /* ---------------- Modal ---------------- */
 
 function NovaTarefaModal({
-  open, onOpenChange, funcionarios, receitas, onCreate, dataStr,
+  open, onOpenChange, funcionarios, receitas, areas, onCreate, dataStr,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   funcionarios: FuncOpt[];
   receitas: ReceitaOpt[];
+  areas: { id: string; nome: string; cor: string }[];
   dataStr: string;
-  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null }) => void;
+  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null; area_id?: string | null }) => void;
 }) {
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
   const [receitaId, setReceitaId] = useState('');
   const [quantidade, setQuantidade] = useState<number>(1);
   const [funcionarioId, setFuncionarioId] = useState('');
+  const [areaId, setAreaId] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
   const [inicioPrev, setInicioPrev] = useState('');
   const [fimPrev, setFimPrev] = useState('');
@@ -384,14 +386,14 @@ function NovaTarefaModal({
   useEffect(() => {
     if (!open) {
       setTitulo(''); setVincularReceita(false); setReceitaId('');
-      setQuantidade(1); setFuncionarioId(''); setObservacoes('');
+      setQuantidade(1); setFuncionarioId(''); setAreaId(''); setObservacoes('');
       setInicioPrev(''); setFimPrev('');
     } else {
-      // pré-preenche a data do dia (sem hora) para agilizar
       setInicioPrev(`${dataStr}T08:00`);
       setFimPrev(`${dataStr}T10:00`);
     }
   }, [open, dataStr]);
+
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
   const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || !!receitaId);
