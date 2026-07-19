@@ -194,13 +194,48 @@ export default function AgendaDayPage() {
         </div>
       </div>
 
+      {areas.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedAreaFilter('todas')}
+            className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              selectedAreaFilter === 'todas' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
+          >Todas ({tarefas.length})</button>
+          {areas.map((a) => {
+            const count = tarefas.filter((t) => t.area_id === a.id).length;
+            const on = selectedAreaFilter === a.id;
+            return (
+              <button key={a.id} onClick={() => setSelectedAreaFilter(a.id)}
+                className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5',
+                  on ? 'text-white border-transparent' : 'bg-card hover:bg-muted')}
+                style={on ? { backgroundColor: a.cor } : {}}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: on ? 'rgba(255,255,255,0.9)' : a.cor }} />
+                {a.nome} ({count})
+              </button>
+            );
+          })}
+          {tarefas.some((t) => !t.area_id) && (
+            <button onClick={() => setSelectedAreaFilter('sem')}
+              className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                selectedAreaFilter === 'sem' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
+            >Sem área ({tarefas.filter((t) => !t.area_id).length})</button>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="p-8 text-center text-muted-foreground">Carregando...</div>
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COLUNAS.map((col) => {
-              const itens = tarefas.filter((t) => t.status === col.id);
+              const itens = tarefas.filter((t) => {
+                if (t.status !== col.id) return false;
+                if (selectedAreaFilter === 'todas') return true;
+                if (selectedAreaFilter === 'sem') return !t.area_id;
+                return t.area_id === selectedAreaFilter;
+              });
               return <Coluna key={col.id} col={col} itens={itens} onRemove={(id) => remover.mutate(id)} />;
             })}
           </div>
@@ -215,9 +250,11 @@ export default function AgendaDayPage() {
         onOpenChange={setModalOpen}
         funcionarios={funcionarios}
         receitas={receitas}
+        areas={areas}
         dataStr={dataStr}
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
       />
+
     </div>
   );
 }
