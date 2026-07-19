@@ -25,6 +25,7 @@ import {
   Percent,
   CalendarDays,
   Calendar as CalendarIcon,
+  ClipboardList,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -85,6 +86,7 @@ export function AppSidebar() {
       url: '/producao',
       icon: CalendarDays,
       children: [
+        { title: 'Cronograma', url: '/producao/cronograma', icon: ClipboardList },
         { title: 'Agenda', url: '/producao/agenda', icon: CalendarIcon },
       ],
     },
