@@ -28,6 +28,7 @@ import Perdas from "./pages/Perdas";
 import Movimentacao from "./pages/Movimentacao";
 import Receitas from "./pages/Receitas";
 import AgendaPage from "./pages/producao/AgendaPage";
+import CronogramaPage from "./pages/producao/CronogramaPage";
 import Planos from "./pages/Planos";
 import PerfilNegocio from "./pages/PerfilNegocio";
 import AdminUsers from "./pages/AdminUsers";
@@ -98,7 +99,8 @@ const App = () => (
                   <Route path="/relatorios/estoque" element={<RelatoriosEstoque />} />
                   <Route path="/relatorios/perdas" element={<RelatoriosPerdas />} />
                   <Route path="/receitas" element={<Receitas />} />
-                  <Route path="/producao" element={<Navigate to="/producao/agenda" replace />} />
+                  <Route path="/producao" element={<Navigate to="/producao/cronograma" replace />} />
+                  <Route path="/producao/cronograma" element={<CronogramaPage />} />
                   <Route path="/producao/agenda" element={<AgendaPage />} />
                   <Route path="/movimentacao" element={<Navigate to="/estoque/movimentacoes" replace />} />
                   <Route path="/custos" element={<Navigate to="/precificacao/despesas-fixas" replace />} />
