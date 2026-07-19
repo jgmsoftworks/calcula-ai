@@ -1691,8 +1691,42 @@ export type Database = {
           },
         ]
       }
+      producao_areas: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       producao_tarefas: {
         Row: {
+          area_id: string | null
           concluido_em: string | null
           created_at: string
           data_producao: string
@@ -1705,12 +1739,14 @@ export type Database = {
           ordem: number
           quantidade: number | null
           receita_id: string | null
+          recorrente_id: string | null
           status: Database["public"]["Enums"]["producao_status"]
           titulo: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          area_id?: string | null
           concluido_em?: string | null
           created_at?: string
           data_producao: string
@@ -1723,12 +1759,14 @@ export type Database = {
           ordem?: number
           quantidade?: number | null
           receita_id?: string | null
+          recorrente_id?: string | null
           status?: Database["public"]["Enums"]["producao_status"]
           titulo: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          area_id?: string | null
           concluido_em?: string | null
           created_at?: string
           data_producao?: string
@@ -1741,12 +1779,20 @@ export type Database = {
           ordem?: number
           quantidade?: number | null
           receita_id?: string | null
+          recorrente_id?: string | null
           status?: Database["public"]["Enums"]["producao_status"]
           titulo?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "producao_tarefas_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "producao_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "producao_tarefas_funcionario_id_fkey"
             columns: ["funcionario_id"]
@@ -1759,6 +1805,13 @@ export type Database = {
             columns: ["receita_id"]
             isOneToOne: false
             referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_recorrente_id_fkey"
+            columns: ["recorrente_id"]
+            isOneToOne: false
+            referencedRelation: "producao_tarefas_recorrentes"
             referencedColumns: ["id"]
           },
         ]
@@ -1797,6 +1850,85 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "producao_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      producao_tarefas_recorrentes: {
+        Row: {
+          area_id: string
+          ativo: boolean
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          dias_semana: number[]
+          funcionario_id: string
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          observacoes: string | null
+          quantidade: number | null
+          receita_id: string | null
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          ativo?: boolean
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          dias_semana?: number[]
+          funcionario_id: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          observacoes?: string | null
+          quantidade?: number | null
+          receita_id?: string | null
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          ativo?: boolean
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          dias_semana?: number[]
+          funcionario_id?: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          observacoes?: string | null
+          quantidade?: number | null
+          receita_id?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producao_tarefas_recorrentes_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "producao_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_recorrentes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_recorrentes_receita_id_fkey"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
             referencedColumns: ["id"]
           },
         ]
