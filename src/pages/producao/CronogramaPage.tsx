@@ -198,21 +198,21 @@ export default function CronogramaPage() {
         }}
       />
 
-      {areaSel && (
-        <RecorrenteModal
-          open={tarefaModal.open}
-          tarefa={tarefaModal.tarefa}
-          areaId={areaSel.id}
-          funcionarios={funcionarios}
-          receitas={receitas}
-          onClose={() => setTarefaModal({ open: false })}
-          onSave={async (v) => {
-            if (tarefaModal.tarefa) await recorrentes.atualizar.mutateAsync({ id: tarefaModal.tarefa.id, ...v });
-            else await recorrentes.criar.mutateAsync(v);
-            setTarefaModal({ open: false });
-          }}
-        />
-      )}
+      <RecorrenteModal
+        open={tarefaModal.open}
+        tarefa={tarefaModal.tarefa}
+        areaIdAtual={isSemArea ? null : (selectedAreaId as string | null)}
+        areas={areas.data ?? []}
+        funcionarios={funcionarios}
+        receitas={receitas}
+        onClose={() => setTarefaModal({ open: false })}
+        onSave={async (v) => {
+          if (tarefaModal.tarefa) await recorrentes.atualizar.mutateAsync({ id: tarefaModal.tarefa.id, ...v });
+          else await recorrentes.criar.mutateAsync(v);
+          setTarefaModal({ open: false });
+        }}
+      />
+
 
       <AlertDialog open={!!confirmDelArea} onOpenChange={(o) => !o && setConfirmDelArea(null)}>
         <AlertDialogContent>
