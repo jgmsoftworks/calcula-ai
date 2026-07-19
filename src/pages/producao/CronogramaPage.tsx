@@ -32,18 +32,27 @@ interface FuncOpt { id: string; nome: string; cargo: string | null }
 export default function CronogramaPage() {
   const { user } = useAuth();
   const areas = useProducaoAreas();
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  // 'sem-area' = tarefas sem vínculo com área. null antes de carregar.
+  const [selectedAreaId, setSelectedAreaId] = useState<string | 'sem-area' | null>(null);
   const [areaModal, setAreaModal] = useState<{ open: boolean; area?: ProducaoArea }>({ open: false });
   const [confirmDelArea, setConfirmDelArea] = useState<ProducaoArea | null>(null);
 
   useEffect(() => {
-    if (!selectedAreaId && areas.data?.length) setSelectedAreaId(areas.data[0].id);
-    if (selectedAreaId && areas.data && !areas.data.some((a) => a.id === selectedAreaId)) {
-      setSelectedAreaId(areas.data[0]?.id ?? null);
+    if (selectedAreaId === null) {
+      // default: primeira área se existir, senão "sem-area"
+      setSelectedAreaId(areas.data?.[0]?.id ?? 'sem-area');
+      return;
+    }
+    if (selectedAreaId !== 'sem-area' && areas.data && !areas.data.some((a) => a.id === selectedAreaId)) {
+      setSelectedAreaId(areas.data[0]?.id ?? 'sem-area');
     }
   }, [areas.data, selectedAreaId]);
 
-  const recorrentes = useProducaoRecorrentes(selectedAreaId ?? undefined);
+  const isSemArea = selectedAreaId === 'sem-area';
+  const recorrentes = useProducaoRecorrentes(
+    isSemArea ? undefined : (selectedAreaId ?? undefined),
+    { semArea: isSemArea },
+  );
   const [tarefaModal, setTarefaModal] = useState<{ open: boolean; tarefa?: ProducaoRecorrente }>({ open: false });
   const [confirmDelTarefa, setConfirmDelTarefa] = useState<ProducaoRecorrente | null>(null);
 
