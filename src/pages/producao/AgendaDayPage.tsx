@@ -104,6 +104,11 @@ export default function AgendaDayPage() {
         const meta: string[] = [];
         meta.push(`Responsavel: ${t.funcionario?.nome ?? '-'}`);
         if (t.receita?.nome) meta.push(`Receita: ${t.receita.nome}${t.quantidade ? ` x${t.quantidade}` : ''}`);
+        if (t.inicio_previsto || t.fim_previsto) {
+          const ini = t.inicio_previsto ? format(new Date(t.inicio_previsto), 'dd/MM HH:mm') : '?';
+          const fim = t.fim_previsto ? format(new Date(t.fim_previsto), 'dd/MM HH:mm') : '?';
+          meta.push(`Previsto: ${ini} - ${fim}`);
+        }
         if (t.iniciado_em) meta.push(`Inicio: ${formatTimeBrasilia(t.iniciado_em)}`);
         if (t.concluido_em) meta.push(`Fim: ${formatTimeBrasilia(t.concluido_em)}`);
         doc.text(meta.join('  |  '), 15, y); y += 5;
