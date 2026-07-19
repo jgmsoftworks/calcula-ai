@@ -310,7 +310,10 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold leading-tight">{tarefa.titulo}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {tarefa.area?.cor && <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tarefa.area.cor }} title={tarefa.area?.nome} />}
+          <p className="text-sm font-semibold leading-tight truncate">{tarefa.titulo}</p>
+        </div>
         <button
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
