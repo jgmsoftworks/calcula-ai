@@ -499,6 +499,27 @@ function NovaTarefaModal({
             )}
           </div>
 
+          {areas.length > 0 && (
+            <div>
+              <Label>Área</Label>
+              <Select value={areaId} onValueChange={setAreaId}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma área (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  {areas.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: a.cor }} />
+                        {a.nome}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Início previsto</Label>
