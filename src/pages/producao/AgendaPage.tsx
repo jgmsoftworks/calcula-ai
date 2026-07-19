@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   addMonths,
   eachDayOfInterval,
@@ -13,7 +14,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -27,6 +28,7 @@ import {
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
 export default function AgendaPage() {
+  const navigate = useNavigate();
   const [cursor, setCursor] = useState<Date>(new Date());
   const [selected, setSelected] = useState<Date | null>(null);
 
@@ -146,16 +148,21 @@ export default function AgendaPage() {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6">
-            <div className="rounded-xl border border-dashed border-border/60 p-8 text-center">
-              <CalendarDays className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground">
-                Nenhuma produção agendada
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Em breve você poderá agendar receitas e produções para este dia.
-              </p>
-            </div>
+          <div className="mt-6 space-y-3">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => {
+                if (!selected) return;
+                navigate(`/producao/agenda/${format(selected, 'yyyy-MM-dd')}`);
+              }}
+            >
+              Entrar no dia
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Abra o quadro de produção para criar tarefas, vincular receitas e imprimir.
+            </p>
           </div>
         </SheetContent>
       </Sheet>
