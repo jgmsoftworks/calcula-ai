@@ -64,6 +64,8 @@ export function useProducaoTarefas(dataProducao: string) {
       receita_id?: string | null;
       quantidade?: number | null;
       observacoes?: string | null;
+      inicio_previsto?: string | null;
+      fim_previsto?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('producao_tarefas')
@@ -75,6 +77,8 @@ export function useProducaoTarefas(dataProducao: string) {
           receita_id: input.receita_id ?? null,
           quantidade: input.quantidade ?? null,
           observacoes: input.observacoes ?? null,
+          inicio_previsto: input.inicio_previsto ?? null,
+          fim_previsto: input.fim_previsto ?? null,
           status: 'a_fazer',
           ordem: (query.data?.filter((t) => t.status === 'a_fazer').length ?? 0),
         })
