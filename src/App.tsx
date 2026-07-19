@@ -15,8 +15,11 @@ import AuthSuccess from "./pages/AuthSuccess";
 import Afiliados from "./pages/Afiliados";
 import AuthStripeComplete from "./pages/AuthStripeComplete";
 import ResetPassword from "./pages/ResetPassword";
-import Custos from "./pages/Custos";
-import Precificacao from "./pages/Precificacao";
+import MediaFaturamentoPage from "./pages/precificacao/MediaFaturamentoPage";
+import MarkupsPage from "./pages/precificacao/MarkupsPage";
+import DespesasFixasPage from "./pages/precificacao/DespesasFixasPage";
+import FolhaPagamentoPage from "./pages/precificacao/FolhaPagamentoPage";
+import EncargosVendaPage from "./pages/precificacao/EncargosVendaPage";
 import Estoque from "./pages/Estoque";
 import EstoqueHistorico from "./pages/EstoqueHistorico";
 import RelatoriosEstoque from "./pages/RelatoriosEstoque";
@@ -95,8 +98,13 @@ const App = () => (
                   <Route path="/relatorios/perdas" element={<RelatoriosPerdas />} />
                   <Route path="/receitas" element={<Receitas />} />
                   <Route path="/movimentacao" element={<Navigate to="/estoque/movimentacoes" replace />} />
-                  <Route path="/custos" element={<Custos />} />
-                  <Route path="/precificacao" element={<Precificacao />} />
+                  <Route path="/custos" element={<Navigate to="/precificacao/despesas-fixas" replace />} />
+                  <Route path="/precificacao" element={<Navigate to="/precificacao/media-faturamento" replace />} />
+                  <Route path="/precificacao/media-faturamento" element={<MediaFaturamentoPage />} />
+                  <Route path="/precificacao/markups" element={<MarkupsPage />} />
+                  <Route path="/precificacao/despesas-fixas" element={<DespesasFixasPage />} />
+                  <Route path="/precificacao/folha-pagamento" element={<FolhaPagamentoPage />} />
+                  <Route path="/precificacao/encargos-venda" element={<EncargosVendaPage />} />
                   <Route path="/planos" element={<Planos />} />
                   <Route path="/perfil" element={<PerfilNegocio />} />
                   <Route path="/notificacoes" element={<NotificacoesPainel />} />

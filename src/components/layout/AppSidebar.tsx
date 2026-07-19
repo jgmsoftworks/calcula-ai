@@ -21,6 +21,8 @@ import {
   
   AlertOctagon,
   BarChart3,
+  Receipt,
+  Percent,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -64,8 +66,18 @@ export function AppSidebar() {
       ],
     },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
-    { title: t('nav.custos'), url: '/custos', icon: TrendingUp },
-    { title: t('nav.precificacao'), url: '/precificacao', icon: Calculator },
+    {
+      title: t('nav.precificacao'),
+      url: '/precificacao',
+      icon: Calculator,
+      children: [
+        { title: t('pages.precificacao.mediaFaturamento'), url: '/precificacao/media-faturamento', icon: TrendingUp },
+        { title: t('pages.precificacao.markups'), url: '/precificacao/markups', icon: Calculator },
+        { title: t('pages.custos.despesasFixas'), url: '/precificacao/despesas-fixas', icon: Receipt },
+        { title: t('pages.custos.folhaPagamento'), url: '/precificacao/folha-pagamento', icon: Users },
+        { title: t('pages.custos.encargosVenda'), url: '/precificacao/encargos-venda', icon: Percent },
+      ],
+    },
     {
       title: 'Relatórios',
       url: '/relatorios',
