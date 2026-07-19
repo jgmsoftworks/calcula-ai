@@ -104,6 +104,11 @@ export default function AgendaDayPage() {
         const meta: string[] = [];
         meta.push(`Responsavel: ${t.funcionario?.nome ?? '-'}`);
         if (t.receita?.nome) meta.push(`Receita: ${t.receita.nome}${t.quantidade ? ` x${t.quantidade}` : ''}`);
+        if (t.inicio_previsto || t.fim_previsto) {
+          const ini = t.inicio_previsto ? format(new Date(t.inicio_previsto), 'dd/MM HH:mm') : '?';
+          const fim = t.fim_previsto ? format(new Date(t.fim_previsto), 'dd/MM HH:mm') : '?';
+          meta.push(`Previsto: ${ini} - ${fim}`);
+        }
         if (t.iniciado_em) meta.push(`Inicio: ${formatTimeBrasilia(t.iniciado_em)}`);
         if (t.concluido_em) meta.push(`Fim: ${formatTimeBrasilia(t.concluido_em)}`);
         doc.text(meta.join('  |  '), 15, y); y += 5;
@@ -168,6 +173,7 @@ export default function AgendaDayPage() {
         onOpenChange={setModalOpen}
         funcionarios={funcionarios}
         receitas={receitas}
+        dataStr={dataStr}
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
       />
     </div>
@@ -246,6 +252,16 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
         <UserIcon className="h-3.5 w-3.5" />
         <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
       </div>
+      {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
+          <Clock className="h-3 w-3 text-primary" />
+          <span className="truncate">
+            {tarefa.inicio_previsto ? format(new Date(tarefa.inicio_previsto), "dd/MM HH:mm") : '—'}
+            {' → '}
+            {tarefa.fim_previsto ? format(new Date(tarefa.fim_previsto), "dd/MM HH:mm") : '—'}
+          </span>
+        </div>
+      )}
       {(tarefa.iniciado_em || tarefa.concluido_em) && (
         <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40">
           {tarefa.iniciado_em && (
@@ -267,13 +283,14 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
 /* ---------------- Modal ---------------- */
 
 function NovaTarefaModal({
-  open, onOpenChange, funcionarios, receitas, onCreate,
+  open, onOpenChange, funcionarios, receitas, onCreate, dataStr,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   funcionarios: FuncOpt[];
   receitas: ReceitaOpt[];
-  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null }) => void;
+  dataStr: string;
+  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null }) => void;
 }) {
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
@@ -281,26 +298,39 @@ function NovaTarefaModal({
   const [quantidade, setQuantidade] = useState<number>(1);
   const [funcionarioId, setFuncionarioId] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  const [inicioPrev, setInicioPrev] = useState('');
+  const [fimPrev, setFimPrev] = useState('');
   const [popReceita, setPopReceita] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setTitulo(''); setVincularReceita(false); setReceitaId('');
       setQuantidade(1); setFuncionarioId(''); setObservacoes('');
+      setInicioPrev(''); setFimPrev('');
+    } else {
+      // pré-preenche a data do dia (sem hora) para agilizar
+      setInicioPrev(`${dataStr}T08:00`);
+      setFimPrev(`${dataStr}T10:00`);
     }
-  }, [open]);
+  }, [open, dataStr]);
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
   const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || !!receitaId);
 
   const submit = () => {
     if (!canSave) return;
+    if (inicioPrev && fimPrev && new Date(fimPrev) < new Date(inicioPrev)) {
+      toast({ title: 'Horário inválido', description: 'Fim previsto deve ser após o início.', variant: 'destructive' });
+      return;
+    }
     onCreate({
       titulo: titulo.trim(),
       funcionario_id: funcionarioId,
       receita_id: vincularReceita ? receitaId : null,
       quantidade: vincularReceita ? quantidade : null,
       observacoes: observacoes.trim() || null,
+      inicio_previsto: inicioPrev ? new Date(inicioPrev).toISOString() : null,
+      fim_previsto: fimPrev ? new Date(fimPrev).toISOString() : null,
     });
   };
 
@@ -385,6 +415,17 @@ function NovaTarefaModal({
                 </SelectContent>
               </Select>
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Início previsto</Label>
+              <Input type="datetime-local" value={inicioPrev} onChange={(e) => setInicioPrev(e.target.value)} />
+            </div>
+            <div>
+              <Label>Fim previsto</Label>
+              <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
+            </div>
           </div>
 
           <div>
