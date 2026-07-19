@@ -1696,9 +1696,11 @@ export type Database = {
           concluido_em: string | null
           created_at: string
           data_producao: string
+          fim_previsto: string | null
           funcionario_id: string
           id: string
           iniciado_em: string | null
+          inicio_previsto: string | null
           observacoes: string | null
           ordem: number
           quantidade: number | null
@@ -1712,9 +1714,11 @@ export type Database = {
           concluido_em?: string | null
           created_at?: string
           data_producao: string
+          fim_previsto?: string | null
           funcionario_id: string
           id?: string
           iniciado_em?: string | null
+          inicio_previsto?: string | null
           observacoes?: string | null
           ordem?: number
           quantidade?: number | null
@@ -1728,9 +1732,11 @@ export type Database = {
           concluido_em?: string | null
           created_at?: string
           data_producao?: string
+          fim_previsto?: string | null
           funcionario_id?: string
           id?: string
           iniciado_em?: string | null
+          inicio_previsto?: string | null
           observacoes?: string | null
           ordem?: number
           quantidade?: number | null
