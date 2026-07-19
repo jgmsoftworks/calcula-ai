@@ -70,7 +70,7 @@ export default function CronogramaPage() {
     })();
   }, [user?.id]);
 
-  const areaSel = areas.data?.find((a) => a.id === selectedAreaId) ?? null;
+  const areaSel = !isSemArea ? areas.data?.find((a) => a.id === selectedAreaId) ?? null : null;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -81,7 +81,7 @@ export default function CronogramaPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-display">Cronograma</h1>
-            <p className="text-sm text-muted-foreground">Áreas do negócio e tarefas que se repetem semanalmente.</p>
+            <p className="text-sm text-muted-foreground">Áreas do negócio e tarefas que se repetem semanalmente. Áreas são opcionais.</p>
           </div>
         </div>
         <Button onClick={() => setAreaModal({ open: true })}>
@@ -91,21 +91,10 @@ export default function CronogramaPage() {
 
       {areas.isLoading ? (
         <div className="text-muted-foreground text-sm">Carregando...</div>
-      ) : !areas.data?.length ? (
-        <Card className="p-12 text-center rounded-2xl">
-          <Palette className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-base font-medium">Nenhuma área criada</p>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">
-            Crie áreas como "Frios", "Quentes", "Confeitaria" para organizar seu cronograma.
-          </p>
-          <Button onClick={() => setAreaModal({ open: true })}>
-            <Plus className="h-4 w-4 mr-2" /> Criar primeira área
-          </Button>
-        </Card>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            {areas.data.map((a) => (
+            {areas.data?.map((a) => (
               <button
                 key={a.id}
                 onClick={() => setSelectedAreaId(a.id)}
@@ -121,54 +110,79 @@ export default function CronogramaPage() {
                 <span className="font-medium">{a.nome}</span>
               </button>
             ))}
+            <button
+              onClick={() => setSelectedAreaId('sem-area')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed text-sm transition-all',
+                isSemArea ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted'
+              )}
+            >
+              <Link2Off className="h-3.5 w-3.5" />
+              <span className="font-medium">Sem área</span>
+            </button>
           </div>
 
-          {areaSel && (
-            <Card className="rounded-2xl p-4 md:p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: areaSel.cor }} />
-                  <h2 className="text-lg font-semibold">{areaSel.nome}</h2>
-                  <Badge variant="secondary" className="rounded-full">
-                    {recorrentes.data?.length ?? 0} tarefas
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setAreaModal({ open: true, area: areaSel })}>
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmDelArea(areaSel)} className="text-destructive hover:text-destructive">
-                    <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
-                  </Button>
-                  <Button size="sm" onClick={() => setTarefaModal({ open: true })}>
-                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Nova tarefa
-                  </Button>
-                </div>
+          <Card className="rounded-2xl p-4 md:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {areaSel ? (
+                  <>
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: areaSel.cor }} />
+                    <h2 className="text-lg font-semibold">{areaSel.nome}</h2>
+                  </>
+                ) : (
+                  <>
+                    <Link2Off className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-lg font-semibold">Sem área</h2>
+                  </>
+                )}
+                <Badge variant="secondary" className="rounded-full">
+                  {recorrentes.data?.length ?? 0} tarefas
+                </Badge>
               </div>
+              <div className="flex items-center gap-2">
+                {areaSel && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => setAreaModal({ open: true, area: areaSel })}>
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setConfirmDelArea(areaSel)} className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
+                    </Button>
+                  </>
+                )}
+                <Button size="sm" onClick={() => setTarefaModal({ open: true })}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Nova tarefa
+                </Button>
+              </div>
+            </div>
 
-              {recorrentes.isLoading ? (
-                <div className="text-sm text-muted-foreground">Carregando...</div>
-              ) : !recorrentes.data?.length ? (
-                <div className="text-center py-12 border border-dashed rounded-xl">
-                  <Repeat className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma tarefa recorrente nesta área.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {recorrentes.data.map((t) => (
-                    <TarefaRecorrenteCard
-                      key={t.id}
-                      tarefa={t}
-                      onEdit={() => setTarefaModal({ open: true, tarefa: t })}
-                      onDelete={() => setConfirmDelTarefa(t)}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
+            {recorrentes.isLoading ? (
+              <div className="text-sm text-muted-foreground">Carregando...</div>
+            ) : !recorrentes.data?.length ? (
+              <div className="text-center py-12 border border-dashed rounded-xl">
+                <Repeat className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {isSemArea ? 'Nenhuma tarefa recorrente sem área.' : 'Nenhuma tarefa recorrente nesta área.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {recorrentes.data.map((t) => (
+                  <TarefaRecorrenteCard
+                    key={t.id}
+                    tarefa={t}
+                    onEdit={() => setTarefaModal({ open: true, tarefa: t })}
+                    onDelete={() => setConfirmDelTarefa(t)}
+                  />
+                ))}
+              </div>
+            )}
+          </Card>
         </>
       )}
+
+
 
       <AreaModal
         open={areaModal.open}
