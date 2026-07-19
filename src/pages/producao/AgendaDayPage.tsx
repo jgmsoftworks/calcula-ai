@@ -282,13 +282,14 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
 /* ---------------- Modal ---------------- */
 
 function NovaTarefaModal({
-  open, onOpenChange, funcionarios, receitas, onCreate,
+  open, onOpenChange, funcionarios, receitas, onCreate, dataStr,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   funcionarios: FuncOpt[];
   receitas: ReceitaOpt[];
-  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null }) => void;
+  dataStr: string;
+  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null }) => void;
 }) {
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
@@ -296,26 +297,39 @@ function NovaTarefaModal({
   const [quantidade, setQuantidade] = useState<number>(1);
   const [funcionarioId, setFuncionarioId] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  const [inicioPrev, setInicioPrev] = useState('');
+  const [fimPrev, setFimPrev] = useState('');
   const [popReceita, setPopReceita] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setTitulo(''); setVincularReceita(false); setReceitaId('');
       setQuantidade(1); setFuncionarioId(''); setObservacoes('');
+      setInicioPrev(''); setFimPrev('');
+    } else {
+      // pré-preenche a data do dia (sem hora) para agilizar
+      setInicioPrev(`${dataStr}T08:00`);
+      setFimPrev(`${dataStr}T10:00`);
     }
-  }, [open]);
+  }, [open, dataStr]);
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
   const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || !!receitaId);
 
   const submit = () => {
     if (!canSave) return;
+    if (inicioPrev && fimPrev && new Date(fimPrev) < new Date(inicioPrev)) {
+      toast({ title: 'Horário inválido', description: 'Fim previsto deve ser após o início.', variant: 'destructive' });
+      return;
+    }
     onCreate({
       titulo: titulo.trim(),
       funcionario_id: funcionarioId,
       receita_id: vincularReceita ? receitaId : null,
       quantidade: vincularReceita ? quantidade : null,
       observacoes: observacoes.trim() || null,
+      inicio_previsto: inicioPrev ? new Date(inicioPrev).toISOString() : null,
+      fim_previsto: fimPrev ? new Date(fimPrev).toISOString() : null,
     });
   };
 
