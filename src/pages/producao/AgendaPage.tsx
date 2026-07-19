@@ -28,6 +28,7 @@ import {
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
 export default function AgendaPage() {
+  const navigate = useNavigate();
   const [cursor, setCursor] = useState<Date>(new Date());
   const [selected, setSelected] = useState<Date | null>(null);
 
