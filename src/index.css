@@ -445,3 +445,26 @@ html { scroll-behavior: smooth; }
   line-height: 1.15;
 }
 
+
+/* Sidebar shimmer effect (highlighted menu item) */
+.sidebar-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    hsl(var(--primary) / 0.25) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: sidebar-shimmer-slide 2.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes sidebar-shimmer-slide {
+  0% { transform: translateX(-100%); }
+  60% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
