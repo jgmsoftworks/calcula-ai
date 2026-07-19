@@ -20,10 +20,13 @@ export interface ProducaoTarefa {
   fim_previsto: string | null;
   iniciado_em: string | null;
   concluido_em: string | null;
+  area_id: string | null;
+  recorrente_id: string | null;
   created_at: string;
   updated_at: string;
   receita?: { id: string; nome: string; imagem_url: string | null } | null;
   funcionario?: { id: string; nome: string; cargo: string | null } | null;
+  area?: { id: string; nome: string; cor: string } | null;
   historico?: Array<{
     id: string;
     de_status: ProducaoStatus | null;
