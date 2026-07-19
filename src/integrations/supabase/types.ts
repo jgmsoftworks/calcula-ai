@@ -1856,7 +1856,7 @@ export type Database = {
       }
       producao_tarefas_recorrentes: {
         Row: {
-          area_id: string
+          area_id: string | null
           ativo: boolean
           created_at: string
           data_fim: string | null
@@ -1874,7 +1874,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          area_id: string
+          area_id?: string | null
           ativo?: boolean
           created_at?: string
           data_fim?: string | null
@@ -1892,7 +1892,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          area_id?: string
+          area_id?: string | null
           ativo?: boolean
           created_at?: string
           data_fim?: string | null

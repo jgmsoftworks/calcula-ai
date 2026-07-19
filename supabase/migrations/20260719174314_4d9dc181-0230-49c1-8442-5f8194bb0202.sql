@@ -1,0 +1,1 @@
+ALTER TABLE public.producao_tarefas_recorrentes ALTER COLUMN area_id DROP NOT NULL;

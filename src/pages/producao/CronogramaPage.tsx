@@ -32,18 +32,27 @@ interface FuncOpt { id: string; nome: string; cargo: string | null }
 export default function CronogramaPage() {
   const { user } = useAuth();
   const areas = useProducaoAreas();
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  // 'sem-area' = tarefas sem vínculo com área. null antes de carregar.
+  const [selectedAreaId, setSelectedAreaId] = useState<string | 'sem-area' | null>(null);
   const [areaModal, setAreaModal] = useState<{ open: boolean; area?: ProducaoArea }>({ open: false });
   const [confirmDelArea, setConfirmDelArea] = useState<ProducaoArea | null>(null);
 
   useEffect(() => {
-    if (!selectedAreaId && areas.data?.length) setSelectedAreaId(areas.data[0].id);
-    if (selectedAreaId && areas.data && !areas.data.some((a) => a.id === selectedAreaId)) {
-      setSelectedAreaId(areas.data[0]?.id ?? null);
+    if (selectedAreaId === null) {
+      // default: primeira área se existir, senão "sem-area"
+      setSelectedAreaId(areas.data?.[0]?.id ?? 'sem-area');
+      return;
+    }
+    if (selectedAreaId !== 'sem-area' && areas.data && !areas.data.some((a) => a.id === selectedAreaId)) {
+      setSelectedAreaId(areas.data[0]?.id ?? 'sem-area');
     }
   }, [areas.data, selectedAreaId]);
 
-  const recorrentes = useProducaoRecorrentes(selectedAreaId ?? undefined);
+  const isSemArea = selectedAreaId === 'sem-area';
+  const recorrentes = useProducaoRecorrentes(
+    isSemArea ? undefined : (selectedAreaId ?? undefined),
+    { semArea: isSemArea },
+  );
   const [tarefaModal, setTarefaModal] = useState<{ open: boolean; tarefa?: ProducaoRecorrente }>({ open: false });
   const [confirmDelTarefa, setConfirmDelTarefa] = useState<ProducaoRecorrente | null>(null);
 
@@ -61,7 +70,7 @@ export default function CronogramaPage() {
     })();
   }, [user?.id]);
 
-  const areaSel = areas.data?.find((a) => a.id === selectedAreaId) ?? null;
+  const areaSel = !isSemArea ? areas.data?.find((a) => a.id === selectedAreaId) ?? null : null;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -72,7 +81,7 @@ export default function CronogramaPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-display">Cronograma</h1>
-            <p className="text-sm text-muted-foreground">Áreas do negócio e tarefas que se repetem semanalmente.</p>
+            <p className="text-sm text-muted-foreground">Áreas do negócio e tarefas que se repetem semanalmente. Áreas são opcionais.</p>
           </div>
         </div>
         <Button onClick={() => setAreaModal({ open: true })}>
@@ -82,21 +91,10 @@ export default function CronogramaPage() {
 
       {areas.isLoading ? (
         <div className="text-muted-foreground text-sm">Carregando...</div>
-      ) : !areas.data?.length ? (
-        <Card className="p-12 text-center rounded-2xl">
-          <Palette className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-base font-medium">Nenhuma área criada</p>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">
-            Crie áreas como "Frios", "Quentes", "Confeitaria" para organizar seu cronograma.
-          </p>
-          <Button onClick={() => setAreaModal({ open: true })}>
-            <Plus className="h-4 w-4 mr-2" /> Criar primeira área
-          </Button>
-        </Card>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            {areas.data.map((a) => (
+            {areas.data?.map((a) => (
               <button
                 key={a.id}
                 onClick={() => setSelectedAreaId(a.id)}
@@ -112,54 +110,79 @@ export default function CronogramaPage() {
                 <span className="font-medium">{a.nome}</span>
               </button>
             ))}
+            <button
+              onClick={() => setSelectedAreaId('sem-area')}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed text-sm transition-all',
+                isSemArea ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted'
+              )}
+            >
+              <Link2Off className="h-3.5 w-3.5" />
+              <span className="font-medium">Sem área</span>
+            </button>
           </div>
 
-          {areaSel && (
-            <Card className="rounded-2xl p-4 md:p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: areaSel.cor }} />
-                  <h2 className="text-lg font-semibold">{areaSel.nome}</h2>
-                  <Badge variant="secondary" className="rounded-full">
-                    {recorrentes.data?.length ?? 0} tarefas
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setAreaModal({ open: true, area: areaSel })}>
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmDelArea(areaSel)} className="text-destructive hover:text-destructive">
-                    <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
-                  </Button>
-                  <Button size="sm" onClick={() => setTarefaModal({ open: true })}>
-                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Nova tarefa
-                  </Button>
-                </div>
+          <Card className="rounded-2xl p-4 md:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {areaSel ? (
+                  <>
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: areaSel.cor }} />
+                    <h2 className="text-lg font-semibold">{areaSel.nome}</h2>
+                  </>
+                ) : (
+                  <>
+                    <Link2Off className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-lg font-semibold">Sem área</h2>
+                  </>
+                )}
+                <Badge variant="secondary" className="rounded-full">
+                  {recorrentes.data?.length ?? 0} tarefas
+                </Badge>
               </div>
+              <div className="flex items-center gap-2">
+                {areaSel && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => setAreaModal({ open: true, area: areaSel })}>
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setConfirmDelArea(areaSel)} className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
+                    </Button>
+                  </>
+                )}
+                <Button size="sm" onClick={() => setTarefaModal({ open: true })}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Nova tarefa
+                </Button>
+              </div>
+            </div>
 
-              {recorrentes.isLoading ? (
-                <div className="text-sm text-muted-foreground">Carregando...</div>
-              ) : !recorrentes.data?.length ? (
-                <div className="text-center py-12 border border-dashed rounded-xl">
-                  <Repeat className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma tarefa recorrente nesta área.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {recorrentes.data.map((t) => (
-                    <TarefaRecorrenteCard
-                      key={t.id}
-                      tarefa={t}
-                      onEdit={() => setTarefaModal({ open: true, tarefa: t })}
-                      onDelete={() => setConfirmDelTarefa(t)}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
+            {recorrentes.isLoading ? (
+              <div className="text-sm text-muted-foreground">Carregando...</div>
+            ) : !recorrentes.data?.length ? (
+              <div className="text-center py-12 border border-dashed rounded-xl">
+                <Repeat className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {isSemArea ? 'Nenhuma tarefa recorrente sem área.' : 'Nenhuma tarefa recorrente nesta área.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {recorrentes.data.map((t) => (
+                  <TarefaRecorrenteCard
+                    key={t.id}
+                    tarefa={t}
+                    onEdit={() => setTarefaModal({ open: true, tarefa: t })}
+                    onDelete={() => setConfirmDelTarefa(t)}
+                  />
+                ))}
+              </div>
+            )}
+          </Card>
         </>
       )}
+
+
 
       <AreaModal
         open={areaModal.open}
@@ -175,21 +198,21 @@ export default function CronogramaPage() {
         }}
       />
 
-      {areaSel && (
-        <RecorrenteModal
-          open={tarefaModal.open}
-          tarefa={tarefaModal.tarefa}
-          areaId={areaSel.id}
-          funcionarios={funcionarios}
-          receitas={receitas}
-          onClose={() => setTarefaModal({ open: false })}
-          onSave={async (v) => {
-            if (tarefaModal.tarefa) await recorrentes.atualizar.mutateAsync({ id: tarefaModal.tarefa.id, ...v });
-            else await recorrentes.criar.mutateAsync(v);
-            setTarefaModal({ open: false });
-          }}
-        />
-      )}
+      <RecorrenteModal
+        open={tarefaModal.open}
+        tarefa={tarefaModal.tarefa}
+        areaIdAtual={isSemArea ? null : (selectedAreaId as string | null)}
+        areas={areas.data ?? []}
+        funcionarios={funcionarios}
+        receitas={receitas}
+        onClose={() => setTarefaModal({ open: false })}
+        onSave={async (v) => {
+          if (tarefaModal.tarefa) await recorrentes.atualizar.mutateAsync({ id: tarefaModal.tarefa.id, ...v });
+          else await recorrentes.criar.mutateAsync(v);
+          setTarefaModal({ open: false });
+        }}
+      />
+
 
       <AlertDialog open={!!confirmDelArea} onOpenChange={(o) => !o && setConfirmDelArea(null)}>
         <AlertDialogContent>
@@ -341,16 +364,18 @@ function AreaModal({ open, area, onClose, onSave }: {
 /* ---------------- Recorrente Modal ---------------- */
 
 function RecorrenteModal({
-  open, tarefa, areaId, funcionarios, receitas, onClose, onSave,
+  open, tarefa, areaIdAtual, areas, funcionarios, receitas, onClose, onSave,
 }: {
   open: boolean;
   tarefa?: ProducaoRecorrente;
-  areaId: string;
+  areaIdAtual: string | null;
+  areas: ProducaoArea[];
   funcionarios: FuncOpt[];
   receitas: ReceitaOpt[];
   onClose: () => void;
   onSave: (v: RecorrenteInput) => void;
 }) {
+  const [areaId, setAreaId] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
   const [receitaId, setReceitaId] = useState('');
@@ -364,6 +389,7 @@ function RecorrenteModal({
 
   useEffect(() => {
     if (!open) return;
+    setAreaId(tarefa ? (tarefa.area_id ?? null) : areaIdAtual);
     setTitulo(tarefa?.titulo ?? '');
     setVincularReceita(!!tarefa?.receita_id);
     setReceitaId(tarefa?.receita_id ?? '');
@@ -373,7 +399,7 @@ function RecorrenteModal({
     setHoraInicio(tarefa?.hora_inicio?.slice(0, 5) ?? '');
     setHoraFim(tarefa?.hora_fim?.slice(0, 5) ?? '');
     setObservacoes(tarefa?.observacoes ?? '');
-  }, [open, tarefa]);
+  }, [open, tarefa, areaIdAtual]);
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
   const canSave = !!titulo.trim() && !!funcionarioId && diasSemana.length > 0 && (!vincularReceita || !!receitaId);
@@ -403,6 +429,26 @@ function RecorrenteModal({
           <DialogTitle>{tarefa ? 'Editar tarefa recorrente' : 'Nova tarefa recorrente'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div>
+            <Label>Área</Label>
+            <Select value={areaId ?? '__none__'} onValueChange={(v) => setAreaId(v === '__none__' ? null : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">
+                  <span className="inline-flex items-center gap-2"><Link2Off className="h-3.5 w-3.5" /> Sem área</span>
+                </SelectItem>
+                {areas.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: a.cor }} />
+                      {a.nome}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <Label>Título *</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Assar bolos" autoFocus />
