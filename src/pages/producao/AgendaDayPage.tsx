@@ -74,6 +74,41 @@ export default function AgendaDayPage() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
+  // Materialize recurring tasks for this weekday if not already created
+  useEffect(() => {
+    if (materialized || weekday === null || !user?.id || !dataStr) return;
+    if (!recorrentes.length) { setMaterialized(true); return; }
+    const doDay = recorrentes.filter((r) => (r.dias_semana ?? []).includes(weekday));
+    if (!doDay.length) { setMaterialized(true); return; }
+    (async () => {
+      const { data: existentes } = await supabase
+        .from('producao_tarefas')
+        .select('recorrente_id')
+        .eq('user_id', user.id)
+        .eq('data_producao', dataStr)
+        .not('recorrente_id', 'is', null);
+      const jaCriados = new Set((existentes ?? []).map((e: any) => e.recorrente_id));
+      const paraCriar = doDay.filter((r) => !jaCriados.has(r.id));
+      for (const r of paraCriar) {
+        const inicio = r.hora_inicio ? new Date(`${dataStr}T${r.hora_inicio}`).toISOString() : null;
+        const fim = r.hora_fim ? new Date(`${dataStr}T${r.hora_fim}`).toISOString() : null;
+        await criar.mutateAsync({
+          titulo: r.titulo,
+          funcionario_id: r.funcionario_id,
+          receita_id: r.receita_id ?? null,
+          quantidade: r.quantidade ?? null,
+          observacoes: r.observacoes ?? null,
+          area_id: r.area_id ?? null,
+          recorrente_id: r.id,
+          inicio_previsto: inicio,
+          fim_previsto: fim,
+        } as any);
+      }
+      setMaterialized(true);
+    })();
+  }, [materialized, weekday, recorrentes, user?.id, dataStr, criar]);
+
+
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const tarefa = tarefas.find((t) => t.id === e.active.id);
