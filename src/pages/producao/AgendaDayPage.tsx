@@ -50,10 +50,15 @@ export default function AgendaDayPage() {
   const dataStr = date ?? '';
 
   const { data: tarefas = [], isLoading, criar, mover, remover } = useProducaoTarefas(dataStr);
+  const { data: areas = [] } = useProducaoAreas();
+  const weekday = parsedDate ? parsedDate.getDay() : null;
+  const { data: recorrentes = [] } = useProducaoRecorrentes();
+  const [selectedAreaFilter, setSelectedAreaFilter] = useState<string | 'todas' | 'sem'>('todas');
   const [modalOpen, setModalOpen] = useState(false);
   const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [materialized, setMaterialized] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
