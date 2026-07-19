@@ -43,8 +43,8 @@ export function useProducaoTarefas(dataProducao: string) {
         .from('producao_tarefas')
         .select(`
           *,
-          receita:receitas(id, nome, imagem_url),
-          funcionario:folha_pagamento(id, nome, cargo),
+          receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url),
+          funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
           historico:producao_tarefas_historico(id, de_status, para_status, movido_em)
         `)
         .eq('user_id', user!.id)
