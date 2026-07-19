@@ -20,10 +20,13 @@ export interface ProducaoTarefa {
   fim_previsto: string | null;
   iniciado_em: string | null;
   concluido_em: string | null;
+  area_id: string | null;
+  recorrente_id: string | null;
   created_at: string;
   updated_at: string;
   receita?: { id: string; nome: string; imagem_url: string | null } | null;
   funcionario?: { id: string; nome: string; cargo: string | null } | null;
+  area?: { id: string; nome: string; cor: string } | null;
   historico?: Array<{
     id: string;
     de_status: ProducaoStatus | null;
@@ -47,6 +50,7 @@ export function useProducaoTarefas(dataProducao: string) {
           *,
           receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url),
           funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
+          area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor),
           historico:producao_tarefas_historico(id, de_status, para_status, movido_em)
         `)
         .eq('user_id', user!.id)
@@ -66,6 +70,8 @@ export function useProducaoTarefas(dataProducao: string) {
       observacoes?: string | null;
       inicio_previsto?: string | null;
       fim_previsto?: string | null;
+      area_id?: string | null;
+      recorrente_id?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('producao_tarefas')
@@ -79,6 +85,8 @@ export function useProducaoTarefas(dataProducao: string) {
           observacoes: input.observacoes ?? null,
           inicio_previsto: input.inicio_previsto ?? null,
           fim_previsto: input.fim_previsto ?? null,
+          area_id: input.area_id ?? null,
+          recorrente_id: input.recorrente_id ?? null,
           status: 'a_fazer',
           ordem: (query.data?.filter((t) => t.status === 'a_fazer').length ?? 0),
         })

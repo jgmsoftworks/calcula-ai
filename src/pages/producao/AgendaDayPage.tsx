@@ -25,6 +25,8 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useProducaoTarefas, ProducaoStatus, ProducaoTarefa } from '@/hooks/useProducaoTarefas';
+import { useProducaoAreas } from '@/hooks/useProducaoAreas';
+import { useProducaoRecorrentes } from '@/hooks/useProducaoRecorrentes';
 import { formatTimeBrasilia } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -48,10 +50,15 @@ export default function AgendaDayPage() {
   const dataStr = date ?? '';
 
   const { data: tarefas = [], isLoading, criar, mover, remover } = useProducaoTarefas(dataStr);
+  const { data: areas = [] } = useProducaoAreas();
+  const weekday = parsedDate ? parsedDate.getDay() : null;
+  const { data: recorrentes = [] } = useProducaoRecorrentes();
+  const [selectedAreaFilter, setSelectedAreaFilter] = useState<string | 'todas' | 'sem'>('todas');
   const [modalOpen, setModalOpen] = useState(false);
   const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [materialized, setMaterialized] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -66,6 +73,41 @@ export default function AgendaDayPage() {
   }, [user?.id]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  // Materialize recurring tasks for this weekday if not already created
+  useEffect(() => {
+    if (materialized || weekday === null || !user?.id || !dataStr) return;
+    if (!recorrentes.length) { setMaterialized(true); return; }
+    const doDay = recorrentes.filter((r) => (r.dias_semana ?? []).includes(weekday));
+    if (!doDay.length) { setMaterialized(true); return; }
+    (async () => {
+      const { data: existentes } = await supabase
+        .from('producao_tarefas')
+        .select('recorrente_id')
+        .eq('user_id', user.id)
+        .eq('data_producao', dataStr)
+        .not('recorrente_id', 'is', null);
+      const jaCriados = new Set((existentes ?? []).map((e: any) => e.recorrente_id));
+      const paraCriar = doDay.filter((r) => !jaCriados.has(r.id));
+      for (const r of paraCriar) {
+        const inicio = r.hora_inicio ? new Date(`${dataStr}T${r.hora_inicio}`).toISOString() : null;
+        const fim = r.hora_fim ? new Date(`${dataStr}T${r.hora_fim}`).toISOString() : null;
+        await criar.mutateAsync({
+          titulo: r.titulo,
+          funcionario_id: r.funcionario_id,
+          receita_id: r.receita_id ?? null,
+          quantidade: r.quantidade ?? null,
+          observacoes: r.observacoes ?? null,
+          area_id: r.area_id ?? null,
+          recorrente_id: r.id,
+          inicio_previsto: inicio,
+          fim_previsto: fim,
+        } as any);
+      }
+      setMaterialized(true);
+    })();
+  }, [materialized, weekday, recorrentes, user?.id, dataStr, criar]);
+
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
@@ -152,13 +194,48 @@ export default function AgendaDayPage() {
         </div>
       </div>
 
+      {areas.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedAreaFilter('todas')}
+            className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              selectedAreaFilter === 'todas' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
+          >Todas ({tarefas.length})</button>
+          {areas.map((a) => {
+            const count = tarefas.filter((t) => t.area_id === a.id).length;
+            const on = selectedAreaFilter === a.id;
+            return (
+              <button key={a.id} onClick={() => setSelectedAreaFilter(a.id)}
+                className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5',
+                  on ? 'text-white border-transparent' : 'bg-card hover:bg-muted')}
+                style={on ? { backgroundColor: a.cor } : {}}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: on ? 'rgba(255,255,255,0.9)' : a.cor }} />
+                {a.nome} ({count})
+              </button>
+            );
+          })}
+          {tarefas.some((t) => !t.area_id) && (
+            <button onClick={() => setSelectedAreaFilter('sem')}
+              className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                selectedAreaFilter === 'sem' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
+            >Sem área ({tarefas.filter((t) => !t.area_id).length})</button>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="p-8 text-center text-muted-foreground">Carregando...</div>
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COLUNAS.map((col) => {
-              const itens = tarefas.filter((t) => t.status === col.id);
+              const itens = tarefas.filter((t) => {
+                if (t.status !== col.id) return false;
+                if (selectedAreaFilter === 'todas') return true;
+                if (selectedAreaFilter === 'sem') return !t.area_id;
+                return t.area_id === selectedAreaFilter;
+              });
               return <Coluna key={col.id} col={col} itens={itens} onRemove={(id) => remover.mutate(id)} />;
             })}
           </div>
@@ -173,9 +250,11 @@ export default function AgendaDayPage() {
         onOpenChange={setModalOpen}
         funcionarios={funcionarios}
         receitas={receitas}
+        areas={areas}
         dataStr={dataStr}
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
       />
+
     </div>
   );
 }
@@ -231,7 +310,10 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold leading-tight">{tarefa.titulo}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {tarefa.area?.cor && <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tarefa.area.cor }} title={tarefa.area?.nome} />}
+          <p className="text-sm font-semibold leading-tight truncate">{tarefa.titulo}</p>
+        </div>
         <button
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
@@ -283,20 +365,22 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
 /* ---------------- Modal ---------------- */
 
 function NovaTarefaModal({
-  open, onOpenChange, funcionarios, receitas, onCreate, dataStr,
+  open, onOpenChange, funcionarios, receitas, areas, onCreate, dataStr,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   funcionarios: FuncOpt[];
   receitas: ReceitaOpt[];
+  areas: { id: string; nome: string; cor: string }[];
   dataStr: string;
-  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null }) => void;
+  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null; area_id?: string | null }) => void;
 }) {
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
   const [receitaId, setReceitaId] = useState('');
   const [quantidade, setQuantidade] = useState<number>(1);
   const [funcionarioId, setFuncionarioId] = useState('');
+  const [areaId, setAreaId] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
   const [inicioPrev, setInicioPrev] = useState('');
   const [fimPrev, setFimPrev] = useState('');
@@ -305,14 +389,14 @@ function NovaTarefaModal({
   useEffect(() => {
     if (!open) {
       setTitulo(''); setVincularReceita(false); setReceitaId('');
-      setQuantidade(1); setFuncionarioId(''); setObservacoes('');
+      setQuantidade(1); setFuncionarioId(''); setAreaId(''); setObservacoes('');
       setInicioPrev(''); setFimPrev('');
     } else {
-      // pré-preenche a data do dia (sem hora) para agilizar
       setInicioPrev(`${dataStr}T08:00`);
       setFimPrev(`${dataStr}T10:00`);
     }
   }, [open, dataStr]);
+
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
   const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || !!receitaId);
@@ -331,6 +415,7 @@ function NovaTarefaModal({
       observacoes: observacoes.trim() || null,
       inicio_previsto: inicioPrev ? new Date(inicioPrev).toISOString() : null,
       fim_previsto: fimPrev ? new Date(fimPrev).toISOString() : null,
+      area_id: areas.length > 0 && areaId ? areaId : null,
     });
   };
 
@@ -416,6 +501,27 @@ function NovaTarefaModal({
               </Select>
             )}
           </div>
+
+          {areas.length > 0 && (
+            <div>
+              <Label>Área</Label>
+              <Select value={areaId} onValueChange={setAreaId}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma área (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  {areas.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: a.cor }} />
+                        {a.nome}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+
 
           <div className="grid grid-cols-2 gap-3">
             <div>
