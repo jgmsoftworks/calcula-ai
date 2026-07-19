@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   addMonths,
   eachDayOfInterval,
@@ -13,7 +14,16 @@ import {
   subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
