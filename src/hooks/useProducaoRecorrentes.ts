@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 export interface ProducaoRecorrente {
   id: string;
   user_id: string;
-  area_id: string;
+  area_id: string | null;
   titulo: string;
   receita_id: string | null;
   quantidade: number | null;
@@ -26,7 +26,7 @@ export interface ProducaoRecorrente {
 }
 
 export interface RecorrenteInput {
-  area_id: string;
+  area_id: string | null;
   titulo: string;
   funcionario_id: string;
   receita_id?: string | null;
@@ -39,10 +39,11 @@ export interface RecorrenteInput {
   observacoes?: string | null;
 }
 
-export function useProducaoRecorrentes(areaId?: string) {
+export function useProducaoRecorrentes(areaId?: string | null, opts?: { semArea?: boolean }) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const key = ['producao-recorrentes', user?.id, areaId ?? 'all'];
+  const scope = opts?.semArea ? 'sem-area' : (areaId ?? 'all');
+  const key = ['producao-recorrentes', user?.id, scope];
 
   const query = useQuery({
     queryKey: key,
@@ -59,7 +60,8 @@ export function useProducaoRecorrentes(areaId?: string) {
         .eq('user_id', user!.id)
         .eq('ativo', true)
         .order('created_at', { ascending: true });
-      if (areaId) q = q.eq('area_id', areaId);
+      if (opts?.semArea) q = q.is('area_id', null);
+      else if (areaId) q = q.eq('area_id', areaId);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as unknown as ProducaoRecorrente[];
