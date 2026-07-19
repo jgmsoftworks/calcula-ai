@@ -251,6 +251,16 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
         <UserIcon className="h-3.5 w-3.5" />
         <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
       </div>
+      {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
+          <Clock className="h-3 w-3 text-primary" />
+          <span className="truncate">
+            {tarefa.inicio_previsto ? format(new Date(tarefa.inicio_previsto), "dd/MM HH:mm") : '—'}
+            {' → '}
+            {tarefa.fim_previsto ? format(new Date(tarefa.fim_previsto), "dd/MM HH:mm") : '—'}
+          </span>
+        </div>
+      )}
       {(tarefa.iniciado_em || tarefa.concluido_em) && (
         <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40">
           {tarefa.iniciado_em && (
