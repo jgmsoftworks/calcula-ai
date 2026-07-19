@@ -412,6 +412,7 @@ function NovaTarefaModal({
       observacoes: observacoes.trim() || null,
       inicio_previsto: inicioPrev ? new Date(inicioPrev).toISOString() : null,
       fim_previsto: fimPrev ? new Date(fimPrev).toISOString() : null,
+      area_id: areas.length > 0 && areaId ? areaId : null,
     });
   };
 
