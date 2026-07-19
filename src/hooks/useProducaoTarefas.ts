@@ -16,6 +16,8 @@ export interface ProducaoTarefa {
   status: ProducaoStatus;
   observacoes: string | null;
   ordem: number;
+  inicio_previsto: string | null;
+  fim_previsto: string | null;
   iniciado_em: string | null;
   concluido_em: string | null;
   created_at: string;
