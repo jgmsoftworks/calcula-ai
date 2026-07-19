@@ -173,6 +173,7 @@ export default function AgendaDayPage() {
         onOpenChange={setModalOpen}
         funcionarios={funcionarios}
         receitas={receitas}
+        dataStr={dataStr}
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
       />
     </div>
