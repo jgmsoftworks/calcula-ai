@@ -55,6 +55,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/precificacao/despesas-fixas': 'precificacao',
       '/precificacao/folha-pagamento': 'precificacao',
       '/precificacao/encargos-venda': 'precificacao',
+      '/producao/agenda': 'receitas',
       '/perfil': 'perfil',
       '/receitas': 'receitas',
       '/planos': 'planos',
@@ -67,6 +68,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         '/estoque/perdas': 'Perdas',
         '/relatorios/estoque': 'Relatórios de Estoque',
         '/relatorios/perdas': 'Relatórios de Perdas',
+        '/producao/agenda': 'Agenda de Produção',
       };
       return {
         title: titleMap[pathname] || t(`pages.${key}.title`),

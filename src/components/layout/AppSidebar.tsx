@@ -23,6 +23,8 @@ import {
   BarChart3,
   Receipt,
   Percent,
+  CalendarDays,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -78,6 +80,14 @@ export function AppSidebar() {
       ],
     },
     { title: t('nav.receitas'), url: '/receitas', icon: ChefHat },
+    {
+      title: 'Produção',
+      url: '/producao',
+      icon: CalendarDays,
+      children: [
+        { title: 'Agenda', url: '/producao/agenda', icon: CalendarIcon },
+      ],
+    },
     {
       title: 'Relatórios',
       url: '/relatorios',
