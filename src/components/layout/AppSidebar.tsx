@@ -206,17 +206,18 @@ export function AppSidebar() {
                         to={item.url}
                         end={item.url === '/'}
                         className={`
-                          relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                          relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                           transition-all duration-200 group
                           ${active
                             ? 'bg-primary text-primary-foreground shadow-brand'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                           }
+                          ${item.highlight && !active ? 'sidebar-shimmer ring-1 ring-primary/20' : ''}
                           ${isCollapsed ? 'justify-center px-2' : ''}
                         `}
                       >
-                        <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${active ? '' : 'group-hover:text-primary'} transition-colors`} />
-                        {!isCollapsed && <span>{item.title}</span>}
+                        <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${active ? '' : 'group-hover:text-primary'} ${item.highlight && !active ? 'text-primary' : ''} transition-colors`} />
+                        {!isCollapsed && <span className="relative z-10">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
