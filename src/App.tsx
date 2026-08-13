@@ -30,6 +30,7 @@ import Receitas from "./pages/Receitas";
 import AgendaPage from "./pages/producao/AgendaPage";
 import AgendaDayPage from "./pages/producao/AgendaDayPage";
 import CronogramaPage from "./pages/producao/CronogramaPage";
+import ProducaoCompartilhadaPage from "./pages/producao/ProducaoCompartilhadaPage";
 import Planos from "./pages/Planos";
 import PerfilNegocio from "./pages/PerfilNegocio";
 import AdminUsers from "./pages/AdminUsers";
@@ -81,6 +82,7 @@ const App = () => (
                 <Route path="/aff/:code" element={<AffiliateRedirect />} />
                 <Route path="/affiliate/:code" element={<AffiliatePlanSelector />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/producao-compartilhada/:token" element={<ProducaoCompartilhadaPage />} />
                 <Route element={<AppLayoutRoute />}>
                   <Route path="/afiliados" element={<Afiliados />} />
                   <Route path="/admin/usuarios" element={<AdminUsers />} />

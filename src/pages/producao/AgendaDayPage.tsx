@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2,
+  ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2, Share2, Copy, Link2 as Link2Icon, Loader2,
   CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off,
 } from 'lucide-react';
 import {
@@ -55,6 +55,10 @@ export default function AgendaDayPage() {
   const { data: recorrentes = [] } = useProducaoRecorrentes();
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string | 'todas' | 'sem'>('todas');
   const [modalOpen, setModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareExpiresAt, setShareExpiresAt] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
   const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -121,6 +125,40 @@ export default function AgendaDayPage() {
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
 
+  const generateShareLink = async () => {
+    setShareLoading(true);
+    const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
+      body: { action: 'create', date: dataStr },
+    });
+    if (error || data?.error) {
+      toast({ title: 'Erro ao gerar link', description: data?.error ?? error?.message, variant: 'destructive' });
+    } else {
+      setShareUrl(`${window.location.origin}/producao-compartilhada/${data.token}`);
+      setShareExpiresAt(data.expiresAt);
+      toast({ title: 'Link gerado por 24 horas' });
+    }
+    setShareLoading(false);
+  };
+
+  const revokeShareLink = async () => {
+    setShareLoading(true);
+    const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
+      body: { action: 'revoke', date: dataStr },
+    });
+    if (error || data?.error) toast({ title: 'Erro ao revogar link', description: data?.error ?? error?.message, variant: 'destructive' });
+    else {
+      setShareUrl('');
+      setShareExpiresAt('');
+      toast({ title: 'Link revogado' });
+    }
+    setShareLoading(false);
+  };
+
+  const copyShareLink = async () => {
+    await navigator.clipboard.writeText(shareUrl);
+    toast({ title: 'Link copiado' });
+  };
+
   const imprimir = () => {
     if (!parsedDate) return;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -185,6 +223,9 @@ export default function AgendaDayPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShareModalOpen(true)} disabled={!tarefas.length}>
+            <Share2 className="h-4 w-4 mr-2" /> Compartilhar dia
+          </Button>
           <Button variant="outline" onClick={imprimir} disabled={!tarefas.length}>
             <Printer className="h-4 w-4 mr-2" /> Imprimir
           </Button>
@@ -254,6 +295,38 @@ export default function AgendaDayPage() {
         dataStr={dataStr}
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
       />
+
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Compartilhar produção do dia</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+              Quem receber o link poderá visualizar as tarefas, filtrar por responsável e apenas avançar de <strong>A fazer</strong> para <strong>Em produção</strong> e depois para <strong>Feito</strong>. O link expira em 24 horas.
+            </div>
+            {shareUrl ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Link temporário</Label>
+                  <div className="flex gap-2">
+                    <Input value={shareUrl} readOnly className="text-xs" />
+                    <Button size="icon" variant="outline" onClick={copyShareLink} aria-label="Copiar link"><Copy className="h-4 w-4" /></Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Válido até {format(new Date(shareExpiresAt), 'dd/MM/yyyy HH:mm')}.</p>
+                </div>
+                <Button variant="destructive" className="w-full" onClick={revokeShareLink} disabled={shareLoading}>
+                  {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Revogar link agora'}
+                </Button>
+              </>
+            ) : (
+              <Button className="w-full" onClick={generateShareLink} disabled={shareLoading}>
+                {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Link2Icon className="mr-2 h-4 w-4" />Gerar link válido por 24 horas</>}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
