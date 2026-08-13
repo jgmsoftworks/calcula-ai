@@ -22,7 +22,6 @@ import {
   TrendingUp,
   Trophy,
   PieChart,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +29,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-import heroSceneImg from '@/assets/auth-hero-scene.jpg';
+import heroSceneImg from '@/assets/auth-hero-calcula-ai.png';
+import desktopHeroSceneImg from '@/assets/auth-hero-calcula-ai-desktop.png';
 
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
@@ -248,7 +248,7 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen m-0 p-0 overflow-hidden bg-[#f7f9fc]">
+    <div className="relative w-full min-h-screen m-0 p-0 overflow-hidden bg-[#f5f6ff]">
       {/* Fundo decorativo suave */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
@@ -270,27 +270,38 @@ const Auth = () => {
       </div>
 
       {/* ============ AUTH — centralizado ============ */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
-        <div className="relative w-full max-w-[480px] space-y-5 animate-fade-in">
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-3 sm:p-6 lg:p-8">
+        <div className="relative grid w-full max-w-[1180px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="relative h-[225px] overflow-hidden bg-[#10075f] sm:h-[285px] lg:hidden" aria-hidden="true">
+            <img
+              src={heroSceneImg}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-[58%_42%]"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
+          </div>
+
+          <section className="flex flex-col justify-center px-5 pb-8 pt-3 sm:px-10 sm:pb-10 sm:pt-4 lg:min-h-[720px] lg:px-14 lg:py-8 xl:px-16">
+            <div className="mx-auto w-full max-w-[430px] space-y-5">
 
             {/* Logo */}
             <div className="flex justify-center">
               <img
                 src="/assets/logo-calculaai.png"
                 alt="CalculaAi"
-                className="h-14 lg:h-16 w-auto"
+                className="h-12 sm:h-14 w-auto"
               />
             </div>
-            <p className="text-sm text-muted-foreground text-center -mt-2">
+            <p className="text-center text-sm text-muted-foreground -mt-2">
               {t('auth.smartPricing')}
             </p>
 
 
             {/* Auth Card */}
-            <Card className="bg-card/98 backdrop-blur-xl shadow-elevated border border-white/70 rounded-[28px] overflow-hidden">
-              <div className="brand-line" />
+            <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_18px_55px_-35px_rgba(20,25,60,0.45)]">
+              <div className="h-1 bg-gradient-brand-horizontal" />
 
-              <CardContent className="p-6 sm:p-8">
+              <CardContent className="p-5 sm:p-7">
                 {showForgotPassword ? (
                   <div className="space-y-5 animate-fade-in">
                     <div className="text-center space-y-2">
@@ -402,7 +413,7 @@ const Auth = () => {
             </Card>
 
             {/* Trust indicators */}
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground lg:justify-start">
               <div className="flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5 text-primary" />
                 <span>{t('auth.secureData')}</span>
@@ -417,9 +428,19 @@ const Auth = () => {
               </div>
             </div>
 
-            <p className="text-center text-[11px] text-muted-foreground/60">
+            <p className="text-center text-[11px] text-muted-foreground/60 lg:text-left">
               {t('auth.copyright')}
             </p>
+            </div>
+          </section>
+
+          <aside className="relative hidden min-h-[720px] overflow-hidden bg-[#fff7f1] lg:block" aria-label="Visão do CalculaAi para negócios de alimentação">
+            <img
+              src={desktopHeroSceneImg}
+              alt="Confeiteira usando o CalculaAi para acompanhar preços e resultados"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+          </aside>
         </div>
       </div>
     </div>
