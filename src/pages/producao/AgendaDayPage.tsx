@@ -4,7 +4,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2, Share2, Copy, Link2 as Link2Icon, Loader2,
-  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off,
+  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off, Download,
 } from 'lucide-react';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
@@ -30,6 +30,7 @@ import { useProducaoRecorrentes } from '@/hooks/useProducaoRecorrentes';
 import { formatTimeBrasilia } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 import { toast } from '@/hooks/use-toast';
 
 const COLUNAS: { id: ProducaoStatus; label: string; icon: any; color: string }[] = [
@@ -58,6 +59,7 @@ export default function AgendaDayPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [shareExpiresAt, setShareExpiresAt] = useState('');
+  const [shareQrCode, setShareQrCode] = useState('');
   const [shareLoading, setShareLoading] = useState(false);
   const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
@@ -77,6 +79,43 @@ export default function AgendaDayPage() {
   }, [user?.id]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const shareStorageKey = user?.id && dataStr ? `producao-share:${user.id}:${dataStr}` : '';
+
+  useEffect(() => {
+    if (!shareStorageKey) return;
+    const restoreShareLink = async () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(shareStorageKey) ?? 'null') as { url?: string; expiresAt?: string } | null;
+        if (!saved?.url || !saved.expiresAt || new Date(saved.expiresAt) <= new Date()) {
+          localStorage.removeItem(shareStorageKey);
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
+          body: { action: 'status', date: dataStr },
+        });
+        if (!error && data?.active) {
+          setShareUrl(saved.url);
+          setShareExpiresAt(saved.expiresAt);
+        } else {
+          localStorage.removeItem(shareStorageKey);
+        }
+      } catch {
+        localStorage.removeItem(shareStorageKey);
+      }
+    };
+    void restoreShareLink();
+  }, [shareStorageKey, dataStr]);
+
+  useEffect(() => {
+    if (!shareUrl) {
+      setShareQrCode('');
+      return;
+    }
+    QRCode.toDataURL(shareUrl, { width: 280, margin: 2, errorCorrectionLevel: 'M' })
+      .then(setShareQrCode)
+      .catch(() => setShareQrCode(''));
+  }, [shareUrl]);
 
   // Materialize recurring tasks for this weekday if not already created
   useEffect(() => {
@@ -133,8 +172,10 @@ export default function AgendaDayPage() {
     if (error || data?.error) {
       toast({ title: 'Erro ao gerar link', description: data?.error ?? error?.message, variant: 'destructive' });
     } else {
-      setShareUrl(`${window.location.origin}/producao-compartilhada/${data.token}`);
+      const url = `${window.location.origin}/producao-compartilhada/${data.token}`;
+      setShareUrl(url);
       setShareExpiresAt(data.expiresAt);
+      if (shareStorageKey) localStorage.setItem(shareStorageKey, JSON.stringify({ url, expiresAt: data.expiresAt }));
       toast({ title: 'Link gerado por 24 horas' });
     }
     setShareLoading(false);
@@ -149,6 +190,7 @@ export default function AgendaDayPage() {
     else {
       setShareUrl('');
       setShareExpiresAt('');
+      if (shareStorageKey) localStorage.removeItem(shareStorageKey);
       toast({ title: 'Link revogado' });
     }
     setShareLoading(false);
@@ -157,6 +199,14 @@ export default function AgendaDayPage() {
   const copyShareLink = async () => {
     await navigator.clipboard.writeText(shareUrl);
     toast({ title: 'Link copiado' });
+  };
+
+  const downloadQrCode = () => {
+    if (!shareQrCode) return;
+    const anchor = document.createElement('a');
+    anchor.href = shareQrCode;
+    anchor.download = `producao-${dataStr}-qrcode.png`;
+    anchor.click();
   };
 
   const imprimir = () => {
@@ -315,6 +365,14 @@ export default function AgendaDayPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">Válido até {format(new Date(shareExpiresAt), 'dd/MM/yyyy HH:mm')}.</p>
                 </div>
+                {shareQrCode && (
+                  <div className="flex flex-col items-center gap-3 rounded-xl border bg-white p-4">
+                    <img src={shareQrCode} alt="QR Code do link temporário" className="h-52 w-52" />
+                    <Button variant="outline" size="sm" onClick={downloadQrCode}>
+                      <Download className="mr-2 h-4 w-4" /> Baixar QR Code
+                    </Button>
+                  </div>
+                )}
                 <Button variant="destructive" className="w-full" onClick={revokeShareLink} disabled={shareLoading}>
                   {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Revogar link agora'}
                 </Button>
