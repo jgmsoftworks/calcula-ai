@@ -4,7 +4,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2, Share2, Copy, Link2 as Link2Icon, Loader2,
-  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off, Download,
+  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off, Download, Info, Pencil, History,
 } from 'lucide-react';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
@@ -65,6 +65,7 @@ export default function AgendaDayPage() {
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [materialized, setMaterialized] = useState(false);
+  const [tarefaDetalhes, setTarefaDetalhes] = useState<ProducaoTarefa | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -331,14 +332,13 @@ export default function AgendaDayPage() {
                 key={col.id}
                 col={col}
                 itens={itens}
-                funcionarios={funcionarios}
-                onChangeFuncionario={(tarefaId, funcionarioId) => alterarResponsavel.mutate({ tarefaId, funcionarioId })}
+                onOpenDetails={setTarefaDetalhes}
                 onRemove={(id) => remover.mutate(id)}
               />;
             })}
           </div>
           <DragOverlay>
-            {activeTarefa ? <TarefaCard tarefa={activeTarefa} funcionarios={[]} onChangeFuncionario={() => {}} onRemove={() => {}} dragging readOnly /> : null}
+            {activeTarefa ? <TarefaCard tarefa={activeTarefa} onOpenDetails={() => {}} onRemove={() => {}} dragging readOnly /> : null}
           </DragOverlay>
         </DndContext>
       )}
@@ -351,6 +351,14 @@ export default function AgendaDayPage() {
         areas={areas}
         dataStr={dataStr}
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
+      />
+
+      <HistoricoTarefaModal
+        tarefa={tarefaDetalhes ? tarefas.find((t) => t.id === tarefaDetalhes.id) ?? tarefaDetalhes : null}
+        funcionarios={funcionarios}
+        open={!!tarefaDetalhes}
+        onOpenChange={(open) => { if (!open) setTarefaDetalhes(null); }}
+        onChangeFuncionario={(tarefa, funcionarioId) => alterarResponsavel.mutateAsync({ tarefa, funcionarioId })}
       />
 
       <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
@@ -400,12 +408,11 @@ export default function AgendaDayPage() {
 /* ---------------- Coluna ---------------- */
 
 function Coluna({
-  col, itens, funcionarios, onChangeFuncionario, onRemove,
+  col, itens, onOpenDetails, onRemove,
 }: {
   col: { id: ProducaoStatus; label: string; icon: any; color: string };
   itens: ProducaoTarefa[];
-  funcionarios: FuncOpt[];
-  onChangeFuncionario: (tarefaId: string, funcionarioId: string) => void;
+  onOpenDetails: (tarefa: ProducaoTarefa) => void;
   onRemove: (id: string) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: col.id });
@@ -430,8 +437,7 @@ function Coluna({
           <TarefaCard
             key={t.id}
             tarefa={t}
-            funcionarios={funcionarios}
-            onChangeFuncionario={(funcionarioId) => onChangeFuncionario(t.id, funcionarioId)}
+            onOpenDetails={() => onOpenDetails(t)}
             onRemove={() => onRemove(t.id)}
           />
         ))}
@@ -448,11 +454,10 @@ function Coluna({
 /* ---------------- Card ---------------- */
 
 function TarefaCard({
-  tarefa, funcionarios, onChangeFuncionario, onRemove, dragging, readOnly,
+  tarefa, onOpenDetails, onRemove, dragging, readOnly,
 }: {
   tarefa: ProducaoTarefa;
-  funcionarios: FuncOpt[];
-  onChangeFuncionario: (funcionarioId: string) => void;
+  onOpenDetails: () => void;
   onRemove: () => void;
   dragging?: boolean;
   readOnly?: boolean;
@@ -475,15 +480,29 @@ function TarefaCard({
           {tarefa.area?.cor && <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tarefa.area.cor }} title={tarefa.area?.nome} />}
           <p className="text-sm font-semibold leading-tight truncate">{tarefa.titulo}</p>
         </div>
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={onRemove}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-          aria-label="Remover"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        {!readOnly && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onOpenDetails}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+              aria-label="Ver histórico da tarefa"
+              title="Histórico e responsável"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onRemove}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              aria-label="Remover"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
       {tarefa.receita?.nome && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
@@ -491,28 +510,10 @@ function TarefaCard({
           <span className="truncate">{tarefa.receita.nome}{tarefa.quantidade ? ` × ${tarefa.quantidade}` : ''}</span>
         </div>
       )}
-      {readOnly ? (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-          <UserIcon className="h-3.5 w-3.5" />
-          <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
-        </div>
-      ) : (
-        <div className="mb-1.5" onPointerDown={(e) => e.stopPropagation()}>
-          <Select value={tarefa.funcionario_id} onValueChange={onChangeFuncionario}>
-            <SelectTrigger className="h-7 border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus:ring-0">
-              <span className="flex min-w-0 items-center gap-1.5">
-                <UserIcon className="h-3.5 w-3.5 shrink-0" />
-                <SelectValue placeholder="Selecionar responsável" />
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {funcionarios.map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+        <UserIcon className="h-3.5 w-3.5" />
+        <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
+      </div>
       {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
           <Clock className={cn('h-3 w-3 text-primary', atrasada && 'text-red-600')} />
@@ -543,6 +544,137 @@ function TarefaCard({
 }
 
 /* ---------------- Modal ---------------- */
+
+const STATUS_LABEL: Record<ProducaoStatus, string> = {
+  a_fazer: 'A fazer',
+  em_producao: 'Em produção',
+  feito: 'Feito',
+};
+
+function HistoricoTarefaModal({
+  tarefa, funcionarios, open, onOpenChange, onChangeFuncionario,
+}: {
+  tarefa: ProducaoTarefa | null;
+  funcionarios: FuncOpt[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChangeFuncionario: (tarefa: ProducaoTarefa, funcionarioId: string) => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [funcionarioId, setFuncionarioId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setEditing(false);
+    setFuncionarioId(tarefa?.funcionario_id ?? '');
+  }, [tarefa?.id, tarefa?.funcionario_id, open]);
+
+  if (!tarefa) return null;
+
+  const historico = [...(tarefa.historico ?? [])].sort(
+    (a, b) => new Date(b.movido_em).getTime() - new Date(a.movido_em).getTime(),
+  );
+  const nomeFuncionario = (id: string | null) => funcionarios.find((f) => f.id === id)?.nome ?? 'Responsável não encontrado';
+
+  const salvarResponsavel = async () => {
+    if (!funcionarioId || funcionarioId === tarefa.funcionario_id) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onChangeFuncionario(tarefa, funcionarioId);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="pr-8">{tarefa.titulo}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="rounded-xl border bg-muted/30 p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Responsável atual</p>
+                {!editing && <p className="mt-1 font-semibold">{tarefa.funcionario?.nome ?? '—'}</p>}
+              </div>
+              {!editing && (
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil className="mr-2 h-3.5 w-3.5" /> Editar
+                </Button>
+              )}
+            </div>
+
+            {editing && (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select value={funcionarioId} onValueChange={setFuncionarioId}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                  <SelectContent>
+                    {funcionarios.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => { setEditing(false); setFuncionarioId(tarefa.funcionario_id); }}>Cancelar</Button>
+                  <Button onClick={salvarResponsavel} disabled={saving || !funcionarioId}>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Histórico da tarefa</h3>
+              <Badge variant="secondary" className="ml-auto">{historico.length} registros</Badge>
+            </div>
+
+            <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
+              {historico.map((registro) => {
+                const trocaResponsavel = registro.evento_tipo === 'responsavel';
+                const descricao = trocaResponsavel
+                  ? `${nomeFuncionario(registro.funcionario_anterior_id)} → ${nomeFuncionario(registro.funcionario_novo_id)}`
+                  : registro.de_status
+                    ? `${STATUS_LABEL[registro.de_status]} → ${STATUS_LABEL[registro.para_status]}`
+                    : 'Tarefa criada em A fazer';
+                return (
+                  <div key={registro.id} className="flex gap-3 rounded-xl border p-3">
+                    <div className={cn(
+                      'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                      trocaResponsavel ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700',
+                    )}>
+                      {trocaResponsavel ? <UserIcon className="h-4 w-4" /> : <History className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{trocaResponsavel ? 'Responsável alterado' : 'Situação alterada'}</p>
+                      <p className="text-sm text-muted-foreground">{descricao}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {format(new Date(registro.movido_em), "dd/MM/yyyy 'às' HH:mm")}
+                        {registro.origem === 'link_compartilhado' ? ' • pelo link compartilhado' : ' • pelo aplicativo'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {!historico.length && (
+                <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhum registro encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function NovaTarefaModal({
   open, onOpenChange, funcionarios, receitas, areas, onCreate, dataStr,

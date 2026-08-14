@@ -32,6 +32,10 @@ export interface ProducaoTarefa {
     de_status: ProducaoStatus | null;
     para_status: ProducaoStatus;
     movido_em: string;
+    evento_tipo: 'status' | 'responsavel';
+    funcionario_anterior_id: string | null;
+    funcionario_novo_id: string | null;
+    origem: 'app' | 'link_compartilhado';
   }>;
 }
 
@@ -51,7 +55,10 @@ export function useProducaoTarefas(dataProducao: string) {
           receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url),
           funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
           area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor),
-          historico:producao_tarefas_historico(id, de_status, para_status, movido_em)
+          historico:producao_tarefas_historico(
+            id, de_status, para_status, movido_em, evento_tipo,
+            funcionario_anterior_id, funcionario_novo_id, origem
+          )
         `)
         .eq('user_id', user!.id)
         .eq('data_producao', dataProducao)
@@ -130,11 +137,12 @@ export function useProducaoTarefas(dataProducao: string) {
   });
 
   const alterarResponsavel = useMutation({
-    mutationFn: async ({ tarefaId, funcionarioId }: { tarefaId: string; funcionarioId: string }) => {
+    mutationFn: async ({ tarefa, funcionarioId }: { tarefa: ProducaoTarefa; funcionarioId: string }) => {
+      if (tarefa.funcionario_id === funcionarioId) return;
       const { error } = await supabase
         .from('producao_tarefas')
         .update({ funcionario_id: funcionarioId })
-        .eq('id', tarefaId)
+        .eq('id', tarefa.id)
         .eq('user_id', user!.id);
       if (error) throw error;
     },

@@ -1819,27 +1819,39 @@ export type Database = {
       producao_tarefas_historico: {
         Row: {
           de_status: Database["public"]["Enums"]["producao_status"] | null
+          evento_tipo: string
+          funcionario_anterior_id: string | null
+          funcionario_novo_id: string | null
           id: string
           movido_em: string
           movido_por: string | null
+          origem: string
           para_status: Database["public"]["Enums"]["producao_status"]
           tarefa_id: string
           user_id: string
         }
         Insert: {
           de_status?: Database["public"]["Enums"]["producao_status"] | null
+          evento_tipo?: string
+          funcionario_anterior_id?: string | null
+          funcionario_novo_id?: string | null
           id?: string
           movido_em?: string
           movido_por?: string | null
+          origem?: string
           para_status: Database["public"]["Enums"]["producao_status"]
           tarefa_id: string
           user_id: string
         }
         Update: {
           de_status?: Database["public"]["Enums"]["producao_status"] | null
+          evento_tipo?: string
+          funcionario_anterior_id?: string | null
+          funcionario_novo_id?: string | null
           id?: string
           movido_em?: string
           movido_por?: string | null
+          origem?: string
           para_status?: Database["public"]["Enums"]["producao_status"]
           tarefa_id?: string
           user_id?: string
