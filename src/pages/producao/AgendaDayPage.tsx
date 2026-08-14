@@ -430,6 +430,7 @@ function Coluna({
 
 function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; onRemove: () => void; dragging?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
+  const atrasada = tarefa.status !== 'feito' && Boolean(tarefa.fim_previsto) && new Date(tarefa.fim_previsto!).getTime() < Date.now();
   return (
     <div
       ref={setNodeRef}
@@ -437,6 +438,7 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
       {...attributes}
       className={cn(
         'group bg-card border rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing',
+        atrasada && 'border-red-300 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20',
         (isDragging || dragging) && 'opacity-60 rotate-1'
       )}
     >
@@ -467,12 +469,13 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
       </div>
       {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
-          <Clock className="h-3 w-3 text-primary" />
+          <Clock className={cn('h-3 w-3 text-primary', atrasada && 'text-red-600')} />
           <span className="truncate">
             {tarefa.inicio_previsto ? format(new Date(tarefa.inicio_previsto), "dd/MM HH:mm") : '—'}
             {' → '}
             {tarefa.fim_previsto ? format(new Date(tarefa.fim_previsto), "dd/MM HH:mm") : '—'}
           </span>
+          {atrasada && <Badge variant="destructive" className="ml-auto h-5 text-[10px]">Atrasada</Badge>}
         </div>
       )}
       {(tarefa.iniciado_em || tarefa.concluido_em) && (
