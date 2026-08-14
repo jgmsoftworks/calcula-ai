@@ -50,7 +50,7 @@ export default function AgendaDayPage() {
   const parsedDate = useMemo(() => (date ? parseISO(date) : null), [date]);
   const dataStr = date ?? '';
 
-  const { data: tarefas = [], isLoading, criar, mover, remover } = useProducaoTarefas(dataStr);
+  const { data: tarefas = [], isLoading, criar, mover, alterarResponsavel, remover } = useProducaoTarefas(dataStr);
   const { data: areas = [] } = useProducaoAreas();
   const weekday = parsedDate ? parsedDate.getDay() : null;
   const { data: recorrentes = [] } = useProducaoRecorrentes();
@@ -327,11 +327,18 @@ export default function AgendaDayPage() {
                 if (selectedAreaFilter === 'sem') return !t.area_id;
                 return t.area_id === selectedAreaFilter;
               });
-              return <Coluna key={col.id} col={col} itens={itens} onRemove={(id) => remover.mutate(id)} />;
+              return <Coluna
+                key={col.id}
+                col={col}
+                itens={itens}
+                funcionarios={funcionarios}
+                onChangeFuncionario={(tarefaId, funcionarioId) => alterarResponsavel.mutate({ tarefaId, funcionarioId })}
+                onRemove={(id) => remover.mutate(id)}
+              />;
             })}
           </div>
           <DragOverlay>
-            {activeTarefa ? <TarefaCard tarefa={activeTarefa} onRemove={() => {}} dragging /> : null}
+            {activeTarefa ? <TarefaCard tarefa={activeTarefa} funcionarios={[]} onChangeFuncionario={() => {}} onRemove={() => {}} dragging readOnly /> : null}
           </DragOverlay>
         </DndContext>
       )}
@@ -393,8 +400,14 @@ export default function AgendaDayPage() {
 /* ---------------- Coluna ---------------- */
 
 function Coluna({
-  col, itens, onRemove,
-}: { col: { id: ProducaoStatus; label: string; icon: any; color: string }; itens: ProducaoTarefa[]; onRemove: (id: string) => void }) {
+  col, itens, funcionarios, onChangeFuncionario, onRemove,
+}: {
+  col: { id: ProducaoStatus; label: string; icon: any; color: string };
+  itens: ProducaoTarefa[];
+  funcionarios: FuncOpt[];
+  onChangeFuncionario: (tarefaId: string, funcionarioId: string) => void;
+  onRemove: (id: string) => void;
+}) {
   const { isOver, setNodeRef } = useDroppable({ id: col.id });
   const Icon = col.icon;
   return (
@@ -414,7 +427,13 @@ function Coluna({
       </div>
       <div className="space-y-2">
         {itens.map((t) => (
-          <TarefaCard key={t.id} tarefa={t} onRemove={() => onRemove(t.id)} />
+          <TarefaCard
+            key={t.id}
+            tarefa={t}
+            funcionarios={funcionarios}
+            onChangeFuncionario={(funcionarioId) => onChangeFuncionario(t.id, funcionarioId)}
+            onRemove={() => onRemove(t.id)}
+          />
         ))}
         {!itens.length && (
           <div className="text-center text-xs text-muted-foreground py-8 border border-dashed rounded-xl">
@@ -428,7 +447,16 @@ function Coluna({
 
 /* ---------------- Card ---------------- */
 
-function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; onRemove: () => void; dragging?: boolean }) {
+function TarefaCard({
+  tarefa, funcionarios, onChangeFuncionario, onRemove, dragging, readOnly,
+}: {
+  tarefa: ProducaoTarefa;
+  funcionarios: FuncOpt[];
+  onChangeFuncionario: (funcionarioId: string) => void;
+  onRemove: () => void;
+  dragging?: boolean;
+  readOnly?: boolean;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
   const atrasada = tarefa.status !== 'feito' && Boolean(tarefa.fim_previsto) && new Date(tarefa.fim_previsto!).getTime() < Date.now();
   return (
@@ -463,10 +491,28 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
           <span className="truncate">{tarefa.receita.nome}{tarefa.quantidade ? ` × ${tarefa.quantidade}` : ''}</span>
         </div>
       )}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-        <UserIcon className="h-3.5 w-3.5" />
-        <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
-      </div>
+      {readOnly ? (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+          <UserIcon className="h-3.5 w-3.5" />
+          <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
+        </div>
+      ) : (
+        <div className="mb-1.5" onPointerDown={(e) => e.stopPropagation()}>
+          <Select value={tarefa.funcionario_id} onValueChange={onChangeFuncionario}>
+            <SelectTrigger className="h-7 border-0 bg-transparent px-0 text-xs text-muted-foreground shadow-none focus:ring-0">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <UserIcon className="h-3.5 w-3.5 shrink-0" />
+                <SelectValue placeholder="Selecionar responsável" />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {funcionarios.map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
           <Clock className={cn('h-3 w-3 text-primary', atrasada && 'text-red-600')} />

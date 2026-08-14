@@ -129,6 +129,22 @@ export function useProducaoTarefas(dataProducao: string) {
     onError: (e: any) => toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' }),
   });
 
+  const alterarResponsavel = useMutation({
+    mutationFn: async ({ tarefaId, funcionarioId }: { tarefaId: string; funcionarioId: string }) => {
+      const { error } = await supabase
+        .from('producao_tarefas')
+        .update({ funcionario_id: funcionarioId })
+        .eq('id', tarefaId)
+        .eq('user_id', user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      toast({ title: 'Responsável atualizado' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao trocar responsável', description: e.message, variant: 'destructive' }),
+  });
+
   const remover = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('producao_tarefas').delete().eq('id', id);
@@ -140,5 +156,5 @@ export function useProducaoTarefas(dataProducao: string) {
     },
   });
 
-  return { ...query, criar, mover, remover };
+  return { ...query, criar, mover, alterarResponsavel, remover };
 }
