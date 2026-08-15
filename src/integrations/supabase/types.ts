@@ -1691,6 +1691,114 @@ export type Database = {
           },
         ]
       }
+      planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          features: Json
+          id: string
+          limites: Json
+          moeda: string
+          nome_publico: string
+          ordem: number
+          periodicidade: string
+          preco_centavos: number
+          slug: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+          updated_by: string | null
+          versao_preco: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          features?: Json
+          id?: string
+          limites?: Json
+          moeda?: string
+          nome_publico: string
+          ordem?: number
+          periodicidade?: string
+          preco_centavos?: number
+          slug: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao_preco?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          features?: Json
+          id?: string
+          limites?: Json
+          moeda?: string
+          nome_publico?: string
+          ordem?: number
+          periodicidade?: string
+          preco_centavos?: number
+          slug?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao_preco?: number
+        }
+        Relationships: []
+      }
+      planos_precos_historico: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          moeda: string
+          observacao: string | null
+          periodicidade: string
+          plano_slug: string
+          preco_centavos: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          versao_preco: number
+          vigente_ate: string | null
+          vigente_de: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          moeda?: string
+          observacao?: string | null
+          periodicidade?: string
+          plano_slug: string
+          preco_centavos: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          versao_preco?: number
+          vigente_ate?: string | null
+          vigente_de?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          moeda?: string
+          observacao?: string | null
+          periodicidade?: string
+          plano_slug?: string
+          preco_centavos?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          versao_preco?: number
+          vigente_ate?: string | null
+          vigente_de?: string
+        }
+        Relationships: []
+      }
       producao_areas: {
         Row: {
           ativo: boolean
@@ -2080,6 +2188,7 @@ export type Database = {
           email_comercial: string | null
           estado: string | null
           full_name: string | null
+          grace_period_ends_at: string | null
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
@@ -2107,6 +2216,7 @@ export type Database = {
           setor_atividade: string | null
           subscription_status: string
           telefone_comercial: string | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
           website: string | null
@@ -2133,6 +2243,7 @@ export type Database = {
           email_comercial?: string | null
           estado?: string | null
           full_name?: string | null
+          grace_period_ends_at?: string | null
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2160,6 +2271,7 @@ export type Database = {
           setor_atividade?: string | null
           subscription_status?: string
           telefone_comercial?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
           website?: string | null
@@ -2186,6 +2298,7 @@ export type Database = {
           email_comercial?: string | null
           estado?: string | null
           full_name?: string | null
+          grace_period_ends_at?: string | null
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2213,6 +2326,7 @@ export type Database = {
           setor_atividade?: string | null
           subscription_status?: string
           telefone_comercial?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
           website?: string | null
