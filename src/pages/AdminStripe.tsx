@@ -344,8 +344,8 @@ function PaymentLinksTab() {
       <CardHeader>
         <CardTitle>Payment Links</CardTitle>
         <CardDescription>
-          Quando você abrir a conta PJ no Stripe, crie 4 novos Payment Links lá e cole as URLs aqui.
-          Os assinantes antigos continuam pagando na conta CPF — só os novos cadastros usarão estes links.
+          Links de divulgação (buy.stripe.com) dos planos mensais Lite, Profissional e Empresarial na conta PJ.
+          Os assinantes antigos continuam no preço legado da conta CPF — só novos cadastros usam estes links.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

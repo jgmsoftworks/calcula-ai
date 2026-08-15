@@ -8,13 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Fallback legado — usado apenas se a tabela public.planos não devolver um price.
-const PLAN_PRICES = {
-  professional_monthly: "price_1SALJABgdnRO3nnJgi69AKSd",
-  professional_yearly: "price_1SAL2uBgdnRO3nnJ7OjBCLUP", 
-  enterprise_monthly: "price_1SAL38BgdnRO3nnJNLV1NcT2",
-  enterprise_yearly: "price_1SAL3KBgdnRO3nnJWRpnlzXy"
-};
+// Sem price IDs hardcoded: a fonte única é a tabela public.planos.
+
+
 
 
 // Helper para logs detalhados
@@ -101,11 +97,7 @@ serve(async (req) => {
       logStep("Price resolved from planos table", { planType, priceId });
     }
 
-    // 2) Fallback legado
-    if (!priceId) {
-      const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
-      priceId = PLAN_PRICES[planKey];
-    }
+    
     
     if (!priceId) {
       logStep("Invalid plan configuration", { planType, billing });
