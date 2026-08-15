@@ -94,7 +94,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
 export const usePlanLimits = () => {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
+  const [currentPlan, setCurrentPlan] = useState<PlanType>('lite');
   const [planExpiration, setPlanExpiration] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -123,7 +123,7 @@ export const usePlanLimits = () => {
       }
 
       if (profile) {
-        setCurrentPlan((profile.plan as PlanType) || 'free');
+        setCurrentPlan(normalizePlan(profile.plan));
         setPlanExpiration(profile.plan_expires_at ? new Date(profile.plan_expires_at) : null);
       }
     } catch (error) {
@@ -188,11 +188,11 @@ export const usePlanLimits = () => {
         break;
       case 'receitas':
         featureName = 'receitas';
-        suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
+        suggestedPlan = currentPlan === 'lite' ? 'Profissional' : 'Empresarial';
         break;
       case 'markups':
         featureName = 'blocos de markup';
-        suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
+        suggestedPlan = currentPlan === 'lite' ? 'Profissional' : 'Empresarial';
         break;
       case 'movimentacoes':
         featureName = 'movimentação de estoque';
@@ -200,7 +200,7 @@ export const usePlanLimits = () => {
         break;
       case 'pdf_exports':
         featureName = 'impressão de fichas técnicas';
-        suggestedPlan = currentPlan === 'free' ? 'Profissional' : 'Empresarial';
+        suggestedPlan = currentPlan === 'lite' ? 'Profissional' : 'Empresarial';
         break;
     }
 
@@ -240,7 +240,7 @@ export const usePlanLimits = () => {
     }
 
     const planHierarchy: Record<PlanType, number> = {
-      'free': 0,
+      'lite': 0,
       'professional': 1,
       'enterprise': 2
     };

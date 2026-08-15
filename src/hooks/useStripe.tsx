@@ -41,7 +41,7 @@ export const useStripe = () => {
   const [loading, setLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData>({
     subscribed: false,
-    plan: 'free',
+    plan: 'lite',
     subscription_end: null
   });
 
