@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,6 +44,14 @@ export function useProducaoTarefas(dataProducao: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const key = ['producao-tarefas', user?.id, dataProducao];
+  const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const notifyPeers = () => {
+    const channel = syncChannelRef.current;
+    if (channel?.state === 'joined') {
+      void channel.send({ type: 'broadcast', event: 'refresh', payload: {} });
+    }
+  };
 
   const query = useQuery({
     queryKey: key,
@@ -77,7 +85,8 @@ export function useProducaoTarefas(dataProducao: string) {
     };
 
     const channel = supabase
-      .channel(`producao-tarefas:${user.id}:${dataProducao}`)
+      .channel(`producao:${user.id}:${dataProducao}`)
+      .on('broadcast', { event: 'refresh' }, invalidate)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'producao_tarefas' },
@@ -90,7 +99,10 @@ export function useProducaoTarefas(dataProducao: string) {
       )
       .subscribe();
 
+    syncChannelRef.current = channel;
+
     return () => {
+      if (syncChannelRef.current === channel) syncChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
   }, [user?.id, dataProducao, qc]);
@@ -138,6 +150,7 @@ export function useProducaoTarefas(dataProducao: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
+      notifyPeers();
       toast({ title: 'Tarefa criada' });
     },
     onError: (e: any) => toast({ title: 'Erro ao criar', description: e.message, variant: 'destructive' }),
@@ -178,6 +191,9 @@ export function useProducaoTarefas(dataProducao: string) {
 
       return { anterior };
     },
+    onSuccess: () => {
+      notifyPeers();
+    },
     onError: (e: any, _variables, context) => {
       if (context?.anterior) qc.setQueryData(key, context.anterior);
       toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' });
@@ -199,6 +215,7 @@ export function useProducaoTarefas(dataProducao: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
+      notifyPeers();
       toast({ title: 'Responsável atualizado' });
     },
     onError: (e: any) => toast({ title: 'Erro ao trocar responsável', description: e.message, variant: 'destructive' }),
@@ -211,6 +228,7 @@ export function useProducaoTarefas(dataProducao: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
+      notifyPeers();
       toast({ title: 'Tarefa removida' });
     },
   });

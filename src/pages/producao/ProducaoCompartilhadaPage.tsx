@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -37,10 +38,12 @@ export default function ProducaoCompartilhadaPage() {
   const [tasks, setTasks] = useState<SharedTask[]>([]);
   const [date, setDate] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const [syncChannel, setSyncChannel] = useState('');
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -53,6 +56,7 @@ export default function ProducaoCompartilhadaPage() {
       setTasks(data.tasks ?? []);
       setDate(data.date);
       setExpiresAt(data.expiresAt);
+      setSyncChannel(data.syncChannel ?? '');
       setError('');
     }
     setLoading(false);
@@ -65,7 +69,7 @@ export default function ProducaoCompartilhadaPage() {
 
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void load(true);
-    }, 2_000);
+    }, 30_000);
 
     const refreshWhenVisible = () => {
       if (document.visibilityState === 'visible') void load(true);
@@ -80,6 +84,24 @@ export default function ProducaoCompartilhadaPage() {
       document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [error, load]);
+
+  useEffect(() => {
+    if (!syncChannel || error) return;
+
+    const channel = supabase
+      .channel(syncChannel)
+      .on('broadcast', { event: 'refresh' }, () => {
+        void load(true);
+      })
+      .subscribe();
+
+    syncChannelRef.current = channel;
+
+    return () => {
+      if (syncChannelRef.current === channel) syncChannelRef.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [error, load, syncChannel]);
 
   const visibleTasks = useMemo(() => {
     const query = filter.trim().toLocaleLowerCase('pt-BR');
@@ -99,7 +121,7 @@ export default function ProducaoCompartilhadaPage() {
     const previousTasks = tasks;
     if (nextStatus) {
       const now = new Date().toISOString();
-      setTasks((current) => current.map((item) => {
+      const applyOptimisticMove = () => setTasks((current) => current.map((item) => {
         if (item.id !== task.id) return item;
         return {
           ...item,
@@ -108,6 +130,14 @@ export default function ProducaoCompartilhadaPage() {
           concluido_em: nextStatus === 'feito' && !item.concluido_em ? now : item.concluido_em,
         };
       }));
+      const transitionDocument = document as Document & {
+        startViewTransition?: (callback: () => void) => unknown;
+      };
+      if (transitionDocument.startViewTransition) {
+        transitionDocument.startViewTransition(() => flushSync(applyOptimisticMove));
+      } else {
+        applyOptimisticMove();
+      }
     }
 
     const { data, error: invokeError } = await supabase.functions.invoke('producao-compartilhada', {
@@ -120,6 +150,10 @@ export default function ProducaoCompartilhadaPage() {
     } else {
       setTasks((current) => current.map((item) => item.id === task.id ? { ...item, ...data.task } : item));
       setError('');
+      const channel = syncChannelRef.current;
+      if (channel?.state === 'joined') {
+        await channel.send({ type: 'broadcast', event: 'refresh', payload: { taskId: task.id } });
+      }
     }
     setMovingId(null);
   };
@@ -178,7 +212,7 @@ export default function ProducaoCompartilhadaPage() {
                 </div>
                 <div className="space-y-3">
                   {items.map((task) => (
-                    <Card key={task.id} className="space-y-3 rounded-xl p-4 shadow-sm transition-all duration-200">
+                    <Card key={task.id} style={{ viewTransitionName: `task-${task.id}` }} className="space-y-3 rounded-xl p-4 shadow-sm transition-all duration-300">
                       <div className="flex items-start justify-between gap-3">
                         <div><h2 className="font-semibold leading-tight">{task.titulo}</h2>{task.receita?.nome && <p className="mt-1 text-xs text-muted-foreground">{task.receita.nome}{task.quantidade ? ` · ${task.quantidade}` : ''}</p>}</div>
                         {task.area && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.area.cor ?? '#64748b' }} />}

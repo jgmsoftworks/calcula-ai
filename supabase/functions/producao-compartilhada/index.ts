@@ -103,7 +103,12 @@ serve(async (req) => {
         area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor)
       `).eq('user_id', link.user_id).eq('data_producao', link.data_producao).order('ordem');
       if (error) throw error;
-      return json({ date: link.data_producao, expiresAt: link.expira_em, tasks: tasks ?? [] });
+      return json({
+        date: link.data_producao,
+        expiresAt: link.expira_em,
+        syncChannel: `producao:${link.user_id}:${link.data_producao}`,
+        tasks: tasks ?? [],
+      });
     }
 
     if (action === 'move') {
