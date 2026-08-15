@@ -1,19 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getPlano, normalizeSlug } from "../_shared/planos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Mapeamento dos planos - Price IDs de PRODUÇÃO
+// Fallback legado — usado apenas se a tabela public.planos não devolver um price.
 const PLAN_PRICES = {
   professional_monthly: "price_1SALJABgdnRO3nnJgi69AKSd",
   professional_yearly: "price_1SAL2uBgdnRO3nnJ7OjBCLUP", 
   enterprise_monthly: "price_1SAL38BgdnRO3nnJNLV1NcT2",
   enterprise_yearly: "price_1SAL3KBgdnRO3nnJWRpnlzXy"
 };
+
 
 // Helper para logs detalhados
 const logStep = (step: string, details?: any) => {
@@ -82,23 +84,36 @@ serve(async (req) => {
 
     // Processar dados da requisição
     const requestBody = await req.json();
-    const { planType, billing } = requestBody;
+    const planType = normalizeSlug(requestBody.planType);
+    const billing = requestBody.billing ?? "monthly";
     
     logStep("Request data received", { planType, billing });
 
-    if (!planType || !billing) {
-      throw new Error("Missing planType or billing in request");
+    if (!planType) {
+      throw new Error("Missing planType in request");
     }
 
-    const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
-    const priceId = PLAN_PRICES[planKey];
+    // 1) Fonte central: tabela public.planos
+    let priceId: string | undefined;
+    const plano = await getPlano(planType);
+    if (plano?.ativo && plano.stripe_price_id && plano.preco_centavos > 0) {
+      priceId = plano.stripe_price_id;
+      logStep("Price resolved from planos table", { planType, priceId });
+    }
+
+    // 2) Fallback legado
+    if (!priceId) {
+      const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
+      priceId = PLAN_PRICES[planKey];
+    }
     
     if (!priceId) {
-      logStep("Invalid plan configuration", { planKey, availablePlans: Object.keys(PLAN_PRICES) });
-      throw new Error(`Invalid plan type: ${planKey}`);
+      logStep("Invalid plan configuration", { planType, billing });
+      throw new Error(`Invalid plan type: ${planType}`);
     }
 
-    logStep("Plan validated", { planKey, priceId });
+    logStep("Plan validated", { planType, priceId });
+
 
     // Inicializar Stripe
     const stripe = new Stripe(stripeKey, { 

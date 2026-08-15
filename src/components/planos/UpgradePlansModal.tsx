@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PlanSelector } from './PlanSelector';
-import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
+import { PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
+import { usePlanos } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 
 interface UpgradePlansModalProps {
@@ -9,27 +10,17 @@ interface UpgradePlansModalProps {
   defaultPlan?: PlanType;
 }
 
-export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePlansModalProps) => {
+export const UpgradePlansModal = ({ open, onOpenChange }: UpgradePlansModalProps) => {
   const { currentPlan } = usePlanLimits();
-  const { createCheckout, openCustomerPortal, loading } = useStripe();
+  const { planos } = usePlanos();
+  const { openCustomerPortal, loading } = useStripe();
 
-  const handleSelectPlan = async (planType: PlanType, billing?: 'monthly' | 'yearly') => {
+  const handleSelectPlan = async (planType: string) => {
     if (planType === currentPlan) {
-      // Se é o plano atual e não é free, abrir portal de gerenciamento
-      if (planType !== 'free') {
-        await openCustomerPortal();
-      }
+      await openCustomerPortal();
       return;
     }
-
-    if (planType === 'free') {
-      // Para downgrade, abrir portal do Stripe
-      await openCustomerPortal();
-    } else {
-      // Para upgrade, criar checkout
-      await createCheckout(planType, billing || 'monthly');
-      onOpenChange(false); // Fechar modal após iniciar checkout
-    }
+    onOpenChange(false);
   };
 
   return (
@@ -40,11 +31,10 @@ export const UpgradePlansModal = ({ open, onOpenChange, defaultPlan }: UpgradePl
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          {Object.entries(PLAN_CONFIGS).map(([planType, planInfo]) => (
+          {planos.map((plano) => (
             <PlanSelector
-              key={planType}
-              planType={planType as PlanType}
-              planInfo={planInfo}
+              key={plano.id}
+              plano={plano}
               currentPlan={currentPlan}
               onSelectPlan={handleSelectPlan}
               loading={loading}

@@ -5,49 +5,40 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const PLAN_INFO = {
-  professional_monthly: { name: 'Profissional Mensal', price: 'R$ 49,90/mês' },
-  professional_yearly: { name: 'Profissional Anual', price: 'R$ 478,80/ano' },
-  enterprise_monthly: { name: 'Empresarial Mensal', price: 'R$ 89,90/mês' },
-  enterprise_yearly: { name: 'Empresarial Anual', price: 'R$ 838,80/ano' },
-};
+import { usePlanos, formatPreco } from '@/hooks/usePlanos';
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+  const { getPlano, loading: planosLoading } = usePlanos();
+
   const planType = searchParams.get('plan');
-  const billing = searchParams.get('billing');
   const affiliateCode = searchParams.get('ref');
-  
-  const planKey = `${planType}_${billing}` as keyof typeof PLAN_INFO;
-  const planInfo = PLAN_INFO[planKey];
+  const plano = planType ? getPlano(planType) : undefined;
 
   useEffect(() => {
-    // Validar parâmetros necessários
-    if (!planType || !billing || !planInfo) {
+    if (planosLoading) return;
+    if (!planType || !plano) {
       navigate('/planos');
-      return;
     }
-  }, [planType, billing, planInfo, navigate]);
+  }, [planType, plano, planosLoading, navigate]);
 
   const handleCheckout = async () => {
-    if (!planType || !billing) return;
-    
+    if (!plano) return;
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('affiliate-checkout', {
-        body: { 
-          planType, 
-          billing, 
+        body: {
+          planType: plano.slug,
+          billing: 'monthly',
           affiliateCode,
-          direct: true // Flag para indicar checkout direto
+          direct: true
         }
       });
-      
+
       if (error) {
         console.error('Erro no checkout:', error);
         toast({
@@ -57,9 +48,8 @@ export default function Checkout() {
         });
         return;
       }
-      
+
       if (data?.url) {
-        // Redirecionar para o Stripe Checkout
         window.location.href = data.url;
       } else {
         toast({
@@ -80,7 +70,7 @@ export default function Checkout() {
     }
   };
 
-  if (!planInfo) {
+  if (planosLoading || !plano) {
     return null;
   }
 
@@ -92,20 +82,23 @@ export default function Checkout() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">{planInfo.name}</h3>
-            <p className="text-2xl font-bold text-primary">{planInfo.price}</p>
+            <h3 className="text-lg font-semibold">{plano.nome_publico}</h3>
+            <p className="text-2xl font-bold text-primary">
+              {formatPreco(plano.preco_centavos)}
+              {plano.preco_centavos > 0 && <span className="text-base font-normal">/mês</span>}
+            </p>
           </div>
-          
+
           {affiliateCode && (
             <div className="text-center text-sm text-muted-foreground">
               <p>Link de afiliado: <code className="bg-muted px-2 py-1 rounded">{affiliateCode}</code></p>
             </div>
           )}
-          
+
           <div className="space-y-3">
-            <Button 
-              onClick={handleCheckout} 
-              disabled={loading} 
+            <Button
+              onClick={handleCheckout}
+              disabled={loading}
               className="w-full"
               size="lg"
             >
@@ -118,9 +111,8 @@ export default function Checkout() {
                 'Assinar Agora'
               )}
             </Button>
-            
           </div>
-          
+
           <div className="text-center text-xs text-muted-foreground">
             <p>Pagamento seguro processado pelo Stripe</p>
           </div>
