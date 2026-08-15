@@ -71,9 +71,9 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const currentPlan = currentProfile?.plan || 'free';
+    const currentPlan = currentProfile?.plan || 'lite';
     const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
-    const hasActiveManualPlan = currentPlan !== 'free' && (
+    const hasActiveManualPlan = !['free','lite'].includes(currentPlan) && (
       !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
     );
 
@@ -101,13 +101,13 @@ serve(async (req) => {
         .from('profiles')
         .upsert({ 
           user_id: user.id, 
-          plan: 'free',
+          plan: 'lite',
           plan_expires_at: null
         });
       
       return new Response(JSON.stringify({ 
         subscribed: false, 
-        plan: 'free',
+        plan: 'lite',
         subscription_end: null 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -125,7 +125,7 @@ serve(async (req) => {
     });
     
     const hasActiveSub = subscriptions.data.length > 0;
-    let planType = 'free';
+    let planType = 'lite';
     let subscriptionEnd = null;
 
     if (hasActiveSub) {
@@ -134,7 +134,7 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
       const productId = subscription.items.data[0].price.product as string;
-      planType = (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'free';
+      planType = (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'lite';
       logStep("Determined plan type", { productId, planType });
       
       // Atualizar perfil no Supabase
@@ -166,7 +166,7 @@ serve(async (req) => {
         .from('profiles')
         .upsert({ 
           user_id: user.id, 
-          plan: 'free',
+          plan: 'lite',
           plan_expires_at: null
         });
     }
@@ -201,9 +201,9 @@ serve(async (req) => {
             .eq('user_id', userData.user.id)
             .maybeSingle();
 
-          const currentPlan = currentProfile?.plan || 'free';
+          const currentPlan = currentProfile?.plan || 'lite';
           const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
-          const hasActiveManualPlan = currentPlan !== 'free' && (
+          const hasActiveManualPlan = !['free','lite'].includes(currentPlan) && (
             !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
           );
 
@@ -223,7 +223,7 @@ serve(async (req) => {
             .from('profiles')
             .upsert({ 
               user_id: userData.user.id, 
-              plan: 'free',
+              plan: 'lite',
               plan_expires_at: null
             });
         }
@@ -234,7 +234,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       subscribed: false, 
-      plan: 'free',
+      plan: 'lite',
       subscription_end: null,
       error: "Erro ao verificar assinatura. Usando plano gratuito como fallback."
     }), {
