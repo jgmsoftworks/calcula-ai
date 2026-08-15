@@ -101,19 +101,9 @@ export const useStripe = () => {
         return;
       }
 
-      const planKey = `${planType}_${billing}`;
-      const directCheckoutUrl = await getCheckoutLink(planType, billing);
+      // Preços novos vivem em public.planos → sempre via edge function create-checkout,
+      // que resolve o Stripe Price vigente. Links diretos legados ficam só como fallback.
 
-      if (directCheckoutUrl) {
-        console.log('[CHECKOUT] Usando link direto do Stripe:', { planKey, directCheckoutUrl });
-        window.open(directCheckoutUrl, '_blank');
-
-        setTimeout(() => {
-          checkSubscription();
-        }, 2000);
-
-        return;
-      }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { planType, billing }
