@@ -4,7 +4,11 @@ import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 
-export type PlanType = 'free' | 'professional' | 'enterprise';
+export type PlanType = 'lite' | 'professional' | 'enterprise';
+
+/** Normaliza planos legados ('free') para o novo slug 'lite'. */
+export const normalizePlan = (plan?: string | null): PlanType =>
+  (plan === 'free' || !plan ? 'lite' : plan) as PlanType;
 
 export interface PlanLimits {
   produtos: number; // -1 = ilimitado
@@ -22,10 +26,14 @@ export interface PlanInfo {
   features: string[];
 }
 
+/**
+ * Fallback local — a fonte de verdade é a tabela public.planos (hook usePlanos).
+ * Mantido apenas para não quebrar telas antes do carregamento do banco.
+ */
 export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
-  free: {
-    name: 'Free',
-    price: 0,
+  lite: {
+    name: 'Lite',
+    price: 9.9,
     yearlyPrice: 0,
     limits: {
       produtos: 30,
@@ -42,6 +50,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
       'Folha de pagamento liberada',
     ],
   },
+
   professional: {
     name: 'Profissional',
     price: 49.9,
