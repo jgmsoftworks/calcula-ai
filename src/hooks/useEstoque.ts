@@ -3,6 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
 
+export interface RotuloNutricional {
+  porcao_quantidade: number | null;
+  porcao_unidade: string | null;
+  medida_caseira: string | null;
+  porcoes_por_embalagem: number | null;
+  valor_energetico_kcal: number | null;
+  carboidratos_g: number | null;
+  acucares_totais_g: number | null;
+  acucares_adicionados_g: number | null;
+  proteinas_g: number | null;
+  gorduras_totais_g: number | null;
+  gorduras_saturadas_g: number | null;
+  gorduras_trans_g: number | null;
+  fibras_alimentares_g: number | null;
+  sodio_mg: number | null;
+}
+
 export interface Produto {
   id: string;
   user_id: string;
@@ -18,6 +35,7 @@ export interface Produto {
   unidade_uso: string | null;
   fator_conversao: number | null;
   imagem_url: string | null;
+  rotulo_nutricional: RotuloNutricional | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;

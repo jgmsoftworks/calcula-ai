@@ -1960,6 +1960,7 @@ export type Database = {
           imagem_url: string | null
           marcas: string[] | null
           nome: string
+          rotulo_nutricional: Json | null
           unidade_compra: string
           unidade_uso: string | null
           updated_at: string
@@ -1979,6 +1980,7 @@ export type Database = {
           imagem_url?: string | null
           marcas?: string[] | null
           nome: string
+          rotulo_nutricional?: Json | null
           unidade_compra?: string
           unidade_uso?: string | null
           updated_at?: string
@@ -1998,6 +2000,7 @@ export type Database = {
           imagem_url?: string | null
           marcas?: string[] | null
           nome?: string
+          rotulo_nutricional?: Json | null
           unidade_compra?: string
           unidade_uso?: string | null
           updated_at?: string
