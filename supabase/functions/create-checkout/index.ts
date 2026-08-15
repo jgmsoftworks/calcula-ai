@@ -97,11 +97,7 @@ serve(async (req) => {
       logStep("Price resolved from planos table", { planType, priceId });
     }
 
-    // 2) Fallback legado
-    if (!priceId) {
-      const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
-      priceId = PLAN_PRICES[planKey];
-    }
+    
     
     if (!priceId) {
       logStep("Invalid plan configuration", { planType, billing });

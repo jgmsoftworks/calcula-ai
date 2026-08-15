@@ -13,13 +13,7 @@ const logStep = (step: string, details?: any) => {
   console.log(`[AFFILIATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Preços padrão (fallback se não houver afiliado)
-const FALLBACK_PLAN_PRICES = {
-  professional_monthly: "price_1SAL2dBnxFLGYBYfkowqS28X", // R$ 49,90
-  professional_yearly: "price_1SAGl3BnxFLGYBYfNdoF5crq", // R$ 478,80
-  enterprise_monthly: "price_1SAGgdBnxFLGYBYfOzJwhMw3", // R$ 89,90
-  enterprise_yearly: "price_1SAGlUBnxFLGYBYfwLnEZoId", // R$ 838,80
-} as const;
+// Sem price IDs hardcoded: a fonte única é a tabela public.planos.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
