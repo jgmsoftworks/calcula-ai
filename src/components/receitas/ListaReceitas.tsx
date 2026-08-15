@@ -30,13 +30,18 @@ export function ListaReceitas() {
   const [markupsDisponiveis, setMarkupsDisponiveis] = useState<Array<{ id: string; nome: string }>>([]);
   const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
   const [loadingConfigs, setLoadingConfigs] = useState(true);
+  const requestIdRef = useRef(0);
   useEffect(() => {
     loadTiposProduto();
     loadMarkupConfigs();
   }, []);
 
   useEffect(() => {
-    loadReceitas();
+    const timer = setTimeout(() => {
+      void loadReceitas();
+    }, search.trim() ? 350 : 0);
+
+    return () => clearTimeout(timer);
   }, [search, tipoFilter, subReceitaFilter]);
 
   const loadMarkupConfigs = async () => {
@@ -140,12 +145,15 @@ export function ListaReceitas() {
   };
 
   const loadReceitas = async () => {
+    const requestId = ++requestIdRef.current;
     const filters: any = {};
-    if (search) filters.search = search;
+    const normalizedSearch = search.trim();
+    if (normalizedSearch) filters.search = normalizedSearch;
     if (tipoFilter !== 'all') filters.tipo = tipoFilter;
     if (subReceitaFilter !== 'all') filters.subReceita = subReceitaFilter;
 
     const data = await fetchReceitas(filters);
+    if (requestId !== requestIdRef.current) return;
     setReceitas(data);
     
     // NÃO sincronizar aqui - será feito separadamente
@@ -320,3 +328,4 @@ export function ListaReceitas() {
     </>
   );
 }
+
