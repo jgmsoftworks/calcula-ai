@@ -1724,6 +1724,45 @@ export type Database = {
         }
         Relationships: []
       }
+      producao_links_compartilhados: {
+        Row: {
+          created_at: string
+          data_producao: string
+          expira_em: string
+          id: string
+          janela_requisicoes_inicio: string
+          janela_requisicoes_total: number
+          revogado_em: string | null
+          token_hash: string
+          ultimo_acesso_em: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_producao: string
+          expira_em: string
+          id?: string
+          janela_requisicoes_inicio?: string
+          janela_requisicoes_total?: number
+          revogado_em?: string | null
+          token_hash: string
+          ultimo_acesso_em?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_producao?: string
+          expira_em?: string
+          id?: string
+          janela_requisicoes_inicio?: string
+          janela_requisicoes_total?: number
+          revogado_em?: string | null
+          token_hash?: string
+          ultimo_acesso_em?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       producao_tarefas: {
         Row: {
           area_id: string | null
@@ -1819,32 +1858,58 @@ export type Database = {
       producao_tarefas_historico: {
         Row: {
           de_status: Database["public"]["Enums"]["producao_status"] | null
+          evento_tipo: string
+          funcionario_anterior_id: string | null
+          funcionario_novo_id: string | null
           id: string
           movido_em: string
           movido_por: string | null
+          origem: string
           para_status: Database["public"]["Enums"]["producao_status"]
           tarefa_id: string
           user_id: string
         }
         Insert: {
           de_status?: Database["public"]["Enums"]["producao_status"] | null
+          evento_tipo?: string
+          funcionario_anterior_id?: string | null
+          funcionario_novo_id?: string | null
           id?: string
           movido_em?: string
           movido_por?: string | null
+          origem?: string
           para_status: Database["public"]["Enums"]["producao_status"]
           tarefa_id: string
           user_id: string
         }
         Update: {
           de_status?: Database["public"]["Enums"]["producao_status"] | null
+          evento_tipo?: string
+          funcionario_anterior_id?: string | null
+          funcionario_novo_id?: string | null
           id?: string
           movido_em?: string
           movido_por?: string | null
+          origem?: string
           para_status?: Database["public"]["Enums"]["producao_status"]
           tarefa_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "producao_tarefas_historico_funcionario_anterior_id_fkey"
+            columns: ["funcionario_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_historico_funcionario_novo_id_fkey"
+            columns: ["funcionario_novo_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "producao_tarefas_historico_tarefa_id_fkey"
             columns: ["tarefa_id"]
