@@ -3,31 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-// Fallback usado apenas se a tabela payment_links estiver indisponível.
-// Os links reais vivem em public.payment_links e podem ser editados pelo Admin Stripe.
-const FALLBACK_CHECKOUT_LINKS = {
-  professional_monthly: 'https://buy.stripe.com/aFa28qcpv9Nh6kN7WpcZa02',
-  professional_yearly: 'https://buy.stripe.com/00w7sK617gbF6kNdgJcZa05',
-  enterprise_monthly: 'https://buy.stripe.com/bJe28qahn1gLeRj7WpcZa03',
-  enterprise_yearly: 'https://buy.stripe.com/7sY14m1KRgbF6kN0tXcZa04',
-} as const;
+// Sem links hardcoded: os Payment Links vivem em public.payment_links
+// e o checkout do app resolve o Stripe Price vigente em public.planos.
 
-async function getCheckoutLink(planType: string, billing: string): Promise<string | null> {
-  try {
-    const { data } = await supabase
-      .from('payment_links')
-      .select('url')
-      .eq('plan_type', planType)
-      .eq('billing', billing)
-      .eq('active', true)
-      .maybeSingle();
-    if (data?.url) return data.url;
-  } catch (err) {
-    console.warn('[CHECKOUT] Falha ao buscar payment_links, usando fallback', err);
-  }
-  const key = `${planType}_${billing}` as keyof typeof FALLBACK_CHECKOUT_LINKS;
-  return FALLBACK_CHECKOUT_LINKS[key] ?? null;
-}
+
 
 interface SubscriptionData {
   subscribed: boolean;
