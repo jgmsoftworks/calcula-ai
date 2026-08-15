@@ -28,7 +28,6 @@ import { CategoriasSelector } from './CategoriasSelector';
 import { HistoricoProduto } from './HistoricoProduto';
 import { SugestaoFotosModal } from './SugestaoFotosModal';
 import { ConsumoMedioCard } from './ConsumoMedioCard';
-import { RotuloNutricionalForm } from './RotuloNutricionalForm';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
@@ -67,7 +66,6 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     estoque_minimo: 0,
     unidade_uso: null,
     fator_conversao: null,
-    rotulo_nutricional: null,
   };
   
   const { register, handleSubmit, setValue, watch, reset } = useForm<Partial<Produto>>({
@@ -211,9 +209,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="estoque" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-auto">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
               <TabsTrigger value="estoque" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
-              <TabsTrigger value="rotulo-nutricional" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Rótulo Nutricional</TabsTrigger>
               <TabsTrigger value="modo-uso" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Modo de Uso</TabsTrigger>
               <TabsTrigger value="historico" disabled={!produto} className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">
                 Histórico
@@ -419,13 +416,6 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                   </div>
                 </div>
               </div>
-            </TabsContent>
-
-            <TabsContent value="rotulo-nutricional">
-              <RotuloNutricionalForm
-                value={watch('rotulo_nutricional')}
-                onChange={(nextValue) => setValue('rotulo_nutricional', nextValue, { shouldDirty: true })}
-              />
             </TabsContent>
 
             <TabsContent value="modo-uso" className="space-y-4 mt-4">
