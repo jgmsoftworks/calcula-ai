@@ -1,19 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getPlano, normalizeSlug } from "../_shared/planos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Mapeamento dos planos - Price IDs de PRODUÇÃO
+// Fallback legado — usado apenas se a tabela public.planos não devolver um price.
 const PLAN_PRICES = {
   professional_monthly: "price_1SALJABgdnRO3nnJgi69AKSd",
   professional_yearly: "price_1SAL2uBgdnRO3nnJ7OjBCLUP", 
   enterprise_monthly: "price_1SAL38BgdnRO3nnJNLV1NcT2",
   enterprise_yearly: "price_1SAL3KBgdnRO3nnJWRpnlzXy"
 };
+
 
 // Helper para logs detalhados
 const logStep = (step: string, details?: any) => {
