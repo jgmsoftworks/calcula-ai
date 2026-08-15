@@ -24,12 +24,14 @@ import Estoque from "./pages/Estoque";
 import EstoqueHistorico from "./pages/EstoqueHistorico";
 import RelatoriosEstoque from "./pages/RelatoriosEstoque";
 import RelatoriosPerdas from "./pages/RelatoriosPerdas";
+import RelatoriosProdutividade from "./pages/RelatoriosProdutividade";
 import Perdas from "./pages/Perdas";
 import Movimentacao from "./pages/Movimentacao";
 import Receitas from "./pages/Receitas";
 import AgendaPage from "./pages/producao/AgendaPage";
 import AgendaDayPage from "./pages/producao/AgendaDayPage";
 import CronogramaPage from "./pages/producao/CronogramaPage";
+import ProducaoCompartilhadaPage from "./pages/producao/ProducaoCompartilhadaPage";
 import Planos from "./pages/Planos";
 import PerfilNegocio from "./pages/PerfilNegocio";
 import AdminUsers from "./pages/AdminUsers";
@@ -82,6 +84,7 @@ const App = () => (
                 <Route path="/aff/:code" element={<AffiliateRedirect />} />
                 <Route path="/affiliate/:code" element={<AffiliatePlanSelector />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/producao-compartilhada/:token" element={<ProducaoCompartilhadaPage />} />
                 <Route element={<AppLayoutRoute />}>
                   <Route path="/afiliados" element={<Afiliados />} />
                   <Route path="/admin/usuarios" element={<AdminUsers />} />
@@ -101,6 +104,7 @@ const App = () => (
                   <Route path="/relatorios" element={<Navigate to="/relatorios/estoque" replace />} />
                   <Route path="/relatorios/estoque" element={<RelatoriosEstoque />} />
                   <Route path="/relatorios/perdas" element={<RelatoriosPerdas />} />
+                  <Route path="/relatorios/produtividade" element={<RelatoriosProdutividade />} />
                   <Route path="/receitas" element={<Receitas />} />
                   <Route path="/producao" element={<Navigate to="/producao/cronograma" replace />} />
                   <Route path="/producao/cronograma" element={<CronogramaPage />} />
@@ -133,3 +137,5 @@ const App = () => (
 );
 
 export default App;
+
+

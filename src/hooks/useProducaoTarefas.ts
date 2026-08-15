@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +33,10 @@ export interface ProducaoTarefa {
     de_status: ProducaoStatus | null;
     para_status: ProducaoStatus;
     movido_em: string;
+    evento_tipo: 'status' | 'responsavel';
+    funcionario_anterior_id: string | null;
+    funcionario_novo_id: string | null;
+    origem: 'app' | 'link_compartilhado';
   }>;
 }
 
@@ -39,6 +44,14 @@ export function useProducaoTarefas(dataProducao: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const key = ['producao-tarefas', user?.id, dataProducao];
+  const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const notifyPeers = () => {
+    const channel = syncChannelRef.current;
+    if (channel?.state === 'joined') {
+      void channel.send({ type: 'broadcast', event: 'refresh', payload: {} });
+    }
+  };
 
   const query = useQuery({
     queryKey: key,
@@ -51,7 +64,10 @@ export function useProducaoTarefas(dataProducao: string) {
           receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url),
           funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
           area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor),
-          historico:producao_tarefas_historico(id, de_status, para_status, movido_em)
+          historico:producao_tarefas_historico(
+            id, de_status, para_status, movido_em, evento_tipo,
+            funcionario_anterior_id, funcionario_novo_id, origem
+          )
         `)
         .eq('user_id', user!.id)
         .eq('data_producao', dataProducao)
@@ -60,6 +76,36 @@ export function useProducaoTarefas(dataProducao: string) {
       return (data ?? []) as unknown as ProducaoTarefa[];
     },
   });
+
+  useEffect(() => {
+    if (!user?.id || !dataProducao) return;
+
+    const invalidate = () => {
+      void qc.invalidateQueries({ queryKey: ['producao-tarefas', user.id, dataProducao] });
+    };
+
+    const channel = supabase
+      .channel(`producao:${user.id}:${dataProducao}`)
+      .on('broadcast', { event: 'refresh' }, invalidate)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'producao_tarefas' },
+        invalidate,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'producao_tarefas_historico' },
+        invalidate,
+      )
+      .subscribe();
+
+    syncChannelRef.current = channel;
+
+    return () => {
+      if (syncChannelRef.current === channel) syncChannelRef.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, dataProducao, qc]);
 
   const criar = useMutation({
     mutationFn: async (input: {
@@ -104,6 +150,7 @@ export function useProducaoTarefas(dataProducao: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
+      notifyPeers();
       toast({ title: 'Tarefa criada' });
     },
     onError: (e: any) => toast({ title: 'Erro ao criar', description: e.message, variant: 'destructive' }),
@@ -125,8 +172,53 @@ export function useProducaoTarefas(dataProducao: string) {
         movido_por: user!.id,
       });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
-    onError: (e: any) => toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' }),
+    onMutate: async ({ tarefa, novoStatus }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const anterior = qc.getQueryData<ProducaoTarefa[]>(key);
+      const agora = new Date().toISOString();
+
+      qc.setQueryData<ProducaoTarefa[]>(key, (atual = []) =>
+        atual.map((item) => {
+          if (item.id !== tarefa.id) return item;
+          return {
+            ...item,
+            status: novoStatus,
+            iniciado_em: novoStatus === 'em_producao' && !item.iniciado_em ? agora : item.iniciado_em,
+            concluido_em: novoStatus === 'feito' && !item.concluido_em ? agora : item.concluido_em,
+          };
+        }),
+      );
+
+      return { anterior };
+    },
+    onSuccess: () => {
+      notifyPeers();
+    },
+    onError: (e: any, _variables, context) => {
+      if (context?.anterior) qc.setQueryData(key, context.anterior);
+      toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' });
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+    },
+  });
+
+  const alterarResponsavel = useMutation({
+    mutationFn: async ({ tarefa, funcionarioId }: { tarefa: ProducaoTarefa; funcionarioId: string }) => {
+      if (tarefa.funcionario_id === funcionarioId) return;
+      const { error } = await supabase
+        .from('producao_tarefas')
+        .update({ funcionario_id: funcionarioId })
+        .eq('id', tarefa.id)
+        .eq('user_id', user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      notifyPeers();
+      toast({ title: 'Responsável atualizado' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao trocar responsável', description: e.message, variant: 'destructive' }),
   });
 
   const remover = useMutation({
@@ -136,9 +228,10 @@ export function useProducaoTarefas(dataProducao: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
+      notifyPeers();
       toast({ title: 'Tarefa removida' });
     },
   });
 
-  return { ...query, criar, mover, remover };
+  return { ...query, criar, mover, alterarResponsavel, remover };
 }

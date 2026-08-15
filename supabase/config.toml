@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.cleanup-audit-logs]
 verify_jwt = false
+
+[functions.producao-compartilhada]
+verify_jwt = false

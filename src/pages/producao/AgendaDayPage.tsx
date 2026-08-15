@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2,
-  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off,
+  ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2, Share2, Copy, Link2 as Link2Icon, Loader2,
+  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off, Download, Info, Pencil, History,
 } from 'lucide-react';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
@@ -30,6 +30,7 @@ import { useProducaoRecorrentes } from '@/hooks/useProducaoRecorrentes';
 import { formatTimeBrasilia } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 import { toast } from '@/hooks/use-toast';
 
 const COLUNAS: { id: ProducaoStatus; label: string; icon: any; color: string }[] = [
@@ -49,16 +50,22 @@ export default function AgendaDayPage() {
   const parsedDate = useMemo(() => (date ? parseISO(date) : null), [date]);
   const dataStr = date ?? '';
 
-  const { data: tarefas = [], isLoading, criar, mover, remover } = useProducaoTarefas(dataStr);
+  const { data: tarefas = [], isLoading, criar, mover, alterarResponsavel, remover } = useProducaoTarefas(dataStr);
   const { data: areas = [] } = useProducaoAreas();
   const weekday = parsedDate ? parsedDate.getDay() : null;
   const { data: recorrentes = [] } = useProducaoRecorrentes();
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string | 'todas' | 'sem'>('todas');
   const [modalOpen, setModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareExpiresAt, setShareExpiresAt] = useState('');
+  const [shareQrCode, setShareQrCode] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
   const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [materialized, setMaterialized] = useState(false);
+  const [tarefaDetalhes, setTarefaDetalhes] = useState<ProducaoTarefa | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -73,6 +80,43 @@ export default function AgendaDayPage() {
   }, [user?.id]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const shareStorageKey = user?.id && dataStr ? `producao-share:${user.id}:${dataStr}` : '';
+
+  useEffect(() => {
+    if (!shareStorageKey) return;
+    const restoreShareLink = async () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(shareStorageKey) ?? 'null') as { url?: string; expiresAt?: string } | null;
+        if (!saved?.url || !saved.expiresAt || new Date(saved.expiresAt) <= new Date()) {
+          localStorage.removeItem(shareStorageKey);
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
+          body: { action: 'status', date: dataStr },
+        });
+        if (!error && data?.active) {
+          setShareUrl(saved.url);
+          setShareExpiresAt(saved.expiresAt);
+        } else {
+          localStorage.removeItem(shareStorageKey);
+        }
+      } catch {
+        localStorage.removeItem(shareStorageKey);
+      }
+    };
+    void restoreShareLink();
+  }, [shareStorageKey, dataStr]);
+
+  useEffect(() => {
+    if (!shareUrl) {
+      setShareQrCode('');
+      return;
+    }
+    QRCode.toDataURL(shareUrl, { width: 280, margin: 2, errorCorrectionLevel: 'M' })
+      .then(setShareQrCode)
+      .catch(() => setShareQrCode(''));
+  }, [shareUrl]);
 
   // Materialize recurring tasks for this weekday if not already created
   useEffect(() => {
@@ -120,6 +164,51 @@ export default function AgendaDayPage() {
   };
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
+
+  const generateShareLink = async () => {
+    setShareLoading(true);
+    const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
+      body: { action: 'create', date: dataStr },
+    });
+    if (error || data?.error) {
+      toast({ title: 'Erro ao gerar link', description: data?.error ?? error?.message, variant: 'destructive' });
+    } else {
+      const url = `${window.location.origin}/producao-compartilhada/${data.token}`;
+      setShareUrl(url);
+      setShareExpiresAt(data.expiresAt);
+      if (shareStorageKey) localStorage.setItem(shareStorageKey, JSON.stringify({ url, expiresAt: data.expiresAt }));
+      toast({ title: 'Link gerado por 24 horas' });
+    }
+    setShareLoading(false);
+  };
+
+  const revokeShareLink = async () => {
+    setShareLoading(true);
+    const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
+      body: { action: 'revoke', date: dataStr },
+    });
+    if (error || data?.error) toast({ title: 'Erro ao revogar link', description: data?.error ?? error?.message, variant: 'destructive' });
+    else {
+      setShareUrl('');
+      setShareExpiresAt('');
+      if (shareStorageKey) localStorage.removeItem(shareStorageKey);
+      toast({ title: 'Link revogado' });
+    }
+    setShareLoading(false);
+  };
+
+  const copyShareLink = async () => {
+    await navigator.clipboard.writeText(shareUrl);
+    toast({ title: 'Link copiado' });
+  };
+
+  const downloadQrCode = () => {
+    if (!shareQrCode) return;
+    const anchor = document.createElement('a');
+    anchor.href = shareQrCode;
+    anchor.download = `producao-${dataStr}-qrcode.png`;
+    anchor.click();
+  };
 
   const imprimir = () => {
     if (!parsedDate) return;
@@ -185,6 +274,9 @@ export default function AgendaDayPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShareModalOpen(true)} disabled={!tarefas.length}>
+            <Share2 className="h-4 w-4 mr-2" /> Compartilhar dia
+          </Button>
           <Button variant="outline" onClick={imprimir} disabled={!tarefas.length}>
             <Printer className="h-4 w-4 mr-2" /> Imprimir
           </Button>
@@ -236,11 +328,17 @@ export default function AgendaDayPage() {
                 if (selectedAreaFilter === 'sem') return !t.area_id;
                 return t.area_id === selectedAreaFilter;
               });
-              return <Coluna key={col.id} col={col} itens={itens} onRemove={(id) => remover.mutate(id)} />;
+              return <Coluna
+                key={col.id}
+                col={col}
+                itens={itens}
+                onOpenDetails={setTarefaDetalhes}
+                onRemove={(id) => remover.mutate(id)}
+              />;
             })}
           </div>
           <DragOverlay>
-            {activeTarefa ? <TarefaCard tarefa={activeTarefa} onRemove={() => {}} dragging /> : null}
+            {activeTarefa ? <TarefaCard tarefa={activeTarefa} onOpenDetails={() => {}} onRemove={() => {}} dragging readOnly /> : null}
           </DragOverlay>
         </DndContext>
       )}
@@ -255,6 +353,54 @@ export default function AgendaDayPage() {
         onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
       />
 
+      <HistoricoTarefaModal
+        tarefa={tarefaDetalhes ? tarefas.find((t) => t.id === tarefaDetalhes.id) ?? tarefaDetalhes : null}
+        funcionarios={funcionarios}
+        open={!!tarefaDetalhes}
+        onOpenChange={(open) => { if (!open) setTarefaDetalhes(null); }}
+        onChangeFuncionario={(tarefa, funcionarioId) => alterarResponsavel.mutateAsync({ tarefa, funcionarioId })}
+      />
+
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Compartilhar produção do dia</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+              Quem receber o link poderá visualizar as tarefas, filtrar por responsável e apenas avançar de <strong>A fazer</strong> para <strong>Em produção</strong> e depois para <strong>Feito</strong>. O link expira em 24 horas.
+            </div>
+            {shareUrl ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Link temporário</Label>
+                  <div className="flex gap-2">
+                    <Input value={shareUrl} readOnly className="text-xs" />
+                    <Button size="icon" variant="outline" onClick={copyShareLink} aria-label="Copiar link"><Copy className="h-4 w-4" /></Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Válido até {format(new Date(shareExpiresAt), 'dd/MM/yyyy HH:mm')}.</p>
+                </div>
+                {shareQrCode && (
+                  <div className="flex flex-col items-center gap-3 rounded-xl border bg-white p-4">
+                    <img src={shareQrCode} alt="QR Code do link temporário" className="h-52 w-52" />
+                    <Button variant="outline" size="sm" onClick={downloadQrCode}>
+                      <Download className="mr-2 h-4 w-4" /> Baixar QR Code
+                    </Button>
+                  </div>
+                )}
+                <Button variant="destructive" className="w-full" onClick={revokeShareLink} disabled={shareLoading}>
+                  {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Revogar link agora'}
+                </Button>
+              </>
+            ) : (
+              <Button className="w-full" onClick={generateShareLink} disabled={shareLoading}>
+                {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Link2Icon className="mr-2 h-4 w-4" />Gerar link válido por 24 horas</>}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
@@ -262,8 +408,13 @@ export default function AgendaDayPage() {
 /* ---------------- Coluna ---------------- */
 
 function Coluna({
-  col, itens, onRemove,
-}: { col: { id: ProducaoStatus; label: string; icon: any; color: string }; itens: ProducaoTarefa[]; onRemove: (id: string) => void }) {
+  col, itens, onOpenDetails, onRemove,
+}: {
+  col: { id: ProducaoStatus; label: string; icon: any; color: string };
+  itens: ProducaoTarefa[];
+  onOpenDetails: (tarefa: ProducaoTarefa) => void;
+  onRemove: (id: string) => void;
+}) {
   const { isOver, setNodeRef } = useDroppable({ id: col.id });
   const Icon = col.icon;
   return (
@@ -283,7 +434,12 @@ function Coluna({
       </div>
       <div className="space-y-2">
         {itens.map((t) => (
-          <TarefaCard key={t.id} tarefa={t} onRemove={() => onRemove(t.id)} />
+          <TarefaCard
+            key={t.id}
+            tarefa={t}
+            onOpenDetails={() => onOpenDetails(t)}
+            onRemove={() => onRemove(t.id)}
+          />
         ))}
         {!itens.length && (
           <div className="text-center text-xs text-muted-foreground py-8 border border-dashed rounded-xl">
@@ -297,8 +453,17 @@ function Coluna({
 
 /* ---------------- Card ---------------- */
 
-function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; onRemove: () => void; dragging?: boolean }) {
+function TarefaCard({
+  tarefa, onOpenDetails, onRemove, dragging, readOnly,
+}: {
+  tarefa: ProducaoTarefa;
+  onOpenDetails: () => void;
+  onRemove: () => void;
+  dragging?: boolean;
+  readOnly?: boolean;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
+  const atrasada = tarefa.status !== 'feito' && Boolean(tarefa.fim_previsto) && new Date(tarefa.fim_previsto!).getTime() < Date.now();
   return (
     <div
       ref={setNodeRef}
@@ -306,6 +471,7 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
       {...attributes}
       className={cn(
         'group bg-card border rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing',
+        atrasada && 'border-red-300 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20',
         (isDragging || dragging) && 'opacity-60 rotate-1'
       )}
     >
@@ -314,15 +480,29 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
           {tarefa.area?.cor && <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tarefa.area.cor }} title={tarefa.area?.nome} />}
           <p className="text-sm font-semibold leading-tight truncate">{tarefa.titulo}</p>
         </div>
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={onRemove}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-          aria-label="Remover"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        {!readOnly && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onOpenDetails}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+              aria-label="Ver histórico da tarefa"
+              title="Histórico e responsável"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onRemove}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              aria-label="Remover"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
       {tarefa.receita?.nome && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
@@ -336,12 +516,13 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
       </div>
       {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
-          <Clock className="h-3 w-3 text-primary" />
+          <Clock className={cn('h-3 w-3 text-primary', atrasada && 'text-red-600')} />
           <span className="truncate">
             {tarefa.inicio_previsto ? format(new Date(tarefa.inicio_previsto), "dd/MM HH:mm") : '—'}
             {' → '}
             {tarefa.fim_previsto ? format(new Date(tarefa.fim_previsto), "dd/MM HH:mm") : '—'}
           </span>
+          {atrasada && <Badge variant="destructive" className="ml-auto h-5 text-[10px]">Atrasada</Badge>}
         </div>
       )}
       {(tarefa.iniciado_em || tarefa.concluido_em) && (
@@ -363,6 +544,137 @@ function TarefaCard({ tarefa, onRemove, dragging }: { tarefa: ProducaoTarefa; on
 }
 
 /* ---------------- Modal ---------------- */
+
+const STATUS_LABEL: Record<ProducaoStatus, string> = {
+  a_fazer: 'A fazer',
+  em_producao: 'Em produção',
+  feito: 'Feito',
+};
+
+function HistoricoTarefaModal({
+  tarefa, funcionarios, open, onOpenChange, onChangeFuncionario,
+}: {
+  tarefa: ProducaoTarefa | null;
+  funcionarios: FuncOpt[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChangeFuncionario: (tarefa: ProducaoTarefa, funcionarioId: string) => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [funcionarioId, setFuncionarioId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setEditing(false);
+    setFuncionarioId(tarefa?.funcionario_id ?? '');
+  }, [tarefa?.id, tarefa?.funcionario_id, open]);
+
+  if (!tarefa) return null;
+
+  const historico = [...(tarefa.historico ?? [])].sort(
+    (a, b) => new Date(b.movido_em).getTime() - new Date(a.movido_em).getTime(),
+  );
+  const nomeFuncionario = (id: string | null) => funcionarios.find((f) => f.id === id)?.nome ?? 'Responsável não encontrado';
+
+  const salvarResponsavel = async () => {
+    if (!funcionarioId || funcionarioId === tarefa.funcionario_id) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onChangeFuncionario(tarefa, funcionarioId);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="pr-8">{tarefa.titulo}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="rounded-xl border bg-muted/30 p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Responsável atual</p>
+                {!editing && <p className="mt-1 font-semibold">{tarefa.funcionario?.nome ?? '—'}</p>}
+              </div>
+              {!editing && (
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil className="mr-2 h-3.5 w-3.5" /> Editar
+                </Button>
+              )}
+            </div>
+
+            {editing && (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select value={funcionarioId} onValueChange={setFuncionarioId}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                  <SelectContent>
+                    {funcionarios.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => { setEditing(false); setFuncionarioId(tarefa.funcionario_id); }}>Cancelar</Button>
+                  <Button onClick={salvarResponsavel} disabled={saving || !funcionarioId}>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Histórico da tarefa</h3>
+              <Badge variant="secondary" className="ml-auto">{historico.length} registros</Badge>
+            </div>
+
+            <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
+              {historico.map((registro) => {
+                const trocaResponsavel = registro.evento_tipo === 'responsavel';
+                const descricao = trocaResponsavel
+                  ? `${nomeFuncionario(registro.funcionario_anterior_id)} → ${nomeFuncionario(registro.funcionario_novo_id)}`
+                  : registro.de_status
+                    ? `${STATUS_LABEL[registro.de_status]} → ${STATUS_LABEL[registro.para_status]}`
+                    : 'Tarefa criada em A fazer';
+                return (
+                  <div key={registro.id} className="flex gap-3 rounded-xl border p-3">
+                    <div className={cn(
+                      'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                      trocaResponsavel ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700',
+                    )}>
+                      {trocaResponsavel ? <UserIcon className="h-4 w-4" /> : <History className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{trocaResponsavel ? 'Responsável alterado' : 'Situação alterada'}</p>
+                      <p className="text-sm text-muted-foreground">{descricao}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {format(new Date(registro.movido_em), "dd/MM/yyyy 'às' HH:mm")}
+                        {registro.origem === 'link_compartilhado' ? ' • pelo link compartilhado' : ' • pelo aplicativo'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {!historico.length && (
+                <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhum registro encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function NovaTarefaModal({
   open, onOpenChange, funcionarios, receitas, areas, onCreate, dataStr,

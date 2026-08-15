@@ -82,14 +82,16 @@ export function useReceitas() {
         .order('numero_sequencial', { ascending: false });
 
       if (filters?.search) {
+        const search = filters.search.trim();
         // Verificar se a busca é um número para pesquisar pelo numero_sequencial
-        const searchAsNumber = parseInt(filters.search);
-        if (!isNaN(searchAsNumber)) {
+        const isNumericSearch = /^\d+$/.test(search);
+        if (isNumericSearch) {
+          const searchAsNumber = Number(search);
           // Se for um número válido, buscar por numero_sequencial OU nome
-          query = query.or(`numero_sequencial.eq.${searchAsNumber},nome.ilike.%${filters.search}%`);
+          query = query.or(`numero_sequencial.eq.${searchAsNumber},nome.ilike.%${search}%`);
         } else {
           // Se não for número, buscar apenas por nome
-          query = query.ilike('nome', `%${filters.search}%`);
+          query = query.ilike('nome', `%${search}%`);
         }
       }
 
@@ -624,3 +626,4 @@ export function useReceitas() {
     fetchTiposProduto,
   };
 }
+
