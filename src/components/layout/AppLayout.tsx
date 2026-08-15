@@ -47,6 +47,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/estoque/perdas': 'estoque',
       '/relatorios/estoque': 'estoque',
       '/relatorios/perdas': 'estoque',
+      '/relatorios/produtividade': 'receitas',
       '/movimentacao': 'movimentacao',
       '/custos': 'custos',
       '/precificacao': 'precificacao',
@@ -68,6 +69,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         '/estoque/perdas': 'Perdas',
         '/relatorios/estoque': 'Relatórios de Estoque',
         '/relatorios/perdas': 'Relatórios de Perdas',
+        '/relatorios/produtividade': 'Produtividade',
         '/producao/agenda': 'Agenda de Produção',
       };
       return {
@@ -228,3 +230,4 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     </SidebarProvider>
   );
 };
+

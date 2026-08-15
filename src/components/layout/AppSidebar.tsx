@@ -26,6 +26,7 @@ import {
   CalendarDays,
   Calendar as CalendarIcon,
   ClipboardList,
+  Activity,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -97,6 +98,7 @@ export function AppSidebar() {
       children: [
         { title: 'Estoque', url: '/relatorios/estoque', icon: Package },
         { title: 'Perdas', url: '/relatorios/perdas', icon: AlertOctagon },
+        { title: 'Produtividade', url: '/relatorios/produtividade', icon: Activity },
       ],
     },
   ];
@@ -369,3 +371,4 @@ function CollapsibleSubmenu({ item, parentMatched, currentPath }: CollapsibleSub
     </Collapsible>
   );
 }
+
