@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { slugFromStripe } from "../_shared/planos.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,9 +134,13 @@ serve(async (req) => {
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
+      const priceId = subscription.items.data[0].price.id as string;
       const productId = subscription.items.data[0].price.product as string;
-      planType = (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'lite';
-      logStep("Determined plan type", { productId, planType });
+      // Fonte central: planos + histórico de preços (garante planos legados)
+      const slugFromDb = await slugFromStripe(productId, priceId);
+      planType = slugFromDb || (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'lite';
+      logStep("Determined plan type", { productId, priceId, planType });
+
       
       // Atualizar perfil no Supabase
       await supabaseClient
