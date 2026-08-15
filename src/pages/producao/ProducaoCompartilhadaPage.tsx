@@ -58,11 +58,27 @@ export default function ProducaoCompartilhadaPage() {
     setLoading(false);
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
+
   useEffect(() => {
     if (error) return;
-    const timer = window.setInterval(() => load(true), 15_000);
-    return () => window.clearInterval(timer);
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void load(true);
+    }, 2_000);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void load(true);
+    };
+
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [error, load]);
 
   const visibleTasks = useMemo(() => {
@@ -73,14 +89,37 @@ export default function ProducaoCompartilhadaPage() {
 
   const move = async (task: SharedTask) => {
     setMovingId(task.id);
+
+    const nextStatus: Status | null = task.status === 'a_fazer'
+      ? 'em_producao'
+      : task.status === 'em_producao'
+        ? 'feito'
+        : null;
+
+    const previousTasks = tasks;
+    if (nextStatus) {
+      const now = new Date().toISOString();
+      setTasks((current) => current.map((item) => {
+        if (item.id !== task.id) return item;
+        return {
+          ...item,
+          status: nextStatus,
+          iniciado_em: nextStatus === 'em_producao' && !item.iniciado_em ? now : item.iniciado_em,
+          concluido_em: nextStatus === 'feito' && !item.concluido_em ? now : item.concluido_em,
+        };
+      }));
+    }
+
     const { data, error: invokeError } = await supabase.functions.invoke('producao-compartilhada', {
       body: { action: 'move', token, taskId: task.id },
     });
     if (invokeError || data?.error) {
+      setTasks(previousTasks);
       setError(data?.error ?? 'Não foi possível avançar a tarefa.');
       await load(true);
     } else {
       setTasks((current) => current.map((item) => item.id === task.id ? { ...item, ...data.task } : item));
+      setError('');
     }
     setMovingId(null);
   };
@@ -139,7 +178,7 @@ export default function ProducaoCompartilhadaPage() {
                 </div>
                 <div className="space-y-3">
                   {items.map((task) => (
-                    <Card key={task.id} className="space-y-3 rounded-xl p-4 shadow-sm">
+                    <Card key={task.id} className="space-y-3 rounded-xl p-4 shadow-sm transition-all duration-200">
                       <div className="flex items-start justify-between gap-3">
                         <div><h2 className="font-semibold leading-tight">{task.titulo}</h2>{task.receita?.nome && <p className="mt-1 text-xs text-muted-foreground">{task.receita.nome}{task.quantidade ? ` · ${task.quantidade}` : ''}</p>}</div>
                         {task.area && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.area.cor ?? '#64748b' }} />}
@@ -163,4 +202,3 @@ export default function ProducaoCompartilhadaPage() {
     </main>
   );
 }
-
