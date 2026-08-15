@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -218,7 +217,7 @@ export default function RelatoriosProdutividade() {
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><CheckCircle2 className="h-4 w-4" /> Taxa de conclusão</div>
           <p className="mt-1 text-2xl font-bold">{totais.taxaConclusao.toFixed(1)}%</p>
-          <Progress value={totais.taxaConclusao} className="mt-2 h-1.5" />
+          <p className="text-[11px] text-muted-foreground">{totais.concluidas} de {totais.atividades} atividades</p>
         </Card>
       </div>
 
@@ -228,10 +227,10 @@ export default function RelatoriosProdutividade() {
             <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="p-4 text-left">Profissional</th>
-                <th className="p-4 text-right">Horas trabalhadas</th>
-                <th className="p-4 text-right">Atividades realizadas</th>
-                <th className="p-4 text-left">Previsto × realizado</th>
-                <th className="p-4 text-left">Taxa de conclusão</th>
+                <th className="p-4 text-center">Horas trabalhadas</th>
+                <th className="p-4 text-center">Atividades realizadas</th>
+                <th className="p-4 text-center">Previsto × realizado</th>
+                <th className="p-4 text-center">Taxa de conclusão</th>
               </tr>
             </thead>
             <tbody>
@@ -241,40 +240,48 @@ export default function RelatoriosProdutividade() {
                 <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">Nenhum profissional teve atividades nesse período.</td></tr>
               ) : profissionais.map((profissional) => {
                 const diferenca = profissional.minutosRealizados - profissional.minutosPrevistos;
-                const comparacao = profissional.minutosPrevistos > 0
+                const usoDoTempo = profissional.minutosPrevistos > 0 && profissional.minutosRealizados > 0
                   ? (profissional.minutosRealizados / profissional.minutosPrevistos) * 100
                   : null;
+                const dentroDoPrevisto = usoDoTempo !== null && usoDoTempo <= 100;
                 return (
                   <tr key={profissional.id} className="border-t border-border/40 transition-colors hover:bg-muted/20">
                     <td className="p-4">
                       <p className="font-semibold">{profissional.nome}</p>
                       <p className="text-xs text-muted-foreground">{profissional.cargo || 'Profissional'}</p>
                     </td>
-                    <td className="p-4 text-right font-semibold">{formatarDuracao(profissional.minutosRealizados)}</td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-center font-semibold">{formatarDuracao(profissional.minutosRealizados)}</td>
+                    <td className="p-4 text-center">
                       <span className="font-semibold">{profissional.concluidas}</span>
                       <span className="text-muted-foreground"> de {profissional.atividades}</span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
                         <span className="font-medium">{formatarDuracao(profissional.minutosPrevistos)}</span>
                         <span className="text-muted-foreground">×</span>
                         <span className="font-medium">{formatarDuracao(profissional.minutosRealizados)}</span>
-                        {comparacao !== null && (
-                          <Badge variant={diferenca > 0 ? 'destructive' : 'secondary'} className="text-[10px]">
-                            {diferenca > 0 ? '+' : ''}{formatarDuracao(Math.abs(diferenca))}
+                      </div>
+                      {usoDoTempo === null ? (
+                        <p className="mt-1 text-[11px] text-muted-foreground">Sem dados de tempo suficientes</p>
+                      ) : dentroDoPrevisto ? (
+                        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+                          <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
+                            {usoDoTempo.toFixed(0)}% do tempo planejado
                           </Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {comparacao === null ? 'Sem horário previsto' : `${comparacao.toFixed(0)}% do tempo previsto`}
-                      </p>
+                          <span className="text-[11px] text-emerald-700">Dentro do previsto</span>
+                        </div>
+                      ) : (
+                        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+                          <Badge className="border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">
+                            {(usoDoTempo - 100).toFixed(0)}% acima
+                          </Badge>
+                          <span className="text-[11px] text-amber-700">+{formatarDuracao(Math.abs(diferenca))}</span>
+                        </div>
+                      )}
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Progress value={profissional.taxaConclusao} className="h-2 min-w-24 flex-1" />
-                        <span className="w-12 text-right font-semibold">{profissional.taxaConclusao.toFixed(0)}%</span>
-                      </div>
+                    <td className="p-4 text-center">
+                      <p className="text-lg font-bold">{profissional.taxaConclusao.toFixed(0)}%</p>
+                      <p className="text-[11px] text-muted-foreground">{profissional.concluidas} de {profissional.atividades} concluídas</p>
                     </td>
                   </tr>
                 );
