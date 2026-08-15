@@ -4,7 +4,6 @@ import {
   Calculator,
   Home,
   Package,
-  LogOut,
   Building2,
   TrendingUp,
   ChefHat,
@@ -39,20 +38,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 
 export function AppSidebar() {
   const { t } = useTranslation();
   const { state } = useSidebar();
   const location = useLocation();
-  const { signOut, user, isAdmin } = useAuth();
-  const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const currentPath = location.pathname;
   const isCollapsed = state === 'collapsed';
 
@@ -129,22 +124,6 @@ export function AppSidebar() {
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
     return currentPath.startsWith(path);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: t('common.logout'),
-        description: t('common.logoutDesc'),
-      });
-    } catch (error) {
-      toast({
-        title: t('common.logoutError'),
-        description: t('common.logoutErrorDesc'),
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -240,8 +219,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Tools Section */}
-        <SidebarGroup className="py-2">
+        {/* Admin tools remain in the sidebar. Business settings live in the user menu. */}
+        {isAdmin && <SidebarGroup className="py-2">
           {!isCollapsed && (
             <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1 px-3">
               {isAdmin ? t('nav.sistema') : t('nav.settings')}
@@ -275,31 +254,8 @@ export function AppSidebar() {
               })}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>}
       </SidebarContent>
-
-      {/* Footer */}
-      <SidebarFooter className={`p-4 border-t border-border/30 ${isCollapsed ? 'px-2' : 'px-4'}`}>
-        {!isCollapsed && (
-          <div className="mb-3 px-1">
-            <p className="text-sm font-medium text-foreground truncate">
-              {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user?.email}
-            </p>
-          </div>
-        )}
-        <Button
-          onClick={handleSignOut}
-          variant="ghost"
-          size="sm"
-          className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${isCollapsed ? 'px-2' : 'justify-start'}`}
-        >
-          <LogOut className={`h-4 w-4 ${isCollapsed ? '' : 'mr-2'}`} />
-          {!isCollapsed && t('nav.sair')}
-        </Button>
-      </SidebarFooter>
     </Sidebar>
   );
 }

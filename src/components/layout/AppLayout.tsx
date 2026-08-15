@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Globe } from 'lucide-react';
+import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
@@ -18,8 +18,11 @@ import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -29,7 +32,7 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { t, i18n } = useTranslation();
-  const { user, loading, emailVerified, resendConfirmation } = useAuth();
+  const { user, loading, emailVerified, resendConfirmation, signOut, isAdmin } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const currentTheme = theme || resolvedTheme || 'light';
   const location = useLocation();
@@ -115,6 +118,16 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+      toast({ title: t('common.logout'), description: t('common.logoutDesc') });
+    } catch {
+      toast({ title: t('common.logoutError'), description: t('common.logoutErrorDesc'), variant: 'destructive' });
+    }
   };
 
   if (loading || hasAuthFragment) {
@@ -211,6 +224,46 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 <TooltipContent>{t('header.tutorial')}</TooltipContent>
               </Tooltip>
               <NotificationCenter />
+
+              {/* User menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border-primary/20 bg-primary/5 hover:bg-primary/10"
+                    aria-label="Abrir menu do usuário"
+                  >
+                    <User className="h-4.5 w-4.5 text-primary" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel className="py-3 font-normal">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário'}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {!isAdmin && (
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/perfil')} className="cursor-pointer gap-2.5 py-2.5">
+                        <Building2 className="h-4 w-4" /> Perfil do negócio
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/planos')} className="cursor-pointer gap-2.5 py-2.5">
+                        <Crown className="h-4 w-4" /> Planos
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/minha-privacidade')} className="cursor-pointer gap-2.5 py-2.5">
+                        <ShieldCheck className="h-4 w-4" /> Minha Privacidade
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onClick={() => void handleSignOut()} className="cursor-pointer gap-2.5 py-2.5 text-destructive focus:text-destructive">
+                    <LogOut className="h-4 w-4" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             {/* Confirmação de e-mail desativada no Supabase — banner removido */}
