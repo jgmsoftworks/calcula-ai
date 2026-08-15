@@ -1,39 +1,38 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { PLAN_CONFIGS, PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
+import { PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
+import { usePlanos, formatPreco, Plano } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const planGradients: Record<PlanType, string> = {
-  free: 'from-[#0483e4] to-[#2c4dc7]',
+  lite: 'from-[#0483e4] to-[#2c4dc7]',
   professional: 'from-[#7328b1] to-[#af1188]',
   enterprise: 'from-[#dd0b52] to-[#f96e0c]',
 };
 
 const planAccentColors: Record<PlanType, string> = {
-  free: 'text-[#0483e4]',
+  lite: 'text-[#0483e4]',
   professional: 'text-[#7328b1]',
   enterprise: 'text-[#dd0b52]',
 };
 
 const planBgAccent: Record<PlanType, string> = {
-  free: 'bg-[#0483e4]/10',
+  lite: 'bg-[#0483e4]/10',
   professional: 'bg-[#7328b1]/10',
   enterprise: 'bg-[#dd0b52]/10',
 };
 
 const Planos = () => {
   const { t } = useTranslation();
-  const { currentPlan, planInfo, loading, reloadPlan } = usePlanLimits();
+  const { currentPlan, loading, reloadPlan } = usePlanLimits();
+  const { planos, loading: planosLoading } = usePlanos();
   const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
-  const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null);
-  const [isYearly, setIsYearly] = useState(false);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -59,24 +58,22 @@ const Planos = () => {
     }
   }, [toast, reloadPlan, t]);
 
-  const handleSelectPlan = async (planType: PlanType) => {
-    if (planType === currentPlan) {
-      if (planType !== 'free') {
-        await openCustomerPortal();
-      }
+  const handleSelectPlan = async (plano: Plano) => {
+    if (plano.slug === currentPlan) {
+      await openCustomerPortal();
       return;
     }
 
-    setProcessingPlan(planType);
-    
+    setProcessingPlan(plano.slug);
+
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const affiliateCode = urlParams.get('ref');
-      
-      if (planType === 'free') {
+
+      if (plano.preco_centavos === 0) {
         await openCustomerPortal();
       } else {
-        await createCheckout(planType, isYearly ? 'yearly' : 'monthly', affiliateCode || undefined);
+        await createCheckout(plano.slug, 'monthly', affiliateCode || undefined);
       }
     } catch (error) {
       console.error('Erro ao processar plano:', error);
@@ -92,45 +89,29 @@ const Planos = () => {
 
   const getPlanIcon = (planType: PlanType) => {
     switch (planType) {
-      case 'free': return <Gift className="h-7 w-7" />;
+      case 'lite': return <Gift className="h-7 w-7" />;
       case 'professional': return <Zap className="h-7 w-7" />;
       case 'enterprise': return <Crown className="h-7 w-7" />;
+      default: return <Sparkles className="h-7 w-7" />;
     }
   };
 
-  const getPrice = (planType: PlanType) => {
-    const config = PLAN_CONFIGS[planType];
-    if (planType === 'free') return { main: t('plans.free'), sub: t('plans.forever') };
-    
-    const price = isYearly ? config.yearlyPrice : config.price;
-    const monthly = isYearly ? (config.yearlyPrice / 12).toFixed(2).replace('.', ',') : null;
-    
-    return {
-      main: `R$ ${price.toFixed(2).replace('.', ',')}`,
-      sub: isYearly ? t('plans.perYearMonthly', { monthly }) : t('plans.perMonth')
-    };
-  };
-
-  const getSavings = (planType: PlanType) => {
-    if (planType === 'free' || !isYearly) return null;
-    const config = PLAN_CONFIGS[planType];
-    const yearlyTotal = config.price * 12;
-    const savings = yearlyTotal - config.yearlyPrice;
-    return Math.round((savings / yearlyTotal) * 100);
+  const limiteLabel = (valor: number | undefined) => {
+    if (valor === undefined || valor === null) return '—';
+    if (valor === -1) return t('plans.unlimited');
+    if (valor === 0) return false;
+    return String(valor);
   };
 
   const comparisonRows = [
-    { label: t('plans.rawMaterials'), free: '30', professional: t('plans.unlimited'), enterprise: t('plans.unlimited') },
-    { label: t('plans.recipes'), free: '5', professional: '60', enterprise: t('plans.unlimited') },
-    { label: t('plans.markupBlocks'), free: '1', professional: '3', enterprise: t('plans.unlimited') },
-    { label: t('plans.stockMovement'), free: true, professional: true, enterprise: true },
-    { label: t('plans.techSheetPrint'), free: false, professional: t('plans.copiesPerMonth', { count: 80 }), enterprise: t('plans.unlimited') },
-    { label: t('plans.priceSimulator'), free: false, professional: true, enterprise: true },
-    { label: t('plans.support'), free: false, professional: true, enterprise: true },
-    { label: t('plans.personalizedSupport'), free: false, professional: false, enterprise: true },
+    { label: t('plans.rawMaterials'), key: 'produtos' as const },
+    { label: t('plans.recipes'), key: 'receitas' as const },
+    { label: t('plans.markupBlocks'), key: 'markups' as const },
+    { label: t('plans.stockMovement'), key: 'movimentacoes' as const },
+    { label: t('plans.techSheetPrint'), key: 'pdf_exports' as const },
   ];
 
-  if (loading) {
+  if (loading || planosLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -156,40 +137,16 @@ const Planos = () => {
         </p>
       </div>
 
-      {/* Toggle Mensal/Anual */}
-      <div className="flex items-center justify-center gap-4 animate-slide-up">
-        <div className="glass-card px-6 py-3 flex items-center gap-4">
-          <Label className={`text-sm font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-            {t('plans.monthly')}
-          </Label>
-          <Switch
-            checked={isYearly}
-            onCheckedChange={setIsYearly}
-            className="data-[state=checked]:bg-primary"
-          />
-          <Label className={`text-sm font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-            {t('plans.yearly')}
-          </Label>
-          {isYearly && (
-            <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
-              -20%
-            </Badge>
-          )}
-        </div>
-      </div>
-
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {(Object.keys(PLAN_CONFIGS) as PlanType[]).map((planType, idx) => {
-          const config = PLAN_CONFIGS[planType];
+        {planos.map((plano, idx) => {
+          const planType = plano.slug as PlanType;
           const isCurrentPlan = currentPlan === planType;
           const isProfessional = planType === 'professional';
-          const price = getPrice(planType);
-          const savings = getSavings(planType);
 
           return (
             <div
-              key={planType}
+              key={plano.id}
               className={`
                 glass-card relative overflow-hidden transition-all duration-300 hover:-translate-y-1
                 animate-slide-up
@@ -198,10 +155,8 @@ const Planos = () => {
               `}
               style={{ animationDelay: `${idx * 100}ms` }}
             >
-              {/* Gradient top bar */}
               <div className={`h-1.5 bg-gradient-to-r ${planGradients[planType]}`} />
 
-              {/* Popular badge */}
               {isProfessional && (
                 <div className="absolute top-4 right-4">
                   <Badge className="bg-gradient-to-r from-[#7328b1] to-[#af1188] text-white border-0 text-[10px] uppercase tracking-wider font-bold">
@@ -211,35 +166,34 @@ const Planos = () => {
               )}
 
               <div className="p-6 space-y-6">
-                {/* Icon + Name */}
                 <div className="flex items-center gap-3">
                   <div className={`p-2.5 rounded-xl bg-gradient-to-br ${planGradients[planType]} text-white shadow-lg`}>
                     {getPlanIcon(planType)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold font-display text-foreground">{config.name}</h3>
+                    <h3 className="text-lg font-bold font-display text-foreground">{plano.nome_publico}</h3>
                     {isCurrentPlan && (
                       <span className="text-[10px] uppercase tracking-wider font-bold text-primary">{t('plans.currentPlan')}</span>
                     )}
                   </div>
                 </div>
 
-                {/* Price */}
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold font-display text-foreground">{price.main}</span>
-                    <span className="text-sm text-muted-foreground">{price.sub}</span>
+                    <span className="text-3xl font-bold font-display text-foreground">
+                      {formatPreco(plano.preco_centavos)}
+                    </span>
+                    {plano.preco_centavos > 0 && (
+                      <span className="text-sm text-muted-foreground">{t('plans.perMonth')}</span>
+                    )}
                   </div>
-                  {savings && (
-                    <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
-                      {t('plans.save', { percent: savings })}
-                    </Badge>
+                  {plano.descricao && (
+                    <p className="text-xs text-muted-foreground">{plano.descricao}</p>
                   )}
                 </div>
 
-                {/* Features */}
                 <ul className="space-y-2.5">
-                  {config.features.map((feature, index) => (
+                  {plano.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2.5">
                       <div className={`rounded-full p-0.5 ${planBgAccent[planType]} flex-shrink-0 mt-0.5`}>
                         <Check className={`h-3.5 w-3.5 ${planAccentColors[planType]}`} />
@@ -249,7 +203,6 @@ const Planos = () => {
                   ))}
                 </ul>
 
-                {/* CTA Button */}
                 <Button
                   className={`w-full h-11 text-sm font-semibold transition-all ${
                     isProfessional && !isCurrentPlan
@@ -257,23 +210,21 @@ const Planos = () => {
                       : ''
                   }`}
                   variant={isCurrentPlan ? 'secondary' : 'default'}
-                  onClick={() => handleSelectPlan(planType)}
-                  disabled={processingPlan === planType || stripeLoading}
+                  onClick={() => handleSelectPlan(plano)}
+                  disabled={processingPlan === plano.slug || stripeLoading}
                 >
-                  {processingPlan === planType ? (
+                  {processingPlan === plano.slug ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
                       {t('plans.processing')}
                     </div>
-                  ) : isCurrentPlan && planType !== 'free' ? (
+                  ) : isCurrentPlan ? (
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4" />
                       {t('plans.manageSubscription')}
                     </div>
-                  ) : isCurrentPlan ? (
-                    t('plans.currentPlan')
                   ) : (
-                    t('plans.choosePlan', { name: config.name })
+                    t('plans.choosePlan', { name: plano.nome_publico })
                   )}
                 </Button>
               </div>
@@ -293,24 +244,31 @@ const Planos = () => {
             <thead>
               <tr className="border-b border-border/30 bg-muted/20">
                 <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('plans.feature')}</th>
-                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Free</th>
-                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-[#7328b1] bg-[#7328b1]/5">{t('plans.professional')}</th>
-                <th className="text-center p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('plans.enterprise')}</th>
+                {planos.map(p => (
+                  <th
+                    key={p.id}
+                    className={`text-center p-4 text-xs font-semibold uppercase tracking-wider ${
+                      p.slug === 'professional' ? 'text-[#7328b1] bg-[#7328b1]/5' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {p.nome_publico}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="text-sm">
               {comparisonRows.map((row, i) => (
                 <tr key={i} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
                   <td className="p-4 font-medium text-foreground">{row.label}</td>
-                  {(['free', 'professional', 'enterprise'] as const).map(plan => {
-                    const val = row[plan];
-                    const isPro = plan === 'professional';
+                  {planos.map(p => {
+                    const val = limiteLabel(p.limites?.[row.key]);
+                    const isPro = p.slug === 'professional';
                     return (
-                      <td key={plan} className={`text-center p-4 ${isPro ? 'bg-[#7328b1]/5' : ''}`}>
-                        {val === true ? (
-                          <Check className="h-4.5 w-4.5 text-green-500 mx-auto" />
-                        ) : val === false ? (
-                          <X className="h-4.5 w-4.5 text-muted-foreground/40 mx-auto" />
+                      <td key={p.id} className={`text-center p-4 ${isPro ? 'bg-[#7328b1]/5' : ''}`}>
+                        {val === false ? (
+                          <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                        ) : val === t('plans.unlimited') ? (
+                          <span className={`font-semibold ${isPro ? 'text-[#7328b1]' : 'text-foreground'}`}>{val}</span>
                         ) : (
                           <span className={`font-semibold ${isPro ? 'text-[#7328b1]' : 'text-foreground'}`}>{val}</span>
                         )}
