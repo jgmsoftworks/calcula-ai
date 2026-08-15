@@ -13,13 +13,7 @@ const logStep = (step: string, details?: any) => {
   console.log(`[AFFILIATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Preços padrão (fallback se não houver afiliado)
-const FALLBACK_PLAN_PRICES = {
-  professional_monthly: "price_1SAL2dBnxFLGYBYfkowqS28X", // R$ 49,90
-  professional_yearly: "price_1SAGl3BnxFLGYBYfNdoF5crq", // R$ 478,80
-  enterprise_monthly: "price_1SAGgdBnxFLGYBYfOzJwhMw3", // R$ 89,90
-  enterprise_yearly: "price_1SAGlUBnxFLGYBYfwLnEZoId", // R$ 838,80
-} as const;
+// Sem price IDs hardcoded: a fonte única é a tabela public.planos.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,7 +34,7 @@ serve(async (req) => {
     planType = planType?.trim().toLowerCase().replace(/[^a-z_]/g, '');
     
     // Validar planType
-    if (!['professional', 'enterprise'].includes(planType)) {
+    if (!['lite', 'professional', 'enterprise'].includes(planType)) {
       logStep('Invalid planType received, defaulting to professional', { originalPlanType: planType });
       planType = 'professional';
     }
@@ -116,12 +110,22 @@ serve(async (req) => {
       }
     }
 
-    // Se não encontrou price ID específico, usar fallback
+    // Se não encontrou price ID específico, usar a fonte central (public.planos)
     if (!priceId) {
-      const planKey = `${planType}_${billing}` as keyof typeof FALLBACK_PLAN_PRICES;
-      priceId = FALLBACK_PLAN_PRICES[planKey];
-      logStep('Using fallback price', { planKey, priceId });
+      const { data: plano } = await supabaseClient
+        .from('planos')
+        .select('stripe_price_id, ativo, preco_centavos')
+        .eq('slug', planType === 'free' ? 'lite' : planType)
+        .maybeSingle();
+      if (plano?.ativo && plano.stripe_price_id && plano.preco_centavos > 0) {
+        priceId = plano.stripe_price_id;
+        logStep('Using central plan price', { planType, priceId });
+      }
     }
+
+
+
+
 
     if (!priceId) {
       logStep('ERROR: No price ID found', { planType, billing });

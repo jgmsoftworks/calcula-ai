@@ -1691,6 +1691,114 @@ export type Database = {
           },
         ]
       }
+      planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          features: Json
+          id: string
+          limites: Json
+          moeda: string
+          nome_publico: string
+          ordem: number
+          periodicidade: string
+          preco_centavos: number
+          slug: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+          updated_by: string | null
+          versao_preco: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          features?: Json
+          id?: string
+          limites?: Json
+          moeda?: string
+          nome_publico: string
+          ordem?: number
+          periodicidade?: string
+          preco_centavos?: number
+          slug: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao_preco?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          features?: Json
+          id?: string
+          limites?: Json
+          moeda?: string
+          nome_publico?: string
+          ordem?: number
+          periodicidade?: string
+          preco_centavos?: number
+          slug?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          versao_preco?: number
+        }
+        Relationships: []
+      }
+      planos_precos_historico: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          moeda: string
+          observacao: string | null
+          periodicidade: string
+          plano_slug: string
+          preco_centavos: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          versao_preco: number
+          vigente_ate: string | null
+          vigente_de: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          moeda?: string
+          observacao?: string | null
+          periodicidade?: string
+          plano_slug: string
+          preco_centavos: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          versao_preco?: number
+          vigente_ate?: string | null
+          vigente_de?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          moeda?: string
+          observacao?: string | null
+          periodicidade?: string
+          plano_slug?: string
+          preco_centavos?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          versao_preco?: number
+          vigente_ate?: string | null
+          vigente_de?: string
+        }
+        Relationships: []
+      }
       producao_areas: {
         Row: {
           ativo: boolean
@@ -1720,6 +1828,45 @@ export type Database = {
           nome?: string
           ordem?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      producao_links_compartilhados: {
+        Row: {
+          created_at: string
+          data_producao: string
+          expira_em: string
+          id: string
+          janela_requisicoes_inicio: string
+          janela_requisicoes_total: number
+          revogado_em: string | null
+          token_hash: string
+          ultimo_acesso_em: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_producao: string
+          expira_em: string
+          id?: string
+          janela_requisicoes_inicio?: string
+          janela_requisicoes_total?: number
+          revogado_em?: string | null
+          token_hash: string
+          ultimo_acesso_em?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_producao?: string
+          expira_em?: string
+          id?: string
+          janela_requisicoes_inicio?: string
+          janela_requisicoes_total?: number
+          revogado_em?: string | null
+          token_hash?: string
+          ultimo_acesso_em?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1857,6 +2004,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "producao_tarefas_historico_funcionario_anterior_id_fkey"
+            columns: ["funcionario_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_historico_funcionario_novo_id_fkey"
+            columns: ["funcionario_novo_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "producao_tarefas_historico_tarefa_id_fkey"
             columns: ["tarefa_id"]
@@ -2027,6 +2188,7 @@ export type Database = {
           email_comercial: string | null
           estado: string | null
           full_name: string | null
+          grace_period_ends_at: string | null
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
@@ -2054,6 +2216,7 @@ export type Database = {
           setor_atividade: string | null
           subscription_status: string
           telefone_comercial: string | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
           website: string | null
@@ -2080,6 +2243,7 @@ export type Database = {
           email_comercial?: string | null
           estado?: string | null
           full_name?: string | null
+          grace_period_ends_at?: string | null
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2107,6 +2271,7 @@ export type Database = {
           setor_atividade?: string | null
           subscription_status?: string
           telefone_comercial?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
           website?: string | null
@@ -2133,6 +2298,7 @@ export type Database = {
           email_comercial?: string | null
           estado?: string | null
           full_name?: string | null
+          grace_period_ends_at?: string | null
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2160,6 +2326,7 @@ export type Database = {
           setor_atividade?: string | null
           subscription_status?: string
           telefone_comercial?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
           website?: string | null
@@ -3368,3 +3535,4 @@ export const Constants = {
     },
   },
 } as const
+

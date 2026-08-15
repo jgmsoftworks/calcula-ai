@@ -26,6 +26,7 @@ import {
   Calendar as CalendarIcon,
   ClipboardList,
   Activity,
+  Layers,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -114,6 +115,7 @@ export function AppSidebar() {
     { title: t('nav.gerenciarUsuarios'), url: '/admin/usuarios', icon: Users },
     { title: 'Inadimplência', url: '/admin/inadimplencia', icon: AlertTriangle },
     { title: 'Painel Stripe', url: '/admin/stripe', icon: CreditCard },
+    { title: 'Planos e Assinaturas', url: '/admin/planos', icon: Layers },
     { title: 'Segurança', url: '/admin/security', icon: ShieldCheck },
     { title: t('nav.configuracoes'), url: '/admin-configuracoes', icon: Building2 },
   ];
