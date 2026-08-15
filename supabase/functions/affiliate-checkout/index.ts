@@ -123,12 +123,8 @@ serve(async (req) => {
       }
     }
 
-    // Último recurso: fallback legado
-    if (!priceId) {
-      const planKey = `${planType}_${billing}` as keyof typeof FALLBACK_PLAN_PRICES;
-      priceId = FALLBACK_PLAN_PRICES[planKey];
-      logStep('Using fallback price', { planKey, priceId });
-    }
+
+
 
 
     if (!priceId) {
