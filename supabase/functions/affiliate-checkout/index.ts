@@ -40,7 +40,7 @@ serve(async (req) => {
     planType = planType?.trim().toLowerCase().replace(/[^a-z_]/g, '');
     
     // Validar planType
-    if (!['professional', 'enterprise'].includes(planType)) {
+    if (!['lite', 'professional', 'enterprise'].includes(planType)) {
       logStep('Invalid planType received, defaulting to professional', { originalPlanType: planType });
       planType = 'professional';
     }
