@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -68,6 +69,32 @@ export function useProducaoTarefas(dataProducao: string) {
     },
   });
 
+  useEffect(() => {
+    if (!user?.id || !dataProducao) return;
+
+    const invalidate = () => {
+      void qc.invalidateQueries({ queryKey: ['producao-tarefas', user.id, dataProducao] });
+    };
+
+    const channel = supabase
+      .channel(`producao-tarefas:${user.id}:${dataProducao}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'producao_tarefas' },
+        invalidate,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'producao_tarefas_historico' },
+        invalidate,
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, dataProducao, qc]);
+
   const criar = useMutation({
     mutationFn: async (input: {
       titulo: string;
@@ -132,8 +159,32 @@ export function useProducaoTarefas(dataProducao: string) {
         movido_por: user!.id,
       });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
-    onError: (e: any) => toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' }),
+    onMutate: async ({ tarefa, novoStatus }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const anterior = qc.getQueryData<ProducaoTarefa[]>(key);
+      const agora = new Date().toISOString();
+
+      qc.setQueryData<ProducaoTarefa[]>(key, (atual = []) =>
+        atual.map((item) => {
+          if (item.id !== tarefa.id) return item;
+          return {
+            ...item,
+            status: novoStatus,
+            iniciado_em: novoStatus === 'em_producao' && !item.iniciado_em ? agora : item.iniciado_em,
+            concluido_em: novoStatus === 'feito' && !item.concluido_em ? agora : item.concluido_em,
+          };
+        }),
+      );
+
+      return { anterior };
+    },
+    onError: (e: any, _variables, context) => {
+      if (context?.anterior) qc.setQueryData(key, context.anterior);
+      toast({ title: 'Erro ao mover', description: e.message, variant: 'destructive' });
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+    },
   });
 
   const alterarResponsavel = useMutation({
