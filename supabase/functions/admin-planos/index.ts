@@ -176,9 +176,14 @@ serve(async (req) => {
         await supabase.from("admin_actions").insert({
           admin_user_id: userId,
           action_type: precoMudou ? "plano_preco_alterado" : "plano_atualizado",
-          target_user_id: null,
-          details: { slug, updates },
-        }).select().maybeSingle().then(() => undefined, () => undefined);
+          old_value: JSON.stringify({
+            nome_publico: plano.nome_publico,
+            preco_centavos: plano.preco_centavos,
+            stripe_price_id: plano.stripe_price_id,
+          }),
+          new_value: JSON.stringify({ slug, ...updates }),
+          reason: body.observacao ?? "Alteração de plano via Master ADM",
+        });
 
         return jsonResponse({ plano: atualizado, novo_price: precoMudou });
       }
