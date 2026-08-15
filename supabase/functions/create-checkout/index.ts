@@ -84,23 +84,36 @@ serve(async (req) => {
 
     // Processar dados da requisição
     const requestBody = await req.json();
-    const { planType, billing } = requestBody;
+    const planType = normalizeSlug(requestBody.planType);
+    const billing = requestBody.billing ?? "monthly";
     
     logStep("Request data received", { planType, billing });
 
-    if (!planType || !billing) {
-      throw new Error("Missing planType or billing in request");
+    if (!planType) {
+      throw new Error("Missing planType in request");
     }
 
-    const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
-    const priceId = PLAN_PRICES[planKey];
+    // 1) Fonte central: tabela public.planos
+    let priceId: string | undefined;
+    const plano = await getPlano(planType);
+    if (plano?.ativo && plano.stripe_price_id && plano.preco_centavos > 0) {
+      priceId = plano.stripe_price_id;
+      logStep("Price resolved from planos table", { planType, priceId });
+    }
+
+    // 2) Fallback legado
+    if (!priceId) {
+      const planKey = `${planType}_${billing}` as keyof typeof PLAN_PRICES;
+      priceId = PLAN_PRICES[planKey];
+    }
     
     if (!priceId) {
-      logStep("Invalid plan configuration", { planKey, availablePlans: Object.keys(PLAN_PRICES) });
-      throw new Error(`Invalid plan type: ${planKey}`);
+      logStep("Invalid plan configuration", { planType, billing });
+      throw new Error(`Invalid plan type: ${planType}`);
     }
 
-    logStep("Plan validated", { planKey, priceId });
+    logStep("Plan validated", { planType, priceId });
+
 
     // Inicializar Stripe
     const stripe = new Stripe(stripeKey, { 
