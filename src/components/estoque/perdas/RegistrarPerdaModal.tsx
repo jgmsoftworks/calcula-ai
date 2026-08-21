@@ -116,7 +116,7 @@ const correspondeBusca = (conteudo: unknown[], busca: string) => {
 
 export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
-  const { registrarPerda, calcularCustoReceita } = usePerdas();
+  const { registrarPerdas, calcularCustoReceita } = usePerdas();
   const [etapa, setEtapa] = useState<'tipo' | 'formulario'>('tipo');
   const [tipo, setTipo] = useState<'produto' | 'receita'>('produto');
   const [itens, setItens] = useState<ItemPerda[]>([]);
@@ -281,9 +281,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const confirmarRegistro = async (baixarEstoque: boolean) => {
     if (!podeSalvar) return;
     setSaving(true);
-    const resultados: boolean[] = [];
-    for (const item of itens) {
-      resultados.push(await registrarPerda({
+    const salvo = await registrarPerdas(itens.map(item => ({
         tipo: item.tipo,
         produto_id: item.tipo === 'produto' ? item.id : null,
         receita_id: item.tipo === 'receita' ? item.id : null,
@@ -295,20 +293,15 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
         observacao,
         responsavel: responsavelFinal,
         baixar_estoque: baixarEstoque,
-      }, { silent: true }));
-    }
+      })), { silent: true });
     setSaving(false);
-    const salvos = resultados.filter(Boolean).length;
-    if (salvos === itens.length) {
+    if (salvo) {
       toast.success(baixarEstoque
-        ? `${salvos} ${salvos === 1 ? 'perda registrada' : 'perdas registradas'} e estoque atualizado`
-        : `${salvos} ${salvos === 1 ? 'perda registrada' : 'perdas registradas'} sem movimentar o estoque`);
+        ? `${itens.length} ${itens.length === 1 ? 'perda registrada' : 'perdas registradas'} e estoque atualizado`
+        : `${itens.length} ${itens.length === 1 ? 'perda registrada' : 'perdas registradas'} sem movimentar o estoque`);
       setConfirmacaoOpen(false);
       onSaved();
       onOpenChange(false);
-    } else {
-      setItens(atuais => atuais.filter((_, index) => !resultados[index]));
-      toast.error(`${salvos} de ${itens.length} perdas foram registradas. Tente novamente para os itens restantes.`);
     }
   };
 
