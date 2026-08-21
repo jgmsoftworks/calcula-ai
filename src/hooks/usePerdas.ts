@@ -81,9 +81,12 @@ export function usePerdas() {
     }
   };
 
-  const registrarPerda = async (input: NovaPerdaInput): Promise<boolean> => {
+  const registrarPerda = async (
+    input: NovaPerdaInput,
+    options?: { silent?: boolean },
+  ): Promise<boolean> => {
     if (!user) {
-      toast.error('Usuário não autenticado');
+      if (!options?.silent) toast.error('Usuário não autenticado');
       return false;
     }
 
@@ -118,13 +121,15 @@ export function usePerdas() {
         }
       }
 
-      toast.success(input.baixar_estoque
-        ? 'Perda registrada e estoque atualizado'
-        : 'Perda registrada sem movimentar o estoque');
+      if (!options?.silent) {
+        toast.success(input.baixar_estoque
+          ? 'Perda registrada e estoque atualizado'
+          : 'Perda registrada sem movimentar o estoque');
+      }
       return true;
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Erro ao registrar perda');
+      if (!options?.silent) toast.error(e.message || 'Erro ao registrar perda');
       return false;
     }
   };

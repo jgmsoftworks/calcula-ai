@@ -10,7 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,13 +18,14 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Package, ChefHat, ChevronsUpDown, Check } from 'lucide-react';
+import { Package, ChefHat, ChevronsUpDown, Check, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePerdas, MOTIVOS_PERDA, MotivoPerda } from '@/hooks/usePerdas';
 import { formatBRL } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -46,13 +46,22 @@ interface ProdutoOpt {
 }
 interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rendimento_valor: number | null; rendimento_unidade: string | null; }
 interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
+interface ItemPerda {
+  id: string;
+  tipo: 'produto' | 'receita';
+  nome: string;
+  quantidade: number;
+  custoUnitario: number;
+}
 
 const RESPONSAVEL_OUTRO = '__outro__';
 
 export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
   const { registrarPerda, calcularCustoReceita } = usePerdas();
+  const [etapa, setEtapa] = useState<'tipo' | 'formulario'>('tipo');
   const [tipo, setTipo] = useState<'produto' | 'receita'>('produto');
+  const [itens, setItens] = useState<ItemPerda[]>([]);
   const [produtos, setProdutos] = useState<ProdutoOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
@@ -94,6 +103,8 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   useEffect(() => {
     if (open) {
       setTipo('produto');
+      setEtapa('tipo');
+      setItens([]);
       setProdutoId('');
       setReceitaId('');
       setQuantidade(1);
@@ -125,15 +136,56 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
 
   const custoUnit = tipo === 'produto' ? (produtoSel?.custo_unitario || 0) : custoReceitaUnit;
   const custoTotal = quantidade * custoUnit;
+  const custoTotalLote = itens.reduce((total, item) => total + item.quantidade * item.custoUnitario, 0);
 
   const responsavelFinal = responsavelSel === RESPONSAVEL_OUTRO
     ? responsavelOutro.trim()
     : (funcionarios.find(f => f.id === responsavelSel)?.nome || '');
 
-  const podeSalvar =
+  const podeAdicionar =
     quantidade > 0 &&
-    (tipo === 'produto' ? !!produtoId : !!receitaId) &&
+    (tipo === 'produto' ? !!produtoId : !!receitaId);
+
+  const podeSalvar =
+    itens.length > 0 &&
     (motivo !== 'Outro' || motivoOutro.trim().length > 0);
+
+  const escolherTipo = (novoTipo: 'produto' | 'receita') => {
+    setTipo(novoTipo);
+    setItens([]);
+    setProdutoId('');
+    setReceitaId('');
+    setQuantidade(1);
+    setEtapa('formulario');
+  };
+
+  const adicionarItem = () => {
+    if (!podeAdicionar) return;
+    const selecionado = tipo === 'produto' ? produtoSel : receitaSel;
+    if (!selecionado) return;
+
+    setItens(atuais => {
+      const existente = atuais.find(item => item.id === selecionado.id);
+      if (existente) {
+        return atuais.map(item => item.id === selecionado.id
+          ? { ...item, quantidade: item.quantidade + quantidade }
+          : item);
+      }
+      return [...atuais, {
+        id: selecionado.id,
+        tipo,
+        nome: selecionado.nome,
+        quantidade,
+        custoUnitario: custoUnit,
+      }];
+    });
+
+    setProdutoId('');
+    setReceitaId('');
+    setQuantidade(1);
+  };
+
+  const removerItem = (id: string) => setItens(atuais => atuais.filter(item => item.id !== id));
 
   const handleSalvar = async () => {
     if (!podeSalvar) return;
@@ -143,25 +195,34 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const confirmarRegistro = async (baixarEstoque: boolean) => {
     if (!podeSalvar) return;
     setSaving(true);
-    const item = tipo === 'produto' ? produtoSel : receitaSel;
-    const ok = await registrarPerda({
-      tipo,
-      produto_id: tipo === 'produto' ? produtoId : null,
-      receita_id: tipo === 'receita' ? receitaId : null,
-      nome_item: item?.nome || '',
-      quantidade,
-      custo_unitario: custoUnit,
-      motivo,
-      motivo_outro: motivoOutro,
-      observacao,
-      responsavel: responsavelFinal,
-      baixar_estoque: baixarEstoque,
-    });
+    const resultados: boolean[] = [];
+    for (const item of itens) {
+      resultados.push(await registrarPerda({
+        tipo: item.tipo,
+        produto_id: item.tipo === 'produto' ? item.id : null,
+        receita_id: item.tipo === 'receita' ? item.id : null,
+        nome_item: item.nome,
+        quantidade: item.quantidade,
+        custo_unitario: item.custoUnitario,
+        motivo,
+        motivo_outro: motivoOutro,
+        observacao,
+        responsavel: responsavelFinal,
+        baixar_estoque: baixarEstoque,
+      }, { silent: true }));
+    }
     setSaving(false);
-    if (ok) {
+    const salvos = resultados.filter(Boolean).length;
+    if (salvos === itens.length) {
+      toast.success(baixarEstoque
+        ? `${salvos} ${salvos === 1 ? 'perda registrada' : 'perdas registradas'} e estoque atualizado`
+        : `${salvos} ${salvos === 1 ? 'perda registrada' : 'perdas registradas'} sem movimentar o estoque`);
       setConfirmacaoOpen(false);
       onSaved();
       onOpenChange(false);
+    } else {
+      setItens(atuais => atuais.filter((_, index) => !resultados[index]));
+      toast.error(`${salvos} de ${itens.length} perdas foram registradas. Tente novamente para os itens restantes.`);
     }
   };
 
@@ -199,16 +260,56 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="mb-1">
-          <DialogTitle>Registrar Perda</DialogTitle>
+          <DialogTitle>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'produto' ? 'produtos' : 'receitas'}`}</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tipo} onValueChange={(v) => setTipo(v as 'produto' | 'receita')} className="space-y-3">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="produto" className="gap-2"><Package className="h-4 w-4" /> Produto</TabsTrigger>
-            <TabsTrigger value="receita" className="gap-2"><ChefHat className="h-4 w-4" /> Receita</TabsTrigger>
-          </TabsList>
+        {etapa === 'tipo' ? (
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Primeiro, escolha de onde vêm os itens que serão registrados como perda.
+            </p>
+            <button
+              type="button"
+              onClick={() => escolherTipo('produto')}
+              className="w-full rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-start gap-3">
+                <span className="rounded-lg bg-blue-500/10 p-2 text-blue-600"><Package className="h-5 w-5" /></span>
+                <span>
+                  <span className="block font-semibold">Produtos do estoque</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    Itens cadastrados diretamente na Lista de Produtos, como ingredientes, embalagens e materiais.
+                  </span>
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => escolherTipo('receita')}
+              className="w-full rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-start gap-3">
+                <span className="rounded-lg bg-orange-500/10 p-2 text-orange-600"><ChefHat className="h-5 w-5" /></span>
+                <span>
+                  <span className="block font-semibold">Receitas produzidas</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    Itens criados na aba Receitas, como bolos, doces, massas e outros produtos preparados.
+                  </span>
+                </span>
+              </span>
+            </button>
+            <p className="text-xs text-muted-foreground">
+              Você poderá adicionar vários itens de uma vez. No histórico, cada perda ficará separada para consulta ou exclusão individual.
+            </p>
+          </div>
+        ) : (
+          <>
+          <Button variant="ghost" size="sm" onClick={() => setEtapa('tipo')} disabled={saving} className="w-fit -ml-2 gap-1">
+            <ArrowLeft className="h-4 w-4" /> Alterar tipo de perda
+          </Button>
 
-          <TabsContent value="produto" className="space-y-2 mt-0">
+          {tipo === 'produto' ? (
+          <div className="space-y-2">
             <Label>Produto</Label>
             <Popover open={popoverProdutoOpen} onOpenChange={setPopoverProdutoOpen}>
               <PopoverTrigger asChild>
@@ -280,9 +381,9 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 </Command>
               </PopoverContent>
             </Popover>
-          </TabsContent>
-
-          <TabsContent value="receita" className="space-y-2 mt-0">
+          </div>
+          ) : (
+          <div className="space-y-2">
             <Label>Receita</Label>
             <Popover open={popoverReceitaOpen} onOpenChange={setPopoverReceitaOpen}>
               <PopoverTrigger asChild>
@@ -347,8 +448,8 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 {receitaSel.rendimento_unidade && ` / ${receitaSel.rendimento_unidade}`}
               </p>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+          )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
@@ -360,6 +461,36 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <Input value={formatBRL(custoTotal)} disabled className="bg-muted/40 font-semibold" />
           </div>
         </div>
+
+        <Button type="button" variant="secondary" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2">
+          <Plus className="h-4 w-4" /> Adicionar {tipo === 'produto' ? 'produto' : 'receita'} à lista
+        </Button>
+
+        {itens.length > 0 && (
+          <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label>{itens.length} {itens.length === 1 ? 'item adicionado' : 'itens adicionados'}</Label>
+              <span className="text-sm font-semibold">{formatBRL(custoTotalLote)}</span>
+            </div>
+            <div className="max-h-40 space-y-2 overflow-y-auto">
+              {itens.map(item => (
+                <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
+                  {item.tipo === 'produto'
+                    ? <Package className="h-4 w-4 shrink-0 text-blue-600" />
+                    : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{item.nome}</p>
+                    <p className="text-xs text-muted-foreground">Qtd: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label>Motivo</Label>
@@ -405,8 +536,10 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSalvar} disabled={!podeSalvar || saving}>{saving ? 'Salvando...' : 'Registrar Perda'}</Button>
+          <Button onClick={handleSalvar} disabled={!podeSalvar || saving}>{saving ? 'Salvando...' : `Registrar ${itens.length || ''} ${itens.length === 1 ? 'perda' : 'perdas'}`}</Button>
         </DialogFooter>
+          </>
+        )}
         </DialogContent>
       </Dialog>
 
@@ -416,7 +549,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <AlertDialogTitle>Deseja dar baixa no estoque?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">
-                A perda de <strong className="text-foreground">{tipo === 'produto' ? produtoSel?.nome : receitaSel?.nome}</strong> será registrada de qualquer forma.
+                {itens.length === 1 ? 'A perda selecionada será registrada' : `As ${itens.length} perdas selecionadas serão registradas`} de qualquer forma, cada uma separadamente no histórico.
               </span>
               <span className="block">
                 {tipo === 'produto'
