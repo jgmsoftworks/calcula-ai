@@ -67,6 +67,53 @@ interface ItemPerda {
 
 const RESPONSAVEL_OUTRO = '__outro__';
 
+const normalizarBusca = (valor: unknown) => String(valor ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('pt-BR')
+  .trim();
+
+const distanciaEdicaoAteUm = (a: string, b: string) => {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let diferencas = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    diferencas += 1;
+    if (diferencas > 1) return false;
+    if (a.length > b.length) i += 1;
+    else if (b.length > a.length) j += 1;
+    else { i += 1; j += 1; }
+  }
+  return diferencas + Number(i < a.length || j < b.length) <= 1;
+};
+
+const termoEhSubsequencia = (termo: string, palavra: string) => {
+  let indice = 0;
+  for (const caractere of palavra) {
+    if (caractere === termo[indice]) indice += 1;
+    if (indice === termo.length) return true;
+  }
+  return termo.length === 0;
+};
+
+const correspondeBusca = (conteudo: unknown[], busca: string) => {
+  const consulta = normalizarBusca(busca);
+  if (!consulta) return true;
+  const texto = normalizarBusca(conteudo.join(' '));
+  const palavras = texto.split(/\s+/).filter(Boolean);
+  return consulta.split(/\s+/).every(termo =>
+    texto.includes(termo) || palavras.some(palavra =>
+      termoEhSubsequencia(termo, palavra) || (termo.length >= 4 && distanciaEdicaoAteUm(termo, palavra)),
+    ),
+  );
+};
+
 export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
   const { registrarPerda, calcularCustoReceita } = usePerdas();
@@ -152,13 +199,10 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const receitaSel = useMemo(() => receitas.find(r => r.id === receitaId), [receitas, receitaId]);
 
   const itensFiltrados = useMemo(() => {
-    const termo = busca.trim().toLocaleLowerCase('pt-BR');
     if (tipo === 'produto') {
-      return produtos.filter(p => !termo || [p.nome, ...(p.marcas || []), ...(p.categorias || [])]
-        .join(' ').toLocaleLowerCase('pt-BR').includes(termo));
+      return produtos.filter(p => correspondeBusca([p.nome, ...(p.marcas || []), ...(p.categorias || [])], busca));
     }
-    return receitas.filter(r => !termo || [r.nome, r.numero_sequencial, r.tipo_produto]
-      .join(' ').toLocaleLowerCase('pt-BR').includes(termo));
+    return receitas.filter(r => correspondeBusca([r.nome, r.numero_sequencial, r.tipo_produto], busca));
   }, [busca, produtos, receitas, tipo]);
 
   const custoUnit = tipo === 'produto'
@@ -295,7 +339,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             'w-[calc(100vw-2rem)] max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:p-6',
             etapa === 'tipo'
               ? 'max-w-xl'
-              : 'max-w-4xl sm:h-[min(42rem,calc(100vh-3rem))]',
+              : 'max-w-4xl sm:top-6 sm:h-[min(42rem,calc(100vh-3rem))] sm:translate-y-0',
           )}
         >
         <DialogHeader className="mb-1">
