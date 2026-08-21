@@ -464,21 +464,23 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 )}
               </div>
 
-              {itens.length > 0 && (
-                <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
-                  <div className="flex items-center justify-between gap-3"><Label>Itens desta perda ({itens.length})</Label><span className="text-sm font-semibold">{formatBRL(custoTotalLote)}</span></div>
-                  <div className="max-h-52 space-y-2 overflow-y-auto">
-                    {itens.map(item => (
+              <div className="flex h-[12rem] flex-col gap-2 rounded-xl border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-3"><Label>Itens desta perda ({itens.length})</Label><span className="text-sm font-semibold">{formatBRL(custoTotalLote)}</span></div>
+                <div className="h-[7rem] space-y-2 overflow-y-auto pr-1">
+                  {itens.length === 0 ? (
+                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed bg-background/50 px-4 text-center text-xs text-muted-foreground">
+                      Os itens adicionados aparecerão aqui.
+                    </div>
+                  ) : itens.map(item => (
                       <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
                         {item.tipo === 'produto' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.nome}</p><p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p></div>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
                 </div>
-              )}
+                <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
+              </div>
             </div>
           </div>
 
