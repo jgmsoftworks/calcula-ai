@@ -290,7 +290,14 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:h-[min(42rem,calc(100vh-3rem))] sm:p-6">
+        <DialogContent
+          className={cn(
+            'w-[calc(100vw-2rem)] max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:p-6',
+            etapa === 'tipo'
+              ? 'max-w-xl'
+              : 'max-w-4xl sm:h-[min(42rem,calc(100vh-3rem))]',
+          )}
+        >
         <DialogHeader className="mb-1">
           <DialogTitle className="flex items-center gap-2">
             {etapa === 'formulario' && (
