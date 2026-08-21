@@ -292,7 +292,23 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:p-6">
         <DialogHeader className="mb-1">
-          <DialogTitle>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'produto' ? 'produtos' : 'receitas'}`}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {etapa === 'formulario' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setEtapa('tipo')}
+                disabled={saving}
+                aria-label="Alterar tipo de perda"
+                title="Alterar tipo de perda"
+                className="h-8 w-8 shrink-0 -ml-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <span>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'produto' ? 'produtos' : 'receitas'}`}</span>
+          </DialogTitle>
         </DialogHeader>
 
         {etapa === 'tipo' ? (
@@ -336,10 +352,6 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           </div>
         ) : (
           <>
-          <Button variant="ghost" size="sm" onClick={() => setEtapa('tipo')} disabled={saving} className="w-fit -ml-2 gap-1">
-            <ArrowLeft className="h-4 w-4" /> Alterar tipo de perda
-          </Button>
-
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.9fr)]">
             <div className="space-y-3 rounded-xl border bg-muted/10 p-3">
               <div className="relative">
