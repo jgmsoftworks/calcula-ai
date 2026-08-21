@@ -1,0 +1,3 @@
+-- Registra as correções de execução e precisão identificadas na validação da
+-- função. A definição final e reproduzível está na migração imediatamente
+-- anterior.

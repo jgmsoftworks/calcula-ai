@@ -3375,6 +3375,17 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: number
       }
+      registrar_perdas_transacional: {
+        Args: {
+          p_baixar_estoque?: boolean
+          p_itens: Json
+          p_motivo: string
+          p_motivo_outro?: string | null
+          p_observacao?: string | null
+          p_responsavel?: string | null
+        }
+        Returns: number
+      }
       reset_monthly_pdf_counter: { Args: never; Returns: undefined }
       user_is_admin: { Args: never; Returns: boolean }
       user_is_affiliate_owner: {

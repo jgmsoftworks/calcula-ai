@@ -81,8 +81,8 @@ export function usePerdas() {
     }
   };
 
-  const registrarPerda = async (
-    input: NovaPerdaInput,
+  const registrarPerdas = async (
+    inputs: NovaPerdaInput[],
     options?: { silent?: boolean },
   ): Promise<boolean> => {
     if (!user) {
@@ -90,126 +90,48 @@ export function usePerdas() {
       return false;
     }
 
-    const custo_total = +(input.quantidade * input.custo_unitario).toFixed(2);
+    if (inputs.length === 0) {
+      if (!options?.silent) toast.error('Adicione ao menos um item à perda');
+      return false;
+    }
+
+    const referencia = inputs[0];
 
     try {
-      // 1. Inserir registro de perda
-      const { error: perdaError } = await supabase.from('perdas').insert({
-        user_id: user.id,
-        tipo: input.tipo,
-        produto_id: input.tipo === 'produto' ? input.produto_id : null,
-        receita_id: input.tipo === 'receita' ? input.receita_id : null,
-        nome_item: input.nome_item,
-        quantidade: input.quantidade,
-        custo_unitario: input.custo_unitario,
-        custo_total,
-        motivo: input.motivo,
-        motivo_outro: input.motivo === 'Outro' ? input.motivo_outro || null : null,
-        observacao: input.observacao || null,
-        responsavel: input.responsavel || null,
-        data_perda: new Date().toISOString(),
+      const { error } = await supabase.rpc('registrar_perdas_transacional', {
+        p_itens: inputs.map(input => ({
+          tipo: input.tipo,
+          item_id: input.tipo === 'produto' ? input.produto_id : input.receita_id,
+          quantidade: input.quantidade,
+        })),
+        p_motivo: referencia.motivo,
+        p_motivo_outro: referencia.motivo === 'Outro' ? referencia.motivo_outro || null : null,
+        p_observacao: referencia.observacao || null,
+        p_responsavel: referencia.responsavel || null,
+        p_baixar_estoque: referencia.baixar_estoque,
       });
-
-      if (perdaError) throw perdaError;
-
-      // 2. Dar baixa no estoque somente quando o usuário confirmar.
-      if (input.baixar_estoque) {
-        if (input.tipo === 'produto' && input.produto_id) {
-          await darBaixaProduto(input.produto_id, input.quantidade, input.custo_unitario, input.motivo, input.responsavel);
-        } else if (input.tipo === 'receita' && input.receita_id) {
-          await darBaixaIngredientesReceita(input.receita_id, input.quantidade, input.motivo, input.responsavel);
-        }
-      }
+      if (error) throw error;
 
       if (!options?.silent) {
-        toast.success(input.baixar_estoque
-          ? 'Perda registrada e estoque atualizado'
-          : 'Perda registrada sem movimentar o estoque');
+        toast.success(referencia.baixar_estoque
+          ? `${inputs.length === 1 ? 'Perda registrada' : 'Perdas registradas'} e estoque atualizado`
+          : `${inputs.length === 1 ? 'Perda registrada' : 'Perdas registradas'} sem movimentar o estoque`);
       }
       return true;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      if (!options?.silent) toast.error(e.message || 'Erro ao registrar perda');
+      const mensagem = typeof e === 'object' && e !== null && 'message' in e
+        ? String(e.message)
+        : 'Erro ao registrar perda';
+      toast.error(mensagem);
       return false;
     }
   };
 
-  const darBaixaProduto = async (
-    produtoId: string,
-    quantidade: number,
-    custoUnitario: number,
-    motivo: string,
-    responsavel?: string,
-  ) => {
-    const { data: produto } = await supabase
-      .from('produtos')
-      .select('estoque_atual, nome')
-      .eq('id', produtoId)
-      .single();
-
-    if (!produto) return;
-
-    const novoEstoque = Math.max(0, produto.estoque_atual - quantidade);
-
-    await supabase.from('movimentacoes').insert({
-      user_id: user!.id,
-      produto_id: produtoId,
-      tipo: 'saida',
-      motivo: `Perda - ${motivo}`,
-      quantidade,
-      custo_aplicado: custoUnitario,
-      subtotal: +(quantidade * custoUnitario).toFixed(2),
-      responsavel: responsavel || 'Sistema',
-      origem: 'perdas',
-      data_hora: new Date().toISOString(),
-    });
-
-    await supabase.from('produtos').update({ estoque_atual: novoEstoque }).eq('id', produtoId);
-  };
-
-  const darBaixaIngredientesReceita = async (
-    receitaId: string,
-    quantidadeReceita: number,
-    motivo: string,
-    responsavel?: string,
-  ) => {
-    const { data: ingredientes } = await supabase
-      .from('receita_ingredientes')
-      .select('quantidade, produto:produtos(id, nome, custo_unitario, fator_conversao, unidade_uso, estoque_atual)')
-      .eq('receita_id', receitaId);
-
-    if (!ingredientes) return;
-
-    for (const ing of ingredientes as any[]) {
-      const produto = ing.produto;
-      if (!produto) continue;
-
-      // Quantidade total a baixar: qtd da receita * qtd da perda
-      // Converter para unidade de compra usando fator_conversao se houver
-      let qtdBaixa = ing.quantidade * quantidadeReceita;
-      if (produto.unidade_uso && produto.fator_conversao && produto.fator_conversao > 0) {
-        qtdBaixa = qtdBaixa / produto.fator_conversao;
-      }
-
-      const custoAplicado = produto.custo_unitario || 0;
-      const novoEstoque = Math.max(0, (produto.estoque_atual || 0) - qtdBaixa);
-
-      await supabase.from('movimentacoes').insert({
-        user_id: user!.id,
-        produto_id: produto.id,
-        tipo: 'saida',
-        motivo: `Perda Receita - ${motivo}`,
-        quantidade: +qtdBaixa.toFixed(4),
-        custo_aplicado: custoAplicado,
-        subtotal: +(qtdBaixa * custoAplicado).toFixed(2),
-        responsavel: responsavel || 'Sistema',
-        origem: 'perdas',
-        data_hora: new Date().toISOString(),
-      });
-
-      await supabase.from('produtos').update({ estoque_atual: novoEstoque }).eq('id', produto.id);
-    }
-  };
+  const registrarPerda = async (
+    input: NovaPerdaInput,
+    options?: { silent?: boolean },
+  ): Promise<boolean> => registrarPerdas([input], options);
 
   const excluirPerda = async (id: string): Promise<boolean> => {
     try {
@@ -233,5 +155,5 @@ export function usePerdas() {
     return Number(data) || 0;
   };
 
-  return { loading, fetchPerdas, registrarPerda, excluirPerda, calcularCustoReceita };
+  return { loading, fetchPerdas, registrarPerda, registrarPerdas, excluirPerda, calcularCustoReceita };
 }
