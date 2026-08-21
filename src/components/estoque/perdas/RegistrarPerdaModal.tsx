@@ -290,7 +290,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:p-6">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:h-[min(42rem,calc(100vh-3rem))] sm:p-6">
         <DialogHeader className="mb-1">
           <DialogTitle className="flex items-center gap-2">
             {etapa === 'formulario' && (
@@ -353,7 +353,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
         ) : (
           <>
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.9fr)]">
-            <div className="space-y-3 rounded-xl border bg-muted/10 p-3">
+            <div className="flex min-h-0 flex-col gap-3 rounded-xl border bg-muted/10 p-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -363,10 +363,10 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   className="pl-9"
                 />
               </div>
-              <div className="max-h-[17.5rem] space-y-2 overflow-y-auto pr-1">
+              <div className="h-[min(17.5rem,40vh)] min-h-48 space-y-2 overflow-y-auto pr-1 sm:h-[17.5rem]">
                 {tipo === 'produto' ? (
                   (itensFiltrados as ProdutoOpt[]).length === 0 ? (
-                    <p className="py-10 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
+                    <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
                   ) : (itensFiltrados as ProdutoOpt[]).map(produto => (
                     <button
                       type="button"
@@ -394,7 +394,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   ))
                 ) : (
                   (itensFiltrados as ReceitaOpt[]).length === 0 ? (
-                    <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma receita encontrada.</p>
+                    <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhuma receita encontrada.</p>
                   ) : (itensFiltrados as ReceitaOpt[]).map(receita => (
                     <button
                       type="button"
