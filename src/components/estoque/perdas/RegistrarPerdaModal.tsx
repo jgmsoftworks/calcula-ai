@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Package, ChefHat, ChevronsUpDown, Check, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Package, ChefHat, ArrowLeft, Plus, Trash2, Search, ChevronsUpDown, Check } from 'lucide-react';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,7 +44,18 @@ interface ProdutoOpt {
   marcas: string[] | null;
   categorias: string[] | null;
 }
-interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rendimento_valor: number | null; rendimento_unidade: string | null; }
+interface ReceitaOpt {
+  id: string;
+  nome: string;
+  numero_sequencial: number;
+  rendimento_valor: number | null;
+  rendimento_unidade: string | null;
+  imagem_url: string | null;
+  tipo_produto: string | null;
+  peso_unitario: number | null;
+  preco_venda: number | null;
+  custo_total: number;
+}
 interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
 interface ItemPerda {
   id: string;
@@ -76,6 +87,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [confirmacaoOpen, setConfirmacaoOpen] = useState(false);
   const [custoReceitaUnit, setCustoReceitaUnit] = useState(0);
+  const [busca, setBusca] = useState('');
   const [popoverProdutoOpen, setPopoverProdutoOpen] = useState(false);
   const [popoverReceitaOpen, setPopoverReceitaOpen] = useState(false);
 
@@ -87,14 +99,18 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           .select('id, nome, custo_unitario, unidade_compra, estoque_atual, estoque_minimo, imagem_url, marcas, categorias')
           .eq('user_id', user.id).eq('ativo', true).order('nome'),
         supabase.from('receitas')
-          .select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade')
+          .select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade, imagem_url, tipo_produto, peso_unitario, preco_venda')
           .eq('user_id', user.id).order('nome'),
         supabase.from('folha_pagamento')
           .select('id, nome, cargo')
           .eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
       setProdutos((ps as any) || []);
-      setReceitas((rs as any) || []);
+      const receitasComCusto = await Promise.all(((rs as any[]) || []).map(async (receita) => {
+        const { data: custo } = await supabase.rpc('calcular_custo_receita', { p_receita_id: receita.id });
+        return { ...receita, custo_total: Number(custo) || 0 };
+      }));
+      setReceitas(receitasComCusto);
       setFuncionarios((fs as any) || []);
     })();
   }, [open, user]);
@@ -115,6 +131,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       setResponsavelOutro('');
       setCustoReceitaUnit(0);
       setConfirmacaoOpen(false);
+      setBusca('');
     }
   }, [open]);
 
@@ -134,7 +151,21 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const produtoSel = useMemo(() => produtos.find(p => p.id === produtoId), [produtos, produtoId]);
   const receitaSel = useMemo(() => receitas.find(r => r.id === receitaId), [receitas, receitaId]);
 
-  const custoUnit = tipo === 'produto' ? (produtoSel?.custo_unitario || 0) : custoReceitaUnit;
+  const itensFiltrados = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase('pt-BR');
+    if (tipo === 'produto') {
+      return produtos.filter(p => !termo || [p.nome, ...(p.marcas || []), ...(p.categorias || [])]
+        .join(' ').toLocaleLowerCase('pt-BR').includes(termo));
+    }
+    return receitas.filter(r => !termo || [r.nome, r.numero_sequencial, r.tipo_produto]
+      .join(' ').toLocaleLowerCase('pt-BR').includes(termo));
+  }, [busca, produtos, receitas, tipo]);
+
+  const custoUnit = tipo === 'produto'
+    ? (produtoSel?.custo_unitario || 0)
+    : (receitaSel?.rendimento_valor && receitaSel.rendimento_valor > 0
+      ? receitaSel.custo_total / receitaSel.rendimento_valor
+      : receitaSel?.custo_total || custoReceitaUnit);
   const custoTotal = quantidade * custoUnit;
   const custoTotalLote = itens.reduce((total, item) => total + item.quantidade * item.custoUnitario, 0);
 
@@ -156,6 +187,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     setProdutoId('');
     setReceitaId('');
     setQuantidade(1);
+    setBusca('');
     setEtapa('formulario');
   };
 
@@ -258,7 +290,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-[96vw] sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="mb-1">
           <DialogTitle>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'produto' ? 'produtos' : 'receitas'}`}</DialogTitle>
         </DialogHeader>
@@ -308,6 +340,137 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <ArrowLeft className="h-4 w-4" /> Alterar tipo de perda
           </Button>
 
+          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-3 rounded-xl border bg-muted/10 p-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={event => setBusca(event.target.value)}
+                  placeholder={`Buscar ${tipo === 'produto' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
+                  className="pl-9"
+                />
+              </div>
+              <div className="max-h-[25rem] space-y-2 overflow-y-auto pr-1">
+                {tipo === 'produto' ? (
+                  (itensFiltrados as ProdutoOpt[]).length === 0 ? (
+                    <p className="py-10 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
+                  ) : (itensFiltrados as ProdutoOpt[]).map(produto => (
+                    <button
+                      type="button"
+                      key={produto.id}
+                      onClick={() => setProdutoId(produto.id)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
+                        produtoId === produto.id && 'border-primary bg-primary/5 ring-1 ring-primary',
+                      )}
+                    >
+                      {produto.imagem_url
+                        ? <img src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                        : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600"><Package className="h-6 w-6" /></span>}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{produto.nome}</span>
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {produto.categorias?.slice(0, 2).map(categoria => <Badge key={categoria} variant="outline" className="text-[10px]">{categoria}</Badge>)}
+                          {produto.marcas?.slice(0, 1).map(marca => <Badge key={marca} variant="secondary" className="text-[10px]">{marca}</Badge>)}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          Estoque: {produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}
+                        </span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  (itensFiltrados as ReceitaOpt[]).length === 0 ? (
+                    <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma receita encontrada.</p>
+                  ) : (itensFiltrados as ReceitaOpt[]).map(receita => (
+                    <button
+                      type="button"
+                      key={receita.id}
+                      onClick={() => setReceitaId(receita.id)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
+                        receitaId === receita.id && 'border-primary bg-primary/5 ring-1 ring-primary',
+                      )}
+                    >
+                      {receita.imagem_url
+                        ? <img src={receita.imagem_url} alt={receita.nome} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                        : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600"><ChefHat className="h-6 w-6" /></span>}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">#{receita.numero_sequencial} {receita.nome}</span>
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {receita.tipo_produto && <Badge variant="outline" className="text-[10px]">{receita.tipo_produto}</Badge>}
+                          {receita.rendimento_valor && <Badge variant="secondary" className="text-[10px]">Rende {receita.rendimento_valor} {receita.rendimento_unidade || 'un'}</Badge>}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          Custo da produção: {formatBRL(receita.custo_total)}
+                          {receita.rendimento_valor && receita.rendimento_valor > 0
+                            ? ` · ${formatBRL(receita.custo_total / receita.rendimento_valor)} por ${receita.rendimento_unidade || 'un'}`
+                            : ''}
+                        </span>
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border bg-card p-4">
+                {tipo === 'produto' ? (
+                  produtoSel ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {produtoSel.imagem_url
+                          ? <img src={produtoSel.imagem_url} alt={produtoSel.nome} className="h-16 w-16 rounded-xl object-cover" />
+                          : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600"><Package className="h-7 w-7" /></span>}
+                        <div><p className="font-semibold">{produtoSel.nome}</p><p className="text-sm text-muted-foreground">{formatBRL(produtoSel.custo_unitario)} por {produtoSel.unidade_compra}</p></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
+                        <div className="space-y-2"><Label>Custo da perda</Label><Input value={formatBRL(custoTotal)} disabled className="bg-muted/40 font-semibold" /></div>
+                      </div>
+                      <Button type="button" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2"><Plus className="h-4 w-4" /> Adicionar produto</Button>
+                    </div>
+                  ) : <p className="py-10 text-center text-sm text-muted-foreground">Selecione um produto ao lado para informar a quantidade.</p>
+                ) : (
+                  receitaSel ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {receitaSel.imagem_url
+                          ? <img src={receitaSel.imagem_url} alt={receitaSel.nome} className="h-16 w-16 rounded-xl object-cover" />
+                          : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600"><ChefHat className="h-7 w-7" /></span>}
+                        <div className="min-w-0"><p className="truncate font-semibold">#{receitaSel.numero_sequencial} {receitaSel.nome}</p><p className="text-sm text-muted-foreground">Rende {receitaSel.rendimento_valor || 1} {receitaSel.rendimento_unidade || 'un'} · Custo total {formatBRL(receitaSel.custo_total)}</p></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
+                        <div className="space-y-2"><Label>Custo da perda</Label><Input value={formatBRL(custoTotal)} disabled className="bg-muted/40 font-semibold" /></div>
+                      </div>
+                      <Button type="button" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2"><Plus className="h-4 w-4" /> Adicionar receita</Button>
+                    </div>
+                  ) : <p className="py-10 text-center text-sm text-muted-foreground">Selecione uma receita ao lado para informar a quantidade.</p>
+                )}
+              </div>
+
+              {itens.length > 0 && (
+                <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between gap-3"><Label>Itens desta perda ({itens.length})</Label><span className="text-sm font-semibold">{formatBRL(custoTotalLote)}</span></div>
+                  <div className="max-h-52 space-y-2 overflow-y-auto">
+                    {itens.map(item => (
+                      <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
+                        {item.tipo === 'produto' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.nome}</p><p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p></div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {false && (<div>
           {tipo === 'produto' ? (
           <div className="space-y-2">
             <Label>Produto</Label>
@@ -491,7 +654,9 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
           </div>
         )}
+          </div>)}
 
+        <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Motivo</Label>
           <Select value={motivo} onValueChange={(v) => setMotivo(v as MotivoPerda)}>
@@ -527,6 +692,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               onChange={e => setResponsavelOutro(e.target.value)}
             />
           )}
+        </div>
         </div>
 
         <div className="space-y-2">
