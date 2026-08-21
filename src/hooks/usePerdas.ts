@@ -44,6 +44,7 @@ export interface NovaPerdaInput {
   motivo_outro?: string;
   observacao?: string;
   responsavel?: string;
+  baixar_estoque: boolean;
 }
 
 export function usePerdas() {
@@ -108,14 +109,18 @@ export function usePerdas() {
 
       if (perdaError) throw perdaError;
 
-      // 2. Dar baixa no estoque
-      if (input.tipo === 'produto' && input.produto_id) {
-        await darBaixaProduto(input.produto_id, input.quantidade, input.custo_unitario, input.motivo, input.responsavel);
-      } else if (input.tipo === 'receita' && input.receita_id) {
-        await darBaixaIngredientesReceita(input.receita_id, input.quantidade, input.motivo, input.responsavel);
+      // 2. Dar baixa no estoque somente quando o usuário confirmar.
+      if (input.baixar_estoque) {
+        if (input.tipo === 'produto' && input.produto_id) {
+          await darBaixaProduto(input.produto_id, input.quantidade, input.custo_unitario, input.motivo, input.responsavel);
+        } else if (input.tipo === 'receita' && input.receita_id) {
+          await darBaixaIngredientesReceita(input.receita_id, input.quantidade, input.motivo, input.responsavel);
+        }
       }
 
-      toast.success('Perda registrada com sucesso');
+      toast.success(input.baixar_estoque
+        ? 'Perda registrada e estoque atualizado'
+        : 'Perda registrada sem movimentar o estoque');
       return true;
     } catch (e: any) {
       console.error(e);
