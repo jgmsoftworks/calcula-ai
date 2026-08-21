@@ -290,7 +290,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[96vw] sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[88vh] overflow-x-hidden overflow-y-auto p-5 sm:p-6">
         <DialogHeader className="mb-1">
           <DialogTitle>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'produto' ? 'produtos' : 'receitas'}`}</DialogTitle>
         </DialogHeader>
@@ -340,7 +340,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <ArrowLeft className="h-4 w-4" /> Alterar tipo de perda
           </Button>
 
-          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.9fr)]">
             <div className="space-y-3 rounded-xl border bg-muted/10 p-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -351,7 +351,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   className="pl-9"
                 />
               </div>
-              <div className="max-h-[25rem] space-y-2 overflow-y-auto pr-1">
+              <div className="max-h-[17.5rem] space-y-2 overflow-y-auto pr-1">
                 {tipo === 'produto' ? (
                   (itensFiltrados as ProdutoOpt[]).length === 0 ? (
                     <p className="py-10 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
@@ -361,7 +361,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                       key={produto.id}
                       onClick={() => setProdutoId(produto.id)}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
+                        'flex h-[5.5rem] w-full items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
                         produtoId === produto.id && 'border-primary bg-primary/5 ring-1 ring-primary',
                       )}
                     >
@@ -389,7 +389,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                       key={receita.id}
                       onClick={() => setReceitaId(receita.id)}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
+                        'flex h-[5.5rem] w-full items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
                         receitaId === receita.id && 'border-primary bg-primary/5 ring-1 ring-primary',
                       )}
                     >
@@ -415,7 +415,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="min-w-0 space-y-3 lg:border-l lg:pl-4">
               <div className="rounded-xl border bg-card p-4">
                 {tipo === 'produto' ? (
                   produtoSel ? (
