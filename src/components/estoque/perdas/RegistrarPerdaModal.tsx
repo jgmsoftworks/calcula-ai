@@ -1,5 +1,15 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -55,6 +65,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const [responsavelSel, setResponsavelSel] = useState<string>('');
   const [responsavelOutro, setResponsavelOutro] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmacaoOpen, setConfirmacaoOpen] = useState(false);
   const [custoReceitaUnit, setCustoReceitaUnit] = useState(0);
   const [popoverProdutoOpen, setPopoverProdutoOpen] = useState(false);
   const [popoverReceitaOpen, setPopoverReceitaOpen] = useState(false);
@@ -92,6 +103,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       setResponsavelSel('');
       setResponsavelOutro('');
       setCustoReceitaUnit(0);
+      setConfirmacaoOpen(false);
     }
   }, [open]);
 
@@ -125,6 +137,11 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
 
   const handleSalvar = async () => {
     if (!podeSalvar) return;
+    setConfirmacaoOpen(true);
+  };
+
+  const confirmarRegistro = async (baixarEstoque: boolean) => {
+    if (!podeSalvar) return;
     setSaving(true);
     const item = tipo === 'produto' ? produtoSel : receitaSel;
     const ok = await registrarPerda({
@@ -138,9 +155,11 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       motivo_outro: motivoOutro,
       observacao,
       responsavel: responsavelFinal,
+      baixar_estoque: baixarEstoque,
     });
     setSaving(false);
     if (ok) {
+      setConfirmacaoOpen(false);
       onSaved();
       onOpenChange(false);
     }
@@ -176,8 +195,9 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="mb-1">
           <DialogTitle>Registrar Perda</DialogTitle>
         </DialogHeader>
@@ -387,7 +407,43 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSalvar} disabled={!podeSalvar || saving}>{saving ? 'Salvando...' : 'Registrar Perda'}</Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmacaoOpen} onOpenChange={(value) => !saving && setConfirmacaoOpen(value)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja dar baixa no estoque?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                A perda de <strong className="text-foreground">{tipo === 'produto' ? produtoSel?.nome : receitaSel?.nome}</strong> será registrada de qualquer forma.
+              </span>
+              <span className="block">
+                {tipo === 'produto'
+                  ? 'Ao dar baixa, a quantidade será descontada do produto e aparecerá no histórico de Movimentações.'
+                  : 'Ao dar baixa, os ingredientes usados na receita serão descontados e aparecerão no histórico de Movimentações.'}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:flex-col sm:space-x-0 sm:gap-2">
+            <AlertDialogAction
+              onClick={(event) => { event.preventDefault(); confirmarRegistro(true); }}
+              disabled={saving}
+              className="w-full"
+            >
+              {saving ? 'Registrando...' : 'Sim, dar baixa no estoque'}
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={(event) => { event.preventDefault(); confirmarRegistro(false); }}
+              disabled={saving}
+              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              {saving ? 'Registrando...' : 'Não, somente registrar a perda'}
+            </AlertDialogAction>
+            <AlertDialogCancel disabled={saving} className="w-full mt-0">Voltar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
