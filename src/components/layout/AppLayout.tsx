@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mail, RefreshCw, Menu, BookOpen, Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
+import { Mail, RefreshCw, Menu, CirclePlay, Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
@@ -218,7 +218,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     className="h-9 w-9 rounded-full"
                     onClick={() => navigate('/tutorial')}
                   >
-                    <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
+                    <CirclePlay className="h-4.5 w-4.5 text-muted-foreground" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t('header.tutorial')}</TooltipContent>
