@@ -103,29 +103,8 @@ serve(async (req) => {
       throw new Error(`Payment not completed. Status: ${session.payment_status}`);
     }
 
-    // Bloquear reprocessamento do mesmo session_id (anti-replay)
-    const { error: replayError } = await supabaseClient
-      .from('stripe_events')
-      .insert({
-        stripe_event_id: `checkout_session:${session.id}`,
-        event_type: 'process-stripe-payment',
-        processed: true,
-      });
-
-    if (replayError) {
-      // Violação de unicidade => sessão já processada anteriormente
-      if ((replayError as any).code === '23505') {
-        logStep("Session already processed", { sessionId: session.id });
-        return new Response(JSON.stringify({ error: "Sessão de pagamento já processada" }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      logError(replayError, "Failed to register session", { sessionId: session.id });
-      throw new Error("Falha ao registrar a sessão de pagamento");
-    }
-
     // Determinar o plano baseado no produto (fonte central: tabela planos)
+
     const lineItem = session.line_items?.data?.[0];
     const productId = typeof lineItem?.price?.product === 'string' 
       ? lineItem.price.product 
