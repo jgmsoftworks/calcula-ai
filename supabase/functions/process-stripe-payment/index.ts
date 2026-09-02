@@ -103,17 +103,54 @@ serve(async (req) => {
       throw new Error(`Payment not completed. Status: ${session.payment_status}`);
     }
 
-    // Determinar o plano baseado no produto
+    // Bloquear reprocessamento do mesmo session_id (anti-replay)
+    const { error: replayError } = await supabaseClient
+      .from('stripe_events')
+      .insert({
+        stripe_event_id: `checkout_session:${session.id}`,
+        event_type: 'process-stripe-payment',
+        processed: true,
+      });
+
+    if (replayError) {
+      // Violação de unicidade => sessão já processada anteriormente
+      if ((replayError as any).code === '23505') {
+        logStep("Session already processed", { sessionId: session.id });
+        return new Response(JSON.stringify({ error: "Sessão de pagamento já processada" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      logError(replayError, "Failed to register session", { sessionId: session.id });
+      throw new Error("Falha ao registrar a sessão de pagamento");
+    }
+
+    // Determinar o plano baseado no produto (fonte central: tabela planos)
     const lineItem = session.line_items?.data?.[0];
     const productId = typeof lineItem?.price?.product === 'string' 
       ? lineItem.price.product 
       : lineItem?.price?.product?.id;
 
-    const planType = productId && (productId in PRODUCT_TO_PLAN) 
-      ? PRODUCT_TO_PLAN[productId] 
-      : 'professional'; // fallback
+    let planType: string | null = null;
+    if (productId) {
+      const { data: planoRow } = await supabaseClient
+        .from('planos')
+        .select('slug')
+        .eq('stripe_product_id', productId)
+        .maybeSingle();
+      planType = planoRow?.slug ?? PRODUCT_TO_PLAN[productId] ?? null;
+    }
+
+    if (!planType) {
+      logError(new Error("Unknown product"), "Product not mapped to a plan", { productId });
+      return new Response(JSON.stringify({ error: "Produto não corresponde a nenhum plano ativo" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
 
     logStep("Determined plan", { productId, planType });
+
 
     // Verificar se o usuário já existe no Supabase
     const { data: existingUsers, error: usersError } = await supabaseClient.auth.admin.listUsers();
