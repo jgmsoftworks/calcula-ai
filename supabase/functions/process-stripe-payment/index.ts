@@ -187,7 +187,32 @@ serve(async (req) => {
       logStep("User already exists", { userId: user.id });
     }
 
+    // Anti-replay: a mesma sessão de checkout só pode conceder plano uma vez
+    const { error: replayError } = await supabaseClient
+      .from('stripe_events')
+      .insert({
+        stripe_event_id: `checkout_session:${session.id}`,
+        event_type: 'process-stripe-payment',
+        processed: true,
+      });
+
+    if (replayError) {
+      if ((replayError as any).code === '23505') {
+        logStep("Session already processed", { sessionId: session.id });
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Sessão de pagamento já processada"
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      logError(replayError, "Failed to register session", { sessionId: session.id });
+      throw new Error("Falha ao registrar a sessão de pagamento");
+    }
+
     // Atualizar/criar perfil do usuário com o novo plano
+
     const subscriptionEnd = session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null;
     
     const { error: profileError } = await supabaseClient
