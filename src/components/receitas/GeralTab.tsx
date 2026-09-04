@@ -11,6 +11,7 @@ import { Camera, Plus, Trash2, Loader2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropperModal } from '@/components/ui/image-cropper-modal';
+import { validateImageFile } from '@/lib/uploadValidation';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempPasso {
