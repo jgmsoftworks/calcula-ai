@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
+import { validateImageFile, safeImageExtension } from '@/lib/uploadValidation';
 
 interface BusinessProfile {
   business_name: string;
@@ -323,12 +324,12 @@ const PerfilNegocio = () => {
     setIsLoading(true);
     try {
       // 1. Fazer upload para o Supabase Storage
-      const fileExt = logoFile.name.split('.').pop();
+      const fileExt = safeImageExtension(logoFile.type);
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('logos-empresas')
-        .upload(fileName, logoFile, { upsert: true });
+        .upload(fileName, logoFile, { upsert: true, contentType: logoFile.type });
       
       if (uploadError) throw uploadError;
       
