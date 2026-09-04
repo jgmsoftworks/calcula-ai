@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
+import { validateImageFile, safeImageExtension } from '@/lib/uploadValidation';
 
 interface BusinessProfile {
   business_name: string;
@@ -294,12 +295,14 @@ const PerfilNegocio = () => {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
+      const validation = validateImageFile(file, 2 * 1024 * 1024);
+      if (!validation.ok) {
         toast({
-          title: "Arquivo muito grande",
-          description: "O logo deve ter no máximo 2MB",
+          title: "Arquivo inválido",
+          description: validation.error,
           variant: "destructive"
         });
+        e.target.value = "";
         return;
       }
 
@@ -321,12 +324,12 @@ const PerfilNegocio = () => {
     setIsLoading(true);
     try {
       // 1. Fazer upload para o Supabase Storage
-      const fileExt = logoFile.name.split('.').pop();
+      const fileExt = safeImageExtension(logoFile.type);
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('logos-empresas')
-        .upload(fileName, logoFile, { upsert: true });
+        .upload(fileName, logoFile, { upsert: true, contentType: logoFile.type });
       
       if (uploadError) throw uploadError;
       
@@ -451,7 +454,7 @@ const PerfilNegocio = () => {
                   <input
                     type="file"
                     id="logo-upload"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleLogoChange}
                     className="hidden"
                   />

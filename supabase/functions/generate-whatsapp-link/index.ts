@@ -1,17 +1,40 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { enforceRateLimit } from "../_shared/rateLimit.ts";
+import { parseBody, z } from "../_shared/validate.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const BodySchema = z.object({
+  telefone: z.string().trim().min(8).max(20),
+  fornecedor_nome: z.string().trim().min(1).max(120),
+  produtos: z
+    .array(
+      z.object({
+        produto: z.string().trim().min(1).max(120),
+        quantidade: z.union([z.number(), z.string().max(20)]),
+        unidade: z.string().trim().max(20),
+      }),
+    )
+    .max(200)
+    .optional(),
+  mensagem: z.string().trim().max(1000).optional(),
+});
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const limited = await enforceRateLimit(req, { bucket: "whatsapp-link", limit: 30, windowSeconds: 60 }, corsHeaders);
+  if (limited) return limited;
+
   try {
-    const { telefone, fornecedor_nome, produtos, mensagem } = await req.json();
+    const parsed = await parseBody(req, BodySchema, corsHeaders);
+    if (!parsed.ok) return parsed.response;
+    const { telefone, fornecedor_nome, produtos, mensagem } = parsed.data;
 
     console.log('[GENERATE-WHATSAPP] Generating link for:', fornecedor_nome);
 

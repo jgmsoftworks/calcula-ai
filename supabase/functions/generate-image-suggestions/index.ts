@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { enforceRateLimit } from "../_shared/rateLimit.ts";
+import { parseBody, z } from "../_shared/validate.ts";
 
 const pixabayApiKey = Deno.env.get('PIXABAY_API_KEY');
 
@@ -30,12 +32,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const limited = await enforceRateLimit(req, { bucket: "image-suggestions", limit: 30, windowSeconds: 60 }, corsHeaders);
+  if (limited) return limited;
+
   try {
     if (!pixabayApiKey) {
       throw new Error('PIXABAY_API_KEY não configurada');
     }
 
-    const { productName, barcode } = await req.json();
+    const parsed = await parseBody(
+      req,
+      z.object({
+        productName: z.string().trim().max(120).optional(),
+        barcode: z.string().trim().regex(/^\d{6,20}$/).optional(),
+      }),
+      corsHeaders,
+    );
+    if (!parsed.ok) return parsed.response;
+    const { productName, barcode } = parsed.data;
 
     if (!productName && !barcode) {
       return new Response(

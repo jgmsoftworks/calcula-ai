@@ -2,6 +2,7 @@ import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
+import { validateImageFile } from '@/lib/uploadValidation';
 
 export interface Produto {
   id: string;
@@ -198,6 +199,13 @@ export function useEstoque() {
       toast.error('Usuário não autenticado');
       return null;
     }
+
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return null;
+    }
+
 
     try {
       console.log('📸 [UPLOAD] Iniciando compressão da imagem...');

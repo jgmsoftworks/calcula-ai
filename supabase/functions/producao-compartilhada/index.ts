@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
+import { enforceRateLimit } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,10 @@ const randomToken = () => {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
+
+  const limited = await enforceRateLimit(req, { bucket: "producao-compartilhada", limit: 60, windowSeconds: 60 }, corsHeaders);
+  if (limited) return limited;
+
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -11,6 +11,7 @@ import { Camera, Plus, Trash2, Loader2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropperModal } from '@/components/ui/image-cropper-modal';
+import { validateImageFile } from '@/lib/uploadValidation';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempPasso {
@@ -108,6 +109,11 @@ export function GeralTab({
   };
 
   const handleFileSelect = (file: File) => {
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return;
+    }
     // Abre o modal de crop com a imagem selecionada
     const imageUrl = URL.createObjectURL(file);
     setImageToCrop(imageUrl);
@@ -278,7 +284,7 @@ export function GeralTab({
             <input
               id="image-upload"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
