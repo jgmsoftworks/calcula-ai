@@ -294,12 +294,14 @@ const PerfilNegocio = () => {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
+      const validation = validateImageFile(file, 2 * 1024 * 1024);
+      if (!validation.ok) {
         toast({
-          title: "Arquivo muito grande",
-          description: "O logo deve ter no máximo 2MB",
+          title: "Arquivo inválido",
+          description: validation.error,
           variant: "destructive"
         });
+        e.target.value = "";
         return;
       }
 
