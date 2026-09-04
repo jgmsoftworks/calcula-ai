@@ -1,0 +1,8 @@
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(self), usb=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https://pohtomqnjpnuvuccorov.supabase.co; connect-src 'self' https://pohtomqnjpnuvuccorov.supabase.co wss://pohtomqnjpnuvuccorov.supabase.co https://api.stripe.com https://www.google-analytics.com https://pixabay.com https://world.openfoodfacts.org; frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests; report-uri https://pohtomqnjpnuvuccorov.supabase.co/functions/v1/csp-report
