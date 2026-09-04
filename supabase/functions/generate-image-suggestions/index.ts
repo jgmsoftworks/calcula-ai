@@ -39,7 +39,16 @@ serve(async (req) => {
       throw new Error('PIXABAY_API_KEY não configurada');
     }
 
-    const { productName, barcode } = await req.json();
+    const parsed = await parseBody(
+      req,
+      z.object({
+        productName: z.string().trim().max(120).optional(),
+        barcode: z.string().trim().regex(/^\d{6,20}$/).optional(),
+      }),
+      corsHeaders,
+    );
+    if (!parsed.ok) return parsed.response;
+    const { productName, barcode } = parsed.data;
 
     if (!productName && !barcode) {
       return new Response(
