@@ -2451,6 +2451,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          bucket: string
+          count: number
+          created_at: string
+          id: string
+          identifier: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          created_at?: string
+          id?: string
+          identifier: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          created_at?: string
+          id?: string
+          identifier?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       receita_embalagens: {
         Row: {
           created_at: string
