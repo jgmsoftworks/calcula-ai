@@ -108,6 +108,11 @@ export function GeralTab({
   };
 
   const handleFileSelect = (file: File) => {
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return;
+    }
     // Abre o modal de crop com a imagem selecionada
     const imageUrl = URL.createObjectURL(file);
     setImageToCrop(imageUrl);

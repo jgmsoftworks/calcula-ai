@@ -199,6 +199,13 @@ export function useEstoque() {
       return null;
     }
 
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return null;
+    }
+
+
     try {
       console.log('📸 [UPLOAD] Iniciando compressão da imagem...');
       
