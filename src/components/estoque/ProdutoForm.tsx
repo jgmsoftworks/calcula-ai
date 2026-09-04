@@ -229,7 +229,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     <input
                       id="imagem-input"
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];

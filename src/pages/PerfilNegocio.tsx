@@ -454,7 +454,7 @@ const PerfilNegocio = () => {
                   <input
                     type="file"
                     id="logo-upload"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleLogoChange}
                     className="hidden"
                   />
