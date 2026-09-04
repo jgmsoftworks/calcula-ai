@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { enforceRateLimit } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const limited = await enforceRateLimit(req, { bucket: "whatsapp-link", limit: 30, windowSeconds: 60 }, corsHeaders);
+  if (limited) return limited;
 
   try {
     const { telefone, fornecedor_nome, produtos, mensagem } = await req.json();
