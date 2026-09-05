@@ -407,34 +407,34 @@ export function DespesasFixas() {
                 {filteredDespesas.map((despesa, i) => {
                   const categoria = categorias.find(c => c.id === despesa.categoria_id);
                   return (
-                    <div 
-                      key={despesa.id} 
-                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/30 bg-muted/40 p-3 transition-all animate-slide-up hover:border-border/60"
+                    <div
+                      key={despesa.id}
+                      className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-xl border border-border/30 bg-muted/40 p-3 transition-all animate-slide-up hover:border-border/60 sm:flex sm:items-center sm:justify-between"
                       style={{ animationDelay: `${i * 30}ms` }}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="p-2 rounded-lg bg-[#0483e4]/10">
+                      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:gap-3">
+                        <div className="row-span-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0483e4]/10">
                           <Package className="h-4 w-4 text-[#0483e4]" />
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium font-display truncate">{despesa.nome}</p>
+                        <div className="min-w-0 overflow-hidden sm:flex-1">
+                          <p className="truncate font-display text-sm font-medium">{despesa.nome}</p>
                           {despesa.descricao && (
-                            <p className="text-[10px] text-muted-foreground truncate">{despesa.descricao}</p>
+                            <p className="truncate text-xs text-muted-foreground">{despesa.descricao}</p>
                           )}
                           {categoria && (
-                            <Badge variant="secondary" className="mt-0.5 text-[10px] h-4 px-1.5">
+                            <Badge variant="secondary" className="mt-1 h-5 max-w-full truncate whitespace-nowrap px-1.5 text-[10px] leading-none">
                               {categoria.nome}
                             </Badge>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1 min-[400px]:flex-row min-[400px]:items-center min-[400px]:gap-2">
-                        <p className="whitespace-nowrap font-display text-sm font-bold text-foreground">{formatters.valor(despesa.valor)}</p>
-                        <div className="flex gap-0.5">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(despesa)} className="h-10 w-10 rounded-xl p-0 min-[400px]:h-8 min-[400px]:w-8">
+                      <div className="col-start-2 flex min-w-0 items-center justify-between gap-2 sm:col-auto sm:shrink-0 sm:justify-start sm:gap-3">
+                        <p className="truncate whitespace-nowrap font-display text-sm font-bold text-foreground">{formatters.valor(despesa.valor)}</p>
+                        <div className="flex shrink-0 gap-0.5">
+                          <Button size="sm" variant="ghost" onClick={() => handleEdit(despesa)} className="h-10 w-10 rounded-xl p-0 sm:h-8 sm:w-8" aria-label={`Editar ${despesa.nome}`}>
                             <Edit className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(despesa.id)} className="h-10 w-10 rounded-xl p-0 text-destructive hover:bg-destructive/10 hover:text-destructive min-[400px]:h-8 min-[400px]:w-8">
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(despesa.id)} className="h-10 w-10 rounded-xl p-0 text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-8 sm:w-8" aria-label={`Excluir ${despesa.nome}`}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
