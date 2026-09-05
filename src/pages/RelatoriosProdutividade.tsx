@@ -169,7 +169,7 @@ export default function RelatoriosProdutividade() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="flex items-center gap-2 text-primary">
             <BarChart3 className="h-5 w-5" />
@@ -198,7 +198,7 @@ export default function RelatoriosProdutividade() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 xl:grid-cols-4">
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-4 w-4" /> Profissionais</div>
           <p className="mt-1 text-2xl font-bold">{profissionais.length}</p>
@@ -221,7 +221,7 @@ export default function RelatoriosProdutividade() {
         </Card>
       </div>
 
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 xl:hidden">
         {loading ? (
           <Card className="p-8 text-center glass-card">
             <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
@@ -284,7 +284,7 @@ export default function RelatoriosProdutividade() {
         })}
       </div>
 
-      <Card className="hidden overflow-hidden glass-card md:block">
+      <Card className="hidden overflow-hidden glass-card xl:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-sm">
             <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">

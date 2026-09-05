@@ -132,7 +132,7 @@ export default function RelatoriosPerdas() {
       </Card>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 xl:grid-cols-4">
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><TrendingDown className="h-3.5 w-3.5" /> Prejuízo total</div>
           <p className="text-2xl font-bold text-destructive mt-1">{formatBRL(totals.total)}</p>
@@ -223,7 +223,7 @@ export default function RelatoriosPerdas() {
         </TabsContent>
 
         <TabsContent value="detalhado">
-          <div className="space-y-2 md:hidden">
+          <div className="space-y-2 xl:hidden">
             {perdas.length === 0 ? (
               <Card className="p-8 text-center text-sm text-muted-foreground">Nenhuma perda no período.</Card>
             ) : perdas.map((p) => {
@@ -258,7 +258,7 @@ export default function RelatoriosPerdas() {
             })}
           </div>
 
-          <Card className="hidden overflow-hidden p-0 glass-card md:block">
+          <Card className="hidden overflow-hidden p-0 glass-card xl:block">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">

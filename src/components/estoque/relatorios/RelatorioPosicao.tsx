@@ -100,7 +100,7 @@ export function RelatorioPosicao() {
   return (
     <div className="space-y-4">
       <Card className="p-4 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
           <div className="min-w-0 flex-1">
             <Label className="text-xs text-muted-foreground mb-1.5 block">Buscar produto</Label>
             <div className="relative">
@@ -124,10 +124,10 @@ export function RelatorioPosicao() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExcel} className="flex-1 gap-2 lg:flex-none">
+            <Button variant="outline" size="sm" onClick={handleExcel} className="flex-1 gap-2 xl:flex-none">
               <FileSpreadsheet className="h-4 w-4" /> Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePDF} className="flex-1 gap-2 lg:flex-none">
+            <Button variant="outline" size="sm" onClick={handlePDF} className="flex-1 gap-2 xl:flex-none">
               <FileText className="h-4 w-4" /> PDF
             </Button>
           </div>
@@ -148,7 +148,7 @@ export function RelatorioPosicao() {
         </div>
       </Card>
 
-      <div className="space-y-2 md:hidden">
+      <div className="space-y-2 xl:hidden">
         {loading && (
           <Card className="p-8 text-center text-sm text-muted-foreground">Carregando...</Card>
         )}
@@ -192,7 +192,7 @@ export function RelatorioPosicao() {
         ))}
       </div>
 
-      <Card className="hidden overflow-hidden md:block">
+      <Card className="hidden overflow-hidden xl:block">
         <div className="overflow-x-auto max-h-[600px]">
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
