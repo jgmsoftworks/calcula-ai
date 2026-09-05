@@ -87,26 +87,26 @@ export default function CronogramaPage() {
   const totalTarefas = recorrentes.data?.length ?? 0;
 
   return (
-    <div className="space-y-6 md:p-6">
+    <div className="space-y-4 xl:space-y-6 xl:p-6">
       {/* Header com faixa de gradiente da marca */}
       <div className="relative overflow-hidden rounded-2xl border bg-card">
         <div
           className="absolute inset-x-0 top-0 h-1"
           style={{ background: 'linear-gradient(90deg,#0483e4,#4f6ed6,#8b5cf6,#c951b0,#ec4899,#f96e0c)' }}
         />
-        <div className="p-4 md:p-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col items-stretch gap-4 p-4 sm:p-6 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center">
               <ClipboardList className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight font-display">Cronograma semanal</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight font-display sm:text-2xl">Cronograma semanal</h1>
               <p className="text-sm text-muted-foreground">
                 Grade viva das áreas × dias da semana. Toque em uma célula para criar, no cartão para editar.
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
             <Badge variant="secondary" className="rounded-full h-8 px-3">
               {totalTarefas} {totalTarefas === 1 ? 'tarefa' : 'tarefas'}
             </Badge>
@@ -125,7 +125,7 @@ export default function CronogramaPage() {
       ) : (
         <>
           {/* GRADE - Desktop / Tablet */}
-          <div className="hidden md:block rounded-2xl border bg-card overflow-hidden">
+          <div className="hidden overflow-hidden rounded-2xl border bg-card xl:block">
             <div className="overflow-x-auto">
               <div className="min-w-[860px]">
                 {/* Header dos dias */}
@@ -246,7 +246,7 @@ export default function CronogramaPage() {
           </div>
 
           {/* MOBILE: cada área é um card com scroll horizontal de dias */}
-          <div className="md:hidden space-y-3">
+          <div className="space-y-3 xl:hidden">
             {linhas.map((linha) => {
               const semArea = linha.id === SEM_AREA_KEY;
               const porDia = grid[linha.id] ?? {};
@@ -269,13 +269,13 @@ export default function CronogramaPage() {
                       </button>
                     )}
                   </div>
-                  <div className="overflow-x-auto">
-                    <div className="flex min-w-max">
+                  <div className="overflow-x-auto md:overflow-visible">
+                    <div className="flex min-w-max md:grid md:min-w-0 md:grid-cols-2 lg:grid-cols-3">
                       {DIAS_ORDEM.map((d) => {
                         const tarefas = porDia[d] ?? [];
                         const hoje = d === hojeDow;
                         return (
-                          <div key={d} className={cn('w-[160px] border-r last:border-r-0 p-2', hoje && 'bg-primary/[0.04]')}>
+                          <div key={d} className={cn('w-[160px] border-r p-2 md:w-auto md:border-b lg:min-h-[132px]', hoje && 'bg-primary/[0.04]')}>
                             <div className={cn('text-[10px] font-semibold uppercase tracking-wider mb-2 text-center', hoje ? 'text-primary' : 'text-muted-foreground')}>
                               {DIAS_LABEL[d].curto}
                             </div>

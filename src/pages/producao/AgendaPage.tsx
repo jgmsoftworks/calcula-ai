@@ -38,7 +38,8 @@ export default function AgendaPage() {
 
   return (
     <div className="space-y-4">
-      <Card className="rounded-2xl p-3 sm:p-6">
+      <Card className="overflow-hidden rounded-2xl p-3 sm:p-5 xl:p-6">
+        <div className="-mx-3 -mt-3 mb-4 h-1 bg-gradient-brand-horizontal sm:-mx-5 sm:-mt-5 xl:-mx-6 xl:-mt-6" />
         {/* Toolbar */}
         <div className="mb-4 flex flex-col items-stretch gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
           <div className="flex min-w-0 items-center gap-2">
@@ -104,7 +105,8 @@ export default function AgendaPage() {
                 onClick={() => navigate(`/producao/agenda/${format(day, 'yyyy-MM-dd')}`)}
                 className={`
                   group relative flex h-12 min-h-0 flex-col rounded-lg border p-1.5 text-left
-                  sm:h-auto sm:min-h-[90px] sm:aspect-[4/3] sm:rounded-xl sm:p-2
+                  sm:h-16 sm:aspect-auto sm:rounded-xl sm:p-2
+                  xl:h-auto xl:min-h-[90px] xl:aspect-[4/3]
                   transition-all duration-150
                   ${inMonth ? 'bg-card' : 'bg-muted/30'}
                   ${today ? 'border-primary shadow-brand' : 'border-border/60'}
