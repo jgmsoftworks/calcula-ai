@@ -129,7 +129,7 @@ const Planos = () => {
         <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold font-display text-foreground">
+        <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
           {t('plans.chooseYourPlan')}
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
@@ -165,7 +165,7 @@ const Planos = () => {
                 </div>
               )}
 
-              <div className="p-6 space-y-6">
+              <div className="space-y-5 p-5 sm:space-y-6 sm:p-6">
                 <div className="flex items-center gap-3">
                   <div className={`p-2.5 rounded-xl bg-gradient-to-br ${planGradients[planType]} text-white shadow-lg`}>
                     {getPlanIcon(planType)}
@@ -240,7 +240,7 @@ const Planos = () => {
           <h2 className="text-lg font-bold font-display text-foreground">{t('plans.detailedComparison')}</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[520px]">
             <thead>
               <tr className="border-b border-border/30 bg-muted/20">
                 <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('plans.feature')}</th>
@@ -283,7 +283,7 @@ const Planos = () => {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground pb-6 animate-fade-in">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 pb-6 text-center text-xs text-muted-foreground animate-fade-in sm:gap-6">
         <div className="flex items-center gap-1.5">
           <Shield className="h-3.5 w-3.5" />
           {t('plans.securePayment')}

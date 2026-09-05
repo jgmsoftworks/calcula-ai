@@ -136,10 +136,10 @@ const Dashboard = () => {
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: dateLocale })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl h-9 border-border/50">
+              <Button variant="outline" size="sm" className="h-10 flex-1 gap-1.5 rounded-xl border-border/50 sm:h-9 sm:flex-none">
                 <Filter className="h-3.5 w-3.5" />
                 {t('dashboard.filters')}
               </Button>
@@ -164,7 +164,7 @@ const Dashboard = () => {
             onClick={refreshData} 
             variant="outline" 
             size="sm"
-            className="gap-1.5 rounded-xl h-9 border-border/50"
+            className="h-10 flex-1 gap-1.5 rounded-xl border-border/50 sm:h-9 sm:flex-none"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
             {t('dashboard.refresh')}
@@ -179,11 +179,11 @@ const Dashboard = () => {
           return (
             <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
               <div className={`h-1 bg-gradient-to-r ${stat.gradient}`} />
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.title}</p>
-                    <p className="text-3xl font-bold font-display text-foreground">{stat.value}</p>
+                    <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">{stat.value}</p>
                   </div>
                   <div className={`p-3 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
                     <Icon className={`h-6 w-6 ${stat.iconColor}`} />
@@ -202,8 +202,8 @@ const Dashboard = () => {
           <CardTitle className="text-base font-display">{t('dashboard.dailyMovements')}</CardTitle>
           <CardDescription className="text-xs mt-0.5">{t('dashboard.dailyMovementsDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="h-64">
+        <CardContent className="px-2 pb-4 pt-0 sm:px-6 sm:pb-6">
+          <div className="h-56 min-w-0 sm:h-64">
             {data.dailyMovements.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.dailyMovements} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
@@ -236,13 +236,13 @@ const Dashboard = () => {
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.initialBalance')}</p>
                 {data.cmvResult.breakdown.estoqueInicial !== null ? (
                   <div>
-                    <p className="text-3xl font-bold font-display text-foreground">
+                    <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
                       R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     {data.cmvResult.breakdown.estoqueInicialEstimado && (
@@ -265,7 +265,7 @@ const Dashboard = () => {
 
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.cmvPercent')}</p>
@@ -275,7 +275,7 @@ const Dashboard = () => {
                     <span className="text-sm">{t('dashboard.unavailable')}</span>
                   </div>
                 ) : data.cmvResult.cmvPercentual !== null ? (
-                  <p className="text-3xl font-bold font-display text-foreground">
+                  <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
                     {data.cmvResult.cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                   </p>
                 ) : (

@@ -256,7 +256,7 @@ export function ListaProdutos() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
       {/* ===== Filtros Desktop ===== */}
       <Card className="p-4 hidden md:block">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
@@ -336,16 +336,16 @@ export function ListaProdutos() {
       </Card>
 
       {/* ===== Filtros Mobile ===== */}
-      <Card className="p-3 md:hidden space-y-3">
+      <Card className="w-full min-w-0 max-w-full space-y-3 overflow-hidden p-3 md:hidden">
         <Input
           placeholder="Buscar produto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2">
           <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" className="flex-1 relative">
+              <Button variant="outline" className="relative min-w-0 flex-1">
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Filtros
                 {activeFiltersCount > 0 && (
@@ -362,7 +362,7 @@ export function ListaProdutos() {
           </Sheet>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -477,7 +477,7 @@ export function ListaProdutos() {
       </Card>
 
       {/* ===== Lista Mobile (cards) ===== */}
-      <div className="md:hidden space-y-2">
+      <div className="w-full min-w-0 max-w-full space-y-2 overflow-x-hidden md:hidden">
         {loading ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">Carregando produtos...</Card>
         ) : produtos.length === 0 ? (
@@ -489,30 +489,31 @@ export function ListaProdutos() {
             return (
               <Card
                 key={`${produto.id}-${refreshKey}`}
-                className="p-3 active:scale-[0.99] transition-transform cursor-pointer"
+                className="w-full min-w-0 max-w-full cursor-pointer overflow-hidden p-3 transition-transform active:scale-[0.99]"
                 onClick={() => handleEdit(produto)}
               >
-                <div className="flex gap-3">
+                <div className="flex min-w-0 gap-3">
                   {produto.imagem_url ? (
-                    <img src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 rounded-lg object-cover bg-muted flex-shrink-0" />
+                    <img src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 flex-shrink-0 rounded-lg bg-muted object-cover" />
                   ) : (
-                    <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center text-lg font-semibold text-muted-foreground flex-shrink-0">
+                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-lg font-semibold text-muted-foreground">
                       {produto.nome.substring(0, 1).toUpperCase()}
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <div className="flex min-w-0 items-start justify-between gap-1">
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-sm leading-tight truncate">{produto.nome}</h4>
-                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                        <h4 className="line-clamp-2 break-words text-sm font-semibold leading-tight">{produto.nome}</h4>
+                        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
                           {produto.codigo_interno} · <span className="uppercase">{produto.unidade_compra}</span>
                         </p>
                       </div>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 -mr-1 -mt-1 flex-shrink-0"
+                        className="-mr-1 -mt-1 h-10 w-10 flex-shrink-0"
                         onClick={(e) => handleDelete(produto, e)}
+                        aria-label={`Excluir ${produto.nome}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -524,29 +525,29 @@ export function ListaProdutos() {
                       </Badge>
                     )}
                     {(produto.marcas?.length || produto.categorias?.length) ? (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
+                      <div className="mt-1.5 flex min-w-0 flex-wrap gap-1 overflow-hidden">
                         {produto.marcas?.slice(0, 2).map((m, i) => (
-                          <Badge key={`m-${i}`} variant="outline" className="text-[10px] h-5">{m}</Badge>
+                          <Badge key={`m-${i}`} variant="outline" className="h-5 max-w-full truncate px-2 text-[10px]">{m}</Badge>
                         ))}
                         {produto.categorias?.slice(0, 2).map((c, i) => (
-                          <Badge key={`c-${i}`} variant="outline" className="text-[10px] h-5">{c}</Badge>
+                          <Badge key={`c-${i}`} variant="outline" className="h-5 max-w-full truncate px-2 text-[10px]">{c}</Badge>
                         ))}
                       </div>
                     ) : null}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t text-xs">
-                  <div>
+                <div className="mt-3 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 text-sm min-[420px]:grid-cols-3">
+                  <div className="min-w-0">
                     <p className="text-muted-foreground">Estoque</p>
-                    <p className="font-medium">{formatters.quantidadeContinua(produto.estoque_atual)}</p>
+                    <p className="truncate font-semibold">{formatters.quantidadeContinua(produto.estoque_atual)}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-muted-foreground">Custo</p>
-                    <p className="font-medium">{formatters.valor(produto.custo_unitario)}</p>
+                    <p className="truncate font-semibold">{formatters.valor(produto.custo_unitario)}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="col-span-2 min-w-0 border-t pt-2 min-[420px]:col-span-1 min-[420px]:border-0 min-[420px]:pt-0 min-[420px]:text-right">
                     <p className="text-muted-foreground">Valor total</p>
-                    <p className="font-semibold text-primary">{formatters.valor(valorEstoque)}</p>
+                    <p className="truncate font-semibold text-primary">{formatters.valor(valorEstoque)}</p>
                   </div>
                 </div>
               </Card>

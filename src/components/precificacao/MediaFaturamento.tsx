@@ -209,13 +209,13 @@ export function MediaFaturamento() {
         {/* Média Mensal */}
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Média Mensal
                 </p>
-                <p className="text-3xl font-bold font-display text-foreground">
+                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
                   {formatters.valor(mediaFaturamento)}
                 </p>
               </div>
@@ -229,13 +229,13 @@ export function MediaFaturamento() {
         {/* Total */}
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Total do Período
                 </p>
-                <p className="text-3xl font-bold font-display text-foreground">
+                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
                   {formatters.valor(totalFaturamento)}
                 </p>
               </div>
@@ -249,13 +249,13 @@ export function MediaFaturamento() {
         {/* Lançamentos */}
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Lançamentos
                 </p>
-                <p className="text-3xl font-bold font-display text-foreground">
+                <p className="font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
                   {faturamentosHistoricos.length}
                 </p>
               </div>
@@ -276,7 +276,7 @@ export function MediaFaturamento() {
             Últimos 6 meses lançados
           </p>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="px-2 pb-4 pt-0 sm:px-6 sm:pb-6">
           <div className="h-64">
             {dadosGrafico.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-full w-full">

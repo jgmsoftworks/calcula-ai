@@ -883,7 +883,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         <Button 
           onClick={criarNovoBloco}
           size="sm"
-          className="gap-1.5 rounded-xl h-9"
+          className="h-10 w-full gap-1.5 rounded-xl sm:h-9 sm:w-auto"
         >
           <Plus className="h-3.5 w-3.5" />
           Novo Bloco
@@ -904,8 +904,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           <Card className="glass-card overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <div className="p-2 rounded-lg bg-[#0483e4]/10">
                     <Calculator className="h-4 w-4 text-[#0483e4]" />
                   </div>
@@ -982,7 +982,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                   </div>
                   <CardTitle className="text-base font-display capitalize">{bloco.nome}</CardTitle>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex w-full items-center justify-end gap-1.5 sm:w-auto">
                   <Button 
                     size="sm" 
                     variant="ghost" 
@@ -1012,11 +1012,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
               </div>
               
               {/* Período + Média */}
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-muted/40 border border-border/30 p-3">
-                <div className="flex items-center gap-2">
+              <div className="mt-3 flex flex-col items-stretch justify-between gap-3 rounded-xl border border-border/30 bg-muted/40 p-3 min-[400px]:flex-row min-[400px]:items-center">
+                <div className="flex min-w-0 items-center gap-2">
                   <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Período:</Label>
                   <Select value={bloco.periodo} onValueChange={(value) => atualizarBloco(bloco.id, 'periodo', value)}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs rounded-lg">
+                    <SelectTrigger className="h-10 min-w-0 flex-1 rounded-lg text-sm min-[400px]:h-8 min-[400px]:w-[140px] min-[400px]:text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

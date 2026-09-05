@@ -199,10 +199,10 @@ const AdminSettings = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div className="space-y-1">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-2xl font-bold text-transparent sm:text-4xl">
             Configurações do Sistema
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base text-muted-foreground sm:text-lg">
             Administração central e configurações globais
           </p>
         </div>

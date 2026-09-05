@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mail, RefreshCw, Menu, CirclePlay, Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
+import { CirclePlay, Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
@@ -153,19 +153,20 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider>
       <SubscriptionStatusGate>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="flex min-h-svh w-full min-w-0 overflow-x-hidden bg-background">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div className="flex min-h-svh min-w-0 flex-1 flex-col">
           {/* Header — glass morphism */}
           <header className="glass-strong sticky top-0 z-30 border-b border-border/30">
-            <div className="h-14 flex items-center px-4 lg:px-6 gap-3">
-              <SidebarTrigger className="lg:hidden">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
+            <div className="flex h-14 min-w-0 items-center gap-1 px-2.5 sm:gap-2 sm:px-4 lg:gap-3 lg:px-6">
+              <SidebarTrigger
+                className="h-10 w-10 shrink-0 md:hidden"
+                aria-label="Abrir menu principal"
+              />
               
-              <div className="flex-1">
-                <h2 className="text-base font-semibold font-display text-foreground leading-tight">
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate font-display text-sm font-semibold leading-tight text-foreground sm:text-base">
                   {pageInfo.title}
                 </h2>
               </div>
@@ -176,7 +177,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-full"
+                    className="hidden h-9 w-9 rounded-full sm:inline-flex"
+                    aria-label="Alterar idioma"
                   >
                     <Globe className="h-4.5 w-4.5 text-muted-foreground" />
                   </Button>
@@ -198,8 +200,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-full"
+                    className="h-9 w-9 shrink-0 rounded-full"
                     onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
+                    aria-label={currentTheme === 'dark' ? t('header.lightMode') : t('header.darkMode')}
                   >
                     {currentTheme === 'dark' ? (
                       <Moon className="h-4.5 w-4.5 text-muted-foreground" />
@@ -215,8 +218,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-full"
+                    className="hidden h-9 w-9 rounded-full sm:inline-flex"
                     onClick={() => navigate('/tutorial')}
+                    aria-label={t('header.tutorial')}
                   >
                     <CirclePlay className="h-4.5 w-4.5 text-muted-foreground" />
                   </Button>
@@ -237,7 +241,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     <User className="h-4.5 w-4.5 text-primary" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuContent align="end" className="w-[calc(100vw-1rem)] max-w-64">
                   <DropdownMenuLabel className="py-3 font-normal">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário'}
@@ -245,6 +249,17 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/tutorial')} className="cursor-pointer gap-2.5 py-2.5 sm:hidden">
+                    <CirclePlay className="h-4 w-4" /> {t('header.tutorial')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleLanguageChange(currentLang === 'pt-BR' ? 'en' : 'pt-BR')}
+                    className="cursor-pointer gap-2.5 py-2.5 sm:hidden"
+                  >
+                    <Globe className="h-4 w-4" />
+                    {currentLang === 'pt-BR' ? 'Mudar para English' : 'Mudar para Português'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="sm:hidden" />
                   {!isAdmin && (
                     <>
                       <DropdownMenuItem onClick={() => navigate('/perfil')} className="cursor-pointer gap-2.5 py-2.5">
@@ -270,8 +285,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-auto">
-            <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12">
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+            <div className="mx-auto w-full min-w-0 max-w-full px-3 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:py-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12">
               {children}
             </div>
           </main>

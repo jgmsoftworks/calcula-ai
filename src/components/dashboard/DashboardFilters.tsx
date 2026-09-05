@@ -60,10 +60,10 @@ export const DashboardFilters = ({
   };
 
   return (
-    <div className="flex items-center space-x-3">
+    <div className="flex w-full min-w-0 flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
       {/* Seletor de Período */}
       <Select value={currentPeriod} onValueChange={handlePeriodChange}>
-        <SelectTrigger className="w-48">
+        <SelectTrigger className="w-full sm:w-48">
           <Filter className="h-4 w-4 mr-2" />
           <SelectValue />
         </SelectTrigger>
@@ -83,7 +83,7 @@ export const DashboardFilters = ({
             <Button
               variant="outline"
               className={cn(
-                "w-64 justify-start text-left font-normal",
+                "w-full justify-start text-left font-normal sm:w-64",
                 !startDate && !endDate && "text-muted-foreground"
               )}
             >
@@ -95,9 +95,9 @@ export const DashboardFilters = ({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto p-0" align="start">
             <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Data Inicial</label>
                   <Calendar
@@ -142,7 +142,7 @@ export const DashboardFilters = ({
       )}
 
       {/* Indicador do período atual */}
-      <div className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-md">
+      <div className="rounded-md bg-muted px-3 py-2 text-center text-sm text-muted-foreground">
         {getCurrentPeriodLabel()}
       </div>
     </div>

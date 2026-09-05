@@ -20,7 +20,7 @@ export default function RelatoriosEstoque() {
           <TabsTrigger value="movimentacoes" className="gap-2 py-2.5">
             <ArrowLeftRight className="h-4 w-4" />
             <span className="hidden sm:inline">Movimentações por Período</span>
-            <span className="sm:hidden">Movimentações</span>
+            <span className="sm:hidden">Mov.</span>
           </TabsTrigger>
           <TabsTrigger value="ranking" className="gap-2 py-2.5">
             <TrendingUp className="h-4 w-4" />

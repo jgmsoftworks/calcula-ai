@@ -54,7 +54,7 @@ export default function Movimentacao() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Search */}
-      <div className="glass-card p-4 flex items-center gap-3">
+      <div className="glass-card flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
         <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
           placeholder={t('movimentacao.searchPlaceholder')}

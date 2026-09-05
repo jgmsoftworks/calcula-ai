@@ -87,7 +87,7 @@ export default function CronogramaPage() {
   const totalTarefas = recorrentes.data?.length ?? 0;
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6 md:p-6">
       {/* Header com faixa de gradiente da marca */}
       <div className="relative overflow-hidden rounded-2xl border bg-card">
         <div

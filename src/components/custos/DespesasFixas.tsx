@@ -271,7 +271,7 @@ export function DespesasFixas() {
   };
 
   return (
-    <div className="grid grid-cols-12 gap-6 animate-fade-in">
+    <div className="grid grid-cols-12 gap-4 animate-fade-in sm:gap-6">
       {/* Sidebar com categorias */}
       <div className="col-span-12 lg:col-span-3 space-y-3">
         <Card className="glass-card overflow-hidden">
@@ -350,8 +350,8 @@ export function DespesasFixas() {
         <Card className="glass-card overflow-hidden">
           <div className="h-1 bg-gradient-brand-horizontal" />
           <CardHeader className="pb-2">
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <CardTitle className="text-base font-display">
                   {selectedCategory === 'sem-categoria'
                     ? 'Sem Categoria'
@@ -369,7 +369,7 @@ export function DespesasFixas() {
                   }
                 </p>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
                 <p className="text-xl font-bold font-display text-foreground">
                   {selectedCategory === 'sem-categoria'
@@ -384,9 +384,9 @@ export function DespesasFixas() {
           </CardHeader>
           
           <CardContent>
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between">
               <h3 className="text-sm font-medium font-display">Lista de Despesas</h3>
-              <Button onClick={handleNewDespesa} variant="outline" size="sm" className="gap-1.5 h-8 rounded-xl text-xs border-border/50">
+              <Button onClick={handleNewDespesa} variant="outline" size="sm" className="h-10 w-full gap-1.5 rounded-xl border-border/50 text-sm min-[400px]:h-8 min-[400px]:w-auto min-[400px]:text-xs">
                 <Plus className="h-3 w-3" />
                 Adicionar Despesa
               </Button>
@@ -409,7 +409,7 @@ export function DespesasFixas() {
                   return (
                     <div 
                       key={despesa.id} 
-                      className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/30 hover:border-border/60 transition-all animate-slide-up"
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border/30 bg-muted/40 p-3 transition-all animate-slide-up hover:border-border/60"
                       style={{ animationDelay: `${i * 30}ms` }}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -428,13 +428,13 @@ export function DespesasFixas() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm font-bold font-display text-foreground whitespace-nowrap">{formatters.valor(despesa.valor)}</p>
+                      <div className="flex flex-col items-end gap-1 min-[400px]:flex-row min-[400px]:items-center min-[400px]:gap-2">
+                        <p className="whitespace-nowrap font-display text-sm font-bold text-foreground">{formatters.valor(despesa.valor)}</p>
                         <div className="flex gap-0.5">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(despesa)} className="h-8 w-8 p-0 rounded-xl">
+                          <Button size="sm" variant="ghost" onClick={() => handleEdit(despesa)} className="h-10 w-10 rounded-xl p-0 min-[400px]:h-8 min-[400px]:w-8">
                             <Edit className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(despesa.id)} className="h-8 w-8 p-0 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10">
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(despesa.id)} className="h-10 w-10 rounded-xl p-0 text-destructive hover:bg-destructive/10 hover:text-destructive min-[400px]:h-8 min-[400px]:w-8">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>

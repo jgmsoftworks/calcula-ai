@@ -301,10 +301,10 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
+    <div className="container mx-auto space-y-6 p-0 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl">Gerenciar Usuários</h1>
           <p className="text-muted-foreground">
             Gerencie permissões de fornecedores, planos e verificação de email
           </p>
@@ -384,7 +384,7 @@ export default function AdminUsers() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[250px]">
+            <div className="min-w-0 flex-[1_1_250px]">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -396,7 +396,7 @@ export default function AdminUsers() {
               </div>
             </div>
             <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por plano" />
               </SelectTrigger>
               <SelectContent>
@@ -407,7 +407,7 @@ export default function AdminUsers() {
               </SelectContent>
             </Select>
             <Select value={selectedEmailStatus} onValueChange={setSelectedEmailStatus}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Status do email" />
               </SelectTrigger>
               <SelectContent>

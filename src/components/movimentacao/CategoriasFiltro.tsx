@@ -43,11 +43,11 @@ export function CategoriasFiltro({
   }, [produtos]);
   const totalProdutos = produtos.length;
   return <ScrollArea className="w-full whitespace-nowrap">
-      <div className="flex pb-6 gap-[20px] py-[15px] px-[15px]">
+      <div className="flex gap-4 px-1 py-3 pb-5 sm:gap-5 sm:px-4 sm:py-4 sm:pb-6">
         {/* Botão Todos */}
         <button onClick={() => onSelectCategoria(null)} className="flex flex-col items-center gap-2 shrink-0">
           <div className={`relative ${!categoriaSelecionada ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
-            <Avatar className="h-20 w-20 border-2 border-muted">
+            <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
               <AvatarFallback className="bg-primary/10">
                 <Package className="h-8 w-8 text-primary" />
               </AvatarFallback>
@@ -64,7 +64,7 @@ export function CategoriasFiltro({
         {/* Círculos de Categorias */}
         {categorias.map(categoria => <button key={categoria.nome} onClick={() => onSelectCategoria(categoria.nome)} className="flex flex-col items-center gap-2 shrink-0">
             <div className={`relative ${categoriaSelecionada === categoria.nome ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
-              <Avatar className="h-20 w-20 border-2 border-muted">
+              <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
                 {categoria.imagem ? <AvatarImage src={categoria.imagem} alt={categoria.nome} className="object-cover" /> : <AvatarFallback className="bg-muted">
                     {categoria.nome.substring(0, 2).toUpperCase()}
                   </AvatarFallback>}

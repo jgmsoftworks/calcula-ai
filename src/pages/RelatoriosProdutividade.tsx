@@ -189,7 +189,7 @@ export default function RelatoriosProdutividade() {
               <Label htmlFor="produtividade-fim" className="text-xs">Até</Label>
               <Input id="produtividade-fim" type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} className="sm:w-40" />
             </div>
-            <Button onClick={aplicarPeriodo} disabled={loading} className="gap-2">
+            <Button onClick={aplicarPeriodo} disabled={loading} className="w-full gap-2 sm:w-auto">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarRange className="h-4 w-4" />}
               Aplicar
             </Button>
@@ -198,7 +198,7 @@ export default function RelatoriosProdutividade() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-4 w-4" /> Profissionais</div>
           <p className="mt-1 text-2xl font-bold">{profissionais.length}</p>

@@ -9,11 +9,11 @@ interface ProdutoCardProps {
 export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
   return (
     <Card 
-      className="p-3 cursor-pointer hover:shadow-lg hover:scale-105 transition-all"
+      className="flex min-h-20 cursor-pointer items-center gap-3 p-3 transition-all active:scale-[0.99] sm:block sm:min-h-0 sm:hover:scale-[1.02] sm:hover:shadow-lg"
       onClick={() => onSelect(produto)}
     >
       {produto.imagem_url ? (
-        <div className="aspect-square overflow-hidden rounded-lg bg-muted mb-2">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:mb-2 sm:h-auto sm:w-full sm:aspect-square">
           <img
             src={produto.imagem_url}
             alt={produto.nome}
@@ -21,15 +21,15 @@ export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
           />
         </div>
       ) : (
-        <div className="aspect-square overflow-hidden rounded-lg bg-muted mb-2 flex items-center justify-center">
-          <span className="text-4xl text-muted-foreground">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted sm:mb-2 sm:h-auto sm:w-full sm:aspect-square">
+          <span className="text-2xl text-muted-foreground sm:text-4xl">
             {produto.nome.substring(0, 1).toUpperCase()}
           </span>
         </div>
       )}
 
-      <div className="space-y-1">
-        <h4 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">
+      <div className="min-w-0 flex-1 space-y-1">
+        <h4 className="line-clamp-2 text-sm font-semibold sm:min-h-[2.5rem]">
           {produto.nome}
         </h4>
         <p className="text-primary font-bold text-base">

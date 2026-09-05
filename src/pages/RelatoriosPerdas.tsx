@@ -111,7 +111,7 @@ export default function RelatoriosPerdas() {
     <div className="space-y-6 animate-fade-in">
       {/* Filtros */}
       <Card className="p-4 glass-card">
-        <div className="flex flex-col sm:flex-row items-end gap-3">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
           <div className="space-y-1.5 w-full sm:w-auto">
             <Label htmlFor="di" className="text-xs">Data inicial</Label>
             <Input id="di" type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-full sm:w-44" />
@@ -120,19 +120,19 @@ export default function RelatoriosPerdas() {
             <Label htmlFor="df" className="text-xs">Data final</Label>
             <Input id="df" type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-full sm:w-44" />
           </div>
-          <Button onClick={load} disabled={loading} className="gap-2">
+          <Button onClick={load} disabled={loading} className="w-full gap-2 sm:w-auto">
             <Calendar className="h-4 w-4" /> Aplicar
           </Button>
-          <Button variant="outline" onClick={() => { setDataInicio(''); setDataFim(''); setTimeout(load, 0); }}>Limpar</Button>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => { setDataInicio(''); setDataFim(''); setTimeout(load, 0); }}>Limpar</Button>
           <div className="flex-1" />
-          <Button variant="outline" onClick={() => exportCSV(perdas)} disabled={perdas.length === 0} className="gap-2">
+          <Button variant="outline" onClick={() => exportCSV(perdas)} disabled={perdas.length === 0} className="w-full gap-2 sm:w-auto">
             <FileDown className="h-4 w-4" /> Exportar CSV
           </Button>
         </div>
       </Card>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><TrendingDown className="h-3.5 w-3.5" /> Prejuízo total</div>
           <p className="text-2xl font-bold text-destructive mt-1">{formatBRL(totals.total)}</p>
@@ -157,13 +157,13 @@ export default function RelatoriosPerdas() {
 
       <Tabs defaultValue="motivo" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger value="motivo" className="gap-2 py-2.5">
-            <BarChart3 className="h-4 w-4" /> Por motivo
+          <TabsTrigger value="motivo" className="gap-1 py-2.5 sm:gap-2">
+            <BarChart3 className="h-4 w-4" /> <span>Motivos</span>
           </TabsTrigger>
-          <TabsTrigger value="itens" className="gap-2 py-2.5">
-            <Package className="h-4 w-4" /> Itens mais perdidos
+          <TabsTrigger value="itens" className="gap-1 py-2.5 sm:gap-2">
+            <Package className="h-4 w-4" /> <span className="hidden sm:inline">Itens mais perdidos</span><span className="sm:hidden">Itens</span>
           </TabsTrigger>
-          <TabsTrigger value="detalhado" className="gap-2 py-2.5">
+          <TabsTrigger value="detalhado" className="gap-1 py-2.5 sm:gap-2">
             <AlertOctagon className="h-4 w-4" /> Detalhado
           </TabsTrigger>
         </TabsList>

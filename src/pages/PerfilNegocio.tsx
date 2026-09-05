@@ -414,7 +414,7 @@ const PerfilNegocio = () => {
       <div className="flex items-center gap-3">
         <Building2 className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Perfil de Negócio</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Perfil de Negócio</h1>
           <p className="text-muted-foreground">
             Cadastre as informações completas da sua empresa
           </p>

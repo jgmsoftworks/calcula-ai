@@ -72,7 +72,7 @@ export function CarrinhoMovimentacao({
   };
   const totalItens = carrinho.length;
   const valorTotal = carrinho.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-  return <Card className="p-4 flex flex-col h-[545px]">
+  return <Card className="flex h-auto max-w-full flex-col p-4 lg:h-[545px]">
       {/* Cabeçalho - fixo */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <ShoppingCart className="h-5 w-5" />
@@ -85,7 +85,7 @@ export function CarrinhoMovimentacao({
       <Separator className="my-4 flex-shrink-0" />
 
       {/* Área de itens - com scroll */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="max-h-52 min-h-0 flex-1 overflow-y-auto lg:max-h-none">
         {carrinho.length === 0 ? <div className="text-center text-muted-foreground py-8 text-sm">
             Nenhum item adicionado
           </div> : <div className="space-y-2 pr-1">

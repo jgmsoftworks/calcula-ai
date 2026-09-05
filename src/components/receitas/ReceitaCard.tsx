@@ -180,7 +180,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           <Button 
             variant={variant} 
             size="icon" 
-            className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80"
+            className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted/80 hover:text-foreground md:h-8 md:w-8"
             onClick={onClick}
             disabled={disabled}
           >

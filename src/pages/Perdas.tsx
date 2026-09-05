@@ -47,9 +47,9 @@ export default function Perdas() {
         </Card>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold">Histórico de perdas</h3>
-        <Button onClick={() => setModalOpen(true)} className="gap-2">
+        <Button onClick={() => setModalOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" /> Registrar perda
         </Button>
       </div>
@@ -64,7 +64,7 @@ export default function Perdas() {
       ) : (
         <div className="space-y-2">
           {perdas.map(p => (
-            <Card key={p.id} className="p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+            <Card key={p.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 p-3 transition-shadow hover:shadow-md sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:items-center sm:p-4">
               <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${p.tipo === 'produto' ? 'bg-blue-500/10 text-blue-600' : 'bg-orange-500/10 text-orange-600'}`}>
                 {p.tipo === 'produto' ? <Package className="h-5 w-5" /> : <ChefHat className="h-5 w-5" />}
               </div>
@@ -73,18 +73,18 @@ export default function Perdas() {
                   <p className="font-semibold truncate">{p.nome_item}</p>
                   <Badge variant="outline" className="text-[10px]">{p.tipo === 'produto' ? 'Produto' : 'Receita'}</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="break-words text-xs leading-relaxed text-muted-foreground">
                   {new Date(p.data_perda).toLocaleString('pt-BR')} · Qtd: {p.quantidade} · {p.motivo}
                   {p.motivo === 'Outro' && p.motivo_outro ? ` (${p.motivo_outro})` : ''}
                   {p.responsavel ? ` · ${p.responsavel}` : ''}
                 </p>
                 {p.observacao && <p className="text-xs text-muted-foreground italic mt-0.5 truncate">{p.observacao}</p>}
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="col-start-2 row-start-2 text-left sm:col-auto sm:row-auto sm:text-right">
                 <p className="text-xs text-muted-foreground">Custo</p>
                 <p className="font-bold text-destructive">{formatBRL(Number(p.custo_total))}</p>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setPerdaParaExcluir(p)}>
+              <Button variant="ghost" size="icon" className="col-start-3 row-start-1 h-10 w-10 text-muted-foreground hover:text-destructive sm:col-auto sm:row-auto sm:h-8 sm:w-8" onClick={() => setPerdaParaExcluir(p)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </Card>

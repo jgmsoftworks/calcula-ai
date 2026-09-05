@@ -213,11 +213,11 @@ export default function Tutorial() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-[hsl(273,63%,42%)] to-[hsl(340,91%,45%)] p-8 text-white md:p-12">
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-[hsl(273,63%,42%)] to-[hsl(340,91%,45%)] p-5 text-white sm:p-8 md:p-12">
         <div className="flex max-w-3xl items-start gap-4">
           <div className="rounded-2xl bg-white/15 p-3"><CirclePlay className="h-8 w-8" /></div>
           <div>
-            <h1 className="font-display text-3xl font-bold md:text-5xl">Tutoriais em vídeo</h1>
+            <h1 className="font-display text-2xl font-bold sm:text-3xl md:text-5xl">Tutoriais em vídeo</h1>
             <p className="mt-3 text-lg text-white/80">Aprenda a usar o CalculaAi com vídeos rápidos, organizados por categoria.</p>
           </div>
         </div>

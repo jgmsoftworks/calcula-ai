@@ -48,7 +48,7 @@ export const NotificationCenter = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="relative p-2 hover:bg-background/50"
+          className="relative h-9 w-9 shrink-0 p-2 hover:bg-background/50"
           title="Notificações"
         >
           <Bell className="h-5 w-5" />
@@ -63,7 +63,7 @@ export const NotificationCenter = () => {
         </Button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-[calc(100vw-1rem)] max-w-80 p-0" align="end">
         <div className="border-b p-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Notificações</h3>

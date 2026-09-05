@@ -215,10 +215,10 @@ export function ListaReceitas() {
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle>{t('receitas.recipes')}</CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex w-full flex-col gap-2 min-[420px]:flex-row sm:w-auto">
               <Button 
                 onClick={handleExportClick}
                 variant="outline"
@@ -244,7 +244,7 @@ export function ListaReceitas() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

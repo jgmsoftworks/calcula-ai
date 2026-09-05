@@ -46,11 +46,15 @@ import { useTranslation } from 'react-i18next';
 
 export function AppSidebar() {
   const { t } = useTranslation();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const location = useLocation();
   const { isAdmin } = useAuth();
   const currentPath = location.pathname;
-  const isCollapsed = state === 'collapsed';
+  const isCollapsed = !isMobile && state === 'collapsed';
+
+  const handleNavigate = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const businessNavigationItems = [
     { title: t('nav.dashboard'), url: '/', icon: Home },
@@ -130,7 +134,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? 'w-14' : 'w-64'} transition-smooth border-r-0`}
+      className={`${isCollapsed ? 'w-14' : 'w-64'} max-w-[88vw] transition-smooth border-r-0`}
       collapsible="icon"
     >
       {/* Brand line at top */}
@@ -164,7 +168,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3">
+      <SidebarContent className="px-3 pb-[env(safe-area-inset-bottom)]">
         {/* Main Navigation */}
         <SidebarGroup className="py-2">
           {!isCollapsed && (
@@ -188,6 +192,7 @@ export function AppSidebar() {
                         item={item}
                         parentMatched={parentMatched}
                         currentPath={currentPath}
+                        onNavigate={handleNavigate}
                       />
                     </SidebarMenuItem>
                   );
@@ -200,8 +205,9 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.url === '/'}
+                        onClick={handleNavigate}
                         className={`
-                          relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                          relative flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                           transition-all duration-200 group
                           ${active
                             ? 'bg-primary text-primary-foreground shadow-brand'
@@ -237,8 +243,9 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url}
+                        onClick={handleNavigate}
                         className={`
-                          relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                          relative flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                           transition-all duration-200 group
                           ${active 
                             ? 'bg-primary text-primary-foreground shadow-brand' 
@@ -271,9 +278,10 @@ interface CollapsibleSubmenuProps {
   };
   parentMatched: boolean;
   currentPath: string;
+  onNavigate: () => void;
 }
 
-function CollapsibleSubmenu({ item, parentMatched, currentPath }: CollapsibleSubmenuProps) {
+function CollapsibleSubmenu({ item, parentMatched, currentPath, onNavigate }: CollapsibleSubmenuProps) {
   const [open, setOpen] = useState(parentMatched);
 
   useEffect(() => {
@@ -286,7 +294,7 @@ function CollapsibleSubmenu({ item, parentMatched, currentPath }: CollapsibleSub
         <button
           type="button"
           className={`
-            relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+            relative flex min-h-11 w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
             transition-all duration-200 group
             ${parentMatched
               ? 'bg-primary/10 text-foreground'
@@ -310,8 +318,9 @@ function CollapsibleSubmenu({ item, parentMatched, currentPath }: CollapsibleSub
                 key={child.url}
                 to={child.url}
                 end={child.exact}
+                onClick={onNavigate}
                 className={`
-                  relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium
+                  relative flex min-h-11 items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium
                   transition-all duration-200 group
                   ${childActive
                     ? 'bg-primary text-primary-foreground shadow-brand'
@@ -329,4 +338,3 @@ function CollapsibleSubmenu({ item, parentMatched, currentPath }: CollapsibleSub
     </Collapsible>
   );
 }
-

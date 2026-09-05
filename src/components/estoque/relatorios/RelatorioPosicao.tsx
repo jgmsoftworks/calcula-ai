@@ -101,7 +101,7 @@ export function RelatorioPosicao() {
     <div className="space-y-4">
       <Card className="p-4 space-y-4">
         <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
-          <div className="flex-1 min-w-[200px]">
+          <div className="min-w-0 flex-1">
             <Label className="text-xs text-muted-foreground mb-1.5 block">Buscar produto</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -113,7 +113,7 @@ export function RelatorioPosicao() {
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 min-[400px]:flex-row min-[400px]:items-center">
             <div className="flex items-center gap-2">
               <Switch id="abaixo" checked={soAbaixoMin} onCheckedChange={setSoAbaixoMin} />
               <Label htmlFor="abaixo" className="text-sm cursor-pointer">Abaixo do mínimo</Label>
@@ -124,16 +124,16 @@ export function RelatorioPosicao() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExcel} className="gap-2">
+            <Button variant="outline" size="sm" onClick={handleExcel} className="flex-1 gap-2 lg:flex-none">
               <FileSpreadsheet className="h-4 w-4" /> Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePDF} className="gap-2">
+            <Button variant="outline" size="sm" onClick={handlePDF} className="flex-1 gap-2 lg:flex-none">
               <FileText className="h-4 w-4" /> PDF
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
           <div className="rounded-xl bg-primary/5 p-3 flex items-center gap-3">
             <Package className="h-5 w-5 text-primary" />
             <div>

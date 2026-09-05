@@ -616,7 +616,7 @@ export function FolhaPagamento() {
         </div>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleNewFuncionario} size="sm" className="gap-1.5 rounded-xl h-9">
+            <Button onClick={handleNewFuncionario} size="sm" className="h-10 w-full gap-1.5 rounded-xl sm:h-9 sm:w-auto">
               <Plus className="h-3.5 w-3.5" />
               Novo Funcionário
             </Button>
