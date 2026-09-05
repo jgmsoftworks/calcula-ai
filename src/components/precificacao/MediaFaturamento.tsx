@@ -148,7 +148,7 @@ export function MediaFaturamento() {
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Valor do Faturamento</Label>
               <NumericInputPtBr
@@ -196,7 +196,7 @@ export function MediaFaturamento() {
               </div>
             </div>
 
-            <Button onClick={adicionarFaturamento} className="h-9 gap-1.5 rounded-xl">
+            <Button onClick={adicionarFaturamento} className="h-9 gap-1.5 rounded-xl sm:col-span-2 xl:col-span-1 xl:px-8">
               <Plus className="h-3.5 w-3.5" />
               Adicionar
             </Button>
@@ -205,21 +205,21 @@ export function MediaFaturamento() {
       </Card>
 
       {/* Stats + Gráfico */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {/* Média Mensal */}
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
-              <div className="space-y-2 flex-1">
+              <div className="min-w-0 flex-1 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Média Mensal
                 </p>
-                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground xl:text-3xl">
                   {formatters.valor(mediaFaturamento)}
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-[#0483e4]/10 group-hover:scale-110 transition-transform">
+              <div className="shrink-0 rounded-xl bg-[#0483e4]/10 p-3 transition-transform group-hover:scale-110">
                 <TrendingUp className="h-6 w-6 text-[#0483e4]" />
               </div>
             </div>
@@ -231,15 +231,15 @@ export function MediaFaturamento() {
           <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
-              <div className="space-y-2 flex-1">
+              <div className="min-w-0 flex-1 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Total do Período
                 </p>
-                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground xl:text-3xl">
                   {formatters.valor(totalFaturamento)}
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-[#16a34a]/10 group-hover:scale-110 transition-transform">
+              <div className="shrink-0 rounded-xl bg-[#16a34a]/10 p-3 transition-transform group-hover:scale-110">
                 <DollarSign className="h-6 w-6 text-[#16a34a]" />
               </div>
             </div>
@@ -247,19 +247,19 @@ export function MediaFaturamento() {
         </Card>
 
         {/* Lançamentos */}
-        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 sm:col-span-2 xl:col-span-1">
           <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
-              <div className="space-y-2 flex-1">
+              <div className="min-w-0 flex-1 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Lançamentos
                 </p>
-                <p className="font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+                <p className="font-display text-2xl font-bold leading-tight text-foreground xl:text-3xl">
                   {faturamentosHistoricos.length}
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-[#7328b1]/10 group-hover:scale-110 transition-transform">
+              <div className="shrink-0 rounded-xl bg-[#7328b1]/10 p-3 transition-transform group-hover:scale-110">
                 <CalendarDays className="h-6 w-6 text-[#7328b1]" />
               </div>
             </div>
