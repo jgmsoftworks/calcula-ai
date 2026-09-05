@@ -258,39 +258,39 @@ export default function AgendaDayPage() {
   const activeTarefa = activeId ? tarefas.find((t) => t.id === activeId) : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <div className="space-y-5 xl:space-y-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
           <Button variant="outline" size="icon" onClick={() => navigate('/producao/agenda')} aria-label="Voltar">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-lg sm:text-xl font-semibold font-display capitalize">
+          <div className="min-w-0 pt-0.5">
+            <h1 className="text-xl font-semibold font-display capitalize leading-tight sm:text-2xl">
               {format(parsedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               {tarefas.length} {tarefas.length === 1 ? 'tarefa' : 'tarefas'} no total
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShareModalOpen(true)} disabled={!tarefas.length}>
+        <div className="grid grid-cols-2 gap-2 sm:flex xl:justify-end">
+          <Button className="w-full sm:w-auto" variant="outline" onClick={() => setShareModalOpen(true)} disabled={!tarefas.length}>
             <Share2 className="h-4 w-4 mr-2" /> Compartilhar dia
           </Button>
-          <Button variant="outline" onClick={imprimir} disabled={!tarefas.length}>
+          <Button className="w-full sm:w-auto" variant="outline" onClick={imprimir} disabled={!tarefas.length}>
             <Printer className="h-4 w-4 mr-2" /> Imprimir
           </Button>
-          <Button onClick={() => setModalOpen(true)}>
+          <Button className="col-span-2 w-full sm:w-auto" onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" /> Nova tarefa
           </Button>
         </div>
       </div>
 
       {areas.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 xl:flex-wrap xl:overflow-visible">
           <button
             onClick={() => setSelectedAreaFilter('todas')}
-            className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+            className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
               selectedAreaFilter === 'todas' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
           >Todas ({tarefas.length})</button>
           {areas.map((a) => {
@@ -298,7 +298,7 @@ export default function AgendaDayPage() {
             const on = selectedAreaFilter === a.id;
             return (
               <button key={a.id} onClick={() => setSelectedAreaFilter(a.id)}
-                className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5',
+                className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5',
                   on ? 'text-white border-transparent' : 'bg-card hover:bg-muted')}
                 style={on ? { backgroundColor: a.cor } : {}}
               >
@@ -309,7 +309,7 @@ export default function AgendaDayPage() {
           })}
           {tarefas.some((t) => !t.area_id) && (
             <button onClick={() => setSelectedAreaFilter('sem')}
-              className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
                 selectedAreaFilter === 'sem' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
             >Sem área ({tarefas.filter((t) => !t.area_id).length})</button>
           )}
@@ -320,7 +320,7 @@ export default function AgendaDayPage() {
         <div className="p-8 text-center text-muted-foreground">Carregando...</div>
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             {COLUNAS.map((col) => {
               const itens = tarefas.filter((t) => {
                 if (t.status !== col.id) return false;
@@ -421,7 +421,7 @@ function Coluna({
     <Card
       ref={setNodeRef}
       className={cn(
-        'p-3 rounded-2xl min-h-[400px] transition-colors',
+        'rounded-2xl p-3 transition-colors xl:min-h-[400px]',
         isOver ? 'bg-primary/5 border-primary/50' : 'bg-muted/30'
       )}
     >
@@ -442,7 +442,7 @@ function Coluna({
           />
         ))}
         {!itens.length && (
-          <div className="text-center text-xs text-muted-foreground py-8 border border-dashed rounded-xl">
+          <div className="rounded-xl border border-dashed py-6 text-center text-sm text-muted-foreground xl:py-8 xl:text-xs">
             Arraste tarefas para cá
           </div>
         )}
