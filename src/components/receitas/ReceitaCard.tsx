@@ -235,7 +235,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
             </div>
 
             {/* Actions — full width row on mobile */}
-            <div className="flex items-center gap-0.5 w-full md:w-auto justify-end opacity-100 md:opacity-60 group-hover:opacity-100 transition-opacity">
+            <div className="flex w-full items-center justify-end gap-0.5 opacity-100 transition-opacity group-hover:opacity-100 xl:w-auto xl:opacity-60">
               <ActionButton icon={Download} title="Baixar PDF" onClick={handleDownloadPDF} disabled={exportingPDF} />
               <ActionButton icon={Eye} title="Visualizar" onClick={handleOpenPreview} disabled={loadingPreview} />
               <ActionButton icon={Edit} title="Editar" onClick={() => onEdit(receita)} />
@@ -261,7 +261,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           </div>
 
           {/* Stats pills row */}
-          <div className="grid grid-cols-3 md:flex md:items-center gap-1.5 md:gap-2 mb-3 md:mb-4">
+          <div className="mb-3 grid grid-cols-3 gap-1.5 md:mb-4 md:gap-2 xl:flex xl:items-center">
             <StatPill icon={Clock} label="Tempo" value={`${receita.tempo_preparo_total || 0} min`} />
             <StatPill icon={Users} label="M.O." value={`${receita.tempo_preparo_mao_obra || 0} min`} />
             <StatPill label="Ingredientes" value={receita.total_ingredientes || 0} />
@@ -270,7 +270,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           </div>
 
           {/* Financial grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-2 mb-2 md:mb-3">
+          <div className="mb-2 grid grid-cols-2 gap-1.5 md:mb-3 md:gap-2 xl:grid-cols-4">
             <FinancialCell label="Mão de Obra" value={receita.custo_mao_obra || 0} />
             <FinancialCell label="Matéria-Prima" value={receita.custo_ingredientes || 0} />
             <FinancialCell label="Embalagem" value={receita.custo_embalagens || 0} />
@@ -278,7 +278,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           </div>
 
           {/* Bottom financial row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-2">
+          <div className="grid grid-cols-2 gap-1.5 md:gap-2 xl:grid-cols-4">
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Preço Venda</div>
               <div className="text-sm md:text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>

@@ -245,8 +245,8 @@ export function ListaReceitas() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_180px]">
+            <div className="relative sm:col-span-2 xl:col-span-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={t('receitas.searchRecipe')}
@@ -256,7 +256,7 @@ export function ListaReceitas() {
               />
             </div>
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('common.type')} />
               </SelectTrigger>
               <SelectContent>
@@ -269,7 +269,7 @@ export function ListaReceitas() {
               </SelectContent>
             </Select>
             <Select value={subReceitaFilter} onValueChange={setSubReceitaFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sub-receitas" />
               </SelectTrigger>
               <SelectContent>
