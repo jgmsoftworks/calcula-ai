@@ -148,7 +148,51 @@ export function RelatorioPosicao() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
+      <div className="space-y-2 md:hidden">
+        {loading && (
+          <Card className="p-8 text-center text-sm text-muted-foreground">Carregando...</Card>
+        )}
+        {!loading && rows.length === 0 && (
+          <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum produto encontrado</Card>
+        )}
+        {!loading && rows.map((r) => (
+          <Card key={r.codigo_interno} className="min-w-0 p-3">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-[11px] text-muted-foreground">Código {r.codigo_interno}</p>
+                <h3 className="break-words text-sm font-semibold leading-snug">{r.nome}</h3>
+                <p className="mt-1 break-words text-xs text-muted-foreground">{r.categoria || 'Sem categoria'}</p>
+              </div>
+              <div className="shrink-0">
+                {r.status === 'OK' && <Badge variant="secondary" className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">OK</Badge>}
+                {r.status === 'Abaixo' && <Badge variant="secondary" className="gap-1 border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3 w-3" />Abaixo</Badge>}
+                {r.status === 'Zerado' && <Badge variant="secondary" className="border-0 bg-rose-500/15 text-rose-700 dark:text-rose-400">Zerado</Badge>}
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border/50 pt-3 text-sm">
+              <div>
+                <p className="text-[11px] text-muted-foreground">Saldo</p>
+                <p className="font-semibold">{formatNumber(r.estoque_atual, 2)} <span className="text-xs font-normal uppercase text-muted-foreground">{r.unidade}</span></p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Estoque mínimo</p>
+                <p className="font-semibold">{formatNumber(r.estoque_minimo, 2)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Custo unitário</p>
+                <p className="font-semibold">R$ {formatBRL(r.custo_unitario)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Valor em estoque</p>
+                <p className="font-semibold">R$ {formatBRL(r.valor_estoque)}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="hidden overflow-hidden md:block">
         <div className="overflow-x-auto max-h-[600px]">
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">

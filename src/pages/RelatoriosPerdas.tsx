@@ -223,7 +223,42 @@ export default function RelatoriosPerdas() {
         </TabsContent>
 
         <TabsContent value="detalhado">
-          <Card className="p-0 glass-card overflow-hidden">
+          <div className="space-y-2 md:hidden">
+            {perdas.length === 0 ? (
+              <Card className="p-8 text-center text-sm text-muted-foreground">Nenhuma perda no período.</Card>
+            ) : perdas.map((p) => {
+              const motivo = p.motivo === 'Outro' && p.motivo_outro ? `Outro (${p.motivo_outro})` : p.motivo;
+              return (
+                <Card key={p.id} className="min-w-0 p-4 glass-card">
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words font-semibold leading-snug">{p.nome_item}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{new Date(p.data_perda).toLocaleString('pt-BR')}</p>
+                    </div>
+                    <p className="shrink-0 font-semibold text-destructive">{formatBRL(Number(p.custo_total))}</p>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">{p.tipo === 'produto' ? 'Produto' : 'Receita'}</Badge>
+                    <Badge variant="secondary" className="text-[10px]">Qtd: {formatNumber(Number(p.quantidade))}</Badge>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-2 border-t border-border/40 pt-3 text-xs min-[400px]:grid-cols-2">
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">Motivo</p>
+                      <p className="break-words font-medium">{motivo}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground">Responsável</p>
+                      <p className="break-words font-medium">{p.responsavel || '-'}</p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Card className="hidden overflow-hidden p-0 glass-card md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">

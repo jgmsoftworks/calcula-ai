@@ -31,17 +31,22 @@ export default function AgendaPage() {
     return eachDayOfInterval({ start, end });
   }, [cursor]);
 
+  const monthLabel = useMemo(() => {
+    const label = format(cursor, "MMMM 'de' yyyy", { locale: ptBR });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }, [cursor]);
+
   return (
     <div className="space-y-4">
-      <Card className="p-4 sm:p-6 rounded-2xl">
+      <Card className="rounded-2xl p-3 sm:p-6">
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className="mb-4 flex flex-col items-stretch gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
               <CalendarDays className="h-5 w-5 text-primary" />
             </div>
-            <h1 className="text-lg sm:text-xl font-semibold font-display capitalize">
-              {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+            <h1 className="whitespace-nowrap text-lg font-semibold font-display sm:text-xl">
+              {monthLabel}
             </h1>
           </div>
 
@@ -49,6 +54,7 @@ export default function AgendaPage() {
             <Button
               variant="outline"
               size="sm"
+              className="flex-1 min-[430px]:flex-none"
               onClick={() => setCursor(new Date())}
             >
               Hoje
@@ -75,7 +81,7 @@ export default function AgendaPage() {
         </div>
 
         {/* Weekday header */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1 sm:mb-2">
+        <div className="mb-1 grid grid-cols-7 gap-1 sm:mb-2 sm:gap-2">
           {WEEKDAYS.map((wd) => (
             <div
               key={wd}
@@ -97,12 +103,12 @@ export default function AgendaPage() {
                 type="button"
                 onClick={() => navigate(`/producao/agenda/${format(day, 'yyyy-MM-dd')}`)}
                 className={`
-                  group relative aspect-square sm:aspect-[4/3] min-h-[60px] sm:min-h-[90px]
-                  rounded-xl border text-left p-2 flex flex-col
+                  group relative flex h-12 min-h-0 flex-col rounded-lg border p-1.5 text-left
+                  sm:h-auto sm:min-h-[90px] sm:aspect-[4/3] sm:rounded-xl sm:p-2
                   transition-all duration-150
                   ${inMonth ? 'bg-card' : 'bg-muted/30'}
                   ${today ? 'border-primary shadow-brand' : 'border-border/60'}
-                  hover:border-primary hover:shadow-sm hover:-translate-y-0.5
+                  hover:border-primary hover:shadow-sm sm:hover:-translate-y-0.5
                 `}
               >
                 <span
@@ -128,4 +134,3 @@ export default function AgendaPage() {
     </div>
   );
 }
-

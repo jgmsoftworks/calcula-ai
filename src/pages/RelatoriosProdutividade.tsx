@@ -221,7 +221,70 @@ export default function RelatoriosProdutividade() {
         </Card>
       </div>
 
-      <Card className="overflow-hidden glass-card">
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <Card className="p-8 text-center glass-card">
+            <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+            <p className="mt-2 text-sm text-muted-foreground">Calculando produtividade...</p>
+          </Card>
+        ) : profissionais.length === 0 ? (
+          <Card className="p-8 text-center text-sm text-muted-foreground glass-card">
+            Nenhum profissional teve atividades nesse período.
+          </Card>
+        ) : profissionais.map((profissional) => {
+          const diferenca = profissional.minutosRealizados - profissional.minutosPrevistos;
+          const usoDoTempo = profissional.minutosPrevistos > 0 && profissional.minutosRealizados > 0
+            ? (profissional.minutosRealizados / profissional.minutosPrevistos) * 100
+            : null;
+          const dentroDoPrevisto = usoDoTempo !== null && usoDoTempo <= 100;
+          return (
+            <Card key={profissional.id} className="min-w-0 p-4 glass-card">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="break-words font-semibold">{profissional.nome}</p>
+                  <p className="text-xs text-muted-foreground">{profissional.cargo || 'Profissional'}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-lg font-bold">{profissional.taxaConclusao.toFixed(0)}%</p>
+                  <p className="text-[10px] text-muted-foreground">conclusão</p>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3 text-sm">
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Horas trabalhadas</p>
+                  <p className="font-semibold">{formatarDuracao(profissional.minutosRealizados)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Atividades</p>
+                  <p className="font-semibold">{profissional.concluidas} <span className="font-normal text-muted-foreground">de {profissional.atividades}</span></p>
+                </div>
+              </div>
+
+              <div className="mt-3 border-t border-border/40 pt-3">
+                <p className="text-[11px] text-muted-foreground">Previsto × realizado</p>
+                <p className="text-sm font-medium">{formatarDuracao(profissional.minutosPrevistos)} × {formatarDuracao(profissional.minutosRealizados)}</p>
+                {usoDoTempo === null ? (
+                  <p className="mt-1 text-[11px] text-muted-foreground">Sem dados de tempo suficientes</p>
+                ) : dentroDoPrevisto ? (
+                  <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
+                    {usoDoTempo.toFixed(0)}% do tempo planejado
+                  </Badge>
+                ) : (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge className="border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">
+                      {(usoDoTempo - 100).toFixed(0)}% acima
+                    </Badge>
+                    <span className="text-[11px] text-amber-700">+{formatarDuracao(Math.abs(diferenca))}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="hidden overflow-hidden glass-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-sm">
             <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
