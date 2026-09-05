@@ -205,7 +205,7 @@ export function MediaFaturamento() {
       </Card>
 
       {/* Stats + Gráfico */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* Média Mensal */}
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
@@ -247,7 +247,7 @@ export function MediaFaturamento() {
         </Card>
 
         {/* Lançamentos */}
-        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 sm:col-span-2 xl:col-span-1">
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
