@@ -258,9 +258,9 @@ export function ListaProdutos() {
   return (
     <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
       {/* ===== Filtros Desktop ===== */}
-      <Card className="p-4 hidden md:block">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <div className="md:col-span-2">
+      <Card className="hidden p-4 xl:block">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
+          <div className="xl:col-span-2">
             <Input
               placeholder="Busque por nome, código interno ou código de barras..."
               value={search}
@@ -336,7 +336,7 @@ export function ListaProdutos() {
       </Card>
 
       {/* ===== Filtros Mobile ===== */}
-      <Card className="w-full min-w-0 max-w-full space-y-3 overflow-hidden p-3 md:hidden">
+      <Card className="w-full min-w-0 max-w-full space-y-3 overflow-hidden p-3 xl:hidden">
         <Input
           placeholder="Buscar produto..."
           value={search}
@@ -386,7 +386,7 @@ export function ListaProdutos() {
       </Card>
 
       {/* ===== Tabela Desktop ===== */}
-      <Card className="hidden md:block">
+      <Card className="hidden xl:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -477,7 +477,7 @@ export function ListaProdutos() {
       </Card>
 
       {/* ===== Lista Mobile (cards) ===== */}
-      <div className="w-full min-w-0 max-w-full space-y-2 overflow-x-hidden md:hidden">
+      <div className="w-full min-w-0 max-w-full space-y-2 overflow-x-hidden xl:hidden">
         {loading ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">Carregando produtos...</Card>
         ) : produtos.length === 0 ? (
