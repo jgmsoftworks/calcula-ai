@@ -184,16 +184,24 @@ const Planos = () => {
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold font-display text-foreground">
-                      {formatPreco(plano.preco_centavos)}
+                      {formatPreco(precoDoPlano(plano, billing))}
                     </span>
-                    {plano.preco_centavos > 0 && (
-                      <span className="text-sm text-muted-foreground">{t('plans.perMonth')}</span>
+                    {precoDoPlano(plano, billing) > 0 && (
+                      <span className="text-sm text-muted-foreground">
+                        {billing === 'yearly' ? '/ano' : t('plans.perMonth')}
+                      </span>
                     )}
                   </div>
+                  {billing === 'yearly' && precoDoPlano(plano, billing) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      equivale a {formatPreco(Math.round(plano.preco_anual_centavos / 12))} por mês
+                    </p>
+                  )}
                   {plano.descricao && (
                     <p className="text-xs text-muted-foreground">{plano.descricao}</p>
                   )}
                 </div>
+
 
                 <ul className="space-y-2.5">
                   {plano.features.map((feature, index) => (
