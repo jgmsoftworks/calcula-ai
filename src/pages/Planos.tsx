@@ -140,6 +140,28 @@ const Planos = () => {
         </p>
       </div>
 
+      {/* Alternador Mensal / Anual */}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1 backdrop-blur">
+          {(['monthly', 'yearly'] as Billing[]).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => setBilling(opt)}
+              className={`rounded-xl px-5 py-2 text-sm font-semibold transition-all ${
+                billing === opt
+                  ? 'bg-gradient-to-r from-[#0483e4] to-[#7328b1] text-white shadow-lg'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {opt === 'monthly' ? 'Mensal' : 'Anual'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+
+
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {planos.map((plano, idx) => {
