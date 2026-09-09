@@ -58,9 +58,10 @@ export const PlanSelector = ({ plano, currentPlan, billing = 'monthly', onSelect
         </div>
 
         <div className="flex items-baseline justify-center gap-1">
-          <span className="text-3xl font-bold">{formatPreco(plano.preco_centavos)}</span>
-          {plano.preco_centavos > 0 && <span className="text-muted-foreground">/mês</span>}
+          <span className="text-3xl font-bold">{formatPreco(preco)}</span>
+          {preco > 0 && <span className="text-muted-foreground">{billing === 'yearly' ? '/ano' : '/mês'}</span>}
         </div>
+
       </CardHeader>
 
       <CardContent className="space-y-4">
