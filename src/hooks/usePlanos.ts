@@ -11,17 +11,22 @@ export interface PlanoLimites {
   pdf_exports: number;
 }
 
+export type Billing = 'monthly' | 'yearly';
+
 export interface Plano {
   id: string;
   slug: PlanSlug;
   nome_publico: string;
   descricao: string | null;
   preco_centavos: number;
+  preco_anual_centavos: number;
   moeda: string;
   periodicidade: string;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  stripe_price_id_anual: string | null;
   versao_preco: number;
+  versao_preco_anual: number;
   ativo: boolean;
   ordem: number;
   limites: PlanoLimites;
@@ -32,6 +37,11 @@ export const formatPreco = (centavos: number) => {
   if (!centavos) return 'Grátis';
   return `R$ ${(centavos / 100).toFixed(2).replace('.', ',')}`;
 };
+
+/** Preço do plano conforme a periodicidade escolhida. */
+export const precoDoPlano = (plano: Plano, billing: Billing) =>
+  billing === 'yearly' ? (plano.preco_anual_centavos ?? 0) : plano.preco_centavos;
+
 
 /** Fonte central de planos — sempre vinda do banco (tabela public.planos). */
 export const usePlanos = (incluirInativos = false) => {
