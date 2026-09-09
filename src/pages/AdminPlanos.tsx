@@ -21,11 +21,14 @@ interface PlanoAdmin {
   nome_publico: string;
   descricao: string | null;
   preco_centavos: number;
+  preco_anual_centavos: number;
   moeda: string;
   periodicidade: string;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  stripe_price_id_anual: string | null;
   versao_preco: number;
+
   ativo: boolean;
   ordem: number;
   limites: Record<string, number>;
