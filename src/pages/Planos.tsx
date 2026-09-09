@@ -72,11 +72,12 @@ const Planos = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const affiliateCode = urlParams.get('ref');
 
-      if (plano.preco_centavos === 0) {
+      if (precoDoPlano(plano, billing) === 0) {
         await openCustomerPortal();
       } else {
-        await createCheckout(plano.slug, 'monthly', affiliateCode || undefined);
+        await createCheckout(plano.slug, billing, affiliateCode || undefined);
       }
+
     } catch (error) {
       console.error('Erro ao processar plano:', error);
       toast({
