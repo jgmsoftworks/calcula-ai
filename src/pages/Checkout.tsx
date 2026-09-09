@@ -87,9 +87,12 @@ export default function Checkout() {
           <div className="text-center space-y-2">
             <h3 className="text-lg font-semibold">{plano.nome_publico}</h3>
             <p className="text-2xl font-bold text-primary">
-              {formatPreco(plano.preco_centavos)}
-              {plano.preco_centavos > 0 && <span className="text-base font-normal">/mês</span>}
+              {formatPreco(precoDoPlano(plano, billing))}
+              {precoDoPlano(plano, billing) > 0 && (
+                <span className="text-base font-normal">{billing === 'yearly' ? '/ano' : '/mês'}</span>
+              )}
             </p>
+
           </div>
 
           {affiliateCode && (
