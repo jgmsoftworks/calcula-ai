@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
-import { usePlanos, formatPreco, Plano } from '@/hooks/usePlanos';
+import { usePlanos, formatPreco, precoDoPlano, Plano, Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
