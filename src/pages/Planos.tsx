@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
-import { usePlanos, formatPreco, Plano } from '@/hooks/usePlanos';
+import { usePlanos, formatPreco, precoDoPlano, Plano, Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
@@ -33,6 +33,8 @@ const Planos = () => {
   const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [billing, setBilling] = useState<Billing>('monthly');
+
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -70,11 +72,12 @@ const Planos = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const affiliateCode = urlParams.get('ref');
 
-      if (plano.preco_centavos === 0) {
+      if (precoDoPlano(plano, billing) === 0) {
         await openCustomerPortal();
       } else {
-        await createCheckout(plano.slug, 'monthly', affiliateCode || undefined);
+        await createCheckout(plano.slug, billing, affiliateCode || undefined);
       }
+
     } catch (error) {
       console.error('Erro ao processar plano:', error);
       toast({
@@ -137,6 +140,28 @@ const Planos = () => {
         </p>
       </div>
 
+      {/* Alternador Mensal / Anual */}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1 backdrop-blur">
+          {(['monthly', 'yearly'] as Billing[]).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => setBilling(opt)}
+              className={`rounded-xl px-5 py-2 text-sm font-semibold transition-all ${
+                billing === opt
+                  ? 'bg-gradient-to-r from-[#0483e4] to-[#7328b1] text-white shadow-lg'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {opt === 'monthly' ? 'Mensal' : 'Anual'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+
+
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {planos.map((plano, idx) => {
@@ -181,16 +206,24 @@ const Planos = () => {
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold font-display text-foreground">
-                      {formatPreco(plano.preco_centavos)}
+                      {formatPreco(precoDoPlano(plano, billing))}
                     </span>
-                    {plano.preco_centavos > 0 && (
-                      <span className="text-sm text-muted-foreground">{t('plans.perMonth')}</span>
+                    {precoDoPlano(plano, billing) > 0 && (
+                      <span className="text-sm text-muted-foreground">
+                        {billing === 'yearly' ? '/ano' : t('plans.perMonth')}
+                      </span>
                     )}
                   </div>
+                  {billing === 'yearly' && precoDoPlano(plano, billing) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      equivale a {formatPreco(Math.round(plano.preco_anual_centavos / 12))} por mês
+                    </p>
+                  )}
                   {plano.descricao && (
                     <p className="text-xs text-muted-foreground">{plano.descricao}</p>
                   )}
                 </div>
+
 
                 <ul className="space-y-2.5">
                   {plano.features.map((feature, index) => (

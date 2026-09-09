@@ -21,11 +21,14 @@ interface PlanoAdmin {
   nome_publico: string;
   descricao: string | null;
   preco_centavos: number;
+  preco_anual_centavos: number;
   moeda: string;
   periodicidade: string;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  stripe_price_id_anual: string | null;
   versao_preco: number;
+
   ativo: boolean;
   ordem: number;
   limites: Record<string, number>;
@@ -174,12 +177,18 @@ const AdminPlanos = () => {
                     {formatPreco(plano.preco_centavos)}
                     {plano.preco_centavos > 0 && <span className="text-sm font-normal text-muted-foreground">/mês</span>}
                   </div>
+                  <div className="text-sm font-semibold">
+                    {formatPreco(plano.preco_anual_centavos)}
+                    {plano.preco_anual_centavos > 0 && <span className="text-xs font-normal text-muted-foreground">/ano</span>}
+                  </div>
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p>Versão de preço: v{plano.versao_preco}</p>
-                    <p className="font-mono break-all">price: {plano.stripe_price_id ?? '—'}</p>
+                    <p className="font-mono break-all">price mensal: {plano.stripe_price_id ?? '—'}</p>
+                    <p className="font-mono break-all">price anual: {plano.stripe_price_id_anual ?? '—'}</p>
                     <p className="font-mono break-all">product: {plano.stripe_product_id ?? '—'}</p>
                     <p>{contagemPorPlano(plano.slug)} usuários neste plano</p>
                   </div>
+
                   <Button size="sm" className="w-full" onClick={() => openEdit(plano)}>
                     <Pencil className="h-4 w-4 mr-2" /> Editar plano
                   </Button>

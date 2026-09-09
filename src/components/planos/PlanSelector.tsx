@@ -3,15 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, Crown, Zap, CreditCard, Gift } from 'lucide-react';
 import { PlanType } from '@/hooks/usePlanLimits';
-import { Plano, formatPreco } from '@/hooks/usePlanos';
+import { Plano, formatPreco, precoDoPlano, Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 
 interface PlanSelectorProps {
   plano: Plano;
   currentPlan: PlanType;
+  billing?: Billing;
   onSelectPlan?: (plan: string) => void;
   loading?: boolean;
 }
+
 
 const PlanIcon = ({ planType }: { planType: string }) => {
   switch (planType) {
@@ -26,16 +28,18 @@ const PlanIcon = ({ planType }: { planType: string }) => {
   }
 };
 
-export const PlanSelector = ({ plano, currentPlan, onSelectPlan, loading }: PlanSelectorProps) => {
+export const PlanSelector = ({ plano, currentPlan, billing = 'monthly', onSelectPlan, loading }: PlanSelectorProps) => {
   const { createCheckout } = useStripe();
   const isCurrentPlan = currentPlan === plano.slug;
+  const preco = precoDoPlano(plano, billing);
 
   const handlePlanSelect = async () => {
-    if (plano.preco_centavos > 0 && !isCurrentPlan) {
-      await createCheckout(plano.slug, 'monthly');
+    if (preco > 0 && !isCurrentPlan) {
+      await createCheckout(plano.slug, billing);
     }
     onSelectPlan?.(plano.slug);
   };
+
 
   return (
     <Card className={`relative transition-all duration-200 ${
@@ -54,9 +58,10 @@ export const PlanSelector = ({ plano, currentPlan, onSelectPlan, loading }: Plan
         </div>
 
         <div className="flex items-baseline justify-center gap-1">
-          <span className="text-3xl font-bold">{formatPreco(plano.preco_centavos)}</span>
-          {plano.preco_centavos > 0 && <span className="text-muted-foreground">/mês</span>}
+          <span className="text-3xl font-bold">{formatPreco(preco)}</span>
+          {preco > 0 && <span className="text-muted-foreground">{billing === 'yearly' ? '/ano' : '/mês'}</span>}
         </div>
+
       </CardHeader>
 
       <CardContent className="space-y-4">

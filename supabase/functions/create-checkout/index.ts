@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getPlano, normalizeSlug } from "../_shared/planos.ts";
+import { getPlano, normalizeSlug, normalizeBilling, precoDoPlano } from "../_shared/planos.ts";
 import { enforceRateLimit } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
@@ -85,7 +85,7 @@ serve(async (req) => {
     // Processar dados da requisição
     const requestBody = await req.json();
     const planType = normalizeSlug(requestBody.planType);
-    const billing = requestBody.billing ?? "monthly";
+    const billing = normalizeBilling(requestBody.billing);
     
     logStep("Request data received", { planType, billing });
 
@@ -93,13 +93,17 @@ serve(async (req) => {
       throw new Error("Missing planType in request");
     }
 
-    // 1) Fonte central: tabela public.planos
+    // 1) Fonte central: tabela public.planos (mensal ou anual)
     let priceId: string | undefined;
     const plano = await getPlano(planType);
-    if (plano?.ativo && plano.stripe_price_id && plano.preco_centavos > 0) {
-      priceId = plano.stripe_price_id;
-      logStep("Price resolved from planos table", { planType, priceId });
+    if (plano?.ativo) {
+      const preco = precoDoPlano(plano, billing);
+      if (preco.priceId && preco.centavos > 0) {
+        priceId = preco.priceId;
+        logStep("Price resolved from planos table", { planType, billing, priceId });
+      }
     }
+
 
     
     

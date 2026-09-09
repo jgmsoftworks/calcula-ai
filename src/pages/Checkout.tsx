@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { usePlanos, formatPreco } from '@/hooks/usePlanos';
+import { usePlanos, formatPreco, precoDoPlano, Billing } from '@/hooks/usePlanos';
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
@@ -16,7 +16,9 @@ export default function Checkout() {
 
   const planType = searchParams.get('plan');
   const affiliateCode = searchParams.get('ref');
+  const billing: Billing = searchParams.get('billing') === 'yearly' ? 'yearly' : 'monthly';
   const plano = planType ? getPlano(planType) : undefined;
+
 
   useEffect(() => {
     if (planosLoading) return;
@@ -33,10 +35,11 @@ export default function Checkout() {
       const { data, error } = await supabase.functions.invoke('affiliate-checkout', {
         body: {
           planType: plano.slug,
-          billing: 'monthly',
+          billing,
           affiliateCode,
           direct: true
         }
+
       });
 
       if (error) {
@@ -84,9 +87,12 @@ export default function Checkout() {
           <div className="text-center space-y-2">
             <h3 className="text-lg font-semibold">{plano.nome_publico}</h3>
             <p className="text-2xl font-bold text-primary">
-              {formatPreco(plano.preco_centavos)}
-              {plano.preco_centavos > 0 && <span className="text-base font-normal">/mês</span>}
+              {formatPreco(precoDoPlano(plano, billing))}
+              {precoDoPlano(plano, billing) > 0 && (
+                <span className="text-base font-normal">{billing === 'yearly' ? '/ano' : '/mês'}</span>
+              )}
             </p>
+
           </div>
 
           {affiliateCode && (
