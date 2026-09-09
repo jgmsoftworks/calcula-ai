@@ -33,6 +33,8 @@ const Planos = () => {
   const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [billing, setBilling] = useState<Billing>('monthly');
+
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
