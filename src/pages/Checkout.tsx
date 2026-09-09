@@ -16,7 +16,9 @@ export default function Checkout() {
 
   const planType = searchParams.get('plan');
   const affiliateCode = searchParams.get('ref');
+  const billing: Billing = searchParams.get('billing') === 'yearly' ? 'yearly' : 'monthly';
   const plano = planType ? getPlano(planType) : undefined;
+
 
   useEffect(() => {
     if (planosLoading) return;
