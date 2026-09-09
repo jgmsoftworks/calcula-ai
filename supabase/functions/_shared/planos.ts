@@ -47,8 +47,9 @@ export async function getPlano(slug: string): Promise<PlanoRow | null> {
   const { data } = await supabase
     .from("planos")
     .select(
-      "slug, nome_publico, preco_centavos, stripe_product_id, stripe_price_id, versao_preco, ativo",
+      "slug, nome_publico, preco_centavos, preco_anual_centavos, stripe_product_id, stripe_price_id, stripe_price_id_anual, versao_preco, versao_preco_anual, ativo",
     )
+
     .eq("slug", normalizeSlug(slug))
     .maybeSingle();
   return (data as PlanoRow) ?? null;
