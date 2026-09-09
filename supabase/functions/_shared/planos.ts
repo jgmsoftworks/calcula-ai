@@ -70,9 +70,10 @@ export async function slugFromStripe(
     const { data } = await supabase
       .from("planos")
       .select("slug")
-      .eq("stripe_price_id", priceId)
+      .or(`stripe_price_id.eq.${priceId},stripe_price_id_anual.eq.${priceId}`)
       .maybeSingle();
     if (data?.slug) return data.slug as string;
+
 
     const { data: hist } = await supabase
       .from("planos_precos_historico")
