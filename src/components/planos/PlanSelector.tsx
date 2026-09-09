@@ -3,15 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, Crown, Zap, CreditCard, Gift } from 'lucide-react';
 import { PlanType } from '@/hooks/usePlanLimits';
-import { Plano, formatPreco } from '@/hooks/usePlanos';
+import { Plano, formatPreco, precoDoPlano, Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 
 interface PlanSelectorProps {
   plano: Plano;
   currentPlan: PlanType;
+  billing?: Billing;
   onSelectPlan?: (plan: string) => void;
   loading?: boolean;
 }
+
 
 const PlanIcon = ({ planType }: { planType: string }) => {
   switch (planType) {
