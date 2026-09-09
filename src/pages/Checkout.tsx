@@ -35,10 +35,11 @@ export default function Checkout() {
       const { data, error } = await supabase.functions.invoke('affiliate-checkout', {
         body: {
           planType: plano.slug,
-          billing: 'monthly',
+          billing,
           affiliateCode,
           direct: true
         }
+
       });
 
       if (error) {
