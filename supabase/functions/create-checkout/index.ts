@@ -85,7 +85,7 @@ serve(async (req) => {
     // Processar dados da requisição
     const requestBody = await req.json();
     const planType = normalizeSlug(requestBody.planType);
-    const billing = requestBody.billing ?? "monthly";
+    const billing = normalizeBilling(requestBody.billing);
     
     logStep("Request data received", { planType, billing });
 
@@ -93,13 +93,17 @@ serve(async (req) => {
       throw new Error("Missing planType in request");
     }
 
-    // 1) Fonte central: tabela public.planos
+    // 1) Fonte central: tabela public.planos (mensal ou anual)
     let priceId: string | undefined;
     const plano = await getPlano(planType);
-    if (plano?.ativo && plano.stripe_price_id && plano.preco_centavos > 0) {
-      priceId = plano.stripe_price_id;
-      logStep("Price resolved from planos table", { planType, priceId });
+    if (plano?.ativo) {
+      const preco = precoDoPlano(plano, billing);
+      if (preco.priceId && preco.centavos > 0) {
+        priceId = preco.priceId;
+        logStep("Price resolved from planos table", { planType, billing, priceId });
+      }
     }
+
 
     
     
