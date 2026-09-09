@@ -5,11 +5,28 @@ export interface PlanoRow {
   slug: string;
   nome_publico: string;
   preco_centavos: number;
+  preco_anual_centavos: number;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  stripe_price_id_anual: string | null;
   versao_preco: number;
+  versao_preco_anual: number;
   ativo: boolean;
 }
+
+export type Billing = "monthly" | "yearly";
+
+export function normalizeBilling(billing?: string | null): Billing {
+  return billing === "yearly" ? "yearly" : "monthly";
+}
+
+/** Preço vigente do plano para a periodicidade escolhida. */
+export function precoDoPlano(plano: PlanoRow, billing: Billing) {
+  return billing === "yearly"
+    ? { priceId: plano.stripe_price_id_anual, centavos: plano.preco_anual_centavos ?? 0 }
+    : { priceId: plano.stripe_price_id, centavos: plano.preco_centavos ?? 0 };
+}
+
 
 export function serviceClient() {
   return createClient(
