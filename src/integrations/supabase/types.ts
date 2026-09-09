@@ -1703,13 +1703,16 @@ export type Database = {
           nome_publico: string
           ordem: number
           periodicidade: string
+          preco_anual_centavos: number
           preco_centavos: number
           slug: string
           stripe_price_id: string | null
+          stripe_price_id_anual: string | null
           stripe_product_id: string | null
           updated_at: string
           updated_by: string | null
           versao_preco: number
+          versao_preco_anual: number
         }
         Insert: {
           ativo?: boolean
@@ -1722,13 +1725,16 @@ export type Database = {
           nome_publico: string
           ordem?: number
           periodicidade?: string
+          preco_anual_centavos?: number
           preco_centavos?: number
           slug: string
           stripe_price_id?: string | null
+          stripe_price_id_anual?: string | null
           stripe_product_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao_preco?: number
+          versao_preco_anual?: number
         }
         Update: {
           ativo?: boolean
@@ -1741,13 +1747,16 @@ export type Database = {
           nome_publico?: string
           ordem?: number
           periodicidade?: string
+          preco_anual_centavos?: number
           preco_centavos?: number
           slug?: string
           stripe_price_id?: string | null
+          stripe_price_id_anual?: string | null
           stripe_product_id?: string | null
           updated_at?: string
           updated_by?: string | null
           versao_preco?: number
+          versao_preco_anual?: number
         }
         Relationships: []
       }
