@@ -118,14 +118,19 @@ serve(async (req) => {
     if (!priceId) {
       const { data: plano } = await supabaseClient
         .from('planos')
-        .select('stripe_price_id, ativo, preco_centavos')
+        .select('stripe_price_id, stripe_price_id_anual, ativo, preco_centavos, preco_anual_centavos')
         .eq('slug', planType === 'free' ? 'lite' : planType)
         .maybeSingle();
-      if (plano?.ativo && plano.stripe_price_id && plano.preco_centavos > 0) {
-        priceId = plano.stripe_price_id;
-        logStep('Using central plan price', { planType, priceId });
+      if (plano?.ativo) {
+        const centavos = billing === 'yearly' ? plano.preco_anual_centavos : plano.preco_centavos;
+        const central = billing === 'yearly' ? plano.stripe_price_id_anual : plano.stripe_price_id;
+        if (central && centavos > 0) {
+          priceId = central;
+          logStep('Using central plan price', { planType, billing, priceId });
+        }
       }
     }
+
 
 
 
