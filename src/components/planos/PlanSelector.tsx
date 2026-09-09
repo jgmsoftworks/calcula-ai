@@ -28,16 +28,18 @@ const PlanIcon = ({ planType }: { planType: string }) => {
   }
 };
 
-export const PlanSelector = ({ plano, currentPlan, onSelectPlan, loading }: PlanSelectorProps) => {
+export const PlanSelector = ({ plano, currentPlan, billing = 'monthly', onSelectPlan, loading }: PlanSelectorProps) => {
   const { createCheckout } = useStripe();
   const isCurrentPlan = currentPlan === plano.slug;
+  const preco = precoDoPlano(plano, billing);
 
   const handlePlanSelect = async () => {
-    if (plano.preco_centavos > 0 && !isCurrentPlan) {
-      await createCheckout(plano.slug, 'monthly');
+    if (preco > 0 && !isCurrentPlan) {
+      await createCheckout(plano.slug, billing);
     }
     onSelectPlan?.(plano.slug);
   };
+
 
   return (
     <Card className={`relative transition-all duration-200 ${
