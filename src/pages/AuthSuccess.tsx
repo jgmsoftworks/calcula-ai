@@ -1,3 +1,4 @@
+import { trackVerifiedPurchase } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,6 +58,7 @@ const AuthSuccess = () => {
         throw error;
       }
 
+      if (data?.success === true && sessionId) trackVerifiedPurchase(sessionId);
       if (data.user_exists) {
         // Usuário já existe, redirecionar para login
         toast({

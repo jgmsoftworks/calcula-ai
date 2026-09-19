@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { acquisitionDestination, consumeAcquisition, rememberAcquisition } from '@/lib/acquisition';
+import { trackFunnel } from '@/lib/funnel-analytics';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
@@ -94,9 +96,31 @@ const Auth = () => {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
-  const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.toString();
+  const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
+  useEffect(() => { rememberAcquisition(query); }, [query]);
+  useEffect(() => {
+    if (user && !loading && new URLSearchParams(query).get('source') === 'landing') {
+      const target = acquisitionDestination(query);
+      consumeAcquisition();
+      navigate(target, { replace: true });
+    }
+  }, [user, loading, query, navigate]);
+  const completeAuth = () => {
+    const target = acquisitionDestination(query);
+    consumeAcquisition();
+    navigate(target, { replace: true });
+  };
+  const selectMode = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('mode', value === 'signup' ? 'signup' : 'login');
+    setSearchParams(next, { replace: true });
+  };
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
@@ -120,7 +144,7 @@ const Auth = () => {
         return;
       }
       toast({ title: t('auth.loginSuccess'), description: t('auth.welcomeBack') });
-      navigate('/');
+      completeAuth();
     } catch (error: any) {
       toast({ title: t('auth.unexpectedError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
@@ -138,6 +162,7 @@ const Auth = () => {
       });
       return;
     }
+    trackFunnel('signup_started', { method: 'email' });
     setLoading(true);
     try {
       const { data, error } = await signUp(email, password, fullName, businessName, phone);
@@ -158,6 +183,7 @@ const Auth = () => {
 
       const newUserId = data?.user?.id ?? null;
       if (newUserId) {
+        trackFunnel('signup_completed', { method: 'email' });
         const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
         try {
           await supabase.from('user_consents').insert([
@@ -171,7 +197,7 @@ const Auth = () => {
 
       if (data?.session) {
         toast({ title: t('auth.accountCreated'), description: t('auth.welcomeBack') });
-        navigate('/');
+        completeAuth();
         return;
       }
       toast({ title: t('auth.accountCreated'), description: t('auth.confirmEmail') });
@@ -230,6 +256,7 @@ const Auth = () => {
   };
 
   const handleGoogleLogin = async () => {
+    if (mode === 'signup') trackFunnel('signup_started', { method: 'google' });
     setLoading(true);
     try {
       const { error } = await signInWithGoogle();
@@ -325,7 +352,7 @@ const Auth = () => {
                     </form>
                   </div>
                 ) : (
-                  <Tabs defaultValue="login" className="space-y-5">
+                  <Tabs value={mode} onValueChange={selectMode} className="space-y-5">
                     <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
                       <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
                         {t('auth.login')}
@@ -449,3 +476,4 @@ const Auth = () => {
 };
 
 export default Auth;
+

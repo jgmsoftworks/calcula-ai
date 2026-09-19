@@ -1,3 +1,4 @@
+import { AcquisitionReturn } from '@/components/AcquisitionReturn';
 import '@/i18n';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -71,6 +72,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
+              <AcquisitionReturn />
               <CookieBanner />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
@@ -137,5 +139,6 @@ const App = () => (
 );
 
 export default App;
+
 
 

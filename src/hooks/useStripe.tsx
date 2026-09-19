@@ -1,3 +1,4 @@
+import { trackFunnel } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -69,6 +70,7 @@ export const useStripe = () => {
         
         if (data?.url) {
           console.log('[CHECKOUT] Redirecionando para checkout com afiliado:', data.url);
+          trackFunnel('checkout_started', { plan: planType, billing });
           window.open(data.url, '_blank');
           
           setTimeout(() => {
@@ -97,7 +99,8 @@ export const useStripe = () => {
       
       if (data?.url) {
         console.log('[CHECKOUT] Redirecionando para:', data.url);
-        window.open(data.url, '_blank');
+        trackFunnel('checkout_started', { plan: planType, billing });
+          window.open(data.url, '_blank');
         
         // Aguardar um pouco e verificar status da assinatura
         setTimeout(() => {
