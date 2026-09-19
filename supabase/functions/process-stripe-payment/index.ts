@@ -9,6 +9,9 @@ const corsHeaders = {
 
 // Mapeamento de produtos para planos
 const PRODUCT_TO_PLAN: Record<string, string> = {
+  "prod_V4rQCLUUdWe3gV": "lite",
+  "prod_V4rQXZxSALGvJP": "professional",
+  "prod_V4rQaeSY5JD0Ba": "enterprise",
   "prod_T6TXCmpEQTIaRT": "professional", // Professional mensal (antigo)
   "prod_T6TeSPeBygwJz7": "professional", // Professional anual (antigo)  
   "prod_T6TiY7VskZgNKg": "professional", // Professional anual (novo preço)
@@ -99,7 +102,7 @@ serve(async (req) => {
     });
 
     // Verificar se o pagamento foi bem-sucedido
-    if (session.payment_status !== 'paid') {
+    if (session.status !== 'complete' || session.payment_status !== 'paid') {
       throw new Error(`Payment not completed. Status: ${session.payment_status}`);
     }
 
@@ -130,6 +133,18 @@ serve(async (req) => {
 
     logStep("Determined plan", { productId, planType });
 
+
+    // Checkout expires_at is the checkout deadline, never the purchased access period.
+    const subscriptionId = typeof session.subscription === 'string'
+      ? session.subscription : session.subscription?.id;
+    if (!subscriptionId) throw new Error('Assinatura não encontrada para este pagamento');
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const purchasedItem = subscription.items.data.find(item => item.price.id === lineItem?.price?.id);
+    const periodEnd = purchasedItem?.current_period_end;
+    if (subscription.status !== 'active' || !periodEnd || periodEnd <= Math.floor(Date.now() / 1000)) {
+      throw new Error('A assinatura ainda não está ativa. Aguarde a confirmação ou procure o suporte.');
+    }
+    const subscriptionEnd = new Date(periodEnd * 1000).toISOString();
 
     // Verificar se o usuário já existe no Supabase
     const { data: existingUsers, error: usersError } = await supabaseClient.auth.admin.listUsers();
@@ -213,7 +228,7 @@ serve(async (req) => {
 
     // Atualizar/criar perfil do usuário com o novo plano
 
-    const subscriptionEnd = session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null;
+
     
     const { error: profileError } = await supabaseClient
       .from('profiles')
@@ -228,6 +243,9 @@ serve(async (req) => {
 
     if (profileError) {
       logError(profileError, "Failed to update user profile", { userId: user.id, planType });
+      // Allow a retry after a failed entitlement write, instead of reporting success.
+      await supabaseClient.from('stripe_events').delete().eq('stripe_event_id', `checkout_session:${session.id}`);
+      throw new Error('Não foi possível ativar o plano. Entre em contato com o suporte.');
     } else {
       logStep("Profile updated successfully", { userId: user.id, planType });
     }

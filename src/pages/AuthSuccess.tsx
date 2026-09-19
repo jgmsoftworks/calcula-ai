@@ -1,7 +1,6 @@
 import { trackVerifiedPurchase } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,11 +12,12 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const AuthSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showSignupForm, setShowSignupForm] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ user_exists: boolean; customer_email: string } | null>(null);
+  const [paymentError, setPaymentError] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     password: '',
@@ -27,27 +27,19 @@ const AuthSuccess = () => {
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
-    if (user) {
-      // Usuário já está logado, redireciona para dashboard
-      navigate('/', { replace: true });
-      return;
-    }
-
     if (sessionId) {
       processStripeSession();
     } else {
-      toast({
-        title: 'Erro',
-        description: 'Session ID não encontrado',
-        variant: 'destructive'
-      });
-      navigate('/auth', { replace: true });
+      setPaymentError('Não encontramos a identificação do pagamento. Use o link de retorno da Stripe ou entre em contato com o suporte.');
+      setLoading(false);
     }
-  }, [sessionId, user]);
+  }, [sessionId]);
 
   const processStripeSession = async () => {
     try {
       setLoading(true);
+      setPaymentError('');
+      setConfirmation(null);
       
       const { data, error } = await supabase.functions.invoke('process-stripe-payment', {
         body: { session_id: sessionId }
@@ -58,25 +50,12 @@ const AuthSuccess = () => {
         throw error;
       }
 
-      if (data?.success === true && sessionId) trackVerifiedPurchase(sessionId);
-      if (data.user_exists) {
-        // Usuário já existe, redirecionar para login
-        toast({
-          title: '✅ Pagamento confirmado!',
-          description: 'Redirecionando para login...'
-        });
-        
-        setTimeout(() => {
-          navigate(`/auth?email=${encodeURIComponent(data.customer_email)}&plan=${data.plan}`, { replace: true });
-        }, 1500);
-      } else {
-        // Usuário não existe, mostrar formulário de cadastro
-        setShowSignupForm(true);
-        setFormData(prev => ({
-          ...prev,
-          fullName: data.customer_name || ''
-        }));
+      if (data?.success !== true || !data.customer_email || typeof data.user_exists !== 'boolean') {
+        throw new Error('Não foi possível confirmar o pagamento.');
       }
+      if (sessionId) trackVerifiedPurchase(sessionId);
+      setConfirmation({ user_exists: data.user_exists, customer_email: data.customer_email });
+      setFormData(prev => ({ ...prev, fullName: data.customer_name || '' }));
     } catch (error) {
       console.error('Erro ao processar pagamento:', error);
       
@@ -84,7 +63,7 @@ const AuthSuccess = () => {
       let errorMessage = 'Erro ao processar seu pagamento. Tente novamente.';
       
       if (error?.message?.includes('session_id')) {
-        errorMessage = 'Session de pagamento inválida. Tente fazer um novo pagamento.';
+        errorMessage = 'Identificação do pagamento inválida. Consulte seu comprovante ou o suporte antes de tentar novamente.';
       } else if (error?.message?.includes('Payment not completed')) {
         errorMessage = 'Pagamento não foi concluído. Verifique seu método de pagamento.';
       } else if (error?.message?.includes('Failed to check existing users')) {
@@ -96,7 +75,7 @@ const AuthSuccess = () => {
         description: errorMessage,
         variant: 'destructive'
       });
-      navigate('/auth', { replace: true });
+      setPaymentError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -137,8 +116,8 @@ const AuthSuccess = () => {
         }
       });
 
-      if (error) {
-        throw error;
+      if (error || data?.success !== true || !data.customer_email) {
+        throw error || new Error('Não foi possível concluir o cadastro.');
       }
 
       toast({
@@ -191,20 +170,31 @@ const AuthSuccess = () => {
     );
   }
 
+  if (paymentError || !confirmation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md"><CardContent className="pt-6 space-y-4 text-center">
+          <h1 className="text-2xl font-bold">Ainda não confirmamos seu pagamento</h1>
+          <p role="alert">{paymentError || 'Aguarde a confirmação da Stripe.'}</p>
+          <p className="text-sm text-muted-foreground">Se você já pagou, não faça uma nova compra. A confirmação pode levar alguns instantes.</p>
+          {sessionId && <Button onClick={processStripeSession}>Verificar novamente</Button>}
+          <p><a href="mailto:calculaai.adm@gmail.com" className="underline">Falar com o suporte por e-mail</a></p>
+        </CardContent></Card>
+      </div>
+    );
+  }
+
   if (!showSignupForm) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center p-8">
-          <div className="animate-pulse mb-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LoadingSpinner className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-semibold mb-2 text-green-600">Pagamento confirmado!</h2>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Redirecionando você para sua conta...
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md"><CardContent className="pt-6 space-y-4 text-center">
+          <h1 className="text-2xl font-bold text-green-600">Pagamento confirmado!</h1>
+          <p className="text-muted-foreground">{confirmation.user_exists ? 'Seu plano está vinculado à conta do e-mail usado na compra. Entre para continuar.' : 'Agora é só finalizar seu cadastro para começar a usar o Calcula Aí.'}</p>
+          <Button className="w-full" onClick={() => {
+            if (confirmation.user_exists) navigate(`/auth?mode=login&email=${encodeURIComponent(confirmation.customer_email)}`, { replace: true });
+            else setShowSignupForm(true);
+          }}>Conhecer o sistema</Button>
+        </CardContent></Card>
       </div>
     );
   }
