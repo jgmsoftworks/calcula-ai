@@ -1,285 +1,36 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Mapeamento de produtos para planos
-const PRODUCT_TO_PLAN: Record<string, string> = {
-  "prod_V4rQCLUUdWe3gV": "lite",
-  "prod_V4rQXZxSALGvJP": "professional",
-  "prod_V4rQaeSY5JD0Ba": "enterprise",
-  "prod_T6TXCmpEQTIaRT": "professional", // Professional mensal (antigo)
-  "prod_T6TeSPeBygwJz7": "professional", // Professional anual (antigo)  
-  "prod_T6TiY7VskZgNKg": "professional", // Professional anual (novo preço)
-  "prod_T6TYlKJ4hdq6m1": "enterprise",   // Enterprise mensal (antigo)
-  "prod_T6TdpmHjPubwhM": "enterprise",   // Enterprise mensal (novo preço)
-  "prod_T6Te4Zsr3iA7x5": "enterprise",   // Enterprise anual (antigo)
-  "prod_T6TiS2ZoP1MhUL": "enterprise"    // Enterprise anual (novo preço)
-};
-
-const logError = (error: unknown, context: string, details?: any) => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const stack = error instanceof Error ? error.stack : undefined;
-  console.error(`[PROCESS-STRIPE-PAYMENT ERROR] ${context}`, {
-    message: errorMessage,
-    stack,
-    details,
-    timestamp: new Date().toISOString()
-  });
-  return errorMessage;
-};
-
-const logStep = (step: string, details?: any) => {
-  console.log(`[PROCESS-STRIPE-PAYMENT] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
+import { billingDb, billingStripe, checkoutState, objectId } from '../_shared/billing.ts';
+import { maskedEmail } from '../_shared/billingRules.ts';
+const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers });
+  if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
   try {
-    logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      throw new Error("STRIPE_SECRET_KEY not configured");
-    }
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    
-    // Obter session_id e dados do body
-    const url = new URL(req.url);
-    let sessionId = url.searchParams.get("session_id");
-    let signupData = null;
-
-    // Se for POST, obter dados do body
-    if (req.method === "POST") {
-      try {
-        const body = await req.json();
-        sessionId = sessionId || body.session_id;
-        signupData = body.signup_data;
-      } catch (e) {
-        // Se não conseguir ler o body, continuar apenas com URL params
-      }
-    }
-    
-    if (!sessionId) {
-      throw new Error("session_id parameter is required");
-    }
-
-    logStep("Processing Stripe session", { sessionId });
-
-    // Recuperar dados da sessão do Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['customer', 'line_items', 'line_items.data.price.product']
-    });
-
-    if (!session.customer || typeof session.customer === 'string') {
-      throw new Error("Invalid customer data in session");
-    }
-
-    const customer = session.customer as Stripe.Customer;
-    const customerEmail = customer.email;
-
-    if (!customerEmail) {
-      throw new Error("Customer email not found in session");
-    }
-
-    logStep("Retrieved session data", { 
-      customerEmail, 
-      customerId: customer.id,
-      paymentStatus: session.payment_status 
-    });
-
-    // Verificar se o pagamento foi bem-sucedido
-    if (session.status !== 'complete' || session.payment_status !== 'paid') {
-      throw new Error(`Payment not completed. Status: ${session.payment_status}`);
-    }
-
-    // Determinar o plano baseado no produto (fonte central: tabela planos)
-
-    const lineItem = session.line_items?.data?.[0];
-    const productId = typeof lineItem?.price?.product === 'string' 
-      ? lineItem.price.product 
-      : lineItem?.price?.product?.id;
-
-    let planType: string | null = null;
-    if (productId) {
-      const { data: planoRow } = await supabaseClient
-        .from('planos')
-        .select('slug')
-        .eq('stripe_product_id', productId)
-        .maybeSingle();
-      planType = planoRow?.slug ?? PRODUCT_TO_PLAN[productId] ?? null;
-    }
-
-    if (!planType) {
-      logError(new Error("Unknown product"), "Product not mapped to a plan", { productId });
-      return new Response(JSON.stringify({ error: "Produto não corresponde a nenhum plano ativo" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    logStep("Determined plan", { productId, planType });
-
-
-    // Checkout expires_at is the checkout deadline, never the purchased access period.
-    const subscriptionId = typeof session.subscription === 'string'
-      ? session.subscription : session.subscription?.id;
-    if (!subscriptionId) throw new Error('Assinatura não encontrada para este pagamento');
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const purchasedItem = subscription.items.data.find(item => item.price.id === lineItem?.price?.id);
-    const periodEnd = purchasedItem?.current_period_end;
-    if (subscription.status !== 'active' || !periodEnd || periodEnd <= Math.floor(Date.now() / 1000)) {
-      throw new Error('A assinatura ainda não está ativa. Aguarde a confirmação ou procure o suporte.');
-    }
-    const subscriptionEnd = new Date(periodEnd * 1000).toISOString();
-
-    // Verificar se o usuário já existe no Supabase
-    const { data: existingUsers, error: usersError } = await supabaseClient.auth.admin.listUsers();
-    
-    if (usersError) {
-      logError(usersError, "Failed to list users", { customerEmail });
-      throw new Error("Failed to check existing users");
-    }
-
-    let user = existingUsers.users.find(u => u.email === customerEmail);
-    const userExists = !!user;
-
-    if (!user) {
-      logStep("User does not exist", { customerEmail, hasSignupData: !!signupData });
-      
-      // Se não temos dados de cadastro, retornar info para o frontend solicitar
-      if (!signupData) {
-        logStep("Returning user creation required", { customerEmail });
-        
-        return new Response(JSON.stringify({
-          success: true,
-          user_exists: false,
-          customer_name: customer.name,
-          customer_email: customerEmail,
-          plan: planType
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // Criar novo usuário com dados fornecidos
-      logStep("Creating new user with signup data", { customerEmail, fullName: signupData.full_name });
-      
-      const { data: newUserData, error: createUserError } = await supabaseClient.auth.admin.createUser({
-        email: customerEmail,
-        password: signupData.password,
-        email_confirm: true, // Auto-confirmar email
-        user_metadata: {
-          email: customerEmail,
-          email_verified: true,
-          full_name: signupData.full_name || customer.name || '',
-          business_name: signupData.full_name || customer.name || customerEmail.split('@')[0]
-        }
-      });
-
-      if (createUserError || !newUserData.user) {
-        logError(createUserError, "Failed to create user", { customerEmail });
-        throw new Error("Failed to create user account");
-      }
-
-      user = newUserData.user;
-      logStep("User created successfully", { userId: user.id });
-    } else {
-      logStep("User already exists", { userId: user.id });
-    }
-
-    // Anti-replay: a mesma sessão de checkout só pode conceder plano uma vez
-    const { error: replayError } = await supabaseClient
-      .from('stripe_events')
-      .insert({
-        stripe_event_id: `checkout_session:${session.id}`,
-        event_type: 'process-stripe-payment',
-        processed: true,
-      });
-
-    if (replayError) {
-      if ((replayError as any).code === '23505') {
-        logStep("Session already processed", { sessionId: session.id });
-        return new Response(JSON.stringify({
-          success: false,
-          error: "Sessão de pagamento já processada"
-        }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      logError(replayError, "Failed to register session", { sessionId: session.id });
-      throw new Error("Falha ao registrar a sessão de pagamento");
-    }
-
-    // Atualizar/criar perfil do usuário com o novo plano
-
-
-    
-    const { error: profileError } = await supabaseClient
-      .from('profiles')
-      .upsert({
-        user_id: user.id,
-        plan: planType,
-        plan_expires_at: subscriptionEnd,
-        full_name: user.user_metadata?.full_name || customer.name || '',
-        business_name: user.user_metadata?.business_name || customer.name || customerEmail.split('@')[0],
-        updated_at: new Date().toISOString()
-      });
-
-    if (profileError) {
-      logError(profileError, "Failed to update user profile", { userId: user.id, planType });
-      // Allow a retry after a failed entitlement write, instead of reporting success.
-      await supabaseClient.from('stripe_events').delete().eq('stripe_event_id', `checkout_session:${session.id}`);
-      throw new Error('Não foi possível ativar o plano. Entre em contato com o suporte.');
-    } else {
-      logStep("Profile updated successfully", { userId: user.id, planType });
-    }
-
-    // Login será feito no frontend usando credenciais normais
-    logStep("Profile setup completed successfully", { 
-      userId: user.id, 
-      planType,
-      userExists
-    });
-
-    // Retornar dados para o frontend
-    return new Response(JSON.stringify({
-      success: true,
-      user_exists: userExists,
-      user_id: user.id,
-      customer_name: customer.name,
-      customer_email: customerEmail,
-      plan: planType,
-      needs_password: !userExists // Indica se precisa criar senha
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-
+    const body = await req.json();
+    if (body.signup_data) return json({ error: 'Defina sua senha pelo link enviado ao e-mail da compra.' }, 400);
+    const sessionId = body.session_id;
+    if (typeof sessionId !== 'string' || !/^cs_(live|test)_[A-Za-z0-9]{16,200}$/.test(sessionId)) return json({ error: 'Link de confirmação inválido.' }, 400);
+    const stripe = billingStripe();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.mode !== 'subscription') return json({ error: 'Compra não reconhecida.' }, 400);
+    const subId = objectId(session.subscription);
+    const subscription = subId ? await stripe.subscriptions.retrieve(subId) : null;
+    const state = checkoutState(session, subscription);
+    const db = billingDb();
+    const { data: checkout, error } = await db.from('billing_checkouts').select('status,plan,email,user_id,needs_password_setup').eq('session_id', sessionId).maybeSingle();
+    if (error) throw new Error('checkout_lookup_failed');
+    const { data: email, error: mailError } = await db.from('billing_emails').select('sent_at').eq('key', `checkout:${sessionId}:${state}`).maybeSingle();
+    if (mailError) throw new Error('email_lookup_failed');
+    const fulfilled = ['approved','trial'].includes(state) && !!checkout?.user_id;
+    // A checkout ID proves purchase context, never identity. No credentials or
+    // full personal data, account creation, or email sending on this endpoint.
+    return json({ success: fulfilled, status: state, access_ready: fulfilled,
+      email_sent: !!email?.sent_at,
+      email_hint: maskedEmail(checkout?.email ?? session.customer_details?.email ?? '***@***'),
+      needs_password_setup: checkout?.needs_password_setup ?? true, plan: checkout?.plan ?? null });
   } catch (error) {
-    const errorMessage = logError(error, "Payment processing failed");
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: errorMessage
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    if ((error as { type?: string }).type === 'StripeInvalidRequestError') return json({ error: 'Não encontramos esta confirmação de pagamento.' }, 404);
+    console.error('[PAYMENT-STATUS] lookup_failed');
+    return json({ error: 'Não foi possível verificar agora. Se você já pagou, não compre novamente.' }, 503);
   }
 });

@@ -145,7 +145,7 @@ serve(async (req) => {
     }
 
     // Criar sessão de checkout
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const origin = "https://calculaaibr.com";
     
     logStep("Creating checkout session", {
       customerId,

@@ -14,9 +14,13 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [activation] = useState(() => new URLSearchParams(window.location.hash.slice(1)));
+  const [activationVerified, setActivationVerified] = useState(false);
+  const isSetup = activation.get('setup') === '1';
   const { toast } = useToast();
 
   useEffect(() => {
+    if (activation.has('token_hash')) window.history.replaceState({}, '', '/reset-password');
     // Verificar se há tokens de reset na URL
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
@@ -28,7 +32,7 @@ const ResetPassword = () => {
         refresh_token: refreshToken,
       });
     }
-  }, [searchParams]);
+  }, [searchParams, activation]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +46,10 @@ const ResetPassword = () => {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       toast({
         title: "Erro",
-        description: "A senha deve ter pelo menos 6 caracteres",
+        description: "A senha deve ter pelo menos 8 caracteres",
         variant: "destructive",
       });
       return;
@@ -54,6 +58,15 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
+      const tokenHash = activation.get('token_hash');
+      const type = activation.get('type');
+      if (tokenHash && !activationVerified && (type === 'invite' || type === 'recovery')) {
+        const { error: verificationError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+        if (verificationError) throw new Error('Este link expirou ou já foi usado. Solicite um novo em “Esqueci minha senha” na tela de entrada.');
+        setActivationVerified(true);
+      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) throw new Error('Abra o link recebido por e-mail ou solicite outro em “Esqueci minha senha”.');
       const { error } = await supabase.auth.updateUser({
         password: password
       });
@@ -67,11 +80,12 @@ const ResetPassword = () => {
         description: "Sua senha foi redefinida com sucesso",
       });
 
-      navigate('/auth');
-    } catch (error: any) {
+      window.history.replaceState({}, '', '/reset-password');
+      navigate(isSetup ? '/?welcome=true' : '/auth', { replace: true });
+    } catch (error: unknown) {
       toast({
         title: "Erro ao redefinir senha",
-        description: error.message || "Tente novamente",
+        description: error instanceof Error ? error.message : "Tente novamente",
         variant: "destructive",
       });
     } finally {
@@ -99,10 +113,10 @@ const ResetPassword = () => {
               className="h-16 w-auto mx-auto"
             />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Redefinir Senha
+              {isSetup ? 'Defina sua senha' : 'Redefinir Senha'}
             </h1>
             <p className="text-muted-foreground">
-              Digite sua nova senha abaixo
+              {isSetup ? 'Sua conta está pronta. Crie sua senha pessoal para começar.' : 'Digite sua nova senha abaixo'}
             </p>
           </div>
 
@@ -128,7 +142,9 @@ const ResetPassword = () => {
                     <Input
                       id="password"
                       type="password"
-                      placeholder="Mínimo 6 caracteres"
+                      autoComplete="new-password"
+                      minLength={8}
+                      placeholder="Mínimo 8 caracteres"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-12 h-12 input-premium"
@@ -146,6 +162,8 @@ const ResetPassword = () => {
                     <Input
                       id="confirmPassword"
                       type="password"
+                      autoComplete="new-password"
+                      minLength={8}
                       placeholder="Digite novamente"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -168,7 +186,7 @@ const ResetPassword = () => {
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
-                      <span>Redefinir Senha</span>
+                      <span>{isSetup ? 'Salvar senha e acessar' : 'Redefinir Senha'}</span>
                       <ArrowRight className="h-4 w-4" />
                     </div>
                   )}

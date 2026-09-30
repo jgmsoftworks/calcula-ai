@@ -1,250 +1,36 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { slugFromStripe } from "../_shared/planos.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Mapeamento de produtos para planos
-const PRODUCT_TO_PLAN = {
-  "prod_T6TXCmpEQTIaRT": "professional", // Professional mensal (antigo)
-  "prod_T6TeSPeBygwJz7": "professional", // Professional anual (antigo)
-  "prod_T6TiY7VskZgNKg": "professional", // Professional anual (novo preço)
-  "prod_T6TYlKJ4hdq6m1": "enterprise",   // Enterprise mensal (antigo) 
-  "prod_T6TdpmHjPubwhM": "enterprise",   // Enterprise mensal (novo preço)
-  "prod_T6Te4Zsr3iA7x5": "enterprise",   // Enterprise anual (antigo)
-  "prod_T6TiS2ZoP1MhUL": "enterprise"    // Enterprise anual (novo preço)
-};
-
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
-};
-
-const logError = (error: unknown, context: string, details?: any) => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const stack = error instanceof Error ? error.stack : undefined;
-  console.error(`[CHECK-SUBSCRIPTION ERROR] ${context}`, {
-    message: errorMessage,
-    stack,
-    details,
-    timestamp: new Date().toISOString()
-  });
-  return errorMessage;
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
+import { billingDb, billingStripe, planForSubscription, subscriptionEnd } from '../_shared/billing.ts';
+const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { headers, status });
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers });
+  const db = billingDb();
+  const token = req.headers.get('Authorization')?.replace(/^Bearer /, '');
+  if (!token) return json({ error: 'Faça login para continuar.' }, 401);
+  const { data: auth, error: authError } = await db.auth.getUser(token);
+  if (authError || !auth.user?.email) return json({ error: 'Sessão inválida.' }, 401);
+  const { data: profile, error: profileError } = await db.from('profiles').select('plan,plan_expires_at,subscription_status,access_blocked_at').eq('user_id', auth.user.id).maybeSingle();
+  if (profileError) return json({ error: 'Não foi possível verificar seu plano.' }, 503);
+  const cachedActive = !profile?.access_blocked_at && profile?.subscription_status === 'active' && (profile.plan_expires_at ? Date.parse(profile.plan_expires_at) > Date.now() : ['professional','enterprise'].includes(profile.plan));
+  const cached = { subscribed: !!cachedActive, plan: profile?.plan ?? 'lite', subscription_end: profile?.plan_expires_at ?? null };
   try {
-    logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    const { data: currentProfile } = await supabaseClient
-      .from('profiles')
-      .select('plan, plan_expires_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const currentPlan = currentProfile?.plan || 'lite';
-    const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
-    const hasActiveManualPlan = !['free','lite'].includes(currentPlan) && (
-      !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
-    );
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
-    if (customers.data.length === 0) {
-      if (hasActiveManualPlan) {
-        logStep("No customer found, preserving active manual plan", { currentPlan, currentPlanExpiresAt });
-
-        return new Response(JSON.stringify({ 
-          subscribed: true,
-          plan: currentPlan,
-          subscription_end: currentPlanExpiresAt
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
+    const stripe = billingStripe();
+    const customers = await stripe.customers.list({ email: auth.user.email, limit: 100 });
+    let best: { plan: string; end: string } | null = null;
+    const rank: Record<string, number> = { lite: 1, professional: 2, enterprise: 3 };
+    for (const customer of customers.data) {
+      const subscriptions = await stripe.subscriptions.list({ customer: customer.id, status: 'all', limit: 100 });
+      for (const subscription of subscriptions.data) {
+        if (!['active','trialing'].includes(subscription.status)) continue;
+        const plan = await planForSubscription(subscription);
+        const end = subscriptionEnd(subscription);
+        if (Date.parse(end) <= Date.now()) continue;
+        if (!best || rank[plan] > rank[best.plan] || (plan === best.plan && end > best.end)) best = { plan, end };
       }
-
-      logStep("No customer found and no active manual plan, updating to free plan");
-      
-      // Atualizar perfil para plano free
-      await supabaseClient
-        .from('profiles')
-        .upsert({ 
-          user_id: user.id, 
-          plan: 'lite',
-          plan_expires_at: null
-        });
-      
-      return new Response(JSON.stringify({ 
-        subscribed: false, 
-        plan: 'lite',
-        subscription_end: null 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
     }
-
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
-
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-    
-    const hasActiveSub = subscriptions.data.length > 0;
-    let planType = 'lite';
-    let subscriptionEnd = null;
-
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
-      
-      const priceId = subscription.items.data[0].price.id as string;
-      const productId = subscription.items.data[0].price.product as string;
-      // Fonte central: planos + histórico de preços (garante planos legados)
-      const slugFromDb = await slugFromStripe(productId, priceId);
-      planType = slugFromDb || (PRODUCT_TO_PLAN as Record<string, string>)[productId] || 'lite';
-      logStep("Determined plan type", { productId, priceId, planType });
-
-      
-      // Atualizar perfil no Supabase
-      await supabaseClient
-        .from('profiles')
-        .upsert({ 
-          user_id: user.id, 
-          plan: planType,
-          plan_expires_at: subscriptionEnd
-        });
-    } else {
-      if (hasActiveManualPlan) {
-        logStep("No active subscription found, preserving active manual plan", { currentPlan, currentPlanExpiresAt });
-
-        return new Response(JSON.stringify({
-          subscribed: true,
-          plan: currentPlan,
-          subscription_end: currentPlanExpiresAt
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-
-      logStep("No active subscription found and no active manual plan, updating to free");
-      
-      // Atualizar perfil para plano free
-      await supabaseClient
-        .from('profiles')
-        .upsert({ 
-          user_id: user.id, 
-          plan: 'lite',
-          plan_expires_at: null
-        });
-    }
-
-    return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      plan: planType,
-      subscription_end: subscriptionEnd
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    const errorMessage = logError(error, "Main function execution");
-    
-    // Fallback seguro: preservar plano manual ativo quando existir; só usar free se não houver plano pago válido
-    try {
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader) {
-        const token = authHeader.replace("Bearer ", "");
-        const supabaseClient = createClient(
-          Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-          { auth: { persistSession: false } }
-        );
-        
-        const { data: userData } = await supabaseClient.auth.getUser(token);
-        if (userData.user) {
-          const { data: currentProfile } = await supabaseClient
-            .from('profiles')
-            .select('plan, plan_expires_at')
-            .eq('user_id', userData.user.id)
-            .maybeSingle();
-
-          const currentPlan = currentProfile?.plan || 'lite';
-          const currentPlanExpiresAt = currentProfile?.plan_expires_at || null;
-          const hasActiveManualPlan = !['free','lite'].includes(currentPlan) && (
-            !currentPlanExpiresAt || new Date(currentPlanExpiresAt).getTime() > Date.now()
-          );
-
-          if (hasActiveManualPlan) {
-            return new Response(JSON.stringify({ 
-              subscribed: true, 
-              plan: currentPlan,
-              subscription_end: currentPlanExpiresAt,
-              warning: "Assinatura Stripe indisponível; plano manual ativo preservado."
-            }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-              status: 200,
-            });
-          }
-
-          await supabaseClient
-            .from('profiles')
-            .upsert({ 
-              user_id: userData.user.id, 
-              plan: 'lite',
-              plan_expires_at: null
-            });
-        }
-      }
-    } catch (fallbackError) {
-      logError(fallbackError, "Fallback update to free plan");
-    }
-
-    return new Response(JSON.stringify({ 
-      subscribed: false, 
-      plan: 'lite',
-      subscription_end: null,
-      error: "Erro ao verificar assinatura. Usando plano gratuito como fallback."
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, // Retorna 200 com fallback em vez de erro 500
-    });
+    // This endpoint is a read. Only verified webhook events change entitlements.
+    return json(best ? { subscribed: true, plan: best.plan, subscription_end: best.end } : cached);
+  } catch {
+    // An API outage must never erase an already-provisioned subscription.
+    return json({ ...cached, warning: 'Confirmação temporariamente indisponível; exibindo seu último plano registrado.' });
   }
 });
