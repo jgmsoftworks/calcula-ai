@@ -48,6 +48,42 @@ async function setupLink(db: any, email: string, isNew: boolean) {
   if (error) throw new Error('account_activation_link_failed');
   return activationLink(data.properties);
 }
+export function initialBillingPassword() {
+  const bytes = crypto.getRandomValues(new Uint8Array(18));
+  return `Ca1!${btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')}`;
+}
+async function checkoutAccount(db: any, email: string, name: string, sessionId: string) {
+  const key = `signup:${sessionId}`;
+  let user = await findBillingUser(db, email);
+  const { data: saved, error: readError } = await db.from('billing_emails').select('*').eq('key', key).maybeSingle();
+  if (readError) throw new Error('billing_signup_read_failed');
+  let credentials = saved?.payload;
+  if (!user) {
+    // Persist before Auth creation so a retry never replaces a password or loses
+    // the only copy needed for the first email. This private payload is cleared
+    // after the access email is accepted. Never log it or return it to a browser.
+    if (saved && !credentials) throw new Error('billing_signup_already_completed');
+    if (!credentials) {
+      credentials = { password: initialBillingPassword(), owner: crypto.randomUUID() };
+      const { error } = await db.from('billing_emails').insert({ key, payload: credentials });
+      if (error) throw new Error('billing_signup_queue_failed');
+    }
+    const { data, error } = await db.auth.admin.createUser({
+      email, password: credentials.password, email_confirm: true,
+      app_metadata: { billing_signup_id: credentials.owner },
+      user_metadata: { full_name: name, created_from_stripe: true },
+    });
+    if (error || !data?.user) {
+      user = await findBillingUser(db, email); // includes an uncertain Auth response / concurrent signup
+      if (!user) throw new Error('billing_account_creation_failed');
+    } else user = data.user;
+  }
+  // Never send a generated password for an account another request created.
+  // Existing users' passwords are never updated by checkout processing.
+  const initialPassword = credentials?.owner && user.app_metadata?.billing_signup_id === credentials.owner && !user.last_sign_in_at
+    ? credentials.password as string : undefined;
+  return { user, initialPassword, signupKey: saved || credentials ? key : undefined };
+}
 export async function fulfillCheckout(db: any, stripe: any, sessionId: string, failedEvent = false, resolvePlan = planForSubscription) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   if (session.mode !== 'subscription') return;
@@ -71,22 +107,15 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
     if (previous && ['approved','trial'].includes(previous.status) && ['pending','failed'].includes(state)) return;
     let user: any = null;
     let needsSetup = false;
-    let createdLink: string | undefined;
+    let initialPassword: string | undefined;
+    let signupKey: string | undefined;
     if (state === 'approved' || state === 'trial') {
       if (Date.parse(subscriptionEnd(subscription)) <= Date.now()) throw new Error('subscription_expired');
-      user = await findBillingUser(db, email);
-      if (!user) {
-        // Supabase creates an unconfirmed user; only the email owner can activate it.
-        const { data, error } = await db.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo: `${APP_URL}/reset-password`, data: { full_name: customer.name ?? '', created_from_stripe: true } } });
-        if (error) {
-          user = await findBillingUser(db, email); // concurrent checkout for same email
-          if (!user) throw new Error('billing_account_creation_failed');
-        } else {
-          user = data.user;
-          createdLink = activationLink(data.properties);
-        }
-      }
-      needsSetup = !user.email_confirmed_at && !user.last_sign_in_at;
+      const account = await checkoutAccount(db, email, customer.name ?? '', sessionId);
+      user = account.user;
+      initialPassword = account.initialPassword;
+      signupKey = account.signupKey;
+      needsSetup = !!initialPassword || (!user.email_confirmed_at && !user.last_sign_in_at);
       const { data: profile, error: profileReadError } = await db.from('profiles').select('user_id').eq('user_id', user.id).maybeSingle();
       if (profileReadError) throw new Error('billing_profile_read_failed');
       const values: Record<string, unknown> = {
@@ -103,8 +132,15 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
     if (error) throw new Error('checkout_state_write_failed');
     await sendPaymentEmail(db, `checkout:${sessionId}:${state}`, async () => ({
       to: email,
-      ...paymentEmail(state, email, plan === 'professional' ? 'Profissional' : plan === 'enterprise' ? 'Empresarial' : 'Lite', needsSetup ? createdLink ?? await setupLink(db, email, !user.email_confirmed_at) : undefined),
+      ...paymentEmail(state, email, plan === 'professional' ? 'Profissional' : plan === 'enterprise' ? 'Empresarial' : 'Lite', {
+        initialPassword,
+        setupLink: needsSetup && !initialPassword ? await setupLink(db, email, !user.email_confirmed_at) : undefined,
+      }),
     }));
+    if (signupKey) {
+      const { error } = await db.from('billing_emails').update({ payload: null, sent_at: new Date().toISOString() }).eq('key', signupKey);
+      if (error) throw new Error('billing_signup_cleanup_failed');
+    }
   });
 }
 

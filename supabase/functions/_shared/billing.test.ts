@@ -2,7 +2,7 @@ import { it, vi } from 'vitest';
 vi.stubGlobal('Deno', { env: { get: (name: string) => process.env[name], set: (name: string, value: string) => { process.env[name] = value; }, delete: (name: string) => { delete process.env[name]; } } });
 import { checkoutState, subscriptionEnd, invoiceSubscription, maskedEmail } from './billingRules.ts';
 import { paymentEmail, sendPaymentEmail } from './billingEmails.ts';
-import { fulfillCheckout, withBillingLock } from './billing.ts';
+import { fulfillCheckout, withBillingLock, initialBillingPassword } from './billing.ts';
 import nodemailer from 'npm:nodemailer@10.0.13';
 import { GMAIL_SENDER, smtpMessageId } from './billingSmtp.ts';
 
@@ -16,15 +16,27 @@ const session = { id: 'cs_test_fixture', mode: 'subscription', customer: 'cus_fi
 const subscription = { id: 'sub_fixture', customer: 'cus_fixture', status: 'active', items: { data: [{ current_period_end: future, price: { id: 'price_fixture', product: 'prod_fixture' } }] } };
 
 // In-memory persistence and Auth doubles; no Stripe, Supabase, or email calls.
-function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpaid?: boolean; failProfile?: boolean } = {}) {
+function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpaid?: boolean; failProfile?: boolean; createFailure?: boolean; createResponseLost?: boolean; createRace?: boolean } = {}) {
   const rows: Record<string, any[]> = { billing_checkouts: [], billing_emails: [], profiles: [] };
   const users: any[] = options.existingUser ? [{ id: 'user_existing', email: 'buyer@example.invalid', email_confirmed_at: '2026-01-01', last_sign_in_at: '2026-01-01' }] : [];
   let generated = 0, sent = 0;
+  const creations: any[] = [], messages: any[] = [];
   const rpcCalls: any[] = [];
   const db: any = {
     rpc: (_name: string, args: any) => { rpcCalls.push(args); return Promise.resolve({ data: 'claimed', error: null }); },
     auth: { admin: {
       listUsers: () => Promise.resolve({ data: { users }, error: null }),
+      createUser: (input: any) => {
+        creations.push(input);
+        if (options.createFailure) return Promise.resolve({ data: {}, error: { message: 'Auth unavailable' } });
+        if (options.createRace) {
+          users.push({ id: 'user_race', email: input.email, email_confirmed_at: '2026-01-01', last_sign_in_at: '2026-01-01' });
+          return Promise.resolve({ data: {}, error: { message: 'Email exists' } });
+        }
+        const user = { id: 'user_new', email: input.email, email_confirmed_at: '2026-01-01', last_sign_in_at: null, app_metadata: input.app_metadata };
+        users.push(user);
+        return Promise.resolve(options.createResponseLost ? { data: {}, error: { message: 'Response lost' } } : { data: { user }, error: null });
+      },
       generateLink: ({ email, type }: any) => {
         generated++;
         let user = users.find(u => u.email === email);
@@ -57,7 +69,7 @@ function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpai
   };
   const current = { ...session, payment_status: options.unpaid ? 'unpaid' : 'paid' };
   const stripe = { checkout: { sessions: { retrieve: () => Promise.resolve(current) } }, subscriptions: { retrieve: () => Promise.resolve(subscription) }, customers: { retrieve: () => Promise.resolve({ id: 'cus_fixture', email: 'buyer@example.invalid', name: 'Buyer' }) } };
-  return { db, stripe, rows, users, rpcCalls, current, get generated() { return generated; }, get sent() { return sent; }, fetch: () => { sent++; return Promise.resolve(new Response(options.mailFailure ? '{}' : '{"id":"mail_fixture"}', { status: options.mailFailure ? 503 : 200 })); } };
+  return { db, stripe, rows, users, rpcCalls, current, creations, messages, get mail() { return rows.billing_emails.find(row => row.key === `checkout:${session.id}:approved`); }, get generated() { return generated; }, get sent() { return sent; }, fetch: (_url: any, init: any) => { sent++; messages.push(JSON.parse(init.body)); return Promise.resolve(new Response(options.mailFailure ? '{}' : '{"id":"mail_fixture"}', { status: options.mailFailure ? 503 : 200 })); } };
 }
 async function withTransport(f: ReturnType<typeof fixture>, action: () => Promise<void>) {
   const originalFetch = globalThis.fetch;
@@ -88,15 +100,17 @@ it('pending checkout emails once and never creates an account or profile', async
   assert(f.users.length === 0 && f.rows.profiles.length === 0 && f.generated === 0);
   assert(f.sent === 1 && f.rows.billing_checkouts[0].status === 'pending');
 });
-it('new paid buyer gets one account, correct plan and one activation email on retry', async () => {
+it('new paid buyer gets one account, correct plan and one initial-password email on retry', async () => {
   const f = fixture();
   await withTransport(f, async () => { await run(f); await run(f); });
   assert(f.users.length === 1 && f.rows.profiles[0].plan === 'professional');
   assert(f.rows.profiles[0].subscription_status === 'active');
   assert(f.rows.billing_checkouts[0].email === 'buyer@example.invalid');
-  assert(f.sent === 1 && f.rows.billing_emails[0].payload === null);
-  assert(f.rows.billing_checkouts[0].needs_password_setup === true);
-  assert(f.generated === 1, 'reuse the original invite instead of generating and invalidating it twice');
+  assert(f.sent === 1 && f.mail.payload === null);
+  assert(f.creations.length === 1 && f.generated === 0);
+  assert(f.messages[0].text.includes(`Senha inicial: ${f.creations[0].password}`));
+  assert(f.messages[0].html.includes('Perfil do negócio → Segurança da conta → Alterar senha'));
+  assert(f.rows.billing_emails.find(row => row.key.startsWith('signup:')).payload === null);
 });
 it('existing buyer keeps account and password; no activation token is generated', async () => {
   const f = fixture({ existingUser: true });
@@ -108,7 +122,7 @@ it('existing buyer keeps account and password; no activation token is generated'
 it('provider failure stays unsent and propagates for Stripe retry', async () => {
   const f = fixture({ mailFailure: true });
   await withTransport(f, async () => { await rejects(() => run(f), 'payment_email_provider_503'); });
-  assert(!f.rows.billing_emails[0].sent_at && !!f.rows.billing_emails[0].payload);
+  assert(!f.mail.sent_at && !!f.mail.payload);
   assert(f.rpcCalls.at(-1).completed === false);
 });
 it('profile failure cannot be announced as access granted', async () => {
@@ -150,7 +164,7 @@ it('Gmail accepts the real SMTP receipt once and closes the transport', async ()
   try {
     await run(f); await run(f);
     assert(sendMail.mock.calls.length === 1 && close.mock.calls.length === 1);
-    assert(f.rows.billing_emails[0].provider_id === 'smtp_fixture' && f.rows.billing_emails[0].payload === null);
+    assert(f.mail.provider_id === 'smtp_fixture' && f.mail.payload === null);
     assert((create.mock.calls[0][0] as any).port === 465 && (create.mock.calls[0][0] as any).secure === true);
     assert(sendMail.mock.calls[0][0].from === GMAIL_SENDER);
     assert(await smtpMessageId('same-key') === await smtpMessageId('same-key'));
@@ -169,8 +183,69 @@ it('Gmail failures and rejected recipients remain unsent without leaking provide
     const f = fixture();
     try {
       await rejects(() => run(f), 'payment_email_smtp_failed');
-      assert(!f.rows.billing_emails[0].sent_at && !!f.rows.billing_emails[0].payload);
+      assert(!f.mail.sent_at && !!f.mail.payload);
       assert(close.mock.calls.length === 1 && f.rpcCalls.at(-1).completed === false);
     } finally { create.mockRestore(); Deno.env.delete('GMAIL_SMTP_PASSWORD'); }
+  }
+});
+
+
+it('initial passwords are individual and generated with enough random bytes', () => {
+  const first = initialBillingPassword(), second = initialBillingPassword();
+  assert(first !== second && /^Ca1![A-Za-z0-9_-]{24}$/.test(first));
+});
+it('retry after a profile failure preserves the exact account password', async () => {
+  const options = { failProfile: true };
+  const f = fixture(options);
+  await withTransport(f, async () => {
+    await rejects(() => run(f), 'billing_profile_update_failed');
+    const password = f.creations[0].password;
+    options.failProfile = false;
+    await run(f);
+    assert(f.creations.length === 1 && f.messages[0].text.includes(`Senha inicial: ${password}`));
+    assert(f.rows.billing_emails.every(row => row.payload === null));
+  });
+});
+it('retry after an email failure keeps the same password and clears it after acceptance', async () => {
+  const options = { mailFailure: true };
+  const f = fixture(options);
+  await withTransport(f, async () => {
+    await rejects(() => run(f), 'payment_email_provider_503');
+    const password = f.creations[0].password;
+    options.mailFailure = false;
+    await run(f);
+    assert(f.creations.length === 1 && f.messages.length === 2);
+    assert(f.messages.every(message => message.text.includes(`Senha inicial: ${password}`)));
+    assert(f.rows.billing_emails.every(row => row.payload === null));
+  });
+});
+it('lost Auth response reuses the account tagged by this signup', async () => {
+  const f = fixture({ createResponseLost: true });
+  await withTransport(f, () => run(f));
+  assert(f.users.length === 1 && f.creations.length === 1);
+  assert(f.messages[0].text.includes(`Senha inicial: ${f.creations[0].password}`));
+});
+it('concurrent pre-existing account never receives the unused generated password', async () => {
+  const f = fixture({ createRace: true });
+  await withTransport(f, () => run(f));
+  assert(f.rows.profiles[0].user_id === 'user_race');
+  assert(!f.messages[0].text.includes(f.creations[0].password));
+  assert(f.messages[0].text.includes('Sua senha não foi alterada'));
+  assert(f.rows.billing_emails.every(row => row.payload === null));
+});
+it('Auth creation failure cannot send credentials or grant a plan', async () => {
+  const f = fixture({ createFailure: true });
+  await withTransport(f, () => rejects(() => run(f), 'billing_account_creation_failed'));
+  assert(f.sent === 0 && f.rows.profiles.length === 0 && f.rows.billing_checkouts.length === 0);
+});
+it('pending and failed emails never include credentials; approved and trial give profile instructions', () => {
+  for (const kind of ['pending', 'failed'] as const) {
+    const message = paymentEmail(kind, 'buyer@example.invalid', 'Lite', { initialPassword: 'test-password-only' });
+    assert(!message.text.includes('test-password-only') && !message.html.includes('test-password-only'));
+  }
+  for (const kind of ['approved', 'trial'] as const) {
+    const message = paymentEmail(kind, 'buyer@example.invalid', 'Lite', { initialPassword: 'test-password-only' });
+    assert(message.text.includes('Seu login: buyer@example.invalid') && message.text.includes('Senha inicial: test-password-only'));
+    assert(message.text.includes('Perfil do negócio → Segurança da conta → Alterar senha'));
   }
 });

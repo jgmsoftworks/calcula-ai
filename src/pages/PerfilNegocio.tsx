@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import {
   Mail,
   FileText,
   Search,
+  Lock,
   ImageIcon
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -766,6 +768,16 @@ const PerfilNegocio = () => {
           </div>
 
         </div>
+
+        <Card className="card-premium" id="seguranca">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5 text-primary" />Segurança da conta</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">Se você recebeu uma senha inicial por e-mail, recomendamos trocá-la por uma senha pessoal no primeiro acesso.</p>
+            <Button variant="outline" asChild><Link to="/reset-password?from=profile">Alterar senha</Link></Button>
+          </CardContent>
+        </Card>
 
         {/* Botão de Ação */}
         <div className="flex justify-center pt-8 border-t border-border/20">

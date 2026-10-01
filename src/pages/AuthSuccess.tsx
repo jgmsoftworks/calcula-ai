@@ -39,11 +39,11 @@ export default function AuthSuccess() {
         {error ? <p>{error}</p> : <>
           {approved ? <p className="text-muted-foreground">{result.access_ready ? 'Seu plano está vinculado à conta do e-mail usado na compra.' : 'Estamos preparando sua conta. Isso pode levar alguns instantes.'}</p> : <p className="text-muted-foreground">{result?.status === 'failed' ? 'Confira a forma de pagamento. Se você já foi cobrado, fale com nosso suporte.' : 'Assim que a aprovação chegar, vamos preparar seu acesso e avisar por e-mail. Você pode fechar esta página.'}</p>}
           {result?.email_sent && <div className="rounded-xl bg-muted p-4 space-y-2"><Mail className="h-6 w-6 mx-auto" /><p>Enviamos as orientações para <strong>{result.email_hint}</strong>.</p><p className="text-sm text-muted-foreground">Confira também o spam e a aba de promoções.</p></div>}
-          {approved && result?.needs_password_setup && <p>Abra o link recebido por e-mail para definir sua senha pessoal.</p>}
+          {approved && result?.needs_password_setup && <p>Confira no e-mail as instruções do primeiro acesso. Se recebeu uma senha inicial, recomendamos trocá-la em Perfil do negócio → Segurança da conta → Alterar senha.</p>}
           {approved && !result?.email_sent && <p className="text-sm text-muted-foreground">O e-mail de acesso ainda está sendo preparado. Se demorar, fale com o suporte.</p>}
         </>}
         <div className="space-y-3">
-          {approved && result?.access_ready && <Button className="w-full" asChild><Link to="/auth?mode=login">Entrar no Calcula Aí</Link></Button>}
+          {approved && result?.access_ready && <Button className="w-full" asChild><Link to="/auth?mode=login">Entrar na Calcula Aí</Link></Button>}
           {sessionId && <Button variant="outline" className="w-full" disabled={loading} onClick={() => void check()}>{loading ? 'Verificando…' : 'Verificar novamente'}</Button>}
         </div>
       </>}

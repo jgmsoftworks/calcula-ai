@@ -4,7 +4,8 @@ import { GMAIL_SENDER, sendGmailPayment } from './billingSmtp.ts';
 export type EmailKind = 'pending' | 'approved' | 'trial' | 'failed';
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-export function paymentEmail(kind: EmailKind, email: string, plan: string, setupLink?: string) {
+export function paymentEmail(kind: EmailKind, email: string, plan: string, options: { setupLink?: string; initialPassword?: string } = {}) {
+  const { setupLink, initialPassword } = options;
   const titles = {
     pending: 'Estamos aguardando a aprovação do seu pagamento',
     approved: 'Pagamento aprovado! Seu acesso à Calcula Aí está liberado',
@@ -13,15 +14,17 @@ export function paymentEmail(kind: EmailKind, email: string, plan: string, setup
   };
   const message = {
     pending: 'Recebemos sua solicitação. Assim que o pagamento for aprovado, você receberá outro e-mail com as instruções de acesso. Não é necessário comprar novamente.',
-    approved: `Seu plano ${plan} está liberado. ${setupLink ? 'Sua conta foi criada. Use o botão abaixo para definir sua senha pessoal e começar.' : 'Use o e-mail desta compra e sua senha atual para entrar. Sua senha não foi alterada.'}`,
-    trial: `Seu plano ${plan} está disponível durante o período de teste contratado. Este e-mail não é uma confirmação de cobrança. ${setupLink ? 'Defina sua senha pessoal para começar.' : 'Entre com sua senha atual.'}`,
+    approved: `Seu plano ${plan} está liberado. ${initialPassword ? 'Sua conta foi criada. Entre com o e-mail usado no pagamento e a senha inicial abaixo.' : setupLink ? 'Use o botão abaixo para definir sua senha pessoal e começar.' : 'Use o e-mail desta compra e sua senha atual para entrar. Sua senha não foi alterada.'}`,
+    trial: `Seu plano ${plan} está disponível durante o período de teste contratado. Este e-mail não é uma confirmação de cobrança. ${initialPassword ? 'Entre com o e-mail desta compra e a senha inicial abaixo.' : setupLink ? 'Defina sua senha pessoal para começar.' : 'Entre com sua senha atual.'}`,
     failed: 'Seu pagamento não foi aprovado. Confira a forma de pagamento antes de tentar novamente. Se você acredita que já foi cobrado, fale com nosso suporte.',
   }[kind];
   const link = setupLink ?? `${APP_URL}/auth?mode=login`;
   const button = setupLink ? 'Definir minha senha e acessar' : 'Entrar na Calcula Aí';
   const access = kind === 'approved' || kind === 'trial';
-  const text = `${titles[kind]}\n\n${message}\n\n${access ? `Seu login: ${email}\n${button}: ${link}\n\nSe o link expirar, use “Esqueci minha senha” em ${APP_URL}/auth.\n\n` : ''}Suporte: calculaai.adm@gmail.com`;
-  const html = `<div style="background:#f4f7fb;padding:32px 16px;font-family:Arial,sans-serif;color:#19263d"><div style="max-width:540px;margin:auto;background:white;border-radius:16px;padding:32px"><p style="font-size:23px;font-weight:bold;color:#2563eb">Calcula Aí</p><h1 style="font-size:24px;line-height:1.3">${escape(titles[kind])}</h1><p style="line-height:1.7">${escape(message)}</p>${access ? `<p>Seu login: <strong>${escape(email)}</strong></p><p style="margin:28px 0"><a href="${escape(link)}" style="background:#2563eb;color:#fff;padding:14px 20px;border-radius:8px;text-decoration:none;display:inline-block">${button}</a></p><p style="font-size:13px;color:#64748b">Se o link expirar, use “Esqueci minha senha” na tela de entrada.</p>` : ''}<p style="font-size:13px;color:#64748b">Precisa de ajuda? <a href="mailto:calculaai.adm@gmail.com">Fale com o suporte</a>.</p></div></div>`;
+  const changeAdvice = 'Recomendamos trocar sua senha inicial por uma senha pessoal no primeiro acesso, em Perfil do negócio → Segurança da conta → Alterar senha.';
+  const recoveryAdvice = 'Se precisar recuperar o acesso, use “Esqueci minha senha” na tela de entrada.';
+  const text = `${titles[kind]}\n\n${message}\n\n${access ? `Seu login: ${email}\n${initialPassword ? `Senha inicial: ${initialPassword}\n\n${changeAdvice}\n` : ''}${button}: ${link}\n\n${recoveryAdvice}\n\n` : ''}Suporte: calculaai.adm@gmail.com`;
+  const html = `<div style="background:#f4f7fb;padding:32px 16px;font-family:Arial,sans-serif;color:#19263d"><div style="max-width:540px;margin:auto;background:white;border-radius:16px;padding:32px"><p style="font-size:23px;font-weight:bold;color:#2563eb">Calcula Aí</p><h1 style="font-size:24px;line-height:1.3">${escape(titles[kind])}</h1><p style="line-height:1.7">${escape(message)}</p>${access ? `<p>Seu login: <strong>${escape(email)}</strong></p>${initialPassword ? `<p>Senha inicial: <strong style="font-family:monospace;word-break:break-all">${escape(initialPassword)}</strong></p><p style="background:#eff6ff;padding:16px;border-radius:8px;line-height:1.6">${changeAdvice}</p>` : ''}<p style="margin:28px 0"><a href="${escape(link)}" style="background:#2563eb;color:#fff;padding:14px 20px;border-radius:8px;text-decoration:none;display:inline-block">${button}</a></p><p style="font-size:13px;color:#64748b">${recoveryAdvice}</p>` : ''}<p style="font-size:13px;color:#64748b">Precisa de ajuda? <a href="mailto:calculaai.adm@gmail.com">Fale com o suporte</a>.</p></div></div>`;
   return { subject: titles[kind], html, text };
 }
 

@@ -7,7 +7,7 @@ Deno.serve(async req => {
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
   try {
     const body = await req.json();
-    if (body.signup_data) return json({ error: 'Defina sua senha pelo link enviado ao e-mail da compra.' }, 400);
+    if (body.signup_data) return json({ error: 'Confira as instruções de acesso enviadas ao e-mail da compra.' }, 400);
     const sessionId = body.session_id;
     if (typeof sessionId !== 'string' || !/^cs_(live|test)_[A-Za-z0-9]{16,200}$/.test(sessionId)) return json({ error: 'Link de confirmação inválido.' }, 400);
     const stripe = billingStripe();

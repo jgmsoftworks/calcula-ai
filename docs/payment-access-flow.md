@@ -10,7 +10,7 @@ retorno só consulta o estado e não aceita uma senha nem autentica pelo ID da c
 | Situação | Conta e plano | E-mail |
 | --- | --- | --- |
 | Checkout concluído, pagamento pendente | Não cria conta nem libera plano | Aguardando aprovação |
-| Pagamento aprovado, cliente novo | Cria conta sem senha compartilhada e vincula o plano | Link individual para confirmar o e-mail e definir senha |
+| Pagamento aprovado, cliente novo | Cria conta com senha inicial aleatória e individual; vincula o plano | E-mail usado na compra, senha inicial, botão de login e recomendação de troca no perfil |
 | Pagamento aprovado, conta existente | Mantém a conta e a senha; atualiza o plano | Login em calculaaibr.com |
 | Teste contratado ativo | Libera somente o período contratado | Explica que o teste começou, sem afirmar que houve cobrança |
 | Pagamento assíncrono recusado | Não libera novo acesso | Orientação para conferir o pagamento |
@@ -24,7 +24,8 @@ retorno só consulta o estado e não aceita uma senha nem autentica pelo ID da c
 - Configurar a chave da API Stripe e a chave de assinatura do endpoint webhook.
   Não substituir a validação da assinatura por confiança no corpo recebido.
 - Configurar separadamente o SMTP do Supabase Auth e testar “Esqueci minha senha”.
-  A geração do link inicial é feita pelo Auth; o transporte transacional o envia.
+  O transporte transacional envia a senha inicial somente para contas novas.
+  Contas existentes e ainda não confirmadas recebem um link individual do Auth.
 - Aplicar a migração `payment_access_flow`.
 - Publicar as novas telas antes de ativar o envio de links com `token_hash`.
 - Implantar `stripe-webhook`, `process-stripe-payment`, `check-subscription`,
@@ -43,14 +44,16 @@ o webhook exige assinatura Stripe; o status não concede acesso nem envia e-mail
 
 `npx vitest run --config vitest.billing.config.ts`
 
-Os 14 testes usam clientes em memória e impedem conexões reais. Cobrem aprovação,
+Os 21 testes usam clientes em memória e impedem conexões reais. Cobrem aprovação,
 pendência, teste, conta existente, repetição, ordem atrasada, bloqueio concorrente,
 falha de cadastro, transporte e configuração ausente, aceite/rejeição SMTP,
-fechamento da conexão e proteção dos detalhes de erro. Os testes de integração devem verificar RLS e as funções de bloqueio
+fechamento da conexão, proteção dos detalhes de erro, preservação da senha em
+retentativas e corrida com cadastro existente. Os testes de integração devem verificar RLS e as funções de bloqueio
 sem deixar registros de teste no ambiente de produção.
 
 Validar em sandbox uma compra nova, uma conta existente e pagamento assíncrono,
-incluindo recebimento do e-mail, definição da senha e acesso ao plano. Não usar
+incluindo recebimento do e-mail, login com a senha inicial, troca em
+Perfil do negócio → Segurança da conta → Alterar senha e acesso ao plano. Não usar
 cartão real para testes. Usar um destinatário de teste autorizado e confirmar
 a publicação das telas antes de verificar a entrega e a ativação.
 
@@ -73,7 +76,26 @@ recibo se perder, uma retentativa pode duplicar o e-mail. Não prometer envio ex
 uma vez. A janela de idempotência do transporte alternativo Resend também é limitada:
 após falhas prolongadas, conferir os recibos antes de reenvio.
 
-O token de ativação é de uso único e tem a validade configurada no Supabase Auth.
+## Senha inicial e contas existentes
+
+A senha inicial é gerada com `crypto.getRandomValues` para cada conta nova e enviada
+somente ao e-mail da compra. Não existe uma senha pública compartilhada. O Auth cria
+a conta com e-mail confirmado para permitir esse primeiro login. Quem já tem conta
+mantém sua senha; o webhook nunca chama uma atualização de senha em conta existente.
+
+Uma entrada privada `signup:<session_id>` em `billing_emails` guarda temporariamente
+a senha e o identificador de criação antes da chamada ao Auth. O identificador é
+vinculado em `app_metadata`, de modo que uma corrida de cadastro não envie uma senha
+que pertence a outra tentativa. Retentativas reutilizam o mesmo estado. Após o aceite
+do e-mail de acesso, o payload temporário é removido, assim como o payload da mensagem.
+Esses valores nunca aparecem no endpoint público de confirmação ou nos logs.
+
+A recomendação de troca aparece no e-mail. O perfil contém a seção Segurança da conta,
+com o botão Alterar senha; após salvar, o usuário volta ao perfil. A troca é recomendada,
+sem expiração automática da senha inicial ou bloqueio adicional de navegação.
+
+Para contas existentes e ainda não confirmadas, o token de ativação é de uso único e
+tem a validade configurada no Supabase Auth.
 O cliente o consome ao enviar o formulário de senha. Links expirados podem ser
 substituídos por recuperação de senha. Não registrar tokens ou payloads de e-mail
 em logs, nem expor essas tabelas a usuários do app.

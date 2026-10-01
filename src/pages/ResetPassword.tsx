@@ -81,7 +81,7 @@ const ResetPassword = () => {
       });
 
       window.history.replaceState({}, '', '/reset-password');
-      navigate(isSetup ? '/?welcome=true' : '/auth', { replace: true });
+      navigate(isSetup ? '/?welcome=true' : searchParams.get('from') === 'profile' ? '/perfil' : '/auth', { replace: true });
     } catch (error: unknown) {
       toast({
         title: "Erro ao redefinir senha",
