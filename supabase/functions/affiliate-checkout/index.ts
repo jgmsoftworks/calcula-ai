@@ -97,7 +97,8 @@ serve(async (req) => {
           (p: any) => p.plan_type === planType && p.billing === billing && p.is_active
         );
 
-        if (specificProduct) {
+        // Annual offers always follow public.planos, including older affiliate links.
+        if (specificProduct && billing !== 'yearly') {
           priceId = specificProduct.stripe_price_id;
           logStep('Using affiliate specific price', { priceId });
         }
