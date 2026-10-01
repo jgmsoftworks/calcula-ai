@@ -3,6 +3,8 @@ vi.stubGlobal('Deno', { env: { get: (name: string) => process.env[name], set: (n
 import { checkoutState, subscriptionEnd, invoiceSubscription, maskedEmail } from './billingRules.ts';
 import { paymentEmail, sendPaymentEmail } from './billingEmails.ts';
 import { fulfillCheckout, withBillingLock } from './billing.ts';
+import nodemailer from 'npm:nodemailer@10.0.13';
+import { smtpMessageId } from './billingSmtp.ts';
 
 function assert(condition: unknown, message = 'assertion failed'): asserts condition { if (!condition) throw new Error(message); }
 async function rejects(action: () => Promise<unknown>, expected: string) {
@@ -129,10 +131,45 @@ it('message escaping, canonical login and masked status response', () => {
   assert(!mail.html.includes('<script>') && mail.html.includes('&lt;script&gt;'));
   assert(mail.html.includes('https://calculaaibr.com/auth?mode=login'));
   assert(maskedEmail('buyer@example.invalid') === 'bu***@example.invalid');
-  assert(!paymentEmail('pending', 'buyer@example.invalid', 'Lite').html.includes('Entrar no Calcula Aí'));
+  assert(!paymentEmail('pending', 'buyer@example.invalid', 'Lite').html.includes('Entrar na Calcula Aí'));
 });
 it('unconfigured mail cannot return false success', async () => {
+  Deno.env.delete('GMAIL_SMTP_PASSWORD');
   Deno.env.delete('RESEND_API_KEY'); Deno.env.delete('PAYMENTS_EMAIL_FROM');
   const f = fixture();
   await rejects(() => sendPaymentEmail(f.db, 'missing_config', async () => ({ to: 'buyer@example.invalid', ...paymentEmail('pending','buyer@example.invalid','Lite') })), 'payment_email_not_configured');
+});
+
+it('Gmail accepts the real SMTP receipt once and closes the transport', async () => {
+  const sendMail = vi.fn().mockResolvedValue({ messageId: 'smtp_fixture', accepted: ['buyer@example.invalid'], rejected: [] });
+  const close = vi.fn();
+  const create = vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail, close } as any);
+  Deno.env.set('GMAIL_SMTP_PASSWORD', 'fake-smtp-test-password');
+  const f = fixture();
+  try {
+    await run(f); await run(f);
+    assert(sendMail.mock.calls.length === 1 && close.mock.calls.length === 1);
+    assert(f.rows.billing_emails[0].provider_id === 'smtp_fixture' && f.rows.billing_emails[0].payload === null);
+    assert((create.mock.calls[0][0] as any).port === 465 && (create.mock.calls[0][0] as any).secure === true);
+    assert(sendMail.mock.calls[0][0].from === 'Calcula Aí <jgmsoftworks@gmail.com>');
+    assert(await smtpMessageId('same-key') === await smtpMessageId('same-key'));
+    assert(await smtpMessageId('same-key') !== await smtpMessageId('another-key'));
+  } finally { create.mockRestore(); Deno.env.delete('GMAIL_SMTP_PASSWORD'); }
+});
+
+it('Gmail failures and rejected recipients remain unsent without leaking provider details', async () => {
+  for (const reject of [false, true]) {
+    const sendMail = reject
+      ? vi.fn().mockResolvedValue({ messageId: 'smtp_fixture', accepted: [], rejected: ['buyer@example.invalid'] })
+      : vi.fn().mockRejectedValue(new Error('private SMTP server detail'));
+    const close = vi.fn();
+    const create = vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail, close } as any);
+    Deno.env.set('GMAIL_SMTP_PASSWORD', 'fake-smtp-test-password');
+    const f = fixture();
+    try {
+      await rejects(() => run(f), 'payment_email_smtp_failed');
+      assert(!f.rows.billing_emails[0].sent_at && !!f.rows.billing_emails[0].payload);
+      assert(close.mock.calls.length === 1 && f.rpcCalls.at(-1).completed === false);
+    } finally { create.mockRestore(); Deno.env.delete('GMAIL_SMTP_PASSWORD'); }
+  }
 });
