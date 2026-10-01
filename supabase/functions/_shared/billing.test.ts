@@ -5,6 +5,7 @@ import { paymentEmail, sendPaymentEmail } from './billingEmails.ts';
 import { fulfillCheckout, withBillingLock, initialBillingPassword } from './billing.ts';
 import nodemailer from 'npm:nodemailer@10.0.13';
 import { GMAIL_SENDER, smtpMessageId } from './billingSmtp.ts';
+import { billingWebhookSecret } from './billingWebhook.ts';
 
 function assert(condition: unknown, message = 'assertion failed'): asserts condition { if (!condition) throw new Error(message); }
 async function rejects(action: () => Promise<unknown>, expected: string) {
@@ -78,6 +79,18 @@ async function withTransport(f: ReturnType<typeof fixture>, action: () => Promis
   try { await action(); } finally { globalThis.fetch = originalFetch; Deno.env.delete('RESEND_API_KEY'); Deno.env.delete('PAYMENTS_EMAIL_FROM'); }
 }
 const run = (f: ReturnType<typeof fixture>) => fulfillCheckout(f.db, f.stripe, session.id, false, () => Promise.resolve('professional'));
+
+it('webhook signing configuration reads the environment or server-only Vault RPC', async () => {
+  Deno.env.set('STRIPE_WEBHOOK_SECRET', 'whsec_fixture_env');
+  try { assert(await billingWebhookSecret({ rpc: () => { throw new Error('unnecessary lookup'); } }) === 'whsec_fixture_env'); }
+  finally { Deno.env.delete('STRIPE_WEBHOOK_SECRET'); }
+  assert(await billingWebhookSecret({ rpc: (name: string) => { assert(name === 'billing_webhook_signing_secret'); return { data: 'whsec_fixture_vault', error: null }; } }) === 'whsec_fixture_vault');
+});
+it('missing or inaccessible Vault signing configuration fails closed', async () => {
+  for (const result of [{ data: null }, { data: 'invalid' }, { data: null, error: { message: 'private backend detail' } }]) {
+    await rejects(() => billingWebhookSecret({ rpc: () => result }), 'webhook_signing_configuration_unavailable');
+  }
+});
 
 it('paid, complete, active is approved; unpaid/open never grants access', () => {
   assert(checkoutState(session, subscription) === 'approved');

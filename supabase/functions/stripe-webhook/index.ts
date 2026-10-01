@@ -1,4 +1,5 @@
 import { Stripe, billingDb, billingStripe, withBillingLock, fulfillCheckout, syncBillingSubscription, invoiceSubscription, notifyInvoice } from '../_shared/billing.ts';
+import { billingWebhookSecret } from '../_shared/billingWebhook.ts';
 const logStep = (step: string, _details?: unknown) => console.log(`[STRIPE-WEBHOOK] ${step}`);
 const logError = (_error: unknown, context: string, _details?: unknown) => console.error(`[STRIPE-WEBHOOK] ${context}`);
 
@@ -246,11 +247,14 @@ Deno.serve(async req => {
   const signature = req.headers.get('stripe-signature');
   if (!signature) return new Response('Missing signature', { status: 400 });
   const stripe = billingStripe();
+  const db = billingDb();
+  let signingSecret: string;
+  try { signingSecret = await billingWebhookSecret(db); }
+  catch { return new Response('Webhook temporarily unavailable', { status: 503 }); }
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(await req.text(), signature, Deno.env.get('STRIPE_WEBHOOK_SECRET')!, undefined, Stripe.createSubtleCryptoProvider());
+    event = await stripe.webhooks.constructEventAsync(await req.text(), signature, signingSecret, undefined, Stripe.createSubtleCryptoProvider());
   } catch { return new Response('Invalid signature', { status: 400 }); }
-  const db = billingDb();
   try {
     await withBillingLock(db, `event:${event.id}`, async () => {
       const object = event.data.object as any;

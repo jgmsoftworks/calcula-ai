@@ -22,11 +22,15 @@ retorno só consulta o estado e não aceita uma senha nem autentica pelo ID da c
   As credenciais devem permanecer nos secrets do servidor e nunca no repositório.
   Não ocorre troca automática de provedor depois de uma falha de envio.
 - Configurar a chave da API Stripe e a chave de assinatura do endpoint webhook.
+  A assinatura pode usar o secret de Edge `STRIPE_WEBHOOK_SECRET` ou o secret
+  criptografado `billing_stripe_webhook_secret` no Supabase Vault. A função
+  `billing_webhook_signing_secret` é SECURITY INVOKER e restrita a service_role;
+  anon e authenticated não podem executá-la. Nenhum valor vai para o repositório.
   Não substituir a validação da assinatura por confiança no corpo recebido.
 - Configurar separadamente o SMTP do Supabase Auth e testar “Esqueci minha senha”.
   O transporte transacional envia a senha inicial somente para contas novas.
   Contas existentes e ainda não confirmadas recebem um link individual do Auth.
-- Aplicar a migração `payment_access_flow`.
+- Aplicar as migrações `payment_access_flow` e `billing_webhook_vault`.
 - Publicar as novas telas antes de ativar o envio de links com `token_hash`.
 - Implantar `stripe-webhook`, `process-stripe-payment`, `check-subscription`,
   `create-checkout` e `affiliate-checkout` com seus arquivos compartilhados.
@@ -44,11 +48,12 @@ o webhook exige assinatura Stripe; o status não concede acesso nem envia e-mail
 
 `npx vitest run --config vitest.billing.config.ts`
 
-Os 21 testes usam clientes em memória e impedem conexões reais. Cobrem aprovação,
+Os 23 testes usam clientes em memória e impedem conexões reais. Cobrem aprovação,
 pendência, teste, conta existente, repetição, ordem atrasada, bloqueio concorrente,
 falha de cadastro, transporte e configuração ausente, aceite/rejeição SMTP,
 fechamento da conexão, proteção dos detalhes de erro, preservação da senha em
-retentativas e corrida com cadastro existente. Os testes de integração devem verificar RLS e as funções de bloqueio
+retentativas, corrida com cadastro existente e leitura protegida da configuração
+de assinatura (falha fechada quando indisponível). Os testes de integração devem verificar RLS e as funções de bloqueio
 sem deixar registros de teste no ambiente de produção.
 
 Validar em sandbox uma compra nova, uma conta existente e pagamento assíncrono,
