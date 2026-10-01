@@ -34,7 +34,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   lite: {
     name: 'Lite',
     price: 9.9,
-    yearlyPrice: 0,
+    yearlyPrice: 95.9,
     limits: {
       produtos: 30,
       receitas: 5,
@@ -53,8 +53,8 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
 
   professional: {
     name: 'Profissional',
-    price: 49.9,
-    yearlyPrice: 478.8,
+    price: 29.9,
+    yearlyPrice: 289.9,
     limits: {
       produtos: -1,
       receitas: 60,
@@ -73,8 +73,8 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   },
   enterprise: {
     name: 'Empresarial',
-    price: 89.9,
-    yearlyPrice: 838.8,
+    price: 49.9,
+    yearlyPrice: 485.9,
     limits: {
       produtos: -1,
       receitas: -1,
