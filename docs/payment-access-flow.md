@@ -18,28 +18,20 @@ retorno só consulta o estado e não aceita uma senha nem autentica pelo ID da c
 
 ## Configuração antes de ativar
 
-- O Gmail existente foi confirmado em 01/10/2026: `jgmsoftworks@gmail.com`,
-  nome `Calcula Aí`, secret `GMAIL_SMTP_PASSWORD` já presente nas Edge Functions.
-  O transporte usa SMTP com TLS na porta 465 (as Edge Functions bloqueiam a 587).
-  A senha fica somente no servidor. Nenhum valor precisa ser copiado para o código.
-  A autenticação SMTP foi verificada no runtime de produção, sem envio de mensagem.
-  A função temporária `billing-mail-preflight` foi desativada após o teste
-  (versão 2, sempre HTTP 410, JWT obrigatório).
-- Sem a credencial Gmail, o transporte alternativo Resend exige `RESEND_API_KEY`
-  e `PAYMENTS_EMAIL_FROM`, com domínio verificado. Não ocorre troca automática de
-  provedor após falha de envio. Não usar `onboarding@resend.dev` para clientes reais.
-- Manter `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` da conta Calcula Aí.
-- Supabase Auth já mostra SMTP Gmail ativo na porta 587, com senha salva. Essa
-  configuração é independente das Edge Functions. Testar “Esqueci minha senha”
-  antes de ativar o fluxo. A geração do link inicial é feita pelo Auth; seu envio
-  é feito pelo transporte transacional acima.
-- Aplicar a migração `payment_access_flow` (já aplicada em produção em 30/09/2026).
+- Configurar o transporte transacional com Gmail SMTP (TLS, porta 465) ou Resend.
+  As credenciais devem permanecer nos secrets do servidor e nunca no repositório.
+  Não ocorre troca automática de provedor depois de uma falha de envio.
+- Configurar a chave da API Stripe e a chave de assinatura do endpoint webhook.
+  Não substituir a validação da assinatura por confiança no corpo recebido.
+- Configurar separadamente o SMTP do Supabase Auth e testar “Esqueci minha senha”.
+  A geração do link inicial é feita pelo Auth; o transporte transacional o envia.
+- Aplicar a migração `payment_access_flow`.
 - Publicar as novas telas antes de ativar o envio de links com `token_hash`.
 - Implantar `stripe-webhook`, `process-stripe-payment`, `check-subscription`,
   `create-checkout` e `affiliate-checkout` com seus arquivos compartilhados.
-- No endpoint já existente, preservar os eventos atuais e acrescentar
+- No endpoint existente, preservar os eventos atuais e acrescentar
   `checkout.session.async_payment_succeeded` e `checkout.session.async_payment_failed`.
-  Os seis retornos dos Payment Links já foram corrigidos em produção.
+- Configurar o retorno dos Payment Links para a página de confirmação com `session_id`.
 
 As funções públicas de webhook e status permanecem com `verify_jwt=false`:
 o webhook exige assinatura Stripe; o status não concede acesso nem envia e-mails.
@@ -54,13 +46,13 @@ o webhook exige assinatura Stripe; o status não concede acesso nem envia e-mail
 Os 14 testes usam clientes em memória e impedem conexões reais. Cobrem aprovação,
 pendência, teste, conta existente, repetição, ordem atrasada, bloqueio concorrente,
 falha de cadastro, transporte e configuração ausente, aceite/rejeição SMTP,
-fechamento da conexão e proteção dos detalhes de erro. RLS e as funções de bloqueio
-foram verificadas no banco, com a transação de teste revertida.
+fechamento da conexão e proteção dos detalhes de erro. Os testes de integração devem verificar RLS e as funções de bloqueio
+sem deixar registros de teste no ambiente de produção.
 
 Validar em sandbox uma compra nova, uma conta existente e pagamento assíncrono,
 incluindo recebimento do e-mail, definição da senha e acesso ao plano. Não usar
-cartão real para testes. O teste de entrega/ativação ainda depende da configuração
-do remetente e da publicação das telas.
+cartão real para testes. Usar um destinatário de teste autorizado e confirmar
+a publicação das telas antes de verificar a entrega e a ativação.
 
 ## Retentativas e acompanhamento
 
@@ -68,8 +60,8 @@ do remetente e da publicação das telas.
 e repetição de eventos concluídos. `billing_emails` guarda o payload enquanto
 aguarda envio e o remove após aceite do provedor. Todas são privadas ao servidor.
 O recibo do provedor indica aceite para envio, não garante chegada à caixa de entrada.
-O teste SMTP sem mensagem passou em 01/10/2026; entrega e ativação ainda não foram
-validadas em caixa de entrada real.
+Uma verificação de autenticação SMTP sem envio não valida a entrega nem a ativação
+em uma caixa de entrada real.
 
 Erros de processamento ou transporte retornam HTTP 500 à Stripe para permitir
 retentativa. Após corrigir um problema persistente, reenviar o evento pelo painel

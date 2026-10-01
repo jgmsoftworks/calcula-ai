@@ -4,7 +4,7 @@ import { checkoutState, subscriptionEnd, invoiceSubscription, maskedEmail } from
 import { paymentEmail, sendPaymentEmail } from './billingEmails.ts';
 import { fulfillCheckout, withBillingLock } from './billing.ts';
 import nodemailer from 'npm:nodemailer@10.0.13';
-import { smtpMessageId } from './billingSmtp.ts';
+import { GMAIL_SENDER, smtpMessageId } from './billingSmtp.ts';
 
 function assert(condition: unknown, message = 'assertion failed'): asserts condition { if (!condition) throw new Error(message); }
 async function rejects(action: () => Promise<unknown>, expected: string) {
@@ -96,6 +96,7 @@ it('new paid buyer gets one account, correct plan and one activation email on re
   assert(f.rows.billing_checkouts[0].email === 'buyer@example.invalid');
   assert(f.sent === 1 && f.rows.billing_emails[0].payload === null);
   assert(f.rows.billing_checkouts[0].needs_password_setup === true);
+  assert(f.generated === 1, 'reuse the original invite instead of generating and invalidating it twice');
 });
 it('existing buyer keeps account and password; no activation token is generated', async () => {
   const f = fixture({ existingUser: true });
@@ -151,7 +152,7 @@ it('Gmail accepts the real SMTP receipt once and closes the transport', async ()
     assert(sendMail.mock.calls.length === 1 && close.mock.calls.length === 1);
     assert(f.rows.billing_emails[0].provider_id === 'smtp_fixture' && f.rows.billing_emails[0].payload === null);
     assert((create.mock.calls[0][0] as any).port === 465 && (create.mock.calls[0][0] as any).secure === true);
-    assert(sendMail.mock.calls[0][0].from === 'Calcula Aí <jgmsoftworks@gmail.com>');
+    assert(sendMail.mock.calls[0][0].from === GMAIL_SENDER);
     assert(await smtpMessageId('same-key') === await smtpMessageId('same-key'));
     assert(await smtpMessageId('same-key') !== await smtpMessageId('another-key'));
   } finally { create.mockRestore(); Deno.env.delete('GMAIL_SMTP_PASSWORD'); }

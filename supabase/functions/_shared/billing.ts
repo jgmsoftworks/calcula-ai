@@ -36,13 +36,17 @@ export async function planForSubscription(subscription: any) {
   if (!plan || !['lite','professional','enterprise'].includes(plan)) throw new Error('unknown_subscription_plan');
   return plan;
 }
-async function setupLink(db: any, email: string, isNew: boolean) {
-  const { data, error } = await db.auth.admin.generateLink({ type: isNew ? 'invite' : 'recovery', email, options: { redirectTo: `${APP_URL}/reset-password` } });
-  if (error || !data.properties?.hashed_token) throw new Error('account_activation_link_failed');
-  const type = data.properties.verification_type;
+function activationLink(properties: any) {
+  if (!properties?.hashed_token) throw new Error('account_activation_link_failed');
+  const type = properties.verification_type;
   if (!['invite', 'recovery'].includes(type)) throw new Error('unexpected_activation_type');
   // Fragment avoids sending the activation secret to web servers/analytics.
-  return `${APP_URL}/reset-password#token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=${type}&setup=1`;
+  return `${APP_URL}/reset-password#token_hash=${encodeURIComponent(properties.hashed_token)}&type=${type}&setup=1`;
+}
+async function setupLink(db: any, email: string, isNew: boolean) {
+  const { data, error } = await db.auth.admin.generateLink({ type: isNew ? 'invite' : 'recovery', email, options: { redirectTo: `${APP_URL}/reset-password` } });
+  if (error) throw new Error('account_activation_link_failed');
+  return activationLink(data.properties);
 }
 export async function fulfillCheckout(db: any, stripe: any, sessionId: string, failedEvent = false, resolvePlan = planForSubscription) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -67,16 +71,20 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
     if (previous && ['approved','trial'].includes(previous.status) && ['pending','failed'].includes(state)) return;
     let user: any = null;
     let needsSetup = false;
+    let createdLink: string | undefined;
     if (state === 'approved' || state === 'trial') {
       if (Date.parse(subscriptionEnd(subscription)) <= Date.now()) throw new Error('subscription_expired');
       user = await findBillingUser(db, email);
       if (!user) {
         // Supabase creates an unconfirmed user; only the email owner can activate it.
-        const { data, error } = await db.auth.admin.generateLink({ type: 'invite', email, options: { data: { full_name: customer.name ?? '', created_from_stripe: true } } });
+        const { data, error } = await db.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo: `${APP_URL}/reset-password`, data: { full_name: customer.name ?? '', created_from_stripe: true } } });
         if (error) {
           user = await findBillingUser(db, email); // concurrent checkout for same email
           if (!user) throw new Error('billing_account_creation_failed');
-        } else user = data.user;
+        } else {
+          user = data.user;
+          createdLink = activationLink(data.properties);
+        }
       }
       needsSetup = !user.email_confirmed_at && !user.last_sign_in_at;
       const { data: profile, error: profileReadError } = await db.from('profiles').select('user_id').eq('user_id', user.id).maybeSingle();
@@ -95,7 +103,7 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
     if (error) throw new Error('checkout_state_write_failed');
     await sendPaymentEmail(db, `checkout:${sessionId}:${state}`, async () => ({
       to: email,
-      ...paymentEmail(state, email, plan === 'professional' ? 'Profissional' : plan === 'enterprise' ? 'Empresarial' : 'Lite', needsSetup ? await setupLink(db, email, !user.email_confirmed_at) : undefined),
+      ...paymentEmail(state, email, plan === 'professional' ? 'Profissional' : plan === 'enterprise' ? 'Empresarial' : 'Lite', needsSetup ? createdLink ?? await setupLink(db, email, !user.email_confirmed_at) : undefined),
     }));
   });
 }
