@@ -1,555 +1,18 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { Stripe, billingDb, billingStripe, withBillingLock, fulfillCheckout, syncBillingSubscription, invoiceSubscription, notifyInvoice } from '../_shared/billing.ts';
+import { billingWebhookSecret } from '../_shared/billingWebhook.ts';
+const logStep = (step: string, _details?: unknown) => console.log(`[STRIPE-WEBHOOK] ${step}`);
+const logError = (_error: unknown, context: string, _details?: unknown) => console.error(`[STRIPE-WEBHOOK] ${context}`);
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Mapeamento de produtos para planos
-const PRODUCT_TO_PLAN = {
-  "prod_T6TXCmpEQTIaRT": "professional", // Professional mensal (antigo)
-  "prod_T6TeSPeBygwJz7": "professional", // Professional anual (antigo)
-  "prod_T6TiY7VskZgNKg": "professional", // Professional anual (novo preço)
-  "prod_T6TYlKJ4hdq6m1": "enterprise",   // Enterprise mensal (antigo) 
-  "prod_T6TdpmHjPubwhM": "enterprise",   // Enterprise mensal (novo preço)
-  "prod_T6Te4Zsr3iA7x5": "enterprise",   // Enterprise anual (antigo)
-  "prod_T6TiS2ZoP1MhUL": "enterprise"    // Enterprise anual (novo preço)
-};
-
-const logError = (error: unknown, context: string, details?: any) => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const stack = error instanceof Error ? error.stack : undefined;
-  console.error(`[STRIPE-WEBHOOK ERROR] ${context}`, {
-    message: errorMessage,
-    stack,
-    details,
-    timestamp: new Date().toISOString()
-  });
-  return errorMessage;
-};
-
-const logStep = (step: string, details?: any) => {
-  console.log(`[STRIPE-WEBHOOK] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
-};
-
-const GRACE_PERIOD_DAYS = 7;
-
-const findUserByEmail = async (supabaseClient: any, email: string) => {
-  const { data: users } = await supabaseClient.auth.admin.listUsers();
-  return users?.users?.find((u: any) => u.email === email) || null;
-};
-
-const upsertSubscriptionIssue = async (
-  supabaseClient: any,
-  payload: {
-    user_id?: string | null;
-    email: string;
-    stripe_customer_id?: string | null;
-    stripe_subscription_id?: string | null;
-    stripe_invoice_id?: string | null;
-    issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due';
-    amount_due?: number;
-    currency?: string;
-    attempt_count?: number;
-    next_retry_at?: string | null;
-    grace_period_ends_at?: string | null;
-    failure_reason?: string | null;
-    failure_code?: string | null;
-  }
-) => {
-  try {
-    // Try to find an open issue for this subscription/email to update instead of duplicating
-    const { data: existing } = await supabaseClient
-      .from('subscription_issues')
-      .select('id')
-      .eq('email', payload.email)
-      .in('status', ['pending', 'contacted'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existing?.id) {
-      await supabaseClient
-        .from('subscription_issues')
-        .update({ ...payload, updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
-      return existing.id;
-    }
-
-    const { data: inserted, error } = await supabaseClient
-      .from('subscription_issues')
-      .insert({ ...payload, status: 'pending' })
-      .select('id')
-      .single();
-    if (error) {
-      console.error('[STRIPE-WEBHOOK] Failed to insert subscription_issue', error);
-    }
-    return inserted?.id || null;
-  } catch (err) {
-    console.error('[STRIPE-WEBHOOK] upsertSubscriptionIssue error', err);
-    return null;
-  }
-};
-
-const resolveOpenSubscriptionIssues = async (supabaseClient: any, email: string) => {
-  try {
-    await supabaseClient
-      .from('subscription_issues')
-      .update({
-        status: 'resolved',
-        resolved_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('email', email)
-      .in('status', ['pending', 'contacted']);
-  } catch (err) {
-    console.error('[STRIPE-WEBHOOK] resolveOpenSubscriptionIssues error', err);
-  }
-};
-
-const updateProfileSubscriptionStatus = async (
-  supabaseClient: any,
-  user_id: string,
-  status: 'active' | 'past_due' | 'canceled',
-  access_blocked_at: string | null
-) => {
-  try {
-    await supabaseClient
-      .from('profiles')
-      .update({
-        subscription_status: status,
-        access_blocked_at,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user_id);
-  } catch (err) {
-    console.error('[STRIPE-WEBHOOK] updateProfileSubscriptionStatus error', err);
-  }
-};
-
-const notifyUserOfIssue = async (
-  supabaseClient: any,
-  user_id: string,
-  issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due'
-) => {
-  const messages: Record<string, { title: string; message: string }> = {
-    payment_failed: {
-      title: 'Falha no pagamento da assinatura',
-      message: 'Tivemos um problema ao processar o pagamento da sua assinatura. Por favor, regularize para manter o acesso. Seus dados estão seguros e salvos.',
-    },
-    past_due: {
-      title: 'Pagamento em atraso',
-      message: 'Sua assinatura está com pagamento em atraso. Regularize para evitar o bloqueio do acesso. Nada será perdido — seus dados ficam salvos.',
-    },
-    subscription_canceled: {
-      title: 'Assinatura cancelada — acesso bloqueado',
-      message: 'Sua assinatura foi cancelada e o acesso foi bloqueado. Todos os seus dados permanecem salvos. Para voltar a usar, reative o plano.',
-    },
-  };
-  const m = messages[issue_type];
-  try {
-    await supabaseClient.from('notifications').insert({
-      user_id,
-      title: m.title,
-      message: m.message,
-      type: 'warning',
-    });
-  } catch (err) {
-    console.error('[STRIPE-WEBHOOK] notifyUserOfIssue error', err);
-  }
-};
-
-const createUserFromCustomer = async (supabaseClient: any, customer: any, planType: string) => {
-  logStep("Creating new user from Stripe customer", { 
-    customerEmail: customer.email, 
-    customerId: customer.id,
-    planType 
-  });
-
-  try {
-    // Criar usuário com dados completos do Stripe
-    const userData = {
-      email: customer.email,
-      email_confirm: true,
-      user_metadata: {
-        email: customer.email,
-        email_verified: true,
-        full_name: customer.name || customer.email.split('@')[0],
-        business_name: customer.name || customer.email.split('@')[0],
-        stripe_customer_id: customer.id,
-        plan: planType,
-        created_from_stripe: true,
-        created_at: new Date().toISOString()
-      }
-    };
-
-    logStep("Creating user with Supabase Auth", userData);
-
-    const { data: newUserData, error: createUserError } = await supabaseClient.auth.admin.createUser(userData);
-
-    if (createUserError || !newUserData.user) {
-      throw new Error(`Failed to create user: ${createUserError?.message || 'Unknown error'}`);
-    }
-
-    logStep("User created successfully in Auth", { 
-      userId: newUserData.user.id, 
-      email: newUserData.user.email 
-    });
-
-    return newUserData.user;
-  } catch (error) {
-    logError(error, "Failed to create user from Stripe customer", { 
-      customerEmail: customer.email, 
-      customerId: customer.id 
-    });
-    throw error;
-  }
-};
-
-const updateUserProfile = async (supabaseClient: any, user: any, planType: string, subscriptionEnd: string | null, customer: any) => {
-  logStep("Updating user profile", { 
-    userId: user.id, 
-    planType, 
-    subscriptionEnd 
-  });
-
-  try {
-    // Preparar dados do perfil com informações do Stripe
-    const profileData: any = {
-      user_id: user.id,
-      plan: planType,
-      plan_expires_at: subscriptionEnd,
-      full_name: user.user_metadata?.full_name || customer.name || user.email?.split('@')[0] || '',
-      business_name: user.user_metadata?.business_name || customer.name || user.email?.split('@')[0] || '',
-      updated_at: new Date().toISOString()
-    };
-
-    // Adicionar dados adicionais do customer se disponíveis
-    if (customer.phone) {
-      profileData.phone = customer.phone;
-    }
-    if (customer.address?.line1) {
-      profileData.logradouro = customer.address.line1;
-      profileData.cidade = customer.address.city;
-      profileData.estado = customer.address.state;
-      profileData.cep = customer.address.postal_code;
-      profileData.pais = customer.address.country || 'Brasil';
-    }
-
-    logStep("Upserting profile data", profileData);
-
-    const { error: profileError } = await supabaseClient
-      .from('profiles')
-      .upsert(profileData, {
-        onConflict: 'user_id'
-      });
-
-    if (profileError) {
-      throw new Error(`Failed to update profile: ${profileError.message}`);
-    }
-
-    logStep("Profile updated successfully", { 
-      userId: user.id, 
-      planType 
-    });
-
-    // Verificar se o perfil foi realmente criado/atualizado
-    const { data: verifyProfile, error: verifyError } = await supabaseClient
-      .from('profiles')
-      .select('user_id, plan, plan_expires_at')
-      .eq('user_id', user.id)
-      .single();
-
-    if (verifyError || !verifyProfile) {
-      logError(verifyError, "Failed to verify profile creation", { userId: user.id });
-    } else {
-      logStep("Profile verification successful", verifyProfile);
-    }
-
-    return true;
-  } catch (error) {
-    logError(error, "Failed to update user profile", { 
-      userId: user.id, 
-      planType 
-    });
-    throw error;
-  }
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
-  try {
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
-
-    if (!signature) {
-      throw new Error("No Stripe signature found");
-    }
-
-    // Verificar webhook signature (em produção, usar endpoint secret)
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, Deno.env.get("STRIPE_WEBHOOK_SECRET") || "");
-    } catch (err) {
-      console.log(`Webhook signature verification failed.`, err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      return new Response(`Webhook Error: ${errorMessage}`, { status: 400 });
-    }
-
-    logStep(`Processing webhook event: ${event.type}`, { eventId: event.id });
-
-    // Verificar idempotência - evitar processar o mesmo evento duas vezes
-    const { data: existingEvent } = await supabaseClient
-      .from('stripe_events')
-      .select('id')
-      .eq('stripe_event_id', event.id)
-      .single();
-
-    if (existingEvent) {
-      logStep(`Event already processed, skipping`, { eventId: event.id });
-      return new Response(JSON.stringify({ received: true, skipped: true }), { 
-        headers: corsHeaders,
-        status: 200 
-      });
-    }
-
-    // Registrar evento para idempotência
-    await supabaseClient
-      .from('stripe_events')
-      .insert({
-        stripe_event_id: event.id,
-        event_type: event.type,
-        processed_at: new Date().toISOString()
-      });
-
-    switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        const subscription = event.data.object as Stripe.Subscription;
-        
-        logStep(`Processing subscription event: ${event.type}`, {
-          subscriptionId: subscription.id,
-          customerId: subscription.customer,
-          status: subscription.status,
-          currentPeriodEnd: subscription.current_period_end
-        });
-
-        try {
-          // Recuperar customer com dados expandidos
-          const customer = await stripe.customers.retrieve(subscription.customer as string, {
-            expand: ['subscriptions']
-          });
-          
-          if (!customer || customer.deleted) {
-            logStep('Customer not found or deleted', { customerId: subscription.customer });
-            break;
-          }
-          
-          const customerEmail = (customer as Stripe.Customer).email;
-          if (!customerEmail) {
-            logStep('Customer email not available', { customerId: subscription.customer });
-            break;
-          }
-
-          logStep("Retrieved customer data", {
-            customerEmail,
-            customerId: customer.id,
-            customerName: (customer as Stripe.Customer).name
-          });
-
-          // Determinar tipo de plano baseado no produto
-          const productId = subscription.items.data[0]?.price.product as string;
-          const planType = productId && (productId in PRODUCT_TO_PLAN) 
-            ? (PRODUCT_TO_PLAN as Record<string, string>)[productId]
-            : 'professional'; // fallback seguro
-
-          const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-
-          logStep("Determined subscription details", {
-            productId,
-            planType,
-            subscriptionEnd,
-            subscriptionStatus: subscription.status
-          });
-
-          // Buscar usuário existente no Supabase
-          const { data: users, error: usersError } = await supabaseClient.auth.admin.listUsers();
-          if (usersError) {
-            throw new Error(`Failed to list users: ${usersError.message}`);
-          }
-          
-          let user = users.users.find(u => u.email === customerEmail);
-
-          // Criar usuário automaticamente se não existir
-          if (!user) {
-            logStep("User not found, creating new user automatically", { customerEmail });
-            user = await createUserFromCustomer(supabaseClient, customer, planType);
-          } else {
-            logStep("Found existing user", { 
-              userId: user.id, 
-              email: user.email,
-              existingPlan: user.user_metadata?.plan 
-            });
-          }
-
-          // Atualizar perfil do usuário com dados mais completos
-          if (user) {
-            await updateUserProfile(supabaseClient, user, planType, subscriptionEnd, customer);
-
-            // Atualizar status da assinatura conforme estado real no Stripe
-            if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
-              const graceEnds = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
-              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'past_due', null);
-              await upsertSubscriptionIssue(supabaseClient, {
-                user_id: user.id,
-                email: customerEmail,
-                stripe_customer_id: customer.id,
-                stripe_subscription_id: subscription.id,
-                issue_type: 'past_due',
-                grace_period_ends_at: graceEnds,
-                failure_reason: `Assinatura em status: ${subscription.status}`,
-              });
-              await notifyUserOfIssue(supabaseClient, user.id, 'past_due');
-            } else if (subscription.status === 'active' || subscription.status === 'trialing') {
-              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'active', null);
-              await resolveOpenSubscriptionIssues(supabaseClient, customerEmail);
-            } else if (subscription.status === 'canceled') {
-              await updateProfileSubscriptionStatus(supabaseClient, user.id, 'canceled', new Date().toISOString());
-            }
-
-            logStep(`Successfully processed subscription ${event.type}`, {
-              userId: user.id,
-              email: user.email,
-              planType,
-              subscriptionEnd,
-              subscriptionStatus: subscription.status
-            });
-          } else {
-            logError(null, "User is undefined after creation/retrieval", {
-              customerEmail,
-              customerId: customer.id
-            });
-          }
-
-        } catch (subscriptionError) {
-          logError(subscriptionError, `Error processing subscription ${event.type}`, {
-            customerId: subscription.customer,
-            subscriptionId: subscription.id,
-            eventType: event.type
-          });
-          
-          // Não quebrar o webhook por um erro - continuar processamento
-          logStep("Continuing webhook processing despite subscription error");
-        }
-        break;
-
-      case 'customer.subscription.deleted':
-        const deletedSubscription = event.data.object as Stripe.Subscription;
-        
-        logStep("Processing subscription deletion", {
-          subscriptionId: deletedSubscription.id,
-          customerId: deletedSubscription.customer
-        });
-        
-        try {
-          // Buscar cliente
-          const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer as string);
-          if (!deletedCustomer || deletedCustomer.deleted) {
-            logStep('Deleted customer not found', { customerId: deletedSubscription.customer });
-            break;
-          }
-          
-          const deletedCustomerEmail = (deletedCustomer as Stripe.Customer).email;
-          if (!deletedCustomerEmail) {
-            logStep('Deleted customer email not available', { customerId: deletedSubscription.customer });
-            break;
-          }
-
-          logStep("Retrieved deleted customer data", {
-            customerEmail: deletedCustomerEmail,
-            customerId: deletedCustomer.id
-          });
-
-          // Buscar usuário no Supabase pelo email
-          const { data: deletedUsers, error: deletedUsersError } = await supabaseClient.auth.admin.listUsers();
-          if (deletedUsersError) {
-            throw new Error(`Failed to list users for deletion: ${deletedUsersError.message}`);
-          }
-          
-          const deletedUser = deletedUsers.users.find(u => u.email === deletedCustomerEmail);
-          
-          if (deletedUser) {
-            logStep("Downgrading user to free plan", { 
-              userId: deletedUser.id, 
-              email: deletedUser.email 
-            });
-
-            // Downgrade para plano free com dados de expiração
-            const downgradData = {
-              user_id: deletedUser.id,
-              plan: 'free',
-              plan_expires_at: null,
-              updated_at: new Date().toISOString()
-            };
-
-            const { error: downgradeError } = await supabaseClient
-              .from('profiles')
-              .upsert(downgradData, { onConflict: 'user_id' });
-            
-            if (downgradeError) {
-              throw new Error(`Failed to downgrade user: ${downgradeError.message}`);
-            }
-
-            // Verificar downgrade
-            const { data: verifyDowngrade } = await supabaseClient
-              .from('profiles')
-              .select('user_id, plan')
-              .eq('user_id', deletedUser.id)
-              .single();
-
-            logStep("Successfully downgraded user to free plan", { 
-              userId: deletedUser.id,
-              newPlan: verifyDowngrade?.plan || 'unknown'
-            });
-
-            // Registrar issue de cancelamento e bloquear acesso imediatamente
-            await updateProfileSubscriptionStatus(supabaseClient, deletedUser.id, 'canceled', new Date().toISOString());
-            await upsertSubscriptionIssue(supabaseClient, {
-              user_id: deletedUser.id,
-              email: deletedCustomerEmail,
-              stripe_customer_id: deletedCustomer.id,
-              stripe_subscription_id: deletedSubscription.id,
-              issue_type: 'subscription_canceled',
-              failure_reason: 'Assinatura cancelada no Stripe',
-            });
-            await notifyUserOfIssue(supabaseClient, deletedUser.id, 'subscription_canceled');
-          } else {
-            logStep('User not found for downgrade', { customerEmail: deletedCustomerEmail });
-          }
-        } catch (deleteError) {
-          logError(deleteError, 'Error processing subscription deletion', { 
-            customerId: deletedSubscription.customer,
-            subscriptionId: deletedSubscription.id
-          });
-        }
-        break;
-
+// Existing affiliate accounting is preserved separately from account fulfillment.
+async function recordAffiliateEvent(event: any, stripe: any, supabaseClient: any) {
+  switch (event.type) {
       case 'checkout.session.completed':
-        const session = event.data.object as Stripe.Checkout.Session;
+      case 'checkout.session.async_payment_succeeded':
+        const session = await stripe.checkout.sessions.retrieve((event.data.object as any).id);
+        if (session.payment_status !== 'paid') break;
+        const { data: recordedSale, error: saleLookupError } = await supabaseClient.from('affiliate_sales').select('id').eq('stripe_session_id', session.id).limit(1).maybeSingle();
+        if (saleLookupError) throw new Error('affiliate_lookup_failed');
+        if (recordedSale) break;
         
         logStep("Processing checkout session completed", {
           sessionId: session.id,
@@ -675,32 +138,17 @@ serve(async (req) => {
         break;
 
       case 'invoice.payment_succeeded':
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice = event.data.object as any;
         
         logStep("Processing successful payment (recurrence)", {
           invoiceId: invoice.id,
           customerId: invoice.customer,
           amountPaid: invoice.amount_paid,
-          subscriptionId: invoice.subscription
+          subscriptionId: invoiceSubscription(invoice)
         });
 
-        // Marcar issues abertas como resolvidas e restaurar acesso
-        try {
-          const paidCustomer = await stripe.customers.retrieve(invoice.customer as string);
-          const paidEmail = (paidCustomer as Stripe.Customer).email;
-          if (paidEmail) {
-            await resolveOpenSubscriptionIssues(supabaseClient, paidEmail);
-            const paidUser = await findUserByEmail(supabaseClient, paidEmail);
-            if (paidUser) {
-              await updateProfileSubscriptionStatus(supabaseClient, paidUser.id, 'active', null);
-            }
-          }
-        } catch (err) {
-          logError(err, 'Error resolving subscription issues on payment_succeeded', { invoiceId: invoice.id });
-        }
-
         // Processar comissões recorrentes se houver assinatura
-        if (invoice.subscription) {
+        if (invoiceSubscription(invoice) && invoice.billing_reason === 'subscription_cycle') {
           try {
             // Buscar customer do Stripe
             const customer = await stripe.customers.retrieve(invoice.customer as string);
@@ -790,82 +238,51 @@ serve(async (req) => {
         }
         break;
 
-      case 'invoice.payment_failed':
-        const failedInvoice = event.data.object as Stripe.Invoice;
-        
-        logStep("Processing failed payment", {
-          invoiceId: failedInvoice.id,
-          customerId: failedInvoice.customer,
-          amountDue: failedInvoice.amount_due,
-          subscriptionId: failedInvoice.subscription
-        });
 
-        try {
-          const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer as string);
-          if (failedCustomer && !(failedCustomer as any).deleted) {
-            const failedEmail = (failedCustomer as Stripe.Customer).email;
-            if (failedEmail) {
-              const failedUser = await findUserByEmail(supabaseClient, failedEmail);
-              const graceEnds = new Date(Date.now() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
-              const reason = (failedInvoice as any).last_finalization_error?.message
-                || (failedInvoice as any).billing_reason
-                || 'Cartão recusado ou problema no pagamento';
+  }
+}
 
-              await upsertSubscriptionIssue(supabaseClient, {
-                user_id: failedUser?.id || null,
-                email: failedEmail,
-                stripe_customer_id: (failedCustomer as Stripe.Customer).id,
-                stripe_subscription_id: failedInvoice.subscription as string | null,
-                stripe_invoice_id: failedInvoice.id,
-                issue_type: 'payment_failed',
-                amount_due: (failedInvoice.amount_due || 0) / 100,
-                currency: failedInvoice.currency || 'brl',
-                attempt_count: failedInvoice.attempt_count || 0,
-                next_retry_at: failedInvoice.next_payment_attempt
-                  ? new Date(failedInvoice.next_payment_attempt * 1000).toISOString()
-                  : null,
-                grace_period_ends_at: graceEnds,
-                failure_reason: reason,
-              });
-
-              if (failedUser) {
-                await updateProfileSubscriptionStatus(supabaseClient, failedUser.id, 'past_due', null);
-                await notifyUserOfIssue(supabaseClient, failedUser.id, 'payment_failed');
-              }
-            }
+Deno.serve(async req => {
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  const signature = req.headers.get('stripe-signature');
+  if (!signature) return new Response('Missing signature', { status: 400 });
+  const stripe = billingStripe();
+  const db = billingDb();
+  let signingSecret: string;
+  try { signingSecret = await billingWebhookSecret(db); }
+  catch { return new Response('Webhook temporarily unavailable', { status: 503 }); }
+  let event: Stripe.Event;
+  try {
+    event = await stripe.webhooks.constructEventAsync(await req.text(), signature, signingSecret, undefined, Stripe.createSubtleCryptoProvider());
+  } catch { return new Response('Invalid signature', { status: 400 }); }
+  try {
+    await withBillingLock(db, `event:${event.id}`, async () => {
+      const object = event.data.object as any;
+      if (['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'].includes(event.type)) {
+        await fulfillCheckout(db, stripe, object.id, event.type === 'checkout.session.async_payment_failed');
+      } else if (['customer.subscription.updated','customer.subscription.deleted'].includes(event.type)) {
+        await syncBillingSubscription(db, stripe, object.id);
+      } else if (['invoice.payment_succeeded','invoice.payment_failed'].includes(event.type)) {
+        const subscriptionId = invoiceSubscription(object);
+        if (subscriptionId) {
+          await syncBillingSubscription(db, stripe, subscriptionId);
+          await notifyInvoice(db, stripe, object, event.type === 'invoice.payment_failed');
+          // Retry initial account provisioning if invoice and checkout arrive out of order.
+          const sessions = await stripe.checkout.sessions.list({ subscription: subscriptionId, limit: 10 });
+          for (const session of sessions.data) {
+            if (session.status === 'complete') await fulfillCheckout(db, stripe, session.id);
           }
-        } catch (err) {
-          logError(err, 'Error processing failed payment', { invoiceId: failedInvoice.id });
         }
-        break;
-
-      default:
-        logStep(`Received unhandled event type: ${event.type}`, { 
-          eventId: event.id,
-          eventType: event.type 
-        });
-    }
-
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+      }
+      await recordAffiliateEvent(event, stripe, db);
+      const { error } = await db.from('stripe_events').upsert({ stripe_event_id: event.id, event_type: event.type, processed: true, processed_at: new Date().toISOString(), error_message: null }, { onConflict: 'stripe_event_id' });
+      if (error) throw new Error('event_receipt_failed');
+    }, true);
+    return Response.json({ received: true });
   } catch (error) {
-    const errorMessage = logError(error, "Webhook processing failed");
-    
-    // Para webhooks, é importante retornar o status certo
-    let statusCode = 500;
-    if (errorMessage.includes("signature") || errorMessage.includes("Webhook Error")) {
-      statusCode = 400; // Bad request para problemas de assinatura
-    }
-    
-    return new Response(JSON.stringify({ 
-      error: "Webhook processing failed",
-      message: errorMessage,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: statusCode,
-    });
+    const code = error instanceof Error ? error.message : 'processing_failed';
+    console.error('[STRIPE-WEBHOOK]', event.id, code);
+    // A failed step is NOT acknowledged: Stripe can safely retry the event.
+    return Response.json({ error: 'Processing failed; retry required' }, { status: 500 });
   }
 });
