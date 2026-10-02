@@ -31,8 +31,7 @@ import { trackFunnel } from '@/lib/funnel-analytics';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
-import heroSceneImg from '@/assets/auth-hero-calcula-ai.png';
-import desktopHeroSceneImg from '@/assets/auth-hero-calcula-ai-desktop.png';
+import { AuthAnimation } from '@/components/AuthAnimation';
 
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
@@ -298,17 +297,9 @@ const Auth = () => {
 
       {/* ============ AUTH — centralizado ============ */}
       <div className="relative z-10 flex min-h-screen items-center justify-center p-3 sm:p-6 lg:p-8">
-        <div className="relative grid w-full max-w-[1180px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="relative h-[225px] overflow-hidden bg-[#10075f] sm:h-[285px] lg:hidden" aria-hidden="true">
-            <img
-              src={heroSceneImg}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover object-[58%_42%]"
-            />
-            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
-          </div>
+        <div className="relative grid w-full max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
 
-          <section className="flex flex-col justify-center px-5 pb-8 pt-3 sm:px-10 sm:pb-10 sm:pt-4 lg:min-h-[720px] lg:px-14 lg:py-8 xl:px-16">
+          <section className="flex flex-col justify-center px-5 py-8 sm:px-10 sm:py-10 lg:min-h-[720px] lg:px-14 lg:py-8 xl:px-16">
             <div className="mx-auto w-full max-w-[430px] space-y-5">
 
             {/* Logo */}
@@ -461,12 +452,8 @@ const Auth = () => {
             </div>
           </section>
 
-          <aside className="relative hidden min-h-[720px] overflow-hidden bg-[#fff7f1] lg:block" aria-label="Visão do CalculaAi para negócios de alimentação">
-            <img
-              src={desktopHeroSceneImg}
-              alt="Confeiteira usando o CalculaAi para acompanhar preços e resultados"
-              className="absolute inset-0 h-full w-full object-cover object-center"
-            />
+          <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
+            <AuthAnimation />
           </aside>
         </div>
       </div>
