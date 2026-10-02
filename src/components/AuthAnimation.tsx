@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 
-const VIDEO = '/videos/auth-mascot-sequence.mp4';
+const VIDEO = '/videos/auth-mascot-sequence-v3.mp4';
 const POSTER = '/images/auth-mascot-sequence-poster.webp';
 
-// Both clips are precomposed with 0.5s crossfades, including the loop boundary.
+// All three clips are precomposed with 0.5s crossfades, including the loop boundary.
 // Vertical cropping preserves the full width and removes the original black bars.
 // Canvas keeps this decorative loop free of native player controls.
 export function AuthAnimation() {
