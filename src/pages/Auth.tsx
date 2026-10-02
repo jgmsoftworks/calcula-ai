@@ -34,8 +34,8 @@ import { CONSENT_VERSION } from '@/lib/consent';
 import { AuthAnimation } from '@/components/AuthAnimation';
 
 
-const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true }: any) => (
-  <div className="space-y-1.5 group">
+const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true, compact = false }: any) => (
+  <div className={`min-w-0 group ${compact ? 'space-y-1' : 'space-y-1.5'}`}>
     <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
     <div className="relative">
       <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
@@ -47,7 +47,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="pl-11 h-[52px] rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-sm"
+        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-sm`}
         required={required}
       />
       {onTogglePassword && (
@@ -64,8 +64,8 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
   </div>
 );
 
-const GoogleButton = ({ label, onClick, loading }: { label: string; onClick: () => void; loading: boolean }) => (
-  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className="w-full h-[52px] rounded-[14px] border-border/60 hover:bg-muted/40 transition-all text-sm font-medium">
+const GoogleButton = ({ label, onClick, loading, compact = false }: { label: string; onClick: () => void; loading: boolean; compact?: boolean }) => (
+  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className={`w-full ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] border-border/60 hover:bg-muted/40 transition-all text-sm font-medium`}>
     <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -102,6 +102,7 @@ const Auth = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.toString();
   const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
+  const compactSignup = mode === 'signup' && !showForgotPassword;
   useEffect(() => { rememberAcquisition(query); }, [query]);
   useEffect(() => {
     if (user && !loading && new URLSearchParams(query).get('source') === 'landing') {
@@ -299,8 +300,10 @@ const Auth = () => {
       <div className="relative z-10 flex min-h-screen items-center justify-center p-3 sm:p-6 lg:p-8">
         <div className="relative grid w-full max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
 
-          <section className="flex flex-col justify-center px-5 py-8 sm:px-10 sm:py-10 lg:min-h-[720px] lg:px-14 lg:py-8 xl:px-16">
-            <div className="mx-auto w-full max-w-[430px] space-y-5">
+          {/* On desktop the video sets the panel height; long forms scroll within their own column. */}
+          <section className="relative min-w-0">
+            <div className={`flex flex-col justify-center px-5 sm:px-10 lg:absolute lg:inset-0 lg:justify-start lg:overflow-y-auto lg:px-14 xl:px-16 ${compactSignup ? 'py-6' : 'py-8 sm:py-10 lg:py-8'}`}>
+            <div className={`mx-auto w-full max-w-[430px] lg:my-auto ${compactSignup ? 'space-y-3' : 'space-y-5'}`}>
 
             {/* Logo */}
             <div className="flex justify-center">
@@ -319,7 +322,7 @@ const Auth = () => {
             <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_18px_55px_-35px_rgba(20,25,60,0.45)]">
               <div className="h-1 bg-gradient-brand-horizontal" />
 
-              <CardContent className="p-5 sm:p-7">
+              <CardContent className={compactSignup ? 'p-5' : 'p-5 sm:p-7'}>
                 {showForgotPassword ? (
                   <div className="space-y-5 animate-fade-in">
                     <div className="text-center space-y-2">
@@ -343,7 +346,7 @@ const Auth = () => {
                     </form>
                   </div>
                 ) : (
-                  <Tabs value={mode} onValueChange={selectMode} className="space-y-5">
+                  <Tabs value={mode} onValueChange={selectMode} className={compactSignup ? 'space-y-3' : 'space-y-5'}>
                     <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
                       <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
                         {t('auth.login')}
@@ -384,12 +387,14 @@ const Auth = () => {
                     </TabsContent>
 
                     <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
-                      <form onSubmit={handleSignup} className="space-y-3">
-                        <InputField id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
-                        <InputField id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
-                        <InputField id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
-                        <InputField id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
-                        <InputField id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
+                      <form onSubmit={handleSignup} className="space-y-2.5">
+                        <InputField compact id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
+                        <div className="grid gap-2.5 sm:grid-cols-2">
+                          <InputField compact id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
+                          <InputField compact id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
+                        </div>
+                        <InputField compact id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
+                        <InputField compact id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
 
                         <div className="space-y-2 pt-1">
                           <label className="flex items-start gap-2 cursor-pointer">
@@ -408,12 +413,12 @@ const Auth = () => {
                           </label>
                         </div>
 
-                        <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-[54px] rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] disabled:opacity-50 disabled:hover:translate-y-0">
+                        <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-11 rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] disabled:opacity-50 disabled:hover:translate-y-0">
                           {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                         </Button>
 
                         <Divider />
-                        <GoogleButton label={t('auth.signupWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
+                        <GoogleButton compact label={t('auth.signupWithGoogle')} onClick={handleGoogleLogin} loading={loading} />
 
                         {showResendConfirmation && (
                           <div className="text-center space-y-2 p-3 bg-primary/5 rounded-xl">
@@ -450,6 +455,7 @@ const Auth = () => {
               {t('auth.copyright')}
             </p>
             </div>
+            </div>
           </section>
 
           <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
@@ -463,4 +469,3 @@ const Auth = () => {
 };
 
 export default Auth;
-
