@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-sm`}
+        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base sm:text-sm`}
         required={required}
       />
       {onTogglePassword && (
@@ -103,6 +103,17 @@ const Auth = () => {
   const query = searchParams.toString();
   const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
   const compactSignup = mode === 'signup' && !showForgotPassword;
+  useLayoutEffect(() => {
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    resetScroll();
+    window.addEventListener('pageshow', resetScroll);
+    return () => {
+      window.history.scrollRestoration = previousRestoration;
+      window.removeEventListener('pageshow', resetScroll);
+    };
+  }, []);
   useEffect(() => { rememberAcquisition(query); }, [query]);
   useEffect(() => {
     if (user && !loading && new URLSearchParams(query).get('source') === 'landing') {
@@ -277,7 +288,7 @@ const Auth = () => {
   return (
     <div className="relative w-full min-h-screen m-0 p-0 overflow-hidden bg-[#f5f6ff]">
       {/* Fundo decorativo suave */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+      <div className="absolute inset-0 hidden overflow-hidden pointer-events-none z-0 lg:block" aria-hidden="true">
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
         <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
         <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
@@ -297,7 +308,7 @@ const Auth = () => {
       </div>
 
       {/* ============ AUTH — centralizado ============ */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-3 sm:p-6 lg:p-8">
+      <div className="relative z-10 flex min-h-screen items-start justify-center p-3 lg:items-center sm:p-6 lg:p-8">
         <div className="relative grid w-full max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
 
           {/* On desktop the video sets the panel height; long forms scroll within their own column. */}
