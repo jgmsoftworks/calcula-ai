@@ -47,7 +47,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base`}
+        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base md:text-base`}
         required={required}
       />
       {onTogglePassword && (
