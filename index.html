@@ -6,7 +6,7 @@
     <script>
       // Safari keeps manual pinch zoom available, while this avoids automatic
       // field-focus enlargement on the public authentication page.
-      if (location.pathname === '/auth' &&
+      if ((location.pathname === '/auth' || location.pathname === '/') &&
           (/iP(hone|ad|od)/.test(navigator.userAgent) ||
            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))) {
         document.querySelector('meta[name="viewport"]').setAttribute(
