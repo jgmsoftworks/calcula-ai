@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { AcquisitionReturn } from '@/components/AcquisitionReturn';
 import '@/i18n';
 import { Toaster } from "@/components/ui/toaster";
@@ -8,51 +9,52 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ActivityProvider } from "@/contexts/ActivityContext";
-import { AppLayoutRoute } from "@/components/layout/AppLayoutRoute";
 import ScrollToTop from "@/components/ScrollToTop";
-import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import AuthSuccess from "./pages/AuthSuccess";
-import Afiliados from "./pages/Afiliados";
-import AuthStripeComplete from "./pages/AuthStripeComplete";
-import ResetPassword from "./pages/ResetPassword";
-import MediaFaturamentoPage from "./pages/precificacao/MediaFaturamentoPage";
-import MarkupsPage from "./pages/precificacao/MarkupsPage";
-import DespesasFixasPage from "./pages/precificacao/DespesasFixasPage";
-import FolhaPagamentoPage from "./pages/precificacao/FolhaPagamentoPage";
-import EncargosVendaPage from "./pages/precificacao/EncargosVendaPage";
-import Estoque from "./pages/Estoque";
-import EstoqueHistorico from "./pages/EstoqueHistorico";
-import RelatoriosEstoque from "./pages/RelatoriosEstoque";
-import RelatoriosPerdas from "./pages/RelatoriosPerdas";
-import RelatoriosProdutividade from "./pages/RelatoriosProdutividade";
-import Perdas from "./pages/Perdas";
-import Movimentacao from "./pages/Movimentacao";
-import Receitas from "./pages/Receitas";
-import AgendaPage from "./pages/producao/AgendaPage";
-import AgendaDayPage from "./pages/producao/AgendaDayPage";
-import CronogramaPage from "./pages/producao/CronogramaPage";
-import ProducaoCompartilhadaPage from "./pages/producao/ProducaoCompartilhadaPage";
-import Planos from "./pages/Planos";
-import PerfilNegocio from "./pages/PerfilNegocio";
-import AdminUsers from "./pages/AdminUsers";
-import AdminSettings from "./pages/AdminSettings";
-import AdminStripe from "./pages/AdminStripe";
-import AdminPlanos from "./pages/AdminPlanos";
-import AdminInadimplencia from "./pages/AdminInadimplencia";
-import Checkout from "./pages/Checkout";
-import AffiliateRedirect from "./pages/AffiliateRedirect";
-import AffiliatePlanSelector from "./pages/AffiliatePlanSelector";
-import NotificacoesPainel from "./pages/NotificacoesPainel";
-import Tutorial from "./pages/Tutorial";
-import NotFound from "./pages/NotFound";
-import MinhaPrivacidade from "./pages/MinhaPrivacidade";
-import AdminSecurity from "./pages/AdminSecurity";
-import PoliticaPrivacidade from "./pages/legal/PoliticaPrivacidade";
-import TermosUso from "./pages/legal/TermosUso";
-import PoliticaCookies from "./pages/legal/PoliticaCookies";
 import { CookieConsentProvider } from "@/hooks/useCookieConsent";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+
+const AppLayoutRoute = lazy(() => import("@/components/layout/AppLayoutRoute"));
+const Index = lazy(() => import("./pages/Index"));
+const AuthSuccess = lazy(() => import("./pages/AuthSuccess"));
+const Afiliados = lazy(() => import("./pages/Afiliados"));
+const AuthStripeComplete = lazy(() => import("./pages/AuthStripeComplete"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const MediaFaturamentoPage = lazy(() => import("./pages/precificacao/MediaFaturamentoPage"));
+const MarkupsPage = lazy(() => import("./pages/precificacao/MarkupsPage"));
+const DespesasFixasPage = lazy(() => import("./pages/precificacao/DespesasFixasPage"));
+const FolhaPagamentoPage = lazy(() => import("./pages/precificacao/FolhaPagamentoPage"));
+const EncargosVendaPage = lazy(() => import("./pages/precificacao/EncargosVendaPage"));
+const Estoque = lazy(() => import("./pages/Estoque"));
+const EstoqueHistorico = lazy(() => import("./pages/EstoqueHistorico"));
+const RelatoriosEstoque = lazy(() => import("./pages/RelatoriosEstoque"));
+const RelatoriosPerdas = lazy(() => import("./pages/RelatoriosPerdas"));
+const RelatoriosProdutividade = lazy(() => import("./pages/RelatoriosProdutividade"));
+const Perdas = lazy(() => import("./pages/Perdas"));
+const Movimentacao = lazy(() => import("./pages/Movimentacao"));
+const Receitas = lazy(() => import("./pages/Receitas"));
+const AgendaPage = lazy(() => import("./pages/producao/AgendaPage"));
+const AgendaDayPage = lazy(() => import("./pages/producao/AgendaDayPage"));
+const CronogramaPage = lazy(() => import("./pages/producao/CronogramaPage"));
+const ProducaoCompartilhadaPage = lazy(() => import("./pages/producao/ProducaoCompartilhadaPage"));
+const Planos = lazy(() => import("./pages/Planos"));
+const PerfilNegocio = lazy(() => import("./pages/PerfilNegocio"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminStripe = lazy(() => import("./pages/AdminStripe"));
+const AdminPlanos = lazy(() => import("./pages/AdminPlanos"));
+const AdminInadimplencia = lazy(() => import("./pages/AdminInadimplencia"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const AffiliateRedirect = lazy(() => import("./pages/AffiliateRedirect"));
+const AffiliatePlanSelector = lazy(() => import("./pages/AffiliatePlanSelector"));
+const NotificacoesPainel = lazy(() => import("./pages/NotificacoesPainel"));
+const Tutorial = lazy(() => import("./pages/Tutorial"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const MinhaPrivacidade = lazy(() => import("./pages/MinhaPrivacidade"));
+const AdminSecurity = lazy(() => import("./pages/AdminSecurity"));
+const PoliticaPrivacidade = lazy(() => import("./pages/legal/PoliticaPrivacidade"));
+const TermosUso = lazy(() => import("./pages/legal/TermosUso"));
+const PoliticaCookies = lazy(() => import("./pages/legal/PoliticaCookies"));
 
 const queryClient = new QueryClient();
 
@@ -74,6 +76,7 @@ const App = () => (
               <ScrollToTop />
               <AcquisitionReturn />
               <CookieBanner />
+              <Suspense fallback={<div role="status" className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">Carregando…</div>}>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
@@ -129,6 +132,7 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </BrowserRouter>
           </TooltipProvider>
           </CookieConsentProvider>
