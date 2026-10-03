@@ -3,60 +3,54 @@ import { useEffect, useRef } from 'react';
 const VIDEO = '/videos/auth-mascot-sequence-v3.mp4';
 const POSTER = '/images/auth-mascot-sequence-poster.webp';
 
-// All three clips are precomposed with 0.5s crossfades, including the loop boundary.
-// Vertical cropping preserves the full width and removes the original black bars.
-// Canvas keeps this decorative loop free of native player controls.
+// The native video compositor avoids copying every frame through JavaScript.
+// The existing file contains all three clips and the crossfade at the loop boundary.
 export function AuthAnimation() {
   const hostRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const host = hostRef.current;
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!host || !video || !canvas) return;
-    const context = canvas.getContext('2d', { alpha: false });
-    if (!context) return;
+    if (!host || !video) return;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let visible = false;
-    let active = false;
-    let frame = 0;
-    let last = 0;
-
-    const draw = (time: number) => {
-      if (!active) return;
-      if (video.readyState >= 2 && time - last >= 40) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.style.opacity = '1';
-        last = time;
-      }
-      frame = requestAnimationFrame(draw);
-    };
+    let disposed = false;
+    let ready = false;
     const update = () => {
-      active = visible && !document.hidden && !motion.matches;
-      cancelAnimationFrame(frame);
+      const active = ready && visible && !document.hidden && !motion.matches;
       if (!active) {
         video.pause();
-        if (motion.matches) canvas.style.opacity = '0';
+        if (motion.matches) video.style.opacity = '0';
         return;
       }
       if (!video.getAttribute('src')) video.src = VIDEO;
-      void video.play().catch(() => { /* The poster remains if autoplay is blocked. */ });
-      frame = requestAnimationFrame(draw);
+      void video.play().catch(() => { /* Keep the poster when autoplay is unavailable. */ });
     };
+    const showVideo = () => {
+      if (disposed || motion.matches || !visible || document.hidden) {
+        video.pause();
+        return;
+      }
+      video.style.opacity = '1';
+    };
+    // Give the form and poster a chance to render before starting the media request.
+    const start = () => { ready = true; update(); };
+    const timer = window.setTimeout(start, 350);
     const observer = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       update();
     });
     observer.observe(host);
+    video.addEventListener('playing', showVideo);
     motion.addEventListener('change', update);
     document.addEventListener('visibilitychange', update);
 
     return () => {
-      active = false;
-      cancelAnimationFrame(frame);
+      disposed = true;
+      window.clearTimeout(timer);
       observer.disconnect();
+      video.removeEventListener('playing', showVideo);
       motion.removeEventListener('change', update);
       document.removeEventListener('visibilitychange', update);
       video.pause();
@@ -69,9 +63,8 @@ export function AuthAnimation() {
     <div ref={hostRef} className="relative aspect-square w-full overflow-hidden lg:aspect-[180/278]" aria-hidden="true">
       <img src={POSTER} alt="" width={720} height={1112} fetchPriority="high" draggable={false}
         className="absolute inset-0 h-full w-full object-cover object-[center_35%]" />
-      <canvas ref={canvasRef} width={720} height={1112}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_35%] opacity-0" />
-      <video ref={videoRef} hidden style={{ display: 'none' }} muted loop playsInline
+      <video ref={videoRef} muted loop playsInline width={720} height={1112}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_35%] opacity-0"
         preload="none" controls={false} disablePictureInPicture disableRemotePlayback tabIndex={-1} />
     </div>
   );
