@@ -47,7 +47,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base sm:text-sm`}
+        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base`}
         required={required}
       />
       {onTogglePassword && (
@@ -286,7 +286,7 @@ const Auth = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen m-0 p-0 overflow-hidden bg-[#f5f6ff]">
+    <div className="relative w-full min-w-0 min-h-screen m-0 p-0 overflow-x-clip bg-[#f5f6ff]">
       {/* Fundo decorativo suave */}
       <div className="absolute inset-0 hidden overflow-hidden pointer-events-none z-0 lg:block" aria-hidden="true">
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
@@ -309,7 +309,7 @@ const Auth = () => {
 
       {/* ============ AUTH — centralizado ============ */}
       <div className="relative z-10 flex min-h-screen items-start justify-center p-3 lg:items-center sm:p-6 lg:p-8">
-        <div className="relative grid w-full max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
+        <div className="relative grid min-w-0 w-full grid-cols-1 max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
 
           {/* On desktop the video sets the panel height; long forms scroll within their own column. */}
           <section className="relative min-w-0">
@@ -469,7 +469,7 @@ const Auth = () => {
             </div>
           </section>
 
-          <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
+          <aside className="order-last flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
             <AuthAnimation />
           </aside>
         </div>
