@@ -59,7 +59,6 @@ export function AppSidebar() {
 
   const businessNavigationItems = [
     { title: t('nav.dashboard'), url: '/', icon: Home },
-    { title: 'Aulas e tutoriais', url: '/tutorial', icon: CirclePlay },
     {
       title: t('nav.estoque'),
       url: '/estoque',
