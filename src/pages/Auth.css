@@ -1,12 +1,12 @@
 /* Desktop sizing follows both viewport dimensions. The video keeps its full
    width and native aspect ratio; long forms can scroll inside their column. */
 @media (min-width: 1024px) {
-  .auth-shell {
+  .auth-page .auth-shell {
     min-height: 100svh;
     padding: 24px;
   }
 
-  .auth-panel {
+  .auth-page .auth-panel {
     /* Reserve outer padding and the two panel borders. */
     --auth-media-height: min(860px, calc(100svh - 50px));
     --auth-media-width: calc(var(--auth-media-height) * 180 / 278);
@@ -15,7 +15,7 @@
     grid-template-columns: minmax(0, 1fr) var(--auth-media-width);
   }
 
-  .auth-form-scroll {
+  .auth-panel .auth-form-scroll {
     min-height: 0;
     padding: 24px 32px;
     scrollbar-width: thin;
@@ -25,7 +25,7 @@
 /* Notebook windows have less usable height because of browser/OS toolbars.
    Compact spacing and controls without shrinking text or scaling the page. */
 @media (min-width: 1024px) and (max-height: 800px) {
-  .auth-form-scroll {
+  .auth-panel .auth-form-scroll {
     padding: 16px 24px;
   }
 
@@ -34,11 +34,11 @@
     margin-bottom: 0;
   }
 
-  .auth-logo {
+  .auth-panel .auth-logo {
     height: 40px;
   }
 
-  .auth-card-body {
+  .auth-panel .auth-card-body {
     padding: 16px 20px;
   }
 
