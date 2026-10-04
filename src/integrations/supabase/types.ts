@@ -3157,9 +3157,10 @@ export type Database = {
           id: string
           is_published: boolean
           sort_order: number
-          storage_path: string
+          storage_path: string | null
           title: string
           updated_at: string
+          youtube_video_id: string | null
         }
         Insert: {
           category_id: string
@@ -3169,9 +3170,10 @@ export type Database = {
           id?: string
           is_published?: boolean
           sort_order?: number
-          storage_path: string
+          storage_path?: string | null
           title: string
           updated_at?: string
+          youtube_video_id?: string | null
         }
         Update: {
           category_id?: string
@@ -3181,9 +3183,10 @@ export type Database = {
           id?: string
           is_published?: boolean
           sort_order?: number
-          storage_path?: string
+          storage_path?: string | null
           title?: string
           updated_at?: string
+          youtube_video_id?: string | null
         }
         Relationships: [
           {
