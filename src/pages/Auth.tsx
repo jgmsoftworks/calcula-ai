@@ -469,7 +469,7 @@ const Auth = () => {
             </div>
           </section>
 
-          <aside className="order-last flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
+          <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
             <AuthAnimation />
           </aside>
         </div>
