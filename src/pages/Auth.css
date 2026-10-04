@@ -1,0 +1,65 @@
+/* Desktop sizing follows both viewport dimensions. The video keeps its full
+   width and native aspect ratio; long forms can scroll inside their column. */
+@media (min-width: 1024px) {
+  .auth-shell {
+    min-height: 100svh;
+    padding: 24px;
+  }
+
+  .auth-panel {
+    /* Reserve outer padding and the two panel borders. */
+    --auth-media-height: min(860px, calc(100svh - 50px));
+    --auth-media-width: calc(var(--auth-media-height) * 180 / 278);
+    width: min(100%, calc(560px + var(--auth-media-width)));
+    max-width: 1180px;
+    grid-template-columns: minmax(0, 1fr) var(--auth-media-width);
+  }
+
+  .auth-form-scroll {
+    min-height: 0;
+    padding: 24px 32px;
+    scrollbar-width: thin;
+  }
+}
+
+/* Notebook windows have less usable height because of browser/OS toolbars.
+   Compact spacing and controls without shrinking text or scaling the page. */
+@media (min-width: 1024px) and (max-height: 800px) {
+  .auth-form-scroll {
+    padding: 16px 24px;
+  }
+
+  .auth-form-content > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 10px;
+    margin-bottom: 0;
+  }
+
+  .auth-logo {
+    height: 40px;
+  }
+
+  .auth-card-body {
+    padding: 16px 20px;
+  }
+
+  .auth-card-body [role="tablist"] {
+    height: 40px;
+  }
+
+  .auth-card-body .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  .auth-card-body .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 12px;
+    margin-bottom: 0;
+  }
+
+  .auth-card-body input:not([type="checkbox"]),
+  .auth-card-body button[type="submit"],
+  .auth-card-body .auth-google-button {
+    height: 44px;
+  }
+
+  .auth-card-body .auth-divider {
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+}
