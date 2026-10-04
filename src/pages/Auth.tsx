@@ -317,7 +317,7 @@ const Auth = () => {
   );
 
   return (
-    <div ref={pageRef} className="relative w-full min-w-0 min-h-screen m-0 p-0 overflow-x-clip bg-[#f5f6ff] dark:bg-black text-foreground">
+    <div ref={pageRef} className="auth-page relative w-full min-w-0 min-h-screen m-0 p-0 overflow-x-clip bg-[#f5f6ff] dark:bg-black text-foreground">
       {/* Fundo decorativo suave */}
       <div className="absolute inset-0 hidden overflow-hidden pointer-events-none z-0 lg:block dark:hidden" aria-hidden="true">
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
