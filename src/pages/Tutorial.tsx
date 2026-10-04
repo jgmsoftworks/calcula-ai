@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CirclePlay, FolderPlus, ListVideo, Loader2, Plus, Trash2, Upload, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CirclePlay, FolderPlus, ListVideo, Loader2, Plus, Trash2, Upload, Video, Youtube } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TutorialPlayer } from '@/components/tutorial/TutorialPlayer';
+import { parseYouTubeVideoId } from '@/lib/youtube';
+import type { Tables } from '@/integrations/supabase/types';
 
 type Category = {
   id: string;
@@ -20,15 +22,7 @@ type Category = {
   is_published: boolean;
 };
 
-type TutorialVideo = {
-  id: string;
-  category_id: string;
-  title: string;
-  description: string | null;
-  storage_path: string;
-  sort_order: number;
-  is_published: boolean;
-};
+type TutorialVideo = Tables<'tutorial_videos'>;
 
 const db = supabase;
 const errorMessage = (error: unknown) => error && typeof error === 'object' && 'message' in error
@@ -64,9 +58,12 @@ export default function Tutorial() {
   const [videoCategory, setVideoCategory] = useState('');
   const [videoPublished, setVideoPublished] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoSource, setVideoSource] = useState<'youtube' | 'file'>('youtube');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const youtubeVideoId = parseYouTubeVideoId(youtubeUrl);
 
   const loadTutorial = useCallback(async () => {
     setLoading(true);
@@ -123,41 +120,47 @@ export default function Tutorial() {
     await loadTutorial();
   };
 
-  const uploadVideo = async () => {
-    if (!user || !videoFile || !videoTitle.trim() || !videoCategory) return;
+  const saveVideo = async () => {
+    if (!user || !isAdmin || uploading || !videoTitle.trim() || !videoCategory) return;
+    if (videoSource === 'youtube' ? !youtubeVideoId : !videoFile) return;
     setUploading(true);
-    const safeName = videoFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
-    const storagePath = `${user.id}/${crypto.randomUUID()}-${safeName}`;
+    let storagePath: string | null = null;
 
     try {
-      const { error: uploadError } = await supabase.storage
-        .from('tutorial-videos')
-        .upload(storagePath, videoFile, { contentType: videoFile.type, upsert: false });
-      if (uploadError) throw uploadError;
+      if (videoSource === 'file' && videoFile) {
+        const safeName = videoFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+        storagePath = `${user.id}/${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('tutorial-videos')
+          .upload(storagePath, videoFile, { contentType: videoFile.type, upsert: false });
+        if (uploadError) throw uploadError;
+      }
 
       const { error: insertError } = await db.from('tutorial_videos').insert({
         category_id: videoCategory,
         title: videoTitle.trim(),
         description: videoDescription.trim() || null,
         storage_path: storagePath,
+        youtube_video_id: videoSource === 'youtube' ? youtubeVideoId : null,
         sort_order: Math.max(-1, ...videos.filter((video) => video.category_id === videoCategory).map((video) => video.sort_order)) + 1,
         is_published: videoPublished,
       });
       if (insertError) {
-        await supabase.storage.from('tutorial-videos').remove([storagePath]);
+        if (storagePath) await supabase.storage.from('tutorial-videos').remove([storagePath]);
         throw insertError;
       }
 
       setVideoTitle('');
       setVideoDescription('');
       setVideoFile(null);
+      setYoutubeUrl('');
       setVideoPublished(false);
       const fileInput = document.getElementById('tutorial-video-file') as HTMLInputElement | null;
       if (fileInput) fileInput.value = '';
-      toast({ title: 'Vídeo enviado com sucesso' });
+      toast({ title: videoPublished ? 'Aula publicada com sucesso' : 'Aula salva como rascunho' });
       await loadTutorial();
     } catch (error: unknown) {
-      toast({ title: 'Erro ao enviar vídeo', description: errorMessage(error), variant: 'destructive' });
+      toast({ title: 'Erro ao salvar aula', description: errorMessage(error), variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -188,7 +191,7 @@ export default function Tutorial() {
       toast({ title: 'Erro ao apagar vídeo', description: errorMessage(error), variant: 'destructive' });
       return;
     }
-    await supabase.storage.from('tutorial-videos').remove([video.storage_path]);
+    if (video.storage_path) await supabase.storage.from('tutorial-videos').remove([video.storage_path]);
     toast({ title: 'Vídeo apagado' });
     await loadTutorial();
   };
@@ -279,7 +282,7 @@ export default function Tutorial() {
         <div className="order-1 min-w-0 space-y-4 xl:order-2">
           {selectedVideo ? (
             <Card className="overflow-hidden rounded-2xl">
-              <TutorialPlayer key={selectedVideo.id} storagePath={selectedVideo.storage_path} title={selectedVideo.title} />
+              <TutorialPlayer key={selectedVideo.id} storagePath={selectedVideo.storage_path} youtubeVideoId={selectedVideo.youtube_video_id} title={selectedVideo.title} />
               <CardContent className="space-y-5 p-4 sm:p-6">
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">{selectedCategory?.title} · Aula {selectedIndex + 1} de {orderedVideos.length}</p>
@@ -304,7 +307,7 @@ export default function Tutorial() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="rounded-2xl"><CardContent className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><Video className="mb-4 h-12 w-12 text-muted-foreground" /><h2 className="text-xl font-semibold">Suas aulas começam aqui</h2><p className="mt-2 text-sm text-muted-foreground">{isAdmin ? 'Crie um módulo e envie o primeiro vídeo em Adicionar conteúdo.' : 'Novos tutoriais serão adicionados em breve.'}</p></CardContent></Card>
+            <Card className="rounded-2xl"><CardContent className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><Video className="mb-4 h-12 w-12 text-muted-foreground" /><h2 className="text-xl font-semibold">Suas aulas começam aqui</h2><p className="mt-2 text-sm text-muted-foreground">{isAdmin ? 'Crie um módulo e adicione sua primeira aula em Adicionar conteúdo.' : 'Novos tutoriais serão adicionados em breve.'}</p></CardContent></Card>
           )}
         </div>
       </div>
@@ -323,15 +326,35 @@ export default function Tutorial() {
           </Card>
 
           <Card className="rounded-2xl">
-            <CardHeader><CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Enviar vídeo</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Video className="h-5 w-5" /> Nova aula</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <fieldset disabled={uploading} className="space-y-2">
+                <legend className="text-sm font-medium">Origem do vídeo</legend>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="video-source" value="youtube" checked={videoSource === 'youtube'} onChange={() => { setVideoSource('youtube'); setVideoFile(null); }} className="accent-primary" /><Youtube className="h-4 w-4" /> YouTube</label>
+                  <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="video-source" value="file" checked={videoSource === 'file'} onChange={() => setVideoSource('file')} className="accent-primary" /><Upload className="h-4 w-4" /> Arquivo de vídeo</label>
+                </div>
+              </fieldset>
+              {videoSource === 'youtube' ? (
+                <div key="youtube-link">
+                  <Label htmlFor="tutorial-youtube-url">Link do YouTube</Label>
+                  <Input id="tutorial-youtube-url" type="url" inputMode="url" autoComplete="off" value={youtubeUrl} disabled={uploading}
+                    onChange={(e) => setYoutubeUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..."
+                    aria-invalid={Boolean(youtubeUrl.trim() && !youtubeVideoId)} aria-describedby="youtube-link-help youtube-link-status" />
+                  <p id="youtube-link-help" className="mt-2 text-xs text-muted-foreground">Use um vídeo público ou não listado, com incorporação permitida. Não listado pode ser assistido por qualquer pessoa que tenha o link.</p>
+                  <p id="youtube-link-status" role="status" className={`mt-2 text-xs ${youtubeUrl.trim() && !youtubeVideoId ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {youtubeUrl.trim() ? (youtubeVideoId ? 'Link reconhecido. Confira se o vídeo está disponível para incorporação no YouTube.' : 'Cole um link de vídeo válido do YouTube ou youtu.be.') : 'O vídeo será reproduzido aqui, usando a hospedagem do YouTube.'}
+                  </p>
+                </div>
+              ) : (
+                <div key="video-file"><Label htmlFor="tutorial-video-file">Arquivo de vídeo</Label><Input id="tutorial-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} disabled={uploading} /><p className="mt-2 text-xs text-muted-foreground">Seu vídeo é enviado na qualidade original. Para maior compatibilidade, prefira MP4 (H.264).</p></div>
+              )}
               <div><Label htmlFor="video-title">Título</Label><Input maxLength={120} id="video-title" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder="Título do vídeo" /></div>
               <div><Label htmlFor="upload-module">Módulo</Label><Select value={videoCategory} onValueChange={setVideoCategory}><SelectTrigger id="upload-module"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.title}</SelectItem>)}</SelectContent></Select></div>
               <div><Label htmlFor="video-description">Descrição</Label><Textarea id="video-description" value={videoDescription} onChange={(e) => setVideoDescription(e.target.value)} placeholder="Resumo opcional" /></div>
-              <div><Label htmlFor="tutorial-video-file">Arquivo de vídeo</Label><Input id="tutorial-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} disabled={uploading} /><p className="mt-2 text-xs text-muted-foreground">Seu vídeo é enviado na qualidade original. Para maior compatibilidade, prefira MP4 (H.264).</p></div>
               <div className="flex items-center gap-3"><Switch id="upload-published" checked={videoPublished} onCheckedChange={setVideoPublished} /><Label htmlFor="upload-published">Publicar imediatamente</Label></div>
-              <Button onClick={uploadVideo} disabled={uploading || !videoFile || !videoTitle.trim() || !videoCategory} className="gap-2">
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {uploading ? 'Enviando...' : 'Enviar vídeo'}
+              <Button onClick={saveVideo} disabled={uploading || (videoSource === 'youtube' ? !youtubeVideoId : !videoFile) || !videoTitle.trim() || !videoCategory} className="gap-2">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {uploading ? 'Salvando...' : 'Salvar aula'}
               </Button>
             </CardContent>
           </Card>
