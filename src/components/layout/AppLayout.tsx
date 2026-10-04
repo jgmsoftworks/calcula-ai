@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
+import { CirclePlay, Sun, Moon, Globe, User, Building2, Crown, ShieldCheck, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
@@ -213,6 +213,22 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </TooltipTrigger>
                 <TooltipContent>{currentTheme === 'dark' ? t('header.lightMode') : t('header.darkMode')}</TooltipContent>
               </Tooltip>
+              {!isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hidden h-9 w-9 rounded-full sm:inline-flex"
+                      onClick={() => navigate('/tutorial')}
+                      aria-label={t('header.tutorial')}
+                    >
+                      <CirclePlay className="h-4.5 w-4.5 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('header.tutorial')}</TooltipContent>
+                </Tooltip>
+              )}
               <NotificationCenter />
 
               {/* User menu */}
@@ -235,6 +251,11 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {!isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate('/tutorial')} className="cursor-pointer gap-2.5 py-2.5 sm:hidden">
+                      <CirclePlay className="h-4 w-4" /> {t('header.tutorial')}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={() => handleLanguageChange(currentLang === 'pt-BR' ? 'en' : 'pt-BR')}
                     className="cursor-pointer gap-2.5 py-2.5 sm:hidden"
