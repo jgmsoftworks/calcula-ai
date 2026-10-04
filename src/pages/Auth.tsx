@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
 import { AuthAnimation } from '@/components/AuthAnimation';
+import './Auth.css';
 
 
 const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true, compact = false }: any) => (
@@ -65,7 +66,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
 );
 
 const GoogleButton = ({ label, onClick, loading, compact = false }: { label: string; onClick: () => void; loading: boolean; compact?: boolean }) => (
-  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className={`w-full ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] border-border/60 dark:bg-black hover:bg-muted/40 dark:hover:bg-white/5 transition-all text-sm font-medium`}>
+  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className={`auth-google-button w-full ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] border-border/60 dark:bg-black hover:bg-muted/40 dark:hover:bg-white/5 transition-all text-sm font-medium`}>
     <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -309,7 +310,7 @@ const Auth = () => {
   };
 
   const Divider = () => (
-    <div className="relative my-4">
+    <div className="auth-divider relative my-4">
       <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
       <div className="relative flex justify-center text-xs uppercase"><span className="bg-card dark:bg-zinc-950 px-3 text-muted-foreground">{t('auth.or')}</span></div>
     </div>
@@ -348,20 +349,20 @@ const Auth = () => {
       </div>
 
       {/* ============ AUTH — centralizado ============ */}
-      <div className="relative z-10 flex min-h-screen items-start justify-center p-3 lg:items-center sm:p-6 lg:p-8">
-        <div className="relative grid min-w-0 w-full grid-cols-1 max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] dark:shadow-none animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
+      <div className="auth-shell relative z-10 flex min-h-screen items-start justify-center p-3 lg:items-center sm:p-6 lg:p-8">
+        <div className="auth-panel relative grid min-w-0 w-full grid-cols-1 max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] dark:shadow-none animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
 
           {/* On desktop the video sets the panel height; long forms scroll within their own column. */}
           <section className="relative min-w-0">
-            <div className={`flex flex-col justify-center px-5 sm:px-10 lg:absolute lg:inset-0 lg:justify-start lg:overflow-y-auto lg:px-14 xl:px-16 ${compactSignup ? 'py-6' : 'py-8 sm:py-10 lg:py-8'}`}>
-            <div className={`mx-auto w-full max-w-[430px] lg:my-auto ${compactSignup ? 'space-y-3' : 'space-y-5'}`}>
+            <div className={`auth-form-scroll flex flex-col justify-center px-5 sm:px-10 lg:absolute lg:inset-0 lg:justify-start lg:overflow-y-auto lg:px-14 xl:px-16 ${compactSignup ? 'py-6' : 'py-8 sm:py-10 lg:py-8'}`}>
+            <div className={`auth-form-content mx-auto w-full max-w-[430px] lg:my-auto ${compactSignup ? 'space-y-3' : 'space-y-5'}`}>
 
             {/* Logo */}
             <div className="flex justify-center">
               <img
                 src="/assets/logo-calculaai.png"
                 alt="CalculaAi"
-                className="h-12 sm:h-14 w-auto"
+                className="auth-logo h-12 sm:h-14 w-auto"
               />
             </div>
             <p className="text-center text-sm text-muted-foreground -mt-2">
@@ -373,7 +374,7 @@ const Auth = () => {
             <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-[0_18px_55px_-35px_rgba(20,25,60,0.45)] dark:shadow-none">
               <div className="h-1 bg-gradient-brand-horizontal" />
 
-              <CardContent className={compactSignup ? 'p-5' : 'p-5 sm:p-7'}>
+              <CardContent className={`auth-card-body ${compactSignup ? 'p-5' : 'p-5 sm:p-7'}`}>
                 {showForgotPassword ? (
                   <div className="space-y-5 animate-fade-in">
                     <div className="text-center space-y-2">
