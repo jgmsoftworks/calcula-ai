@@ -6,6 +6,10 @@ const mocks = vi.hoisted(() => ({
   isAdmin: false,
   toast: vi.fn(),
   signedUrl: vi.fn(),
+  upload: vi.fn(),
+  remove: vi.fn(),
+  insert: vi.fn(),
+  delete: vi.fn(),
   from: vi.fn(),
   rows: {} as Record<string, Array<Record<string, unknown>>>,
   filters: [] as string[],
@@ -14,12 +18,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner' }, isAdmin: mocks.isAdmin }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mocks.toast }) }));
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: mocks.from, storage: { from: () => ({ createSignedUrl: mocks.signedUrl }) } },
+  supabase: { from: mocks.from, storage: { from: () => ({ createSignedUrl: mocks.signedUrl, upload: mocks.upload, remove: mocks.remove }) } },
 }));
 
 const lesson = (id: string, category = 'module-1') => ({
   id, category_id: category, title: `Aula ${id}`, description: null,
-  storage_path: `${id}.mp4`, sort_order: 0, is_published: true,
+  storage_path: `${id}.mp4`, youtube_video_id: null, sort_order: 0, is_published: true,
 });
 
 beforeEach(() => {
@@ -32,11 +36,17 @@ beforeEach(() => {
     tutorial_videos: [lesson('1'), lesson('2')],
   };
   mocks.signedUrl.mockImplementation(async (path: string) => ({ data: { signedUrl: `https://example.com/${path}` }, error: null }));
+  mocks.upload.mockResolvedValue({ error: null });
+  mocks.remove.mockResolvedValue({ error: null });
+  mocks.insert.mockResolvedValue({ error: null });
+  mocks.delete.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   mocks.from.mockImplementation((table: string) => {
     let start = 0;
     let end = 249;
     let publishedOnly = false;
     const query = {
+      insert: mocks.insert,
+      delete: mocks.delete,
       select: () => query,
       order: () => query,
       range: (from: number, to: number) => { start = from; end = to; mocks.ranges.push([table, from, to]); return query; },
@@ -48,7 +58,7 @@ beforeEach(() => {
     return query;
   });
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('course lessons', () => {
   it('only prepares the selected lesson and replaces its player on navigation', async () => {
@@ -107,8 +117,92 @@ describe('course lessons', () => {
     mocks.isAdmin = true;
     render(<Tutorial />);
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar conteúdo' }));
-    expect(screen.getByLabelText('Arquivo de vídeo')).toHaveAttribute('type', 'file');
+    expect(screen.getByRole('radio', { name: 'YouTube' })).toBeChecked();
+    expect(screen.getByLabelText('Link do YouTube')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Arquivo de vídeo' }));
+    expect(screen.getByLabelText('Arquivo de vídeo', { selector: 'input[type="file"]' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Criar módulo' })).toBeInTheDocument();
     expect(mocks.filters).toHaveLength(0);
+  });
+
+  it('embeds only the selected YouTube lesson and switches cleanly to a stored video', async () => {
+    mocks.rows.tutorial_videos[0] = { ...lesson('1'), storage_path: null, youtube_video_id: 'M7lc1UVf-VE' };
+    const { container } = render(<Tutorial />);
+    const frame = await screen.findByTitle('Aula 1');
+    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/M7lc1UVf-VE?playsinline=1&rel=0');
+    expect(frame).toHaveAttribute('allowfullscreen');
+    expect(frame).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    expect(screen.getByRole('link', { name: 'Abrir no YouTube' })).toHaveAttribute('href', 'https://www.youtube.com/watch?v=M7lc1UVf-VE');
+    expect(mocks.signedUrl).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('iframe')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima aula' }));
+    await screen.findByLabelText('Aula 2');
+    expect(container.querySelectorAll('iframe')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Anterior' }));
+    await screen.findByTitle('Aula 1');
+    expect(container.querySelectorAll('video')).toHaveLength(0);
+    expect(mocks.signedUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves a normalized YouTube ID without uploading a file', async () => {
+    mocks.isAdmin = true;
+    render(<Tutorial />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar conteúdo' }));
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Minha aula' } });
+    fireEvent.change(screen.getByLabelText('Link do YouTube'), { target: { value: 'https://youtu.be/M7lc1UVf-VE?si=tracking&t=40' } });
+    fireEvent.click(screen.getByLabelText('Publicar imediatamente'));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar aula' }));
+    await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Minha aula', category_id: 'module-1', storage_path: null,
+      youtube_video_id: 'M7lc1UVf-VE', is_published: true,
+    })));
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.remove).not.toHaveBeenCalled();
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ title: 'Aula publicada com sucesso' }));
+  });
+
+  it('blocks invalid links and preserves form contents on save failure', async () => {
+    mocks.isAdmin = true;
+    mocks.insert.mockResolvedValue({ error: { message: 'Falha de conexão' } });
+    render(<Tutorial />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar conteúdo' }));
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Minha aula' } });
+    fireEvent.change(screen.getByLabelText('Link do YouTube'), { target: { value: 'https://youtube.com.evil.example/watch?v=M7lc1UVf-VE' } });
+    expect(screen.getByRole('button', { name: 'Salvar aula' })).toBeDisabled();
+    expect(screen.getByLabelText('Link do YouTube')).toHaveAttribute('aria-invalid', 'true');
+    fireEvent.change(screen.getByLabelText('Link do YouTube'), { target: { value: 'https://youtu.be/M7lc1UVf-VE' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar aula' }));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Erro ao salvar aula' })));
+    expect(screen.getByLabelText('Título')).toHaveValue('Minha aula');
+    expect(screen.getByLabelText('Link do YouTube')).toHaveValue('https://youtu.be/M7lc1UVf-VE');
+    expect(mocks.remove).not.toHaveBeenCalled();
+  });
+
+  it('keeps original file upload available without mixing the two sources', async () => {
+    mocks.isAdmin = true;
+    render(<Tutorial />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar conteúdo' }));
+    fireEvent.change(screen.getByLabelText('Link do YouTube'), { target: { value: 'https://youtu.be/M7lc1UVf-VE' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Arquivo de vídeo' }));
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Arquivo original' } });
+    const file = new File(['original'], 'aula.mp4', { type: 'video/mp4' });
+    fireEvent.change(screen.getByLabelText('Arquivo de vídeo', { selector: 'input[type="file"]' }), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar aula' }));
+    await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({
+      storage_path: expect.stringMatching(/^owner\/.+-aula.mp4$/), youtube_video_id: null, is_published: false,
+    })));
+    expect(mocks.upload).toHaveBeenCalledWith(expect.any(String), file, { contentType: 'video/mp4', upsert: false });
+  });
+
+  it('deletes a YouTube lesson without trying to delete a storage object', async () => {
+    mocks.isAdmin = true;
+    mocks.rows.tutorial_videos = [{ ...lesson('1'), storage_path: null, youtube_video_id: 'M7lc1UVf-VE' }];
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<Tutorial />);
+    fireEvent.click(await screen.findByText('Gerenciar esta aula'));
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir aula' }));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ title: 'Vídeo apagado' }));
+    expect(mocks.delete).toHaveBeenCalledTimes(1);
+    expect(mocks.remove).not.toHaveBeenCalled();
   });
 });
