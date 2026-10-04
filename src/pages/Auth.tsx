@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +20,8 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  TrendingUp,
-  Trophy,
-  PieChart,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -47,7 +47,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base md:text-base`}
+        className={`pl-11 ${onTogglePassword ? 'pr-11' : ''} ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] bg-background dark:bg-black border-border/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all text-base md:text-base`}
         required={required}
       />
       {onTogglePassword && (
@@ -65,7 +65,7 @@ const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, 
 );
 
 const GoogleButton = ({ label, onClick, loading, compact = false }: { label: string; onClick: () => void; loading: boolean; compact?: boolean }) => (
-  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className={`w-full ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] border-border/60 hover:bg-muted/40 transition-all text-sm font-medium`}>
+  <Button type="button" onClick={onClick} disabled={loading} variant="outline" className={`w-full ${compact ? 'h-11' : 'h-[52px]'} rounded-[14px] border-border/60 dark:bg-black hover:bg-muted/40 dark:hover:bg-white/5 transition-all text-sm font-medium`}>
     <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -78,6 +78,8 @@ const GoogleButton = ({ label, onClick, loading, compact = false }: { label: str
 
 const Auth = () => {
   const { t, i18n } = useTranslation();
+  const { resolvedTheme, setTheme } = useTheme();
+  const pageRef = useRef<HTMLDivElement>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -106,12 +108,40 @@ const Auth = () => {
   useLayoutEffect(() => {
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = 'manual';
+    let hasInteracted = false;
     const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    resetScroll();
-    window.addEventListener('pageshow', resetScroll);
+    // Restored/programmatic field focus must not skip the video or open the
+    // mobile keyboard. A tap or keyboard action immediately enables normal focus.
+    const releaseAutomaticFocus = (target: EventTarget | null) => {
+      if (!hasInteracted && target instanceof HTMLElement && pageRef.current?.contains(target) &&
+          target.matches('input, textarea, select, [contenteditable="true"]')) {
+        target.blur();
+        resetScroll();
+      }
+    };
+    const allowFocus = () => { hasInteracted = true; };
+    const onFocus = (event: FocusEvent) => releaseAutomaticFocus(event.target);
+    const resetEntry = () => {
+      hasInteracted = false;
+      releaseAutomaticFocus(document.activeElement);
+      resetScroll();
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted || !hasInteracted) resetEntry();
+    };
+    window.addEventListener('pointerdown', allowFocus, true);
+    window.addEventListener('touchstart', allowFocus, { capture: true, passive: true });
+    window.addEventListener('keydown', allowFocus, true);
+    document.addEventListener('focusin', onFocus, true);
+    window.addEventListener('pageshow', onPageShow);
+    resetEntry();
     return () => {
       window.history.scrollRestoration = previousRestoration;
-      window.removeEventListener('pageshow', resetScroll);
+      window.removeEventListener('pointerdown', allowFocus, true);
+      window.removeEventListener('touchstart', allowFocus, true);
+      window.removeEventListener('keydown', allowFocus, true);
+      document.removeEventListener('focusin', onFocus, true);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, []);
   useEffect(() => { rememberAcquisition(query); }, [query]);
@@ -281,26 +311,36 @@ const Auth = () => {
   const Divider = () => (
     <div className="relative my-4">
       <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
-      <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">{t('auth.or')}</span></div>
+      <div className="relative flex justify-center text-xs uppercase"><span className="bg-card dark:bg-zinc-950 px-3 text-muted-foreground">{t('auth.or')}</span></div>
     </div>
   );
 
   return (
-    <div className="relative w-full min-w-0 min-h-screen m-0 p-0 overflow-x-clip bg-[#f5f6ff]">
+    <div ref={pageRef} className="relative w-full min-w-0 min-h-screen m-0 p-0 overflow-x-clip bg-[#f5f6ff] dark:bg-black text-foreground">
       {/* Fundo decorativo suave */}
-      <div className="absolute inset-0 hidden overflow-hidden pointer-events-none z-0 lg:block" aria-hidden="true">
+      <div className="absolute inset-0 hidden overflow-hidden pointer-events-none z-0 lg:block dark:hidden" aria-hidden="true">
         <div className="absolute -top-1/4 -left-[10%] w-[600px] h-[600px] rounded-full bg-[#0483e4]/15 blur-[120px]" />
         <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-[#7328b1]/12 blur-[120px]" />
         <div className="absolute -bottom-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#dd0b52]/10 blur-[120px]" />
         <div className="absolute top-1/4 -right-[10%] w-[500px] h-[500px] rounded-full bg-[#f96e0c]/10 blur-[120px]" />
       </div>
 
-      {/* Language toggle */}
-      <div className="absolute top-4 right-4 z-30">
+      {/* Display preferences */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full bg-background/80 dark:bg-black/80 text-foreground backdrop-blur-md"
+          aria-label={resolvedTheme === 'dark' ? t('header.lightMode') : t('header.darkMode')}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+        >
+          {resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
         <Button
           variant="ghost"
           size="sm"
-          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground bg-background/60 backdrop-blur-md"
+          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground bg-background/80 dark:bg-black/80 backdrop-blur-md"
           onClick={toggleLanguage}
         >
           {i18n.language === 'pt-BR' ? '🇺🇸 EN' : '🇧🇷 PT'}
@@ -309,7 +349,7 @@ const Auth = () => {
 
       {/* ============ AUTH — centralizado ============ */}
       <div className="relative z-10 flex min-h-screen items-start justify-center p-3 lg:items-center sm:p-6 lg:p-8">
-        <div className="relative grid min-w-0 w-full grid-cols-1 max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
+        <div className="relative grid min-w-0 w-full grid-cols-1 max-w-[560px] overflow-hidden rounded-[30px] border border-white/80 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-[0_30px_90px_-38px_rgba(61,45,120,0.45)] dark:shadow-none animate-fade-in lg:max-w-[1180px] lg:grid-cols-[1fr_0.9fr]">
 
           {/* On desktop the video sets the panel height; long forms scroll within their own column. */}
           <section className="relative min-w-0">
@@ -330,7 +370,7 @@ const Auth = () => {
 
 
             {/* Auth Card */}
-            <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_18px_55px_-35px_rgba(20,25,60,0.45)]">
+            <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-[0_18px_55px_-35px_rgba(20,25,60,0.45)] dark:shadow-none">
               <div className="h-1 bg-gradient-brand-horizontal" />
 
               <CardContent className={compactSignup ? 'p-5' : 'p-5 sm:p-7'}>
@@ -358,11 +398,11 @@ const Auth = () => {
                   </div>
                 ) : (
                   <Tabs value={mode} onValueChange={selectMode} className={compactSignup ? 'space-y-3' : 'space-y-5'}>
-                    <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
-                      <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/50 dark:bg-white/5 p-1 rounded-2xl h-12">
+                      <TabsTrigger value="login" className="data-[state=active]:bg-background dark:data-[state=active]:bg-black data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
                         {t('auth.login')}
                       </TabsTrigger>
-                      <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
+                      <TabsTrigger value="signup" className="data-[state=active]:bg-background dark:data-[state=active]:bg-black data-[state=active]:shadow-soft data-[state=active]:text-primary rounded-xl text-sm font-semibold transition-all">
                         {t('auth.signup')}
                       </TabsTrigger>
                     </TabsList>
@@ -469,7 +509,7 @@ const Auth = () => {
             </div>
           </section>
 
-          <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
+          <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] dark:bg-zinc-950 lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
             <AuthAnimation />
           </aside>
         </div>
