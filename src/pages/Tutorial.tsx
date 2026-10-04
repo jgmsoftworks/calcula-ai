@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { CirclePlay, FolderPlus, Loader2, Plus, Trash2, Upload, Video } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, CirclePlay, FolderPlus, ListVideo, Loader2, Plus, Trash2, Upload, Video } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TutorialPlayer } from '@/components/tutorial/TutorialPlayer';
 
 type Category = {
   id: string;
@@ -27,10 +28,26 @@ type TutorialVideo = {
   storage_path: string;
   sort_order: number;
   is_published: boolean;
-  signed_url?: string;
 };
 
-const db = supabase as any;
+const db = supabase;
+const errorMessage = (error: unknown) => error && typeof error === 'object' && 'message' in error
+  ? String(error.message) : 'Tente novamente em instantes.';
+
+// Read every page so the API's default row limit does not hide older lessons.
+async function loadRows<T>(table: 'tutorial_categories' | 'tutorial_videos', isAdmin: boolean): Promise<T[]> {
+  const rows: T[] = [];
+  const pageSize = 250;
+  for (let offset = 0; ; offset += pageSize) {
+    let query = db.from(table).select('*').order('sort_order').order('created_at').order('id')
+      .range(offset, offset + pageSize - 1);
+    if (!isAdmin) query = query.eq('is_published', true);
+    const { data, error } = await query;
+    if (error) throw error;
+    rows.push(...((data || []) as T[]));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
 
 export default function Tutorial() {
   const { user, isAdmin } = useAuth();
@@ -47,44 +64,32 @@ export default function Tutorial() {
   const [videoCategory, setVideoCategory] = useState('');
   const [videoPublished, setVideoPublished] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  const loadTutorial = async () => {
+  const loadTutorial = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      let categoryQuery = db.from('tutorial_categories').select('*').order('sort_order').order('created_at');
-      let videoQuery = db.from('tutorial_videos').select('*').order('sort_order').order('created_at');
-      if (!isAdmin) {
-        categoryQuery = categoryQuery.eq('is_published', true);
-        videoQuery = videoQuery.eq('is_published', true);
-      }
-
-      const [{ data: categoryData, error: categoryError }, { data: videoData, error: videoError }] =
-        await Promise.all([categoryQuery, videoQuery]);
-      if (categoryError) throw categoryError;
-      if (videoError) throw videoError;
-
-      const hydratedVideos = await Promise.all(
-        ((videoData || []) as TutorialVideo[]).map(async (video) => {
-          const { data } = await supabase.storage
-            .from('tutorial-videos')
-            .createSignedUrl(video.storage_path, 60 * 60);
-          return { ...video, signed_url: data?.signedUrl };
-        }),
-      );
-
-      setCategories((categoryData || []) as Category[]);
-      setVideos(hydratedVideos);
-      if (!videoCategory && categoryData?.[0]?.id) setVideoCategory(categoryData[0].id);
-    } catch (error: any) {
-      toast({ title: 'Não foi possível carregar os vídeos', description: error.message, variant: 'destructive' });
+      const [categoryData, videoData] = await Promise.all([
+        loadRows<Category>('tutorial_categories', isAdmin),
+        loadRows<TutorialVideo>('tutorial_videos', isAdmin),
+      ]);
+      setCategories(categoryData);
+      setVideos(videoData);
+      setVideoCategory((current) => categoryData.some((item) => item.id === current) ? current : categoryData[0]?.id || '');
+    } catch (error: unknown) {
+      setLoadError(true);
+      toast({ title: 'Não foi possível carregar os vídeos', description: errorMessage(error), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, toast]);
 
   useEffect(() => {
     void loadTutorial();
-  }, [isAdmin]);
+  }, [loadTutorial]);
 
   const videosByCategory = useMemo(() => {
     const grouped = new Map<string, TutorialVideo[]>();
@@ -93,18 +98,23 @@ export default function Tutorial() {
     return grouped;
   }, [categories, videos]);
 
+  const orderedVideos = useMemo(() => categories.flatMap((category) => videosByCategory.get(category.id) || []), [categories, videosByCategory]);
+  const selectedVideo = orderedVideos.find((video) => video.id === selectedId) || orderedVideos[0];
+  const selectedIndex = selectedVideo ? orderedVideos.findIndex((video) => video.id === selectedVideo.id) : -1;
+  const selectedCategory = categories.find((category) => category.id === selectedVideo?.category_id);
+
   const createCategory = async () => {
     if (!categoryTitle.trim()) return;
     setSavingCategory(true);
     const { error } = await db.from('tutorial_categories').insert({
       title: categoryTitle.trim(),
       description: categoryDescription.trim() || null,
-      sort_order: categories.length,
+      sort_order: Math.max(-1, ...categories.map((category) => category.sort_order)) + 1,
       is_published: true,
     });
     setSavingCategory(false);
     if (error) {
-      toast({ title: 'Erro ao criar categoria', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar categoria', description: errorMessage(error), variant: 'destructive' });
       return;
     }
     setCategoryTitle('');
@@ -130,7 +140,7 @@ export default function Tutorial() {
         title: videoTitle.trim(),
         description: videoDescription.trim() || null,
         storage_path: storagePath,
-        sort_order: videos.filter((video) => video.category_id === videoCategory).length,
+        sort_order: Math.max(-1, ...videos.filter((video) => video.category_id === videoCategory).map((video) => video.sort_order)) + 1,
         is_published: videoPublished,
       });
       if (insertError) {
@@ -146,8 +156,8 @@ export default function Tutorial() {
       if (fileInput) fileInput.value = '';
       toast({ title: 'Vídeo enviado com sucesso' });
       await loadTutorial();
-    } catch (error: any) {
-      toast({ title: 'Erro ao enviar vídeo', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao enviar vídeo', description: errorMessage(error), variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -158,16 +168,16 @@ export default function Tutorial() {
       .from('tutorial_videos')
       .update({ is_published: !video.is_published, updated_at: new Date().toISOString() })
       .eq('id', video.id);
-    if (error) toast({ title: 'Erro ao alterar publicação', description: error.message, variant: 'destructive' });
+    if (error) toast({ title: 'Erro ao alterar publicação', description: errorMessage(error), variant: 'destructive' });
     else await loadTutorial();
   };
 
   const moveVideo = async (video: TutorialVideo, categoryId: string) => {
     const { error } = await db
       .from('tutorial_videos')
-      .update({ category_id: categoryId, updated_at: new Date().toISOString() })
+      .update({ category_id: categoryId, sort_order: Math.max(-1, ...videos.filter((item) => item.category_id === categoryId).map((item) => item.sort_order)) + 1, updated_at: new Date().toISOString() })
       .eq('id', video.id);
-    if (error) toast({ title: 'Erro ao mover vídeo', description: error.message, variant: 'destructive' });
+    if (error) toast({ title: 'Erro ao mover vídeo', description: errorMessage(error), variant: 'destructive' });
     else await loadTutorial();
   };
 
@@ -175,7 +185,7 @@ export default function Tutorial() {
     if (!window.confirm(`Apagar o vídeo "${video.title}"?`)) return;
     const { error } = await db.from('tutorial_videos').delete().eq('id', video.id);
     if (error) {
-      toast({ title: 'Erro ao apagar vídeo', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao apagar vídeo', description: errorMessage(error), variant: 'destructive' });
       return;
     }
     await supabase.storage.from('tutorial-videos').remove([video.storage_path]);
@@ -188,7 +198,7 @@ export default function Tutorial() {
       .from('tutorial_categories')
       .update({ is_published: !category.is_published, updated_at: new Date().toISOString() })
       .eq('id', category.id);
-    if (error) toast({ title: 'Erro ao alterar categoria', description: error.message, variant: 'destructive' });
+    if (error) toast({ title: 'Erro ao alterar categoria', description: errorMessage(error), variant: 'destructive' });
     else await loadTutorial();
   };
 
@@ -211,27 +221,103 @@ export default function Tutorial() {
     return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
+  if (loadError) {
+    return <Card><CardContent className="space-y-4 p-8 text-center"><p>Não foi possível carregar as aulas.</p><Button onClick={() => void loadTutorial()}>Tentar novamente</Button></CardContent></Card>;
+  }
+
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-[hsl(273,63%,42%)] to-[hsl(340,91%,45%)] p-5 text-white sm:p-8 md:p-12">
-        <div className="flex max-w-3xl items-start gap-4">
-          <div className="rounded-2xl bg-white/15 p-3"><CirclePlay className="h-8 w-8" /></div>
-          <div>
-            <h1 className="font-display text-2xl font-bold sm:text-3xl md:text-5xl">Tutoriais em vídeo</h1>
-            <p className="mt-3 text-lg text-white/80">Aprenda a usar o CalculaAi com vídeos rápidos, organizados por categoria.</p>
-          </div>
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Aulas e tutoriais</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Aprenda no seu ritmo, seguindo os módulos e as aulas.</p>
+        </div>
+        {isAdmin && <Button onClick={() => setShowEditor((value) => !value)} aria-expanded={showEditor} aria-controls="tutorial-editor" className="gap-2"><Plus className="h-4 w-4" /> {showEditor ? 'Fechar envio' : 'Adicionar conteúdo'}</Button>}
+      </header>
+
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
+        <Card className="order-2 min-w-0 overflow-hidden rounded-2xl xl:order-1">
+          <CardHeader className="border-b p-4">
+            <CardTitle className="flex items-center gap-2 text-base"><ListVideo className="h-5 w-5 text-primary" /> Conteúdo das aulas</CardTitle>
+            <p className="text-xs text-muted-foreground">{categories.length} módulos · {orderedVideos.length} aulas</p>
+          </CardHeader>
+          <nav aria-label="Módulos e aulas" className="max-h-[65svh] overflow-y-auto xl:max-h-[calc(100svh-240px)]">
+            {categories.length === 0 && <p className="p-5 text-sm text-muted-foreground">{isAdmin ? 'Adicione o primeiro módulo para organizar suas aulas.' : 'Novas aulas serão adicionadas em breve.'}</p>}
+            {categories.map((category, categoryIndex) => (
+              <details key={category.id} open className="group border-b last:border-b-0">
+                <summary className="cursor-pointer break-words bg-muted/40 p-4 text-sm font-semibold focus-visible:outline-primary">
+                  {String(categoryIndex + 1).padStart(2, '0')}. {category.title}
+                  {isAdmin && !category.is_published && <span className="ml-2 text-xs font-normal text-muted-foreground">Oculto</span>}
+                </summary>
+                {category.description && <p className="px-4 pt-3 text-xs text-muted-foreground">{category.description}</p>}
+                <ol className="space-y-1 p-2">
+                  {(videosByCategory.get(category.id) || []).map((video, index) => (
+                    <li key={video.id}>
+                      <button type="button" onClick={() => setSelectedId(video.id)} aria-current={selectedVideo?.id === video.id ? 'step' : undefined}
+                        className={`flex min-h-12 w-full items-start gap-3 rounded-xl p-3 text-left text-sm transition-colors focus-visible:outline-primary ${selectedVideo?.id === video.id ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'}`}>
+                        <CirclePlay aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span className="min-w-0 break-words"><span className="mr-1 opacity-60">{index + 1}.</span> {video.title}{isAdmin && !video.is_published && <span className="mt-1 block text-xs font-normal text-muted-foreground">Rascunho</span>}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+                {isAdmin && (
+                  <details className="px-4 pb-4 text-xs">
+                    <summary className="cursor-pointer text-muted-foreground">Gerenciar módulo</summary>
+                    <div className="mt-3 space-y-3">
+                      <div className="flex items-center justify-between gap-2"><Label htmlFor={`module-${category.id}`} className="text-xs">Publicado</Label><Switch id={`module-${category.id}`} checked={category.is_published} onCheckedChange={() => void toggleCategory(category)} /></div>
+
+                      <Button size="sm" variant="ghost" onClick={() => void deleteCategory(category)} className="gap-2 text-destructive"><Trash2 className="h-3 w-3" /> Excluir módulo</Button>
+                    </div>
+                  </details>
+                )}
+              </details>
+            ))}
+          </nav>
+        </Card>
+
+        <div className="order-1 min-w-0 space-y-4 xl:order-2">
+          {selectedVideo ? (
+            <Card className="overflow-hidden rounded-2xl">
+              <TutorialPlayer key={selectedVideo.id} storagePath={selectedVideo.storage_path} title={selectedVideo.title} />
+              <CardContent className="space-y-5 p-4 sm:p-6">
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">{selectedCategory?.title} · Aula {selectedIndex + 1} de {orderedVideos.length}</p>
+                  <h2 className="break-words font-display text-xl font-bold sm:text-2xl">{selectedVideo.title}</h2>
+                  {selectedVideo.description && <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-muted-foreground">{selectedVideo.description}</p>}
+                </div>
+                <div className="flex flex-wrap justify-between gap-2 border-t pt-4">
+                  <Button variant="outline" disabled={selectedIndex <= 0} onClick={() => setSelectedId(orderedVideos[selectedIndex - 1].id)} className="gap-1"><ChevronLeft className="h-4 w-4" /> Anterior</Button>
+                  <Button disabled={selectedIndex >= orderedVideos.length - 1} onClick={() => setSelectedId(orderedVideos[selectedIndex + 1].id)} className="gap-1">Próxima aula <ChevronRight className="h-4 w-4" /></Button>
+                </div>
+                {isAdmin && (
+                  <details className="border-t pt-4">
+                    <summary className="cursor-pointer text-sm font-medium">Gerenciar esta aula</summary>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="flex items-center gap-3"><Switch id="selected-published" checked={selectedVideo.is_published} onCheckedChange={() => void toggleVideo(selectedVideo)} /><Label htmlFor="selected-published">Aula publicada</Label></div>
+                      <div><Label htmlFor="selected-category">Módulo</Label><Select value={selectedVideo.category_id} onValueChange={(value) => void moveVideo(selectedVideo, value)}><SelectTrigger id="selected-category"><SelectValue /></SelectTrigger><SelectContent>{categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}</SelectContent></Select></div>
+
+                      <Button variant="outline" onClick={() => void deleteVideo(selectedVideo)} className="gap-2 self-end text-destructive"><Trash2 className="h-4 w-4" /> Excluir aula</Button>
+                    </div>
+                  </details>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="rounded-2xl"><CardContent className="flex min-h-64 flex-col items-center justify-center p-8 text-center"><Video className="mb-4 h-12 w-12 text-muted-foreground" /><h2 className="text-xl font-semibold">Suas aulas começam aqui</h2><p className="mt-2 text-sm text-muted-foreground">{isAdmin ? 'Crie um módulo e envie o primeiro vídeo em Adicionar conteúdo.' : 'Novos tutoriais serão adicionados em breve.'}</p></CardContent></Card>
+          )}
         </div>
       </div>
 
-      {isAdmin && (
-        <div className="grid gap-6 lg:grid-cols-2">
+      {isAdmin && showEditor && (
+        <div id="tutorial-editor" className="grid gap-6 lg:grid-cols-2">
           <Card className="rounded-2xl">
-            <CardHeader><CardTitle className="flex items-center gap-2"><FolderPlus className="h-5 w-5" /> Nova categoria</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><FolderPlus className="h-5 w-5" /> Novo módulo</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div><Label htmlFor="category-title">Nome</Label><Input id="category-title" value={categoryTitle} onChange={(e) => setCategoryTitle(e.target.value)} placeholder="Ex.: Primeiros passos" /></div>
-              <div><Label htmlFor="category-description">Descrição</Label><Textarea id="category-description" value={categoryDescription} onChange={(e) => setCategoryDescription(e.target.value)} placeholder="O que o usuário aprenderá nesta categoria" /></div>
+              <div><Label htmlFor="category-title">Nome</Label><Input maxLength={80} id="category-title" value={categoryTitle} onChange={(e) => setCategoryTitle(e.target.value)} placeholder="Ex.: Primeiros passos" /></div>
+              <div><Label htmlFor="category-description">Descrição</Label><Textarea id="category-description" value={categoryDescription} onChange={(e) => setCategoryDescription(e.target.value)} placeholder="O que o usuário aprenderá neste módulo" /></div>
               <Button onClick={createCategory} disabled={savingCategory || !categoryTitle.trim()} className="gap-2">
-                {savingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Criar categoria
+                {savingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Criar módulo
               </Button>
             </CardContent>
           </Card>
@@ -239,46 +325,17 @@ export default function Tutorial() {
           <Card className="rounded-2xl">
             <CardHeader><CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Enviar vídeo</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div><Label htmlFor="video-title">Título</Label><Input id="video-title" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder="Título do vídeo" /></div>
-              <div><Label>Categoria</Label><Select value={videoCategory} onValueChange={setVideoCategory}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.title}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label htmlFor="video-title">Título</Label><Input maxLength={120} id="video-title" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder="Título do vídeo" /></div>
+              <div><Label htmlFor="upload-module">Módulo</Label><Select value={videoCategory} onValueChange={setVideoCategory}><SelectTrigger id="upload-module"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.title}</SelectItem>)}</SelectContent></Select></div>
               <div><Label htmlFor="video-description">Descrição</Label><Textarea id="video-description" value={videoDescription} onChange={(e) => setVideoDescription(e.target.value)} placeholder="Resumo opcional" /></div>
-              <div><Label htmlFor="tutorial-video-file">Arquivo de vídeo</Label><Input id="tutorial-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} /></div>
-              <div className="flex items-center gap-3"><Switch checked={videoPublished} onCheckedChange={setVideoPublished} /><Label>Publicar imediatamente</Label></div>
+              <div><Label htmlFor="tutorial-video-file">Arquivo de vídeo</Label><Input id="tutorial-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} disabled={uploading} /><p className="mt-2 text-xs text-muted-foreground">Seu vídeo é enviado na qualidade original. Para maior compatibilidade, prefira MP4 (H.264).</p></div>
+              <div className="flex items-center gap-3"><Switch id="upload-published" checked={videoPublished} onCheckedChange={setVideoPublished} /><Label htmlFor="upload-published">Publicar imediatamente</Label></div>
               <Button onClick={uploadVideo} disabled={uploading || !videoFile || !videoTitle.trim() || !videoCategory} className="gap-2">
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {uploading ? 'Enviando...' : 'Enviar vídeo'}
               </Button>
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {categories.length === 0 ? (
-        <Card className="rounded-3xl"><CardContent className="flex flex-col items-center py-16 text-center"><Video className="mb-4 h-12 w-12 text-muted-foreground" /><h2 className="text-xl font-semibold">Nenhum vídeo publicado ainda</h2><p className="mt-2 text-muted-foreground">{isAdmin ? 'Crie a primeira categoria e envie um vídeo.' : 'Novos tutoriais serão adicionados em breve.'}</p></CardContent></Card>
-      ) : (
-        categories.map((category) => (
-          <section key={category.id} className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><h2 className="font-display text-2xl font-bold">{category.title}</h2>{category.description && <p className="mt-1 text-muted-foreground">{category.description}</p>}</div>
-              {isAdmin && <div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{category.is_published ? 'Categoria publicada' : 'Categoria oculta'}</span><Switch checked={category.is_published} onCheckedChange={() => toggleCategory(category)} /><Button variant="ghost" size="icon" onClick={() => deleteCategory(category)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>}
-            </div>
-
-            {(videosByCategory.get(category.id) || []).length === 0 ? (
-              isAdmin && <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum vídeo nesta categoria.</div>
-            ) : (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {(videosByCategory.get(category.id) || []).map((video) => (
-                  <Card key={video.id} className="overflow-hidden rounded-2xl">
-                    <div className="aspect-video bg-black">{video.signed_url ? <video src={video.signed_url} controls preload="metadata" className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-white/60"><Video className="h-10 w-10" /></div>}</div>
-                    <CardContent className="space-y-3 p-5">
-                      <div><h3 className="font-semibold">{video.title}</h3>{video.description && <p className="mt-1 text-sm text-muted-foreground">{video.description}</p>}</div>
-                      {isAdmin && <div className="space-y-3 border-t pt-3"><div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{video.is_published ? 'Publicado' : 'Rascunho'}</span><Switch checked={video.is_published} onCheckedChange={() => toggleVideo(video)} /></div><div className="flex gap-2"><Select value={video.category_id} onValueChange={(value) => moveVideo(video, value)}><SelectTrigger className="h-9 flex-1"><SelectValue /></SelectTrigger><SelectContent>{categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="icon" onClick={() => deleteVideo(video)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </section>
-        ))
       )}
     </div>
   );
