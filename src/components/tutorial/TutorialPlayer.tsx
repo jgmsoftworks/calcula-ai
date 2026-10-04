@@ -1,11 +1,41 @@
 import { useEffect, useState } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { isYouTubeVideoId } from '@/lib/youtube';
 
-type Props = { storagePath: string; title: string };
+type Props = { storagePath: string | null; youtubeVideoId?: string | null; title: string };
 
-export function TutorialPlayer({ storagePath, title }: Props) {
+export function TutorialPlayer({ storagePath, youtubeVideoId, title }: Props) {
+  if (youtubeVideoId && isYouTubeVideoId(youtubeVideoId)) {
+    return (
+      <div>
+        <div className="relative aspect-video min-h-[200px] w-full bg-black">
+          <iframe
+            key={youtubeVideoId}
+            src={`https://www.youtube-nocookie.com/embed/${youtubeVideoId}?playsinline=1&rel=0`}
+            title={title}
+            className="absolute inset-0 h-full w-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3 text-xs">
+          <span className="text-muted-foreground">Qualidade e tela cheia nos controles do vídeo.</span>
+          <a href={`https://www.youtube.com/watch?v=${youtubeVideoId}`} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline">
+            Abrir no YouTube <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      </div>
+    );
+  }
+  if (storagePath && !youtubeVideoId) return <StoredTutorialPlayer key={storagePath} storagePath={storagePath} title={title} />;
+  return <div role="alert" className="flex aspect-video items-center justify-center bg-muted p-6 text-center text-sm">Vídeo indisponível. Entre em contato com o suporte.</div>;
+}
+
+function StoredTutorialPlayer({ storagePath, title }: { storagePath: string; title: string }) {
   const [attempt, setAttempt] = useState(0);
   const [source, setSource] = useState<{ path: string; url: string } | null>(null);
   const [failed, setFailed] = useState(false);
