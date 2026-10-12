@@ -26,7 +26,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('product form nutrition persistence', () => {
   it('saves a partial label in the same product update without changing costs or stock', async () => {
-    render(<ProdutoForm produto={product} open onOpenChange={vi.fn()} onSuccess={vi.fn()} />);
+    render(<ProdutoForm produto={product} onCancel={vi.fn()} onSuccess={vi.fn()} />);
     openNutrition();
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar rótulo nutricional' }));
     fireEvent.change(screen.getByLabelText('Quantidade de referência'), { target: { value: '100' } });
@@ -39,7 +39,7 @@ describe('product form nutrition persistence', () => {
 
   it('preserves saved nutrition when editing another tab without opening nutrition', async () => {
     const rotulo = { versao: 1, quantidade_referencia: 20, unidade_referencia: 'g', marca: 'Marca X', nutrientes: [{ nutriente: 'proteinas', quantidade: 2 }], foto_path: null, origem: 'manual', conferido: false };
-    render(<ProdutoForm produto={{ ...product, rotulo_nutricional: rotulo }} open onOpenChange={vi.fn()} onSuccess={vi.fn()} />);
+    render(<ProdutoForm produto={{ ...product, rotulo_nutricional: rotulo }} onCancel={vi.fn()} onSuccess={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Salvar Produto' }));
     await waitFor(() => expect(mocks.update).toHaveBeenCalledOnce());
     expect(mocks.update.mock.calls[0][1].rotulo_nutricional).toEqual(rotulo);

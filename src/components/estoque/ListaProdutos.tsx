@@ -51,14 +51,13 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { ProdutoForm } from './ProdutoForm';
 import { ImportProdutosExcel } from './ImportProdutosExcel';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { useExportProdutos } from '@/hooks/useExportProdutos';
 import { useMarcasCategorias } from '@/hooks/useMarcasCategorias';
 import { formatters } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 export function ListaProdutos() {
   const { fetchProdutos, deleteProduto } = useEstoque();
@@ -66,21 +65,33 @@ export function ListaProdutos() {
   const { fetchMarcas, fetchCategorias } = useMarcasCategorias();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
   const [produtoParaExcluir, setProdutoParaExcluir] = useState<Produto | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [receitasUsando, setReceitasUsando] = useState<{ id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }[]>([]);
   const [verificandoUso, setVerificandoUso] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Filtros
-  const [search, setSearch] = useState('');
-  const [unidadeFiltro, setUnidadeFiltro] = useState<string>('todas');
-  const [marcaSelecionada, setMarcaSelecionada] = useState<string>('todas');
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('todas');
-  const [abaixoMinimo, setAbaixoMinimo] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
+  // Keep the list's filters when returning from the editor, including reloads.
+  const search = params.get('q') || '';
+  const unidadeFiltro = params.get('unidade') || 'todas';
+  const marcaSelecionada = params.get('marca') || 'todas';
+  const categoriaSelecionada = params.get('categoria') || 'todas';
+  const abaixoMinimo = params.get('abaixo') === '1';
+  const setFilter = (key: string, value: string) => setParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (value && value !== 'todas') next.set(key, value);
+    else next.delete(key);
+    return next;
+  }, { replace: true });
+  const setSearch = (value: string) => setFilter('q', value);
+  const setUnidadeFiltro = (value: string) => setFilter('unidade', value);
+  const setMarcaSelecionada = (value: string) => setFilter('marca', value);
+  const setCategoriaSelecionada = (value: string) => setFilter('categoria', value);
+  const setAbaixoMinimo = (value: boolean) => setFilter('abaixo', value ? '1' : '');
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Dados dos filtros
@@ -139,13 +150,11 @@ export function ListaProdutos() {
   }, [search, unidadeFiltro, marcaSelecionada, categoriaSelecionada, abaixoMinimo]);
 
   const handleEdit = (produto: Produto) => {
-    setProdutoSelecionado(produto);
-    setModalOpen(true);
+    navigate(`/estoque/${produto.id}/editar${location.search}`);
   };
 
   const handleCreate = () => {
-    setProdutoSelecionado(undefined);
-    setModalOpen(true);
+    navigate(`/estoque/novo${location.search}`);
   };
 
   const handleImportSuccess = () => {
@@ -460,7 +469,7 @@ export function ListaProdutos() {
                     <TableCell className="text-right font-semibold">{formatters.valor(valorEstoque)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => handleEdit(produto)}>
+                        <Button size="icon" variant="ghost" aria-label={`Editar ${produto.nome}`} onClick={() => handleEdit(produto)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button size="icon" variant="ghost" onClick={() => handleDelete(produto)}>
@@ -555,13 +564,6 @@ export function ListaProdutos() {
           })
         )}
       </div>
-
-      <ProdutoForm
-        produto={produtoSelecionado}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        onSuccess={loadProdutos}
-      />
 
       <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => { if (!open) { setProdutoParaExcluir(null); setReceitasUsando([]); } }}>
         <AlertDialogContent className={`max-w-md overflow-hidden rounded-3xl border border-border/60 bg-background/95 p-0 backdrop-blur-2xl ${receitasUsando.length > 0 ? 'shadow-[0_25px_80px_-15px_rgba(245,158,11,0.4)]' : 'shadow-[0_25px_80px_-15px_rgba(244,63,94,0.35)]'}`}>

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,7 +30,7 @@ export interface Produto {
 export function useEstoque() {
   const { user } = useAuth();
 
-  const gerarCodigoInterno = async (): Promise<number> => {
+  const gerarCodigoInterno = useCallback(async (): Promise<number> => {
     if (!user) return 1;
 
     const { data, error } = await supabase
@@ -41,7 +42,7 @@ export function useEstoque() {
     }
 
     return (data as number) || 1;
-  };
+  }, [user]);
 
   const fetchProdutos = async (filters?: {
     search?: string;

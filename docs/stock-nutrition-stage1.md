@@ -25,7 +25,7 @@ Migração aplicada: `20261012225119_add_stock_nutrition_label.sql`.
 - Verificação SQL em transação revertida: leitura/gravação pelo proprietário, bloqueio de dados inválidos, preservação do custo, bloqueio de acesso entre contas a produtos e metadados de fotos. Nenhum dado de teste permaneceu salvo.
 - Advisors de segurança sem novos achados em relação à execução anterior à migração.
 - OCR executado sobre uma imagem sintética em português. Erros de reconhecimento de unidades foram mantidos como campos pendentes.
-- TypeScript e compilação de produção verificados. Layout adaptado com duas colunas de guias no celular e quatro em telas maiores; teste visual em aparelhos reais permanece para a revisão da interface.
+- TypeScript e compilação de produção verificados. O cadastro agora usa uma página com três guias, com Modo de Uso junto de Estoque & Custos. Verificação responsiva documentada em `stock-product-editor.md`; teste em aparelhos físicos permanece para a revisão da interface.
 
 ## Próximas etapas
 

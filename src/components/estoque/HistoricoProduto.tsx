@@ -58,7 +58,7 @@ export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
     <>
       {/* Desktop */}
       <Card className="overflow-hidden hidden md:block">
-        <div className="max-h-[400px] overflow-auto">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
@@ -99,7 +99,7 @@ export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
       </Card>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2 max-h-[400px] overflow-auto pr-1">
+      <div className="md:hidden space-y-2">
         {movimentacoes.map((m) => (
           <Card key={m.id} className="p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">

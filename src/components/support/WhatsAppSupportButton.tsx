@@ -1,9 +1,8 @@
 import { MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 
-export const WhatsAppSupportButton = () => {
+export const WhatsAppSupportButton = ({ inline = false }: { inline?: boolean }) => {
   const { user } = useAuth();
 
   const phoneNumber = '556292622545';
@@ -18,10 +17,10 @@ export const WhatsAppSupportButton = () => {
             href={whatsappURL}
             target="_blank"
             rel="noopener noreferrer"
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-green-500 hover:bg-green-600 shadow-lg hover:shadow-xl transition-all duration-200 z-50 p-0 inline-flex items-center justify-center"
+            className={`rounded-full bg-green-500 hover:bg-green-600 shadow-lg hover:shadow-xl transition-all duration-200 p-0 inline-flex shrink-0 items-center justify-center ${inline ? 'h-9 w-9' : 'fixed bottom-6 right-6 z-50 h-14 w-14'}`}
             aria-label="Suporte via WhatsApp"
           >
-            <MessageCircle className="h-6 w-6 text-white" />
+            <MessageCircle className={`${inline ? 'h-5 w-5' : 'h-6 w-6'} text-white`} />
           </a>
         </TooltipTrigger>
         <TooltipContent side="left" className="bg-gray-900 text-white border-gray-700">

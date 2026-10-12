@@ -37,6 +37,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const currentTheme = theme || resolvedTheme || 'light';
   const location = useLocation();
   const navigate = useNavigate();
+  const isProductEditor = /^\/estoque\/(novo|[^/]+\/editar)$/.test(location.pathname);
   const [isResending, setIsResending] = useState(false);
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
   const { toast } = useToast();
@@ -65,7 +66,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/planos': 'planos',
       '/tutorial': 'tutorial',
     };
-    const key = pathname.startsWith('/receitas/') ? 'receitas' : pageMap[pathname];
+    const key = pathname.startsWith('/receitas/') ? 'receitas' : isProductEditor ? 'estoque' : pageMap[pathname];
     if (key) {
       const titleMap: Record<string, string> = {
         '/estoque/historico': 'Histórico Geral',
@@ -153,12 +154,12 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider>
       <SubscriptionStatusGate>
-      <div className="flex min-h-svh w-full min-w-0 overflow-x-hidden bg-background">
+      <div className={`flex w-full min-w-0 bg-background ${isProductEditor ? 'h-dvh overflow-hidden' : 'min-h-svh overflow-x-hidden'}`}>
         <AppSidebar />
         
-        <div className="flex min-h-svh min-w-0 flex-1 flex-col">
+        <div className={`flex min-w-0 flex-1 flex-col ${isProductEditor ? 'min-h-0' : 'min-h-svh'}`}>
           {/* Header — glass morphism */}
-          <header className="glass-strong sticky top-0 z-30 border-b border-border/30">
+          <header className="glass-strong sticky top-0 z-30 shrink-0 border-b border-border/30">
             <div className="flex h-14 min-w-0 items-center gap-1 px-2.5 sm:gap-2 sm:px-4 lg:gap-3 lg:px-6">
               <SidebarTrigger
                 className="h-10 w-10 shrink-0 md:hidden"
@@ -230,6 +231,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </Tooltip>
               )}
               <NotificationCenter />
+              {isProductEditor && <WhatsAppSupportButton inline />}
 
               {/* User menu */}
               <DropdownMenu>
@@ -289,14 +291,14 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="mx-auto w-full min-w-0 max-w-full px-3 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:py-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12">
+          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+            <div className={`mx-auto w-full min-w-0 max-w-full px-3 pt-3 sm:px-6 sm:pt-4 lg:px-8 lg:pt-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12 ${isProductEditor ? 'h-full' : 'pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-6'}`}>
               {children}
             </div>
           </main>
         </div>
 
-        <WhatsAppSupportButton />
+        {!isProductEditor && <WhatsAppSupportButton />}
       </div>
       </SubscriptionStatusGate>
     </SidebarProvider>

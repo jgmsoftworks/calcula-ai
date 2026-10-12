@@ -26,6 +26,7 @@ const DespesasFixasPage = lazy(() => import("./pages/precificacao/DespesasFixasP
 const FolhaPagamentoPage = lazy(() => import("./pages/precificacao/FolhaPagamentoPage"));
 const EncargosVendaPage = lazy(() => import("./pages/precificacao/EncargosVendaPage"));
 const Estoque = lazy(() => import("./pages/Estoque"));
+const ProdutoEditor = lazy(() => import("./pages/ProdutoEditor"));
 const EstoqueHistorico = lazy(() => import("./pages/EstoqueHistorico"));
 const RelatoriosEstoque = lazy(() => import("./pages/RelatoriosEstoque"));
 const RelatoriosPerdas = lazy(() => import("./pages/RelatoriosPerdas"));
@@ -103,6 +104,8 @@ const App = () => (
                   <Route path="/admin-configuracoes" element={<AdminSettings />} />
                   <Route path="/" element={<Index />} />
                   <Route path="/estoque" element={<Estoque />} />
+                  <Route path="/estoque/novo" element={<ProdutoEditor />} />
+                  <Route path="/estoque/:id/editar" element={<ProdutoEditor />} />
                   <Route path="/estoque/movimentacoes" element={<Movimentacao />} />
                   <Route path="/estoque/historico" element={<EstoqueHistorico />} />
                   <Route path="/estoque/perdas" element={<Perdas />} />

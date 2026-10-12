@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Camera, X, Sparkles } from 'lucide-react';
+import { ArrowLeft, Camera, X, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,13 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
@@ -38,20 +31,20 @@ import type { Json } from '@/integrations/supabase/types';
 
 interface ProdutoFormProps {
   produto?: Produto;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onCancel: () => void;
   onSuccess: () => void;
 }
 
-export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoFormProps) {
+export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) {
   const { gerarCodigoInterno, createProduto, updateProduto, uploadImagemProduto } = useEstoque();
   const [saving, setSaving] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(produto?.imagem_url || null);
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
-  const [nutrition, setNutrition] = useState<NutritionLabel | null>(null);
+  const [nutrition, setNutrition] = useState<NutritionLabel | null>(() => readNutritionLabel(produto?.rotulo_nutricional));
   const [nutritionPhoto, setNutritionPhoto] = useState<File | null>(null);
   const [nutritionBusy, setNutritionBusy] = useState(false);
+  const [tab, setTab] = useState('estoque');
   
   // Ensure all values are valid before setting as defaults
   const defaultValues = produto ? {
@@ -75,7 +68,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     fator_conversao: null,
   };
   
-  const { register, handleSubmit, setValue, watch, reset } = useForm<Partial<Omit<Produto, 'rotulo_nutricional'>>>({
+  const { register, handleSubmit, setValue, setError, watch, formState: { errors } } = useForm<Partial<Omit<Produto, 'rotulo_nutricional'>>>({
     defaultValues,
   });
 
@@ -91,71 +84,23 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     ? custo_unitario / fator_conversao
     : 0;
 
-  // Reset form when produto changes or modal opens
+  // The route remounts this form for each product. Never reset an in-progress
+  // edit on a refetch; only allocate the internal code for a new product.
   useEffect(() => {
-    console.log('🔵 [MODAL] Modal state changed - Open:', open, 'Produto:', produto?.nome || 'NOVO');
-    
-    if (open) {
-      setNutrition(readNutritionLabel(produto?.rotulo_nutricional));
-      setNutritionPhoto(null);
-      setNutritionBusy(false);
-      if (produto) {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('📦 [EDITAR] Carregando dados do produto');
-        console.log('🏷️ [NOME]:', produto.nome);
-        console.log('🔢 [CODIGO INTERNO]:', produto.codigo_interno);
-        console.log('📸 [IMAGEM URL]:', produto.imagem_url || 'SEM IMAGEM');
-        console.log('🏭 [MARCAS]:', produto.marcas);
-        console.log('📂 [CATEGORIAS]:', produto.categorias);
-        console.log('📦 [UNIDADE COMPRA]:', produto.unidade_compra);
-        console.log('💰 [CUSTO UNITARIO]:', produto.custo_unitario);
-        console.log('📊 [ESTOQUE ATUAL]:', produto.estoque_atual);
-        console.log('⚠️ [ESTOQUE MINIMO]:', produto.estoque_minimo);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        const formData = {
-          ...produto,
-          unidade_compra: (produto.unidade_compra && produto.unidade_compra.trim() !== '') 
-            ? produto.unidade_compra 
-            : 'un',
-          unidade_uso: (produto.unidade_uso && produto.unidade_uso.trim() !== '') 
-            ? produto.unidade_uso 
-            : null,
-        };
-        
-        console.log('✅ [RESET] Executando reset com formData:', formData);
-        reset(formData);
-        
-        // Carregar preview da imagem existente
-        setImagePreview(produto.imagem_url || null);
-        setSelectedImageFile(null);
-        
-        // Verificar se dados foram setados corretamente
-        setTimeout(() => {
-          console.log('🎯 [VERIFICAÇÃO] Após reset - imagem_url:', watch('imagem_url'));
-          console.log('🎯 [VERIFICAÇÃO] Após reset - nome:', watch('nome'));
-          console.log('🎯 [VERIFICAÇÃO] Após reset - codigo_interno:', watch('codigo_interno'));
-        }, 100);
-      } else {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('➕ [NOVO] Criando novo produto');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        reset(defaultValues);
-        setImagePreview(null);
-        setSelectedImageFile(null);
-        loadCodigoInterno();
-      }
-    }
-  }, [open, produto, reset, watch]);
-
-  const loadCodigoInterno = async () => {
-    const codigo = await gerarCodigoInterno();
-    setValue('codigo_interno', codigo);
-  };
+    if (produto) return;
+    let active = true;
+    void gerarCodigoInterno().then(codigo => {
+      if (active) setValue('codigo_interno', codigo);
+    });
+    return () => { active = false; };
+  }, [produto, gerarCodigoInterno, setValue]);
 
   const onSubmit = async (data: Partial<Produto>) => {
     if (nutritionBusy || saving) return;
-    if (!data.nome || data.nome.length < 2) {
+    if (!data.nome || data.nome.trim().length < 2) {
+      setTab('estoque');
+      setError('nome', { message: 'Informe um nome com pelo menos 2 caracteres.' });
+      toast.error('Informe o nome do produto com pelo menos 2 caracteres.');
       return;
     }
 
@@ -201,21 +146,15 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
       // Se há arquivo de imagem selecionado, fazer upload
       if (selectedImageFile) {
-        console.log('📸 [SUBMIT] Fazendo upload da imagem...');
         const imageUrl = await uploadImagemProduto(selectedImageFile, result.id);
         
         if (imageUrl) {
           // Atualizar produto com URL da imagem
           await updateProduto(result.id, { imagem_url: imageUrl });
-          console.log('✅ [SUBMIT] Imagem salva com sucesso!');
         }
       }
 
       setSaving(false);
-      reset();
-      setImagePreview(null);
-      setSelectedImageFile(null);
-      onOpenChange(false);
       onSuccess();
     } catch (error) {
       if (uploadedNutritionPath && !productSaved) await removeNutritionPhoto(uploadedNutritionPath);
@@ -226,33 +165,33 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={nextOpen => { if (!saving) onOpenChange(nextOpen); }}
-      key={produto?.id || 'new-product'}
-    >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
-        <DialogHeader>
-          <DialogTitle>
-            {produto ? 'Editar Produto' : 'Criar Produto'}
-          </DialogTitle>
-        </DialogHeader>
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-4">
+      <div className="shrink-0 space-y-2">
+        <Button type="button" variant="ghost" className="min-h-11 -ml-3 gap-2" disabled={saving} onClick={onCancel}>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar para produtos
+        </Button>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{produto ? 'Editar Produto' : 'Criar Produto'}</h1>
+          <p className="text-sm text-muted-foreground">{produto ? produto.nome : 'Cadastre os dados, os custos e o modo de uso do produto.'}</p>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Tabs defaultValue="estoque" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1">
-              <TabsTrigger value="estoque" className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
-              <TabsTrigger value="modo-uso" className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Modo de Uso</TabsTrigger>
-              <TabsTrigger value="nutricional" className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Rótulo nutricional</TabsTrigger>
-              <TabsTrigger value="historico" disabled={!produto} className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">
-                Histórico
-              </TabsTrigger>
+      <form className="flex min-h-0 min-w-0 flex-1 flex-col" onSubmit={handleSubmit(onSubmit, () => {
+        setTab('estoque');
+        toast.error('Confira o nome e o código interno do produto.');
+      })}>
+        <fieldset disabled={saving} className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-24 pr-1">
+          <Tabs value={tab} onValueChange={setTab} className="w-full min-w-0">
+            <TabsList aria-label="Dados do produto" className="sticky top-0 z-10 bg-muted grid w-full grid-cols-3 h-auto gap-1">
+              <TabsTrigger value="estoque" className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
+              <TabsTrigger value="nutricional" className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">Rótulo nutricional</TabsTrigger>
+              <TabsTrigger value="historico" disabled={!produto} className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">Histórico</TabsTrigger>
             </TabsList>
 
             <TabsContent value="estoque" className="space-y-6 mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+              <div className="grid grid-cols-1 gap-6 rounded-xl border bg-card p-4 sm:p-6 lg:grid-cols-[180px_minmax(0,1fr)]">
                 {/* Campo de Foto - Quadrado Clicável */}
-                <div className="flex flex-col gap-2">
+                <div className="order-2 flex min-w-0 flex-col gap-2 max-lg:mx-auto max-lg:w-full max-lg:max-w-[180px] lg:order-none">
                   <Label className="text-sm font-medium">Foto do Produto</Label>
                   <div 
                     className="relative w-full aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden group bg-muted/30"
@@ -266,7 +205,6 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          console.log('📸 Arquivo:', file.name, (file.size / 1024).toFixed(2), 'KB');
                           setSelectedImageFile(file);
                           
                           const reader = new FileReader();
@@ -287,7 +225,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                         />
                         <button
                           type="button"
-                          className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remover foto do produto"
+                          className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-full bg-background/80 hover:bg-background shadow-lg"
                           onClick={(e) => {
                             e.stopPropagation();
                             setImagePreview(null);
@@ -342,16 +281,21 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label>Nome do Produto *</Label>
+                      <Label htmlFor="produto-nome">Nome do Produto *</Label>
                       <Input
+                        id="produto-nome"
+                        aria-invalid={Boolean(errors.nome)}
                         {...register('nome', { required: true, minLength: 2 })}
                         placeholder="Ex: Farinha de Trigo"
                       />
+                      {errors.nome && <p role="alert" className="mt-1 text-xs text-destructive">Informe um nome com pelo menos 2 caracteres.</p>}
                     </div>
 
                     <div>
-                      <Label>Código Interno *</Label>
+                      <Label htmlFor="produto-codigo">Código Interno *</Label>
                       <Input
+                        id="produto-codigo"
+                        aria-invalid={Boolean(errors.codigo_interno)}
                         type="number"
                         {...register('codigo_interno', { required: true, valueAsNumber: true })}
                         placeholder="Ex: 1"
@@ -385,14 +329,14 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div>
-                      <Label>Unidade de Compra *</Label>
+                      <Label htmlFor="produto-unidade-compra">Unidade de Compra *</Label>
                       <Select
                         value={(watch('unidade_compra') || 'un').toString()}
                         onValueChange={(v) => setValue('unidade_compra', v)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="produto-unidade-compra">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -406,8 +350,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     </div>
 
                     <div>
-                      <Label>Custo Unitário *</Label>
-                      <NumericInputPtBr
+                      <Label htmlFor="produto-custo">Custo Unitário *</Label>
+                      <NumericInputPtBr id="produto-custo"
                         tipo="valor"
                         value={custo_unitario}
                         onChange={(v) => setValue('custo_unitario', v)}
@@ -416,8 +360,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     </div>
 
                     <div>
-                      <Label>Valor Total em Estoque</Label>
-                      <Input
+                      <Label htmlFor="produto-total">Valor Total em Estoque</Label>
+                      <Input id="produto-total"
                         value={formatters.valor(valorTotalEstoque)}
                         disabled
                         className="bg-muted"
@@ -427,8 +371,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label>Estoque Atual *</Label>
-                      <NumericInputPtBr
+                      <Label htmlFor="produto-estoque">Estoque Atual *</Label>
+                      <NumericInputPtBr id="produto-estoque"
                         tipo="quantidade_continua"
                         value={estoque_atual}
                         onChange={(v) => setValue('estoque_atual', v)}
@@ -437,8 +381,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                     </div>
 
                     <div>
-                      <Label>Estoque Mínimo</Label>
-                      <NumericInputPtBr
+                      <Label htmlFor="produto-minimo">Estoque Mínimo</Label>
+                      <NumericInputPtBr id="produto-minimo"
                         tipo="quantidade_continua"
                         value={watch('estoque_minimo') || 0}
                         onChange={(v) => setValue('estoque_minimo', v)}
@@ -448,24 +392,23 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                   </div>
                 </div>
               </div>
-            </TabsContent>
-
-            <TabsContent value="modo-uso" className="space-y-4 mt-4">
-              <Card className="p-4 bg-muted/50">
-                <p className="text-sm text-muted-foreground">
+              <section aria-labelledby="modo-uso-heading" className="space-y-4 rounded-xl border bg-card p-4 sm:p-6">
+                <div>
+                  <h2 id="modo-uso-heading" className="font-semibold">Modo de Uso</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
                   Configure como este produto será usado nas receitas. Por exemplo:
                   1 caixa (compra) = 24 unidades (uso).
-                </p>
-              </Card>
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <div>
-                  <Label>Unidade de Uso</Label>
+                  <Label htmlFor="produto-unidade-uso">Unidade de Uso</Label>
                   <Select
                     value={watch('unidade_uso') || 'none'}
                     onValueChange={(v) => setValue('unidade_uso', v === 'none' ? null : v)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="produto-unidade-uso">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -480,8 +423,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 </div>
 
                 <div>
-                  <Label>Fator de Conversão</Label>
-                  <NumericInputPtBr
+                  <Label htmlFor="produto-fator">Fator de Conversão</Label>
+                  <NumericInputPtBr id="produto-fator"
                     tipo="quantidade_continua"
                     value={fator_conversao || 0}
                     onChange={(v) => setValue('fator_conversao', v || null)}
@@ -490,17 +433,18 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
                 </div>
 
                 <div>
-                  <Label>Custo por Unidade de Uso</Label>
-                  <Input
+                  <Label htmlFor="produto-custo-uso">Custo por Unidade de Uso</Label>
+                  <Input id="produto-custo-uso"
                     value={formatters.valor(custoUnidadeUso)}
                     disabled
                     className="bg-muted"
                   />
                 </div>
               </div>
+              </section>
             </TabsContent>
 
-            <TabsContent value="nutricional" className="mt-6">
+            <TabsContent value="nutricional" className="mt-6 rounded-xl border bg-card p-4 sm:p-6">
               <RotuloNutricionalTab value={nutrition} onChange={setNutrition} photo={nutritionPhoto} onPhotoChange={setNutritionPhoto}
                 onBusyChange={setNutritionBusy} marcaSugerida={marcas.length === 1 ? marcas[0] : ''} disabled={saving} />
             </TabsContent>
@@ -516,21 +460,23 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="mt-6">
+        </fieldset>
+          <div role="region" aria-label="Ações do produto" className="flex shrink-0 items-center justify-end gap-3 border-t bg-background pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <p className="mr-auto hidden text-sm text-muted-foreground md:block">{nutritionBusy ? 'Lendo foto do rótulo…' : 'Salve para aplicar as alterações.'}</p>
             <Button
               type="button"
               variant="outline"
               disabled={saving}
-              onClick={() => onOpenChange(false)}
+              className="min-h-11 flex-1 sm:flex-none sm:min-w-28"
+              onClick={onCancel}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving || nutritionBusy}>
+            <Button type="submit" className="min-h-11 flex-1 sm:flex-none sm:min-w-36" disabled={saving || nutritionBusy}>
               {saving ? 'Salvando...' : 'Salvar Produto'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 }
