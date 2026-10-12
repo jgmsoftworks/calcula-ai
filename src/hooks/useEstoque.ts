@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
 import { validateImageFile } from '@/lib/uploadValidation';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface Produto {
   id: string;
@@ -19,6 +20,7 @@ export interface Produto {
   unidade_uso: string | null;
   fator_conversao: number | null;
   imagem_url: string | null;
+  rotulo_nutricional?: Json | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;

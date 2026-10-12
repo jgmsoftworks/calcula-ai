@@ -31,6 +31,10 @@ import { ConsumoMedioCard } from './ConsumoMedioCard';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
+import { RotuloNutricionalTab } from './RotuloNutricionalTab';
+import { missingNutritionFields, nutritionLabelSchema, readNutritionLabel, type NutritionLabel } from '@/lib/nutritionLabel';
+import { removeNutritionPhoto, uploadNutritionPhoto } from '@/lib/nutritionStorage';
+import type { Json } from '@/integrations/supabase/types';
 
 interface ProdutoFormProps {
   produto?: Produto;
@@ -45,6 +49,9 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
+  const [nutrition, setNutrition] = useState<NutritionLabel | null>(null);
+  const [nutritionPhoto, setNutritionPhoto] = useState<File | null>(null);
+  const [nutritionBusy, setNutritionBusy] = useState(false);
   
   // Ensure all values are valid before setting as defaults
   const defaultValues = produto ? {
@@ -68,7 +75,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     fator_conversao: null,
   };
   
-  const { register, handleSubmit, setValue, watch, reset } = useForm<Partial<Produto>>({
+  const { register, handleSubmit, setValue, watch, reset } = useForm<Partial<Omit<Produto, 'rotulo_nutricional'>>>({
     defaultValues,
   });
 
@@ -89,6 +96,9 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     console.log('🔵 [MODAL] Modal state changed - Open:', open, 'Produto:', produto?.nome || 'NOVO');
     
     if (open) {
+      setNutrition(readNutritionLabel(produto?.rotulo_nutricional));
+      setNutritionPhoto(null);
+      setNutritionBusy(false);
       if (produto) {
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('📦 [EDITAR] Carregando dados do produto');
@@ -144,6 +154,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   };
 
   const onSubmit = async (data: Partial<Produto>) => {
+    if (nutritionBusy || saving) return;
     if (!data.nome || data.nome.length < 2) {
       return;
     }
@@ -155,20 +166,38 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
     }
 
     setSaving(true);
+    let uploadedNutritionPath: string | null = null;
+    let productSaved = false;
 
     try {
       // Primeiro criar/atualizar o produto (sem imagem)
       const produtoData = { ...data };
       delete produtoData.imagem_url; // Remover imagem_url temporariamente
+      if (nutrition) {
+        const parsed = nutritionLabelSchema.safeParse(nutrition);
+        if (!parsed.success) throw new Error('Confira os campos do rótulo nutricional antes de salvar.');
+        if (nutritionPhoto) uploadedNutritionPath = await uploadNutritionPhoto(nutritionPhoto);
+        produtoData.rotulo_nutricional = {
+          ...parsed.data,
+          foto_path: uploadedNutritionPath ?? parsed.data.foto_path,
+          conferido: parsed.data.conferido && missingNutritionFields(parsed.data).length === 0,
+        } as Json;
+      } else {
+        produtoData.rotulo_nutricional = null;
+      }
 
       const result = produto
         ? await updateProduto(produto.id, produtoData)
         : await createProduto(produtoData);
 
       if (!result) {
+        if (uploadedNutritionPath) await removeNutritionPhoto(uploadedNutritionPath);
         setSaving(false);
         return;
       }
+      productSaved = true;
+      const previousNutritionPath = readNutritionLabel(produto?.rotulo_nutricional)?.foto_path;
+      if (previousNutritionPath && (uploadedNutritionPath || !nutrition)) void removeNutritionPhoto(previousNutritionPath);
 
       // Se há arquivo de imagem selecionado, fazer upload
       if (selectedImageFile) {
@@ -189,6 +218,8 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
       onOpenChange(false);
       onSuccess();
     } catch (error) {
+      if (uploadedNutritionPath && !productSaved) await removeNutritionPhoto(uploadedNutritionPath);
+      toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o produto. Tente novamente.');
       console.error('❌ [SUBMIT] Erro ao salvar produto:', error);
       setSaving(false);
     }
@@ -197,7 +228,7 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
   return (
     <Dialog 
       open={open} 
-      onOpenChange={onOpenChange}
+      onOpenChange={nextOpen => { if (!saving) onOpenChange(nextOpen); }}
       key={produto?.id || 'new-product'}
     >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
@@ -209,10 +240,11 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="estoque" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-auto">
-              <TabsTrigger value="estoque" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
-              <TabsTrigger value="modo-uso" className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Modo de Uso</TabsTrigger>
-              <TabsTrigger value="historico" disabled={!produto} className="text-[11px] sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1">
+              <TabsTrigger value="estoque" className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
+              <TabsTrigger value="modo-uso" className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Modo de Uso</TabsTrigger>
+              <TabsTrigger value="nutricional" className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">Rótulo nutricional</TabsTrigger>
+              <TabsTrigger value="historico" disabled={!produto} className="min-h-11 text-xs sm:text-sm px-1 sm:px-3 py-1.5 whitespace-normal leading-tight">
                 Histórico
               </TabsTrigger>
             </TabsList>
@@ -468,6 +500,11 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
               </div>
             </TabsContent>
 
+            <TabsContent value="nutricional" className="mt-6">
+              <RotuloNutricionalTab value={nutrition} onChange={setNutrition} photo={nutritionPhoto} onPhotoChange={setNutritionPhoto}
+                onBusyChange={setNutritionBusy} marcaSugerida={marcas.length === 1 ? marcas[0] : ''} disabled={saving} />
+            </TabsContent>
+
             <TabsContent value="historico" className="mt-4">
               {produto ? (
                 <HistoricoProduto produtoId={produto.id} />
@@ -483,11 +520,12 @@ export function ProdutoForm({ produto, open, onOpenChange, onSuccess }: ProdutoF
             <Button
               type="button"
               variant="outline"
+              disabled={saving}
               onClick={() => onOpenChange(false)}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || nutritionBusy}>
               {saving ? 'Salvando...' : 'Salvar Produto'}
             </Button>
           </DialogFooter>
