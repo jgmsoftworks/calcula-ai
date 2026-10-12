@@ -290,29 +290,29 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">
                 CMV
               </div>
-              <div className={cn("text-sm md:text-lg font-bold font-display", cmvColor)}>
-                {cmvDisplay}
+              <div className={cn("text-sm md:text-lg font-bold font-display", isSubReceita ? 'text-foreground' : cmvColor)}>
+                {isSubReceita ? '—' : cmvDisplay}
               </div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Bruto</div>
               <div className={cn(
                 "text-sm md:text-lg font-bold font-display",
-                lucroBruto > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                isSubReceita ? 'text-foreground' : lucroBruto > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
               )}>
-                R$ {formatBRL(lucroBruto)}
+                {isSubReceita ? '—' : `R$ ${formatBRL(lucroBruto)}`}
               </div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Lucro Líquido</div>
-              {isLoadingDetalhes ? (
+              {isLoadingDetalhes && !isSubReceita ? (
                 <Skeleton className="h-5 md:h-7 w-16 md:w-20 mx-auto" />
               ) : (
                 <div className={cn(
                   "text-sm md:text-lg font-bold font-display",
-                  !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                  isSubReceita ? 'text-foreground' : !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
                 )}>
-                  {markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
+                  {isSubReceita ? '—' : markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
                 </div>
               )}
             </div>
