@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,22 +10,30 @@ import { useExportReceitas } from '@/hooks/useExportReceitas';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ReceitaCard } from './ReceitaCard';
-import { ReceitaForm } from './ReceitaForm';
 import { ExportMarkupModal } from './ExportMarkupModal';
 import { useTranslation } from 'react-i18next';
 import type { ReceitaComDados } from '@/types/receitas';
 
 export function ListaReceitas() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { fetchReceitas, fetchTiposProduto, loading } = useReceitas();
   const { exportarReceitas, exporting } = useExportReceitas();
   const { user } = useAuth();
   const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
-  const [search, setSearch] = useState('');
-  const [tipoFilter, setTipoFilter] = useState<string>('all');
-  const [subReceitaFilter, setSubReceitaFilter] = useState<string>('all');
-  const [showForm, setShowForm] = useState(false);
-  const [editingReceita, setEditingReceita] = useState<ReceitaComDados | null>(null);
+  const search = searchParams.get('busca') || '';
+  const tipoFilter = searchParams.get('tipo') || 'all';
+  const subReceitaFilter = searchParams.get('subReceita') || 'all';
+  const setFilter = (name: string, value: string) => {
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (!value || (name !== 'busca' && value === 'all')) next.delete(name);
+      else next.set(name, value);
+      return next;
+    }, { replace: true });
+  };
   const [tiposProduto, setTiposProduto] = useState<Array<{ id: string; nome: string }>>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [markupsDisponiveis, setMarkupsDisponiveis] = useState<Array<{ id: string; nome: string }>>([]);
@@ -202,14 +211,7 @@ export function ListaReceitas() {
   };
 
   const handleEdit = (receita: ReceitaComDados) => {
-    setEditingReceita(receita);
-    setShowForm(true);
-  };
-
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingReceita(null);
-    loadReceitas();
+    navigate(`/receitas/${receita.id}/editar${location.search}`);
   };
 
   return (
@@ -237,7 +239,7 @@ export function ListaReceitas() {
                   </>
                 )}
               </Button>
-              <Button onClick={() => setShowForm(true)} className="flex-1 sm:flex-initial">
+              <Button onClick={() => navigate(`/receitas/nova${location.search}`)} className="flex-1 sm:flex-initial">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('receitas.newRecipe')}
               </Button>
@@ -251,11 +253,11 @@ export function ListaReceitas() {
               <Input
                 placeholder={t('receitas.searchRecipe')}
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => setFilter('busca', e.target.value)}
                 className="pl-9"
               />
             </div>
-            <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <Select value={tipoFilter} onValueChange={value => setFilter('tipo', value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('common.type')} />
               </SelectTrigger>
@@ -268,7 +270,7 @@ export function ListaReceitas() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={subReceitaFilter} onValueChange={setSubReceitaFilter}>
+            <Select value={subReceitaFilter} onValueChange={value => setFilter('subReceita', value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sub-receitas" />
               </SelectTrigger>
@@ -310,13 +312,6 @@ export function ListaReceitas() {
           )}
         </CardContent>
       </Card>
-
-      {showForm && (
-        <ReceitaForm
-          receita={editingReceita}
-          onClose={handleCloseForm}
-        />
-      )}
 
       <ExportMarkupModal
         open={showExportModal}

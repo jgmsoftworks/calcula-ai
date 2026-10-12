@@ -33,6 +33,7 @@ const RelatoriosProdutividade = lazy(() => import("./pages/RelatoriosProdutivida
 const Perdas = lazy(() => import("./pages/Perdas"));
 const Movimentacao = lazy(() => import("./pages/Movimentacao"));
 const Receitas = lazy(() => import("./pages/Receitas"));
+const ReceitaEditor = lazy(() => import("./pages/ReceitaEditor"));
 const AgendaPage = lazy(() => import("./pages/producao/AgendaPage"));
 const AgendaDayPage = lazy(() => import("./pages/producao/AgendaDayPage"));
 const CronogramaPage = lazy(() => import("./pages/producao/CronogramaPage"));
@@ -111,6 +112,8 @@ const App = () => (
                   <Route path="/relatorios/perdas" element={<RelatoriosPerdas />} />
                   <Route path="/relatorios/produtividade" element={<RelatoriosProdutividade />} />
                   <Route path="/receitas" element={<Receitas />} />
+                  <Route path="/receitas/nova" element={<ReceitaEditor />} />
+                  <Route path="/receitas/:id/editar" element={<ReceitaEditor />} />
                   <Route path="/producao" element={<Navigate to="/producao/cronograma" replace />} />
                   <Route path="/producao/cronograma" element={<CronogramaPage />} />
                   <Route path="/producao/agenda" element={<AgendaPage />} />

@@ -65,7 +65,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       '/planos': 'planos',
       '/tutorial': 'tutorial',
     };
-    const key = pageMap[pathname];
+    const key = pathname.startsWith('/receitas/') ? 'receitas' : pageMap[pathname];
     if (key) {
       const titleMap: Record<string, string> = {
         '/estoque/historico': 'Histórico Geral',

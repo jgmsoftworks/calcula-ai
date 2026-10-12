@@ -183,6 +183,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
             className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted/80 hover:text-foreground md:h-8 md:w-8"
             onClick={onClick}
             disabled={disabled}
+            aria-label={title}
           >
             <Icon className="h-4 w-4" />
           </Button>

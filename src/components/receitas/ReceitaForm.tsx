@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useReceitas } from '@/hooks/useReceitas';
@@ -10,8 +9,8 @@ import { GeralTab } from './GeralTab';
 import { ProjecaoTab } from './ProjecaoTab';
 import { PrecificacaoTab } from './PrecificacaoTab';
 
-import type { Receita, ReceitaCompleta } from '@/types/receitas';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import type { ReceitaCompleta } from '@/types/receitas';
+import { ArrowLeft, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -56,13 +55,14 @@ interface TempMaoObra {
 }
 
 interface ReceitaFormProps {
-  receita: Receita | null;
+  receita: ReceitaCompleta | null;
   onClose: () => void;
 }
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
   const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
   
   // Prefetched data for child tabs
   const [prefetchedProdutos, setPrefetchedProdutos] = useState<any[]>([]);
@@ -124,7 +124,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   };
 
-  // Prefetch produtos and sub-receitas once when modal opens
+  // Prefetch produtos and sub-receitas once when the editor opens
   useEffect(() => {
     if (!user) return;
     
@@ -169,7 +169,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
   useEffect(() => {
     if (receita) {
-      loadReceitaCompleta();
+      setReceitaCompleta(receita);
       setFormData({
         nome: receita.nome,
         tipo_produto_id: receita.tipo_produto_id || null,
@@ -179,7 +179,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         status: receita.status,
         preco_venda: receita.preco_venda || 0,
         markup_id: receita.markup_id,
-        markup_tipo: null,
+        markup_tipo: receita.markup?.tipo || null,
         peso_unitario: receita.peso_unitario || 0,
         tempo_preparo_total: receita.tempo_preparo_total || 0,
         tempo_preparo_unidade: receita.tempo_preparo_unidade || 'minutos',
@@ -386,11 +386,13 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     if (!formData.nome.trim()) {
       toast.error('Nome da receita é obrigatório');
       return;
     }
 
+    setSaving(true);
     try {
       if (isCreating) {
         // MODO CRIAÇÃO: Salvar tudo de uma vez
@@ -488,7 +490,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         toast.success('Receita criada com sucesso!');
       } else {
         // MODO EDIÇÃO: Processar diferenças e salvar tudo de uma vez
-        await updateReceita(receita!.id, formData);
+        const updated = await updateReceita(receita!.id, formData);
+        if (!updated) return;
         
         // Processar ingredientes
         const ingredientesOriginais = receitaCompleta?.ingredientes?.map(i => i.id) || [];
@@ -632,6 +635,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     } catch (error: any) {
       console.error('Erro ao salvar receita:', error);
       toast.error('Erro ao salvar receita');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -645,18 +650,33 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent 
-        className="w-full max-w-[95vw] lg:max-w-[1000px] h-[95vh] md:h-[90vh] md:max-h-[810px] flex flex-col p-0 overflow-hidden"
-        onInteractOutside={(e) => e.preventDefault()}
-      >
-        <DialogHeader className="px-6 py-4 border-b shrink-0">
-          <DialogTitle>{receita ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
-        </DialogHeader>
+    <section aria-labelledby="receita-form-title" className="min-w-0 space-y-5">
+      <div className="flex items-start gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={onClose}
+          disabled={saving}
+          className="shrink-0"
+          aria-label="Voltar para receitas"
+          title="Voltar para receitas"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </Button>
+        <div className="min-w-0">
+          <h1 id="receita-form-title" className="text-xl font-semibold sm:text-2xl">
+            {receita ? 'Editar Receita' : 'Nova Receita'}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Preencha as etapas e salve sua receita ao finalizar.
+          </p>
+        </div>
+      </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          {/* TabsList FIXA - fora da área de scroll */}
-          <div className="px-2 md:px-6 py-2 md:py-4 border-b shrink-0 bg-background">
+      <div className="min-w-0 rounded-2xl border bg-card shadow-sm">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
+          <div className="rounded-t-2xl px-2 md:px-6 py-2 md:py-4 border-b bg-background">
             <div className="md:hidden">
               <div className="flex items-center justify-between px-2 mb-2">
                 <span className="text-xs font-medium text-muted-foreground">Etapa {currentTabIndex + 1} de {tabs.length}</span>
@@ -725,8 +745,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             </TabsList>
           </div>
 
-          {/* Área de SCROLL - só o conteúdo */}
-          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 md:py-4">
+          <div className="min-w-0 px-3 md:px-6 py-4 md:py-6">
             <TabsContent value="geral" className="mt-0">
               <GeralTab
                 receita={receitaCompleta}
@@ -815,18 +834,18 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </div>
         </Tabs>
 
-      <div className="flex justify-between items-center gap-2 px-3 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
-          <Button variant="outline" size="sm" onClick={handlePrevious} disabled={currentTabIndex === 0}>
+      <div className="flex justify-between items-center gap-2 rounded-b-2xl px-3 md:px-6 py-3 md:py-4 border-t bg-background">
+          <Button variant="outline" size="sm" onClick={handlePrevious} disabled={currentTabIndex === 0 || saving} aria-label="Etapa anterior">
             <ChevronLeft className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">Anterior</span>
           </Button>
 
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
 
-          <Button size="sm" onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Button size="sm" onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading || saving}>
+            {(loading || saving) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {currentTabIndex === tabs.length - 1
               ? (receita ? 'Atualizar' : 'Criar')
               : 'Próximo'
@@ -834,8 +853,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
             {currentTabIndex < tabs.length - 1 && <ChevronRight className="h-4 w-4 ml-1 md:ml-2" />}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </section>
   );
 }
 
