@@ -4,6 +4,7 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkupCard } from './MarkupCard';
+import { MarkupCardTransition } from './MarkupCardTransition';
 import { formatBRL } from '@/lib/formatters';
 import { toast } from 'sonner';
 import { Info, AlertTriangle, ChevronDown, Check, TrendingUp, Package, DollarSign, Weight, Scale, Calculator, PieChart } from 'lucide-react';
@@ -537,23 +538,25 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         </CardContent>
       </Card>
 
-      {selectedMarkup && (
-        <MarkupCard
-          key={selectedMarkup.id}
-          markup={selectedMarkup}
-          custoTotal={custoTotal}
-          precoVenda={formData.preco_venda || 0}
-          isSelected={true}
-          onSelect={() => {}}
-          alwaysExpanded={true}
-          isApplying={isApplying}
-          rendimentoValor={formData.rendimento_valor}
-          preloadedDetalhes={
-            markupConfigsMap[`markup_${selectedMarkup.nome.toLowerCase().replace(/\s+/g, '_')}`] ?? null
-          }
-          isLoadingPreloaded={isLoadingConfigs}
-        />
-      )}
+      <MarkupCardTransition markupId={selectedMarkup?.id}>
+        {selectedMarkup && (
+          <MarkupCard
+            key={selectedMarkup.id}
+            markup={selectedMarkup}
+            custoTotal={custoTotal}
+            precoVenda={formData.preco_venda || 0}
+            isSelected={true}
+            onSelect={() => {}}
+            alwaysExpanded={true}
+            isApplying={isApplying}
+            rendimentoValor={formData.rendimento_valor}
+            preloadedDetalhes={
+              markupConfigsMap[`markup_${selectedMarkup.nome.toLowerCase().replace(/\s+/g, '_')}`] ?? null
+            }
+            isLoadingPreloaded={isLoadingConfigs}
+          />
+        )}
+      </MarkupCardTransition>
     </div>
   );
 }
