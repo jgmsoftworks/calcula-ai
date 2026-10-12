@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -9,7 +9,8 @@ import type { ReceitaCompleta } from '@/types/receitas';
 
 const mocks = vi.hoisted(() => ({
   user: { id: 'owner' },
-  fetchReceitas: vi.fn(),
+  fetchReceitasPage: vi.fn(),
+  fetchTodasReceitas: vi.fn(),
   fetchReceitaCompleta: vi.fn(),
   fetchTiposProduto: vi.fn(),
   createReceita: vi.fn(),
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   from: vi.fn(),
 }));
 
+vi.mock('@/lib/receitasData', () => ({ fetchReceitasPage: mocks.fetchReceitasPage, fetchTodasReceitas: mocks.fetchTodasReceitas, RECEITAS_PAGE_SIZE: 24 }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock('@/hooks/useReceitas', () => ({ useReceitas: () => ({ ...mocks, loading: false }) }));
 // Keep these tests focused on route changes, hydration and save/return behavior.
@@ -87,7 +89,8 @@ function openPage(path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.fetchReceitas.mockResolvedValue([recipe]);
+  mocks.fetchReceitasPage.mockResolvedValue({ receitas: [recipe], total: 1 });
+  mocks.fetchTodasReceitas.mockResolvedValue([recipe]);
   mocks.fetchReceitaCompleta.mockResolvedValue(recipe);
   mocks.fetchTiposProduto.mockResolvedValue([]);
   mocks.createReceita.mockResolvedValue({ id: 'created-recipe' });
@@ -163,6 +166,26 @@ describe('recipe editor navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }));
     await waitFor(() => expect(mocks.createReceita).toHaveBeenCalledWith(expect.objectContaining({ nome: 'Bolo novo' })));
     expect(await screen.findByPlaceholderText('Buscar receita')).toBeInTheDocument();
+  });
+
+  it('keeps the selected list page when editing and returning', async () => {
+    mocks.fetchReceitasPage.mockResolvedValue({ receitas: [recipe], total: 49 });
+    openPage('/receitas?pagina=2');
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+    await screen.findByRole('heading', { name: 'Editar Receita' });
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar para receitas' }));
+    expect(await screen.findByText('Página 2 de 3')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }));
+    await waitFor(() => expect(mocks.fetchReceitasPage).toHaveBeenLastCalledWith('owner', expect.any(Object), 3, 24, expect.any(AbortSignal)));
+  });
+
+  it('changes steps through the compact selector without losing form data', async () => {
+    await act(async () => { openPage('/receitas/nova'); });
+    fireEvent.change(screen.getByLabelText('Nome da Receita *'), { target: { value: 'Bolo no celular' } });
+    fireEvent.change(screen.getByLabelText('Etapa da receita'), { target: { value: 'precificacao' } });
+    expect(screen.getByRole('button', { name: 'Criar' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Etapa da receita'), { target: { value: 'geral' } });
+    expect(screen.getByLabelText('Nome da Receita *')).toHaveValue('Bolo no celular');
   });
 
   it('does not open an empty creation form when an edit URL cannot load', async () => {

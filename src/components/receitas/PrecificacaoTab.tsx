@@ -270,7 +270,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           <CardTitle className="text-base font-display">Resumo de Custos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
+          <div className="recipe-cost-grid grid grid-cols-2 gap-2 md:gap-3">
             <CostItem label="Ingredientes" value={custoIngredientes} />
             <CostItem label="Embalagens" value={custoEmbalagens} />
             <CostItem label="Mão de Obra" value={custoMaoObra} />
@@ -281,7 +281,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       </Card>
 
       {/* Price / Weight inputs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      <div className="recipe-price-grid grid grid-cols-1 gap-3 md:gap-4">
         <Card className="overflow-hidden">
           <div className="h-0.5 bg-primary/40" />
           <CardHeader className="pb-2 pt-4">

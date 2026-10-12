@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, type ButtonProps } from '@/components/ui/button';
+import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Download, Eye, Package, Copy, Clock, Users, Layers, BoxSelect, Tag, TrendingUp, Loader2 } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
@@ -37,6 +38,26 @@ interface ReceitaCardProps {
   preloadedDetalhes?: any | null;
   isLoadingPreloaded?: boolean;
 }
+
+const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" }: { icon: LucideIcon; title: string; onClick?: ButtonProps['onClick']; disabled?: boolean; variant?: ButtonProps['variant'] }) => (
+  <TooltipProvider delayDuration={200}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant={variant}
+          size="icon"
+          className="h-11 w-11 rounded-xl text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+          onClick={onClick}
+          disabled={disabled}
+          aria-label={title}
+        >
+          <Icon className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom"><p className="text-xs">{title}</p></TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLoadingPreloaded }: ReceitaCardProps) {
   const { deleteReceita, fetchReceitaCompleta, duplicarReceita } = useReceitas();
@@ -173,25 +194,6 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
     }
   };
 
-  const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" }: any) => (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant={variant} 
-            size="icon" 
-            className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted/80 hover:text-foreground md:h-8 md:w-8"
-            onClick={onClick}
-            disabled={disabled}
-            aria-label={title}
-          >
-            <Icon className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom"><p className="text-xs">{title}</p></TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
 
   return (
     <Card className="group hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 overflow-hidden border-border/40">

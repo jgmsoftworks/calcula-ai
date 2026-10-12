@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatters } from '@/lib/formatters';
@@ -56,6 +55,7 @@ export function useExportReceitaPDF() {
   const exportarReceitaPDF = async (receitaId: string) => {
     try {
       setExporting(true);
+      const { default: jsPDF } = await import('jspdf');
 
       // Buscar dados do usuário e perfil
       const { data: { user } } = await supabase.auth.getUser();

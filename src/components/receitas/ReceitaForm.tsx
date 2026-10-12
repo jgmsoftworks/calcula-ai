@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useReceitas } from '@/hooks/useReceitas';
@@ -62,6 +63,7 @@ interface ReceitaFormProps {
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   
   // Prefetched data for child tabs
@@ -631,6 +633,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         toast.success('Receita atualizada com sucesso!');
       }
 
+      void queryClient.invalidateQueries({ queryKey: ['receitas-lista', user?.id] });
       onClose();
     } catch (error: any) {
       console.error('Erro ao salvar receita:', error);
@@ -650,7 +653,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   };
 
   return (
-    <section aria-labelledby="receita-form-title" className="min-w-0 space-y-5">
+    <section aria-labelledby="receita-form-title" className="recipe-editor min-w-0 space-y-5">
       <div className="flex items-start gap-3">
         <Button
           type="button"
@@ -677,71 +680,28 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       <div className="min-w-0 rounded-2xl border bg-card shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
           <div className="rounded-t-2xl px-2 md:px-6 py-2 md:py-4 border-b bg-background">
-            <div className="md:hidden">
-              <div className="flex items-center justify-between px-2 mb-2">
-                <span className="text-xs font-medium text-muted-foreground">Etapa {currentTabIndex + 1} de {tabs.length}</span>
-                <span className="text-sm font-semibold truncate">{tabLabels[activeTab]}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={() => {
-                    const el = document.getElementById('mobile-tabs-scroll');
-                    el?.scrollBy({ left: -120, behavior: 'smooth' });
-                  }}
-                  aria-label="Rolar etapas para a esquerda"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div
-                  id="mobile-tabs-scroll"
-                  className="flex-1 overflow-x-auto no-scrollbar"
-                  style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' as any }}
-                >
-                  <TabsList className="inline-flex w-auto h-auto gap-1 p-1">
-                    {tabs.map((t) => (
-                      <TabsTrigger
-                        key={t}
-                        value={t}
-                        className="whitespace-nowrap text-xs px-3 py-2"
-                        onClick={() => {
-                          setTimeout(() => {
-                            document
-                              .querySelector(`#mobile-tabs-scroll [data-state="active"]`)
-                              ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                          }, 50);
-                        }}
-                      >
-                        {tabLabels[t]}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={() => {
-                    const el = document.getElementById('mobile-tabs-scroll');
-                    el?.scrollBy({ left: 120, behavior: 'smooth' });
-                  }}
-                  aria-label="Rolar etapas para a direita"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+            <div className="recipe-compact space-y-2 px-1">
+              <label htmlFor="receita-etapa" className="block text-sm font-medium">
+                Etapa {currentTabIndex + 1} de {tabs.length}
+              </label>
+              <select
+                id="receita-etapa"
+                aria-label="Etapa da receita"
+                value={activeTab}
+                disabled={saving}
+                onChange={event => setActiveTab(event.target.value)}
+                className="h-12 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {tabs.map(tab => <option key={tab} value={tab}>{tabLabels[tab]}</option>)}
+              </select>
             </div>
-            <TabsList className="hidden md:grid w-full grid-cols-6 gap-1">
-              <TabsTrigger value="geral">1 Geral</TabsTrigger>
-              <TabsTrigger value="ingredientes">2 Ingredientes</TabsTrigger>
-              <TabsTrigger value="sub-receitas">3 Sub-receitas</TabsTrigger>
-              <TabsTrigger value="embalagens">4 Embalagens</TabsTrigger>
-              <TabsTrigger value="projecao">5 Projeção</TabsTrigger>
-              <TabsTrigger value="precificacao">6 Precificação</TabsTrigger>
+            <TabsList className="recipe-wide-tabs w-full grid-cols-6 gap-1 h-auto">
+              <TabsTrigger className="min-h-11" disabled={saving} value="geral">1 Geral</TabsTrigger>
+              <TabsTrigger className="min-h-11" disabled={saving} value="ingredientes">2 Ingredientes</TabsTrigger>
+              <TabsTrigger className="min-h-11" disabled={saving} value="sub-receitas">3 Sub-receitas</TabsTrigger>
+              <TabsTrigger className="min-h-11" disabled={saving} value="embalagens">4 Embalagens</TabsTrigger>
+              <TabsTrigger className="min-h-11" disabled={saving} value="projecao">5 Projeção</TabsTrigger>
+              <TabsTrigger className="min-h-11" disabled={saving} value="precificacao">6 Precificação</TabsTrigger>
             </TabsList>
           </div>
 
@@ -835,16 +795,16 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         </Tabs>
 
       <div className="flex justify-between items-center gap-2 rounded-b-2xl px-3 md:px-6 py-3 md:py-4 border-t bg-background">
-          <Button variant="outline" size="sm" onClick={handlePrevious} disabled={currentTabIndex === 0 || saving} aria-label="Etapa anterior">
+          <Button variant="outline" size="sm" className="min-h-11 min-w-11" onClick={handlePrevious} disabled={currentTabIndex === 0 || saving} aria-label="Etapa anterior">
             <ChevronLeft className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">Anterior</span>
           </Button>
 
-          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="sm" className="min-h-11" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
 
-          <Button size="sm" onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading || saving}>
+          <Button size="sm" className="min-h-11" onClick={currentTabIndex === tabs.length - 1 ? handleSave : handleNext} disabled={loading || saving}>
             {(loading || saving) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {currentTabIndex === tabs.length - 1
               ? (receita ? 'Atualizar' : 'Criar')

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -38,21 +38,14 @@ export function IngredientesTab({
   prefetchedProdutos
 }: IngredientesTabProps) {
   const [search, setSearch] = useState('');
-  const [produtos, setProdutos] = useState<any[]>([]);
-
-  const allProdutos = prefetchedProdutos || [];
-
-  useEffect(() => {
-    if (!search.trim()) {
-      setProdutos(allProdutos);
-      return;
-    }
-    const filtered = allProdutos.filter(p => 
-      p.nome.toLowerCase().includes(search.toLowerCase()) ||
-      p.codigo_interno?.toString().includes(search)
+  const [suggestionLimit, setSuggestionLimit] = useState(20);
+  const matches = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (prefetchedProdutos || []).filter(produto =>
+      !term || produto.nome.toLowerCase().includes(term) || produto.codigo_interno?.toString().includes(term)
     );
-    setProdutos(filtered);
-  }, [search, allProdutos]);
+  }, [search, prefetchedProdutos]);
+  const produtos = matches.slice(0, suggestionLimit);
 
   const handleAddIngrediente = (produto: any) => {
     const quantidadeInicial = 1;
@@ -92,13 +85,19 @@ export function IngredientesTab({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setSuggestionLimit(20); }}
                 placeholder="Buscar ingredientes..."
                 className="pl-9"
               />
             </div>
           </div>
 
+          {matches.length > produtos.length && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{produtos.length} de {matches.length} resultados. Busque pelo nome ou código.</span>
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => setSuggestionLimit(limit => limit + 20)}>Mostrar mais</Button>
+            </div>
+          )}
           {produtos.length > 0 && (
             <div className="border border-blue-200 bg-blue-50 dark:bg-blue-950 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
               {produtos.map((produto) => (
@@ -116,7 +115,7 @@ export function IngredientesTab({
                     size="sm"
                     variant="outline"
                     onClick={() => handleAddIngrediente(produto)}
-                    className="shrink-0"
+                    className="shrink-0 min-h-11 min-w-11" aria-label={`Adicionar ${produto.nome}`}
                   >
                     <Plus className="h-4 w-4 md:mr-1" />
                     <span className="hidden md:inline">Adicionar</span>
@@ -138,7 +137,7 @@ export function IngredientesTab({
           ) : (
             <>
               {/* Mobile: cards */}
-              <div className="md:hidden space-y-2">
+              <div className="recipe-compact space-y-2">
                 {ingredientes.map((ingrediente) => {
                   if (!ingrediente.produto) return null;
                   const unidade = ingrediente.produto.unidade_uso || ingrediente.produto.unidade_compra;
@@ -151,7 +150,7 @@ export function IngredientesTab({
                     <div key={ingrediente.id} className="border rounded-lg p-3 space-y-2 bg-card">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium text-sm flex-1">{ingrediente.produto.nome}</p>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveIngrediente(ingrediente.id)}>
+                        <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remover ${ingrediente.produto?.nome || 'ingrediente'}`} onClick={() => handleRemoveIngrediente(ingrediente.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -175,7 +174,7 @@ export function IngredientesTab({
               </div>
 
               {/* Desktop: tabela */}
-              <Table className="hidden md:table">
+              <Table className="recipe-wide-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Ingrediente</TableHead>
@@ -209,7 +208,7 @@ export function IngredientesTab({
                         <TableCell className="text-right">R$ {formatNumber(custoUnitario, 4)}</TableCell>
                         <TableCell className="text-right">R$ {formatBRL(custoTotal)}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveIngrediente(ingrediente.id)}>
+                          <Button variant="ghost" size="icon" aria-label={`Remover ${ingrediente.produto?.nome || 'ingrediente'}`} onClick={() => handleRemoveIngrediente(ingrediente.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>

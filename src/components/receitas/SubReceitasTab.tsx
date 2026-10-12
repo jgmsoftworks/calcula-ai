@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -41,23 +41,14 @@ export function SubReceitasTab({
   hasSubReceitaMarkup = true
 }: SubReceitasTabProps) {
   const [search, setSearch] = useState('');
-  const [receitas, setReceitas] = useState<any[]>([]);
-
-  // Filter out current recipe in edit mode
-  const allSubReceitas = (prefetchedSubReceitas || []).filter(r => 
-    mode === 'edit' && receita?.id ? r.id !== receita.id : true
-  );
-
-  useEffect(() => {
-    if (!search.trim()) {
-      setReceitas(allSubReceitas);
-      return;
-    }
-    const filtered = allSubReceitas.filter(r => 
-      r.nome.toLowerCase().includes(search.toLowerCase())
+  const [suggestionLimit, setSuggestionLimit] = useState(20);
+  const matches = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (prefetchedSubReceitas || []).filter(item =>
+      !(mode === 'edit' && item.id === receita?.id) && (!term || item.nome.toLowerCase().includes(term))
     );
-    setReceitas(filtered);
-  }, [search, allSubReceitas]);
+  }, [search, prefetchedSubReceitas, mode, receita?.id]);
+  const receitas = matches.slice(0, suggestionLimit);
 
   const handleAddSubReceita = (subReceita: Receita) => {
     onAddTemp?.(subReceita, 1);
@@ -111,20 +102,26 @@ export function SubReceitasTab({
         </Card>
       )}
 
-      {hasSubReceitaMarkup && allSubReceitas.length > 0 && (
+      {hasSubReceitaMarkup && (
         <>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setSuggestionLimit(20); }}
                 placeholder="Filtrar sub-receitas pelo nome..."
                 className="pl-9"
               />
             </div>
           </div>
 
+          {matches.length > receitas.length && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{receitas.length} de {matches.length} resultados. Busque pelo nome.</span>
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => setSuggestionLimit(limit => limit + 20)}>Mostrar mais</Button>
+            </div>
+          )}
           {receitas.length > 0 && (
             <div className="border border-green-200 bg-green-50/50 dark:bg-green-950/50 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
               {receitas.map((r) => (
@@ -177,7 +174,7 @@ export function SubReceitasTab({
             </Badge>
           </div>
           {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
+          <div className="recipe-compact space-y-2">
             {subReceitas.map((subReceita) => {
               if (!subReceita.sub_receita) return null;
               const custoUnitario = subReceita.sub_receita.rendimento_valor && subReceita.sub_receita.rendimento_valor > 0
@@ -189,7 +186,7 @@ export function SubReceitasTab({
                 <div key={subReceita.id} className="border rounded-lg p-3 space-y-2 bg-card">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-sm flex-1">{subReceita.sub_receita.nome}</p>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSubReceita(subReceita.id)}>
+                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remover ${subReceita.sub_receita?.nome || 'sub-receita'}`} onClick={() => handleRemoveSubReceita(subReceita.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -210,7 +207,7 @@ export function SubReceitasTab({
             })}
           </div>
 
-          <Table className="hidden md:table">
+          <Table className="recipe-wide-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Sub-receita</TableHead>
@@ -250,7 +247,7 @@ export function SubReceitasTab({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleRemoveSubReceita(subReceita.id)}
+                        aria-label={`Remover ${subReceita.sub_receita?.nome || 'sub-receita'}`} onClick={() => handleRemoveSubReceita(subReceita.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

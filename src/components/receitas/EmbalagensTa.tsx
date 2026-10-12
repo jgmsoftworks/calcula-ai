@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -38,21 +38,14 @@ export function EmbalagensTa({
   prefetchedProdutos
 }: EmbalagensTabProps) {
   const [search, setSearch] = useState('');
-  const [produtos, setProdutos] = useState<any[]>([]);
-
-  const allProdutos = prefetchedProdutos || [];
-
-  useEffect(() => {
-    if (!search.trim()) {
-      setProdutos(allProdutos);
-      return;
-    }
-    const filtered = allProdutos.filter(p => 
-      p.nome.toLowerCase().includes(search.toLowerCase()) ||
-      p.codigo_interno?.toString().includes(search)
+  const [suggestionLimit, setSuggestionLimit] = useState(20);
+  const matches = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (prefetchedProdutos || []).filter(produto =>
+      !term || produto.nome.toLowerCase().includes(term) || produto.codigo_interno?.toString().includes(term)
     );
-    setProdutos(filtered);
-  }, [search, allProdutos]);
+  }, [search, prefetchedProdutos]);
+  const produtos = matches.slice(0, suggestionLimit);
 
   const handleAddEmbalagem = (produto: any) => {
     const quantidadeInicial = 1;
@@ -92,13 +85,19 @@ export function EmbalagensTa({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setSuggestionLimit(20); }}
                 placeholder="Buscar embalagens..."
                 className="pl-9"
               />
             </div>
           </div>
 
+          {matches.length > produtos.length && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{produtos.length} de {matches.length} resultados. Busque pelo nome ou código.</span>
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => setSuggestionLimit(limit => limit + 20)}>Mostrar mais</Button>
+            </div>
+          )}
           {produtos.length > 0 && (
             <div className="border border-orange-200 bg-orange-50 dark:bg-orange-950 rounded-lg p-2 space-y-2 max-h-60 overflow-y-auto">
               {produtos.map((produto) => (
@@ -112,7 +111,7 @@ export function EmbalagensTa({
                       R$ {formatNumber(produto.custo_unitario, 4)} / {produto.unidade_uso || produto.unidade_compra}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleAddEmbalagem(produto)} className="shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => handleAddEmbalagem(produto)} className="shrink-0 min-h-11 min-w-11" aria-label={`Adicionar ${produto.nome}`}>
                     <Plus className="h-4 w-4 md:mr-1" />
                     <span className="hidden md:inline">Adicionar</span>
                   </Button>
@@ -133,7 +132,7 @@ export function EmbalagensTa({
           ) : (
             <>
               {/* Mobile */}
-              <div className="md:hidden space-y-2">
+              <div className="recipe-compact space-y-2">
                 {embalagens.map((embalagem) => {
                   if (!embalagem.produto) return null;
                   const unidade = embalagem.produto.unidade_uso || embalagem.produto.unidade_compra;
@@ -145,7 +144,7 @@ export function EmbalagensTa({
                     <div key={embalagem.id} className="border rounded-lg p-3 space-y-2 bg-card">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium text-sm flex-1">{embalagem.produto.nome}</p>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveEmbalagem(embalagem.id)}>
+                        <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remover ${embalagem.produto?.nome || 'embalagem'}`} onClick={() => handleRemoveEmbalagem(embalagem.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -169,7 +168,7 @@ export function EmbalagensTa({
               </div>
 
               {/* Desktop */}
-              <Table className="hidden md:table">
+              <Table className="recipe-wide-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Embalagem</TableHead>
@@ -202,7 +201,7 @@ export function EmbalagensTa({
                         <TableCell className="text-right">R$ {formatNumber(custoUnitario, 4)}</TableCell>
                         <TableCell className="text-right">R$ {formatBRL(custoTotal)}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveEmbalagem(embalagem.id)}>
+                          <Button variant="ghost" size="icon" aria-label={`Remover ${embalagem.produto?.nome || 'embalagem'}`} onClick={() => handleRemoveEmbalagem(embalagem.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>

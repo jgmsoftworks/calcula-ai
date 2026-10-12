@@ -45,130 +45,6 @@ export function useReceitas() {
     }
   };
 
-  const fetchReceitas = async (filters?: {
-    search?: string;
-    tipo?: string;
-    status?: 'rascunho' | 'finalizada';
-    subReceita?: string;
-  }) => {
-    if (!user) return [];
-    
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('receitas')
-        .select(`
-          *,
-          tipo_produto:tipos_produto(id, nome),
-          markup:markups(id, nome, tipo),
-          total_ingredientes:receita_ingredientes(count),
-          total_embalagens:receita_embalagens(count),
-          total_sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(count),
-          ingredientes:receita_ingredientes(
-            quantidade,
-            produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
-          ),
-          embalagens:receita_embalagens(
-            quantidade,
-            produto:produtos(custo_unitario, unidade_uso, fator_conversao, unidade_compra)
-          ),
-          mao_obra:receita_mao_obra(valor_total),
-          sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
-            quantidade,
-            sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('numero_sequencial', { ascending: false });
-
-      if (filters?.search) {
-        const search = filters.search.trim();
-        // Verificar se a busca é um número para pesquisar pelo numero_sequencial
-        const isNumericSearch = /^\d+$/.test(search);
-        if (isNumericSearch) {
-          const searchAsNumber = Number(search);
-          // Se for um número válido, buscar por numero_sequencial OU nome
-          query = query.or(`numero_sequencial.eq.${searchAsNumber},nome.ilike.%${search}%`);
-        } else {
-          // Se não for número, buscar apenas por nome
-          query = query.ilike('nome', `%${search}%`);
-        }
-      }
-
-      if (filters?.tipo && filters.tipo !== 'all') {
-        query = query.eq('tipo_produto_id', filters.tipo);
-      }
-
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      let receitasFiltradas = data || [];
-
-      // Filtro de sub-receitas (feito em memória porque precisa verificar o tipo do markup)
-      if (filters?.subReceita === 'subreceita') {
-        receitasFiltradas = receitasFiltradas.filter((r: any) => r.markup?.tipo === 'sub_receita');
-      } else if (filters?.subReceita === 'normal') {
-        receitasFiltradas = receitasFiltradas.filter((r: any) => r.markup?.tipo !== 'sub_receita');
-      }
-
-      // Transform data to include calculated fields
-      const receitasComDados = receitasFiltradas.map((receita: any) => {
-        // Calcular custo de ingredientes dinamicamente
-        const custoIngredientes = receita.ingredientes?.reduce((sum: number, i: any) => {
-          if (!i.produto) return sum;
-          const unidade = i.produto.unidade_uso || i.produto.unidade_compra;
-          const custoUnitario = i.produto.unidade_uso 
-            ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
-            : i.produto.custo_unitario;
-          return sum + (custoUnitario * i.quantidade);
-        }, 0) || 0;
-
-        // Calcular custo de embalagens dinamicamente
-        const custoEmbalagens = receita.embalagens?.reduce((sum: number, e: any) => {
-          if (!e.produto) return sum;
-          const unidade = e.produto.unidade_uso || e.produto.unidade_compra;
-          const custoUnitario = e.produto.unidade_uso 
-            ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
-            : e.produto.custo_unitario;
-          return sum + (custoUnitario * e.quantidade);
-        }, 0) || 0;
-
-        // Calcular custo de sub-receitas dinamicamente
-        const custoSubReceitas = receita.sub_receitas?.reduce((sum: number, s: any) => {
-          if (!s.sub_receita) return sum;
-          const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
-            ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
-            : s.sub_receita.preco_venda;
-          return sum + (custoUnitario * s.quantidade);
-        }, 0) || 0;
-
-        return {
-          ...receita,
-          total_ingredientes: receita.total_ingredientes?.[0]?.count || 0,
-          total_embalagens: receita.total_embalagens?.[0]?.count || 0,
-          total_sub_receitas: receita.total_sub_receitas?.[0]?.count || 0,
-          custo_ingredientes: custoIngredientes,
-          custo_embalagens: custoEmbalagens,
-          custo_mao_obra: receita.mao_obra?.reduce((sum: number, m: any) => sum + (m.valor_total || 0), 0) || 0,
-          custo_sub_receitas: custoSubReceitas,
-        };
-      });
-
-      return receitasComDados;
-    } catch (error: any) {
-      console.error('Erro ao buscar receitas:', error);
-      toast.error('Erro ao carregar receitas');
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchReceitaCompleta = async (id: string): Promise<ReceitaCompleta | null> => {
     if (!user) return null;
 
@@ -224,6 +100,9 @@ export function useReceitas() {
       `).eq('receita_id', id),
         supabase.from('receita_mao_obra').select('*').eq('receita_id', id),
       ]);
+
+      const relationError = [ingredientes, embalagens, passos, subReceitas, maoObra].find(result => result.error)?.error;
+      if (relationError) throw relationError;
 
       return {
         ...receita,
@@ -614,7 +493,6 @@ export function useReceitas() {
   return {
     loading,
     gerarNumeroSequencial,
-    fetchReceitas,
     fetchReceitaCompleta,
     createReceita,
     updateReceita,

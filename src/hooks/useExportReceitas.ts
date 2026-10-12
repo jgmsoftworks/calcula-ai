@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import type { ReceitaComDados } from '@/types/receitas';
@@ -21,6 +20,8 @@ export function useExportReceitas() {
         setExporting(false);
         return;
       }
+
+      const XLSX = await import('xlsx');
 
       // Buscar configuração do markup se selecionado
       let markupDetalhes: any = null;

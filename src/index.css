@@ -478,3 +478,23 @@ html { scroll-behavior: smooth; }
 }
 
 
+
+/* Use the editor's available width, including when the sidebar is open. */
+.recipe-editor { container-type: inline-size; container-name: recipe; }
+.recipe-wide-tabs, .recipe-wide-table { display: none; }
+.recipe-compact { display: block; }
+@container recipe (min-width: 760px) {
+  .recipe-wide-tabs { display: grid; }
+  .recipe-wide-table { display: table; }
+  .recipe-compact { display: none; }
+}
+
+@container recipe (min-width: 760px) {
+  .recipe-preservation-grid { grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr) 100px; }
+  .recipe-preservation-wide { grid-column: span 1 / span 1; }
+  .recipe-cost-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .recipe-price-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container recipe (min-width: 1000px) {
+  .recipe-general-grid { grid-template-columns: 240px minmax(0, 1fr); }
+}

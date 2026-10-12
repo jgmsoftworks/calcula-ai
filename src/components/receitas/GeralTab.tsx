@@ -235,10 +235,10 @@ export function GeralTab({
       <Card className="glass-card overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
         <CardContent className="p-3 md:p-6">
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-4 md:gap-6">
+      <div className="recipe-general-grid grid grid-cols-1 gap-4 md:gap-6">
 
         {/* Upload de Imagem */}
-        <div className="space-y-2">
+        <div className="w-full max-w-[280px] space-y-2">
           <Label>Imagem da Receita</Label>
           <div className="relative aspect-square bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors">
             {imagePreview || receita?.imagem_url ? (
@@ -306,8 +306,8 @@ export function GeralTab({
           <Label>Conservação</Label>
           <div className="space-y-4 border rounded-lg p-3 md:p-4">
             {/* Congelado */}
-            <div className="grid grid-cols-2 md:grid-cols-[120px_1fr_1fr_110px] gap-2 md:gap-4 items-end">
-              <Label className="text-sm font-medium pb-0 md:pb-2 col-span-2 md:col-span-1">Congelado</Label>
+            <div className="recipe-preservation-grid grid grid-cols-2 gap-2 md:gap-4 items-end">
+              <Label className="text-sm font-medium pb-0 md:pb-2 recipe-preservation-wide col-span-2">Congelado</Label>
               <div className="space-y-1.5">
                 <Label htmlFor="temp_congelado" className="text-xs text-muted-foreground">Temp. °C</Label>
                 <TemperatureInput
@@ -333,7 +333,7 @@ export function GeralTab({
                   placeholder="90"
                 />
               </div>
-              <div className="col-span-2 md:col-span-1">
+              <div className="recipe-preservation-wide col-span-2">
                 <Select
                   value={formData.conservacao?.congelado?.unidade || 'dias'}
                   onValueChange={(value) => onFormChange('conservacao', {
@@ -354,8 +354,8 @@ export function GeralTab({
             </div>
 
             {/* Refrigerado */}
-            <div className="grid grid-cols-2 md:grid-cols-[120px_1fr_1fr_110px] gap-2 md:gap-4 items-end border-t md:border-t-0 pt-4 md:pt-0">
-              <Label className="text-sm font-medium pb-0 md:pb-2 col-span-2 md:col-span-1">Refrigerado</Label>
+            <div className="recipe-preservation-grid grid grid-cols-2 gap-2 md:gap-4 items-end border-t md:border-t-0 pt-4 md:pt-0">
+              <Label className="text-sm font-medium pb-0 md:pb-2 recipe-preservation-wide col-span-2">Refrigerado</Label>
               <div className="space-y-1.5">
                 <Label htmlFor="temp_refrigerado" className="text-xs text-muted-foreground">Temp. °C</Label>
                 <TemperatureInput
@@ -381,7 +381,7 @@ export function GeralTab({
                   placeholder="15"
                 />
               </div>
-              <div className="col-span-2 md:col-span-1">
+              <div className="recipe-preservation-wide col-span-2">
                 <Select
                   value={formData.conservacao?.refrigerado?.unidade || 'dias'}
                   onValueChange={(value) => onFormChange('conservacao', {
@@ -402,8 +402,8 @@ export function GeralTab({
             </div>
 
             {/* Ambiente */}
-            <div className="grid grid-cols-2 md:grid-cols-[120px_1fr_1fr_110px] gap-2 md:gap-4 items-end border-t md:border-t-0 pt-4 md:pt-0">
-              <Label className="text-sm font-medium pb-0 md:pb-2 col-span-2 md:col-span-1">Ambiente</Label>
+            <div className="recipe-preservation-grid grid grid-cols-2 gap-2 md:gap-4 items-end border-t md:border-t-0 pt-4 md:pt-0">
+              <Label className="text-sm font-medium pb-0 md:pb-2 recipe-preservation-wide col-span-2">Ambiente</Label>
               <div className="space-y-1.5">
                 <Label htmlFor="temp_ambiente" className="text-xs text-muted-foreground">Temp. °C</Label>
                 <TemperatureInput
@@ -429,7 +429,7 @@ export function GeralTab({
                   placeholder="0"
                 />
               </div>
-              <div className="col-span-2 md:col-span-1">
+              <div className="recipe-preservation-wide col-span-2">
                 <Select
                   value={formData.conservacao?.ambiente?.unidade || 'horas'}
                   onValueChange={(value) => onFormChange('conservacao', {

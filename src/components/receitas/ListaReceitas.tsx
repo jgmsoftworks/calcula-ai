@@ -1,4 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { fetchReceitasPage, fetchTodasReceitas, RECEITAS_PAGE_SIZE } from '@/lib/receitasData';
+import type { Json } from '@/integrations/supabase/types';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,167 +23,105 @@ export function ListaReceitas() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { fetchReceitas, fetchTiposProduto, loading } = useReceitas();
+  const { fetchTiposProduto } = useReceitas();
+  const queryClient = useQueryClient();
   const { exportarReceitas, exporting } = useExportReceitas();
   const { user } = useAuth();
-  const [receitas, setReceitas] = useState<ReceitaComDados[]>([]);
+  const userId = user?.id;
+  const listStartRef = useRef<HTMLDivElement>(null);
+
   const search = searchParams.get('busca') || '';
   const tipoFilter = searchParams.get('tipo') || 'all';
   const subReceitaFilter = searchParams.get('subReceita') || 'all';
   const setFilter = (name: string, value: string) => {
     setSearchParams(previous => {
       const next = new URLSearchParams(previous);
+      next.delete('pagina');
       if (!value || (name !== 'busca' && value === 'all')) next.delete(name);
       else next.set(name, value);
       return next;
     }, { replace: true });
   };
-  const [tiposProduto, setTiposProduto] = useState<Array<{ id: string; nome: string }>>([]);
+  const requestedPage = Number(searchParams.get('pagina'));
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const [debouncedSearch, setDebouncedSearch] = useState(search.trim());
   const [showExportModal, setShowExportModal] = useState(false);
+  const [preparingExport, setPreparingExport] = useState(false);
   const [markupsDisponiveis, setMarkupsDisponiveis] = useState<Array<{ id: string; nome: string }>>([]);
-  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
-  const [loadingConfigs, setLoadingConfigs] = useState(true);
-  const requestIdRef = useRef(0);
   useEffect(() => {
-    loadTiposProduto();
-    loadMarkupConfigs();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadReceitas();
-    }, search.trim() ? 350 : 0);
-
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(timer);
-  }, [search, tipoFilter, subReceitaFilter]);
+  }, [search]);
 
-  const loadMarkupConfigs = async () => {
-    if (!user) return;
-    setLoadingConfigs(true);
-    try {
-      const { data } = await supabase
-        .from('user_configurations')
-        .select('type, configuration')
-        .eq('user_id', user.id)
-        .ilike('type', 'markup_%');
-      
-      const map: Record<string, any> = {};
-      data?.forEach((item) => {
-        map[item.type] = item.configuration;
-      });
-      setMarkupConfigsMap(map);
-    } catch (error) {
-      console.error('Erro ao carregar configs de markup:', error);
-    } finally {
-      setLoadingConfigs(false);
-    }
+  const filters = { search: debouncedSearch, tipo: tipoFilter, subReceita: subReceitaFilter };
+  const receitasQuery = useQuery({
+    queryKey: ['receitas-lista', user?.id, filters, page],
+    queryFn: ({ signal }) => fetchReceitasPage(user!.id, filters, page, RECEITAS_PAGE_SIZE, signal),
+    enabled: !!user,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === user?.id ? previous : undefined,
+  });
+  const receitas = receitasQuery.data?.receitas || [];
+  const total = receitasQuery.data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / RECEITAS_PAGE_SIZE));
+  const loading = receitasQuery.isPending;
+  const exportBusy = exporting || preparingExport;
+  const setPage = (value: number) => {
+    listStartRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (value <= 1) next.delete('pagina');
+      else next.set('pagina', String(value));
+      return next;
+    }, { replace: true });
   };
-
-  // Ref para debounce do real-time
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const jaCarregouRef = useRef(false);
-
-  // Função debounced para carregar receitas
-  const debouncedLoadReceitas = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    debounceRef.current = setTimeout(() => {
-      loadReceitas();
-    }, 500); // Esperar 500ms antes de recarregar
-  }, [search, tipoFilter, subReceitaFilter]);
-
-  // Real-time subscription para atualizar lista quando receitas mudarem
   useEffect(() => {
-    if (!user) return;
+    if (!receitasQuery.isPlaceholderData && receitasQuery.data && page > totalPages) {
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (totalPages === 1) next.delete('pagina');
+        else next.set('pagina', String(totalPages));
+        return next;
+      }, { replace: true });
+    }
+  }, [receitasQuery.data, receitasQuery.isPlaceholderData, page, totalPages, setSearchParams]);
 
-    console.log('🔄 Configurando real-time updates para lista de receitas');
-    
-    const channel = supabase
-      .channel('lista-receitas-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'receitas',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('🔔 Receita atualizada em tempo real:', payload);
-          debouncedLoadReceitas(); // Usar versão debounced
-        }
-      )
-      .subscribe();
+  const { data: tiposProduto = [] } = useQuery({
+    queryKey: ['receitas-tipos', user?.id],
+    queryFn: fetchTiposProduto,
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  const { data: markupConfigsMap = {}, isPending: loadingConfigs } = useQuery({
+    queryKey: ['receitas-markup-configs', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('user_configurations')
+        .select('type, configuration').eq('user_id', user!.id).ilike('type', 'markup_%');
+      if (error) throw error;
+      return Object.fromEntries((data || []).map(item => [item.type, item.configuration])) as Record<string, Json>;
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const loadReceitas = () => queryClient.invalidateQueries({ queryKey: ['receitas-lista', user?.id] });
 
+  useEffect(() => {
+    if (!userId) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const channel = supabase.channel(`lista-receitas-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'receitas', filter: `user_id=eq.${userId}` }, () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          void queryClient.invalidateQueries({ queryKey: ['receitas-lista', userId] });
+        }, 500);
+      }).subscribe();
     return () => {
-      console.log('🔌 Desconectando real-time de receitas');
-      supabase.removeChannel(channel);
+      clearTimeout(timer);
+      void supabase.removeChannel(channel);
     };
-  }, [user, debouncedLoadReceitas]);
-
-  const sincronizarPrecosSubReceitas = async (receitasCarregadas: ReceitaComDados[]) => {
-    if (!user) return;
-    
-    // Filtrar apenas sub-receitas com preço diferente do custo
-    const subReceitasDesatualizadas = receitasCarregadas.filter(r => {
-      if (r.markup?.tipo !== 'sub_receita') return false;
-      
-      const custoTotal = (r.custo_ingredientes || 0) + 
-                         (r.custo_embalagens || 0) + 
-                         (r.custo_mao_obra || 0) + 
-                         (r.custo_sub_receitas || 0);
-      
-      // Se a diferença for significativa (mais de 0.01)
-      return Math.abs(r.preco_venda - custoTotal) > 0.01;
-    });
-    
-    if (subReceitasDesatualizadas.length === 0) return;
-    
-    console.log(`🔄 Atualizando ${subReceitasDesatualizadas.length} sub-receitas com preços desatualizados`);
-    
-    // Atualizar cada sub-receita
-    for (const receita of subReceitasDesatualizadas) {
-      const custoTotal = (receita.custo_ingredientes || 0) + 
-                         (receita.custo_embalagens || 0) + 
-                         (receita.custo_mao_obra || 0) + 
-                         (receita.custo_sub_receitas || 0);
-      
-      await supabase
-        .from('receitas')
-        .update({ preco_venda: custoTotal })
-        .eq('id', receita.id)
-        .eq('user_id', user.id);
-    }
-  };
-
-  const loadReceitas = async () => {
-    const requestId = ++requestIdRef.current;
-    const filters: any = {};
-    const normalizedSearch = search.trim();
-    if (normalizedSearch) filters.search = normalizedSearch;
-    if (tipoFilter !== 'all') filters.tipo = tipoFilter;
-    if (subReceitaFilter !== 'all') filters.subReceita = subReceitaFilter;
-
-    const data = await fetchReceitas(filters);
-    if (requestId !== requestIdRef.current) return;
-    setReceitas(data);
-    
-    // NÃO sincronizar aqui - será feito separadamente
-  };
-
-  // Sincronizar apenas UMA VEZ após primeira carga
-  useEffect(() => {
-    if (receitas.length > 0 && !jaCarregouRef.current) {
-      jaCarregouRef.current = true;
-      sincronizarPrecosSubReceitas(receitas);
-    }
-  }, [receitas.length]);
-
-  const loadTiposProduto = async () => {
-    const tipos = await fetchTiposProduto();
-    setTiposProduto(tipos);
-  };
+  }, [userId, queryClient]);
 
   const loadMarkups = async () => {
     if (!user) return;
@@ -207,7 +149,16 @@ export function ListaReceitas() {
 
   const handleExportConfirm = async (markupId: string | null, markupNome: string | null) => {
     setShowExportModal(false);
-    await exportarReceitas(receitas, markupId, markupNome);
+    if (!user) return;
+    setPreparingExport(true);
+    try {
+      const todasReceitas = await fetchTodasReceitas(user.id, filters);
+      await exportarReceitas(todasReceitas, markupId, markupNome);
+    } catch {
+      toast.error('Não foi possível carregar todas as receitas para exportar. Tente novamente.');
+    } finally {
+      setPreparingExport(false);
+    }
   };
 
   const handleEdit = (receita: ReceitaComDados) => {
@@ -216,7 +167,7 @@ export function ListaReceitas() {
 
   return (
     <>
-      <Card>
+      <Card ref={listStartRef} className="scroll-mt-20">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle>{t('receitas.recipes')}</CardTitle>
@@ -225,9 +176,9 @@ export function ListaReceitas() {
                 onClick={handleExportClick}
                 variant="outline"
                 className="flex-1 sm:flex-initial"
-                disabled={receitas.length === 0 || exporting}
+                disabled={total === 0 || exportBusy || receitasQuery.isFetching}
               >
-                {exporting ? (
+                {exportBusy ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     {t('receitas.exporting')}
@@ -282,13 +233,22 @@ export function ListaReceitas() {
             </Select>
           </div>
 
+          {receitasQuery.isError && (
+            <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-3">
+              <span>Não foi possível carregar as receitas.</span>
+              <Button variant="outline" onClick={() => void receitasQuery.refetch()}>Tentar novamente</Button>
+            </div>
+          )}
+          <p role="status" className="text-sm text-muted-foreground">
+            {receitasQuery.isFetching ? 'Carregando receitas…' : `${total} receita${total === 1 ? '' : 's'}`}
+          </p>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : receitas.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              {t('receitas.noRecipes')}
+              {!receitasQuery.isError && t('receitas.noRecipes')}
             </div>
           ) : (
             <div className="grid grid-cols-1 3xl:grid-cols-2 gap-4">
@@ -310,6 +270,15 @@ export function ListaReceitas() {
               })}
             </div>
           )}
+          {totalPages > 1 && (
+            <nav aria-label="Paginação de receitas" className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+              <p className="text-sm text-muted-foreground">Página {page} de {totalPages}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" disabled={page <= 1 || receitasQuery.isPlaceholderData} onClick={() => setPage(page - 1)}>Anterior</Button>
+                <Button variant="outline" disabled={page >= totalPages || receitasQuery.isPlaceholderData} onClick={() => setPage(page + 1)}>Próxima</Button>
+              </div>
+            </nav>
+          )}
         </CardContent>
       </Card>
 
@@ -318,7 +287,7 @@ export function ListaReceitas() {
         onClose={() => setShowExportModal(false)}
         onConfirm={handleExportConfirm}
         markups={markupsDisponiveis}
-        loading={exporting}
+        loading={exportBusy}
       />
     </>
   );
