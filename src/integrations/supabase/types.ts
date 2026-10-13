@@ -2118,6 +2118,7 @@ export type Database = {
       produtos: {
         Row: {
           rotulo_nutricional: Json | null
+          rotulos_nutricionais: Json | null
           ativo: boolean
           categorias: string[] | null
           codigo_interno: number
@@ -2138,6 +2139,7 @@ export type Database = {
         }
         Insert: {
           rotulo_nutricional?: Json | null
+          rotulos_nutricionais?: Json | null
           ativo?: boolean
           categorias?: string[] | null
           codigo_interno: number
@@ -2158,6 +2160,7 @@ export type Database = {
         }
         Update: {
           rotulo_nutricional?: Json | null
+          rotulos_nutricionais?: Json | null
           ativo?: boolean
           categorias?: string[] | null
           codigo_interno?: number

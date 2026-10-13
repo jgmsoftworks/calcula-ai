@@ -3,7 +3,7 @@
 ## Escopo
 
 - Nova guia no formulário de produto. `Adicionar rótulo nutricional` inicia uma linha; `Adicionar linha` continua o cadastro. Câmera ao lado, sem seleção de modo de entrada.
-- Quantidade/unidade de referência, marca/apresentação e 12 nutrientes padronizados. Campos vazios são `null`; zero declarado permanece zero. Cadastro incompleto pode ser salvo.
+- Quantidade/unidade de referência e rótulos separados por marca. Nutrientes e unidades podem ser digitados livremente, com sugestões opcionais. Campos vazios são `null`; zero declarado permanece zero. Cadastro incompleto pode ser salvo. Evolução descrita em `stock-nutrition-brands.md`.
 - Valores e metadados são salvos no mesmo INSERT/UPDATE do produto. Custos, estoque e dados de receitas não são alterados pelo recurso.
 - Foto privada persistida ao salvar. O botão de câmera usa o seletor de imagens do aparelho (JPG, PNG ou WebP, até 8 MB).
 - OCR Tesseract.js 7.0.0 carregado sob demanda. Processamento no navegador, com cancelamento e limite de 60 segundos. Recursos de execução/idioma são baixados do jsDelivr nas versões configuradas pela biblioteca. Não usa serviços de IA ou créditos da Lovable.
@@ -12,7 +12,7 @@
 
 ## Persistência e acesso
 
-`produtos.rotulo_nutricional` é um JSON versionado opcional. A constraint valida estrutura, unidades, valores, duplicidades, prefixo do proprietário da foto e integridade do estado `conferido`. O acesso continua sujeito às políticas de proprietário já existentes em `produtos`.
+`produtos.rotulo_nutricional` é o JSON da primeira versão, mantido para compatibilidade. A versão atual salva a coleção por marca em `produtos.rotulos_nutricionais`. A constraint valida estrutura, unidades, valores, duplicidades, prefixo do proprietário da foto e integridade do estado `conferido`. O acesso continua sujeito às políticas de proprietário já existentes em `produtos`.
 
 Bucket privado `rotulos-nutricionais`: caminhos exclusivos por usuário; leitura por URL assinada; INSERT/SELECT/DELETE restritos ao proprietário. Arquivos são novos a cada envio, sem permissão de sobrescrita. Upload falho impede concluir o salvamento; gravação de produto malsucedida remove o novo arquivo. A foto substituída é removida após a gravação bem-sucedida.
 

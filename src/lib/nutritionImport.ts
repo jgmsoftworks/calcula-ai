@@ -1,4 +1,4 @@
-import { emptyNutritionLabel, type NutritionLabel, type NutrientId } from './nutritionLabel';
+import { NUTRIENTS, emptyNutritionLabel, type NutritionLabel, type NutrientId } from './nutritionLabel';
 
 const patterns: [NutrientId, RegExp][] = [
   ['energia', /valor energetico|energia/],
@@ -39,7 +39,7 @@ export function parseNutritionText(text: string): NutritionLabel {
   }
   for (const line of lines) {
     const match = patterns.find(([, regex]) => regex.test(line));
-    if (!match || result.nutrientes.some(row => row.nutriente === match[0])) continue;
+    if (!match || result.nutrientes.some(row => row.nutriente === NUTRIENTS.find(item => item.id === match[0])?.nome)) continue;
     const [id, regex] = match;
     const tail = line.slice((line.match(regex)?.index ?? 0) + (line.match(regex)?.[0].length ?? 0));
     // Do not turn inequalities, missing values, kJ or invalid decimal separators into exact amounts.
@@ -50,7 +50,8 @@ export function parseNutritionText(text: string): NutritionLabel {
     const value = values.length ? numeric(values[0][0]) : null;
     const enoughColumns = values.length >= Math.max(columns.length, 1);
     result.nutrientes.push({
-      nutriente: id,
+      nutriente: NUTRIENTS.find(item => item.id === id)!.nome,
+      unidade: expectedUnit,
       quantidade: !uncertain && enoughColumns && result.quantidade_referencia !== null && unit === expectedUnit && value !== null && value <= 1_000_000 ? value : null,
     });
   }

@@ -25,7 +25,7 @@ vi.mock('@/components/estoque/ImportProdutosExcel', () => ({ ImportProdutosExcel
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const product: Produto = {
-  id: 'product-1', user_id: 'owner-1', nome: 'Farinha', codigo_interno: 7, codigos_barras: [], marcas: [], categorias: [],
+  id: 'product-1', user_id: 'owner-1', nome: 'Farinha', codigo_interno: 7, codigos_barras: [], marcas: ['Marca A'], categorias: [],
   unidade_compra: 'k', custo_unitario: 8, estoque_atual: 20, estoque_minimo: 2, unidade_uso: 'g', fator_conversao: 1000,
   imagem_url: null, ativo: true, created_at: '', updated_at: '',
 };
@@ -107,7 +107,7 @@ describe('stock product page navigation and saving', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Voltar para produtos' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Salvando...' })).toBeDisabled();
-    expect(mocks.update).toHaveBeenCalledWith('product-1', expect.objectContaining({ nome: 'Farinha integral', custo_unitario: 8, estoque_atual: 20, fator_conversao: 1000, rotulo_nutricional: expect.objectContaining({ quantidade_referencia: 100 }) }));
+    expect(mocks.update).toHaveBeenCalledWith('product-1', expect.objectContaining({ nome: 'Farinha integral', custo_unitario: 8, estoque_atual: 20, fator_conversao: 1000, rotulos_nutricionais: [expect.objectContaining({ quantidade_referencia: 100 })] }));
     await act(async () => finish(product));
     await waitFor(() => expect(screen.getByLabelText('Endereço atual')).toHaveTextContent(`/estoque${filters}`));
   });

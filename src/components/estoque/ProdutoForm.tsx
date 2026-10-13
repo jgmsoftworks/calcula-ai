@@ -24,8 +24,8 @@ import { ConsumoMedioCard } from './ConsumoMedioCard';
 import { useEstoque, Produto } from '@/hooks/useEstoque';
 import { formatters } from '@/lib/formatters';
 import { UNIDADES_VALIDAS, UNIDADES_LABELS } from '@/lib/constants';
-import { RotuloNutricionalTab } from './RotuloNutricionalTab';
-import { missingNutritionFields, nutritionLabelSchema, readNutritionLabel, type NutritionLabel } from '@/lib/nutritionLabel';
+import { RotulosNutricionaisTab } from './RotulosNutricionaisTab';
+import { missingNutritionFields, nutritionLabelsSchema, readNutritionLabels, type NutritionLabel } from '@/lib/nutritionLabel';
 import { removeNutritionPhoto, uploadNutritionPhoto } from '@/lib/nutritionStorage';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -41,8 +41,8 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(produto?.imagem_url || null);
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
-  const [nutrition, setNutrition] = useState<NutritionLabel | null>(() => readNutritionLabel(produto?.rotulo_nutricional));
-  const [nutritionPhoto, setNutritionPhoto] = useState<File | null>(null);
+  const [nutrition, setNutrition] = useState<NutritionLabel[]>(() => readNutritionLabels(produto?.rotulos_nutricionais, produto?.rotulo_nutricional));
+  const [nutritionPhotos, setNutritionPhotos] = useState<Record<string, File>>({});
   const [nutritionBusy, setNutritionBusy] = useState(false);
   const [tab, setTab] = useState('estoque');
   
@@ -68,7 +68,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
     fator_conversao: null,
   };
   
-  const { register, handleSubmit, setValue, setError, watch, formState: { errors } } = useForm<Partial<Omit<Produto, 'rotulo_nutricional'>>>({
+  const { register, handleSubmit, setValue, setError, watch, formState: { errors } } = useForm<Partial<Omit<Produto, 'rotulo_nutricional' | 'rotulos_nutricionais'>>>({
     defaultValues,
   });
 
@@ -111,38 +111,45 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
     }
 
     setSaving(true);
-    let uploadedNutritionPath: string | null = null;
+    const uploadedNutritionPaths: string[] = [];
     let productSaved = false;
 
     try {
       // Primeiro criar/atualizar o produto (sem imagem)
       const produtoData = { ...data };
       delete produtoData.imagem_url; // Remover imagem_url temporariamente
-      if (nutrition) {
-        const parsed = nutritionLabelSchema.safeParse(nutrition);
-        if (!parsed.success) throw new Error('Confira os campos do rótulo nutricional antes de salvar.');
-        if (nutritionPhoto) uploadedNutritionPath = await uploadNutritionPhoto(nutritionPhoto);
-        produtoData.rotulo_nutricional = {
-          ...parsed.data,
-          foto_path: uploadedNutritionPath ?? parsed.data.foto_path,
-          conferido: parsed.data.conferido && missingNutritionFields(parsed.data).length === 0,
-        } as Json;
-      } else {
-        produtoData.rotulo_nutricional = null;
+      // Keep the legacy column intact so older deployed clients remain compatible.
+      delete produtoData.rotulo_nutricional;
+      const parsed = nutritionLabelsSchema.safeParse(nutrition);
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Confira os campos dos rótulos nutricionais.');
+      const savedLabels: NutritionLabel[] = [];
+      for (const label of parsed.data) {
+        let photoPath = label.foto_path;
+        if (nutritionPhotos[label.id]) {
+          photoPath = await uploadNutritionPhoto(nutritionPhotos[label.id]);
+          uploadedNutritionPaths.push(photoPath);
+        }
+        savedLabels.push({ ...label, foto_path: photoPath, conferido: label.conferido && missingNutritionFields(label).length === 0 });
       }
+      produtoData.rotulos_nutricionais = savedLabels as Json;
 
       const result = produto
         ? await updateProduto(produto.id, produtoData)
         : await createProduto(produtoData);
 
       if (!result) {
-        if (uploadedNutritionPath) await removeNutritionPhoto(uploadedNutritionPath);
+        await Promise.allSettled(uploadedNutritionPaths.map(path => removeNutritionPhoto(path)));
         setSaving(false);
         return;
       }
       productSaved = true;
-      const previousNutritionPath = readNutritionLabel(produto?.rotulo_nutricional)?.foto_path;
-      if (previousNutritionPath && (uploadedNutritionPath || !nutrition)) void removeNutritionPhoto(previousNutritionPath);
+      const usedPaths = new Set(savedLabels.map(label => label.foto_path));
+      // Retain photos referenced by the legacy column until that format is retired.
+      const legacyPath = readNutritionLabels(null, produto?.rotulo_nutricional)[0]?.foto_path;
+      if (legacyPath) usedPaths.add(legacyPath);
+      for (const label of nutrition) {
+        if (label.foto_path && !usedPaths.has(label.foto_path)) void removeNutritionPhoto(label.foto_path);
+      }
 
       // Se há arquivo de imagem selecionado, fazer upload
       if (selectedImageFile) {
@@ -157,7 +164,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
       setSaving(false);
       onSuccess();
     } catch (error) {
-      if (uploadedNutritionPath && !productSaved) await removeNutritionPhoto(uploadedNutritionPath);
+      if (!productSaved) await Promise.allSettled(uploadedNutritionPaths.map(path => removeNutritionPhoto(path)));
       toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o produto. Tente novamente.');
       console.error('❌ [SUBMIT] Erro ao salvar produto:', error);
       setSaving(false);
@@ -445,8 +452,9 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
             </TabsContent>
 
             <TabsContent value="nutricional" className="mt-6 rounded-xl border bg-card p-4 sm:p-6">
-              <RotuloNutricionalTab value={nutrition} onChange={setNutrition} photo={nutritionPhoto} onPhotoChange={setNutritionPhoto}
-                onBusyChange={setNutritionBusy} marcaSugerida={marcas.length === 1 ? marcas[0] : ''} disabled={saving} />
+              <RotulosNutricionaisTab value={nutrition} onChange={setNutrition} marcas={marcas} photos={nutritionPhotos}
+                onPhotoChange={(id, file) => setNutritionPhotos(previous => ({ ...previous, [id]: file }))}
+                busy={nutritionBusy} onBusyChange={setNutritionBusy} disabled={saving} onManageBrands={() => setTab('estoque')} />
             </TabsContent>
 
             <TabsContent value="historico" className="mt-4">

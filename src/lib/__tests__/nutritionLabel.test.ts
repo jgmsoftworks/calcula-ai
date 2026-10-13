@@ -1,37 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { emptyNutritionLabel, mergeNutritionImport, missingNutritionFields, nutritionLabelSchema, NUTRIENTS } from '../nutritionLabel';
+import { emptyNutritionLabel, mergeNutritionImport, missingNutritionFields, nutritionLabelSchema, nutritionLabelsSchema, readNutritionLabels, NUTRIENTS } from '../nutritionLabel';
 import { parseNutritionText } from '../nutritionImport';
 
 describe('stock nutrition data', () => {
   it('keeps unknown amounts different from declared zero, including after serialization', () => {
-    const label = emptyNutritionLabel();
-    label.nutrientes = [{ nutriente: 'sodio', quantidade: 0 }, { nutriente: 'proteinas', quantidade: null }];
+    const label = emptyNutritionLabel('Marca A');
+    label.nutrientes = [{ nutriente: 'Sódio', unidade: 'mg', quantidade: 0 }, { nutriente: 'Proteínas', unidade: 'g', quantidade: null }];
     const saved = nutritionLabelSchema.parse(JSON.parse(JSON.stringify(label)));
     expect(saved.nutrientes[0].quantidade).toBe(0);
     expect(saved.nutrientes[1].quantidade).toBeNull();
-    expect(missingNutritionFields(saved)).toContain('Proteínas');
+    expect(missingNutritionFields(saved)).toContain('Quantidade de Proteínas');
     expect(missingNutritionFields(saved)).not.toContain('Sódio');
   });
 
-  it('rejects negative amounts, repeated nutrients and unsupported labels', () => {
+  it('rejects negative amounts and repeated nutrients', () => {
     for (const nutrientes of [
-      [{ nutriente: 'sodio', quantidade: -1 }],
-      [{ nutriente: 'proteinas', quantidade: 1 }, { nutriente: 'proteinas', quantidade: 2 }],
-      [{ nutriente: 'zero_acucar', quantidade: 0 }],
-    ]) expect(nutritionLabelSchema.safeParse({ ...emptyNutritionLabel(), nutrientes }).success).toBe(false);
+      [{ nutriente: 'Sódio', unidade: 'mg', quantidade: -1 }],
+      [{ nutriente: 'Proteínas', unidade: 'g', quantidade: 1 }, { nutriente: 'Proteínas', unidade: 'g', quantidade: 2 }],
+    ]) expect(nutritionLabelSchema.safeParse({ ...emptyNutritionLabel('Marca A'), nutrientes }).success).toBe(false);
   });
 
   it('accepts a complete manually transcribed table', () => {
-    const label = { ...emptyNutritionLabel(), quantidade_referencia: 100, nutrientes: NUTRIENTS.filter(item => item.obrigatorio).map(item => ({ nutriente: item.id, quantidade: 0 })) };
+    const label = { ...emptyNutritionLabel('Marca A'), quantidade_referencia: 100, nutrientes: NUTRIENTS.filter(item => item.obrigatorio).map(item => ({ nutriente: item.nome, unidade: item.unidade, quantidade: 0 })) };
     expect(missingNutritionFields(label)).toEqual([]);
+  });
+
+  it('accepts custom nutrients and reviews only the entered rows', () => {
+    const label = { ...emptyNutritionLabel('Marca A'), quantidade_referencia: 100, nutrientes: [{ nutriente: 'Vitamina C', quantidade: 0, unidade: 'mg' }] };
+    expect(nutritionLabelSchema.safeParse(label).success).toBe(true);
+    expect(missingNutritionFields(label)).toEqual([]);
+    expect(nutritionLabelsSchema.safeParse([label, { ...emptyNutritionLabel(' marca a '), marca: ' marca a ' }]).success).toBe(false);
+  });
+
+  it('reads legacy nutrition losslessly and prefers the collection when present', () => {
+    const legacy = { versao: 1, quantidade_referencia: 20, unidade_referencia: 'g', marca: 'Marca antiga', nutrientes: [{ nutriente: 'sodio', quantidade: 0 }], foto_path: null, origem: 'manual', conferido: false };
+    const converted = readNutritionLabels(null, legacy);
+    expect(converted[0]).toMatchObject({ marca: 'Marca antiga', quantidade_referencia: 20, nutrientes: [{ nutriente: 'Sódio', quantidade: 0, unidade: 'mg' }] });
+    expect(readNutritionLabels([], legacy)).toEqual([]);
+    expect(() => readNutritionLabels({ invalid: true }, legacy)).toThrow();
   });
 
   it('imports an explicit 100 g column without mixing the portion or %VD', () => {
     const label = parseNutritionText('INFORMAÇÃO NUTRICIONAL\nPorções por embalagem: 5\nPorção: 20 g\n100 g    20 g    %VD\nValor energético (kcal) 420 84 4\nCarboidratos (g) 50 10 3\nAçúcares totais (g) 4,5 0,9\nAçúcares adicionados (g) 0 0 0\nSódio (mg) 100 20 1');
     expect(label.quantidade_referencia).toBe(100);
-    expect(label.nutrientes).toContainEqual({ nutriente: 'energia', quantidade: 420 });
-    expect(label.nutrientes).toContainEqual({ nutriente: 'acucares_totais', quantidade: 4.5 });
-    expect(label.nutrientes).toContainEqual({ nutriente: 'acucares_adicionados', quantidade: 0 });
+    expect(label.nutrientes).toContainEqual({ nutriente: 'Valor energético', unidade: 'kcal', quantidade: 420 });
+    expect(label.nutrientes).toContainEqual({ nutriente: 'Açúcares totais', unidade: 'g', quantidade: 4.5 });
+    expect(label.nutrientes).toContainEqual({ nutriente: 'Açúcares adicionados', unidade: 'g', quantidade: 0 });
     expect(label.conferido).toBe(false);
   });
 
@@ -50,10 +64,10 @@ describe('stock nutrition data', () => {
   });
 
   it('keeps existing manual amounts and refuses to mix reference quantities', () => {
-    const current = { ...emptyNutritionLabel(), quantidade_referencia: 20, nutrientes: [{ nutriente: 'proteinas', quantidade: 3 }] };
+    const current = { ...emptyNutritionLabel('Marca A'), quantidade_referencia: 20, nutrientes: [{ nutriente: 'Proteínas', unidade: 'g', quantidade: 3 }] };
     const imported = parseNutritionText('100 g\nProteínas (g) 10\nSódio (mg) 50');
     const merged = mergeNutritionImport(current, imported);
     expect(merged.quantidade_referencia).toBe(20);
-    expect(merged.nutrientes).toEqual([{ nutriente: 'proteinas', quantidade: 3 }, { nutriente: 'sodio', quantidade: null }]);
+    expect(merged.nutrientes).toEqual([{ nutriente: 'Proteínas', unidade: 'g', quantidade: 3 }, { nutriente: 'Sódio', unidade: 'mg', quantidade: null }]);
   });
 });

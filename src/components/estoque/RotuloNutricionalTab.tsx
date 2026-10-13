@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { emptyNutritionLabel, mergeNutritionImport, missingNutritionFields, NUTRIENTS, type NutritionLabel, type NutritionRow } from '@/lib/nutritionLabel';
+import { emptyNutritionLabel, mergeNutritionImport, missingNutritionFields, NUTRIENTS, MAX_NUTRITION_ROWS, type NutritionLabel, type NutritionRow } from '@/lib/nutritionLabel';
 import { nutritionPhotoUrl, validateNutritionPhoto } from '@/lib/nutritionStorage';
 
 interface Props {
@@ -16,6 +16,7 @@ interface Props {
   onBusyChange: (busy: boolean) => void;
   marcaSugerida?: string;
   disabled?: boolean;
+  importFile?: File | null;
 }
 
 // Unlike money inputs, an empty nutritional amount must remain null, never zero.
@@ -33,7 +34,7 @@ function AmountInput({ value, onChange, label, disabled }: { value: number | nul
     }} />;
 }
 
-export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, onBusyChange, marcaSugerida = '', disabled }: Props) {
+export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, onBusyChange, marcaSugerida = '', disabled, importFile }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const latestValue = useRef(value);
@@ -105,7 +106,7 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
       if (controller.signal.aborted) return;
       const current = latestValue.current ?? emptyNutritionLabel(marcaSugerida);
       const merged = mergeNutritionImport(current, imported);
-      onChange(merged.nutrientes.length ? merged : { ...merged, nutrientes: [{ nutriente: '', quantidade: null }] });
+      onChange(merged.nutrientes.length ? merged : { ...merged, nutrientes: [{ nutriente: '', quantidade: null, unidade: '' }] });
       setNotice(imported.nutrientes.length
         ? 'Confira os dados com a foto, inclusive a quantidade de referência. Campos já preenchidos foram preservados; valores duvidosos ficaram em branco.'
         : 'Não foi possível identificar a tabela. Preencha os campos consultando a foto ou tente outra imagem mais nítida.');
@@ -116,6 +117,10 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
       if (!controller.signal.aborted) { setBusy(false); onBusyChange(false); }
     }
   }
+
+  const importHandler = useRef(importPhoto);
+  importHandler.current = importPhoto;
+  useEffect(() => { if (importFile) void importHandler.current(importFile); }, [importFile]);
 
   const cameraButton = <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" disabled={disabled || busy}
     aria-label="Importar rótulo por foto" title="Importar rótulo por foto" onClick={() => inputRef.current?.click()}><Camera className="h-5 w-5" /></Button>;
@@ -136,7 +141,7 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
         <div><p className="font-medium">Rótulo nutricional</p><p className="text-sm text-muted-foreground">Copie os valores de uma mesma coluna da embalagem.</p></div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{value.conferido && !missing.length ? 'Dados conferidos' : 'Em preenchimento'}</span>
       </div>
-      <fieldset disabled={disabled || busy} className="grid min-w-0 gap-4 sm:grid-cols-2">
+      <fieldset disabled={disabled || busy} className="grid min-w-0 max-w-md gap-4">
         <div className="min-w-0 space-y-2">
           <Label>Os valores abaixo correspondem a</Label>
           <div className="grid grid-cols-[minmax(0,1fr)_80px] gap-2">
@@ -148,34 +153,41 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
           </div>
           <p className="text-xs text-muted-foreground">Ex.: 100 g ou a porção de 20 g indicada no rótulo.</p>
         </div>
-        <div className="min-w-0 space-y-2"><Label htmlFor="nutrition-brand">Marca / apresentação</Label><Input id="nutrition-brand" className="h-11" maxLength={120} value={value.marca} placeholder="Ex.: marca e versão do produto" onChange={event => update({ marca: event.target.value })} /></div>
+
       </fieldset>
 
+      <datalist id="nutrition-suggestions">{NUTRIENTS.map(item => <option key={item.id} value={item.nome} />)}</datalist>
+      <datalist id="nutrition-units">{['g', 'mg', 'µg', 'kcal', 'kJ', '%'].map(unit => <option key={unit} value={unit} />)}</datalist>
       <fieldset disabled={disabled || busy} className="space-y-3">
         {value.nutrientes.map((row, index) => {
-          const nutrient = NUTRIENTS.find(item => item.id === row.nutriente);
-          return <div key={index} className="grid grid-cols-[minmax(0,1fr)_44px] gap-2 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(100px,150px)_50px_44px] sm:items-center">
-            <div className="min-w-0 space-y-1 sm:space-y-0">
+          const nutrientName = row.nutriente || `nutriente ${index + 1}`;
+          return <div key={index} className="grid grid-cols-[minmax(0,1fr)_72px_44px] gap-2 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(90px,130px)_80px_44px] sm:items-center">
+            <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1 sm:space-y-0">
               <Label className="text-xs sm:sr-only" htmlFor={`nutrition-nutrient-${index}`}>Nutriente</Label>
-              <select id={`nutrition-nutrient-${index}`} aria-label={`Nutriente ${index + 1}`} className="h-11 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm" value={row.nutriente}
-                onChange={event => updateRow(index, { nutriente: event.target.value, quantidade: null })}>
-                <option value="">Selecione o nutriente</option>
-                {NUTRIENTS.map(item => <option key={item.id} value={item.id} disabled={value.nutrientes.some((other, otherIndex) => otherIndex !== index && other.nutriente === item.id)}>{item.nome}</option>)}
-              </select>
+              <Input id={`nutrition-nutrient-${index}`} aria-label={`Nutriente ${index + 1}`} className="h-11" maxLength={120} value={row.nutriente}
+                placeholder="Ex.: Vitamina C" list="nutrition-suggestions"
+                onChange={event => {
+                  const name = event.target.value;
+                  const known = NUTRIENTS.find(item => item.nome.toLowerCase() === name.trim().toLowerCase());
+                  updateRow(index, { nutriente: name, unidade: row.unidade || known?.unidade || '' });
+                }} />
             </div>
-            <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-2 sm:col-auto sm:row-auto">
-              <AmountInput label={`Quantidade de ${nutrient?.nome ?? `nutriente ${index + 1}`}`} value={row.quantidade} disabled={!row.nutriente} onChange={amount => updateRow(index, { quantidade: amount })} />
-              <span className="w-10 shrink-0 text-sm text-muted-foreground sm:hidden">{nutrient?.unidade ?? '—'}</span>
+            <div className="col-start-1 row-start-2 min-w-0 self-end sm:col-auto sm:row-auto">
+              <span className="text-xs sm:sr-only">Quantidade</span>
+              <AmountInput label={`Quantidade de ${nutrientName}`} value={row.quantidade} disabled={!row.nutriente} onChange={amount => updateRow(index, { quantidade: amount })} />
+
             </div>
-            <span className="hidden text-sm text-muted-foreground sm:block">{nutrient?.unidade ?? '—'}</span>
-            <Button type="button" variant="ghost" size="icon" className="col-start-2 row-start-1 h-11 w-11 self-end text-muted-foreground hover:text-destructive sm:col-auto sm:row-auto" aria-label={`Remover ${nutrient?.nome ?? `linha ${index + 1}`}`}
+            <div className="col-start-2 row-start-2 sm:col-auto sm:row-auto"><Label className="text-xs sm:sr-only" htmlFor={`nutrition-unit-${index}`}>Unidade</Label>
+              <Input id={`nutrition-unit-${index}`} aria-label={`Unidade de ${nutrientName}`} list="nutrition-units" value={row.unidade} maxLength={16} placeholder="g, mg…" className="h-11" onChange={event => updateRow(index, { unidade: event.target.value })} />
+            </div>
+            <Button type="button" variant="ghost" size="icon" className="col-start-3 row-start-1 h-11 w-11 self-end text-muted-foreground hover:text-destructive sm:col-auto sm:row-auto" aria-label={`Remover ${row.nutriente || `linha ${index + 1}`}`}
               onClick={() => update({ nutrientes: value.nutrientes.filter((_, rowIndex) => rowIndex !== index) })}><Trash2 className="h-4 w-4" /></Button>
           </div>;
         })}
       </fieldset>
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" className="h-11" disabled={disabled || busy || value.nutrientes.length >= NUTRIENTS.length}
-          onClick={() => update({ nutrientes: [...value.nutrientes, { nutriente: '', quantidade: null }] })}><Plus className="mr-2 h-4 w-4" />Adicionar linha</Button>
+        <Button type="button" variant="outline" className="h-11" disabled={disabled || busy || value.nutrientes.length >= MAX_NUTRITION_ROWS}
+          onClick={() => update({ nutrientes: [...value.nutrientes, { nutriente: '', quantidade: null, unidade: '' }] })}><Plus className="mr-2 h-4 w-4" />Adicionar linha</Button>
         {cameraButton}
       </div>
       {busy && <div role="status" className="flex flex-wrap items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{progress ? `Lendo a foto… ${progress}%` : 'Preparando a leitura da foto…'}<Button type="button" variant="ghost" onClick={cancelImport}>Cancelar leitura</Button></div>}

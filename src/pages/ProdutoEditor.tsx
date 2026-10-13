@@ -5,6 +5,7 @@ import { ProdutoForm } from '@/components/estoque/ProdutoForm';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import type { Produto } from '@/hooks/useEstoque';
+import { readNutritionLabels } from '@/lib/nutritionLabel';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ProdutoEditor() {
@@ -20,6 +21,7 @@ export default function ProdutoEditor() {
         .abortSignal(signal).maybeSingle();
       if (error) throw error;
       if (!data) throw new Error('Produto indisponível');
+      readNutritionLabels(data.rotulos_nutricionais, data.rotulo_nutricional);
       return data as Produto;
     },
     enabled: Boolean(id && user),

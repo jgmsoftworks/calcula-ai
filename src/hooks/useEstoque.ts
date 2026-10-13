@@ -22,6 +22,7 @@ export interface Produto {
   fator_conversao: number | null;
   imagem_url: string | null;
   rotulo_nutricional?: Json | null;
+  rotulos_nutricionais?: Json | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
@@ -55,7 +56,8 @@ export function useEstoque() {
 
     let query = supabase
       .from('produtos')
-      .select('*')
+      // Labels are loaded only by the product editor, not by every stock/recipe list.
+      .select('id,user_id,nome,codigo_interno,codigos_barras,marcas,categorias,unidade_compra,custo_unitario,estoque_atual,estoque_minimo,unidade_uso,fator_conversao,imagem_url,ativo,created_at,updated_at')
       .eq('user_id', user.id)
       .eq('ativo', true)
       .order('codigo_interno', { ascending: true });

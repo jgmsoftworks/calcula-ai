@@ -27,7 +27,7 @@ describe('stock nutrition editor', () => {
     render(<Harness />);
     expect(screen.queryByText('Preencher manualmente')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar rótulo nutricional' }));
-    fireEvent.change(screen.getByLabelText('Nutriente 1'), { target: { value: 'sodio' } });
+    fireEvent.change(screen.getByLabelText('Nutriente 1'), { target: { value: 'Sódio' } });
     const quantity = screen.getByLabelText('Quantidade de Sódio');
     fireEvent.change(quantity, { target: { value: '0' } });
     expect(state().nutrientes[0].quantidade).toBe(0);
@@ -41,16 +41,16 @@ describe('stock nutrition editor', () => {
   });
 
   it('reopens saved values with the original reference unit and brand', () => {
-    const label = { ...emptyNutritionLabel('Marca X'), quantidade_referencia: 0.1, unidade_referencia: 'kg' as const, nutrientes: [{ nutriente: 'proteinas', quantidade: 3.5 }] };
+    const label = { ...emptyNutritionLabel('Marca X'), quantidade_referencia: 0.1, unidade_referencia: 'kg' as const, nutrientes: [{ nutriente: 'Proteínas', unidade: 'g', quantidade: 3.5 }] };
     render(<Harness initial={label} />);
     expect(screen.getByLabelText('Quantidade de referência')).toHaveValue('0,1');
     expect(screen.getByLabelText('Unidade de referência')).toHaveValue('kg');
     expect(screen.getByLabelText('Quantidade de Proteínas')).toHaveValue('3,5');
-    expect(screen.getByLabelText('Marca / apresentação')).toHaveValue('Marca X');
+    expect(state().marca).toBe('Marca X');
   });
 
   it('imports a photo into the same editable fields without submitting or requiring a mode switch', async () => {
-    vi.mocked(recognizeNutritionPhoto).mockResolvedValue({ ...emptyNutritionLabel(), quantidade_referencia: 100, nutrientes: [{ nutriente: 'sodio', quantidade: 25 }], origem: 'foto' });
+    vi.mocked(recognizeNutritionPhoto).mockResolvedValue({ ...emptyNutritionLabel(), quantidade_referencia: 100, nutrientes: [{ nutriente: 'Sódio', unidade: 'mg', quantidade: 25 }], origem: 'foto' });
     render(<Harness />);
     fireEvent.change(screen.getByLabelText('Foto do rótulo nutricional'), { target: { files: [new File(['photo'], 'label.png', { type: 'image/png' })] } });
     await waitFor(() => expect(screen.getByLabelText('Quantidade de Sódio')).toHaveValue('25'));
@@ -62,7 +62,7 @@ describe('stock nutrition editor', () => {
 
   it('retains manual data when recognition fails', async () => {
     vi.mocked(recognizeNutritionPhoto).mockRejectedValue(new Error('offline'));
-    render(<Harness initial={{ ...emptyNutritionLabel(), nutrientes: [{ nutriente: 'proteinas', quantidade: 12 }] }} />);
+    render(<Harness initial={{ ...emptyNutritionLabel(), nutrientes: [{ nutriente: 'Proteínas', unidade: 'g', quantidade: 12 }] }} />);
     fireEvent.change(screen.getByLabelText('Foto do rótulo nutricional'), { target: { files: [new File(['photo'], 'label.png', { type: 'image/png' })] } });
     await screen.findByText(/Não foi possível ler a foto/);
     expect(screen.getByLabelText('Quantidade de Proteínas')).toHaveValue('12');
@@ -72,12 +72,12 @@ describe('stock nutrition editor', () => {
   it('ignores a late recognition result after cancellation', async () => {
     let resolve: (value: NutritionLabel) => void;
     vi.mocked(recognizeNutritionPhoto).mockImplementation(() => new Promise(done => { resolve = done; }));
-    render(<Harness initial={{ ...emptyNutritionLabel(), nutrientes: [{ nutriente: 'proteinas', quantidade: 12 }] }} />);
+    render(<Harness initial={{ ...emptyNutritionLabel(), nutrientes: [{ nutriente: 'Proteínas', unidade: 'g', quantidade: 12 }] }} />);
     fireEvent.change(screen.getByLabelText('Foto do rótulo nutricional'), { target: { files: [new File(['photo'], 'label.png', { type: 'image/png' })] } });
     await waitFor(() => expect(recognizeNutritionPhoto).toHaveBeenCalledOnce());
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar leitura' }));
-    resolve!({ ...emptyNutritionLabel(), nutrientes: [{ nutriente: 'sodio', quantidade: 500 }] });
+    resolve!({ ...emptyNutritionLabel(), nutrientes: [{ nutriente: 'Sódio', unidade: 'mg', quantidade: 500 }] });
     await waitFor(() => expect(busy).toHaveBeenLastCalledWith(false));
-    expect(state().nutrientes).toEqual([{ nutriente: 'proteinas', quantidade: 12 }]);
+    expect(state().nutrientes).toEqual([{ nutriente: 'Proteínas', unidade: 'g', quantidade: 12 }]);
   });
 });

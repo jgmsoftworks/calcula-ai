@@ -17,7 +17,7 @@ export const NUTRIENTS = [
 
 export type NutrientId = typeof NUTRIENTS[number]['id'];
 const amount = z.number().finite().min(0).max(1_000_000);
-export const nutritionLabelSchema = z.object({
+const legacyNutritionLabelSchema = z.object({
   versao: z.literal(1),
   quantidade_referencia: amount.positive().nullable(),
   unidade_referencia: z.enum(['g', 'kg', 'ml', 'l']),
@@ -34,37 +34,85 @@ export const nutritionLabelSchema = z.object({
   return new Set(ids).size === ids.length;
 }, 'Não repita o mesmo nutriente.');
 
+export const nutritionKey = (name: string) => name.trim().toLowerCase();
+export const MAX_NUTRITION_LABELS = 50;
+export const MAX_NUTRITION_ROWS = 100;
+export const nutritionLabelSchema = z.object({
+  versao: z.literal(2),
+  id: z.string().uuid(),
+  quantidade_referencia: amount.positive().nullable(),
+  unidade_referencia: z.enum(['g', 'kg', 'ml', 'l']),
+  marca: z.string().max(120),
+  nutrientes: z.array(z.object({
+    nutriente: z.string().max(120),
+    quantidade: amount.nullable(),
+    unidade: z.string().max(16),
+  }).strict()).max(MAX_NUTRITION_ROWS),
+  foto_path: z.string().max(250).nullable(),
+  origem: z.enum(['manual', 'foto']),
+  conferido: z.boolean(),
+}).strict().refine(value => {
+  const names = value.nutrientes.map(row => nutritionKey(row.nutriente)).filter(Boolean);
+  return new Set(names).size === names.length;
+}, 'Não repita o mesmo nutriente.');
+
+export const nutritionLabelsSchema = z.array(nutritionLabelSchema).max(MAX_NUTRITION_LABELS).refine(labels => {
+  const brands = labels.map(label => nutritionKey(label.marca));
+  return new Set(brands).size === brands.length && new Set(labels.map(label => label.id)).size === labels.length;
+}, 'Cada marca deve ter apenas um rótulo.');
+
 export type NutritionLabel = z.infer<typeof nutritionLabelSchema>;
 export type NutritionRow = NutritionLabel['nutrientes'][number];
 
 export function emptyNutritionLabel(marca = ''): NutritionLabel {
   return {
-    versao: 1, quantidade_referencia: null, unidade_referencia: 'g', marca,
-    nutrientes: [{ nutriente: '', quantidade: null }], foto_path: null,
+    versao: 2, id: crypto.randomUUID(), quantidade_referencia: null, unidade_referencia: 'g', marca,
+    nutrientes: [{ nutriente: '', quantidade: null, unidade: '' }], foto_path: null,
     origem: 'manual', conferido: false,
   };
 }
 
 export function readNutritionLabel(value: unknown): NutritionLabel | null {
-  const result = nutritionLabelSchema.safeParse(value);
-  return result.success ? result.data : null;
+  const current = nutritionLabelSchema.safeParse(value);
+  if (current.success) return current.data;
+  const legacy = legacyNutritionLabelSchema.safeParse(value);
+  if (!legacy.success) return null;
+  return { ...legacy.data, versao: 2, id: crypto.randomUUID(), nutrientes: legacy.data.nutrientes.map(row => {
+    const known = NUTRIENTS.find(item => item.id === row.nutriente);
+    return { ...row, nutriente: known?.nome ?? row.nutriente, unidade: known?.unidade ?? '' };
+  }) };
 }
 
+/** A separate column keeps older clients from overwriting the new collection. */
+export function readNutritionLabels(current: unknown, legacy?: unknown): NutritionLabel[] {
+  if (current !== undefined && current !== null) {
+    const parsed = nutritionLabelsSchema.safeParse(current);
+    if (!parsed.success) throw new Error('Não foi possível ler os rótulos salvos. Atualize a página antes de editar.');
+    return parsed.data;
+  }
+  const label = readNutritionLabel(legacy);
+  if (legacy != null && !label) throw new Error('Não foi possível ler o rótulo salvo.');
+  return label ? [label] : [];
+}
+
+/** Only the rows actually entered are reviewed; there is no mandatory nutrient list. */
 export function missingNutritionFields(value: NutritionLabel): string[] {
   const missing: string[] = [];
+  if (!value.marca.trim()) missing.push('Marca');
   if (value.quantidade_referencia === null) missing.push('Quantidade de referência');
-  for (const nutrient of NUTRIENTS) {
-    if (nutrient.obrigatorio && !value.nutrientes.some(row => row.nutriente === nutrient.id && row.quantidade !== null)) {
-      missing.push(nutrient.nome);
-    }
-  }
+  if (!value.nutrientes.length) missing.push('Adicione uma linha');
+  value.nutrientes.forEach((row, index) => {
+    if (!row.nutriente.trim()) missing.push(`Nome da linha ${index + 1}`);
+    if (row.quantidade === null) missing.push(`Quantidade de ${row.nutriente || `linha ${index + 1}`}`);
+    if (!row.unidade.trim()) missing.push(`Unidade de ${row.nutriente || `linha ${index + 1}`}`);
+  });
   return missing;
 }
 
-/** Add new nutrients only: importing a second photo never overwrites the user's entries. */
+/** Add new nutrients only: never replace manual values or the selected brand/id. */
 export function mergeNutritionImport(current: NutritionLabel, imported: NutritionLabel): NutritionLabel {
-  const selected = new Set(current.nutrientes.map(row => row.nutriente).filter(Boolean));
-  const existing = current.nutrientes.filter(row => row.nutriente);
+  const selected = new Set(current.nutrientes.map(row => nutritionKey(row.nutriente)).filter(Boolean));
+  const existing = current.nutrientes.filter(row => row.nutriente || row.quantidade !== null || row.unidade);
   const compatibleBasis = current.quantidade_referencia === null || (
     current.quantidade_referencia === imported.quantidade_referencia && current.unidade_referencia === imported.unidade_referencia
   );
@@ -72,8 +120,8 @@ export function mergeNutritionImport(current: NutritionLabel, imported: Nutritio
     ...current,
     quantidade_referencia: current.quantidade_referencia ?? imported.quantidade_referencia,
     unidade_referencia: current.quantidade_referencia === null ? imported.unidade_referencia : current.unidade_referencia,
-    nutrientes: [...existing, ...imported.nutrientes.filter(row => row.nutriente && !selected.has(row.nutriente))
-      .map(row => compatibleBasis ? row : { ...row, quantidade: null })],
+    nutrientes: [...existing, ...imported.nutrientes.filter(row => row.nutriente && !selected.has(nutritionKey(row.nutriente)))
+      .map(row => compatibleBasis ? row : { ...row, quantidade: null })].slice(0, MAX_NUTRITION_ROWS),
     origem: 'foto', conferido: false,
   };
 }
