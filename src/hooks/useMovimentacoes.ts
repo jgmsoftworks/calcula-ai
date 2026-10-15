@@ -1,4 +1,6 @@
 // @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
+import { useRef } from 'react';
+import { totalizarSaidasPorProduto, verificarSaldosDisponiveis } from '@/lib/validacaoMovimentacao';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,6 +25,8 @@ export interface Comprovante {
 
 export function useMovimentacoes() {
   const { user } = useAuth();
+  // Repetir uma solicitação de rede não deve criar um novo comprovante.
+  const tentativa = useRef<{ assinatura: string; id: string } | null>(null);
 
   const gerarNumeroComprovante = async (): Promise<number> => {
     if (!user) return 1;
@@ -48,124 +52,95 @@ export function useMovimentacoes() {
       return null;
     }
 
-    if (items.length === 0) {
-      toast.error('Adicione pelo menos um item ao carrinho');
+    const responsavelNormalizado = responsavel.trim();
+    const observacaoNormalizada = observacao?.trim() || null;
+    if (!responsavelNormalizado || responsavelNormalizado.length > 120) {
+      toast.error('Informe o responsável pela movimentação.');
+      return null;
+    }
+    if ((observacaoNormalizada?.length ?? 0) > 2000) {
+      toast.error('A observação está muito longa.');
       return null;
     }
 
-    if (!responsavel.trim()) {
-      toast.error('Informe o responsável pela movimentação');
+    let saidas;
+    try {
+      // Considera o conjunto completo, inclusive o mesmo produto repetido no carrinho.
+      saidas = totalizarSaidasPorProduto(items);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Confira os itens do carrinho.');
       return null;
     }
 
     try {
-      // 1. Verificar estoque para saídas
-      for (const item of items) {
-        if (item.tipo === 'saida') {
-          const { data: produto } = await supabase
-            .from('produtos')
-            .select('estoque_atual, nome')
-            .eq('id', item.produto_id)
-            .single();
-
-          if (produto && produto.estoque_atual < item.quantidade) {
-            toast.error(
-              `Estoque insuficiente para ${produto.nome}. Disponível: ${produto.estoque_atual}`
-            );
-            return null;
-          }
-        }
-      }
-
-      // 2. Criar comprovante
-      const numeroComprovante = await gerarNumeroComprovante();
-
-      // Determinar tipo do comprovante baseado nos itens
-      const tiposUnicos = [...new Set(items.map(item => item.tipo))];
-      const tipoComprovante = tiposUnicos.length === 1 
-        ? tiposUnicos[0]  // Se todos forem do mesmo tipo, usar esse tipo
-        : 'entrada';       // Se misturado, usar entrada como padrão
-
-      const { data: comprovante, error: comprovanteError } = await supabase
-        .from('comprovantes')
-        .insert({
-          user_id: user.id,
-          numero: numeroComprovante,
-          tipo: tipoComprovante,
-          responsavel: responsavel.trim(),
-          observacao: observacao?.trim() || null,
-          data_hora: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (comprovanteError) throw comprovanteError;
-
-      // 3. Criar movimentações e atualizar estoque
-      for (const item of items) {
-        console.log('📝 Inserindo movimentação:', {
-          produto_id: item.produto_id,
-          produto_nome: item.produto_nome,
-          tipo: item.tipo,
-          motivo: item.motivo,
-          quantidade: item.quantidade,
-        });
-
-        if (!item.produto_id) {
-          console.error('❌ ERRO: produto_id é null/undefined para item:', item);
-          throw new Error(`Item sem produto_id: ${item.produto_nome}`);
-        }
-
-        // Criar movimentação
-        const { error: movError } = await supabase.from('movimentacoes').insert({
-          user_id: user.id,
-          comprovante_id: comprovante.id,
-          produto_id: item.produto_id,
-          tipo: item.tipo,
-          motivo: item.motivo,
-          quantidade: item.quantidade,
-          custo_aplicado: item.custo_aplicado,
-          subtotal: item.subtotal,
-          responsavel: responsavel.trim(),
-          origem: 'mini-pdv',
-          data_hora: new Date().toISOString(),
-        });
-
-        if (movError) throw movError;
-
-        // Atualizar estoque
-        const { data: produtoAtual } = await supabase
+      // Validação amigável no cliente. A verificação definitiva, com bloqueio
+      // de concorrência, é feita na transação SQL abaixo.
+      if (saidas.size) {
+        const { data: saldos, error: saldoError } = await supabase
           .from('produtos')
-          .select('estoque_atual')
-          .eq('id', item.produto_id)
-          .single();
-
-        if (produtoAtual) {
-          const novoEstoque =
-            item.tipo === 'entrada'
-              ? produtoAtual.estoque_atual + item.quantidade
-              : produtoAtual.estoque_atual - item.quantidade;
-
-          // Se for ENTRADA, atualizar o custo_unitario do produto com o novo valor
-          const updateData: any = { estoque_atual: novoEstoque };
-          if (item.tipo === 'entrada') {
-            updateData.custo_unitario = item.custo_aplicado;
-          }
-
-          const { error: updateError } = await supabase
-            .from('produtos')
-            .update(updateData)
-            .eq('id', item.produto_id);
-
-          if (updateError) throw updateError;
+          .select('id,nome,estoque_atual')
+          .eq('user_id', user.id)
+          .in('id', [...saidas.keys()]);
+        if (saldoError) throw saldoError;
+        const mensagem = verificarSaldosDisponiveis(saidas, saldos || []);
+        if (mensagem) {
+          toast.error(mensagem);
+          return null;
         }
       }
 
+      const itensParaGravar = items.map(item => ({
+        produto_id: item.produto_id,
+        tipo: item.tipo,
+        motivo: item.motivo.trim(),
+        quantidade: item.quantidade,
+        custo_aplicado: item.custo_aplicado,
+        subtotal: item.subtotal,
+      }));
+
+      const assinatura = JSON.stringify({
+        itens: itensParaGravar,
+        responsavel: responsavelNormalizado,
+        observacao: observacaoNormalizada,
+      });
+      if (!tentativa.current || tentativa.current.assinatura !== assinatura) {
+        tentativa.current = { assinatura, id: crypto.randomUUID() };
+      }
+
+      // Uma única chamada: comprovante, todas as movimentações e todos os
+      // saldos são gravados juntos. Qualquer falha cancela a operação inteira.
+      const { data: comprovante, error } = await supabase.rpc(
+        'finalizar_movimentacao_estoque',
+        {
+          p_itens: itensParaGravar,
+          p_responsavel: responsavelNormalizado,
+          p_observacao: observacaoNormalizada,
+          p_request_id: tentativa.current.id,
+        }
+      );
+
+      if (error) {
+        if (error.code === 'P0001' || error.message?.startsWith('Estoque insuficiente')) {
+          toast.error(error.message);
+          return null;
+        }
+        if (error.code === 'P0002') {
+          toast.error('Um produto foi removido ou está indisponível. Atualize o estoque e tente novamente.');
+          return null;
+        }
+        if (error.code === '23514') {
+          toast.error('Esta movimentação deixaria um produto com estoque negativo.');
+          return null;
+        }
+        throw error;
+      }
+
+      tentativa.current = null;
       toast.success('Movimentação registrada com sucesso');
-      return comprovante;
+      return comprovante as Comprovante;
     } catch (error) {
       console.error('Erro ao finalizar movimentação:', error);
-      toast.error('Erro ao registrar movimentação');
+      toast.error('Não foi possível concluir a movimentação. Nenhuma saída foi confirmada; confira o histórico antes de tentar novamente.');
       return null;
     }
   };

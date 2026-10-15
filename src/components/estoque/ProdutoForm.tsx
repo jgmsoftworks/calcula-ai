@@ -110,6 +110,13 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
       return;
     }
 
+    if (data.estoque_atual === undefined || !Number.isFinite(data.estoque_atual) || data.estoque_atual < 0) {
+      setTab('estoque');
+      setError('estoque_atual', { message: 'O saldo não pode ser negativo. Confira a quantidade física antes de corrigir o cadastro.' });
+      toast.error('O estoque atual não pode ser negativo. Confira a contagem física.');
+      return;
+    }
+
     setSaving(true);
     const uploadedNutritionPaths: string[] = [];
     let productSaved = false;

@@ -7,6 +7,7 @@ import { CarrinhoMovimentacao } from '@/components/movimentacao/CarrinhoMoviment
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 export default function Movimentacao() {
@@ -43,11 +44,20 @@ export default function Movimentacao() {
 
   const handleAddToCart = (item: any) => {
     if (!item.produto_id) {
-      console.error('❌ Item sem produto_id:', item);
+      toast.error('Produto inválido. Atualize a página e tente novamente.');
       return;
     }
-    console.log('✅ Item adicionado ao carrinho:', item);
-    setCarrinho([...carrinho, item]);
+    if (item.tipo === 'saida') {
+      const produto = produtos.find(p => p.id === item.produto_id);
+      const outrasSaidas = carrinho
+        .filter((cartItem: any) => cartItem.produto_id === item.produto_id && cartItem.tipo === 'saida')
+        .reduce((soma: number, cartItem: any) => soma + cartItem.quantidade, 0);
+      if (produto && outrasSaidas + item.quantidade > Number(produto.estoque_atual) + 0.000000001) {
+        toast.error(`Estoque insuficiente para ${produto.nome}. O carrinho já inclui ${outrasSaidas} em saídas; disponível: ${produto.estoque_atual}.`);
+        return;
+      }
+    }
+    setCarrinho(atual => [...atual, item]);
     setModalOpen(false);
   };
 
