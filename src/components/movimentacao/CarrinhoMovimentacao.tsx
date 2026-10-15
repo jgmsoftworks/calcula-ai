@@ -13,7 +13,8 @@ import { formatters } from '@/lib/formatters';
 import { FileText, ShoppingCart } from 'lucide-react';
 export function CarrinhoMovimentacao({
   carrinho,
-  onCarrinhoChange
+  onCarrinhoChange,
+  onSuccess
 }: any) {
   const {
     finalizarMovimentacao
@@ -62,6 +63,7 @@ export function CarrinhoMovimentacao({
     setFinalizing(false);
     if (result) {
       onCarrinhoChange([]);
+      onSuccess?.();
       setResponsavel('');
       setObservacao('');
     }

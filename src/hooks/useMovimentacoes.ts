@@ -72,10 +72,29 @@ export function useMovimentacoes() {
       return null;
     }
 
+    const itensParaGravar = items.map(item => ({
+      produto_id: item.produto_id,
+      tipo: item.tipo,
+      motivo: item.motivo.trim(),
+      quantidade: item.quantidade,
+      custo_aplicado: item.custo_aplicado,
+      subtotal: item.subtotal,
+    }));
+    const assinatura = JSON.stringify({
+      itens: itensParaGravar,
+      responsavel: responsavelNormalizado,
+      observacao: observacaoNormalizada,
+    });
+    // Uma operação já confirmada pelo servidor pode perder a resposta de rede.
+    // Nesse caso, reutilize o mesmo UUID para consultar o resultado idempotente;
+    // não repita a pré-checagem contra um saldo que já foi atualizado.
+    const retomandoTentativa = tentativa.current?.assinatura === assinatura;
+    if (!retomandoTentativa) tentativa.current = null;
+
     try {
       // Validação amigável no cliente. A verificação definitiva, com bloqueio
       // de concorrência, é feita na transação SQL abaixo.
-      if (saidas.size) {
+      if (saidas.size && !retomandoTentativa) {
         const { data: saldos, error: saldoError } = await supabase
           .from('produtos')
           .select('id,nome,estoque_atual')
@@ -89,21 +108,7 @@ export function useMovimentacoes() {
         }
       }
 
-      const itensParaGravar = items.map(item => ({
-        produto_id: item.produto_id,
-        tipo: item.tipo,
-        motivo: item.motivo.trim(),
-        quantidade: item.quantidade,
-        custo_aplicado: item.custo_aplicado,
-        subtotal: item.subtotal,
-      }));
-
-      const assinatura = JSON.stringify({
-        itens: itensParaGravar,
-        responsavel: responsavelNormalizado,
-        observacao: observacaoNormalizada,
-      });
-      if (!tentativa.current || tentativa.current.assinatura !== assinatura) {
+      if (!tentativa.current) {
         tentativa.current = { assinatura, id: crypto.randomUUID() };
       }
 
