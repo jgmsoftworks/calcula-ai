@@ -3,17 +3,23 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
+import type { CategoriaResumo } from '@/lib/produtosPageData';
 interface CategoriasFiltroProps {
   produtos: any[];
+  resumo?: CategoriaResumo[];
+  total?: number;
   categoriaSelecionada: string | null;
   onSelectCategoria: (categoria: string | null) => void;
 }
 export function CategoriasFiltro({
   produtos,
+  resumo,
+  total,
   categoriaSelecionada,
   onSelectCategoria
 }: CategoriasFiltroProps) {
   const categorias = useMemo(() => {
+    if (resumo) return resumo;
     const categoriasMap = new Map<string, {
       imagem: string | null;
       count: number;
@@ -40,8 +46,8 @@ export function CategoriasFiltro({
       nome,
       ...data
     })).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [produtos]);
-  const totalProdutos = produtos.length;
+  }, [produtos, resumo]);
+  const totalProdutos = total ?? produtos.length;
   return <ScrollArea className="w-full whitespace-nowrap">
       <div className="flex gap-4 px-1 py-3 pb-5 sm:gap-5 sm:px-4 sm:py-4 sm:pb-6">
         {/* Botão Todos */}

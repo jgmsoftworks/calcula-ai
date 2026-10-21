@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useProdutos } from '@/hooks/useProdutos';
+import { useCallback, useState } from 'react';
+import { useProdutosMovimentacao } from '@/hooks/useProdutosPage';
 import { CategoriasFiltro } from '@/components/movimentacao/CategoriasFiltro';
 import { ListaProdutos } from '@/components/movimentacao/ListaProdutos';
 import { MovimentacaoModal } from '@/components/movimentacao/MovimentacaoModal';
@@ -18,7 +18,10 @@ export default function Movimentacao() {
   const [modalOpen, setModalOpen] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
 
-  const { produtos, isPending: loading, isError, refetch: loadProdutos } = useProdutos({ search: searchTerm });
+  const { produtos, resumo, isPending: loading, isError, isFetching, isFetchingNextPage, isPlaceholderData, searching, hasNextPage, fetchNextPage, refetch: loadProdutos } = useProdutosMovimentacao({
+    search: searchTerm, categorias: categoriaSelecionada ? [categoriaSelecionada] : [],
+  });
+  const loadMore = useCallback(() => { void fetchNextPage({ cancelRefetch: false }); }, [fetchNextPage]);
 
   const handleSelectProduto = (produto: any) => {
     setProdutoSelecionado(produto);
@@ -31,7 +34,7 @@ export default function Movimentacao() {
       return false;
     }
     if (item.tipo === 'saida') {
-      const produto = produtos.find(p => p.id === item.produto_id);
+      const produto = produtos.find(p => p.id === item.produto_id) || (produtoSelecionado?.id === item.produto_id ? produtoSelecionado : null);
       const outrasSaidas = carrinho
         .filter((cartItem: any) => cartItem.produto_id === item.produto_id && cartItem.tipo === 'saida')
         .reduce((soma: number, cartItem: any) => soma + cartItem.quantidade, 0);
@@ -70,6 +73,8 @@ export default function Movimentacao() {
       {/* Category Filter */}
       <CategoriasFiltro 
         produtos={produtos}
+        resumo={resumo?.categorias}
+        total={resumo?.totalBusca}
         categoriaSelecionada={categoriaSelecionada}
         onSelectCategoria={setCategoriaSelecionada}
       />
@@ -82,6 +87,13 @@ export default function Movimentacao() {
             loading={loading}
             categoriaSelecionada={categoriaSelecionada}
             onSelectProduto={handleSelectProduto}
+            hasMore={!!hasNextPage}
+            loadingMore={isFetchingNextPage}
+            updating={isFetching || searching}
+            canLoadMore={!isFetching && !isPlaceholderData && !searching && !isError}
+            onLoadMore={loadMore}
+            resetKey={`${searchTerm}:${categoriaSelecionada || ''}`}
+            hasError={isError}
           />
         </div>
 

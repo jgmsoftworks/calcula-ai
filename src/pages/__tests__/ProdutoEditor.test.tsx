@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner-1' } }) }));
 vi.mock('@/hooks/useEstoque', () => ({ useEstoque: () => ({ fetchProdutos: mocks.list, createProduto: mocks.create, updateProduto: mocks.update, gerarCodigoInterno: mocks.code }) }));
+vi.mock('@/lib/produtosPageData', async () => ({ PRODUTOS_PAGE_SIZE: 40, fetchProdutosPage: async () => ({ produtos: await mocks.list(), total: 1, pagina: 1, totalBusca: 1, categorias: [] }) }));
 vi.mock('@/lib/produtosData', async importOriginal => ({ ...await importOriginal<object>(), fetchCatalogoProdutos: mocks.list }));
 vi.mock('@/hooks/useMarcasCategorias', () => ({ useMarcasCategorias: () => ({ fetchMarcas: mocks.brands, fetchCategorias: mocks.categories }) }));
 vi.mock('@/hooks/useExportProdutos', () => ({ useExportProdutos: () => ({ exportarProdutos: vi.fn() }) }));

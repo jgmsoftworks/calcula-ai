@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { fetchCatalogoProdutos } from '@/lib/produtosData';
 
 export function useExportProdutos() {
   const exportarProdutos = async () => {
@@ -12,14 +13,7 @@ export function useExportProdutos() {
       }
 
       // Buscar todos os produtos do usuário
-      const { data: produtos, error } = await supabase
-        .from('produtos')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('ativo', true)
-        .order('codigo_interno', { ascending: true });
-
-      if (error) throw error;
+      const produtos = await fetchCatalogoProdutos(user.id);
 
       if (!produtos || produtos.length === 0) {
         toast.warning('Nenhum produto para exportar');

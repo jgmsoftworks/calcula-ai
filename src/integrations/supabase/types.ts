@@ -3405,6 +3405,10 @@ export type Database = {
       }
     }
     Functions: {
+      listar_produtos_pagina: {
+        Args: { p_busca?: string; p_marcas?: string[]; p_categorias?: string[]; p_unidade?: string; p_abaixo_minimo?: boolean; p_pagina?: number; p_tamanho?: number }
+        Returns: Json
+      }
       atualizar_preco_receita: {
         Args: { p_receita_id: string }
         Returns: undefined

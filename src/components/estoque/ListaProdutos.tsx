@@ -1,6 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
-import { useProdutos } from '@/hooks/useProdutos';
+import { useProdutosPage } from '@/hooks/useProdutosPage';
 import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,17 +103,18 @@ export function ListaProdutos() {
     (categoriaSelecionada !== 'todas' ? 1 : 0) +
     (abaixoMinimo ? 1 : 0);
 
-  const { produtos, isPending: loading, isError, refetch: loadProdutos } = useProdutos({
+  const requestedPage = Math.max(1, Math.floor(Number(params.get('pagina')) || 1));
+  const { produtos, data, isPending: loading, isFetching, isPlaceholderData, searching, isError, refetch: loadProdutos } = useProdutosPage({
     search,
     unidade: unidadeFiltro !== 'todas' ? unidadeFiltro : undefined,
     marcas: marcaSelecionada !== 'todas' ? [marcaSelecionada] : undefined,
     categorias: categoriaSelecionada !== 'todas' ? [categoriaSelecionada] : undefined,
     abaixoMinimo,
-  });
-  const requestedPage = Number(params.get('pagina')) || 1;
-  const totalPages = Math.max(1, Math.ceil(produtos.length / 40));
-  const page = Math.min(totalPages, Math.max(1, Math.floor(requestedPage)));
-  const produtosPagina = produtos.slice((page - 1) * 40, page * 40);
+  }, requestedPage);
+  const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / 40));
+  const page = data?.pagina || requestedPage;
+  const produtosPagina = produtos;
   const setPage = (value: number) => {
     setParams(previous => {
       const next = new URLSearchParams(previous);
@@ -407,7 +408,7 @@ export function ListaProdutos() {
             {loading ? (
               <TableRow><TableCell colSpan={10} className="text-center py-8">Carregando produtos...</TableCell></TableRow>
             ) : produtos.length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">{isError ? 'Não foi possível carregar os produtos.' : 'Nenhum produto encontrado'}</TableCell></TableRow>
             ) : (
               produtosPagina.map((produto) => {
                 const valorEstoque = produto.custo_unitario * produto.estoque_atual;
@@ -482,7 +483,7 @@ export function ListaProdutos() {
         {loading ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">Carregando produtos...</Card>
         ) : produtos.length === 0 ? (
-          <Card className="p-6 text-center text-sm text-muted-foreground">Nenhum produto encontrado</Card>
+          <Card className="p-6 text-center text-sm text-muted-foreground">{isError ? 'Não foi possível carregar os produtos.' : 'Nenhum produto encontrado'}</Card>
         ) : (
           produtosPagina.map((produto) => {
             const valorEstoque = produto.custo_unitario * produto.estoque_atual;
@@ -557,12 +558,13 @@ export function ListaProdutos() {
         )}
       </div>
 
+      <p role="status" className="min-h-5 text-sm text-muted-foreground">{!loading && (isFetching || searching) ? 'Atualizando produtos…' : ''}</p>
       {!loading && produtos.length > 0 && <nav aria-label="Paginação de produtos" className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{(page - 1) * 40 + 1}–{Math.min(page * 40, produtos.length)} de {produtos.length} produtos</p>
+        <p className="text-sm text-muted-foreground">{(page - 1) * 40 + 1}–{Math.min(page * 40, total)} de {total} produtos</p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+          <Button variant="outline" disabled={page === 1 || isPlaceholderData || searching} onClick={() => setPage(page - 1)}>Anterior</Button>
           <span className="text-sm">{page} / {totalPages}</span>
-          <Button variant="outline" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Próxima</Button>
+          <Button variant="outline" disabled={page === totalPages || isPlaceholderData || searching} onClick={() => setPage(page + 1)}>Próxima</Button>
         </div>
       </nav>}
 
