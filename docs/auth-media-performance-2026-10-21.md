@@ -20,7 +20,7 @@ Uma execução por perfil, sem dados CrUX. Mobile: Moto G Power simulado, 4G len
 
 ## O que muda para a pessoa
 
-- No celular, o formulário aparece antes do mascote; o mascote permanece abaixo. No desktop, as duas colunas continuam lado a lado.
+- No celular e nas telas de tablet abaixo de 1024 px, o mascote recebe a pessoa no topo, antes do formulário. A ordem original foi restaurada conforme a preferência do responsável pelo produto. A partir de 1024 px, as duas colunas continuam lado a lado. A imagem estática aparece enquanto a animação aguarda os recursos iniciais; a redução dos arquivos e as regras de carregamento descritas abaixo permanecem aplicadas.
 - O vídeo só recebe uma URL quando pelo menos 20% de sua área está visível, a aba está ativa e os recursos iniciais do documento terminaram de carregar. O início espera uma oportunidade ociosa do navegador (prazo de 2 s) ou 500 ms em navegadores sem essa API.
 - Se o mascote estiver fora da tela, seu vídeo não é solicitado. Em telas altas nas quais ele já esteja visível, pode começar sem uma rolagem, depois das condições acima.
 - A animação pausa fora da área visível ou ao sair da aba. Preferência por menos movimento, economia de dados ou conexão classificada como 2G mantêm a imagem estática. Uma preferência alterada depois do início pausa/oculta o vídeo, mas não desfaz bytes já transferidos.
