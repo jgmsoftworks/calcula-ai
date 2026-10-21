@@ -126,18 +126,20 @@ export function calculateComprasLiquidas(entradas: Movimentacao[]): number {
 // -------------------------------------------------------
 export async function getEstoqueInicialReal(
   userId: string,
-  competenciaAnterior: string
+  competenciaAnterior: string,
+  signal?: AbortSignal,
 ): Promise<number | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('estoque_fechamentos_mensais')
     .select('valor_estoque_fechamento')
     .eq('user_id', userId)
-    .eq('competencia', competenciaAnterior)
-    .maybeSingle();
+    .eq('competencia', competenciaAnterior);
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     console.error('Erro ao buscar fechamento mensal:', error);
-    return null;
+    throw error;
   }
 
   if (!data) return null;
@@ -195,13 +197,14 @@ export async function getFaturamentoLiquidoMes(
     return null;
   }
 
-  if (!data || data.length === 0) return null;
+  return calculateFaturamentoLiquido(data || []);
+}
 
-  const total = data.reduce((sum, mov) => {
+export function calculateFaturamentoLiquido(saidas: Pick<Movimentacao, 'subtotal' | 'custo_aplicado' | 'quantidade'>[]): number | null {
+  if (saidas.length === 0) return null;
+  return saidas.reduce((sum, mov) => {
     return sum + (mov.subtotal || (mov.custo_aplicado || 0) * (mov.quantidade || 0));
   }, 0);
-
-  return total;
 }
 
 // -------------------------------------------------------
@@ -212,15 +215,18 @@ export async function calcularCmvCompleto(
   userId: string,
   produtosAtivos: ProdutoEstoque[],
   entradasMes: Movimentacao[],
-  todasMovimentacoesMes?: MovimentacaoComTipo[]
+  todasMovimentacoesMes?: MovimentacaoComTipo[],
+  signal?: AbortSignal,
 ): Promise<CmvResult> {
   const competenciaAnterior = getCompetenciaAnterior();
   const { start, end } = getCurrentMonthRangeBrasilia();
 
   // Buscar EI real e faturamento em paralelo
   const [estoqueInicialReal, faturamentoLiquido] = await Promise.all([
-    getEstoqueInicialReal(userId, competenciaAnterior),
-    getFaturamentoLiquidoMes(userId, start, end),
+    getEstoqueInicialReal(userId, competenciaAnterior, signal),
+    todasMovimentacoesMes !== undefined
+      ? calculateFaturamentoLiquido(todasMovimentacoesMes.filter(m => m.tipo === 'saida'))
+      : getFaturamentoLiquidoMes(userId, start, end),
   ]);
 
   // Calcular EF e Compras

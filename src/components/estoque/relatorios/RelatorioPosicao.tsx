@@ -10,12 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useEstoque } from '@/hooks/useEstoque';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import {
-  exportarRelatorioExcel,
-  exportarRelatorioPDF,
-  ColunaExport,
+  useExportRelatorioEstoque,
+  type ColunaExport,
 } from '@/hooks/useExportRelatorioEstoque';
 
 export function RelatorioPosicao() {
+  const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchProdutos } = useEstoque();
   const [produtos, setProdutos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,11 +124,11 @@ export function RelatorioPosicao() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExcel} className="flex-1 gap-2 xl:flex-none">
-              <FileSpreadsheet className="h-4 w-4" /> Excel
+            <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" onClick={handleExcel} className="flex-1 gap-2 xl:flex-none">
+              <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePDF} className="flex-1 gap-2 xl:flex-none">
-              <FileText className="h-4 w-4" /> PDF
+            <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" onClick={handlePDF} className="flex-1 gap-2 xl:flex-none">
+              <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
             </Button>
           </div>
         </div>

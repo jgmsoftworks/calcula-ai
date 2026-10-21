@@ -1,22 +1,13 @@
-// @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from 'date-fns';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
-import {
-  getCurrentMonthRangeBrasilia,
-  calculateEstoqueFinal,
-  calculateComprasLiquidas,
-  calcularCmvCompleto,
-  type CmvResult,
-} from '@/lib/cmvCalculations';
-
-const BRASILIA_TZ = 'America/Sao_Paulo';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { getCurrentMonthRangeBrasilia, type CmvResult } from '@/lib/cmvCalculations';
+import { fetchDashboardData } from '@/lib/dashboardData';
 
 export type PeriodFilter = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
-interface DashboardData {
+export interface DashboardData {
   // CMV real
   cmvResult: CmvResult;
 
@@ -40,6 +31,8 @@ interface DashboardData {
   
   // Loading states
   loading: boolean;
+  updating: boolean;
+  hasData: boolean;
   error: string | null;
 }
 
@@ -49,31 +42,33 @@ interface FilterState {
   endDate?: Date;
 }
 
-export const useDashboardData = () => {
-  const { user } = useAuth();
-  const [data, setData] = useState<DashboardData>({
-    cmvResult: {
-      cmvDisponivel: false,
-      cmvValor: null,
-      cmvPercentual: null,
-      breakdown: { estoqueInicial: null, estoqueInicialEstimado: false, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
-    },
-    valorEmEstoque: 0,
-    totalEntradasMes: 0,
-    totalSaidasMes: 0,
-    totalRevenue: 0,
-    totalRevenueChange: 0,
-    activeProducts: 0,
-    activeProductsChange: 0,
-    averageMargin: 0,
-    averageMarginChange: 0,
-    operationalCosts: 0,
-    operationalCostsChange: 0,
-    dailyMovements: [],
-    loading: true,
-    error: null,
-  });
+const EMPTY_DATA: DashboardData = {
+  cmvResult: {
+    cmvDisponivel: false,
+    cmvValor: null,
+    cmvPercentual: null,
+    breakdown: { estoqueInicial: null, estoqueInicialEstimado: false, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
+  },
+  valorEmEstoque: 0,
+  totalEntradasMes: 0,
+  totalSaidasMes: 0,
+  totalRevenue: 0,
+  totalRevenueChange: 0,
+  activeProducts: 0,
+  activeProductsChange: 0,
+  averageMargin: 0,
+  averageMarginChange: 0,
+  operationalCosts: 0,
+  operationalCostsChange: 0,
+  dailyMovements: [],
+  loading: false,
+  updating: false,
+  hasData: false,
+  error: null,
+};
 
+export const useDashboardData = (enabled = true) => {
+  const { user } = useAuth();
   const [filters, setFilters] = useState<FilterState>({
     period: 'month',
   });
@@ -116,214 +111,29 @@ export const useDashboardData = () => {
     return { start, end };
   }, [filters]);
 
-  // Calcular período anterior para comparação
-  const previousDateRange = useMemo(() => {
-    const { start, end } = dateRange;
-    const diffInDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
-    
-    return {
-      start: subDays(start, diffInDays),
-      end: subDays(end, diffInDays),
-    };
-  }, [dateRange]);
 
-
-  const fetchDashboardData = async () => {
-    if (!user?.id) return;
-
-    setData(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      const { start: monthStart, end: monthEnd } = getCurrentMonthRangeBrasilia();
-      
-      // Buscar dados de forma paralela para otimizar
-      const [
-        entradasMes,
-        saidasMes,
-        produtosEstoque,
-        allMovimentacoesMes,
-        receitasParaCmv,
-      ] = await Promise.all([
-        // Entradas do mês para cálculo de Compras
-        supabase
-          .from('movimentacoes')
-          .select('quantidade, custo_aplicado, subtotal, motivo')
-          .eq('user_id', user.id)
-          .eq('tipo', 'entrada')
-          .gte('data_hora', monthStart)
-          .lte('data_hora', monthEnd),
-        // Saídas do mês para Total de Saídas
-        supabase
-          .from('movimentacoes')
-          .select('quantidade, custo_aplicado, subtotal')
-          .eq('user_id', user.id)
-          .eq('tipo', 'saida')
-          .gte('data_hora', monthStart)
-          .lte('data_hora', monthEnd),
-        
-        // Produtos ativos para valor em estoque
-        supabase
-          .from('produtos')
-          .select('estoque_atual, custo_unitario')
-          .eq('user_id', user.id)
-          .eq('ativo', true),
-
-        // Todas as movimentações do mês para o gráfico diário
-        supabase
-          .from('movimentacoes')
-          .select('tipo, subtotal, custo_aplicado, quantidade, data_hora')
-          .eq('user_id', user.id)
-          .gte('data_hora', monthStart)
-          .lte('data_hora', monthEnd),
-
-        // Receitas do usuário com markup e custos para calcular CMV médio
-        supabase
-          .from('receitas')
-          .select(`
-            preco_venda,
-            rendimento_valor,
-            custo_ingredientes,
-            custo_embalagens,
-            custo_mao_obra,
-            custo_sub_receitas,
-            markup:markups(tipo)
-          `)
-          .eq('user_id', user.id),
-      ]);
-
-      // ===== CMV REAL =====
-      const cmvResult = await calcularCmvCompleto(
-        user.id,
-        produtosEstoque.data || [],
-        entradasMes.data || [],
-        allMovimentacoesMes.data || []
-      );
-
-      // ===== CMV MÉDIO DAS RECEITAS (exclui sub-receitas) =====
-      // Aplica a mesma fórmula do ReceitaCard: (custoBase / precoEfetivo) * 100
-      const receitasValidas = (receitasParaCmv.data || []).filter(
-        (r: any) => r.markup?.tipo !== 'sub_receita'
-      );
-
-      const cmvsIndividuais: number[] = [];
-      receitasValidas.forEach((r: any) => {
-        const custoTotal =
-          (r.custo_ingredientes || 0) +
-          (r.custo_embalagens || 0) +
-          (r.custo_mao_obra || 0) +
-          (r.custo_sub_receitas || 0);
-
-        const custoBase =
-          !r.rendimento_valor || r.rendimento_valor <= 0
-            ? custoTotal
-            : custoTotal / r.rendimento_valor;
-
-        const precoVenda = r.preco_venda || 0;
-
-        if (precoVenda > 0) {
-          cmvsIndividuais.push((custoBase / precoVenda) * 100);
-        } else if (custoBase > 0) {
-          // Sem preço mas com custo: trata como 100% (perda total)
-          cmvsIndividuais.push(100);
-        }
-      });
-
-      if (cmvsIndividuais.length > 0) {
-        const cmvMedio =
-          cmvsIndividuais.reduce((sum, v) => sum + v, 0) / cmvsIndividuais.length;
-        cmvResult.cmvPercentual = cmvMedio;
-        cmvResult.cmvDisponivel = true;
-      }
-
-
-      // Valor em estoque (EF)
-      const valorEmEstoque = calculateEstoqueFinal(produtosEstoque.data || []);
-
-      // Total de entradas do mês
-      const totalEntradasMes = entradasMes.data?.reduce((sum, mov) => {
-        return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
-      }, 0) || 0;
-
-      // Total de saídas do mês
-      const totalSaidasMes = saidasMes.data?.reduce((sum, mov) => {
-        return sum + (mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0)));
-      }, 0) || 0;
-
-      // Processar movimentações diárias para gráfico
-      const dailyMap = new Map<string, { entradas: number; saidas: number }>();
-      const now = new Date();
-      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      
-      for (let d = 1; d <= daysInMonth; d++) {
-        const key = d.toString().padStart(2, '0');
-        dailyMap.set(key, { entradas: 0, saidas: 0 });
-      }
-
-      allMovimentacoesMes.data?.forEach(mov => {
-        const date = new Date(mov.data_hora);
-        const dayKey = date.getDate().toString().padStart(2, '0');
-        const existing = dailyMap.get(dayKey) || { entradas: 0, saidas: 0 };
-        const valor = mov.subtotal || ((mov.custo_aplicado || 0) * (mov.quantidade || 0));
-        
-        if (mov.tipo === 'entrada') {
-          existing.entradas += valor;
-        } else if (mov.tipo === 'saida') {
-          existing.saidas += valor;
-        }
-        dailyMap.set(dayKey, existing);
-      });
-
-      const dailyMovements = Array.from(dailyMap.entries()).map(([day, values]) => ({
-        day,
-        entradas: values.entradas,
-        saidas: values.saidas,
-      }));
-
-      setData({
-        cmvResult,
-        valorEmEstoque,
-        totalEntradasMes,
-        totalSaidasMes,
-        totalRevenue: 0,
-        totalRevenueChange: 0,
-        activeProducts: 0,
-        activeProductsChange: 0,
-        averageMargin: 0,
-        averageMarginChange: 0,
-        operationalCosts: 0,
-        operationalCostsChange: 0,
-        dailyMovements,
-        loading: false,
-        error: null,
-      });
-
-    } catch (error) {
-      console.error('Erro ao buscar dados do dashboard:', error);
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Erro ao carregar dados do dashboard',
-      }));
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user?.id, dateRange]);
-
-  const updateFilters = (newFilters: Partial<FilterState>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
-
-  const refreshData = () => {
-    fetchDashboardData();
-  };
+  const { start: monthStart } = getCurrentMonthRangeBrasilia();
+  const query = useQuery({
+    queryKey: ['dashboard', user?.id, monthStart, filters.period, filters.startDate?.toISOString(), filters.endDate?.toISOString()],
+    queryFn: ({ signal }) => fetchDashboardData(user!.id, monthStart, getCurrentMonthRangeBrasilia().end, signal),
+    enabled: enabled && !!user?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 1,
+  });
 
   return {
-    data,
+    data: {
+      ...EMPTY_DATA,
+      ...query.data,
+      loading: enabled && !!user?.id && query.isPending,
+      updating: query.isFetching,
+      hasData: !!query.data,
+      error: query.isError ? 'Não foi possível atualizar o painel. Tente novamente.' : null,
+    },
     filters,
-    updateFilters,
-    refreshData,
+    updateFilters: (newFilters: Partial<FilterState>) => setFilters(prev => ({ ...prev, ...newFilters })),
+    refreshData: () => query.refetch(),
     dateRange,
   };
 };

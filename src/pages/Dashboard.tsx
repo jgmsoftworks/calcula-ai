@@ -30,7 +30,7 @@ import { useTranslation } from 'react-i18next';
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user, isAdmin } = useAuth();
-  const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData();
+  const { data, filters, updateFilters, refreshData, dateRange } = useDashboardData(!isAdmin);
   const { metrics: adminMetrics, refreshMetrics } = useAdminDashboardMetrics();
 
   const displayName =
@@ -92,6 +92,16 @@ const Dashboard = () => {
 
         {/* Channel Comparison */}
         <AdminChannelComparison metrics={adminMetrics} />
+      </div>
+    );
+  }
+
+  if (data.error && !data.hasData) {
+    return (
+      <div role="alert" className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <AlertCircle className="h-6 w-6 text-primary" />
+        <p>{data.error}</p>
+        <Button variant="outline" onClick={refreshData} disabled={data.updating}>Tentar novamente</Button>
       </div>
     );
   }
@@ -162,15 +172,18 @@ const Dashboard = () => {
           </Sheet>
           <Button 
             onClick={refreshData} 
+            disabled={data.updating}
             variant="outline" 
             size="sm"
             className="h-10 flex-1 gap-1.5 rounded-xl border-border/50 sm:h-9 sm:flex-none"
           >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            {t('dashboard.refresh')}
+            <RefreshCcw className={`h-3.5 w-3.5 ${data.updating ? 'animate-spin' : ''}`} />
+            {data.updating ? 'Atualizando…' : t('dashboard.refresh')}
           </Button>
         </div>
       </div>
+
+      {data.error && <p role="alert" className="text-sm text-muted-foreground">{data.error} Os últimos dados carregados continuam visíveis.</p>}
 
       {/* Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">

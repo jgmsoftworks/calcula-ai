@@ -35,6 +35,6 @@ Suite completa: 131 testes passaram, mais dois testes adicionados e aprovados pa
 
 ## Validação pendente na prévia
 
-A prévia da Lovable está protegida por login. O acesso do conector ao projeto não autentica automaticamente o navegador. Ainda é necessário concluir o login para cronometrar a versão anterior e a nova nas mesmas condições, inspecionar celular/teclado/rolagem, conferir o carrinho e exportar Excel pela interface. Não publicar antes desta conferência. Não há neste relatório tempos de carregamento medidos na Lovable.
+A prévia da Lovable está protegida por login. O acesso do conector ao projeto não autentica automaticamente o navegador. Não foram medidos os tempos da versão anterior e da nova na Lovable nem concluídas, neste lote, as verificações visuais de celular/teclado/rolagem, carrinho e exportação pela interface. Depois desta entrega, o usuário orientou seguir pelo GitHub e informou que fará as publicações; o login da prévia não é condição para continuar entregando os lotes.
 
-Próximos lotes, após validar este: painel/históricos e consultas sobrepostas; sugestões do editor de receitas; bibliotecas de exportação restantes. Receitas já possuem paginação no servidor e não foram refeitas neste lote.
+Próximos lotes: painel/históricos e consultas sobrepostas; sugestões do editor de receitas; bibliotecas de exportação restantes. Receitas já possuem paginação no servidor e não foram refeitas neste lote. A entrega seguinte está registrada em `dashboard-reports-performance-2026-10-21.md`.

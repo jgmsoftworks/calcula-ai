@@ -10,9 +10,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { useMovimentacoes } from '@/hooks/useMovimentacoes';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import {
-  exportarRelatorioExcel,
-  exportarRelatorioPDF,
-  ColunaExport,
+  useExportRelatorioEstoque,
+  type ColunaExport,
 } from '@/hooks/useExportRelatorioEstoque';
 
 function firstDayOfMonth() {
@@ -26,6 +25,7 @@ function today() {
 const COLORS = ['#0483e4', '#1c93d8', '#36a3cc', '#50b3c0', '#6ac3b4', '#84d3a8', '#9ee39c', '#b8f390', '#d2ff84', '#f96e0c'];
 
 export function RelatorioRanking() {
+  const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchHistoricoGeral } = useMovimentacoes();
   const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
   const [dataFim, setDataFim] = useState(today());
@@ -121,11 +121,11 @@ export function RelatorioRanking() {
           </div>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
-            <FileSpreadsheet className="h-4 w-4" /> Excel
+          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
+            <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
-            <FileText className="h-4 w-4" /> PDF
+          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
+            <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
           </Button>
         </div>
       </Card>

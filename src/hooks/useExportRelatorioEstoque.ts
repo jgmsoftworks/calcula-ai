@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import * as XLSX from 'xlsx';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 
 export interface RelatorioMeta {
@@ -31,12 +31,13 @@ function fmtExcelCell(v: any, fmt?: ColunaExport['format']): any {
   return v;
 }
 
-export function exportarRelatorioExcel(
+export async function exportarRelatorioExcel(
   meta: RelatorioMeta,
   colunas: ColunaExport[],
   rows: any[],
   totais?: Record<string, any>,
 ) {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
   const headerLines: any[][] = [
     [meta.titulo],
@@ -65,12 +66,13 @@ export function exportarRelatorioExcel(
   XLSX.writeFile(wb, fileName);
 }
 
-export function exportarRelatorioPDF(
+export async function exportarRelatorioPDF(
   meta: RelatorioMeta,
   colunas: ColunaExport[],
   rows: any[],
   totais?: Record<string, any>,
 ) {
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -177,4 +179,29 @@ export function exportarRelatorioPDF(
 
   const fileName = `${meta.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(fileName);
+}
+
+// Keep export loading and failures visible while the chosen format is downloaded.
+export function useExportRelatorioEstoque() {
+  const [exportando, setExportando] = useState<'excel' | 'pdf' | null>(null);
+  const busy = useRef(false);
+  const exportar = async (formato: 'excel' | 'pdf', args: Parameters<typeof exportarRelatorioExcel>) => {
+    if (busy.current) return;
+    busy.current = true;
+    setExportando(formato);
+    try {
+      await (formato === 'excel' ? exportarRelatorioExcel : exportarRelatorioPDF)(...args);
+    } catch (error) {
+      console.error('Erro ao exportar relatório:', error);
+      toast.error('Não foi possível exportar o relatório. Tente novamente.');
+    } finally {
+      busy.current = false;
+      setExportando(null);
+    }
+  };
+  return {
+    exportando,
+    exportarRelatorioExcel: (...args: Parameters<typeof exportarRelatorioExcel>) => exportar('excel', args),
+    exportarRelatorioPDF: (...args: Parameters<typeof exportarRelatorioPDF>) => exportar('pdf', args),
+  };
 }

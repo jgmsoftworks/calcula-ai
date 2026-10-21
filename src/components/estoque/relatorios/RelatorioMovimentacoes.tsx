@@ -10,9 +10,8 @@ import { FileSpreadsheet, FileText, ArrowDown, ArrowUp } from 'lucide-react';
 import { useMovimentacoes } from '@/hooks/useMovimentacoes';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import {
-  exportarRelatorioExcel,
-  exportarRelatorioPDF,
-  ColunaExport,
+  useExportRelatorioEstoque,
+  type ColunaExport,
 } from '@/hooks/useExportRelatorioEstoque';
 
 function firstDayOfMonth() {
@@ -24,6 +23,7 @@ function today() {
 }
 
 export function RelatorioMovimentacoes() {
+  const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchHistoricoGeral } = useMovimentacoes();
   const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
   const [dataFim, setDataFim] = useState(today());
@@ -124,11 +124,11 @@ export function RelatorioMovimentacoes() {
           </div>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
-            <FileSpreadsheet className="h-4 w-4" /> Excel
+          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
+            <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
-            <FileText className="h-4 w-4" /> PDF
+          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
+            <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
           </Button>
         </div>
 
