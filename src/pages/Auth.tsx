@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { CONSENT_VERSION } from '@/lib/consent';
 import { AuthAnimation } from '@/components/AuthAnimation';
+import authLogo from '@/assets/logo-calculaai-auth.webp';
 import './Auth.css';
 
 
@@ -360,8 +361,11 @@ const Auth = () => {
             {/* Logo */}
             <div className="flex justify-center">
               <img
-                src="/assets/logo-calculaai.png"
+                src={authLogo}
                 alt="CalculaAi"
+                width={512}
+                height={161}
+                {...{ fetchpriority: 'high' }}
                 className="auth-logo h-12 sm:h-14 w-auto"
               />
             </div>
@@ -510,7 +514,7 @@ const Auth = () => {
             </div>
           </section>
 
-          <aside className="order-first flex min-w-0 items-center overflow-hidden bg-[#fff7f1] dark:bg-zinc-950 lg:order-none" aria-label="Mascote da Calcula Aí na cozinha">
+          <aside className="flex min-w-0 items-center overflow-hidden bg-[#fff7f1] dark:bg-zinc-950" aria-label="Mascote da Calcula Aí na cozinha">
             <AuthAnimation />
           </aside>
         </div>
