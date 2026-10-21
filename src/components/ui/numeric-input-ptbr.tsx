@@ -160,7 +160,7 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
     };
 
     const getPlaceholder = () => {
-      if (placeholder) return placeholder;
+      if (placeholder !== undefined) return placeholder;
       
       switch (tipo) {
         case 'valor': return 'R$ 0,00';

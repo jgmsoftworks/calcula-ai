@@ -515,3 +515,74 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   .markup-card-enter, .markup-card-exit { animation: none; }
 }
+
+/* Shared fields follow the GSA controls, using Calcula Aí's brand tokens. */
+[data-field-control], button[role="combobox"] {
+  border-color: hsl(var(--border));
+  border-radius: 11px;
+  background: hsl(var(--card) / .65);
+  box-shadow: 0 1px 2px hsl(var(--foreground) / .025);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+[data-field-control]:hover:not(:disabled), button[role="combobox"]:hover:not(:disabled) {
+  border-color: hsl(var(--muted-foreground) / .45);
+  background: hsl(var(--card));
+}
+[data-field-control]:focus-visible, button[role="combobox"]:focus-visible,
+button[role="combobox"][data-state="open"] {
+  outline: none;
+  border-color: hsl(var(--orange));
+  background: hsl(var(--card));
+  box-shadow: 0 0 0 3px hsl(var(--orange) / .12);
+}
+[data-field-control][aria-invalid="true"] { border-color: hsl(var(--destructive)); }
+button[role="combobox"] { min-width: 0; gap: 8px; font-weight: 500; }
+button[role="combobox"][data-placeholder] { color: hsl(var(--muted-foreground)); font-weight: 400; }
+.field-select-arrow {
+  display: grid; place-items: center; flex: 0 0 25px; width: 25px; height: 25px;
+  border: 1px solid hsl(var(--border)); border-radius: 7px;
+  background: hsl(var(--muted) / .5); color: hsl(var(--muted-foreground));
+}
+.field-select-arrow svg { transition: transform .15s; }
+[data-state="open"] > .field-select-arrow { color: hsl(var(--orange)); background: hsl(var(--orange) / .08); border-color: hsl(var(--orange) / .25); }
+[data-state="open"] > .field-select-arrow svg { transform: rotate(180deg); }
+[data-select-menu], [data-command-popover] {
+  border-color: hsl(var(--border)); border-radius: 15px;
+  box-shadow: 0 18px 50px hsl(var(--foreground) / .12), 0 4px 12px hsl(var(--foreground) / .04);
+}
+.field-select-search, [cmdk-input-wrapper] {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  margin: 3px 3px 7px; padding: 0 10px; border: 1px solid hsl(var(--border));
+  border-radius: 9px; background: hsl(var(--muted) / .45);
+}
+.field-select-search:focus-within, [cmdk-input-wrapper]:focus-within { border-color: hsl(var(--orange) / .55); }
+.field-select-search input, [cmdk-input] {
+  width: 100%; min-width: 0; height: 38px; border: 0; padding: 0;
+  outline: none; background: transparent; box-shadow: none; font-size: 13px;
+}
+[data-select-option] { margin: 1px 0; overflow-wrap: anywhere; }
+[data-select-option][hidden] { display: none; }
+[data-select-option][data-highlighted], [cmdk-item][data-selected="true"] {
+  background: hsl(var(--muted) / .6); color: hsl(var(--foreground));
+}
+[data-select-option][data-state="checked"] {
+  background: hsl(var(--orange) / .1); color: hsl(var(--foreground)); font-weight: 600;
+}
+[data-select-option][data-state="checked"][data-highlighted] { box-shadow: inset 0 0 0 1px hsl(var(--orange) / .3); }
+.field-select-check { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 6px; background: hsl(var(--orange)); color: white; }
+[cmdk-item] { min-height: 41px; border-radius: 8px; padding: 10px 11px; cursor: pointer; }
+[cmdk-list] { overscroll-behavior: contain; }
+@media (max-width: 767px) {
+  button[role="combobox"], .field-select-search input, [cmdk-input] { font-size: 16px; }
+  [data-select-option], [cmdk-item] { min-height: 45px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-field-control], button[role="combobox"], .field-select-arrow svg { transition: none; }
+}
+button[role="combobox"] { min-height: 46px; }
+button[role="combobox"] > svg:last-child {
+  flex: 0 0 25px; width: 25px; height: 25px; padding: 4px; margin-left: 0;
+  border: 1px solid hsl(var(--border)); border-radius: 7px;
+  background: hsl(var(--muted) / .5); color: hsl(var(--muted-foreground)); opacity: 1;
+}
+[data-command-popover] { width: max(var(--radix-popover-trigger-width), 220px); max-width: calc(100vw - 1.5rem); padding: 6px; }

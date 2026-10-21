@@ -485,7 +485,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                     <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2 rounded-xl" align="start">
+                <PopoverContent data-command-popover="" className="w-[var(--radix-popover-trigger-width)] p-2 rounded-xl" align="start">
                   <div className="space-y-1">
                     {markupSubReceita && (
                       <MarkupOption

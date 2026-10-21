@@ -635,7 +635,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
+              <PopoverContent data-command-popover=""
                 className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
                 align="start"
                 side="bottom"
@@ -705,7 +705,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent
+              <PopoverContent data-command-popover=""
                 className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
                 align="start"
                 side="bottom"

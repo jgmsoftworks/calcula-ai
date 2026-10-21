@@ -21,3 +21,8 @@ if (!("sendBeacon" in navigator)) {
     value: () => true,
   });
 }
+
+// Layout APIs used by Radix Select are not implemented by jsdom.
+if (!HTMLElement.prototype.scrollIntoView) HTMLElement.prototype.scrollIntoView = () => {};
+if (!HTMLElement.prototype.hasPointerCapture) HTMLElement.prototype.hasPointerCapture = () => false;
+if (!HTMLElement.prototype.releasePointerCapture) HTMLElement.prototype.releasePointerCapture = () => {};

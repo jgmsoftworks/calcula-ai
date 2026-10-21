@@ -317,7 +317,7 @@ export function GeralTab({
                     ...formData.conservacao,
                     congelado: { ...formData.conservacao?.congelado, temperatura: value }
                   })}
-                  placeholder="-18"
+                  placeholder=""
                 />
               </div>
               <div className="space-y-1.5">
@@ -330,7 +330,7 @@ export function GeralTab({
                     ...formData.conservacao,
                     congelado: { ...formData.conservacao?.congelado, tempo: value }
                   })}
-                  placeholder="90"
+                  placeholder=""
                 />
               </div>
               <div className="recipe-preservation-wide col-span-2">
@@ -365,7 +365,7 @@ export function GeralTab({
                     ...formData.conservacao,
                     refrigerado: { ...formData.conservacao?.refrigerado, temperatura: value }
                   })}
-                  placeholder="3"
+                  placeholder=""
                 />
               </div>
               <div className="space-y-1.5">
@@ -378,7 +378,7 @@ export function GeralTab({
                     ...formData.conservacao,
                     refrigerado: { ...formData.conservacao?.refrigerado, tempo: value }
                   })}
-                  placeholder="15"
+                  placeholder=""
                 />
               </div>
               <div className="recipe-preservation-wide col-span-2">
@@ -413,7 +413,7 @@ export function GeralTab({
                     ...formData.conservacao,
                     ambiente: { ...formData.conservacao?.ambiente, temperatura: value }
                   })}
-                  placeholder="0"
+                  placeholder=""
                 />
               </div>
               <div className="space-y-1.5">
@@ -426,7 +426,7 @@ export function GeralTab({
                     ...formData.conservacao,
                     ambiente: { ...formData.conservacao?.ambiente, tempo: value }
                   })}
-                  placeholder="0"
+                  placeholder=""
                 />
               </div>
               <div className="recipe-preservation-wide col-span-2">

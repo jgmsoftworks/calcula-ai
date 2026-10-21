@@ -44,7 +44,7 @@ describe('stock nutrition editor', () => {
     const label = { ...emptyNutritionLabel('Marca X'), quantidade_referencia: 0.1, unidade_referencia: 'kg' as const, nutrientes: [{ nutriente: 'Proteínas', unidade: 'g', quantidade: 3.5 }] };
     render(<Harness initial={label} />);
     expect(screen.getByLabelText('Quantidade de referência')).toHaveValue('0,1');
-    expect(screen.getByLabelText('Unidade de referência')).toHaveValue('kg');
+    expect(screen.getByLabelText('Unidade de referência')).toHaveTextContent('kg');
     expect(screen.getByLabelText('Quantidade de Proteínas')).toHaveValue('3,5');
     expect(state().marca).toBe('Marca X');
   });

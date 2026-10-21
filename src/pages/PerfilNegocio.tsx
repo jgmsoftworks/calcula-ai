@@ -1,3 +1,4 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -538,22 +539,21 @@ const PerfilNegocio = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="business_type">Tipo de Negócio</Label>
-                  <select
-                    id="business_type"
-                    value={profile.business_type}
-                    onChange={(e) => setProfile(prev => ({ ...prev, business_type: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background input-premium"
-                  >
-                    <option value="food">Alimentação</option>
-                    <option value="retail">Varejo</option>
-                    <option value="service">Serviços</option>
-                    <option value="manufacturing">Indústria</option>
-                    <option value="consulting">Consultoria</option>
-                    <option value="technology">Tecnologia</option>
-                    <option value="health">Saúde</option>
-                    <option value="education">Educação</option>
-                    <option value="other">Outro</option>
-                  </select>
+                  <Select value={profile.business_type || undefined}
+                    onValueChange={value => setProfile(prev => ({ ...prev, business_type: value }))}>
+                    <SelectTrigger id="business_type"><SelectValue placeholder="Selecione o tipo de negócio" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="food">Alimentação</SelectItem>
+                      <SelectItem value="retail">Varejo</SelectItem>
+                      <SelectItem value="service">Serviços</SelectItem>
+                      <SelectItem value="manufacturing">Indústria</SelectItem>
+                      <SelectItem value="consulting">Consultoria</SelectItem>
+                      <SelectItem value="technology">Tecnologia</SelectItem>
+                      <SelectItem value="health">Saúde</SelectItem>
+                      <SelectItem value="education">Educação</SelectItem>
+                      <SelectItem value="other">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>

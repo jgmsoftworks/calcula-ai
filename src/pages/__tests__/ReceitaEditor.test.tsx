@@ -182,9 +182,11 @@ describe('recipe editor navigation', () => {
   it('changes steps through the compact selector without losing form data', async () => {
     await act(async () => { openPage('/receitas/nova'); });
     fireEvent.change(screen.getByLabelText('Nome da Receita *'), { target: { value: 'Bolo no celular' } });
-    fireEvent.change(screen.getByLabelText('Etapa da receita'), { target: { value: 'precificacao' } });
+    fireEvent.keyDown(screen.getByLabelText('Etapa da receita'), { key: 'Enter' });
+    fireEvent.click(await screen.findByRole('option', { name: '6 Precificação' }));
     expect(screen.getByRole('button', { name: 'Criar' })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Etapa da receita'), { target: { value: 'geral' } });
+    fireEvent.keyDown(screen.getByLabelText('Etapa da receita'), { key: 'Enter' });
+    fireEvent.click(await screen.findByRole('option', { name: '1 Geral' }));
     expect(screen.getByLabelText('Nome da Receita *')).toHaveValue('Bolo no celular');
   });
 

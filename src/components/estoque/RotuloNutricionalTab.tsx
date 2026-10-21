@@ -1,3 +1,4 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -146,10 +147,14 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
           <Label>Os valores abaixo correspondem a</Label>
           <div className="grid grid-cols-[minmax(0,1fr)_80px] gap-2">
             <AmountInput label="Quantidade de referência" value={value.quantidade_referencia} onChange={amount => update({ quantidade_referencia: amount === 0 ? null : amount })} />
-            <select aria-label="Unidade de referência" className="h-11 min-w-0 rounded-md border border-input bg-background px-2 text-sm" value={value.unidade_referencia}
-              onChange={event => update({ unidade_referencia: event.target.value as NutritionLabel['unidade_referencia'] })}>
-              <option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">L</option>
-            </select>
+            <Select value={value.unidade_referencia} disabled={disabled || busy}
+              onValueChange={unit => update({ unidade_referencia: unit as NutritionLabel['unidade_referencia'] })}>
+              <SelectTrigger aria-label="Unidade de referência" className="h-11 px-2"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="g">g</SelectItem><SelectItem value="kg">kg</SelectItem>
+                <SelectItem value="ml">ml</SelectItem><SelectItem value="l">L</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <p className="text-xs text-muted-foreground">Ex.: 100 g ou a porção de 20 g indicada no rótulo.</p>
         </div>

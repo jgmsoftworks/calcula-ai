@@ -212,10 +212,10 @@ export function SubReceitasTab({
               <TableRow>
                 <TableHead>Sub-receita</TableHead>
                 <TableHead>Unidade</TableHead>
-                <TableHead className="text-right">Quantidade</TableHead>
-                <TableHead className="text-right">Custo Unit.</TableHead>
-                <TableHead className="text-right">Custo Total</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-36 text-right">Quantidade</TableHead>
+                <TableHead className="w-36 whitespace-nowrap text-right">Custo Unit.</TableHead>
+                <TableHead className="w-36 whitespace-nowrap text-right">Custo Total</TableHead>
+                <TableHead className="w-14"><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -236,13 +236,13 @@ export function SubReceitasTab({
                       <NumericInput
                         value={subReceita.quantidade}
                         onChange={(e) => handleUpdateQuantidade(subReceita.id, Number(e.target.value))}
-                        className="w-20 text-right"
+                        className="ml-auto w-24 text-right tabular-nums"
                         min={0}
                         step={0.01}
                       />
                     </TableCell>
-                    <TableCell className="text-right">R$ {formatNumber(custoUnitario, 4)}</TableCell>
-                    <TableCell className="text-right">R$ {formatBRL(custoTotal)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">R$ {formatNumber(custoUnitario, 4)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">R$ {formatBRL(custoTotal)}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"

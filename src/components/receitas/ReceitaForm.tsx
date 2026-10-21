@@ -1,3 +1,4 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -684,16 +685,14 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
               <label htmlFor="receita-etapa" className="block text-sm font-medium">
                 Etapa {currentTabIndex + 1} de {tabs.length}
               </label>
-              <select
-                id="receita-etapa"
-                aria-label="Etapa da receita"
-                value={activeTab}
-                disabled={saving}
-                onChange={event => setActiveTab(event.target.value)}
-                className="h-12 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {tabs.map(tab => <option key={tab} value={tab}>{tabLabels[tab]}</option>)}
-              </select>
+              <Select value={activeTab} disabled={saving} onValueChange={setActiveTab}>
+                <SelectTrigger id="receita-etapa" aria-label="Etapa da receita" className="h-12">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabs.map(tab => <SelectItem key={tab} value={tab}>{tabLabels[tab]}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <TabsList className="recipe-wide-tabs w-full grid-cols-6 gap-1 h-auto">
               <TabsTrigger className="min-h-11" disabled={saving} value="geral">1 Geral</TabsTrigger>
