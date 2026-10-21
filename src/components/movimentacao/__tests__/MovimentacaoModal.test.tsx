@@ -16,7 +16,7 @@ describe('stock movement details', () => {
     render(<MovimentacaoModal produto={produto} open onClose={close} onAddToCart={add} />);
     expect(screen.getByText('Quilo (kg)')).toBeInTheDocument();
     expect(screen.getByText('Grama (g)')).toBeInTheDocument();
-    expect(screen.getByText(/1 kg de compra = 1.000 g/)).toBeInTheDocument();
+    expect(screen.getByText(/1 kg = 1.000 g/)).toBeInTheDocument();
     expect(screen.getByText('12,5 kg')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Quantidade (kg)'), { target: { value: '2,5' } });
     expect(screen.getByText('Equivale a 2.500 g para uso.')).toBeInTheDocument();
