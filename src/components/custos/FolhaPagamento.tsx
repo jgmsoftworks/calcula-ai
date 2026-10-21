@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -650,10 +651,7 @@ export function FolhaPagamento() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="salario_base" className="text-xs">Salário Bruto *</Label>
-                  <div className="relative">
-                    <Input id="salario_base" type="text" value={formData.salario_base} onChange={(e) => handleSalarioBaseChange(e.target.value)} placeholder="0,00" className="pl-8" autoComplete="off" />
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  </div>
+                  <NumericInputPtBr id="salario_base" tipo="valor" min={0} value={parseCurrencyValue(formData.salario_base)} onChange={(value) => handleSalarioBaseChange(formatCurrencyInput(value))} />
                 </div>
               </div>
 
@@ -678,10 +676,7 @@ export function FolhaPagamento() {
                         <Input type="text" value={formData[encargo.percentKey as keyof typeof formData]} onChange={(e) => handlePercentChange(encargo.percentKey, e.target.value)} onKeyDown={handleInputKeyDown} onWheel={handleInputWheel} placeholder="0,00" className="pr-6 h-8 text-sm" autoComplete="off" />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                       </div>
-                      <div className="relative">
-                        <Input type="text" value={formData[encargo.valorKey as keyof typeof formData]} onChange={(e) => handleValueChange(encargo.valorKey, e.target.value)} onKeyDown={handleInputKeyDown} onWheel={handleInputWheel} placeholder="0,00" className="pl-7 h-8 text-sm" autoComplete="off" />
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
-                      </div>
+                      <NumericInputPtBr tipo="valor" min={0} aria-label={`${encargo.label} em reais`} value={parseCurrencyValue(String(formData[encargo.valorKey as keyof typeof formData]))} onChange={(value) => handleValueChange(encargo.valorKey, formatCurrencyInput(value))} className="h-8 text-sm" />
                     </div>
 
                   ))}

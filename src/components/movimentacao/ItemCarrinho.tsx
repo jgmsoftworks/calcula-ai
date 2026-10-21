@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { productUnit } from '@/lib/productUnits';
 import { formatters } from '@/lib/formatters';
 
 interface ItemCarrinhoProps {
@@ -39,12 +40,12 @@ export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
 
             <div className="flex items-center gap-2">
               {item.tipo === 'entrada' ? (
-                <Badge variant="outline" className="text-green-600 border-green-600">
+                <Badge variant="outline" className="text-primary border-primary/30">
                   <ArrowUpCircle className="h-3 w-3 mr-1" />
                   Entrada
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-red-600 border-red-600">
+                <Badge variant="outline" className="text-accent border-accent/30 dark:text-foreground">
                   <ArrowDownCircle className="h-3 w-3 mr-1" />
                   Saída
                 </Badge>
@@ -58,8 +59,8 @@ export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
             )}
 
             <div className="text-xs text-muted-foreground space-y-0.5">
-              <div>Qtd: {formatters.quantidadeContinua(item.quantidade)}</div>
-              <div>Unit: {formatters.valor(item.custo_aplicado)}</div>
+              <div>Qtd: {formatters.quantidadeContinua(item.quantidade)} {productUnit(item.unidade_compra).symbol}</div>
+              <div>Unit: {formatters.valor(item.custo_aplicado)}{item.unidade_compra ? ` / ${productUnit(item.unidade_compra).symbol}` : ''}</div>
             </div>
 
             <div className="text-sm font-bold text-primary">

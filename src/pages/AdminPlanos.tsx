@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
+import { formatBRL, parsePtBrNumber } from '@/lib/formatters';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -305,7 +307,7 @@ const AdminPlanos = () => {
             </div>
             <div className="space-y-1.5">
               <Label>Preço mensal (R$)</Label>
-              <Input value={form.preco} onChange={e => setForm({ ...form, preco: e.target.value })} placeholder="29,90" />
+              <NumericInputPtBr tipo="valor" min={0} aria-label="Preço mensal" value={parsePtBrNumber(form.preco)} onChange={value => setForm({ ...form, preco: formatBRL(value) })} />
               <p className="text-xs text-muted-foreground">
                 Alterar o preço cria um novo Stripe Price. Assinantes atuais continuam no preço antigo.
               </p>

@@ -45,7 +45,7 @@ export default function Movimentacao() {
   const handleAddToCart = (item: any) => {
     if (!item.produto_id) {
       toast.error('Produto inválido. Atualize a página e tente novamente.');
-      return;
+      return false;
     }
     if (item.tipo === 'saida') {
       const produto = produtos.find(p => p.id === item.produto_id);
@@ -54,11 +54,12 @@ export default function Movimentacao() {
         .reduce((soma: number, cartItem: any) => soma + cartItem.quantidade, 0);
       if (produto && outrasSaidas + item.quantidade > Number(produto.estoque_atual) + 0.000000001) {
         toast.error(`Estoque insuficiente para ${produto.nome}. O carrinho já inclui ${outrasSaidas} em saídas; disponível: ${produto.estoque_atual}.`);
-        return;
+        return false;
       }
     }
     setCarrinho(atual => [...atual, item]);
     setModalOpen(false);
+    return true;
   };
 
   return (
@@ -111,6 +112,7 @@ export default function Movimentacao() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onAddToCart={handleAddToCart}
+        saidasPendentes={carrinho.filter(item => item.produto_id === produtoSelecionado?.id && item.tipo === 'saida').reduce((sum, item) => sum + item.quantidade, 0)}
       />
     </div>
   );

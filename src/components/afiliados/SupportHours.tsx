@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -263,12 +264,9 @@ export function SupportHours() {
                   </div>
                   <div>
                     <Label>R$/hora</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
+                    <NumericInputPtBr tipo="valor" min={0} aria-label="Valor por hora"
                       value={formData.valor_hora}
-                      onChange={e => setFormData({ ...formData, valor_hora: parseFloat(e.target.value) || 0 })}
+                      onChange={valor_hora => setFormData({ ...formData, valor_hora })}
                     />
                   </div>
                 </div>

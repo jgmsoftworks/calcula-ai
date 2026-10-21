@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CurrencyInput } from './currency-input';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +13,7 @@ interface NumericInputPtBrProps extends Omit<React.ComponentProps<"input">, 'typ
   onBlur?: () => void;
 }
 
-export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProps>(
+const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProps>(
   ({ 
     tipo,
     value,
@@ -198,4 +199,11 @@ export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputP
   }
 );
 
+DecimalInputPtBr.displayName = 'DecimalInputPtBr';
+
+export const NumericInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProps>(
+  ({ tipo, ...props }, ref) => tipo === 'valor'
+    ? <CurrencyInput {...props} ref={ref} />
+    : <DecimalInputPtBr {...props} tipo={tipo} ref={ref} />
+);
 NumericInputPtBr.displayName = 'NumericInputPtBr';
