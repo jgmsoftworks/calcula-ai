@@ -10,11 +10,11 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ActivityProvider } from "@/contexts/ActivityContext";
 import ScrollToTop from "@/components/ScrollToTop";
-import Auth from "./pages/Auth";
 import { CookieConsentProvider } from "@/hooks/useCookieConsent";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 
 const AppLayoutRoute = lazy(() => import("@/components/layout/AppLayoutRoute"));
+const Auth = lazy(() => import("./pages/Auth"));
 const Index = lazy(() => import("./pages/Index"));
 const AuthSuccess = lazy(() => import("./pages/AuthSuccess"));
 const Afiliados = lazy(() => import("./pages/Afiliados"));

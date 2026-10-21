@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner-1' } }) }));
 vi.mock('@/hooks/useEstoque', () => ({ useEstoque: () => ({ fetchProdutos: mocks.list, createProduto: mocks.create, updateProduto: mocks.update, gerarCodigoInterno: mocks.code }) }));
+vi.mock('@/lib/produtosData', async importOriginal => ({ ...await importOriginal<object>(), fetchCatalogoProdutos: mocks.list }));
 vi.mock('@/hooks/useMarcasCategorias', () => ({ useMarcasCategorias: () => ({ fetchMarcas: mocks.brands, fetchCategorias: mocks.categories }) }));
 vi.mock('@/hooks/useExportProdutos', () => ({ useExportProdutos: () => ({ exportarProdutos: vi.fn() }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: mocks.from } }));
@@ -26,7 +27,7 @@ vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const product: Produto = {
   id: 'product-1', user_id: 'owner-1', nome: 'Farinha', codigo_interno: 7, codigos_barras: [], marcas: ['Marca A'], categorias: [],
-  unidade_compra: 'k', custo_unitario: 8, estoque_atual: 20, estoque_minimo: 2, unidade_uso: 'g', fator_conversao: 1000,
+  unidade_compra: 'k', custo_unitario: 8, estoque_atual: 20, estoque_minimo: 25, unidade_uso: 'g', fator_conversao: 1000,
   imagem_url: null, ativo: true, created_at: '', updated_at: '',
 };
 const filters = '?q=Farinha&unidade=k&abaixo=1';

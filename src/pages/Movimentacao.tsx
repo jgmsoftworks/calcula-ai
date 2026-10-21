@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useEstoque } from '@/hooks/useEstoque';
+import { useState } from 'react';
+import { useProdutos } from '@/hooks/useProdutos';
 import { CategoriasFiltro } from '@/components/movimentacao/CategoriasFiltro';
 import { ListaProdutos } from '@/components/movimentacao/ListaProdutos';
 import { MovimentacaoModal } from '@/components/movimentacao/MovimentacaoModal';
@@ -12,30 +12,13 @@ import { useTranslation } from 'react-i18next';
 
 export default function Movimentacao() {
   const { t } = useTranslation();
-  const { fetchProdutos } = useEstoque();
-  const [produtos, setProdutos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [carrinho, setCarrinho] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
 
-  useEffect(() => {
-    loadProdutos();
-  }, [searchTerm]);
-
-  const loadProdutos = async () => {
-    setLoading(true);
-    try {
-      const results = await fetchProdutos({
-        search: searchTerm || undefined
-      });
-      setProdutos(results);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { produtos, isPending: loading, isError, refetch: loadProdutos } = useProdutos({ search: searchTerm });
 
   const handleSelectProduto = (produto: any) => {
     setProdutoSelecionado(produto);
@@ -79,6 +62,10 @@ export default function Movimentacao() {
           </Button>
         )}
       </div>
+
+      {isError && <div role="alert" className="rounded-xl border p-4 text-sm">
+        Não foi possível atualizar os produtos. <Button variant="link" onClick={() => { void loadProdutos(); }}>Tentar novamente</Button>
+      </div>}
 
       {/* Category Filter */}
       <CategoriasFiltro 

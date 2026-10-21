@@ -5,8 +5,6 @@ import { Label } from '@/components/ui/label';
 import { FileDown, Upload, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { gerarModeloProdutos } from '@/lib/excelTemplates';
-import * as XLSX from 'xlsx';
 import {
   Collapsible,
   CollapsibleContent,
@@ -56,8 +54,9 @@ export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
   const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
   const [errosAbertos, setErrosAbertos] = useState(false);
 
-  const handleBaixarModelo = () => {
+  const handleBaixarModelo = async () => {
     try {
+      const { gerarModeloProdutos } = await import('@/lib/excelTemplates');
       gerarModeloProdutos();
       toast.success('Planilha modelo baixada com sucesso!');
     } catch (error) {
@@ -89,6 +88,7 @@ export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
       }
 
       // Ler arquivo Excel
+      const XLSX = await import('xlsx');
       const arrayBuffer = await arquivo.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer);
       const sheetName = workbook.SheetNames[0];

@@ -1,3 +1,4 @@
+import { preloadRoute } from '@/lib/routePreload';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
@@ -206,6 +207,9 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
+                        onPointerEnter={() => preloadRoute(item.url)}
+                        onFocus={() => preloadRoute(item.url)}
+                        onTouchStart={() => preloadRoute(item.url)}
                         end={item.url === '/'}
                         onClick={handleNavigate}
                         className={`
@@ -245,6 +249,9 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url}
+                        onPointerEnter={() => preloadRoute(item.url)}
+                        onFocus={() => preloadRoute(item.url)}
+                        onTouchStart={() => preloadRoute(item.url)}
                         onClick={handleNavigate}
                         className={`
                           relative flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
@@ -319,6 +326,9 @@ function CollapsibleSubmenu({ item, parentMatched, currentPath, onNavigate }: Co
               <NavLink
                 key={child.url}
                 to={child.url}
+                onPointerEnter={() => preloadRoute(child.url)}
+                onFocus={() => preloadRoute(child.url)}
+                onTouchStart={() => preloadRoute(child.url)}
                 end={child.exact}
                 onClick={onNavigate}
                 className={`

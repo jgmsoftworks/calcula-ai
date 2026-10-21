@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchCatalogoProdutos, filtrarProdutos, produtosKey, type ProdutoFilters } from '@/lib/produtosData';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -30,6 +32,7 @@ export interface Produto {
 
 export function useEstoque() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const gerarCodigoInterno = useCallback(async (): Promise<number> => {
     if (!user) return 1;
@@ -45,77 +48,16 @@ export function useEstoque() {
     return (data as number) || 1;
   }, [user]);
 
-  const fetchProdutos = async (filters?: {
-    search?: string;
-    marcas?: string[];
-    categorias?: string[];
-    unidade?: string;
-    abaixoMinimo?: boolean;
-  }) => {
-    if (!user) return [];
-
-    let query = supabase
-      .from('produtos')
-      // Labels are loaded only by the product editor, not by every stock/recipe list.
-      .select('id,user_id,nome,codigo_interno,codigos_barras,marcas,categorias,unidade_compra,custo_unitario,estoque_atual,estoque_minimo,unidade_uso,fator_conversao,imagem_url,ativo,created_at,updated_at')
-      .eq('user_id', user.id)
-      .eq('ativo', true)
-      .order('codigo_interno', { ascending: true });
-
-    // Se não há busca, aplicamos filtros diretamente na query
-    // Se há busca, trazemos todos os produtos e filtramos localmente (para incluir código de barras)
-    if (filters?.unidade) {
-      query = query.eq('unidade_compra', filters.unidade);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
+  const fetchProdutos = useCallback(async (filters?: ProdutoFilters) => {
+    if (!user?.id) return [];
+    try {
+      return filtrarProdutos(await fetchCatalogoProdutos(user.id), filters);
+    } catch (error) {
       toast.error('Erro ao carregar produtos');
       console.error(error);
       return [];
     }
-
-    let produtos = data || [];
-
-    // Filtro de busca local (nome, código interno OU código de barras)
-    if (filters?.search) {
-      const searchTerm = filters.search.trim().toLowerCase();
-      const codigoNumero = parseInt(searchTerm) || 0;
-      
-      produtos = produtos.filter(p => 
-        p.nome?.toLowerCase().includes(searchTerm) ||
-        p.codigo_interno === codigoNumero ||
-        p.codigos_barras?.some((cb: string) => cb.includes(searchTerm))
-      );
-    }
-
-    // Filtros locais (arrays)
-    if (filters?.marcas && filters.marcas.length > 0) {
-      produtos = produtos.filter(p => 
-        p.marcas?.some(m => filters.marcas!.includes(m))
-      );
-    }
-
-    if (filters?.categorias && filters.categorias.length > 0) {
-      produtos = produtos.filter(p => 
-        p.categorias?.some(c => filters.categorias!.includes(c))
-      );
-    }
-
-    if (filters?.abaixoMinimo) {
-      produtos = produtos.filter(p => 
-        p.estoque_minimo && p.estoque_atual < p.estoque_minimo
-      );
-    }
-
-    // Retorna novos objetos com dados limpos
-    return produtos.map(p => ({
-      ...p,
-      nome: String(p.nome || '').trim(),
-      unidade_compra: String(p.unidade_compra || '').toLowerCase(),
-    }));
-  };
+  }, [user?.id]);
 
   const createProduto = async (data: Partial<Produto>) => {
     if (!user) {
@@ -145,6 +87,7 @@ export function useEstoque() {
       return null;
     }
 
+    void queryClient.invalidateQueries({ queryKey: produtosKey(user.id), refetchType: 'none' });
     toast.success('Produto criado com sucesso');
     return produto;
   };
@@ -173,6 +116,7 @@ export function useEstoque() {
       return null;
     }
 
+    void queryClient.invalidateQueries({ queryKey: produtosKey(user.id), refetchType: 'none' });
     toast.success('Produto atualizado com sucesso');
     return produto;
   };
@@ -195,6 +139,7 @@ export function useEstoque() {
       return false;
     }
 
+    void queryClient.invalidateQueries({ queryKey: produtosKey(user.id), refetchType: 'none' });
     toast.success('Produto desativado com sucesso');
     return true;
   };

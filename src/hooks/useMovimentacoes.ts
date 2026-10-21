@@ -1,5 +1,7 @@
 // @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
 import { useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { produtosKey } from '@/lib/produtosData';
 import { totalizarSaidasPorProduto, verificarSaldosDisponiveis } from '@/lib/validacaoMovimentacao';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +27,7 @@ export interface Comprovante {
 
 export function useMovimentacoes() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   // Repetir uma solicitação de rede não deve criar um novo comprovante.
   const tentativa = useRef<{ assinatura: string; id: string } | null>(null);
 
@@ -141,6 +144,7 @@ export function useMovimentacoes() {
       }
 
       tentativa.current = null;
+      void queryClient.invalidateQueries({ queryKey: produtosKey(user.id), refetchType: 'none' });
       toast.success('Movimentação registrada com sucesso');
       return comprovante as Comprovante;
     } catch (error) {

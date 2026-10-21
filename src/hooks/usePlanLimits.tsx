@@ -1,5 +1,5 @@
 // @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
@@ -94,44 +94,22 @@ export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
 export const usePlanLimits = () => {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const [currentPlan, setCurrentPlan] = useState<PlanType>('lite');
-  const [planExpiration, setPlanExpiration] = useState<Date | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      loadUserPlan();
-    }
-  }, [user]);
-
-  const loadUserPlan = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('plan, plan_expires_at')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao carregar plano do usuário:', error);
-        return;
-      }
-
-      if (profile) {
-        setCurrentPlan(normalizePlan(profile.plan));
-        setPlanExpiration(profile.plan_expires_at ? new Date(profile.plan_expires_at) : null);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar plano:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const planQuery = useQuery({
+    queryKey: ['user-plan', user?.id],
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase.from('profiles')
+        .select('plan, plan_expires_at').eq('user_id', user!.id).abortSignal(signal).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const currentPlan = normalizePlan(planQuery.data?.plan);
+  const planExpiration = planQuery.data?.plan_expires_at ? new Date(planQuery.data.plan_expires_at) : null;
+  const loading = !!user?.id && planQuery.isPending;
+  const loadUserPlan = () => planQuery.refetch();
 
   const checkLimit = async (featureType: keyof PlanLimits, count: number = 1): Promise<{
     allowed: boolean;

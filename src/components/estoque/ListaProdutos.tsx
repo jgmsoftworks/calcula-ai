@@ -1,5 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
+import { useProdutos } from '@/hooks/useProdutos';
 import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,11 +61,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 export function ListaProdutos() {
-  const { fetchProdutos, deleteProduto } = useEstoque();
+  const { deleteProduto } = useEstoque();
   const { exportarProdutos } = useExportProdutos();
   const { fetchMarcas, fetchCategorias } = useMarcasCategorias();
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [produtoParaExcluir, setProdutoParaExcluir] = useState<Produto | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [receitasUsando, setReceitasUsando] = useState<{ id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }[]>([]);
@@ -83,6 +82,7 @@ export function ListaProdutos() {
   const abaixoMinimo = params.get('abaixo') === '1';
   const setFilter = (key: string, value: string) => setParams(previous => {
     const next = new URLSearchParams(previous);
+    next.delete('pagina');
     if (value && value !== 'todas') next.set(key, value);
     else next.delete(key);
     return next;
@@ -92,7 +92,6 @@ export function ListaProdutos() {
   const setMarcaSelecionada = (value: string) => setFilter('marca', value);
   const setCategoriaSelecionada = (value: string) => setFilter('categoria', value);
   const setAbaixoMinimo = (value: boolean) => setFilter('abaixo', value ? '1' : '');
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Dados dos filtros
   const [marcas, setMarcas] = useState<any[]>([]);
@@ -104,34 +103,26 @@ export function ListaProdutos() {
     (categoriaSelecionada !== 'todas' ? 1 : 0) +
     (abaixoMinimo ? 1 : 0);
 
-  const loadProdutos = async (forceRefresh = false) => {
-    setLoading(true);
-    if (forceRefresh) {
-      setProdutos([]);
-    }
-    const data = await fetchProdutos({
-      search: search || undefined,
-      unidade: unidadeFiltro !== 'todas' ? unidadeFiltro : undefined,
-      marcas: marcaSelecionada !== 'todas' ? [marcaSelecionada] : undefined,
-      categorias: categoriaSelecionada !== 'todas' ? [categoriaSelecionada] : undefined,
-      abaixoMinimo,
-    });
-    if (data) {
-      const novosProdutos = data.map(p => ({
-        ...p,
-        nome: String(p.nome || '').trim(),
-        unidade_compra: String(p.unidade_compra || '').toLowerCase(),
-      }));
-      setProdutos(novosProdutos as unknown as Produto[]);
-    }
-    setLoading(false);
+  const { produtos, isPending: loading, isError, refetch: loadProdutos } = useProdutos({
+    search,
+    unidade: unidadeFiltro !== 'todas' ? unidadeFiltro : undefined,
+    marcas: marcaSelecionada !== 'todas' ? [marcaSelecionada] : undefined,
+    categorias: categoriaSelecionada !== 'todas' ? [categoriaSelecionada] : undefined,
+    abaixoMinimo,
+  });
+  const requestedPage = Number(params.get('pagina')) || 1;
+  const totalPages = Math.max(1, Math.ceil(produtos.length / 40));
+  const page = Math.min(totalPages, Math.max(1, Math.floor(requestedPage)));
+  const produtosPagina = produtos.slice((page - 1) * 40, page * 40);
+  const setPage = (value: number) => {
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (value <= 1) next.delete('pagina'); else next.set('pagina', String(value));
+      return next;
+    }, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const handleForceRefresh = () => {
-    setProdutos([]);
-    setRefreshKey(prev => prev + 1);
-    loadProdutos(true);
-  };
+  const handleForceRefresh = () => { void loadProdutos(); };
 
   useEffect(() => {
     const loadFiltros = async () => {
@@ -145,9 +136,6 @@ export function ListaProdutos() {
     loadFiltros();
   }, []);
 
-  useEffect(() => {
-    loadProdutos();
-  }, [search, unidadeFiltro, marcaSelecionada, categoriaSelecionada, abaixoMinimo]);
 
   const handleEdit = (produto: Produto) => {
     navigate(`/estoque/${produto.id}/editar${location.search}`);
@@ -394,6 +382,10 @@ export function ListaProdutos() {
         </Button>
       </Card>
 
+      {isError && <div role="alert" className="rounded-xl border p-4 text-sm">
+        Não foi possível atualizar os produtos. <Button variant="link" onClick={handleForceRefresh}>Tentar novamente</Button>
+      </div>}
+
       {/* ===== Tabela Desktop ===== */}
       <Card className="hidden xl:block">
         <Table>
@@ -417,14 +409,14 @@ export function ListaProdutos() {
             ) : produtos.length === 0 ? (
               <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</TableCell></TableRow>
             ) : (
-              produtos.map((produto) => {
+              produtosPagina.map((produto) => {
                 const valorEstoque = produto.custo_unitario * produto.estoque_atual;
                 const estoqueAbaixo = produto.estoque_minimo > 0 && produto.estoque_atual < produto.estoque_minimo;
                 return (
-                  <TableRow key={`${produto.id}-${refreshKey}`}>
+                  <TableRow key={produto.id}>
                     <TableCell>
                       {produto.imagem_url ? (
-                        <img src={produto.imagem_url} alt={produto.nome} className="h-12 w-12 rounded-md object-cover bg-muted" />
+                        <img loading="lazy" decoding="async" src={produto.imagem_url} alt={produto.nome} className="h-12 w-12 rounded-md object-cover bg-muted" />
                       ) : (
                         <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
                           {produto.nome.substring(0, 1).toUpperCase()}
@@ -492,18 +484,18 @@ export function ListaProdutos() {
         ) : produtos.length === 0 ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">Nenhum produto encontrado</Card>
         ) : (
-          produtos.map((produto) => {
+          produtosPagina.map((produto) => {
             const valorEstoque = produto.custo_unitario * produto.estoque_atual;
             const estoqueAbaixo = produto.estoque_minimo > 0 && produto.estoque_atual < produto.estoque_minimo;
             return (
               <Card
-                key={`${produto.id}-${refreshKey}`}
+                key={produto.id}
                 className="w-full min-w-0 max-w-full cursor-pointer overflow-hidden p-3 transition-transform active:scale-[0.99]"
                 onClick={() => handleEdit(produto)}
               >
                 <div className="flex min-w-0 gap-3">
                   {produto.imagem_url ? (
-                    <img src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 flex-shrink-0 rounded-lg bg-muted object-cover" />
+                    <img loading="lazy" decoding="async" src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 flex-shrink-0 rounded-lg bg-muted object-cover" />
                   ) : (
                     <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-lg font-semibold text-muted-foreground">
                       {produto.nome.substring(0, 1).toUpperCase()}
@@ -564,6 +556,15 @@ export function ListaProdutos() {
           })
         )}
       </div>
+
+      {!loading && produtos.length > 0 && <nav aria-label="Paginação de produtos" className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{(page - 1) * 40 + 1}–{Math.min(page * 40, produtos.length)} de {produtos.length} produtos</p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+          <span className="text-sm">{page} / {totalPages}</span>
+          <Button variant="outline" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Próxima</Button>
+        </div>
+      </nav>}
 
       <AlertDialog open={!!produtoParaExcluir} onOpenChange={(open) => { if (!open) { setProdutoParaExcluir(null); setReceitasUsando([]); } }}>
         <AlertDialogContent className={`max-w-md overflow-hidden rounded-3xl border border-border/60 bg-background/95 p-0 backdrop-blur-2xl ${receitasUsando.length > 0 ? 'shadow-[0_25px_80px_-15px_rgba(245,158,11,0.4)]' : 'shadow-[0_25px_80px_-15px_rgba(244,63,94,0.35)]'}`}>

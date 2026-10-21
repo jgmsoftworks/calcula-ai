@@ -15,7 +15,7 @@ export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
     >
       {produto.imagem_url ? (
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:mb-2 sm:h-auto sm:w-full sm:aspect-square">
-          <img
+          <img loading="lazy" decoding="async"
             src={produto.imagem_url}
             alt={produto.nome}
             className="h-full w-full object-cover"
