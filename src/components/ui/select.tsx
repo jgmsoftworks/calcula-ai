@@ -156,7 +156,7 @@ const SelectContent = React.forwardRef<
         <SelectPrimitive.Viewport ref={viewportRef} className="min-h-0 w-full flex-1 p-0.5">
           {children}
         </SelectPrimitive.Viewport>
-        {hasSearch && matches === 0 && <p role="status" className="px-3 py-5 text-center text-sm text-muted-foreground">Nenhuma opção encontrada.</p>}
+        {hasSearch && query.trim() && matches === 0 && <p role="status" className="px-3 py-5 text-center text-sm text-muted-foreground">Nenhuma opção encontrada.</p>}
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>

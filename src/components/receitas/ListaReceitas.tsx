@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { tiposProdutoKey } from '@/lib/tiposProdutoData';
 import { fetchReceitasPage, fetchTodasReceitas, RECEITAS_PAGE_SIZE } from '@/lib/receitasData';
 import type { Json } from '@/integrations/supabase/types';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -88,12 +89,13 @@ export function ListaReceitas() {
     }
   }, [receitasQuery.data, receitasQuery.isPlaceholderData, page, totalPages, setSearchParams]);
 
-  const { data: tiposProduto = [] } = useQuery({
-    queryKey: ['receitas-tipos', user?.id],
-    queryFn: fetchTiposProduto,
+  const tiposQuery = useQuery({
+    queryKey: tiposProdutoKey(user?.id),
+    queryFn: ({ signal }) => fetchTiposProduto(signal),
     enabled: !!user,
     staleTime: 60_000,
   });
+  const tiposProduto = tiposQuery.data || [];
   const { data: markupConfigsMap = {}, isPending: loadingConfigs } = useQuery({
     queryKey: ['receitas-markup-configs', user?.id],
     queryFn: async () => {
@@ -208,9 +210,11 @@ export function ListaReceitas() {
                 className="pl-9"
               />
             </div>
-            <Select value={tipoFilter} onValueChange={value => setFilter('tipo', value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('common.type')} />
+            <Select value={tipoFilter} onValueChange={value => setFilter('tipo', value)} onOpenChange={open => { if (open && !tiposQuery.isFetching) void tiposQuery.refetch(); }}>
+              <SelectTrigger className="w-full" aria-label="Filtrar por tipo de produto" aria-busy={tiposQuery.isFetching} aria-describedby={tiposQuery.isError ? 'tipos-filter-error' : undefined}>
+                <SelectValue placeholder={t('common.type')}>
+                  {tipoFilter === 'all' ? t('receitas.allTypes') : tiposProduto.find(tipo => tipo.id === tipoFilter)?.nome || (tiposQuery.isPending ? 'Carregando tipo…' : 'Tipo indisponível')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('receitas.allTypes')}</SelectItem>
@@ -233,6 +237,13 @@ export function ListaReceitas() {
             </Select>
           </div>
 
+          {tiposQuery.isPending && <p role="status" className="text-sm text-muted-foreground">Carregando tipos de produto…</p>}
+          {tiposQuery.isError && (
+            <div id="tipos-filter-error" role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-3 text-sm">
+              <span>Não foi possível carregar os tipos de produto.</span>
+              <Button variant="outline" disabled={tiposQuery.isFetching} onClick={() => void tiposQuery.refetch()}>Tentar novamente</Button>
+            </div>
+          )}
           {receitasQuery.isError && (
             <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-3">
               <span>Não foi possível carregar as receitas.</span>

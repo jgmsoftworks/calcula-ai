@@ -11,6 +11,14 @@
 
 @layer base {
   :root {
+    /* Exact official palette; keep the same hues in both themes. */
+    --brand-azure: 205.982143 96.551724% 45.490196%; /* #0483e4 */
+    --brand-blue: 227.225806 63.786008% 47.647059%; /* #2c4dc7 */
+    --brand-purple: 272.846715 63.133641% 42.549020%; /* #7328b1 */
+    --brand-magenta: 314.810127 82.291667% 37.647059%; /* #af1188 */
+    --brand-rose: 339.714286 90.517241% 45.490196%; /* #dd0b52 */
+    --brand-orange: 24.810127 95.180723% 51.176471%; /* #f96e0c */
+
     /* Typography */
     --font-display: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'Inter', sans-serif;
@@ -26,12 +34,12 @@
     --popover-foreground: 224 71% 8%;
 
     /* Primary: Blue #0483e4 */
-    --primary: 205 96% 46%;
+    --primary: var(--brand-azure);
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 205 96% 60%;
+    --primary-glow: var(--brand-azure);
 
     /* Secondary: Indigo #2c4dc7 */
-    --secondary: 228 63% 48%;
+    --secondary: var(--brand-blue);
     --secondary-foreground: 0 0% 100%;
 
     /* Muted */
@@ -39,62 +47,62 @@
     --muted-foreground: 220 10% 46%;
 
     /* Accent: Purple #7328b1 */
-    --accent: 273 63% 42%;
+    --accent: var(--brand-purple);
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: var(--brand-rose);
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 16% 90%;
     --input: 220 16% 90%;
-    --ring: 205 96% 46%;
+    --ring: var(--brand-azure);
 
     /* Extended Brand Palette */
-    --magenta: 315 82% 38%;       /* #af1188 */
-    --rose: 340 91% 45%;          /* #dd0b52 */
-    --orange: 25 95% 51%;         /* #f96e0c */
-    --orange-light: 25 95% 62%;
+    --magenta: var(--brand-magenta);       /* #af1188 */
+    --rose: var(--brand-rose);          /* #dd0b52 */
+    --orange: var(--brand-orange);         /* #f96e0c */
+    --orange-light: var(--brand-orange);
     --orange-foreground: 0 0% 100%;
 
-    --red-intense: 0 84% 60%;
-    --pink-intense: 340 91% 45%;
+    --red-intense: var(--brand-rose);
+    --pink-intense: var(--brand-rose);
     --red-foreground: 0 0% 100%;
 
-    --purple-dark: 273 63% 42%;
-    --violet: 228 63% 48%;
-    --magenta-purple: 315 82% 38%;
+    --purple-dark: var(--brand-purple);
+    --violet: var(--brand-blue);
+    --magenta-purple: var(--brand-magenta);
     --purple-foreground: 0 0% 100%;
 
-    --blue-royal: 228 63% 48%;
-    --blue-vivid: 205 96% 46%;
-    --blue-bright: 205 96% 60%;
+    --blue-royal: var(--brand-blue);
+    --blue-vivid: var(--brand-azure);
+    --blue-bright: var(--brand-azure);
     --blue-foreground: 0 0% 100%;
 
-    --cyan: 194 100% 50%;
+    --cyan: var(--brand-azure);
     --cyan-foreground: 224 71% 4%;
 
     /* Brand Gradient — all 6 colors */
-    --gradient-brand: linear-gradient(135deg, 
-      hsl(205 96% 46%), 
-      hsl(228 63% 48%), 
-      hsl(273 63% 42%), 
-      hsl(315 82% 38%), 
-      hsl(340 91% 45%), 
-      hsl(25 95% 51%)
+    --gradient-brand: linear-gradient(90deg,
+      hsl(var(--brand-azure)),
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-purple)),
+      hsl(var(--brand-magenta)),
+      hsl(var(--brand-rose)),
+      hsl(var(--brand-orange))
     );
-    --gradient-brand-horizontal: linear-gradient(90deg, 
-      hsl(205 96% 46%), 
-      hsl(228 63% 48%), 
-      hsl(273 63% 42%), 
-      hsl(315 82% 38%), 
-      hsl(340 91% 45%), 
-      hsl(25 95% 51%)
+    --gradient-brand-horizontal: linear-gradient(90deg,
+      hsl(var(--brand-azure)),
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-purple)),
+      hsl(var(--brand-magenta)),
+      hsl(var(--brand-rose)),
+      hsl(var(--brand-orange))
     );
-    --gradient-primary: linear-gradient(135deg, hsl(205 96% 46%), hsl(228 63% 48%), hsl(273 63% 42%));
+    --gradient-primary: linear-gradient(90deg, hsl(var(--brand-azure)), hsl(var(--brand-blue)), hsl(var(--brand-purple)));
     --gradient-secondary: linear-gradient(135deg, hsl(220 20% 97% / 0.8), hsl(220 16% 93% / 0.6));
-    --gradient-accent: linear-gradient(135deg, hsl(273 63% 42%), hsl(315 82% 38%), hsl(340 91% 45%));
-    --gradient-sunset: linear-gradient(135deg, hsl(315 82% 38%), hsl(340 91% 45%), hsl(25 95% 51%));
-    --gradient-ocean: linear-gradient(135deg, hsl(205 96% 46%), hsl(228 63% 48%));
+    --gradient-accent: linear-gradient(90deg, hsl(var(--brand-purple)), hsl(var(--brand-magenta)), hsl(var(--brand-rose)));
+    --gradient-sunset: linear-gradient(90deg, hsl(var(--brand-magenta)), hsl(var(--brand-rose)), hsl(var(--brand-orange)));
+    --gradient-ocean: linear-gradient(90deg, hsl(var(--brand-azure)), hsl(var(--brand-blue)));
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.7), hsl(0 0% 100% / 0.4));
 
     /* Glassmorphism tokens */
@@ -104,14 +112,14 @@
     --glass-bg-strong: hsl(0 0% 100% / 0.8);
 
     /* Shadows */
-    --shadow-brand: 0 8px 32px -8px hsl(205 96% 46% / 0.25);
-    --shadow-glow: 0 0 24px hsl(205 96% 46% / 0.3);
+    --shadow-brand: 0 8px 32px -8px hsl(var(--brand-azure) / 0.25);
+    --shadow-glow: 0 0 24px hsl(var(--brand-azure) / 0.3);
     --shadow-soft: 0 4px 24px -4px hsl(220 16% 50% / 0.12);
     --shadow-glass: 0 8px 32px hsl(220 16% 50% / 0.08);
     --shadow-elevated: 0 12px 48px -12px hsl(220 16% 50% / 0.15);
-    --shadow-orange: 0 8px 32px -8px hsl(25 95% 51% / 0.3);
-    --shadow-red: 0 8px 32px -8px hsl(340 91% 45% / 0.3);
-    --shadow-purple: 0 8px 32px -8px hsl(273 63% 42% / 0.3);
+    --shadow-orange: 0 8px 32px -8px hsl(var(--brand-orange) / 0.3);
+    --shadow-red: 0 8px 32px -8px hsl(var(--brand-rose) / 0.3);
+    --shadow-purple: 0 8px 32px -8px hsl(var(--brand-purple) / 0.3);
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -122,12 +130,12 @@
     /* Sidebar */
     --sidebar-background: 220 20% 98%;
     --sidebar-foreground: 224 71% 15%;
-    --sidebar-primary: 205 96% 46%;
+    --sidebar-primary: var(--brand-azure);
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 16% 95%;
     --sidebar-accent-foreground: 224 71% 15%;
     --sidebar-border: 220 16% 92%;
-    --sidebar-ring: 205 96% 46%;
+    --sidebar-ring: var(--brand-azure);
   }
 
   .dark {
@@ -140,72 +148,72 @@
     --popover: 225 30% 8%;
     --popover-foreground: 210 40% 96%;
 
-    --primary: 205 96% 58%;
+    --primary: var(--brand-azure);
     --primary-foreground: 225 30% 6%;
-    --primary-glow: 205 96% 70%;
+    --primary-glow: var(--brand-azure);
 
-    --secondary: 228 63% 62%;
-    --secondary-foreground: 225 30% 6%;
+    --secondary: var(--brand-blue);
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 225 20% 14%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 273 63% 55%;
-    --accent-foreground: 225 30% 6%;
+    --accent: var(--brand-purple);
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 65%;
+    --destructive: var(--brand-rose);
     --destructive-foreground: 225 30% 6%;
 
     --border: 225 20% 16%;
     --input: 225 20% 12%;
-    --ring: 205 96% 58%;
+    --ring: var(--brand-azure);
 
-    --orange: 25 95% 60%;
-    --orange-light: 25 95% 70%;
+    --orange: var(--brand-orange);
+    --orange-light: var(--brand-orange);
     --orange-foreground: 225 30% 6%;
 
-    --red-intense: 0 84% 65%;
-    --pink-intense: 340 91% 55%;
+    --red-intense: var(--brand-rose);
+    --pink-intense: var(--brand-rose);
     --red-foreground: 225 30% 6%;
 
-    --purple-dark: 273 63% 55%;
-    --violet: 228 63% 62%;
-    --magenta-purple: 315 82% 50%;
+    --purple-dark: var(--brand-purple);
+    --violet: var(--brand-blue);
+    --magenta-purple: var(--brand-magenta);
     --purple-foreground: 210 40% 96%;
 
-    --blue-royal: 228 63% 62%;
-    --blue-vivid: 205 96% 58%;
-    --blue-bright: 205 96% 70%;
+    --blue-royal: var(--brand-blue);
+    --blue-vivid: var(--brand-azure);
+    --blue-bright: var(--brand-azure);
     --blue-foreground: 225 30% 6%;
 
-    --cyan: 194 100% 60%;
+    --cyan: var(--brand-azure);
     --cyan-foreground: 225 30% 6%;
 
-    --magenta: 315 82% 50%;
-    --rose: 340 91% 55%;
+    --magenta: var(--brand-magenta);
+    --rose: var(--brand-rose);
 
     /* Dark mode gradients */
-    --gradient-brand: linear-gradient(135deg, 
-      hsl(205 96% 58%), 
-      hsl(228 63% 62%), 
-      hsl(273 63% 55%), 
-      hsl(315 82% 50%), 
-      hsl(340 91% 55%), 
-      hsl(25 95% 60%)
+    --gradient-brand: linear-gradient(90deg,
+      hsl(var(--brand-azure)),
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-purple)),
+      hsl(var(--brand-magenta)),
+      hsl(var(--brand-rose)),
+      hsl(var(--brand-orange))
     );
-    --gradient-brand-horizontal: linear-gradient(90deg, 
-      hsl(205 96% 58%), 
-      hsl(228 63% 62%), 
-      hsl(273 63% 55%), 
-      hsl(315 82% 50%), 
-      hsl(340 91% 55%), 
-      hsl(25 95% 60%)
+    --gradient-brand-horizontal: linear-gradient(90deg,
+      hsl(var(--brand-azure)),
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-purple)),
+      hsl(var(--brand-magenta)),
+      hsl(var(--brand-rose)),
+      hsl(var(--brand-orange))
     );
-    --gradient-primary: linear-gradient(135deg, hsl(205 96% 58%), hsl(228 63% 62%), hsl(273 63% 55%));
+    --gradient-primary: linear-gradient(90deg, hsl(var(--brand-azure)), hsl(var(--brand-blue)), hsl(var(--brand-purple)));
     --gradient-secondary: linear-gradient(135deg, hsl(225 30% 12% / 0.8), hsl(225 20% 14% / 0.6));
-    --gradient-accent: linear-gradient(135deg, hsl(273 63% 55%), hsl(315 82% 50%), hsl(340 91% 55%));
-    --gradient-sunset: linear-gradient(135deg, hsl(315 82% 50%), hsl(340 91% 55%), hsl(25 95% 60%));
-    --gradient-ocean: linear-gradient(135deg, hsl(205 96% 58%), hsl(228 63% 62%));
+    --gradient-accent: linear-gradient(90deg, hsl(var(--brand-purple)), hsl(var(--brand-magenta)), hsl(var(--brand-rose)));
+    --gradient-sunset: linear-gradient(90deg, hsl(var(--brand-magenta)), hsl(var(--brand-rose)), hsl(var(--brand-orange)));
+    --gradient-ocean: linear-gradient(90deg, hsl(var(--brand-azure)), hsl(var(--brand-blue)));
     --gradient-glass: linear-gradient(135deg, hsl(225 30% 14% / 0.7), hsl(225 30% 9% / 0.4));
 
     --glass-bg: hsl(225 30% 12% / 0.6);
@@ -213,23 +221,23 @@
     --glass-blur: 20px;
     --glass-bg-strong: hsl(225 30% 12% / 0.8);
 
-    --shadow-brand: 0 8px 32px -8px hsl(205 96% 58% / 0.35);
-    --shadow-glow: 0 0 24px hsl(205 96% 58% / 0.4);
+    --shadow-brand: 0 8px 32px -8px hsl(var(--brand-azure) / 0.35);
+    --shadow-glow: 0 0 24px hsl(var(--brand-azure) / 0.4);
     --shadow-soft: 0 4px 24px -4px hsl(225 30% 4% / 0.5);
     --shadow-glass: 0 8px 32px hsl(225 30% 4% / 0.3);
     --shadow-elevated: 0 12px 48px -12px hsl(225 30% 4% / 0.5);
-    --shadow-orange: 0 8px 32px -8px hsl(25 95% 60% / 0.4);
-    --shadow-red: 0 8px 32px -8px hsl(340 91% 55% / 0.4);
-    --shadow-purple: 0 8px 32px -8px hsl(273 63% 55% / 0.4);
+    --shadow-orange: 0 8px 32px -8px hsl(var(--brand-orange) / 0.4);
+    --shadow-red: 0 8px 32px -8px hsl(var(--brand-rose) / 0.4);
+    --shadow-purple: 0 8px 32px -8px hsl(var(--brand-purple) / 0.4);
 
     --sidebar-background: 225 30% 5%;
     --sidebar-foreground: 210 40% 92%;
-    --sidebar-primary: 205 96% 58%;
+    --sidebar-primary: var(--brand-azure);
     --sidebar-primary-foreground: 225 30% 5%;
     --sidebar-accent: 225 20% 12%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 225 20% 14%;
-    --sidebar-ring: 205 96% 58%;
+    --sidebar-ring: var(--brand-azure);
   }
 }
 
@@ -357,19 +365,19 @@
 
 /* ===== GLOW EFFECTS ===== */
 .glow-primary {
-  box-shadow: 
+  box-shadow:
     0 0 20px hsl(var(--primary) / 0.25),
     0 0 40px hsl(var(--primary) / 0.15);
 }
 
 .glow-secondary {
-  box-shadow: 
+  box-shadow:
     0 0 20px hsl(var(--secondary) / 0.25),
     0 0 40px hsl(var(--secondary) / 0.15);
 }
 
 .glow-accent {
-  box-shadow: 
+  box-shadow:
     0 0 20px hsl(var(--accent) / 0.25),
     0 0 40px hsl(var(--accent) / 0.15);
 }
@@ -411,9 +419,9 @@
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
-.animate-gradient { 
+.animate-gradient {
   background-size: 200% 200%;
-  animation: gradient-shift 4s ease infinite; 
+  animation: gradient-shift 4s ease infinite;
 }
 .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
 .animate-scale-in { animation: scale-in 0.4s ease-out forwards; }
@@ -531,9 +539,9 @@ html { scroll-behavior: smooth; }
 [data-field-control]:focus-visible, button[role="combobox"]:focus-visible,
 button[role="combobox"][data-state="open"] {
   outline: none;
-  border-color: hsl(var(--orange));
+  border-color: hsl(var(--primary));
   background: hsl(var(--card));
-  box-shadow: 0 0 0 3px hsl(var(--orange) / .12);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .12);
 }
 [data-field-control][aria-invalid="true"] { border-color: hsl(var(--destructive)); }
 button[role="combobox"] { min-width: 0; gap: 8px; font-weight: 500; }
@@ -544,7 +552,7 @@ button[role="combobox"][data-placeholder] { color: hsl(var(--muted-foreground));
   background: hsl(var(--muted) / .5); color: hsl(var(--muted-foreground));
 }
 .field-select-arrow svg { transition: transform .15s; }
-[data-state="open"] > .field-select-arrow { color: hsl(var(--orange)); background: hsl(var(--orange) / .08); border-color: hsl(var(--orange) / .25); }
+[data-state="open"] > .field-select-arrow { color: hsl(var(--primary)); background: hsl(var(--primary) / .08); border-color: hsl(var(--primary) / .25); }
 [data-state="open"] > .field-select-arrow svg { transform: rotate(180deg); }
 [data-select-menu], [data-command-popover] {
   border-color: hsl(var(--border)); border-radius: 15px;
@@ -555,7 +563,7 @@ button[role="combobox"][data-placeholder] { color: hsl(var(--muted-foreground));
   margin: 3px 3px 7px; padding: 0 10px; border: 1px solid hsl(var(--border));
   border-radius: 9px; background: hsl(var(--muted) / .45);
 }
-.field-select-search:focus-within, [cmdk-input-wrapper]:focus-within { border-color: hsl(var(--orange) / .55); }
+.field-select-search:focus-within, [cmdk-input-wrapper]:focus-within { border-color: hsl(var(--primary) / .55); }
 .field-select-search input, [cmdk-input] {
   width: 100%; min-width: 0; height: 38px; border: 0; padding: 0;
   outline: none; background: transparent; box-shadow: none; font-size: 13px;
@@ -566,10 +574,10 @@ button[role="combobox"][data-placeholder] { color: hsl(var(--muted-foreground));
   background: hsl(var(--muted) / .6); color: hsl(var(--foreground));
 }
 [data-select-option][data-state="checked"] {
-  background: hsl(var(--orange) / .1); color: hsl(var(--foreground)); font-weight: 600;
+  background: hsl(var(--accent) / .1); color: hsl(var(--foreground)); font-weight: 600;
 }
-[data-select-option][data-state="checked"][data-highlighted] { box-shadow: inset 0 0 0 1px hsl(var(--orange) / .3); }
-.field-select-check { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 6px; background: hsl(var(--orange)); color: white; }
+[data-select-option][data-state="checked"][data-highlighted] { box-shadow: inset 0 0 0 1px hsl(var(--accent) / .3); }
+.field-select-check { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 6px; background: hsl(var(--accent)); color: white; }
 [cmdk-item] { min-height: 41px; border-radius: 8px; padding: 10px 11px; cursor: pointer; }
 [cmdk-list] { overscroll-behavior: contain; }
 @media (max-width: 767px) {

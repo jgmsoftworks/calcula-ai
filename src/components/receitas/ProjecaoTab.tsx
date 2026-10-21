@@ -7,8 +7,8 @@ import { Receita } from '@/types/receitas';
 import { Package, Clock, Plus, Trash2 } from 'lucide-react';
 import { TiposProdutoModal } from './TiposProdutoModal';
 import { MaoObraModal } from './MaoObraModal';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
+import { useTiposProduto } from '@/hooks/useTiposProduto';
 import { useAuth } from '@/hooks/useAuth';
 import { formatBRL } from '@/lib/formatters';
 
@@ -35,32 +35,13 @@ interface ProjecaoTabProps {
 
 export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, tempMaoObra = [], onAddMaoObraTemp, onRemoveMaoObraTemp }: ProjecaoTabProps) => {
   const { user } = useAuth();
-  const [tiposProduto, setTiposProduto] = useState<any[]>([]);
+  const tiposQuery = useTiposProduto();
+  const tiposProduto = tiposQuery.data || [];
+  const selectedTipo = tiposProduto.find(tipo => tipo.id === formData.tipo_produto_id);
+  const savedTipo = receita?.tipo_produto?.id === formData.tipo_produto_id ? receita.tipo_produto : null;
+  const selectedTipoLabel = selectedTipo?.nome || savedTipo?.nome || (formData.tipo_produto_id ? (tiposQuery.isPending ? 'Carregando tipo…' : 'Tipo indisponível') : undefined);
   const [tiposModalOpen, setTiposModalOpen] = useState(false);
   const [maoObraModalOpen, setMaoObraModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      fetchTiposProduto();
-    }
-  }, [user]);
-
-  const fetchTiposProduto = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('tipos_produto')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('nome');
-
-      if (error) throw error;
-      setTiposProduto(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar tipos de produto:', error);
-    }
-  };
 
   const handleRemoveMaoObra = (id: string) => {
     if (onRemoveMaoObraTemp) {
@@ -92,12 +73,17 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
             <div className="flex gap-2">
               <Select
                 value={formData.tipo_produto_id || ''}
+                disabled={!user || (tiposQuery.isPending && !tiposProduto.length)}
+                onOpenChange={open => { if (open && !tiposQuery.isFetching) void tiposQuery.refetch(); }}
                 onValueChange={(value) => onFormChange('tipo_produto_id', value)}
               >
-                <SelectTrigger className="flex-1" id="tipo_produto_id">
-                  <SelectValue placeholder="Selecione o tipo" />
+                <SelectTrigger className="flex-1" id="tipo_produto_id" aria-busy={tiposQuery.isFetching} aria-describedby={tiposQuery.isError ? "tipos-produto-error" : undefined}>
+                  <SelectValue placeholder={tiposQuery.isPending ? "Carregando tipos…" : "Selecione o tipo"}>{selectedTipoLabel}</SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent searchable>
+                  {tiposQuery.isFetching && !tiposProduto.length && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">Carregando tipos de produto…</p>}
+                  {tiposQuery.isError && !tiposQuery.isFetching && !tiposProduto.length && <p className="px-3 py-4 text-sm text-destructive">Não foi possível carregar os tipos. Tente novamente.</p>}
+                  {!tiposQuery.isPending && !tiposQuery.isError && !tiposProduto.length && <p className="px-3 py-4 text-sm text-muted-foreground">Nenhum tipo cadastrado. Use o botão + para adicionar.</p>}
                   {tiposProduto.map((tipo) => (
                     <SelectItem key={tipo.id} value={tipo.id}>
                       {tipo.nome}
@@ -108,12 +94,19 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Gerenciar tipos de produto"
+                className="h-[46px] w-[46px] shrink-0"
+                disabled={!user}
                 onClick={() => setTiposModalOpen(true)}
                 type="button"
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
+            {tiposQuery.isError && <div id="tipos-produto-error" role="alert" className="flex flex-wrap items-center gap-2 text-sm text-destructive">
+              <span>Não foi possível carregar os tipos de produto.</span>
+              <Button type="button" variant="link" className="h-auto p-0" disabled={tiposQuery.isFetching} onClick={() => void tiposQuery.refetch()}>Tentar novamente</Button>
+            </div>}
           </div>
 
           {/* Rendimento */}
@@ -250,7 +243,6 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
         onOpenChange={setTiposModalOpen}
         onSelect={(tipoId) => {
           onFormChange('tipo_produto_id', tipoId);
-          fetchTiposProduto();
         }}
       />
 

@@ -1,3 +1,4 @@
+import { fetchTiposProduto as loadTiposProduto } from '@/lib/tiposProdutoData';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -27,23 +28,7 @@ export function useReceitas() {
     return (data[0]?.numero_sequencial || 0) + 1;
   };
 
-  const fetchTiposProduto = async () => {
-    if (!user) return [];
-    
-    try {
-      const { data, error } = await supabase
-        .from('tipos_produto')
-        .select('id, nome')
-        .eq('user_id', user.id)
-        .order('nome', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Erro ao buscar tipos de produto:', error);
-      return [];
-    }
-  };
+  const fetchTiposProduto = (signal?: AbortSignal) => user ? loadTiposProduto(user.id, signal) : Promise.resolve([]);
 
   const fetchReceitaCompleta = async (id: string): Promise<ReceitaCompleta | null> => {
     if (!user) return null;

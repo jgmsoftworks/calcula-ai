@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTiposProduto } from '@/hooks/useTiposProduto';
+import { ordenarTiposProduto, tiposProdutoKey, type TipoProduto } from '@/lib/tiposProdutoData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
-
-interface TipoProduto {
-  id: string;
-  nome: string;
-}
 
 interface TiposProdutoModalProps {
   open: boolean;
@@ -22,39 +20,22 @@ interface TiposProdutoModalProps {
 export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProdutoModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [tipos, setTipos] = useState<TipoProduto[]>([]);
+  const queryClient = useQueryClient();
+  const tiposQuery = useTiposProduto(open);
+  const tipos = tiposQuery.data || [];
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingNome, setEditingNome] = useState('');
   const [newNome, setNewNome] = useState('');
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (open && user) {
-      fetchTipos();
-    }
-  }, [open, user]);
-
-  const fetchTipos = async () => {
+  const syncTipos = async (update: (previous: TipoProduto[]) => TipoProduto[]) => {
     if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('tipos_produto')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('nome');
-
-      if (error) throw error;
-      setTipos(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar tipos de produto:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os tipos de produto.',
-        variant: 'destructive',
-      });
-    }
+    const queryKey = tiposProdutoKey(user.id);
+    await queryClient.cancelQueries({ queryKey });
+    queryClient.setQueryData<TipoProduto[]>(queryKey, previous => ordenarTiposProduto(update(previous || [])));
+    void queryClient.invalidateQueries({ queryKey });
+    void queryClient.invalidateQueries({ queryKey: ['receitas-lista', user.id] });
   };
 
   const handleCreate = async () => {
@@ -75,7 +56,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
         description: 'Tipo de produto criado com sucesso.',
       });
 
-      setTipos([...tipos, data]);
+      await syncTipos(previous => [...previous.filter(tipo => tipo.id !== data.id), { id: data.id, nome: data.nome }]);
       setNewNome('');
       setCreating(false);
 
@@ -95,14 +76,15 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
   };
 
   const handleUpdate = async (id: string) => {
-    if (!editingNome.trim()) return;
+    if (!user || !editingNome.trim()) return;
 
     setLoading(true);
     try {
       const { error } = await supabase
         .from('tipos_produto')
         .update({ nome: editingNome.trim() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -111,7 +93,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
         description: 'Tipo de produto atualizado com sucesso.',
       });
 
-      setTipos(tipos.map(t => t.id === id ? { ...t, nome: editingNome.trim() } : t));
+      await syncTipos(previous => previous.map(t => t.id === id ? { ...t, nome: editingNome.trim() } : t));
       setEditingId(null);
       setEditingNome('');
     } catch (error) {
@@ -127,16 +109,19 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
   };
 
   const handleDelete = async (id: string) => {
+    if (!user) return;
     if (!confirm('Tem certeza que deseja excluir este tipo de produto?')) return;
 
     setLoading(true);
     try {
       // Verificar se está em uso
-      const { count } = await supabase
+      const { count, error: usageError } = await supabase
         .from('receitas')
         .select('*', { count: 'exact', head: true })
-        .eq('tipo_produto_id', id);
+        .eq('tipo_produto_id', id)
+        .eq('user_id', user.id);
 
+      if (usageError) throw usageError;
       if (count && count > 0) {
         toast({
           title: 'Não é possível excluir',
@@ -149,7 +134,8 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
       const { error } = await supabase
         .from('tipos_produto')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -158,7 +144,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
         description: 'Tipo de produto excluído com sucesso.',
       });
 
-      setTipos(tipos.filter(t => t.id !== id));
+      await syncTipos(previous => previous.filter(t => t.id !== id));
     } catch (error) {
       console.error('Erro ao excluir tipo:', error);
       toast({
@@ -204,6 +190,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
                 />
                 <Button
                   size="icon"
+                  aria-label="Criar tipo de produto"
                   onClick={handleCreate}
                   disabled={loading || !newNome.trim()}
                 >
@@ -234,7 +221,12 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
 
           {/* Lista de tipos */}
           <div className="space-y-2">
-            {tipos.length === 0 ? (
+            {tiposQuery.isPending ? <p role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando tipos de produto…</p> : tiposQuery.isError && !tipos.length ? (
+              <div role="alert" className="space-y-2 py-4 text-center text-sm">
+                <p>Não foi possível carregar os tipos de produto.</p>
+                <Button type="button" variant="outline" disabled={tiposQuery.isFetching} onClick={() => void tiposQuery.refetch()}>Tentar novamente</Button>
+              </div>
+            ) : tipos.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 Nenhum tipo de produto cadastrado
               </div>
@@ -256,6 +248,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label="Salvar tipo de produto"
                         onClick={() => handleUpdate(tipo.id)}
                         disabled={loading}
                       >
@@ -275,6 +268,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label={`Editar ${tipo.nome}`}
                         onClick={() => startEdit(tipo)}
                       >
                         <Edit2 className="h-4 w-4" />
@@ -282,6 +276,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label={`Excluir ${tipo.nome}`}
                         onClick={() => handleDelete(tipo.id)}
                         disabled={loading}
                       >
