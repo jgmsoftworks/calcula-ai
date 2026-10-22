@@ -93,6 +93,8 @@ serve(async (req) => {
     // Atualizar plano do usuário
     const updateData: any = {
       plan: newPlan,
+      access_mode: 'legacy',
+      trial_ends_at: null,
       updated_at: new Date().toISOString()
     };
 

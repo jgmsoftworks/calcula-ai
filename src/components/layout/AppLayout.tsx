@@ -13,6 +13,8 @@ import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { WhatsAppSupportButton } from '@/components/support/WhatsAppSupportButton';
 import { SubscriptionStatusGate } from '@/components/subscription/SubscriptionStatusGate';
+import { TrialBadge } from '@/components/subscription/TrialBadge';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { useTranslation } from 'react-i18next';
 import {
@@ -93,7 +95,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     }
   }, []);
   
-  useMarkupInitializer();
+  const access = useSubscriptionStatus();
+  useMarkupInitializer(!access.loading && !access.error && !access.isBlocked);
 
   const handleResendConfirmation = async () => {
     if (!user?.email) return;
@@ -172,6 +175,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </h2>
               </div>
 
+              <TrialBadge />
               {/* Language Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

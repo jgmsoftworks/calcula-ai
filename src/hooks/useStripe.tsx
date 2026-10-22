@@ -71,7 +71,7 @@ export const useStripe = () => {
         if (data?.url) {
           console.log('[CHECKOUT] Redirecionando para checkout com afiliado:', data.url);
           trackFunnel('checkout_started', { plan: planType, billing });
-          window.open(data.url, '_blank');
+          window.location.assign(data.url);
           
           setTimeout(() => {
             checkSubscription();
@@ -100,7 +100,7 @@ export const useStripe = () => {
       if (data?.url) {
         console.log('[CHECKOUT] Redirecionando para:', data.url);
         trackFunnel('checkout_started', { plan: planType, billing });
-          window.open(data.url, '_blank');
+          window.location.assign(data.url);
         
         // Aguardar um pouco e verificar status da assinatura
         setTimeout(() => {
@@ -148,7 +148,7 @@ export const useStripe = () => {
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.assign(data.url);
       }
     } catch (error) {
       console.error('Erro ao abrir portal:', error);

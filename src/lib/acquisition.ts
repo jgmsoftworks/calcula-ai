@@ -3,6 +3,7 @@ const PLANS = ['lite', 'professional', 'enterprise'];
 export function parseAcquisition(search: string) {
   const input = new URLSearchParams(search);
   const out = new URLSearchParams();
+  if (input.get('trial') === '1' || input.get('mode') === 'signup') out.set('trial', '1');
   if (input.get('source') !== 'landing') return out;
   out.set('source', 'landing');
   const plan = input.get('plan');
@@ -25,7 +26,7 @@ function saved() {
 }
 export function rememberAcquisition(search: string) {
   const params = parseAcquisition(search);
-  if (!params.has('source')) return;
+  if (!params.has('source') && !params.has('trial')) return;
   try { sessionStorage.setItem(KEY, JSON.stringify({ query: params.toString(), pending: true, expires: Date.now() + 86400000 })); } catch { /* optional storage */ }
 }
 export function acquisitionContext() {
@@ -34,8 +35,8 @@ export function acquisitionContext() {
 export function acquisitionDestination(search = '') {
   const current = parseAcquisition(search);
   const stored = saved();
-  const params = current.has('source') ? current : parseAcquisition(stored?.pending ? stored.query : '');
-  return params.has('plan') ? `/checkout?${params}` : '/';
+  const params = current.has('source') || current.has('trial') ? current : parseAcquisition(stored?.pending ? stored.query : '');
+  return params.has('plan') && !params.has('trial') ? `/checkout?${params}` : '/';
 }
 export function consumeAcquisition() {
   const value = saved();
@@ -44,6 +45,6 @@ export function consumeAcquisition() {
 export function authReturnUrl() {
   const current = parseAcquisition(window.location.search);
   const stored = saved();
-  const params = current.has('source') ? current : parseAcquisition(stored?.pending ? stored.query : '');
-  return `${window.location.origin}/${params.has('source') ? `?${params}` : ''}`;
+  const params = current.has('source') || current.has('trial') ? current : parseAcquisition(stored?.pending ? stored.query : '');
+  return `${window.location.origin}/${params.size ? `?${params}` : ''}`;
 }

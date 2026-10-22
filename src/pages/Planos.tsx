@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
 import { usePlanos, formatPreco, precoDoPlano, Plano, Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,8 @@ const planBgAccent: Record<PlanType, string> = {
 const Planos = () => {
   const { t } = useTranslation();
   const { currentPlan, loading, reloadPlan } = usePlanLimits();
+  const access = useSubscriptionStatus();
+  const manageSubscription = access.hasSubscription && access.status !== 'canceled';
   const { planos, loading: planosLoading } = usePlanos();
   const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
@@ -61,7 +64,7 @@ const Planos = () => {
   }, [toast, reloadPlan, t]);
 
   const handleSelectPlan = async (plano: Plano) => {
-    if (plano.slug === currentPlan) {
+    if (manageSubscription) {
       await openCustomerPortal();
       return;
     }
@@ -127,6 +130,10 @@ const Planos = () => {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
+      {access.error && <div role="alert" className="rounded-xl border border-amber-500/30 p-4 text-center">
+        <p>Não foi possível conferir sua conta para contratar o plano.</p>
+        <Button variant="outline" className="mt-3" onClick={() => void access.refresh()}>Tentar novamente</Button>
+      </div>}
       {/* Header */}
       <div className="text-center space-y-3 animate-fade-in">
         <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
@@ -136,7 +143,11 @@ const Planos = () => {
           {t('plans.chooseYourPlan')}
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          {t('plans.choosePlanDesc')}
+          {access.isTrial
+            ? access.trialExpired
+              ? 'Seu teste terminou. Assine para continuar na mesma conta, com todos os seus dados preservados.'
+              : `Você tem ${access.daysRemaining} ${access.daysRemaining === 1 ? 'dia restante' : 'dias restantes'} com os recursos do Lite. Assine quando quiser continuar ou ampliar seus limites.`
+            : t('plans.choosePlanDesc')}
         </p>
       </div>
 
@@ -166,7 +177,7 @@ const Planos = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {planos.map((plano, idx) => {
           const planType = plano.slug as PlanType;
-          const isCurrentPlan = currentPlan === planType;
+          const isCurrentPlan = manageSubscription && currentPlan === planType;
           const isProfessional = planType === 'professional';
 
           return (
@@ -244,14 +255,14 @@ const Planos = () => {
                   }`}
                   variant={isCurrentPlan ? 'secondary' : 'default'}
                   onClick={() => handleSelectPlan(plano)}
-                  disabled={processingPlan === plano.slug || stripeLoading}
+                  disabled={processingPlan === plano.slug || stripeLoading || access.loading || access.error}
                 >
                   {processingPlan === plano.slug ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
                       {t('plans.processing')}
                     </div>
-                  ) : isCurrentPlan ? (
+                  ) : manageSubscription ? (
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4" />
                       {t('plans.manageSubscription')}

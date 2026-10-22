@@ -52,7 +52,14 @@ export function initialBillingPassword() {
   const bytes = crypto.getRandomValues(new Uint8Array(18));
   return `Ca1!${btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')}`;
 }
-async function checkoutAccount(db: any, email: string, name: string, sessionId: string) {
+async function checkoutAccount(db: any, email: string, name: string, sessionId: string, accountId?: string) {
+  // App checkout metadata is set by the authenticated server endpoint. A payer
+  // may edit their billing email; that must never move the plan to another account.
+  if (accountId) {
+    const { data, error } = await db.auth.admin.getUserById(accountId);
+    if (error || !data?.user) throw new Error('checkout_account_not_found');
+    return { user: data.user, initialPassword: undefined, signupKey: undefined };
+  }
   const key = `signup:${sessionId}`;
   let user = await findBillingUser(db, email);
   const { data: saved, error: readError } = await db.from('billing_emails').select('*').eq('key', key).maybeSingle();
@@ -111,7 +118,7 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
     let signupKey: string | undefined;
     if (state === 'approved' || state === 'trial') {
       if (Date.parse(subscriptionEnd(subscription)) <= Date.now()) throw new Error('subscription_expired');
-      const account = await checkoutAccount(db, email, customer.name ?? '', sessionId);
+      const account = await checkoutAccount(db, email, customer.name ?? '', sessionId, current.metadata?.user_id);
       user = account.user;
       initialPassword = account.initialPassword;
       signupKey = account.signupKey;
@@ -119,7 +126,7 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
       const { data: profile, error: profileReadError } = await db.from('profiles').select('user_id').eq('user_id', user.id).maybeSingle();
       if (profileReadError) throw new Error('billing_profile_read_failed');
       const values: Record<string, unknown> = {
-        user_id: user.id, plan, plan_expires_at: subscriptionEnd(subscription), subscription_status: 'active',
+        user_id: user.id, plan, plan_expires_at: subscriptionEnd(subscription), subscription_status: 'active', access_mode: 'subscription',
         access_blocked_at: null, grace_period_ends_at: null,
         trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
@@ -156,10 +163,10 @@ export async function syncBillingSubscription(db: any, stripe: any, subscription
     if (customer.deleted || !customer.email) return;
     userId = (await findBillingUser(db, customer.email))?.id;
     if (userId) {
-      const { data: legacy, error: legacyError } = await db.from('profiles').select('plan,plan_expires_at').eq('user_id', userId).maybeSingle();
+      const { data: legacy, error: legacyError } = await db.from('profiles').select('plan,plan_expires_at,access_mode').eq('user_id', userId).maybeSingle();
       if (legacyError) throw new Error('legacy_profile_lookup_failed');
       // Never grant a free account a paid plan from subscription.created/updated.
-      if (!legacy || (!legacy.plan_expires_at && !['professional','enterprise'].includes(legacy.plan))) return;
+      if (!legacy || legacy.access_mode === 'trial' || (!legacy.plan_expires_at && !['professional','enterprise'].includes(legacy.plan))) return;
     }
   }
   if (!userId) return;
@@ -174,7 +181,7 @@ export async function syncBillingSubscription(db: any, stripe: any, subscription
   if (profileError) throw new Error('subscription_profile_read_failed');
   const values: Record<string, unknown> = { updated_at: now };
   if (active) {
-    Object.assign(values, { plan: await planForSubscription(subscription), plan_expires_at: subscriptionEnd(subscription), subscription_status: 'active', access_blocked_at: null, grace_period_ends_at: null, trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null });
+    Object.assign(values, { plan: await planForSubscription(subscription), plan_expires_at: subscriptionEnd(subscription), subscription_status: 'active', access_mode: 'subscription', access_blocked_at: null, grace_period_ends_at: null, trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null });
   } else if (subscription.status === 'past_due') {
     const grace = profile?.grace_period_ends_at ?? new Date(Date.now() + 7 * 86400000).toISOString();
     Object.assign(values, { subscription_status: 'past_due', grace_period_ends_at: grace, access_blocked_at: Date.parse(grace) <= Date.now() ? now : null });

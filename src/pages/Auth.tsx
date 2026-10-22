@@ -148,7 +148,7 @@ const Auth = () => {
   }, []);
   useEffect(() => { rememberAcquisition(query); }, [query]);
   useEffect(() => {
-    if (user && !loading && new URLSearchParams(query).get('source') === 'landing') {
+    if (user && !loading && (new URLSearchParams(query).get('source') === 'landing' || new URLSearchParams(query).get('trial') === '1')) {
       const target = acquisitionDestination(query);
       consumeAcquisition();
       navigate(target, { replace: true });
@@ -443,6 +443,10 @@ const Auth = () => {
                     </TabsContent>
 
                     <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
+                      <div className="rounded-xl bg-primary/5 px-3 py-2 text-center">
+                        <p className="text-sm font-semibold text-primary">Experimente grátis por 7 dias</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Recursos e limites do Lite. Sem cartão e sem cobrança automática.</p>
+                      </div>
                       <form onSubmit={handleSignup} className="space-y-2.5">
                         <InputField compact id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
                         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -470,7 +474,7 @@ const Auth = () => {
                         </div>
 
                         <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-11 rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] disabled:opacity-50 disabled:hover:translate-y-0">
-                          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signup')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Começar meus 7 dias grátis</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                         </Button>
 
                         <Divider />

@@ -1,92 +1,76 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-export type SubscriptionStatus = 'active' | 'past_due' | 'canceled';
-
-export interface SubscriptionIssue {
-  id: string;
-  issue_type: 'payment_failed' | 'subscription_canceled' | 'past_due';
-  status: string;
-  amount_due: number | null;
-  currency: string | null;
-  failure_reason: string | null;
+export interface AccountAccess {
+  can_access: boolean;
+  reason: 'admin' | 'active' | 'trial_active' | 'trial_expired' | 'payment_required' | 'profile_missing';
+  server_now: string;
+  access_mode: 'legacy' | 'trial' | 'subscription';
+  plan: string;
+  trial_ends_at: string | null;
+  subscription_status: 'active' | 'past_due' | 'canceled';
   grace_period_ends_at: string | null;
-  next_retry_at: string | null;
-  created_at: string;
+  access_blocked_at: string | null;
+  is_admin: boolean;
+  has_subscription: boolean;
 }
 
 export function useSubscriptionStatus() {
-  const { user, isAdmin } = useAuth();
-  const [status, setStatus] = useState<SubscriptionStatus>('active');
-  const [accessBlockedAt, setAccessBlockedAt] = useState<string | null>(null);
-  const [openIssue, setOpenIssue] = useState<SubscriptionIssue | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchStatus = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_status, access_blocked_at')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const s = ((profile as any)?.subscription_status as SubscriptionStatus) || 'active';
-      setStatus(s);
-      setAccessBlockedAt((profile as any)?.access_blocked_at || null);
-
-      if (s !== 'active') {
-        const { data: issue } = await supabase
-          .from('subscription_issues')
-          .select('id, issue_type, status, amount_due, currency, failure_reason, grace_period_ends_at, next_retry_at, created_at')
-          .eq('user_id', user.id)
-          .in('status', ['pending', 'contacted'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        setOpenIssue((issue as any) || null);
-      } else {
-        setOpenIssue(null);
+  const { user } = useAuth();
+  const [, tick] = useState(0);
+  const query = useQuery({
+    queryKey: ['account-access', user?.id],
+    enabled: !!user?.id,
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase.rpc('get_my_access').abortSignal(signal);
+      if (error) throw error;
+      const access = data as unknown as AccountAccess;
+      if (!access || access.reason === 'profile_missing' || !Number.isFinite(Date.parse(access.server_now))) {
+        throw new Error('Não foi possível conferir seu acesso. Tente novamente.');
       }
-    } catch (e) {
-      // fail open
-      console.warn('[useSubscriptionStatus] error', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
+      return { access, receivedAt: performance.now() };
+    },
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: 'always',
+    retry: 2,
+  });
+  const access = query.data?.access;
+  // Count from the server clock, not the device's date/time setting.
+  const serverNow = access ? Date.parse(access.server_now) + Math.max(0, performance.now() - query.data.receivedAt) : 0;
+  const trialRemaining = access?.trial_ends_at ? Date.parse(access.trial_ends_at) - serverNow : 0;
+  const graceRemaining = access?.grace_period_ends_at ? Date.parse(access.grace_period_ends_at) - serverNow : 0;
+  const isTrial = access?.access_mode === 'trial' && !access.is_admin;
+  const trialExpired = isTrial && trialRemaining <= 0;
+  const inGracePeriod = access?.subscription_status === 'past_due' && graceRemaining > 0;
+  const graceExpired = access?.subscription_status === 'past_due' && !inGracePeriod;
 
   useEffect(() => {
-    fetchStatus();
-    const onFocus = () => fetchStatus();
-    window.addEventListener('focus', onFocus);
-    const t = setInterval(fetchStatus, 60_000);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      clearInterval(t);
-    };
-  }, [fetchStatus]);
-
-  const now = Date.now();
-  const graceEnds = openIssue?.grace_period_ends_at ? new Date(openIssue.grace_period_ends_at).getTime() : null;
-  const inGracePeriod = status === 'past_due' && graceEnds !== null && graceEnds > now;
-
-  // Admin nunca é bloqueado
-  const isBlocked = !isAdmin && (status === 'canceled' || !!accessBlockedAt || (status === 'past_due' && graceEnds !== null && graceEnds <= now));
-  const showWarning = !isAdmin && status !== 'active';
+    const interval = window.setInterval(() => tick(n => n + 1), 60_000);
+    const data = query.data;
+    const state = data?.access;
+    const end = state?.access_mode === 'trial' ? state.trial_ends_at : state?.subscription_status === 'past_due' ? state.grace_period_ends_at : null;
+    const remaining = end && data ? Date.parse(end) - Date.parse(state.server_now) - Math.max(0, performance.now() - data.receivedAt) : 0;
+    const expiry = remaining > 0 ? window.setTimeout(() => tick(n => n + 1), Math.min(remaining + 20, 2_147_483_647)) : undefined;
+    return () => { window.clearInterval(interval); window.clearTimeout(expiry); };
+  }, [query.data]);
 
   return {
-    loading,
-    status,
-    accessBlockedAt,
-    openIssue,
-    isBlocked,
-    showWarning,
+    loading: !!user && query.isPending,
+    error: query.isError,
+    status: access?.subscription_status,
+    accessBlockedAt: access?.access_blocked_at,
+    isBlocked: !access?.is_admin && (!access?.can_access || trialExpired || graceExpired),
+    showWarning: !access?.is_admin && access?.subscription_status === 'past_due',
     inGracePeriod,
-    refresh: fetchStatus,
+    graceEndsAt: access?.grace_period_ends_at,
+    isTrial,
+    trialExpired,
+    trialEndsAt: access?.trial_ends_at,
+    daysRemaining: isTrial ? Math.max(0, Math.ceil(trialRemaining / 86_400_000)) : 0,
+    hasSubscription: !!access?.has_subscription,
+    refresh: query.refetch,
   };
 }
