@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Auth from '../Auth';
 
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: null }) }));
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
+const { googleLogin, toast } = vi.hoisted(() => ({ googleLogin: vi.fn(), toast: vi.fn() }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: null, signInWithGoogle: googleLogin }) }));
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
 vi.mock('@/lib/acquisition', () => ({ rememberAcquisition: vi.fn() }));
 vi.mock('@/lib/funnel-analytics', () => ({ trackFunnel: vi.fn() }));
@@ -17,6 +18,8 @@ vi.mock('react-i18next', () => ({
 const openAuth = (entry = '/auth') => render(<MemoryRouter initialEntries={[entry]}><Auth /></MemoryRouter>);
 
 beforeEach(() => {
+  googleLogin.mockReset();
+  toast.mockReset();
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
   vi.stubGlobal('ResizeObserver', class {
     observe() {}
@@ -27,6 +30,28 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('authentication page entry', () => {
+  it('releases the Google button after opening a separate login tab', async () => {
+    googleLogin.mockResolvedValue({ error: null, openedInNewTab: true });
+    openAuth();
+    const button = screen.getByRole('button', { name: 'auth.loginWithGoogle' });
+    fireEvent.click(button);
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(googleLogin).toHaveBeenCalledOnce();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Continue na nova aba' }));
+  });
+
+  it('allows another attempt after a blocked or cancelled Google login', async () => {
+    googleLogin.mockResolvedValue({ error: new Error('Permita a abertura de novas abas'), openedInNewTab: false });
+    openAuth();
+    const button = screen.getByRole('button', { name: 'auth.loginWithGoogle' });
+    fireEvent.click(button);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })));
+    expect(button).toBeEnabled();
+    googleLogin.mockResolvedValue({ error: null, openedInNewTab: true });
+    fireEvent.click(button);
+    await waitFor(() => expect(googleLogin).toHaveBeenCalledTimes(2));
+  });
+
   it.each(['/auth', '/auth?mode=signup'])('opens %s at the top without focusing a field', (entry) => {
     openAuth(entry);
     expect(document.activeElement).toBe(document.body);

@@ -1,4 +1,5 @@
 import { authReturnUrl } from '@/lib/acquisition';
+import { startGoogleSignIn } from '@/lib/google-auth';
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +13,7 @@ interface AuthContextType {
   isFornecedor: boolean;
   signUp: (email: string, password: string, fullName?: string, businessName?: string, phone?: string) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: Error | null; openedInNewTab: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
@@ -160,13 +161,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: authReturnUrl(),
-      }
-    });
-    return { error };
+    return startGoogleSignIn(supabase.auth, authReturnUrl());
   };
 
   const signOut = async () => {

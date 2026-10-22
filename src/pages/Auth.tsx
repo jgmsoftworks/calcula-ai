@@ -129,6 +129,7 @@ const Auth = () => {
       resetScroll();
     };
     const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setLoading(false);
       if (event.persisted || !hasInteracted) resetEntry();
     };
     window.addEventListener('pointerdown', allowFocus, true);
@@ -302,10 +303,14 @@ const Auth = () => {
     if (mode === 'signup') trackFunnel('signup_started', { method: 'google' });
     setLoading(true);
     try {
-      const { error } = await signInWithGoogle();
+      const { error, openedInNewTab } = await signInWithGoogle();
       if (error) throw error;
+      if (openedInNewTab) {
+        toast({ title: 'Continue na nova aba', description: 'Conclua o login com o Google e continue usando o aplicativo por lá.' });
+      }
     } catch (error: any) {
       toast({ title: t('auth.googleError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
+    } finally {
       setLoading(false);
     }
   };
