@@ -49,6 +49,9 @@ serve(async (req) => {
       });
       const { data: { user }, error: userError } = await caller.auth.getUser();
       if (userError || !user) return json({ error: 'Sessão inválida.' }, 401);
+      const { data: access, error: accessError } = await admin.rpc('get_account_access', { account_id: user.id });
+      if (accessError) return json({ error: 'Não foi possível conferir o acesso.' }, 503);
+      if (!access?.can_access) return json({ error: 'Escolha um plano para continuar usando o aplicativo.' }, 403);
 
       const date = String(body?.date ?? '');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: 'Data inválida.' }, 400);
@@ -89,6 +92,9 @@ serve(async (req) => {
       .select('id, user_id, data_producao, expira_em, revogado_em, janela_requisicoes_inicio, janela_requisicoes_total')
       .eq('token_hash', tokenHash).is('revogado_em', null).gt('expira_em', now.toISOString()).maybeSingle();
     if (!link) return json({ error: 'Link inválido ou expirado.' }, 404);
+    const { data: ownerAccess, error: ownerError } = await admin.rpc('get_account_access', { account_id: link.user_id });
+    if (ownerError) return json({ error: 'Não foi possível conferir o acesso.' }, 503);
+    if (!ownerAccess?.can_access) return json({ error: 'Este compartilhamento está indisponível.' }, 403);
 
     const windowStarted = new Date(link.janela_requisicoes_inicio);
     const newWindow = now.getTime() - windowStarted.getTime() >= 60_000;

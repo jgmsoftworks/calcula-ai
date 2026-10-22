@@ -98,7 +98,7 @@ export const usePlanLimits = () => {
     queryKey: ['user-plan', user?.id],
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase.from('profiles')
-        .select('plan, plan_expires_at').eq('user_id', user!.id).abortSignal(signal).maybeSingle();
+        .select('plan, plan_expires_at, access_mode').eq('user_id', user!.id).abortSignal(signal).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -106,7 +106,7 @@ export const usePlanLimits = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const currentPlan = normalizePlan(planQuery.data?.plan);
+  const currentPlan = planQuery.data?.access_mode === 'trial' ? 'lite' : normalizePlan(planQuery.data?.plan);
   const planExpiration = planQuery.data?.plan_expires_at ? new Date(planQuery.data.plan_expires_at) : null;
   const loading = !!user?.id && planQuery.isPending;
   const loadUserPlan = () => planQuery.refetch();

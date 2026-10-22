@@ -6,11 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { trackVerifiedPurchase } from '@/lib/funnel-analytics';
+import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
 interface PaymentStatus {
   status: 'pending' | 'approved' | 'trial' | 'failed';
   access_ready: boolean; email_sent: boolean; email_hint: string; needs_password_setup: boolean;
 }
 export default function AuthSuccess() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const sessionId = params.get('session_id');
   const [result, setResult] = useState<PaymentStatus | null>(null);
@@ -29,6 +33,12 @@ export default function AuthSuccess() {
   }, [sessionId]);
   useEffect(() => { void check(); }, [check]);
   const approved = result?.status === 'approved' || result?.status === 'trial';
+  useEffect(() => {
+    if (approved && result?.access_ready && user) {
+      void queryClient.invalidateQueries({ queryKey: ['account-access', user.id] });
+      void queryClient.invalidateQueries({ queryKey: ['user-plan', user.id] });
+    }
+  }, [approved, result?.access_ready, user?.id, queryClient]);
   const title = result?.status === 'trial' ? 'Seu período de teste começou!' : approved ? 'Pagamento aprovado!' : result?.status === 'failed' ? 'Pagamento não confirmado' : 'Aguardando aprovação do pagamento';
   return <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-4">
     <Card className="w-full max-w-lg shadow-xl"><CardContent className="p-8 space-y-6 text-center" aria-live="polite">
@@ -43,7 +53,7 @@ export default function AuthSuccess() {
           {approved && !result?.email_sent && <p className="text-sm text-muted-foreground">O e-mail de acesso ainda está sendo preparado. Se demorar, fale com o suporte.</p>}
         </>}
         <div className="space-y-3">
-          {approved && result?.access_ready && <Button className="w-full" asChild><Link to="/auth?mode=login">Entrar na Calcula Aí</Link></Button>}
+          {approved && result?.access_ready && <Button className="w-full" asChild><Link to={user ? '/' : '/auth?mode=login'}>Continuar na Calcula Aí</Link></Button>}
           {sessionId && <Button variant="outline" className="w-full" disabled={loading} onClick={() => void check()}>{loading ? 'Verificando…' : 'Verificar novamente'}</Button>}
         </div>
       </>}

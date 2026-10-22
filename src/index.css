@@ -4,6 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes trial-glow {
+  0%, 100% { box-shadow: 0 0 0 2px #0483e420, 0 0 9px #0483e440; }
+  50% { box-shadow: 0 0 0 3px #7328b125, 0 0 17px #7328b160; }
+}
+.trial-glow { animation: trial-glow 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .trial-glow { animation: none; box-shadow: 0 0 9px #7328b140; }
+}
+
 /* CalculaAi Design System v2 — Glassmorphism Modern
    Brand gradient: #0483e4 → #2c4dc7 → #7328b1 → #af1188 → #dd0b52 → #f96e0c
    All colors MUST be HSL.

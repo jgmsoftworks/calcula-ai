@@ -2183,6 +2183,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_mode: string
+          trial_started_at: string | null
           access_blocked_at: string | null
           bairro: string | null
           business_name: string | null
@@ -2238,6 +2240,8 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          access_mode?: string
+          trial_started_at?: string | null
           access_blocked_at?: string | null
           bairro?: string | null
           business_name?: string | null
@@ -2293,6 +2297,8 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          access_mode?: string
+          trial_started_at?: string | null
           access_blocked_at?: string | null
           bairro?: string | null
           business_name?: string | null
@@ -3405,6 +3411,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_my_access: { Args: Record<PropertyKey, never>; Returns: Json }
       listar_produtos_pagina: {
         Args: { p_busca?: string; p_marcas?: string[]; p_categorias?: string[]; p_unidade?: string; p_abaixo_minimo?: boolean; p_pagina?: number; p_tamanho?: number }
         Returns: Json

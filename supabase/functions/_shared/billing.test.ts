@@ -26,6 +26,7 @@ function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpai
   const db: any = {
     rpc: (_name: string, args: any) => { rpcCalls.push(args); return Promise.resolve({ data: 'claimed', error: null }); },
     auth: { admin: {
+      getUserById: (id: string) => Promise.resolve({ data: { user: users.find(u => u.id === id) }, error: null }),
       listUsers: () => Promise.resolve({ data: { users }, error: null }),
       createUser: (input: any) => {
         creations.push(input);
@@ -79,6 +80,35 @@ async function withTransport(f: ReturnType<typeof fixture>, action: () => Promis
   try { await action(); } finally { globalThis.fetch = originalFetch; Deno.env.delete('RESEND_API_KEY'); Deno.env.delete('PAYMENTS_EMAIL_FROM'); }
 }
 const run = (f: ReturnType<typeof fixture>) => fulfillCheckout(f.db, f.stripe, session.id, false, () => Promise.resolve('professional'));
+
+it('a paid app checkout converts the original trial account even if the billing email changes', async () => {
+  const f = fixture({ existingUser: true });
+  f.rows.profiles.push({ user_id: 'user_existing', plan: 'lite', access_mode: 'trial', trial_ends_at: '2020-01-01' });
+  Object.assign(f.current, { metadata: { user_id: 'user_existing' }, customer_details: { email: 'payer@example.invalid' } });
+  await withTransport(f, async () => {
+    await fulfillCheckout(f.db, f.stripe, session.id, false, () => Promise.resolve('lite'));
+    assert(f.creations.length === 0, 'must not create another account');
+    assert(f.rows.profiles.length === 1);
+    assert(f.rows.profiles[0].access_mode === 'subscription');
+    assert(f.rows.profiles[0].plan === 'lite');
+    assert(f.rows.profiles[0].trial_ends_at === null);
+    assert(f.rows.billing_checkouts[0].user_id === 'user_existing');
+  });
+});
+it('pending payment leaves trial entitlements untouched', async () => {
+  const f = fixture({ existingUser: true, unpaid: true });
+  const trial = { user_id: 'user_existing', plan: 'lite', access_mode: 'trial', trial_ends_at: '2020-01-01' };
+  f.rows.profiles.push({ ...trial });
+  Object.assign(f.current, { metadata: { user_id: 'user_existing' } });
+  await withTransport(f, async () => { await run(f); assert(JSON.stringify(f.rows.profiles[0]) === JSON.stringify(trial)); });
+});
+it('a missing account binding never falls back to creating a second account', async () => {
+  const f = fixture({ existingUser: true });
+  Object.assign(f.current, { metadata: { user_id: 'missing_account' } });
+  await rejects(() => run(f), 'checkout_account_not_found');
+  assert(f.creations.length === 0);
+  assert(f.rows.profiles.length === 0);
+});
 
 it('webhook signing configuration reads the environment or server-only Vault RPC', async () => {
   Deno.env.set('STRIPE_WEBHOOK_SECRET', 'whsec_fixture_env');

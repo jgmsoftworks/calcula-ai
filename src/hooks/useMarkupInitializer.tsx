@@ -28,7 +28,7 @@ interface CalculatedMarkup {
   valorEmReal: number;
 }
 
-export function useMarkupInitializer() {
+export function useMarkupInitializer(enabled = true) {
   const { user } = useAuth();
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const isInitializing = useRef(false);
@@ -57,7 +57,7 @@ export function useMarkupInitializer() {
   }, []);
 
   const inicializarMarkups = useCallback(async () => {
-    if (!user?.id || isInitializing.current) return;
+    if (!enabled || !user?.id || isInitializing.current) return;
 
     try {
       isInitializing.current = true;
@@ -288,11 +288,11 @@ export function useMarkupInitializer() {
     } finally {
       isInitializing.current = false;
     }
-  }, [user?.id, loadConfiguration, getCategoriaByNome, calcularMarkupIdeal]);
+  }, [enabled, user?.id, loadConfiguration, getCategoriaByNome, calcularMarkupIdeal]);
 
   // Executar quando o usuário logar (com debounce e proteção)
   useEffect(() => {
-    if (user?.id && !isInitializing.current) {
+    if (enabled && user?.id && !isInitializing.current) {
       log.debug('👤 Usuário logado, inicializando markups...');
       // Delay maior para garantir que outras configurações já foram carregadas
       const timer = setTimeout(() => {
@@ -304,7 +304,7 @@ export function useMarkupInitializer() {
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [enabled, user?.id]);
 
   return { inicializarMarkups };
 }

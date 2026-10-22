@@ -1,162 +1,81 @@
 import { useState } from 'react';
-import { AlertTriangle, Lock, MessageCircle, RefreshCw, LogOut, CheckCircle2 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { AlertTriangle, Lock, RefreshCw, LogOut, CheckCircle2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-const SUPPORT_PHONE = '556292622545';
-
-function openCustomerPortal(setLoading: (b: boolean) => void) {
-  setLoading(true);
-  supabase.functions
-    .invoke('customer-portal')
-    .then(({ data, error }) => {
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank', 'noopener,noreferrer');
-      } else {
-        throw new Error('URL do portal não retornada');
-      }
-    })
-    .catch((err) => {
-      toast({
-        title: 'Erro ao abrir portal de pagamento',
-        description: err?.message || 'Tente novamente em instantes.',
-        variant: 'destructive',
-      });
-    })
-    .finally(() => setLoading(false));
-}
-
 export function SubscriptionStatusGate({ children }: { children: React.ReactNode }) {
-  const { isBlocked, showWarning, openIssue, inGracePeriod, refresh, loading } = useSubscriptionStatus();
-  const { signOut, user } = useAuth();
+  const access = useSubscriptionStatus();
+  const { signOut } = useAuth();
+  const { pathname } = useLocation();
   const [portalLoading, setPortalLoading] = useState(false);
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error || !data?.url) throw new Error('Não foi possível abrir o pagamento. Tente novamente.');
+      window.location.assign(data.url);
+    } catch (err) {
+      toast({ title: 'Pagamento indisponível', description: err instanceof Error ? err.message : 'Tente novamente.', variant: 'destructive' });
+    } finally { setPortalLoading(false); }
+  };
 
-  if (loading) return <>{children}</>;
+  // Billing and statutory privacy controls remain reachable; operational routes do not.
+  if (pathname === '/planos' || pathname === '/minha-privacidade') return <>{children}</>;
+  if (access.loading) return <div className="min-h-svh flex items-center justify-center gap-3"><LoadingSpinner /><p>Conferindo seu acesso…</p></div>;
+  if (access.error) return <div className="min-h-svh flex flex-col items-center justify-center gap-4 p-6 text-center">
+    <AlertTriangle className="h-9 w-9 text-amber-500" />
+    <h1 className="text-xl font-semibold">Não foi possível conferir seu acesso</h1>
+    <p className="text-muted-foreground">Confira sua conexão e tente novamente.</p>
+    <Button onClick={() => void access.refresh()}>Tentar novamente</Button>
+    <Button variant="ghost" onClick={() => void signOut()}>Sair</Button>
+  </div>;
 
-  if (isBlocked) {
-    const whatsappMsg = encodeURIComponent(
-      `Olá, sou ${user?.email} e meu acesso ao CalculaAi está bloqueado por questão de pagamento. Preciso de ajuda para regularizar.`
-    );
-    return (
-      <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <Card className="max-w-2xl w-full p-8 border-2 border-destructive/40 shadow-2xl">
-          <div className="flex flex-col items-center text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-              <Lock className="w-10 h-10 text-destructive" />
-            </div>
-
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-foreground">
-                Seu acesso está bloqueado
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                {openIssue?.issue_type === 'subscription_canceled'
-                  ? 'Sua assinatura foi cancelada.'
-                  : 'Identificamos um problema com o pagamento da sua assinatura.'}
-              </p>
-            </div>
-
-            <div className="w-full p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left">
-              <div className="flex gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-                    Seus dados estão 100% seguros
-                  </p>
-                  <p className="text-sm text-foreground/80">
-                    Nada foi apagado. Todas as suas receitas, produtos, markups,
-                    movimentações, folha de pagamento e histórico continuam salvos.
-                    Assim que você regularizar o pagamento, seu acesso é liberado
-                    imediatamente e tudo volta como estava.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full text-left space-y-2">
-              <p className="text-sm font-medium text-foreground">Enquanto não regularizar, você não consegue:</p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
-                <li>Lançar movimentações, ingredientes ou receitas novas</li>
-                <li>Editar markups, despesas ou folha de pagamento</li>
-                <li>Exportar fichas técnicas, PDFs e relatórios</li>
-                <li>Acessar o dashboard e indicadores</li>
-              </ul>
-            </div>
-
-            {openIssue?.failure_reason && (
-              <div className="w-full p-3 rounded-lg bg-muted text-sm text-muted-foreground">
-                <strong>Motivo informado pelo Stripe:</strong> {openIssue.failure_reason}
-              </div>
-            )}
-
-            <div className="w-full flex flex-col sm:flex-row gap-3">
-              <Button
-                size="lg"
-                className="flex-1"
-                onClick={() => openCustomerPortal(setPortalLoading)}
-                disabled={portalLoading}
-              >
-                {portalLoading ? 'Abrindo...' : 'Regularizar pagamento'}
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="flex-1"
-                asChild
-              >
-                <a
-                  href={`https://wa.me/${SUPPORT_PHONE}?text=${whatsappMsg}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Falar com suporte
-                </a>
-              </Button>
-            </div>
-
-            <div className="flex gap-2 text-sm">
-              <Button variant="ghost" size="sm" onClick={refresh}>
-                <RefreshCw className="w-3 h-3 mr-2" />
-                Já paguei, atualizar
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => signOut()}>
-                <LogOut className="w-3 h-3 mr-2" />
-                Sair
-              </Button>
-            </div>
+  if (access.isBlocked) return (
+    <main className="min-h-svh flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background p-4">
+      <Card className="w-full max-w-xl overflow-hidden border-primary/20 shadow-xl">
+        <div className="h-1.5 bg-gradient-to-r from-[#0483e4] to-[#7328b1]" />
+        <div className="space-y-6 p-6 text-center sm:p-9">
+          <p className="font-display text-xl font-bold text-primary">Calcula Aí</p>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10"><Lock className="h-8 w-8 text-primary" /></div>
+          <div className="space-y-3">
+            <h1 className="font-display text-2xl font-bold">{access.trialExpired ? 'Seus 7 dias de teste terminaram' : 'Escolha como continuar'}</h1>
+            <p className="text-muted-foreground">Escolha uma forma de pagamento para prosseguir e continuar usando o aplicativo.</p>
           </div>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {showWarning && inGracePeriod && (
-        <div className="sticky top-0 z-40 bg-amber-500/15 border-b border-amber-500/30 backdrop-blur-sm">
-          <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-sm">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="text-foreground">
-                <strong>Pagamento em atraso.</strong> Regularize para evitar o bloqueio do acesso. Seus dados não serão perdidos.
-                {openIssue?.grace_period_ends_at && (
-                  <> Bloqueio em <strong>{new Date(openIssue.grace_period_ends_at).toLocaleDateString('pt-BR')}</strong>.</>
-                )}
-              </span>
-            </div>
-            <Button size="sm" onClick={() => openCustomerPortal(setPortalLoading)} disabled={portalLoading}>
-              {portalLoading ? 'Abrindo...' : 'Regularizar agora'}
-            </Button>
+          <div className="flex gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-left">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div><p className="font-semibold">Seus dados continuam salvos</p><p className="mt-1 text-sm text-muted-foreground">Assine um plano e continue nesta mesma conta, com seus produtos, receitas e histórico. O acesso será liberado após a confirmação do pagamento.</p></div>
+          </div>
+          <div className="space-y-3">
+            <Button asChild size="lg" className="w-full bg-gradient-to-r from-[#0483e4] to-[#7328b1] text-white"><Link to="/planos"><Sparkles className="mr-2 h-4 w-4" />Escolher plano e continuar</Link></Button>
+            {access.hasSubscription && <Button variant="outline" className="w-full" onClick={() => void openPortal()} disabled={portalLoading}>{portalLoading ? 'Abrindo…' : 'Regularizar assinatura existente'}</Button>}
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => void access.refresh()}><RefreshCw className="mr-2 h-4 w-4" />Já paguei, atualizar</Button>
+            <Button variant="ghost" size="sm" onClick={() => void signOut()}><LogOut className="mr-2 h-4 w-4" />Sair</Button>
+          </div>
+          <div className="flex justify-center gap-5 text-xs text-muted-foreground">
+            <Link to="/minha-privacidade" className="underline">Minha privacidade</Link>
+            <a href="mailto:calculaai.adm@gmail.com" className="underline">Preciso de ajuda</a>
           </div>
         </div>
-      )}
-      {children}
-    </>
+      </Card>
+    </main>
   );
+  return <>
+    {access.showWarning && access.inGracePeriod && <div className="sticky top-0 z-40 border-b border-amber-500/30 bg-amber-500/15">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
+        <p className="text-sm"><strong>Pagamento em atraso.</strong> Regularize para continuar usando.
+          {access.graceEndsAt && <> Prazo: {new Date(access.graceEndsAt).toLocaleDateString('pt-BR')}.</>}
+        </p>
+        <Button size="sm" onClick={() => void openPortal()} disabled={portalLoading}>Regularizar pagamento</Button>
+      </div>
+    </div>}
+    {children}
+  </>;
 }

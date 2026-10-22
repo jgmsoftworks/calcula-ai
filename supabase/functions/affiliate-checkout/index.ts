@@ -156,6 +156,7 @@ serve(async (req) => {
 
     // Configure customer based on authentication
     let customerConfig: any = {};
+    let accountId: string | undefined;
     
     if (!direct) {
       const authHeader = req.headers.get("Authorization");
@@ -165,6 +166,7 @@ serve(async (req) => {
         const user = data.user;
         
         if (user?.email) {
+          accountId = user.id;
           logStep('User authenticated', { userId: user.id, email: user.email });
           
           // Check if customer already exists in Stripe
@@ -251,6 +253,7 @@ serve(async (req) => {
         success_url: `https://calculaaibr.com/auth/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.get("origin")}/planos`,
         metadata: {
+          ...(accountId ? { user_id: accountId } : {}),
           affiliate_code: effectiveAffiliateCode || "",
           affiliate_id: affiliateId || "",
           plan_type: planType,
