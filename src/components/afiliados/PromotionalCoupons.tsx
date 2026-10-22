@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -516,7 +517,7 @@ export function PromotionalCoupons() {
                     <div className="flex gap-1">
                       {coupon.applies_to_plans.map(plan => (
                         <Badge key={plan} variant="outline" className="text-xs">
-                          {plan}
+                          {planDisplayName(plan)}
                         </Badge>
                       ))}
                     </div>

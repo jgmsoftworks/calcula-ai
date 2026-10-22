@@ -146,7 +146,7 @@ const Planos = () => {
           {access.isTrial
             ? access.trialExpired
               ? 'Seu teste terminou. Assine para continuar na mesma conta, com todos os seus dados preservados.'
-              : `Você tem ${access.daysRemaining} ${access.daysRemaining === 1 ? 'dia restante' : 'dias restantes'} com os recursos do Lite. Assine quando quiser continuar ou ampliar seus limites.`
+              : `Você tem ${access.daysRemaining} ${access.daysRemaining === 1 ? 'dia restante' : 'dias restantes'} com os recursos do Iniciante. Assine quando quiser continuar ou ampliar seus limites.`
             : t('plans.choosePlanDesc')}
         </p>
       </div>

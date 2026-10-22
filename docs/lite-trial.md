@@ -1,6 +1,6 @@
-# Teste gratuito do Lite
+# Teste gratuito do Iniciante
 
-Novas contas recebem sete dias corridos do Lite, sem cartão, Checkout ou cobrança automática. O prazo nasce na criação do usuário no Supabase Auth, inclusive no Google, e usa o relógio do servidor. O Lite mantém os limites de `public.planos`: 30 matérias-primas ativas, 5 receitas, 1 markup normal, movimentações liberadas e sem exportação de ficha técnica em PDF.
+Novas contas recebem sete dias corridos do Iniciante, sem cartão, Checkout ou cobrança automática. O prazo nasce na criação do usuário no Supabase Auth, inclusive no Google, e usa o relógio do servidor. O Iniciante mantém os limites de `public.planos`: 30 matérias-primas ativas, 5 receitas, 1 markup normal, movimentações liberadas e sem exportação de ficha técnica em PDF.
 
 O indicador no cabeçalho mostra os dias restantes e leva a `/planos`. Ao vencer, as telas operacionais deixam de montar; o banco bloqueia leitura e escrita operacional, inclusive RPCs e links de produção compartilhada. Planos, pagamento, saída e solicitações de privacidade continuam disponíveis. Nenhum dado é apagado pelo vencimento.
 
@@ -8,7 +8,7 @@ O cadastro pode ser acessado em `/auth?mode=signup&trial=1`. O destino preparado
 
 ## Conversão em assinatura
 
-Uma conta em teste pode contratar inclusive o próprio Lite. O Checkout usa os preços centralizados existentes, cobra somente após a escolha explícita do cliente e registra o ID da conta na metadata criada pelo servidor. O webhook, após confirmar o pagamento, atualiza essa mesma conta para `access_mode=subscription`, sem recriar cadastro, senha ou dados. A alteração do e-mail de faturamento não muda a conta beneficiada. Pagamento pendente não libera assinatura. Assinaturas existentes usam o portal para evitar duplicação.
+Uma conta em teste pode contratar inclusive o próprio Iniciante. O Checkout usa os preços centralizados existentes, cobra somente após a escolha explícita do cliente e registra o ID da conta na metadata criada pelo servidor. O webhook, após confirmar o pagamento, atualiza essa mesma conta para `access_mode=subscription`, sem recriar cadastro, senha ou dados. A alteração do e-mail de faturamento não muda a conta beneficiada. Pagamento pendente não libera assinatura. Assinaturas existentes usam o portal para evitar duplicação.
 
 ## Banco e compatibilidade
 
@@ -39,4 +39,4 @@ npm install --prefix /tmp/calcula-trial-tests @electric-sql/pglite@0.5.11
 PGLITE_MODULE=/tmp/calcula-trial-tests/node_modules/@electric-sql/pglite/dist/index.js node tests/trial-database.mjs
 ```
 
-A suíte verifica cadastro, adulteração de prazo/plano, limites, vencimento sem recarregar a tela, isolamento entre contas, preservação e recuperação dos dados, acesso administrativo, checkout do próprio Lite, pagamento pendente e conversão na mesma conta.
+A suíte verifica cadastro, adulteração de prazo/plano, limites, vencimento sem recarregar a tela, isolamento entre contas, preservação e recuperação dos dados, acesso administrativo, checkout do próprio Iniciante, pagamento pendente e conversão na mesma conta.

@@ -450,7 +450,7 @@ const Auth = () => {
                     <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
                       <div className="rounded-xl bg-primary/5 px-3 py-2 text-center">
                         <p className="text-sm font-semibold text-primary">Experimente grátis por 7 dias</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Recursos e limites do Lite. Sem cartão e sem cobrança automática.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Recursos e limites do Iniciante. Sem cartão e sem cobrança automática.</p>
                       </div>
                       <form onSubmit={handleSignup} className="space-y-2.5">
                         <InputField compact id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />

@@ -139,7 +139,7 @@ export async function fulfillCheckout(db: any, stripe: any, sessionId: string, f
     if (error) throw new Error('checkout_state_write_failed');
     await sendPaymentEmail(db, `checkout:${sessionId}:${state}`, async () => ({
       to: email,
-      ...paymentEmail(state, email, plan === 'professional' ? 'Profissional' : plan === 'enterprise' ? 'Empresarial' : 'Lite', {
+      ...paymentEmail(state, email, plan === 'professional' ? 'Profissional' : plan === 'enterprise' ? 'Empresarial' : 'Iniciante', {
         initialPassword,
         setupLink: needsSetup && !initialPassword ? await setupLink(db, email, !user.email_confirmed_at) : undefined,
       }),

@@ -32,8 +32,8 @@ await db.exec(`
   create trigger prevent_is_admin_update before update on profiles for each row execute function public.prevent_is_admin_self_update();
   create function public.initialize_user_role() returns trigger language plpgsql security definer as $$ begin insert into public.user_roles values(new.user_id,'owner') on conflict do nothing; return new; end; $$;
   create trigger initialize_user_role_trigger after insert on profiles for each row execute function public.initialize_user_role();
-  create table public.planos (slug text primary key, limites jsonb);
-  insert into planos values ('lite','{"produtos":30,"receitas":5,"markups":1,"movimentacoes":-1,"pdf_exports":0}'), ('professional','{"produtos":-1,"receitas":60,"markups":3,"pdf_exports":80}');
+  create table public.planos (slug text primary key, limites jsonb, nome_publico text);
+  insert into planos (slug, limites) values ('lite','{"produtos":30,"receitas":5,"markups":1,"movimentacoes":-1,"pdf_exports":0}'), ('professional','{"produtos":-1,"receitas":60,"markups":3,"pdf_exports":80}');
   create function public.reset_monthly_pdf_counter() returns void language sql as $$ select $$;
   insert into auth.users(id) values('${ids.legacy}');
   insert into public.profiles(user_id,trial_ends_at) values('${ids.legacy}',null);
@@ -44,6 +44,7 @@ for (const name of businessTables) {
 }
 await db.exec(`alter table profiles enable row level security; create policy own_profile on profiles for select to authenticated using(user_id=auth.uid()); create policy edit_profile on profiles for update to authenticated using(user_id=auth.uid()); create policy insert_profile on profiles for insert to authenticated with check(user_id=auth.uid()); grant all on all tables in schema public to authenticated, service_role;`);
 await db.exec(migration);
+await db.exec(await readFile(new URL('../supabase/migrations/20261022232245_rename_lite_to_iniciante.sql', import.meta.url), 'utf8'));
 let passed = 0;
 const q = async sql => (await db.query(sql)).rows;
 const admin = () => db.exec("reset role; select set_config('request.jwt.claim.sub','',false), set_config('request.jwt.claim.role','',false);");
@@ -55,7 +56,7 @@ try {
   await test('existing accounts retain access without a trial', async () => {
     await asUser(ids.legacy); const a = await access(); assert.equal(a.access_mode,'legacy'); assert.equal(a.can_access,true);
   });
-  await test('email/OAuth user insertion creates exactly seven days of Lite; ignores metadata entitlements', async () => {
+  await test('email/OAuth user insertion creates exactly seven days of Iniciante; ignores metadata entitlements', async () => {
     await admin(); await db.exec(`insert into auth.users(id, raw_user_meta_data) values('${ids.trial}','{"full_name":"Trial","plan":"enterprise","is_admin":true,"trial_ends_at":"2100-01-01"}'),('${ids.other}','{}'),('${ids.admin}','{}');`);
     const [p] = await q(`select plan, is_admin, extract(epoch from trial_ends_at-trial_started_at) as duration from profiles where user_id='${ids.trial}'`);
     assert.equal(p.plan,'lite'); assert.equal(p.is_admin,false); assert.equal(Number(p.duration),604800);
@@ -66,18 +67,18 @@ try {
     await db.exec(`update profiles set user_id='${ids.other}',plan='enterprise', access_mode='subscription',trial_ends_at='2100-01-01',trial_started_at='2099-01-01',subscription_status='canceled',is_admin=true,role='admin',access_blocked_at=now(),grace_period_ends_at='2100-01-01' where user_id='${ids.trial}';`);
     const after = await access(); assert.equal(after.access_mode,'trial'); assert.equal(after.plan,'lite'); assert.equal(after.trial_ends_at,original.trial_ends_at); assert.equal(after.can_access,true); assert.equal(after.is_admin,false);
   });
-  await test('Lite allows 30 products and rejects the 31st through direct SQL', async () => {
+  await test('Iniciante allows 30 products and rejects the 31st through direct SQL', async () => {
     await db.exec(`insert into produtos(user_id) select '${ids.trial}' from generate_series(1,30);`);
     await denied(`insert into produtos(user_id) values('${ids.trial}');`);
     assert.equal((await q('select count(*)::int as n from produtos'))[0].n,30);
   });
-  await test('Lite allows five recipes and one regular markup, preserving the technical subrecipe markup', async () => {
+  await test('Iniciante allows five recipes and one regular markup, preserving the technical subrecipe markup', async () => {
     await db.exec(`insert into receitas(user_id) select '${ids.trial}' from generate_series(1,5); insert into markups(user_id) values('${ids.trial}'); insert into markups(user_id,tipo) values('${ids.trial}','sub_receita');`);
     await denied(`insert into receitas(user_id) values('${ids.trial}');`);
     await denied(`insert into markups(user_id) values('${ids.trial}');`);
     assert.equal((await q('select count(*)::int as n from markups'))[0].n,2);
   });
-  await test('limit RPC denies other accounts, invalid counts and Lite PDF export', async () => {
+  await test('limit RPC denies other accounts, invalid counts and Iniciante PDF export', async () => {
     for (const [id,feature,count,reason] of [[ids.other,'receitas',1,'forbidden'],[ids.trial,'receitas',-1,'invalid_count'],[ids.trial,'pdf_exports',1,'limit_exceeded']]) {
       const result=(await q(`select check_plan_limits('${id}','${feature}',${count}) as value`))[0].value;
       assert.equal(result.allowed,false); assert.equal(result.reason,reason);

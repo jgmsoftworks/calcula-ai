@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -188,7 +189,7 @@ export function AffiliatesCommissions() {
                     <div className="text-sm">
                       <div>R$ {formatBRL(commission.sale?.sale_amount)}</div>
                       <div className="text-muted-foreground">
-                        {commission.sale?.plan_type}
+                        {planDisplayName(commission.sale?.plan_type)}
                       </div>
                     </div>
                   </TableCell>

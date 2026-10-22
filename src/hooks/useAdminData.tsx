@@ -91,9 +91,9 @@ export const useAdminData = () => {
       }, {} as Record<string, number>) || {};
 
       const planDistribution = [
-        { name: 'Gratuito', value: planCounts.free || 0, color: 'hsl(var(--muted))' },
-        { name: 'Professional', value: planCounts.professional || 0, color: 'hsl(var(--primary))' },
-        { name: 'Enterprise', value: planCounts.enterprise || 0, color: 'hsl(var(--secondary))' },
+        { name: 'Iniciante', value: (planCounts.lite || 0) + (planCounts.free || 0), color: 'hsl(var(--muted))' },
+        { name: 'Profissional', value: planCounts.professional || 0, color: 'hsl(var(--primary))' },
+        { name: 'Empresarial', value: planCounts.enterprise || 0, color: 'hsl(var(--secondary))' },
       ].filter(plan => plan.value > 0);
 
       // Calculate user growth (last 6 months)

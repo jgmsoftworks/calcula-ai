@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -224,7 +225,7 @@ export default function AdminUsers() {
       user.cnpj_cpf?.includes(searchTerm) ||
       user.email?.toLowerCase().includes(searchLower);
 
-    const matchesPlan = selectedPlan === "all" || user.plan === selectedPlan;
+    const matchesPlan = selectedPlan === "all" || (user.plan === 'free' ? 'lite' : user.plan) === selectedPlan;
 
     const matchesEmailStatus = 
       selectedEmailStatus === "all" ||
@@ -252,13 +253,14 @@ export default function AdminUsers() {
 
   const getPlanBadge = (plan: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline"; label: string }> = {
-      free: { variant: "secondary", label: "Free" },
-      professional: { variant: "default", label: "Professional" },
-      enterprise: { variant: "outline", label: "Enterprise" },
+      lite: { variant: "secondary", label: "Iniciante" },
+      free: { variant: "secondary", label: "Iniciante" },
+      professional: { variant: "default", label: "Profissional" },
+      enterprise: { variant: "outline", label: "Empresarial" },
     };
 
     const planConfig = variants[plan] || { variant: "secondary", label: plan };
-    return <Badge variant={planConfig.variant}>{planConfig.label}</Badge>;
+    return <Badge variant={planConfig.variant}>{planDisplayName(plan)}</Badge>;
   };
 
   const getEmailStatusBadge = (emailConfirmedAt: string | null) => {
@@ -401,9 +403,9 @@ export default function AdminUsers() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os planos</SelectItem>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
+                <SelectItem value="lite">Iniciante</SelectItem>
+                <SelectItem value="professional">Profissional</SelectItem>
+                <SelectItem value="enterprise">Empresarial</SelectItem>
               </SelectContent>
             </Select>
             <Select value={selectedEmailStatus} onValueChange={setSelectedEmailStatus}>

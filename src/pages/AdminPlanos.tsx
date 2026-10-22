@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -172,7 +173,6 @@ const AdminPlanos = () => {
                       {plano.ativo ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono">{plano.slug}</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-2xl font-bold">
@@ -218,7 +218,7 @@ const AdminPlanos = () => {
                     <tr key={p.user_id} className="border-b border-border/40">
                       <td className="p-2">{p.full_name ?? '—'}</td>
                       <td className="p-2">{p.business_name ?? '—'}</td>
-                      <td className="p-2"><Badge variant="secondary">{p.plan}</Badge></td>
+                      <td className="p-2"><Badge variant="secondary">{planDisplayName(p.plan)}</Badge></td>
                       <td className="p-2">{p.plan_expires_at ? new Date(p.plan_expires_at).toLocaleDateString('pt-BR') : '—'}</td>
                     </tr>
                   ))}
@@ -246,7 +246,7 @@ const AdminPlanos = () => {
                 <tbody>
                   {historico.map(h => (
                     <tr key={h.id} className="border-b border-border/40">
-                      <td className="p-2">{h.plano_slug}</td>
+                      <td className="p-2">{planDisplayName(h.plano_slug)}</td>
                       <td className="p-2">{formatPreco(h.preco_centavos)}</td>
                       <td className="p-2">v{h.versao_preco}</td>
                       <td className="p-2">{new Date(h.vigente_de).toLocaleDateString('pt-BR')}</td>

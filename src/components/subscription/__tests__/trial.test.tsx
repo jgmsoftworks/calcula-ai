@@ -8,7 +8,7 @@ vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ signOut: mocks.signOut }) 
 vi.mock('@/hooks/usePlanLimits', () => ({ usePlanLimits: () => ({ currentPlan: 'lite', loading: false, reloadPlan: mocks.reloadPlan }) }));
 vi.mock('@/hooks/usePlanos', async importOriginal => ({
   ...await importOriginal<typeof import('@/hooks/usePlanos')>(),
-  usePlanos: () => ({ loading: false, planos: [{ id: 'lite', slug: 'lite', nome_publico: 'Lite', preco_centavos: 990, preco_anual_centavos: 9590, limites: { produtos: 30, receitas: 5, markups: 1, pdf_exports: 0, movimentacoes: -1 }, features: ['30 matérias-primas', '5 receitas', '1 bloco de markup'] }] }),
+  usePlanos: () => ({ loading: false, planos: [{ id: 'lite', slug: 'lite', nome_publico: 'Iniciante', preco_centavos: 990, preco_anual_centavos: 9590, limites: { produtos: 30, receitas: 5, markups: 1, pdf_exports: 0, movimentacoes: -1 }, features: ['30 matérias-primas', '5 receitas', '1 bloco de markup'] }] }),
 }));
 vi.mock('@/hooks/useStripe', () => ({ useStripe: () => ({ createCheckout: mocks.checkout, openCustomerPortal: mocks.portal, loading: false }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }), toast: vi.fn() }));
@@ -26,10 +26,10 @@ beforeEach(() => {
 afterEach(cleanup);
 const open = (children: React.ReactNode, route = '/') => render(<MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>);
 
-describe('seven-day Lite trial', () => {
+describe('seven-day Iniciante trial', () => {
   it('shows the remaining days in a link to plans', () => {
     open(<TrialBadge />);
-    expect(screen.getByRole('link', { name: '7 dias restantes no teste Lite. Ver planos' })).toHaveAttribute('href', '/planos');
+    expect(screen.getByRole('link', { name: '7 dias restantes no teste Iniciante. Ver planos' })).toHaveAttribute('href', '/planos');
   });
   it('does not show a trial badge for an existing subscriber', () => {
     mocks.access.isTrial = false; open(<TrialBadge />); expect(screen.queryByRole('link')).toBeNull();
@@ -49,10 +49,10 @@ describe('seven-day Lite trial', () => {
     expect(screen.queryByRole('button', { name: /Regularizar assinatura/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Já paguei, atualizar' })); expect(mocks.refresh).toHaveBeenCalled();
   });
-  it.each([false, true])('Lite opens checkout for a trial account (expired: %s)', async expired => {
+  it.each([false, true])('Iniciante opens checkout for a trial account (expired: %s)', async expired => {
     Object.assign(mocks.access, { isBlocked: expired, trialExpired: expired, daysRemaining: expired ? 0 : 7 });
     open(<SubscriptionStatusGate><Planos /></SubscriptionStatusGate>, '/planos');
-    fireEvent.click(screen.getByRole('button', { name: 'Assinar Lite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assinar Iniciante' }));
     expect(mocks.checkout).toHaveBeenCalledWith('lite', 'monthly', undefined);
     expect(mocks.portal).not.toHaveBeenCalled();
   });

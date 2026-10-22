@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -249,7 +250,7 @@ export function AffiliatesDashboard() {
                       {sale.customer_name || sale.customer_email}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {sale.plan_type} - {new Date(sale.sale_date).toLocaleDateString('pt-BR')}
+                      {planDisplayName(sale.plan_type)} - {new Date(sale.sale_date).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                   <div className="text-sm font-medium">

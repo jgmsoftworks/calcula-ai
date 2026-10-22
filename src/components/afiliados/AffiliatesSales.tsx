@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import {
   Table,
   TableBody,
@@ -42,16 +43,9 @@ export function AffiliatesSales() {
       enterprise: "bg-orange-100 text-orange-800",
       free: "bg-gray-100 text-gray-800"
     };
-    
-    const labels = {
-      professional: "Professional",
-      enterprise: "Enterprise",
-      free: "Gratuito"
-    };
-    
     return (
       <Badge className={colors[planType as keyof typeof colors] || "bg-blue-100 text-blue-800"}>
-        {labels[planType as keyof typeof labels] || planType}
+        {planDisplayName(planType)}
       </Badge>
     );
   };

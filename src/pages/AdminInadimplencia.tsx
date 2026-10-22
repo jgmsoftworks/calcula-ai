@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useEffect, useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -299,7 +300,7 @@ export default function AdminInadimplencia() {
                             {STATUS_LABEL[i.status].label}
                           </Badge>
                           {profile?.plan && (
-                            <Badge variant="outline" className="text-xs">Plano: {profile.plan}</Badge>
+                            <Badge variant="outline" className="text-xs">Plano: {planDisplayName(profile.plan)}</Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">

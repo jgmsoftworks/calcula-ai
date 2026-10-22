@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -31,16 +32,9 @@ interface EditUserPlanModalProps {
   };
   onSuccess: () => void;
 }
-
-const planNames = {
-  free: 'Gratuito',
-  professional: 'Professional',
-  enterprise: 'Enterprise'
-};
-
 export const EditUserPlanModal = ({ open, onOpenChange, user, onSuccess }: EditUserPlanModalProps) => {
   const { toast } = useToast();
-  const [selectedPlan, setSelectedPlan] = useState(user.plan);
+  const [selectedPlan, setSelectedPlan] = useState(user.plan === 'free' ? 'lite' : user.plan);
   const [expiresAt, setExpiresAt] = useState<Date>();
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,7 +84,7 @@ export const EditUserPlanModal = ({ open, onOpenChange, user, onSuccess }: EditU
 
       toast({
         title: "Plano atualizado",
-        description: `Plano alterado de ${planNames[user.plan as keyof typeof planNames]} para ${planNames[selectedPlan as keyof typeof planNames]}`,
+        description: `Plano alterado de ${planDisplayName(user.plan)} para ${planDisplayName(selectedPlan)}`,
       });
 
       onSuccess();
@@ -130,7 +124,7 @@ export const EditUserPlanModal = ({ open, onOpenChange, user, onSuccess }: EditU
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Plano Atual:</span>
-              <Badge variant="outline">{planNames[user.plan as keyof typeof planNames]}</Badge>
+              <Badge variant="outline">{planDisplayName(user.plan)}</Badge>
             </div>
           </div>
 
@@ -142,9 +136,9 @@ export const EditUserPlanModal = ({ open, onOpenChange, user, onSuccess }: EditU
                 <SelectValue placeholder="Selecione o plano" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="free">Gratuito</SelectItem>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
+                <SelectItem value="lite">Iniciante</SelectItem>
+                <SelectItem value="professional">Profissional</SelectItem>
+                <SelectItem value="enterprise">Empresarial</SelectItem>
               </SelectContent>
             </Select>
           </div>
