@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,7 @@ export function AffiliatesReports() {
     }, {} as Record<string, number>);
     
     return Object.entries(planCounts).map(([plan, count]) => ({
-      name: plan.charAt(0).toUpperCase() + plan.slice(1),
+      name: planDisplayName(plan),
       value: count,
       percentage: formatNumber((count / filteredSales.length) * 100, 1)
     }));

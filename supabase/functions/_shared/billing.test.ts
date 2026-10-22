@@ -189,13 +189,13 @@ it('message escaping, canonical login and masked status response', () => {
   assert(!mail.html.includes('<script>') && mail.html.includes('&lt;script&gt;'));
   assert(mail.html.includes('https://calculaaibr.com/auth?mode=login'));
   assert(maskedEmail('buyer@example.invalid') === 'bu***@example.invalid');
-  assert(!paymentEmail('pending', 'buyer@example.invalid', 'Lite').html.includes('Entrar na Calcula Aí'));
+  assert(!paymentEmail('pending', 'buyer@example.invalid', 'Iniciante').html.includes('Entrar na Calcula Aí'));
 });
 it('unconfigured mail cannot return false success', async () => {
   Deno.env.delete('GMAIL_SMTP_PASSWORD');
   Deno.env.delete('RESEND_API_KEY'); Deno.env.delete('PAYMENTS_EMAIL_FROM');
   const f = fixture();
-  await rejects(() => sendPaymentEmail(f.db, 'missing_config', async () => ({ to: 'buyer@example.invalid', ...paymentEmail('pending','buyer@example.invalid','Lite') })), 'payment_email_not_configured');
+  await rejects(() => sendPaymentEmail(f.db, 'missing_config', async () => ({ to: 'buyer@example.invalid', ...paymentEmail('pending','buyer@example.invalid','Iniciante') })), 'payment_email_not_configured');
 });
 
 it('Gmail accepts the real SMTP receipt once and closes the transport', async () => {
@@ -283,11 +283,11 @@ it('Auth creation failure cannot send credentials or grant a plan', async () => 
 });
 it('pending and failed emails never include credentials; approved and trial give profile instructions', () => {
   for (const kind of ['pending', 'failed'] as const) {
-    const message = paymentEmail(kind, 'buyer@example.invalid', 'Lite', { initialPassword: 'test-password-only' });
+    const message = paymentEmail(kind, 'buyer@example.invalid', 'Iniciante', { initialPassword: 'test-password-only' });
     assert(!message.text.includes('test-password-only') && !message.html.includes('test-password-only'));
   }
   for (const kind of ['approved', 'trial'] as const) {
-    const message = paymentEmail(kind, 'buyer@example.invalid', 'Lite', { initialPassword: 'test-password-only' });
+    const message = paymentEmail(kind, 'buyer@example.invalid', 'Iniciante', { initialPassword: 'test-password-only' });
     assert(message.text.includes('Seu login: buyer@example.invalid') && message.text.includes('Senha inicial: test-password-only'));
     assert(message.text.includes('Perfil do negócio → Segurança da conta → Alterar senha'));
   }

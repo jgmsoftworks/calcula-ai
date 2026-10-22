@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -344,7 +345,7 @@ function PaymentLinksTab() {
       <CardHeader>
         <CardTitle>Payment Links</CardTitle>
         <CardDescription>
-          Links de divulgação (buy.stripe.com) dos planos mensais Lite, Profissional e Empresarial na conta PJ.
+          Links de divulgação (buy.stripe.com) dos planos mensais Iniciante, Profissional e Empresarial na conta PJ.
           Os assinantes antigos continuam no preço legado da conta CPF — só novos cadastros usam estes links.
         </CardDescription>
       </CardHeader>
@@ -354,7 +355,7 @@ function PaymentLinksTab() {
           <div key={link.id} className="border rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <Badge>{link.plan_type}</Badge>{' '}
+                <Badge>{planDisplayName(link.plan_type)}</Badge>{' '}
                 <Badge variant="outline">{link.billing}</Badge>
               </div>
               <div className="flex items-center gap-2">

@@ -110,9 +110,9 @@ export const useAdminDashboardMetrics = () => {
 
       // Plan distribution
       const planDistribution = [
-        { name: 'Gratuito', value: profiles.filter(p => !p.plan || p.plan === 'free').length, color: 'hsl(220 16% 65%)' },
-        { name: 'Professional', value: profCount, color: 'hsl(205 96% 46%)' },
-        { name: 'Enterprise', value: entCount, color: 'hsl(273 63% 42%)' },
+        { name: 'Iniciante', value: profiles.filter(p => !p.plan || p.plan === 'free' || p.plan === 'lite').length, color: 'hsl(220 16% 65%)' },
+        { name: 'Profissional', value: profCount, color: 'hsl(205 96% 46%)' },
+        { name: 'Empresarial', value: entCount, color: 'hsl(273 63% 42%)' },
       ].filter(p => p.value > 0);
 
       // User growth (last 6 months)

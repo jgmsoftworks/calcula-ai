@@ -1,3 +1,4 @@
+import { planDisplayName } from '@/lib/plan-names';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -701,7 +702,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       if (limitCheck.reason === 'limit_exceeded') {
         toast({
           title: 'Limite atingido',
-          description: `Você já tem ${limitCheck.currentCount ?? blocosNormais.length} de ${limitCheck.maxAllowed} blocos de markup do plano ${limitCheck.plan ?? ''}. Faça upgrade para criar mais blocos.`,
+          description: `Você já tem ${limitCheck.currentCount ?? blocosNormais.length} de ${limitCheck.maxAllowed} blocos de markup do plano ${planDisplayName(limitCheck.plan)}. Faça upgrade para criar mais blocos.`,
           variant: 'destructive',
         });
         setShowUpgradeModal(true);

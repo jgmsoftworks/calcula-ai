@@ -1,4 +1,5 @@
 // @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
+import { PLAN_NAMES } from '@/lib/plan-names';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,7 +33,7 @@ export interface PlanInfo {
  */
 export const PLAN_CONFIGS: Record<PlanType, PlanInfo> = {
   lite: {
-    name: 'Lite',
+    name: PLAN_NAMES.lite,
     price: 9.9,
     yearlyPrice: 95.9,
     limits: {
