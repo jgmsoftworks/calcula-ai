@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { calculateEstoqueFinal, calcularCmvCompleto } from '@/lib/cmvCalculations';
+import { calcularDadosReceita } from '@/lib/receitasData';
 import type { DashboardData } from '@/hooks/useDashboardData';
 
 const PAGE_SIZE = 500;
@@ -27,7 +28,15 @@ export async function fetchDashboardData(userId: string, monthStart: string, mon
       .eq('user_id', userId).eq('ativo', true)
       .order('id').range(from, to).abortSignal(signal)),
     readAll((from, to) => supabase.from('receitas')
-      .select('preco_venda,rendimento_valor,custo_ingredientes,custo_embalagens,custo_mao_obra,custo_sub_receitas,markup:markups(tipo)')
+      .select(`
+        preco_venda, rendimento_valor, markup:markups(tipo),
+        ingredientes:receita_ingredientes(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
+        embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
+        mao_obra:receita_mao_obra(valor_total),
+        sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
+          quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
+        )
+      `)
       .eq('user_id', userId).order('id').range(from, to).abortSignal(signal)),
   ]);
   const entradasMes = { data: allMovimentacoesMes.data.filter(m => m.tipo === 'entrada') };
@@ -43,7 +52,7 @@ export async function fetchDashboardData(userId: string, monthStart: string, mon
 
   // ===== CMV MÉDIO DAS RECEITAS (exclui sub-receitas) =====
   // Aplica a mesma fórmula do ReceitaCard: (custoBase / precoEfetivo) * 100
-  const receitasValidas = (receitasParaCmv.data || []).filter(
+  const receitasValidas = receitasParaCmv.data.map(calcularDadosReceita).filter(
     (r: any) => r.markup?.tipo !== 'sub_receita'
   );
 

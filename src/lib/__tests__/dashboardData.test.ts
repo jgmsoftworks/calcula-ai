@@ -10,7 +10,12 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: {
   from: (table: string) => {
     const request: typeof mocks.requests[number] = { table, filters: [] };
     const query: any = {
-      select: () => query,
+      select: (columns: string) => {
+        if (table === 'receitas' && /custo_(ingredientes|embalagens|mao_obra|sub_receitas)/.test(columns)) {
+          throw new Error('column receitas.custo_ingredientes does not exist');
+        }
+        return query;
+      },
       eq: (...args: any[]) => { request.filters.push(args); return query; },
       gte: (...args: any[]) => { request.filters.push(args); return query; },
       lte: (...args: any[]) => { request.filters.push(args); return query; },
@@ -37,7 +42,12 @@ import { fetchDashboardData } from '../dashboardData';
 const signal = new AbortController().signal;
 const fetch = () => fetchDashboardData('account-a', '2026-10-01T03:00:00.000Z', '2026-10-21T18:00:00.000Z', signal);
 const movement = (extra: Record<string, unknown>) => ({ tipo: 'entrada', quantidade: 1, custo_aplicado: 1, subtotal: 1, motivo: 'Compra', data_hora: '2026-10-21T12:00:00Z', ...extra });
-const recipe = (extra: Record<string, unknown>) => ({ preco_venda: 10, rendimento_valor: 1, custo_ingredientes: 2, custo_embalagens: 0, custo_mao_obra: 0, custo_sub_receitas: 0, markup: { tipo: 'produto' }, ...extra });
+const recipe = (extra: Record<string, unknown>) => {
+  const { custo_ingredientes = 2, ...fields } = extra;
+  return { preco_venda: 10, rendimento_valor: 1,
+    ingredientes: [{ quantidade: 1, produto: { custo_unitario: custo_ingredientes, unidade_uso: null, fator_conversao: 1 } }],
+    embalagens: [], mao_obra: [], sub_receitas: [], markup: { tipo: 'produto' }, ...fields };
+};
 
 beforeEach(() => {
   mocks.tables = {};
@@ -73,6 +83,19 @@ describe('dashboard totals with shared movement data', () => {
       expect(request.filters).toContainEqual(['user_id', 'account-a']);
       expect(request.signal).toBe(signal);
     }
+  });
+
+  it('calculates recipe CMV from real relations, including conversion, packaging, labor and sub-recipes', async () => {
+    mocks.tables.receitas = [recipe({
+      rendimento_valor: 2, preco_venda: 20,
+      ingredientes: [{ quantidade: 500, produto: { custo_unitario: 10, unidade_uso: 'g', fator_conversao: 1000 } }],
+      embalagens: [{ quantidade: 2, produto: { custo_unitario: 1, unidade_uso: null, fator_conversao: 1 } }],
+      mao_obra: [{ valor_total: 3 }],
+      sub_receitas: [{ quantidade: 2, sub_receita: { preco_venda: 20, rendimento_valor: 4 } }],
+    })];
+    const result = await fetch();
+    // (5 + 2 + 3 + 10) / 2 portions / 20 sale price = 50%.
+    expect(result.cmvResult.cmvPercentual).toBe(50);
   });
 
   it('includes records beyond 1000 in every dataset and in the final totals', async () => {
