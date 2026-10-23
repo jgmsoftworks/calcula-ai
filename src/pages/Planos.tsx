@@ -1,3 +1,4 @@
+import { trackFunnel } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
 import { ArrowRight, Check, ChevronDown, Loader2, LockKeyhole, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,8 +37,11 @@ const Planos = () => {
     }
   }, [toast, reloadPlan, t]);
 
+  useEffect(() => { trackFunnel('plans_view'); }, []);
+
   const handleSelectPlan = async (plano: Plano) => {
     if (busy || access.loading || access.error) return;
+    trackFunnel('plan_selected', { plan: plano.slug, billing, action: manageSubscription ? 'manage_subscription' : 'checkout' });
     setProcessingPlan(plano.slug);
     try {
       if (manageSubscription || precoDoPlano(plano, billing) === 0) {

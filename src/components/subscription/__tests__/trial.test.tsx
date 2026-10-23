@@ -52,14 +52,14 @@ describe('seven-day Iniciante trial', () => {
   it.each([false, true])('Iniciante opens checkout for a trial account (expired: %s)', async expired => {
     Object.assign(mocks.access, { isBlocked: expired, trialExpired: expired, daysRemaining: expired ? 0 : 7 });
     open(<SubscriptionStatusGate><Planos /></SubscriptionStatusGate>, '/planos');
-    fireEvent.click(screen.getByRole('button', { name: 'Assinar Iniciante' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Escolher Iniciante' }));
     expect(mocks.checkout).toHaveBeenCalledWith('lite', 'monthly', undefined);
     expect(mocks.portal).not.toHaveBeenCalled();
   });
   it('uses the existing subscription portal instead of creating a duplicate subscription', () => {
     Object.assign(mocks.access, { isTrial: false, hasSubscription: true });
     open(<Planos />, '/planos');
-    fireEvent.click(screen.getByRole('button', { name: 'plans.manageSubscription' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gerenciar meu plano' }));
     expect(mocks.portal).toHaveBeenCalled(); expect(mocks.checkout).not.toHaveBeenCalled();
   });
 });
