@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, Loader2 } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -70,6 +70,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const { user } = useAuth();
   const { planInfo } = usePlanLimits();
   const { requestAccess } = usePlanGate();
+  const [checkingPlan, setCheckingPlan] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isMarkupSaving = useRef<boolean>(false);
 
@@ -689,12 +690,16 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   };
 
   const criarNovoBloco = async () => {
+    if (checkingPlan) return;
     // Contar apenas blocos NORMAIS (sub-receita é liberada para todos os planos)
     const blocosNormais = blocos.filter(
       (b) => b.id !== 'subreceita-fixo' && !b.nome.toLowerCase().includes('sub')
     );
 
-    if (!await requestAccess('markups')) return;
+    setCheckingPlan(true);
+    try {
+      if (!await requestAccess('markups')) return;
+    } finally { setCheckingPlan(false); }
 
     // 🎯 NOVO: Criação direta sem modal complexo
     const novoBloco: MarkupBlock = {
@@ -867,11 +872,13 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         </div>
         <Button 
           onClick={criarNovoBloco}
+          disabled={checkingPlan}
+          aria-busy={checkingPlan}
           size="sm"
           className="h-10 w-full gap-1.5 rounded-xl sm:h-9 sm:w-auto"
         >
-          <Plus className="h-3.5 w-3.5" />
-          Novo Bloco
+          {checkingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Plus className="h-3.5 w-3.5" aria-hidden="true" />}
+          {checkingPlan ? 'Conferindo plano…' : 'Novo Bloco'}
         </Button>
       </div>
 

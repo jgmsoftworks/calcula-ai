@@ -203,8 +203,8 @@ export function ListaReceitas() {
                 )}
               </Button>
               <Button onClick={handleNewRecipe} disabled={checkingPlan} aria-busy={checkingPlan} className="flex-1 sm:flex-initial">
-                <Plus className="h-4 w-4 mr-2" />
-                {t('receitas.newRecipe')}
+                {checkingPlan ? <Loader2 className="h-4 w-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Plus className="h-4 w-4 mr-2" aria-hidden="true" />}
+                {checkingPlan ? 'Conferindo plano…' : t('receitas.newRecipe')}
               </Button>
             </div>
           </div>

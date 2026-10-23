@@ -1,10 +1,11 @@
-import { createContext, lazy, Suspense, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { isPlanLimit, normalizeLimitResult, type PlanFeature, type PlanLimitResult } from '@/lib/plan-access';
 import { supabase } from '@/integrations/supabase/client';
+import PlanLimitDialog from '@/components/planos/PlanLimitDialog';
+import mascot from '@/assets/plan-mascot.webp';
 
-const PlanLimitDialog = lazy(() => import('@/components/planos/PlanLimitDialog'));
 interface LimitNotice { feature: PlanFeature; result: PlanLimitResult }
 interface PlanGate {
   requestAccess: (feature: PlanFeature) => Promise<boolean>;
@@ -16,6 +17,15 @@ export function PlanLimitProvider({ children }: { children: React.ReactNode }) {
   const { checkLimit } = usePlanLimits();
   const [notice, setNotice] = useState<LimitNotice | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    // Prepare the small image after entering the app, before a limit is reached.
+    // The dialog code ships with the authenticated layout; neither waits for the RPC.
+    const image = new Image();
+    image.decoding = 'async';
+    image.fetchPriority = 'low';
+    image.src = mascot;
+    if (image.decode) void image.decode().catch(() => { /* The visible image can retry. */ });
+  }, []);
   const handleResult = useCallback((feature: PlanFeature, result: PlanLimitResult) => {
     if (result.allowed) return true;
     if (isPlanLimit(result)) {
@@ -47,9 +57,9 @@ export function PlanLimitProvider({ children }: { children: React.ReactNode }) {
   return (
     <PlanLimitContext.Provider value={gate}>
       {children}
-      {notice && <Suspense fallback={null}>
+      {notice &&
         <PlanLimitDialog {...notice} onClose={() => setNotice(null)} onReturnFocus={() => returnFocus.current?.focus()} />
-      </Suspense>}
+      }
     </PlanLimitContext.Provider>
   );
 }

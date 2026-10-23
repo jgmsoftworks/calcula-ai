@@ -2,7 +2,7 @@
 
 Ao chegar ao limite, o aplicativo consulta o servidor antes de abrir um novo cadastro. O aviso central usa “Agora não” à esquerda e “Conhecer planos” à direita, levando a `/planos`. O plano atual também aparece durante o teste grátis.
 
-O mascote fica triste sobre “Agora não” e feliz sobre “Conhecer planos”. As mesmas reações respondem ao foco por teclado e ao toque, sem atrasar a ação do botão. A preferência de movimento reduzido é respeitada. O modal e sua imagem são carregados sob demanda.
+O mascote fica triste sobre “Agora não” e feliz sobre “Conhecer planos”. As mesmas reações respondem ao foco por teclado e ao toque, sem atrasar a ação do botão. A preferência de movimento reduzido é respeitada. O código do aviso acompanha o layout autenticado. A imagem pequena é carregada e decodificada em segundo plano ao entrar no aplicativo, com prioridade baixa; assim, a resposta do servidor não inicia uma nova sequência de downloads. Os botões de novo cadastro mostram “Conferindo plano…” imediatamente durante a consulta, sem permitir cliques repetidos.
 
 ## Cobertura
 
@@ -21,6 +21,22 @@ O PDF continua sendo montado no navegador. A autorização protege o fluxo de do
 ## Validação
 
 186 testes de interface e lógica, 20 cenários PostgreSQL, TypeScript e build de produção aprovados. Conferência do modal em Chromium a 1200×900 e 360×800, sem erros de JavaScript ou rolagem horizontal, incluindo mouse, teclado e navegação para planos. A inspeção visual usou o componente real em um cenário isolado; não realizou pagamento nem usou uma conta real de cliente.
+
+## Tempo de abertura
+
+Comparação local em Chromium, com build de produção e o provider/modal reais em uma página isolada. Três sessões novas por versão; rede simulada de 1,6 Mbps, latência de 150 ms, CPU 4× mais lenta e resposta de limite simulada com espera de 350 ms. O clique aconteceu após o carregamento inicial. Componentes compartilhados de botão, diálogo e ícones já estavam presentes, como na lista de receitas.
+
+| Mediana, em milissegundos | Antes | Depois |
+| --- | ---: | ---: |
+| Clique até resposta da conferência | 365 | 364 |
+| Clique até montagem do aviso | 645 | 435 |
+| Clique até aviso visível e imagem pronta | 943 | 575 |
+| Espera após a resposta do servidor | 579 | 210 |
+| Downloads de arquivos do aviso após o clique | 3 | 0 |
+
+Nesse cenário, o tempo até o aviso completo caiu 39%. A animação de entrada continua incluída no tempo. Os resultados medem o fluxo isolado, não a latência de contas reais em produção; um clique antes de terminar o pré-carregamento ainda pode aguardar a imagem. A autorização continua consultando o servidor a cada tentativa, sem cache de permissões ou mudança na proteção dos PDFs. Reações do mascote e ausência de rolagem horizontal conferidas a 390×844.
+
+A otimização passou nos 21 testes focados de navegação e permissões, no TypeScript e no build de produção, incluindo uma resposta lenta: o botão reage imediatamente, bloqueia cliques repetidos e só apresenta o aviso após a resposta.
 
 ## Arte do mascote
 
