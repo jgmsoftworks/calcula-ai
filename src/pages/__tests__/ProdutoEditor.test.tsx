@@ -1,3 +1,4 @@
+import { PlanLimitProvider } from '@/contexts/PlanLimitContext';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -7,9 +8,11 @@ import Estoque from '../Estoque';
 import type { Produto } from '@/hooks/useEstoque';
 
 const mocks = vi.hoisted(() => ({
+  checkLimit: vi.fn(),
   from: vi.fn(), eq: vi.fn(), load: vi.fn(), list: vi.fn(), create: vi.fn(), update: vi.fn(), code: vi.fn(),
   brands: vi.fn().mockResolvedValue([]), categories: vi.fn().mockResolvedValue([]),
 }));
+vi.mock('@/hooks/usePlanLimits', () => ({ usePlanLimits: () => ({ checkLimit: mocks.checkLimit }) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner-1' } }) }));
 vi.mock('@/hooks/useEstoque', () => ({ useEstoque: () => ({ fetchProdutos: mocks.list, createProduto: mocks.create, updateProduto: mocks.update, gerarCodigoInterno: mocks.code }) }));
 vi.mock('@/lib/produtosPageData', async () => ({ PRODUTOS_PAGE_SIZE: 40, fetchProdutosPage: async () => ({ produtos: await mocks.list(), total: 1, pagina: 1, totalBusca: 1, categorias: [] }) }));
@@ -39,16 +42,17 @@ function CurrentLocation() {
 function openPage(path: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[path]}>
-    <CurrentLocation /><Routes>
+    <PlanLimitProvider><CurrentLocation /><Routes>
       <Route path="/estoque" element={<Estoque />} />
       <Route path="/estoque/novo" element={<ProdutoEditor />} />
       <Route path="/estoque/:id/editar" element={<ProdutoEditor />} />
-    </Routes>
+    </Routes></PlanLimitProvider>
   </MemoryRouter></QueryClientProvider>);
 }
 function tab(name: string) { fireEvent.mouseDown(screen.getByRole('tab', { name }), { button: 0, ctrlKey: false }); }
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.checkLimit.mockResolvedValue({ allowed: true, plan: 'lite' });
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
   const query = { select: vi.fn().mockReturnThis(), eq: mocks.eq, abortSignal: vi.fn().mockReturnThis(), maybeSingle: mocks.load };
   mocks.eq.mockReturnValue(query);

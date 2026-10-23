@@ -401,7 +401,6 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         // MODO CRIAÇÃO: Salvar tudo de uma vez
         const novaReceita = await createReceita(formData);
         if (!novaReceita?.id) {
-          toast.error('Erro ao criar receita');
           return;
         }
 

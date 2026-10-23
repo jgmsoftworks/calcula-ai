@@ -1,4 +1,4 @@
-import { planDisplayName } from '@/lib/plan-names';
+import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { calcularCustoTotalFuncionario } from '@/lib/folhaPagamentoUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
-import { UpgradePlansModal } from '@/components/planos/UpgradePlansModal';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 
@@ -55,7 +54,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const [nomeTemp, setNomeTemp] = useState('');
   const [calculatedMarkups, setCalculatedMarkups] = useState<Map<string, CalculatedMarkup>>(new Map());
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<Array<{ data: string; valor: number }>>([]);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   // Estados para configuração
   const [modalConfiguracaoAberto, setModalConfiguracaoAberto] = useState(false);
@@ -70,7 +68,8 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const { loadConfiguration, saveConfiguration, invalidateCache } = useOptimizedUserConfigurations();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { checkLimit, showUpgradeMessage, planInfo } = usePlanLimits();
+  const { planInfo } = usePlanLimits();
+  const { requestAccess } = usePlanGate();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isMarkupSaving = useRef<boolean>(false);
 
@@ -695,22 +694,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       (b) => b.id !== 'subreceita-fixo' && !b.nome.toLowerCase().includes('sub')
     );
 
-    // Verificar limite antes de adicionar
-    const limitCheck = await checkLimit('markups');
-
-    if (!limitCheck.allowed) {
-      if (limitCheck.reason === 'limit_exceeded') {
-        toast({
-          title: 'Limite atingido',
-          description: `Você já tem ${limitCheck.currentCount ?? blocosNormais.length} de ${limitCheck.maxAllowed} blocos de markup do plano ${planDisplayName(limitCheck.plan)}. Faça upgrade para criar mais blocos.`,
-          variant: 'destructive',
-        });
-        setShowUpgradeModal(true);
-      } else {
-        showUpgradeMessage('markups');
-      }
-      return;
-    }
+    if (!await requestAccess('markups')) return;
 
     // 🎯 NOVO: Criação direta sem modal complexo
     const novoBloco: MarkupBlock = {
@@ -1139,10 +1123,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         }}
       />
 
-      <UpgradePlansModal 
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-      />
     </div>
   );
 }

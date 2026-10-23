@@ -3,10 +3,9 @@ import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { UpgradePlansModal } from './UpgradePlansModal';
+import { useNavigate } from 'react-router-dom';
 import { usePlanLimits, PlanType } from '@/hooks/usePlanLimits';
 import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
 
 interface PlanRestrictedAreaProps {
   requiredPlan: PlanType;
@@ -25,12 +24,12 @@ export const PlanRestrictedArea = ({
 }: PlanRestrictedAreaProps) => {
   const { currentPlan, hasAccess } = usePlanLimits();
   const { isAdmin } = useAuth();
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const navigate = useNavigate();
 
   const hasFeatureAccess = isAdmin || hasAccess(requiredPlan);
 
   const handleUpgradeClick = () => {
-    setShowUpgradeModal(true);
+    navigate('/planos');
   };
 
   const getSuggestedPlanName = (plan: PlanType) => {
@@ -51,18 +50,12 @@ export const PlanRestrictedArea = ({
       <>
         <Button
           variant="outline"
-          disabled
           className="relative opacity-60"
           onClick={handleUpgradeClick}
         >
           <Lock className="w-4 h-4 mr-2" />
-          {typeof children === 'string' ? children : 'Recurso Premium'}
+          {typeof children === 'string' ? children : 'Recurso de outro plano'}
         </Button>
-        <UpgradePlansModal
-          open={showUpgradeModal}
-          onOpenChange={setShowUpgradeModal}
-          defaultPlan={requiredPlan}
-        />
       </>
     );
   }
@@ -99,7 +92,7 @@ export const PlanRestrictedArea = ({
             
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-foreground">
-                Recurso Premium
+                Recurso de outro plano
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
                 {feature} está disponível apenas no plano {getSuggestedPlanName(requiredPlan)}
@@ -108,17 +101,11 @@ export const PlanRestrictedArea = ({
             
             <Button onClick={handleUpgradeClick} className="mt-4">
               <Lock className="w-4 h-4 mr-2" />
-              Fazer Upgrade
+              Conhecer planos
             </Button>
           </div>
         </Card>
       </div>
-
-      <UpgradePlansModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        defaultPlan={requiredPlan}
-      />
     </>
   );
 };

@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import type { Produto } from '@/hooks/useEstoque';
 import { readNutritionLabels } from '@/lib/nutritionLabel';
 import { supabase } from '@/integrations/supabase/client';
+import { NewItemPlanGate } from '@/components/planos/NewItemPlanGate';
 
 export default function ProdutoEditor() {
   const { id } = useParams<{ id: string }>();
@@ -50,5 +51,8 @@ export default function ProdutoEditor() {
     </div>;
   }
 
-  return <ProdutoForm key={id || 'novo'} produto={id ? produto : undefined} onCancel={voltarParaProdutos} onSuccess={voltarParaProdutos} />;
+  if (!id) return <NewItemPlanGate feature="produtos" onBack={voltarParaProdutos}>
+    <ProdutoForm key="novo" onCancel={voltarParaProdutos} onSuccess={voltarParaProdutos} />
+  </NewItemPlanGate>;
+  return <ProdutoForm key={id} produto={produto} onCancel={voltarParaProdutos} onSuccess={voltarParaProdutos} />;
 }

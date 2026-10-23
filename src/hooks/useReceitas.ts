@@ -4,10 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
+import { usePlanGate } from '@/contexts/PlanLimitContext';
+import { isPlanLimitError } from '@/lib/plan-access';
 import type { Receita, ReceitaCompleta, ReceitaIngrediente, ReceitaEmbalagem, ReceitaPasso } from '@/types/receitas';
 
 export function useReceitas() {
   const { user } = useAuth();
+  const { requestAccess } = usePlanGate();
   const [loading, setLoading] = useState(false);
 
   const gerarNumeroSequencial = async () => {
@@ -108,6 +111,7 @@ export function useReceitas() {
 
   const createReceita = async (data: Partial<Receita>) => {
     if (!user) return null;
+    if (!await requestAccess('receitas')) return null;
 
     setLoading(true);
     try {
@@ -141,7 +145,8 @@ export function useReceitas() {
       return receita;
     } catch (error: any) {
       console.error('Erro ao criar receita:', error);
-      toast.error('Erro ao criar receita');
+      if (isPlanLimitError(error)) await requestAccess('receitas');
+      else toast.error('Não foi possível criar a receita. Tente novamente.');
       return null;
     } finally {
       setLoading(false);
@@ -350,6 +355,7 @@ export function useReceitas() {
 
   const duplicarReceita = async (receitaId: string): Promise<boolean> => {
     if (!user) return false;
+    if (!await requestAccess('receitas')) return false;
 
     setLoading(true);
     try {
@@ -468,7 +474,8 @@ export function useReceitas() {
       return true;
     } catch (error: any) {
       console.error('Erro ao duplicar receita:', error);
-      toast.error('Erro ao duplicar receita');
+      if (isPlanLimitError(error)) await requestAccess('receitas');
+      else toast.error('Não foi possível duplicar a receita. Tente novamente.');
       return false;
     } finally {
       setLoading(false);

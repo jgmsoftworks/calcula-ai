@@ -8,6 +8,7 @@ import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useToast } from '@/hooks/use-toast';
 import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { planDisplayName } from '@/lib/plan-names';
 
 const planGradients: Record<PlanType, string> = {
   lite: 'from-[#0483e4] to-[#2c4dc7]',
@@ -151,6 +152,9 @@ const Planos = () => {
         </p>
       </div>
 
+      {!access.loading && !access.error && <p className="text-center text-sm text-muted-foreground">
+        {access.isTrial ? 'Seu plano durante o teste: ' : 'Seu plano atual: '}<strong className="text-foreground">{planDisplayName(currentPlan)}</strong>
+      </p>}
       {/* Alternador Mensal / Anual */}
       <div className="flex justify-center">
         <div className="inline-flex items-center gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1 backdrop-blur">
@@ -177,7 +181,7 @@ const Planos = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {planos.map((plano, idx) => {
           const planType = plano.slug as PlanType;
-          const isCurrentPlan = manageSubscription && currentPlan === planType;
+          const isCurrentPlan = currentPlan === planType;
           const isProfessional = planType === 'professional';
 
           return (
@@ -209,7 +213,7 @@ const Planos = () => {
                   <div>
                     <h3 className="text-lg font-bold font-display text-foreground">{plano.nome_publico}</h3>
                     {isCurrentPlan && (
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary">{t('plans.currentPlan')}</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary">{access.isTrial ? 'Seu plano no teste grátis' : t('plans.currentPlan')}</span>
                     )}
                   </div>
                 </div>

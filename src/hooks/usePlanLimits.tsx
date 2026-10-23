@@ -1,5 +1,7 @@
 // @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
 import { PLAN_NAMES } from '@/lib/plan-names';
+import { useCallback } from 'react';
+import { normalizeLimitResult, type PlanLimitResult } from '@/lib/plan-access';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -112,13 +114,7 @@ export const usePlanLimits = () => {
   const loading = !!user?.id && planQuery.isPending;
   const loadUserPlan = () => planQuery.refetch();
 
-  const checkLimit = async (featureType: keyof PlanLimits, count: number = 1): Promise<{
-    allowed: boolean;
-    reason?: string;
-    currentCount?: number;
-    maxAllowed?: number;
-    plan?: string;
-  }> => {
+  const checkLimit = useCallback(async (featureType: keyof PlanLimits, count: number = 1): Promise<PlanLimitResult> => {
     if (!user) {
       return { allowed: false, reason: 'user_not_authenticated' };
     }
@@ -143,18 +139,12 @@ export const usePlanLimits = () => {
 
       if (error) throw error;
 
-      return data as {
-        allowed: boolean;
-        reason?: string;
-        currentCount?: number;
-        maxAllowed?: number;
-        plan?: string;
-      };
+      return normalizeLimitResult(data);
     } catch (error) {
       console.error('Erro ao verificar limite:', error);
       return { allowed: false, reason: 'check_error' };
     }
-  };
+  }, [user?.id, isAdmin]);
 
   const showUpgradeMessage = (featureType: keyof PlanLimits) => {
     let featureName = '';
@@ -185,31 +175,9 @@ export const usePlanLimits = () => {
 
     toast({
       title: 'Recurso bloqueado',
-      description: `${featureName} disponível apenas no plano ${suggestedPlan}. Faça upgrade para desbloquear.`,
+      description: `${featureName} disponível no plano ${suggestedPlan}. Conheça os planos para liberar esse recurso.`,
       variant: 'destructive',
     });
-  };
-
-  const updatePdfCount = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          pdf_exports_count: await supabase
-            .from('profiles')
-            .select('pdf_exports_count')
-            .eq('user_id', user.id)
-            .single()
-            .then(({ data }) => (data?.pdf_exports_count || 0) + 1)
-        })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Erro ao atualizar contador de PDF:', error);
-    }
   };
 
   const hasAccess = (requiredPlan: PlanType): boolean => {
@@ -277,7 +245,6 @@ export const usePlanLimits = () => {
     planInfo: PLAN_CONFIGS[currentPlan],
     checkLimit,
     showUpgradeMessage,
-    updatePdfCount,
     reloadPlan: loadUserPlan,
     hasAccess,
     getCurrentUsage,

@@ -3432,6 +3432,7 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_pdf_export: { Args: never; Returns: Json }
       count_user_suggestions_24h: {
         Args: { check_user_id: string }
         Returns: number
