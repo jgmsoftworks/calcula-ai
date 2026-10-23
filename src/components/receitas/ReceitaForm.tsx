@@ -1,3 +1,4 @@
+import { trackRecipeCreated } from '@/lib/funnel-analytics';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -489,6 +490,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           await uploadImagemReceita(imageFile, novaReceita.id);
         }
 
+        if (user) trackRecipeCreated(user.id, novaReceita.numero_sequencial);
         toast.success('Receita criada com sucesso!');
       } else {
         // MODO EDIÇÃO: Processar diferenças e salvar tudo de uma vez
