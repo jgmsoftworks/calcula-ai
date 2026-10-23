@@ -1,0 +1,13 @@
+.plan-mascot { transition: transform 180ms ease; }
+.mascot-face { transition: transform 180ms ease; transform-origin: 625px 900px; }
+.mascot-happy-eyes, .mascot-sad-brows, .mascot-mouth-happy, .mascot-mouth-sad { opacity: 0; }
+.mascot-face > g, .mascot-face > path { transition: opacity 150ms ease; }
+.plan-mascot[data-mood="sad"] { transform: rotate(-4deg) translateY(3px); }
+.plan-mascot[data-mood="sad"] .mascot-face { transform: translate(-12px, 14px); }
+.plan-mascot[data-mood="sad"] .mascot-sad-brows, .plan-mascot[data-mood="sad"] .mascot-mouth-sad { opacity: 1; }
+.plan-mascot[data-mood="sad"] .mascot-mouth-neutral { opacity: 0; }
+.plan-mascot[data-mood="happy"] { transform: rotate(3deg) translateY(-3px); }
+.plan-mascot[data-mood="happy"] .mascot-face { transform: translate(12px, -5px); }
+.plan-mascot[data-mood="happy"] .mascot-happy-eyes, .plan-mascot[data-mood="happy"] .mascot-mouth-happy { opacity: 1; }
+.plan-mascot[data-mood="happy"] .mascot-open-eyes, .plan-mascot[data-mood="happy"] .mascot-mouth-neutral { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .plan-mascot, .mascot-face, .mascot-face > g, .mascot-face > path { transition: none; } }

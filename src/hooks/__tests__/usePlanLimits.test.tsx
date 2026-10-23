@@ -15,13 +15,13 @@ describe('shared plan reads', () => {
       for (const method of ['select', 'eq', 'abortSignal']) query[method] = () => query;
       return query;
     });
-    mocks.rpc.mockResolvedValue({ data: { allowed: false, reason: 'limit_reached' }, error: null });
+    mocks.rpc.mockResolvedValue({ data: { allowed: false, reason: 'limit_reached', current_count: 5, max_allowed: 5, plan: 'lite' }, error: null });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
     const { result, rerender } = renderHook(() => [usePlanLimits(), usePlanLimits(), usePlanLimits()], { wrapper });
     await waitFor(() => expect(result.current.every(plan => plan.currentPlan === 'enterprise')).toBe(true));
     expect(mocks.from).toHaveBeenCalledTimes(1);
-    expect(await result.current[0].checkLimit('produtos')).toEqual({ allowed: false, reason: 'limit_reached' });
+    expect(await result.current[0].checkLimit('produtos')).toEqual({ allowed: false, reason: 'limit_reached', currentCount: 5, maxAllowed: 5, plan: 'lite' });
     expect(mocks.rpc).toHaveBeenCalledWith('check_plan_limits', { user_uuid: 'account-a', feature_type: 'produtos', feature_count: 1 });
     mocks.userId = 'account-b'; rerender();
     expect(result.current[0].currentPlan).toBe('lite');

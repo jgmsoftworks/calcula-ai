@@ -5,6 +5,7 @@ import { ReceitaForm } from '@/components/receitas/ReceitaForm';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useReceitas } from '@/hooks/useReceitas';
+import { NewItemPlanGate } from '@/components/planos/NewItemPlanGate';
 
 export default function ReceitaEditor() {
   const { id } = useParams<{ id: string }>();
@@ -60,5 +61,8 @@ export default function ReceitaEditor() {
     );
   }
 
-  return <ReceitaForm key={id || 'nova'} receita={id ? receita! : null} onClose={voltarParaReceitas} />;
+  if (!id) return <NewItemPlanGate feature="receitas" onBack={voltarParaReceitas}>
+    <ReceitaForm key="nova" receita={null} onClose={voltarParaReceitas} />
+  </NewItemPlanGate>;
+  return <ReceitaForm key={id} receita={receita!} onClose={voltarParaReceitas} />;
 }

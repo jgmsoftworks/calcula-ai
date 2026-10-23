@@ -26,7 +26,7 @@ await db.exec(`
     phone text, celular text, whatsapp text, plan varchar default 'lite', plan_expires_at timestamptz,
     trial_ends_at timestamptz default now()+interval '7 days', subscription_status text not null default 'active',
     grace_period_ends_at timestamptz, access_blocked_at timestamptz, is_admin boolean not null default false,
-    role text not null default 'user', pdf_exports_count integer default 0
+    role text not null default 'user', pdf_exports_count integer default 0, pdf_exports_reset_at timestamptz default now()
   );
   create function public.prevent_is_admin_self_update() returns trigger language plpgsql as $$ begin return new; end; $$;
   create trigger prevent_is_admin_update before update on profiles for each row execute function public.prevent_is_admin_self_update();
@@ -45,6 +45,7 @@ for (const name of businessTables) {
 await db.exec(`alter table profiles enable row level security; create policy own_profile on profiles for select to authenticated using(user_id=auth.uid()); create policy edit_profile on profiles for update to authenticated using(user_id=auth.uid()); create policy insert_profile on profiles for insert to authenticated with check(user_id=auth.uid()); grant all on all tables in schema public to authenticated, service_role;`);
 await db.exec(migration);
 await db.exec(await readFile(new URL('../supabase/migrations/20261022232245_rename_lite_to_iniciante.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261022235500_plan_limit_prompts_and_pdf_quota.sql', import.meta.url), 'utf8'));
 let passed = 0;
 const q = async sql => (await db.query(sql)).rows;
 const admin = () => db.exec("reset role; select set_config('request.jwt.claim.sub','',false), set_config('request.jwt.claim.role','',false);");
@@ -119,6 +120,55 @@ try {
   });
   await test('every operational table has the restrictive expiry policy', async () => {
     await admin(); const rows = await q("select count(*)::int as n from pg_policies where schemaname='public' and policyname='active_app_access' and permissive='RESTRICTIVE'"); assert.equal(rows[0].n,businessTables.length);
+  });
+  await test('paid Iniciante also blocks a sixth recipe while existing recipes remain editable', async () => {
+    await asUser(ids.trial);
+    await denied(`insert into receitas(user_id) values('${ids.trial}');`);
+    await db.exec(`update receitas set tipo='normal' where user_id='${ids.trial}';`);
+    assert.equal((await q('select count(*)::int as n from receitas'))[0].n,5);
+  });
+  await test('trial and paid Iniciante cannot consume a PDF or invoke the old bypass', async () => {
+    for (const id of [ids.other,ids.trial]) {
+      await asUser(id);
+      const r=(await q('select consume_pdf_export() as value'))[0].value;
+      assert.equal(r.allowed,false); assert.equal(r.reason,'limit_exceeded'); assert.equal(r.max_allowed,0);
+      await denied(`select increment_pdf_count('${id}')`);
+    }
+  });
+  await test('Profissional consumes exactly 80 PDFs and cannot change the protected usage', async () => {
+    await admin(); await db.exec(`update profiles set access_mode='subscription',plan='professional',trial_ends_at=null where user_id='${ids.other}';`);
+    await asUser(ids.other);
+    for(let n=1;n<=80;n++) { const r=(await q('select consume_pdf_export() as value'))[0].value; assert.equal(r.allowed,true); assert.equal(r.current_count,n); }
+    assert.equal((await q('select consume_pdf_export() as value'))[0].value.allowed,false);
+    await db.exec(`update profiles set pdf_exports_count=0,pdf_exports_reset_at=now() where user_id='${ids.other}';`);
+    assert.equal((await q('select consume_pdf_export() as value'))[0].value.allowed,false);
+    await denied('update private.pdf_export_usage set exports=0');
+    await denied(`select increment_pdf_count('${ids.trial}')`);
+  });
+  await test('a new month starts a new quota; canceled access cannot consume a PDF', async () => {
+    await admin(); await db.exec(`update private.pdf_export_usage set period_start=date_trunc('month',now())::date-interval '1 month' where user_id='${ids.other}';`);
+    await asUser(ids.other); const r=(await q('select consume_pdf_export() as value'))[0].value;
+    assert.equal(r.allowed,true); assert.equal(r.current_count,1);
+    await admin(); await db.exec(`update profiles set access_blocked_at=now(),subscription_status='canceled' where user_id='${ids.other}';`);
+    await asUser(ids.other); assert.equal((await q('select consume_pdf_export() as value'))[0].value.reason,'access_expired');
+  });
+  await test('Profissional recipe quota survives a downgrade without blocking existing edits', async () => {
+    await admin(); await db.exec(`update profiles set subscription_status='active',access_blocked_at=null where user_id='${ids.other}';`);
+    await asUser(ids.other); await db.exec(`insert into receitas(user_id) select '${ids.other}' from generate_series(1,60);`);
+    await denied(`insert into receitas(user_id) values('${ids.other}')`);
+    await admin(); await db.exec(`update profiles set plan='lite' where user_id='${ids.other}';`);
+    await asUser(ids.other); await db.exec(`update receitas set tipo='normal' where user_id='${ids.other}';`);
+    assert.equal((await q('select count(*)::int as n from receitas'))[0].n,60);
+    await denied(`insert into receitas(user_id) values('${ids.other}')`);
+  });
+  await test('reapplying the migration cannot erase recorded PDF usage', async () => {
+    await admin(); await db.exec(`update profiles set plan='professional' where user_id='${ids.other}'; update private.pdf_export_usage set exports=80 where user_id='${ids.other}';`);
+    await db.exec(await readFile(new URL('../supabase/migrations/20261022235500_plan_limit_prompts_and_pdf_quota.sql', import.meta.url), 'utf8'));
+    await asUser(ids.other); assert.equal((await q('select consume_pdf_export() as value'))[0].value.allowed,false);
+  });
+  await test('PDF consumption requires authentication and preserves admin access', async () => {
+    await admin(); await db.exec('set role anon'); await denied('select consume_pdf_export()');
+    await admin(); await asUser(ids.admin); assert.equal((await q('select consume_pdf_export() as value'))[0].value.allowed,true);
   });
   console.log(`${passed} database scenarios passed`);
 } finally { await db.close(); }

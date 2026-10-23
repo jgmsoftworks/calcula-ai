@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatters } from '@/lib/formatters';
@@ -11,6 +12,8 @@ interface ConservacaoData {
 
 export function useExportReceitaPDF() {
   const [exporting, setExporting] = useState(false);
+  const busy = useRef(false);
+  const { requestAccess, consumePdfExport } = usePlanGate();
 
   const formatQuantidade = (quantidade: number): string => {
     return formatters.quantidadeContinua(quantidade, 3);
@@ -53,8 +56,11 @@ export function useExportReceitaPDF() {
   };
 
   const exportarReceitaPDF = async (receitaId: string) => {
+    if (busy.current) return;
+    busy.current = true;
     try {
       setExporting(true);
+      if (!await requestAccess('pdf_exports')) return;
       const { default: jsPDF } = await import('jspdf');
 
       // Buscar dados do usuário e perfil
@@ -750,6 +756,8 @@ export function useExportReceitaPDF() {
 
       // Salvar PDF
       const fileName = `ficha-tecnica-${receita.nome.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      // Recheck and consume the quota atomically only after the PDF is ready.
+      if (!await consumePdfExport()) return;
       doc.save(fileName);
 
       toast.success('Ficha técnica gerada com sucesso!');
@@ -758,6 +766,7 @@ export function useExportReceitaPDF() {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast.error(`Erro ao gerar ficha técnica: ${errorMessage}`);
     } finally {
+      busy.current = false;
       setExporting(false);
     }
   };

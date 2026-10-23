@@ -1,5 +1,6 @@
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
+import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { useProdutosPage } from '@/hooks/useProdutosPage';
 import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -142,8 +143,14 @@ export function ListaProdutos() {
     navigate(`/estoque/${produto.id}/editar${location.search}`);
   };
 
-  const handleCreate = () => {
-    navigate(`/estoque/novo${location.search}`);
+  const { requestAccess } = usePlanGate();
+  const [checkingPlan, setCheckingPlan] = useState(false);
+  const handleCreate = async () => {
+    if (checkingPlan) return;
+    setCheckingPlan(true);
+    try {
+      if (await requestAccess('produtos')) navigate(`/estoque/novo${location.search}`);
+    } finally { setCheckingPlan(false); }
   };
 
   const handleImportSuccess = () => {
@@ -314,7 +321,7 @@ export function ListaProdutos() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={handleCreate}>
+          <Button onClick={handleCreate} disabled={checkingPlan}>
             <Plus className="h-4 w-4 mr-2" />
             Criar Produto
           </Button>
@@ -377,7 +384,7 @@ export function ListaProdutos() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <Button onClick={handleCreate} className="w-full">
+        <Button onClick={handleCreate} disabled={checkingPlan} className="w-full">
           <Plus className="h-4 w-4 mr-2" />
           Criar Produto
         </Button>

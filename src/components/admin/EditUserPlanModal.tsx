@@ -182,7 +182,7 @@ export const EditUserPlanModal = ({ open, onOpenChange, user, onSuccess }: EditU
             <Label htmlFor="reason">Motivo da Alteração *</Label>
             <Textarea
               id="reason"
-              placeholder="Ex: Cliente solicitou upgrade temporário, teste de funcionalidades, etc."
+              placeholder="Ex: Cliente solicitou mudança temporária de plano, teste de funcionalidades, etc."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}

@@ -18,6 +18,7 @@ import { ReceitaCard } from './ReceitaCard';
 import { ExportMarkupModal } from './ExportMarkupModal';
 import { useTranslation } from 'react-i18next';
 import type { ReceitaComDados } from '@/types/receitas';
+import { usePlanGate } from '@/contexts/PlanLimitContext';
 
 export function ListaReceitas() {
   const { t } = useTranslation();
@@ -28,6 +29,15 @@ export function ListaReceitas() {
   const queryClient = useQueryClient();
   const { exportarReceitas, exporting } = useExportReceitas();
   const { user } = useAuth();
+  const { requestAccess } = usePlanGate();
+  const [checkingPlan, setCheckingPlan] = useState(false);
+  const handleNewRecipe = async () => {
+    if (checkingPlan) return;
+    setCheckingPlan(true);
+    try {
+      if (await requestAccess('receitas')) navigate(`/receitas/nova${location.search}`);
+    } finally { setCheckingPlan(false); }
+  };
   const userId = user?.id;
   const listStartRef = useRef<HTMLDivElement>(null);
 
@@ -192,7 +202,7 @@ export function ListaReceitas() {
                   </>
                 )}
               </Button>
-              <Button onClick={() => navigate(`/receitas/nova${location.search}`)} className="flex-1 sm:flex-initial">
+              <Button onClick={handleNewRecipe} disabled={checkingPlan} aria-busy={checkingPlan} className="flex-1 sm:flex-initial">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('receitas.newRecipe')}
               </Button>

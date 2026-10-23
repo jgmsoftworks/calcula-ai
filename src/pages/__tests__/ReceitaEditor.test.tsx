@@ -1,3 +1,4 @@
+import { PlanLimitProvider } from '@/contexts/PlanLimitContext';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -8,6 +9,7 @@ import Receitas from '../Receitas';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 const mocks = vi.hoisted(() => ({
+  checkLimit: vi.fn(),
   user: { id: 'owner' },
   fetchReceitasPage: vi.fn(),
   fetchTodasReceitas: vi.fn(),
@@ -19,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/receitasData', () => ({ fetchReceitasPage: mocks.fetchReceitasPage, fetchTodasReceitas: mocks.fetchTodasReceitas, RECEITAS_PAGE_SIZE: 24 }));
+vi.mock('@/hooks/usePlanLimits', () => ({ usePlanLimits: () => ({ checkLimit: mocks.checkLimit }) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock('@/hooks/useReceitas', () => ({ useReceitas: () => ({ ...mocks, loading: false }) }));
 // Keep these tests focused on route changes, hydration and save/return behavior.
@@ -75,12 +78,13 @@ function openPage(path: string) {
     <QueryClientProvider client={client}>
       <TooltipProvider>
         <MemoryRouter initialEntries={[path]}>
-          <Location />
+          <PlanLimitProvider><Location />
           <Routes>
+            <Route path="/planos" element={<h1>Conheça nossos planos</h1>} />
             <Route path="/receitas" element={<Receitas />} />
             <Route path="/receitas/nova" element={<ReceitaEditor />} />
             <Route path="/receitas/:id/editar" element={<ReceitaEditor />} />
-          </Routes>
+          </Routes></PlanLimitProvider>
         </MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
@@ -89,6 +93,7 @@ function openPage(path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.checkLimit.mockResolvedValue({ allowed: true, plan: 'lite' });
   mocks.fetchReceitasPage.mockResolvedValue({ receitas: [recipe], total: 1 });
   mocks.fetchTodasReceitas.mockResolvedValue([recipe]);
   mocks.fetchReceitaCompleta.mockResolvedValue(recipe);
@@ -111,6 +116,32 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('recipe editor navigation', () => {
+  it('blocks the sixth recipe at the list button, even when the current filter shows one recipe', async () => {
+    mocks.checkLimit.mockResolvedValue({ allowed: false, reason: 'limit_exceeded', currentCount: 5, maxAllowed: 5, plan: 'lite' });
+    openPage('/receitas?busca=Bolo');
+    fireEvent.click(await screen.findByRole('button', { name: 'Nova Receita' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('limite de 5 receitas do plano Iniciante');
+    expect(screen.queryByLabelText('Nome da Receita *')).toBeNull();
+    expect(mocks.createReceita).not.toHaveBeenCalled();
+    const mascot = document.querySelector('.plan-mascot');
+    const later = screen.getByRole('button', { name: 'Agora não' });
+    const plans = screen.getByRole('button', { name: 'Conhecer planos' });
+    fireEvent.pointerEnter(later); expect(mascot).toHaveAttribute('data-mood', 'sad');
+    fireEvent.pointerLeave(later); expect(mascot).toHaveAttribute('data-mood', 'neutral');
+    fireEvent.focus(plans); expect(mascot).toHaveAttribute('data-mood', 'happy');
+    fireEvent.blur(plans); fireEvent.click(later);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByLabelText('Endereço atual')).toHaveTextContent('/receitas?busca=Bolo');
+    fireEvent.click(screen.getByRole('button', { name: 'Nova Receita' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Conhecer planos' }));
+    expect(await screen.findByRole('heading', { name: 'Conheça nossos planos' })).toBeVisible();
+  });
+  it('guards a direct new-recipe URL without mounting its form', async () => {
+    mocks.checkLimit.mockResolvedValue({ allowed: false, reason: 'limit_exceeded', currentCount: 5, maxAllowed: 5, plan: 'lite' });
+    openPage('/receitas/nova');
+    await screen.findByRole('dialog');
+    expect(screen.queryByLabelText('Nome da Receita *')).toBeNull();
+  });
   it('opens creation as a page and returns to the same search and filters', async () => {
     openPage('/receitas?busca=Bolo&subReceita=normal');
     fireEvent.click(await screen.findByRole('button', { name: 'Nova Receita' }));
@@ -161,7 +192,7 @@ describe('recipe editor navigation', () => {
 
   it('creates through all six steps and returns only after saving', async () => {
     openPage('/receitas/nova');
-    fireEvent.change(screen.getByLabelText('Nome da Receita *'), { target: { value: 'Bolo novo' } });
+    fireEvent.change(await screen.findByLabelText('Nome da Receita *'), { target: { value: 'Bolo novo' } });
     for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }));
     await waitFor(() => expect(mocks.createReceita).toHaveBeenCalledWith(expect.objectContaining({ nome: 'Bolo novo' })));
