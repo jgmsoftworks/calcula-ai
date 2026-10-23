@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { useProdutosPage } from '@/hooks/useProdutosPage';
-import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw, SlidersHorizontal, MoreVertical } from 'lucide-react';
+import { Plus, Pencil, Eye, AlertCircle, Download, Upload, Trash2, RefreshCw, SlidersHorizontal, MoreVertical, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -321,9 +321,9 @@ export function ListaProdutos() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={handleCreate} disabled={checkingPlan}>
-            <Plus className="h-4 w-4 mr-2" />
-            Criar Produto
+          <Button onClick={handleCreate} disabled={checkingPlan} aria-busy={checkingPlan}>
+            {checkingPlan ? <Loader2 className="h-4 w-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Plus className="h-4 w-4 mr-2" aria-hidden="true" />}
+            {checkingPlan ? 'Conferindo plano…' : 'Criar Produto'}
           </Button>
           <Button onClick={handleForceRefresh} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -384,9 +384,9 @@ export function ListaProdutos() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <Button onClick={handleCreate} disabled={checkingPlan} className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Criar Produto
+        <Button onClick={handleCreate} disabled={checkingPlan} aria-busy={checkingPlan} className="w-full">
+          {checkingPlan ? <Loader2 className="h-4 w-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Plus className="h-4 w-4 mr-2" aria-hidden="true" />}
+          {checkingPlan ? 'Conferindo plano…' : 'Criar Produto'}
         </Button>
       </Card>
 

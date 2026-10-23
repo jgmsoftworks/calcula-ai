@@ -116,6 +116,23 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('recipe editor navigation', () => {
+  it('shows immediate feedback during a slow plan check without opening the form or checking twice', async () => {
+    let finishCheck!: (result: unknown) => void;
+    mocks.checkLimit.mockReturnValueOnce(new Promise(resolve => { finishCheck = resolve; }));
+    openPage('/receitas');
+    fireEvent.click(await screen.findByRole('button', { name: 'Nova Receita' }));
+    const waiting = screen.getByRole('button', { name: 'Conferindo plano…' });
+    expect(waiting).toBeDisabled();
+    expect(waiting).toHaveAttribute('aria-busy', 'true');
+    fireEvent.click(waiting);
+    expect(mocks.checkLimit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByLabelText('Nome da Receita *')).toBeNull();
+    await act(async () => { finishCheck({ allowed: false, reason: 'limit_exceeded', currentCount: 5, maxAllowed: 5, plan: 'lite' }); });
+    expect(await screen.findByRole('dialog')).toHaveTextContent('limite de 5 receitas');
+    fireEvent.click(screen.getByRole('button', { name: 'Agora não' }));
+    expect(screen.getByRole('button', { name: 'Nova Receita' })).toBeEnabled();
+  });
   it('blocks the sixth recipe at the list button, even when the current filter shows one recipe', async () => {
     mocks.checkLimit.mockResolvedValue({ allowed: false, reason: 'limit_exceeded', currentCount: 5, maxAllowed: 5, plan: 'lite' });
     openPage('/receitas?busca=Bolo');
