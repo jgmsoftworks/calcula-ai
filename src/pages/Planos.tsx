@@ -1,346 +1,176 @@
 import { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { ArrowRight, Check, ChevronDown, Loader2, LockKeyhole, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PlanType, usePlanLimits } from '@/hooks/usePlanLimits';
-import { usePlanos, formatPreco, precoDoPlano, Plano, Billing } from '@/hooks/usePlanos';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { usePlanos, formatPreco, precoDoPlano, type Plano, type Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useToast } from '@/hooks/use-toast';
-import { Crown, Zap, Gift, Check, X, CreditCard, Shield, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { planDisplayName } from '@/lib/plan-names';
-
-const planGradients: Record<PlanType, string> = {
-  lite: 'from-[#0483e4] to-[#2c4dc7]',
-  professional: 'from-[#7328b1] to-[#af1188]',
-  enterprise: 'from-[#dd0b52] to-[#f96e0c]',
-};
-
-const planAccentColors: Record<PlanType, string> = {
-  lite: 'text-[#0483e4]',
-  professional: 'text-[#7328b1]',
-  enterprise: 'text-[#dd0b52]',
-};
-
-const planBgAccent: Record<PlanType, string> = {
-  lite: 'bg-[#0483e4]/10',
-  professional: 'bg-[#7328b1]/10',
-  enterprise: 'bg-[#dd0b52]/10',
-};
+import { annualSaving, comparisonRows, limitLabel, planBenefits, planPositioning } from '@/components/planos/plan-presentation';
+import '@/components/planos/plans.css';
 
 const Planos = () => {
   const { t } = useTranslation();
   const { currentPlan, loading, reloadPlan } = usePlanLimits();
   const access = useSubscriptionStatus();
   const manageSubscription = access.hasSubscription && access.status !== 'canceled';
-  const { planos, loading: planosLoading } = usePlanos();
+  const { planos, loading: planosLoading, error: plansError, reload: reloadPlans } = usePlanos();
   const { createCheckout, openCustomerPortal, loading: stripeLoading } = useStripe();
   const { toast } = useToast();
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [billing, setBilling] = useState<Billing>('monthly');
-
+  const busy = stripeLoading || processingPlan !== null;
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    const canceled = urlParams.get('canceled');
-
-    if (success === 'true') {
-      toast({
-        title: t('plans.paymentSuccess'),
-        description: t('plans.paymentSuccessDesc'),
-      });
+    if (urlParams.get('success') === 'true') {
+      toast({ title: t('plans.paymentSuccess'), description: t('plans.paymentSuccessDesc') });
       reloadPlan();
       window.history.replaceState({}, '', '/planos');
     }
-
-    if (canceled === 'true') {
-      toast({
-        title: t('plans.paymentCanceled'),
-        description: t('plans.paymentCanceledDesc'),
-        variant: 'destructive'
-      });
+    if (urlParams.get('canceled') === 'true') {
+      toast({ title: t('plans.paymentCanceled'), description: t('plans.paymentCanceledDesc'), variant: 'destructive' });
       window.history.replaceState({}, '', '/planos');
     }
   }, [toast, reloadPlan, t]);
 
   const handleSelectPlan = async (plano: Plano) => {
-    if (manageSubscription) {
-      await openCustomerPortal();
-      return;
-    }
-
+    if (busy || access.loading || access.error) return;
     setProcessingPlan(plano.slug);
-
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const affiliateCode = urlParams.get('ref');
-
-      if (precoDoPlano(plano, billing) === 0) {
+      if (manageSubscription || precoDoPlano(plano, billing) === 0) {
         await openCustomerPortal();
       } else {
+        const affiliateCode = new URLSearchParams(window.location.search).get('ref');
         await createCheckout(plano.slug, billing, affiliateCode || undefined);
       }
-
     } catch (error) {
       console.error('Erro ao processar plano:', error);
-      toast({
-        title: t('plans.error'),
-        description: t('plans.planChangeError'),
-        variant: 'destructive',
-      });
-    } finally {
-      setProcessingPlan(null);
-    }
+      toast({ title: t('plans.error'), description: t('plans.planChangeError'), variant: 'destructive' });
+    } finally { setProcessingPlan(null); }
   };
 
-  const getPlanIcon = (planType: PlanType) => {
-    switch (planType) {
-      case 'lite': return <Gift className="h-7 w-7" />;
-      case 'professional': return <Zap className="h-7 w-7" />;
-      case 'enterprise': return <Crown className="h-7 w-7" />;
-      default: return <Sparkles className="h-7 w-7" />;
-    }
-  };
-
-  const limiteLabel = (valor: number | undefined) => {
-    if (valor === undefined || valor === null) return '—';
-    if (valor === -1) return t('plans.unlimited');
-    if (valor === 0) return false;
-    return String(valor);
-  };
-
-  const comparisonRows = [
-    { label: t('plans.rawMaterials'), key: 'produtos' as const },
-    { label: t('plans.recipes'), key: 'receitas' as const },
-    { label: t('plans.markupBlocks'), key: 'markups' as const },
-    { label: t('plans.stockMovement'), key: 'movimentacoes' as const },
-    { label: t('plans.techSheetPrint'), key: 'pdf_exports' as const },
-  ];
-
-  if (loading || planosLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">{t('plans.loadingPlan')}</p>
-        </div>
-      </div>
-    );
-  }
+  const currentName = planDisplayName(currentPlan);
+  const accountKnown = !access.loading && !access.error;
+  const hasAnnualSaving = planos.some(plan => annualSaving(plan) > 0);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      {access.error && <div role="alert" className="rounded-xl border border-amber-500/30 p-4 text-center">
-        <p>Não foi possível conferir sua conta para contratar o plano.</p>
-        <Button variant="outline" className="mt-3" onClick={() => void access.refresh()}>Tentar novamente</Button>
-      </div>}
-      {/* Header */}
-      <div className="text-center space-y-3 animate-fade-in">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
-          <Sparkles className="h-8 w-8 text-primary" />
+    <div className="plans-page mx-auto w-full max-w-6xl pb-8">
+      <header className="plans-heading">
+        <div>
+          <p className="plans-eyebrow"><span aria-hidden="true" />PLANOS CALCULA AÍ</p>
+          <h1 className="font-display">Precifique melhor.<br /><span>Abra espaço para crescer.</span></h1>
+          <p className="plans-intro">Mais receitas, custos organizados e fichas técnicas para acompanhar sua produção.</p>
         </div>
-        <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
-          {t('plans.chooseYourPlan')}
-        </h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">
-          {access.isTrial
-            ? access.trialExpired
-              ? 'Seu teste terminou. Assine para continuar na mesma conta, com todos os seus dados preservados.'
-              : `Você tem ${access.daysRemaining} ${access.daysRemaining === 1 ? 'dia restante' : 'dias restantes'} com os recursos do Iniciante. Assine quando quiser continuar ou ampliar seus limites.`
-            : t('plans.choosePlanDesc')}
-        </p>
-      </div>
-
-      {!access.loading && !access.error && <p className="text-center text-sm text-muted-foreground">
-        {access.isTrial ? 'Seu plano durante o teste: ' : 'Seu plano atual: '}<strong className="text-foreground">{planDisplayName(currentPlan)}</strong>
-      </p>}
-      {/* Alternador Mensal / Anual */}
-      <div className="flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1 backdrop-blur">
-          {(['monthly', 'yearly'] as Billing[]).map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => setBilling(opt)}
-              className={`rounded-xl px-5 py-2 text-sm font-semibold transition-all ${
-                billing === opt
-                  ? 'bg-gradient-to-r from-[#0483e4] to-[#7328b1] text-white shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {opt === 'monthly' ? 'Mensal' : 'Anual'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-
-
-      {/* Plan Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {planos.map((plano, idx) => {
-          const planType = plano.slug as PlanType;
-          const isCurrentPlan = currentPlan === planType;
-          const isProfessional = planType === 'professional';
-
-          return (
-            <div
-              key={plano.id}
-              className={`
-                glass-card relative overflow-hidden transition-all duration-300 hover:-translate-y-1
-                animate-slide-up
-                ${isCurrentPlan ? 'ring-2 ring-primary shadow-brand' : 'hover:shadow-xl'}
-                ${isProfessional ? 'md:scale-[1.03] z-10' : ''}
-              `}
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <div className={`h-1.5 bg-gradient-to-r ${planGradients[planType]}`} />
-
-              {isProfessional && (
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-gradient-to-r from-[#7328b1] to-[#af1188] text-white border-0 text-[10px] uppercase tracking-wider font-bold">
-                    {t('plans.popular')}
-                  </Badge>
-                </div>
-              )}
-
-              <div className="space-y-5 p-5 sm:space-y-6 sm:p-6">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-xl bg-gradient-to-br ${planGradients[planType]} text-white shadow-lg`}>
-                    {getPlanIcon(planType)}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold font-display text-foreground">{plano.nome_publico}</h3>
-                    {isCurrentPlan && (
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary">{access.isTrial ? 'Seu plano no teste grátis' : t('plans.currentPlan')}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold font-display text-foreground">
-                      {formatPreco(precoDoPlano(plano, billing))}
-                    </span>
-                    {precoDoPlano(plano, billing) > 0 && (
-                      <span className="text-sm text-muted-foreground">
-                        {billing === 'yearly' ? '/ano' : t('plans.perMonth')}
-                      </span>
-                    )}
-                  </div>
-                  {billing === 'yearly' && precoDoPlano(plano, billing) > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      equivale a {formatPreco(Math.round(plano.preco_anual_centavos / 12))} por mês
-                    </p>
-                  )}
-                  {plano.descricao && (
-                    <p className="text-xs text-muted-foreground">{plano.descricao}</p>
-                  )}
-                </div>
-
-
-                <ul className="space-y-2.5">
-                  {plano.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2.5">
-                      <div className={`rounded-full p-0.5 ${planBgAccent[planType]} flex-shrink-0 mt-0.5`}>
-                        <Check className={`h-3.5 w-3.5 ${planAccentColors[planType]}`} />
-                      </div>
-                      <span className="text-sm text-foreground/80">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  className={`w-full h-11 text-sm font-semibold transition-all ${
-                    isProfessional && !isCurrentPlan
-                      ? 'bg-gradient-to-r from-[#7328b1] to-[#af1188] hover:from-[#7328b1]/90 hover:to-[#af1188]/90 text-white shadow-lg hover:shadow-xl border-0'
-                      : ''
-                  }`}
-                  variant={isCurrentPlan ? 'secondary' : 'default'}
-                  onClick={() => handleSelectPlan(plano)}
-                  disabled={processingPlan === plano.slug || stripeLoading || access.loading || access.error}
-                >
-                  {processingPlan === plano.slug ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
-                      {t('plans.processing')}
-                    </div>
-                  ) : manageSubscription ? (
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      {t('plans.manageSubscription')}
-                    </div>
-                  ) : (
-                    t('plans.choosePlan', { name: plano.nome_publico })
-                  )}
-                </Button>
-              </div>
+        <aside className="plans-account" aria-label="Seu plano e acesso" data-compact={access.isTrial && !access.trialExpired}>
+          {access.loading || loading ? <p role="status">Conferindo seu plano…</p> : access.error ? <>
+            <p className="font-semibold">Não conseguimos conferir sua conta.</p>
+            <Button variant="outline" size="sm" onClick={() => void access.refresh()}>Tentar novamente</Button>
+          </> : <>
+            <p className="plans-account-label">{access.isTrial ? 'Seu teste grátis' : 'Seu plano atual'}</p>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <strong className="font-display text-xl">{currentName}</strong>
+              {access.isTrial && <span className="plans-account-tag">{access.trialExpired ? 'Teste encerrado' : `${access.daysRemaining} ${access.daysRemaining === 1 ? 'dia restante' : 'dias restantes'}`}</span>}
             </div>
-          );
-        })}
-      </div>
+            <p className="plans-account-description text-sm leading-relaxed text-muted-foreground">{access.trialExpired
+              ? 'Continue de onde parou. Suas receitas e seus dados estão salvos.'
+              : access.isTrial ? 'Explore os recursos do Iniciante. Para continuar depois do teste, escolha um plano abaixo.'
+              : access.isBlocked ? 'Escolha como continuar. Seus dados permanecem nesta conta.'
+              : 'Seu negócio continua na mesma conta, mesmo quando o plano muda.'}</p>
+            {manageSubscription && <button type="button" className="plans-text-link" onClick={() => void openCustomerPortal()} disabled={busy}>Gerenciar assinatura <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}
+          </>}
+        </aside>
+      </header>
 
-      {/* Comparison Table */}
-      <div className="glass-card overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
-        <div className="h-1 bg-gradient-to-r from-[#0483e4] via-[#7328b1] to-[#f96e0c]" />
-        <div className="p-5 border-b border-border/30">
-          <h2 className="text-lg font-bold font-display text-foreground">{t('plans.detailedComparison')}</h2>
+      <section aria-labelledby="plans-options-title">
+        <div className="plans-toolbar">
+          <div><h2 id="plans-options-title" className="font-display text-lg font-bold">Qual é o momento do seu negócio?</h2><p className="plans-toolbar-description mt-1 text-sm text-muted-foreground">Compare os recursos e encontre seu próximo passo.</p></div>
+          <div className="plans-billing" role="group" aria-label="Período de cobrança">
+            {(['monthly', 'yearly'] as Billing[]).map(option => <button key={option} type="button" aria-label={option === 'monthly' ? 'Cobrança mensal' : 'Cobrança anual'} aria-pressed={billing === option} onClick={() => setBilling(option)}>
+              {option === 'monthly' ? 'Mensal' : 'Anual'}
+              {option === 'yearly' && hasAnnualSaving && <span>Economize</span>}
+            </button>)}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px]">
-            <thead>
-              <tr className="border-b border-border/30 bg-muted/20">
-                <th className="text-left p-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('plans.feature')}</th>
-                {planos.map(p => (
-                  <th
-                    key={p.id}
-                    className={`text-center p-4 text-xs font-semibold uppercase tracking-wider ${
-                      p.slug === 'professional' ? 'text-[#7328b1] bg-[#7328b1]/5' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {p.nome_publico}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {comparisonRows.map((row, i) => (
-                <tr key={i} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-medium text-foreground">{row.label}</td>
-                  {planos.map(p => {
-                    const val = limiteLabel(p.limites?.[row.key]);
-                    const isPro = p.slug === 'professional';
-                    return (
-                      <td key={p.id} className={`text-center p-4 ${isPro ? 'bg-[#7328b1]/5' : ''}`}>
-                        {val === false ? (
-                          <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
-                        ) : val === t('plans.unlimited') ? (
-                          <span className={`font-semibold ${isPro ? 'text-[#7328b1]' : 'text-foreground'}`}>{val}</span>
-                        ) : (
-                          <span className={`font-semibold ${isPro ? 'text-[#7328b1]' : 'text-foreground'}`}>{val}</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
+
+        {planosLoading ? <div role="status" className="plans-grid" aria-label="Carregando planos">
+          {[0, 1, 2].map(value => <div key={value} className="h-96 animate-pulse rounded-2xl border border-border bg-muted/40 motion-reduce:animate-none" />)}
+          <span className="sr-only">Carregando planos…</span>
+        </div> : plansError || planos.length === 0 ? <div role="alert" className="rounded-2xl border border-border bg-card p-8 text-center">
+          <h3 className="font-semibold">Não foi possível carregar os planos agora.</h3><p className="mt-2 text-sm text-muted-foreground">Tente novamente para consultar os valores e continuar.</p>
+          <Button variant="outline" className="mt-4" onClick={() => void reloadPlans()}>Carregar planos novamente</Button>
+        </div> : <div className="plans-grid">
+          {planos.map(plano => {
+            const isCurrent = accountKnown && !loading && currentPlan === plano.slug;
+            const featured = plano.slug === 'professional';
+            const positioning = planPositioning[plano.slug];
+            const saving = annualSaving(plano);
+            const annualUnavailable = billing === 'yearly' && plano.preco_centavos > 0 && plano.preco_anual_centavos <= 0;
+            const price = precoDoPlano(plano, billing);
+            return <article key={plano.id} className={`plans-card ${featured ? 'plans-card-featured' : ''}`} aria-labelledby={`plan-${plano.slug}`} data-current={isCurrent}>
+              <div className="plans-card-heading">
+                <p className="plans-card-audience">{positioning?.audience || 'Para o seu negócio'}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 id={`plan-${plano.slug}`} className="font-display text-2xl font-bold">{plano.nome_publico}</h3>
+                  {isCurrent && <span className="plans-current-tag">{access.isTrial ? 'Seu plano no teste' : 'Seu plano atual'}</span>}
+                </div>
+                <p className="plans-card-description">{positioning?.description || plano.descricao}</p>
+              </div>
+              <div className="plans-price-block" aria-live="polite" aria-atomic="true">
+                <div className="plans-price">{annualUnavailable ? <strong className="text-xl">Anual indisponível</strong> : <><strong>{formatPreco(price)}</strong>{price > 0 && <span>/{billing === 'yearly' ? 'ano' : 'mês'}</span>}</>}</div>
+                <p className="plans-price-note">{annualUnavailable ? 'Você pode escolher a cobrança mensal.' : billing === 'yearly' && price > 0
+                  ? `${formatPreco(price)} cobrados por ano. Equivale a ${formatPreco(Math.round(price / 12))}/mês.`
+                  : price > 0 ? 'Cobrança mensal.' : 'Sem cobrança.'}</p>
+                <p className="plans-saving">{saving > 0 && !annualUnavailable ? billing === 'yearly'
+                  ? <>Economia de <strong>{formatPreco(saving)}</strong> em relação a 12 mensalidades.</>
+                  : <>No anual, economize <strong>{formatPreco(saving)}</strong> por ano.</> : '\u00a0'}</p>
+              </div>
+              <Button className="plans-select-button" onClick={() => void handleSelectPlan(plano)} disabled={busy || loading || access.loading || access.error || annualUnavailable} aria-busy={processingPlan === plano.slug}>
+                {processingPlan === plano.slug ? <><Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />Abrindo…</>
+                  : annualUnavailable ? 'Indisponível no anual' : manageSubscription ? isCurrent ? 'Gerenciar meu plano' : 'Alterar assinatura'
+                  : <>Escolher {plano.nome_publico}<ArrowRight className="h-4 w-4" aria-hidden="true" /></>}
+              </Button>
+              <div className="plans-card-features">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-wider">O que você tem à mão</p>
+                <ul className="space-y-3.5">
+                  {planBenefits(plano).map(benefit => <li key={benefit.label} className="flex items-start gap-2.5 text-sm leading-relaxed" data-included={benefit.included}>
+                    {benefit.included ? <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <Minus className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+                    <span>{benefit.label}</span>
+                  </li>)}
+                </ul>
+              </div>
+            </article>;
+          })}
+        </div>}
+        {manageSubscription && <p className="mt-4 text-center text-sm text-muted-foreground">Ao alterar sua assinatura, você escolhe o novo plano e confere os valores na próxima tela.</p>}
+        <div className="plans-reassurance"><span><LockKeyhole className="h-4 w-4" aria-hidden="true" />Pagamento seguro</span><span>Mesma conta, dados preservados</span><span>Sem refazer seus cadastros</span></div>
+      </section>
+
+      {!planosLoading && !plansError && planos.length > 0 && <section className="plans-comparison" aria-labelledby="plans-comparison-title">
+        <div className="plans-section-heading"><p className="plans-section-kicker">CADA DETALHE CONTA</p><h2 id="plans-comparison-title" className="font-display text-2xl font-bold">Veja o que muda em cada plano.</h2><p className="mt-2 text-sm text-muted-foreground">Os limites abaixo valem para a sua conta.</p></div>
+        <div className="plans-table-scroll" role="region" aria-label="Comparação de recursos dos planos" tabIndex={0}>
+          <table className="plans-table">
+            <caption className="sr-only">Limites de receitas, matérias-primas, precificação, fichas técnicas e estoque por plano.</caption>
+            <thead><tr><th scope="col">Na sua rotina</th>{planos.map(plano => <th scope="col" key={plano.id} data-featured={plano.slug === 'professional'}>{plano.nome_publico}</th>)}</tr></thead>
+            <tbody>{comparisonRows.map(row => <tr key={row.key}><th scope="row">{row.label}{row.explanation && <span>{row.explanation}</span>}</th>{planos.map(plano => <td key={plano.id} data-featured={plano.slug === 'professional'}>{limitLabel(plano.limites?.[row.key])}</td>)}</tr>)}</tbody>
           </table>
         </div>
-      </div>
+        <p className="plans-table-hint">No celular, deslize a tabela para comparar todos os planos.</p>
+      </section>}
 
-      {/* Footer */}
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 pb-6 text-center text-xs text-muted-foreground animate-fade-in sm:gap-6">
-        <div className="flex items-center gap-1.5">
-          <Shield className="h-3.5 w-3.5" />
-          {t('plans.securePayment')}
+      <section className="plans-faq" aria-labelledby="plans-faq-title">
+        <div><p className="plans-section-kicker">ANTES DE ESCOLHER</p><h2 id="plans-faq-title" className="font-display text-2xl font-bold">Pode ficar tranquilo.</h2><p className="mt-3 text-sm leading-relaxed text-muted-foreground">Você dá o próximo passo sem perder o trabalho que já fez.</p></div>
+        <div>
+          {[
+            { question: 'O que acontece com minhas receitas quando eu assino?', answer: 'Você continua na mesma conta. Receitas, matérias-primas e histórico permanecem salvos. Os recursos do plano escolhido são liberados após a confirmação do pagamento.' },
+            { question: 'Como funcionam os 7 dias grátis?', answer: 'O teste oferece os recursos e limites do plano Iniciante por 7 dias, sem cobrança automática. Fichas técnicas em PDF não estão incluídas. Ao terminar, escolha e pague um plano para continuar; seus dados ficam preservados.' },
+            { question: 'Qual é a diferença entre mensal e anual?', answer: 'No mensal, a cobrança é a cada mês. No anual, o valor total exibido é cobrado uma vez por ano. A economia mostrada compara o anual com 12 mensalidades do mesmo plano.' },
+            { question: 'Posso mudar de plano depois?', answer: 'Sim. Com uma assinatura ativa, use “Gerenciar assinatura” para consultar as opções de mudança. Você confere os valores e as condições antes de confirmar.' },
+          ].map(item => <details key={item.question}><summary>{item.question}<ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" /></summary><p>{item.answer}</p></details>)}
         </div>
-        <span className="text-border">•</span>
-        <span>{t('plans.cancelAnytime')}</span>
-        <span className="text-border">•</span>
-        <span>{t('plans.dataPreserved')}</span>
-      </div>
+      </section>
     </div>
   );
 };
