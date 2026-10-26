@@ -3,6 +3,7 @@ import { CurrencyInput } from './currency-input';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { formatQuantityInput } from '@/lib/quantityInput';
 
 interface NumericInputPtBrProps extends Omit<React.ComponentProps<"input">, 'type' | 'onChange' | 'value'> {
   tipo: 'valor' | 'percentual' | 'quantidade_un' | 'quantidade_continua';
@@ -11,6 +12,7 @@ interface NumericInputPtBrProps extends Omit<React.ComponentProps<"input">, 'typ
   min?: number;
   max?: number;
   onBlur?: () => void;
+  formatWhileTyping?: boolean;
 }
 
 const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProps>(
@@ -24,6 +26,7 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
     placeholder,
     disabled,
     onBlur,
+    formatWhileTyping = false,
     ...props 
   }, ref) => {
     const [displayValue, setDisplayValue] = useState('');
@@ -101,7 +104,15 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
         return;
       }
       
-      setDisplayValue(filtered);
+      if (formatWhileTyping) {
+        const { text, caret } = formatQuantityInput(inputValue, e.target.selectionStart ?? inputValue.length);
+        // Update the DOM before React commits so editing in the middle keeps its caret.
+        e.target.value = text;
+        e.target.setSelectionRange(caret, caret);
+        setDisplayValue(text);
+      } else {
+        setDisplayValue(filtered);
+      }
       
       // Callback com valor numérico (sempre válido)
       const numericValue = parseInput(filtered);
@@ -114,6 +125,10 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
+      if (formatWhileTyping) {
+        e.target.select();
+        return;
+      }
       // Seleciona todo o texto
       e.target.select();
       // Ao focar, mostrar apenas os dígitos + vírgula (sem formatação)
