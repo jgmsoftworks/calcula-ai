@@ -116,6 +116,7 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
               <NumericInputPtBr
                 id="rendimento_valor"
                 tipo="quantidade_continua"
+                formatWhileTyping
                 value={formData.rendimento_valor || 0}
                 onChange={(value) => onFormChange('rendimento_valor', value)}
                 placeholder="0"
