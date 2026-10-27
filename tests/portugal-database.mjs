@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
 const db = new PGlite();
-const sql = await readFile(new URL('../supabase/migrations/20261027160044_portugal_market.sql', import.meta.url), 'utf8');
+const sql = await readFile(new URL('../supabase/migrations/20261027163829_portugal_market.sql', import.meta.url), 'utf8');
 const legacy='00000000-0000-4000-8000-000000000001', pt='00000000-0000-4000-8000-000000000002', google='00000000-0000-4000-8000-000000000003';
 await db.exec(`create schema auth; create schema private; create role anon; create role authenticated; create role service_role bypassrls;
 create table auth.users(id uuid primary key, raw_user_meta_data jsonb default '{}');
