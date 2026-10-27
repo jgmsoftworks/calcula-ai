@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useRef, useState } from 'react';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +68,7 @@ export function useExportReceitaPDF() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      const taxLabel = getBusinessRegion().country === 'PT' ? 'NIF/NIPC' : 'CNPJ/CPF';
       const { data: profile } = await supabase
         .from('profiles')
         .select('nome_fantasia, cnpj_cpf, telefone_comercial, whatsapp, celular, phone, logo_empresa_url')
@@ -248,7 +250,7 @@ export function useExportReceitaPDF() {
       // Dados da Empresa (3 linhas)
       const dadosEmpresa = [
         profile?.nome_fantasia || 'Nome da Empresa',
-        profile?.cnpj_cpf ? `CNPJ/CPF: ${profile.cnpj_cpf}` : 'CNPJ/CPF: -',
+        profile?.cnpj_cpf ? `${taxLabel}: ${profile.cnpj_cpf}` : `${taxLabel}: -`,
         profile?.telefone_comercial || profile?.whatsapp || profile?.celular || profile?.phone || 'Telefone: -'
       ];
       
@@ -735,7 +737,7 @@ export function useExportReceitaPDF() {
         
         const footerParts = [];
         if (profile?.nome_fantasia) footerParts.push(profile.nome_fantasia);
-        if (profile?.cnpj_cpf) footerParts.push(`CNPJ: ${profile.cnpj_cpf}`);
+        if (profile?.cnpj_cpf) footerParts.push(`${taxLabel}: ${profile.cnpj_cpf}`);
         const telefone = profile?.telefone_comercial || profile?.whatsapp || profile?.celular || profile?.phone;
         if (telefone) footerParts.push(`Tel: ${telefone}`);
         

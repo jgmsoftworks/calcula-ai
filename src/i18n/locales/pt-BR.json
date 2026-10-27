@@ -36,15 +36,52 @@
     "loading": "Carregando..."
   },
   "pages": {
-    "dashboard": { "title": "Dashboard", "description": "Visão geral do negócio" },
-    "estoque": { "title": "Estoque", "description": "Gerencie seus produtos", "listaProdutos": "Lista de Produtos", "historicoGeral": "Histórico Geral" },
-    "movimentacao": { "title": "Movimentação", "description": "Entradas e saídas", "searchPlaceholder": "Busque por nome, código ou código de barras..." },
-    "custos": { "title": "Custos", "description": "Despesas, folha e encargos", "despesasFixas": "Despesas Fixas", "folhaPagamento": "Folha de Pagamento", "encargosVenda": "Encargos sobre Venda" },
-    "precificacao": { "title": "Precificação", "description": "Defina seus preços", "mediaFaturamento": "Média de Faturamento", "markups": "Markups" },
-    "receitas": { "title": "Receitas", "description": "Crie e precifique receitas", "listaReceitas": "Lista de Receitas", "historicoGeral": "Histórico Geral" },
-    "perfil": { "title": "Perfil", "description": "Configurações da empresa" },
-    "planos": { "title": "Planos", "description": "Gerencie sua assinatura" },
-    "tutorial": { "title": "Tutorial", "description": "Aprenda a usar o sistema" }
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Visão geral do negócio"
+    },
+    "estoque": {
+      "title": "Estoque",
+      "description": "Gerencie seus produtos",
+      "listaProdutos": "Lista de Produtos",
+      "historicoGeral": "Histórico Geral"
+    },
+    "movimentacao": {
+      "title": "Movimentação",
+      "description": "Entradas e saídas",
+      "searchPlaceholder": "Busque por nome, código ou código de barras..."
+    },
+    "custos": {
+      "title": "Custos",
+      "description": "Despesas, folha e encargos",
+      "despesasFixas": "Despesas Fixas",
+      "folhaPagamento": "Folha de Pagamento",
+      "encargosVenda": "Encargos sobre Venda"
+    },
+    "precificacao": {
+      "title": "Precificação",
+      "description": "Defina seus preços",
+      "mediaFaturamento": "Média de Faturamento",
+      "markups": "Markups"
+    },
+    "receitas": {
+      "title": "Receitas",
+      "description": "Crie e precifique receitas",
+      "listaReceitas": "Lista de Receitas",
+      "historicoGeral": "Histórico Geral"
+    },
+    "perfil": {
+      "title": "Perfil",
+      "description": "Configurações da empresa"
+    },
+    "planos": {
+      "title": "Planos",
+      "description": "Gerencie sua assinatura"
+    },
+    "tutorial": {
+      "title": "Tutorial",
+      "description": "Aprenda a usar o sistema"
+    }
   },
   "dashboard": {
     "hello": "Olá, {{name}}",
@@ -234,7 +271,8 @@
     "processing": "Processando...",
     "creating": "Criando...",
     "updating": "Atualizando...",
-    "deleting": "Removendo..."
+    "deleting": "Removendo...",
+    "tryAgain": "Tentar novamente"
   },
   "estoque": {
     "searchPlaceholder": "Busque por nome, código interno ou código de barras...",
@@ -486,6 +524,21 @@
   "language": {
     "pt-BR": "Português (BR)",
     "en": "English"
+  },
+  "regional": {
+    "country": "País do negócio",
+    "welcome": "Vamos preparar sua conta",
+    "explanation": "Escolha onde seu negócio funciona. Os custos, preços e relatórios usarão a moeda desse país.",
+    "fixedCurrency": "A moeda fica definida para esta conta. Trocar o idioma depois não converte os valores.",
+    "continue": "Confirmar e começar",
+    "loading": "Preparando sua conta…",
+    "error": "Não foi possível carregar as configurações da conta. Tente novamente.",
+    "trialTitle": "Experimente grátis por 7 dias",
+    "trialStart": "Começar meus 7 dias grátis",
+    "settingsTitle": "País, moeda e idioma",
+    "currencyNote": "A moeda dos seus produtos e receitas é {{currency}}. Ela não muda ao trocar o idioma.",
+    "billingPending": "Os planos em euros ainda estão sendo preparados. Nenhuma cobrança será realizada.",
+    "pricePending": "Preço em definição",
+    "notAvailable": "Em breve em Portugal"
   }
 }
-

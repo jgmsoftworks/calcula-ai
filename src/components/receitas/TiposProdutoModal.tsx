@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTiposProduto } from '@/hooks/useTiposProduto';
@@ -18,6 +20,7 @@ interface TiposProdutoModalProps {
 }
 
 export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProdutoModalProps) => {
+  usePortugalTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -124,7 +127,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
       if (usageError) throw usageError;
       if (count && count > 0) {
         toast({
-          title: 'Não é possível excluir',
+          title: localizeText("Não é possível excluir"),
           description: `Este tipo está sendo usado em ${count} receita(s).`,
           variant: 'destructive',
         });
@@ -149,7 +152,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
       console.error('Erro ao excluir tipo:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível excluir o tipo de produto.',
+        description: localizeText("Não foi possível excluir o tipo de produto."),
         variant: 'destructive',
       });
     } finally {
@@ -221,15 +224,13 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
 
           {/* Lista de tipos */}
           <div className="space-y-2">
-            {tiposQuery.isPending ? <p role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando tipos de produto…</p> : tiposQuery.isError && !tipos.length ? (
+            {tiposQuery.isPending ? <p role="status" className="py-8 text-center text-sm text-muted-foreground">{localizeText("Carregando tipos de produto…")}</p> : tiposQuery.isError && !tipos.length ? (
               <div role="alert" className="space-y-2 py-4 text-center text-sm">
                 <p>Não foi possível carregar os tipos de produto.</p>
                 <Button type="button" variant="outline" disabled={tiposQuery.isFetching} onClick={() => void tiposQuery.refetch()}>Tentar novamente</Button>
               </div>
             ) : tipos.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhum tipo de produto cadastrado
-              </div>
+              <div className="text-center py-8 text-muted-foreground">{localizeText("Nenhum tipo de produto cadastrado")}</div>
             ) : (
               tipos.map((tipo) => (
                 <div
@@ -248,7 +249,7 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
                       <Button
                         size="icon"
                         variant="ghost"
-                        aria-label="Salvar tipo de produto"
+                        aria-label={localizeText("Salvar tipo de produto")}
                         onClick={() => handleUpdate(tipo.id)}
                         disabled={loading}
                       >

@@ -1,26 +1,27 @@
+import { getBusinessRegion } from '@/lib/business-region';
 // Formatadores pt-BR para valores numéricos
 
 // Formatadores por tipo
 export const formatters = {
   valor: (num: number): string => 
-    new Intl.NumberFormat('pt-BR', {
+    new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'currency',
-      currency: 'BRL'
+      currency: getBusinessRegion().currency
     }).format(num),
   
   percentual: (num: number): string => 
-    `${new Intl.NumberFormat('pt-BR', {
+    `${new Intl.NumberFormat(getBusinessRegion().locale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(num)}%`,
   
   quantidadeUn: (num: number): string => 
-    new Intl.NumberFormat('pt-BR', {
+    new Intl.NumberFormat(getBusinessRegion().locale, {
       maximumFractionDigits: 0
     }).format(num),
   
   quantidadeContinua: (num: number, maxDecimais: number = 3): string => 
-    new Intl.NumberFormat('pt-BR', {
+    new Intl.NumberFormat(getBusinessRegion().locale, {
       minimumFractionDigits: 0,
       maximumFractionDigits: maxDecimais
     }).format(num)
@@ -28,14 +29,14 @@ export const formatters = {
 
 // Formatação brasileira simplificada
 export const formatBRL = (value: number): string => {
-  return value.toLocaleString('pt-BR', {
+  return value.toLocaleString(getBusinessRegion().locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
 };
 
 export const formatNumber = (value: number, decimals: number = 2): string => {
-  return value.toLocaleString('pt-BR', {
+  return value.toLocaleString(getBusinessRegion().locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   });
@@ -68,8 +69,9 @@ export const toSafeNumber = (value: any, defaultValue: number = 0): number => {
   
   // Se é string, tenta converter
   if (typeof value === 'string') {
-    const cleaned = value.replace(/[^\d,.-]/g, '').replace(',', '.');
-    const parsed = parseFloat(cleaned);
+    const cleaned = value.replace(/[^\d,.-]/g, '');
+    const normalized = cleaned.includes(',') ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned;
+    const parsed = normalized ? Number(normalized) : NaN;
     return !isNaN(parsed) && isFinite(parsed) ? parsed : defaultValue;
   }
   

@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
@@ -22,6 +24,7 @@ interface Props {
 
 // Unlike money inputs, an empty nutritional amount must remain null, never zero.
 function AmountInput({ value, onChange, label, disabled }: { value: number | null; onChange: (value: number | null) => void; label: string; disabled?: boolean }) {
+  usePortugalTranslation();
   const [text, setText] = useState(value === null ? '' : String(value).replace('.', ','));
   useEffect(() => setText(value === null ? '' : String(value).replace('.', ',')), [value]);
   return <Input aria-label={label} inputMode="decimal" placeholder="Não informado" value={text} disabled={disabled} className="h-11 min-w-0"
@@ -36,6 +39,7 @@ function AmountInput({ value, onChange, label, disabled }: { value: number | nul
 }
 
 export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, onBusyChange, marcaSugerida = '', disabled, importFile }: Props) {
+  usePortugalTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const latestValue = useRef(value);
@@ -132,7 +136,7 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
     {!value ? <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center">
       <FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
       <p className="font-medium">Rótulo nutricional do produto</p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Cadastre as informações da embalagem. Você pode adicionar as linhas aos poucos ou importar uma foto.</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{localizeText("Cadastre as informações da embalagem. Você pode adicionar as linhas aos poucos ou importar uma foto.")}</p>
       <div className="mt-5 flex justify-center gap-2">
         <Button type="button" className="min-h-11 whitespace-normal" disabled={disabled} onClick={() => onChange(emptyNutritionLabel(marcaSugerida))}><Plus className="mr-2 h-4 w-4 shrink-0" />Adicionar rótulo nutricional</Button>
         {cameraButton}
@@ -198,8 +202,8 @@ export function RotuloNutricionalTab({ value, onChange, photo, onPhotoChange, on
       {busy && <div role="status" className="flex flex-wrap items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{progress ? `Lendo a foto… ${progress}%` : 'Preparando a leitura da foto…'}<Button type="button" variant="ghost" onClick={cancelImport}>Cancelar leitura</Button></div>}
       {notice && <p role="status" className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">{notice}</p>}
       {preview && <div className="space-y-2 rounded-lg border p-3"><p className="text-sm font-medium">Foto de referência</p><a href={preview} target="_blank" rel="noreferrer" className="block" aria-label="Ampliar foto do rótulo"><img src={preview} alt="Rótulo nutricional enviado para conferência" className="mx-auto max-h-64 max-w-full rounded object-contain" /></a><p className="text-xs text-muted-foreground">Toque na foto para ampliar e conferir os valores.</p></div>}
-      {photoError && <p role="alert" className="text-sm text-muted-foreground">Não foi possível abrir a foto salva. Os dados continuam disponíveis.</p>}
-      {missing.length > 0 && <details className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground"><summary className="cursor-pointer">{missing.length} informações pendentes — você pode salvar e continuar depois</summary><p className="mt-2">{missing.join(', ')}.</p></details>}
+      {photoError && <p role="alert" className="text-sm text-muted-foreground">{localizeText("Não foi possível abrir a foto salva. Os dados continuam disponíveis.")}</p>}
+      {missing.length > 0 && <details className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground"><summary className="cursor-pointer">{missing.length} {localizeText("informações pendentes — você pode salvar e continuar depois")}</summary><p className="mt-2">{missing.join(', ')}.</p></details>}
       <div className="flex items-start gap-2"><Checkbox id="nutrition-reviewed" checked={value.conferido && !missing.length} disabled={disabled || busy || missing.length > 0}
         onCheckedChange={checked => onChange({ ...value, conferido: checked === true })} /><Label htmlFor="nutrition-reviewed" className="text-sm font-normal leading-5">Conferi a quantidade de referência e os valores com a embalagem do produto.</Label></div>
       <p className="text-xs text-muted-foreground">Deixe em branco o que não estiver informado. Preencha 0 somente quando esse for o valor declarado.</p>

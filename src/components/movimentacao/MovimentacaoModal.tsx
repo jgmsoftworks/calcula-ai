@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ interface MovimentacaoModalProps {
 }
 
 export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasPendentes = 0 }: MovimentacaoModalProps) {
+  usePortugalTranslation();
   const [tipo, setTipo] = useState<'entrada' | 'saida'>('entrada');
   const [motivo, setMotivo] = useState('');
   const [quantidade, setQuantidade] = useState(1);
@@ -70,7 +73,7 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
   return <Dialog open={open} onOpenChange={nextOpen => { if (!nextOpen) onClose(); }}>
     <DialogContent className="left-0 top-0 flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 max-sm:data-[state=open]:animate-none max-sm:data-[state=closed]:animate-none sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[calc(100dvh-1rem)] sm:w-[calc(100vw-1rem)] sm:max-w-[740px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:p-0">
       <div className="shrink-0 border-b px-4 py-4 pr-14 sm:px-6">
-        <DialogTitle className="text-lg font-semibold">Movimentar estoque</DialogTitle>
+        <DialogTitle className="text-lg font-semibold">{localizeText("Movimentar estoque")}</DialogTitle>
         <DialogDescription className="sr-only">Confira o produto e informe a entrada ou saída na unidade de compra.</DialogDescription>
       </div>
 
@@ -94,8 +97,8 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t p-3 sm:grid-cols-4 sm:gap-4 sm:px-5 sm:py-4">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Compra</span><span className="hidden sm:inline">Unidade de compra</span></dt><dd className="break-words text-sm font-semibold sm:mt-1">{compra.label}</dd></div>
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Uso</span><span className="hidden sm:inline">Unidade de uso</span></dt><dd className="break-words text-sm font-semibold sm:mt-1">{produto.unidade_uso ? uso.label : 'Não configurada'}</dd></div>
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Estoque</span><span className="hidden sm:inline">Estoque atual</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{formatters.quantidadeContinua(estoque)} {compra.symbol}</dd></div>
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Custo</span><span className="hidden sm:inline">Custo cadastrado</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{formatters.valor(produto.custo_unitario || 0)}{compra.symbol && <span className="font-normal text-muted-foreground"> / {compra.symbol}</span>}</dd></div>
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">{localizeText("Estoque")}</span><span className="hidden sm:inline">{localizeText("Estoque atual")}</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{formatters.quantidadeContinua(estoque)} {compra.symbol}</dd></div>
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Custo</span><span className="hidden sm:inline">{localizeText("Custo cadastrado")}</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{formatters.valor(produto.custo_unitario || 0)}{compra.symbol && <span className="font-normal text-muted-foreground"> / {compra.symbol}</span>}</dd></div>
           </dl>
           <div className="border-t bg-accent/5 px-3 py-2 text-xs leading-relaxed sm:px-5 sm:py-3 sm:text-sm">
             <span className="font-medium">Uso nas receitas: </span>
@@ -137,12 +140,12 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
               {temConversao ? `Equivale a ${formatters.quantidadeContinua(quantidade * fator)} ${uso.symbol} para uso.` : `Movimentação na unidade de compra${compra.symbol ? ` (${compra.symbol})` : ''}.`}
             </p>
             {saidasPendentes > 0 && <p className="text-xs text-muted-foreground">Já no carrinho: {formatters.quantidadeContinua(saidasPendentes)} {compra.symbol} em saídas.</p>}
-            {estoqueInsuficiente && <p id="mov-estoque-error" role="alert" className="text-sm text-destructive">Estoque insuficiente. Disponível: {formatters.quantidadeContinua(disponivel)} {compra.symbol}.</p>}
+            {estoqueInsuficiente && <p id="mov-estoque-error" role="alert" className="text-sm text-destructive">{localizeText("Estoque insuficiente. Disponível:")} {formatters.quantidadeContinua(disponivel)} {compra.symbol}.</p>}
           </div>
           <div className="min-w-0 space-y-2">
             <Label htmlFor="mov-custo">Custo{compra.symbol ? ` por ${compra.symbol}` : ' unitário'}</Label>
             <NumericInputPtBr id="mov-custo" tipo="valor" value={custoAplicado} onChange={setCustoAplicado} min={0} readOnly={tipo === 'saida'} className={tipo === 'saida' ? 'bg-muted/40' : ''} />
-            {tipo === 'saida' && <p className="text-xs text-muted-foreground">Custo cadastrado do produto.</p>}
+            {tipo === 'saida' && <p className="text-xs text-muted-foreground">{localizeText("Custo cadastrado do produto.")}</p>}
           </div>
         </div>
       </div>

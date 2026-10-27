@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -67,6 +70,7 @@ interface CustosModalProps {
 }
 
 export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, globalPeriod = '12' }: CustosModalProps) {
+  usePortugalTranslation();
   const [despesasFixas, setDespesasFixas] = useState<DespesaFixa[]>([]);
   const [folhaPagamento, setFolhaPagamento] = useState<FolhaPagamento[]>([]);
   const [encargosVenda, setEncargosVenda] = useState<EncargoVenda[]>([]);
@@ -261,9 +265,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
   }, [open]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'currency',
-      currency: 'BRL'
+      currency: getBusinessRegion().currency
     }).format(value);
   };
 
@@ -559,8 +563,8 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);
       toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações",
+        title: localizeText("Erro ao salvar"),
+        description: localizeText("Não foi possível salvar as configurações"),
         variant: "destructive"
       });
     }
@@ -601,7 +605,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
                   ) : encargo.valor_fixo > 0 ? (
                     <span>{formatCurrency(encargo.valor_fixo)}</span>
                   ) : (
-                    <span>0% / R$ 0,00</span>
+                    <span>0% / {formatMoney(0)}</span>
                   )}
                 </div>
               </div>
@@ -654,7 +658,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
         <Tabs defaultValue="despesas-fixas" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="despesas-fixas">Despesas Fixas</TabsTrigger>
-            <TabsTrigger value="folha-pagamento">Folha de Pagamento</TabsTrigger>
+            <TabsTrigger value="folha-pagamento">{localizeText("Folha de Pagamento")}</TabsTrigger>
             <TabsTrigger value="encargos-venda">Encargos sobre Venda</TabsTrigger>
           </TabsList>
 
@@ -665,14 +669,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    Carregando despesas...
-                  </p>
+                  <p className="text-muted-foreground text-center py-4">{localizeText("Carregando despesas...")}</p>
                 ) : despesasFixas.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-2">
-                      Nenhuma despesa fixa cadastrada
-                    </p>
+                    <p className="text-muted-foreground mb-2">{localizeText("Nenhuma despesa fixa cadastrada")}</p>
                     <p className="text-sm text-muted-foreground">
                       Adicione despesas na aba "Custos" para vê-las aqui
                     </p>
@@ -709,18 +709,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
           <TabsContent value="folha-pagamento" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Folha de Pagamento</CardTitle>
+                <CardTitle>{localizeText("Folha de Pagamento")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    Carregando funcionários...
-                  </p>
+                  <p className="text-muted-foreground text-center py-4">{localizeText("Carregando funcionários...")}</p>
                 ) : folhaPagamento.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-2">
-                      Nenhum funcionário cadastrado
-                    </p>
+                    <p className="text-muted-foreground mb-2">{localizeText("Nenhum funcionário cadastrado")}</p>
                     <p className="text-sm text-muted-foreground">
                       Adicione funcionários na aba "Custos" para vê-los aqui
                     </p>
@@ -764,14 +760,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
               </CardHeader>
               <CardContent className="space-y-6">
                 {loading ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    Carregando encargos...
-                  </p>
+                  <p className="text-muted-foreground text-center py-4">{localizeText("Carregando encargos...")}</p>
                 ) : encargosVenda.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-2">
-                      Nenhum encargo cadastrado
-                    </p>
+                    <p className="text-muted-foreground mb-2">{localizeText("Nenhum encargo cadastrado")}</p>
                     <p className="text-sm text-muted-foreground">
                       Adicione encargos na aba "Custos" para vê-los aqui
                     </p>

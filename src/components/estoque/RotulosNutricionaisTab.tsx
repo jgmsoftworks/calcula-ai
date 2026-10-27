@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useRef, useState } from 'react';
 import { Camera, ChevronLeft, ChevronRight, FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export function RotulosNutricionaisTab({ value, onChange, marcas, photos, onPhotoChange, busy, onBusyChange, disabled, onManageBrands }: Props) {
+  usePortugalTranslation();
   const [activeId, setActiveId] = useState(value[0]?.id);
   const [choosing, setChoosing] = useState(false);
   const [assigning, setAssigning] = useState(false);
@@ -69,16 +72,14 @@ export function RotulosNutricionaisTab({ value, onChange, marcas, photos, onPhot
       </Button>
       {!current && <Button type="button" variant="outline" className="h-11 w-11 shrink-0" size="icon" aria-label="Importar rótulo por foto" disabled={locked || choosing || !brands.length} onClick={() => fileRef.current?.click()}><Camera className="h-5 w-5" /></Button>}
     </div>
-    {!brands.length && <div className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
-      Cadastre uma marca no produto para adicionar o rótulo.
-      <Button type="button" variant="link" className="h-auto whitespace-normal p-0 ml-1" disabled={locked} onClick={onManageBrands}>Ir para Estoque & Custos</Button>
+    {!brands.length && <div className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">{localizeText("Cadastre uma marca no produto para adicionar o rótulo.")}<Button type="button" variant="link" className="h-auto whitespace-normal p-0 ml-1" disabled={locked} onClick={onManageBrands}>{localizeText("Ir para Estoque & Custos")}</Button>
     </div>}
     {choosing && <section aria-label="Escolher marca do rótulo" className="space-y-3 rounded-xl border bg-muted/20 p-4">
       <h3 className="font-medium">Para qual marca deseja {assigning ? 'vincular este rótulo' : 'cadastrar'}?</h3>
       <div className="grid min-w-0 gap-2 sm:grid-cols-2">
         {brands.map(brand => <Button key={brand} type="button" variant="outline" className="h-auto min-h-12 justify-between gap-2 whitespace-normal text-left" disabled={locked} onClick={() => selectBrand(brand)}>
           <span className="min-w-0 break-words">{brand}</span>{' '}
-          {value.some(label => nutritionKey(label.marca) === nutritionKey(brand)) && <span className="shrink-0 text-xs text-muted-foreground">Já cadastrado</span>}
+          {value.some(label => nutritionKey(label.marca) === nutritionKey(brand)) && <span className="shrink-0 text-xs text-muted-foreground">{localizeText("Já cadastrado")}</span>}
         </Button>)}
       </div>
       <Button type="button" variant="ghost" disabled={locked} onClick={() => { setChoosing(false); setAssigning(false); setPendingPhoto(null); }}>Cancelar escolha</Button>
@@ -99,6 +100,6 @@ export function RotulosNutricionaisTab({ value, onChange, marcas, photos, onPhot
         photo={photos[current.id] ?? null} onPhotoChange={file => { if (file) onPhotoChange(current.id, file); setImportRequest(null); }}
         onBusyChange={onBusyChange} disabled={disabled || choosing} importFile={importRequest?.id === current.id ? importRequest.file : null} />
     </>}
-    <p className="text-xs text-muted-foreground">Cadastre um rótulo para cada marca. Copie as informações da embalagem correspondente; os valores e a foto ficam separados por marca.</p>
+    <p className="text-xs text-muted-foreground">{localizeText("Cadastre um rótulo para cada marca. Copie as informações da embalagem correspondente; os valores e a foto ficam separados por marca.")}</p>
   </div>;
 }

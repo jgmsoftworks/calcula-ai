@@ -1,4 +1,5 @@
 import { requireCronOrAdmin } from '../_shared/authGuard.ts'
+import { dueMonthClosure } from '../_shared/monthClosure.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -20,21 +21,21 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    // Determinar competência: mês anterior
     const now = new Date()
-    // Ajustar para Brasília (UTC-3)
-    const brasiliaOffset = -3 * 60 * 60 * 1000
-    const brasiliaTime = new Date(now.getTime() + brasiliaOffset)
-    
-    const year = brasiliaTime.getUTCFullYear()
-    const month = brasiliaTime.getUTCMonth() // 0-indexed, já é o mês atual
-    
-    // Competência = mês anterior
-    const prevYear = month === 0 ? year - 1 : year
-    const prevMonth = month === 0 ? 12 : month
-    const competencia = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
-
-    console.log(`Fechamento mensal automático - competência: ${competencia}`)
+    const dueMarkets = (['BR', 'PT'] as const).flatMap(country => {
+      const competencia = dueMonthClosure(now, country)
+      return competencia ? [{ country, competencia }] : []
+    })
+    if (!dueMarkets.length) {
+      return new Response(JSON.stringify({ processed: 0, skipped: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles').select('user_id, business_country')
+      .eq('region_confirmed', true).in('business_country', dueMarkets.map(m => m.country))
+    if (profileError) throw profileError
+    const countries = new Map((profiles || []).map(p => [p.user_id, p.business_country]))
 
     // Buscar todos os user_ids distintos que têm produtos ativos
     const { data: users, error: usersError } = await supabase
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
     }
 
     // Extrair user_ids únicos
-    const uniqueUserIds = [...new Set(users?.map(u => u.user_id) || [])]
+    const uniqueUserIds = [...new Set(users?.map(u => u.user_id) || [])].filter(id => countries.has(id))
     console.log(`Processando ${uniqueUserIds.length} usuários`)
 
     let processed = 0
@@ -55,6 +56,7 @@ Deno.serve(async (req) => {
 
     for (const userId of uniqueUserIds) {
       try {
+        const competencia = dueMarkets.find(m => m.country === countries.get(userId))!.competencia
         // Calcular valor do estoque: SUM(estoque_atual * custo_unitario)
         const { data: produtos, error: prodError } = await supabase
           .from('produtos')
@@ -85,7 +87,7 @@ Deno.serve(async (req) => {
               qtd_produtos_ativos: qtdProdutos,
               updated_at: new Date().toISOString(),
             },
-            { onConflict: 'user_id,competencia' }
+            { onConflict: 'user_id,competencia', ignoreDuplicates: true }
           )
 
         if (upsertError) {
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
     }
 
     const result = {
-      competencia,
+      markets: dueMarkets,
       total_users: uniqueUserIds.length,
       processed,
       errors,

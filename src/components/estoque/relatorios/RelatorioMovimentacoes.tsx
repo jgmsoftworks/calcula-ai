@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +26,7 @@ function today() {
 }
 
 export function RelatorioMovimentacoes() {
+  usePortugalTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchHistoricoGeral } = useMovimentacoes();
   const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
@@ -48,7 +52,7 @@ export function RelatorioMovimentacoes() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const rows = useMemo(() => movs.map((m: any) => ({
-    data: new Date(m.data_hora).toLocaleString('pt-BR'),
+    data: new Date(m.data_hora).toLocaleString(getBusinessRegion().locale),
     produto: m.produtos?.nome || '-',
     tipo: m.tipo,
     quantidade: m.quantidade || 0,
@@ -86,10 +90,10 @@ export function RelatorioMovimentacoes() {
 
   const totaisExport = {
     'Entradas (qtd)': formatNumber(resumo.qtdEntrada, 2),
-    'Entradas (R$)': `R$ ${formatBRL(resumo.valEntrada)}`,
+    [`Entradas (${getBusinessRegion().currency})`]: `${formatMoney(resumo.valEntrada)}`,
     'Saídas (qtd)': formatNumber(resumo.qtdSaida, 2),
-    'Saídas (R$)': `R$ ${formatBRL(resumo.valSaida)}`,
-    'Saldo líquido (R$)': `R$ ${formatBRL(resumo.valEntrada - resumo.valSaida)}`,
+    [`Saídas (${getBusinessRegion().currency})`]: `${formatMoney(resumo.valSaida)}`,
+    [`Saldo líquido (${getBusinessRegion().currency})`]: `${formatMoney(resumo.valEntrada - resumo.valSaida)}`,
   };
 
   return (
@@ -135,17 +139,17 @@ export function RelatorioMovimentacoes() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="rounded-xl bg-emerald-500/10 p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDown className="h-3 w-3 text-emerald-600" />Entradas</p>
-            <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">R$ {formatBRL(resumo.valEntrada)}</p>
+            <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(resumo.valEntrada)}</p>
             <p className="text-xs text-muted-foreground">{formatNumber(resumo.qtdEntrada, 2)} un.</p>
           </div>
           <div className="rounded-xl bg-rose-500/10 p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowUp className="h-3 w-3 text-rose-600" />Saídas</p>
-            <p className="text-base font-bold text-rose-700 dark:text-rose-400">R$ {formatBRL(resumo.valSaida)}</p>
+            <p className="text-base font-bold text-rose-700 dark:text-rose-400">{formatMoney(resumo.valSaida)}</p>
             <p className="text-xs text-muted-foreground">{formatNumber(resumo.qtdSaida, 2)} un.</p>
           </div>
           <div className="rounded-xl bg-primary/5 p-3 col-span-2 lg:col-span-1">
             <p className="text-xs text-muted-foreground">Saldo líquido</p>
-            <p className="text-base font-bold">R$ {formatBRL(resumo.valEntrada - resumo.valSaida)}</p>
+            <p className="text-base font-bold">{formatMoney(resumo.valEntrada - resumo.valSaida)}</p>
           </div>
           <div className="rounded-xl bg-muted/40 p-3 col-span-2 lg:col-span-1">
             <p className="text-xs text-muted-foreground">Total de movimentações</p>
@@ -170,7 +174,7 @@ export function RelatorioMovimentacoes() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>}
+              {loading && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{localizeText("Carregando...")}</TableCell></TableRow>}
               {!loading && rows.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</TableCell></TableRow>}
               {rows.map((r, i) => (
                 <TableRow key={i}>
@@ -182,8 +186,8 @@ export function RelatorioMovimentacoes() {
                       : <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-0">Saída</Badge>}
                   </TableCell>
                   <TableCell className="text-right">{formatNumber(r.quantidade, 2)}</TableCell>
-                  <TableCell className="text-right">R$ {formatBRL(r.custo)}</TableCell>
-                  <TableCell className="text-right font-semibold">R$ {formatBRL(r.valor)}</TableCell>
+                  <TableCell className="text-right">{formatMoney(r.custo)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatMoney(r.valor)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{r.motivo}</TableCell>
                   <TableCell className="text-sm">{r.responsavel}</TableCell>
                 </TableRow>

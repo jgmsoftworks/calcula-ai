@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { NumericInputPtBr } from '../numeric-input-ptbr';
+import { setBusinessRegion } from '@/lib/business-region';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); setBusinessRegion('BR'); });
 function Harness({ initial = 45, min, max, readOnly = false }: { initial?: number; min?: number; max?: number; readOnly?: boolean }) {
   const [value, setValue] = useState(initial);
   return <><NumericInputPtBr aria-label="Valor" tipo="valor" value={value} onChange={setValue} min={min} max={max} readOnly={readOnly} /><output>{value}</output></>;
@@ -12,6 +13,17 @@ const input = () => screen.getByRole('textbox', { name: 'Valor' }) as HTMLInputE
 const paste = (text: string) => fireEvent.paste(input(), { clipboardData: { getData: () => text } });
 
 describe('monetary fields', () => {
+  it('edits euro cents and accepts Portuguese grouping without converting the amount', () => {
+    setBusinessRegion('PT'); render(<Harness initial={0} />);
+    fireEvent.change(input(), { target: { value: '1234567' } });
+    expect(input()).toHaveValue('12 345,67 €');
+    expect(screen.getByRole('status')).toHaveTextContent('12345.67');
+    paste('25\u00a0000,50 €');
+    expect(input()).toHaveValue('25 000,50 €');
+    expect(screen.getByRole('status')).toHaveTextContent('25000.5');
+    paste('R$ 99,00');
+    expect(input()).toHaveValue('25 000,50 €');
+  });
   it('keeps currency formatting on focus and selects the entire value on every click', () => {
     render(<Harness />);
     fireEvent.focus(input());

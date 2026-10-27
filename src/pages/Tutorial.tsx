@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, CirclePlay, FolderPlus, ListVideo, Loader2, Plus, Trash2, Upload, Video, Youtube } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +46,7 @@ async function loadRows<T>(table: 'tutorial_categories' | 'tutorial_videos', isA
 }
 
 export default function Tutorial() {
+  usePortugalTranslation();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -160,7 +163,7 @@ export default function Tutorial() {
       toast({ title: videoPublished ? 'Aula publicada com sucesso' : 'Aula salva como rascunho' });
       await loadTutorial();
     } catch (error: unknown) {
-      toast({ title: 'Erro ao salvar aula', description: errorMessage(error), variant: 'destructive' });
+      toast({ title: localizeText("Erro ao salvar aula"), description: errorMessage(error), variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -270,7 +273,7 @@ export default function Tutorial() {
                     <div className="mt-3 space-y-3">
                       <div className="flex items-center justify-between gap-2"><Label htmlFor={`module-${category.id}`} className="text-xs">Publicado</Label><Switch id={`module-${category.id}`} checked={category.is_published} onCheckedChange={() => void toggleCategory(category)} /></div>
 
-                      <Button size="sm" variant="ghost" onClick={() => void deleteCategory(category)} className="gap-2 text-destructive"><Trash2 className="h-3 w-3" /> Excluir módulo</Button>
+                      <Button size="sm" variant="ghost" onClick={() => void deleteCategory(category)} className="gap-2 text-destructive"><Trash2 className="h-3 w-3" /> {localizeText("Excluir módulo")}</Button>
                     </div>
                   </details>
                 )}
@@ -300,7 +303,7 @@ export default function Tutorial() {
                       <div className="flex items-center gap-3"><Switch id="selected-published" checked={selectedVideo.is_published} onCheckedChange={() => void toggleVideo(selectedVideo)} /><Label htmlFor="selected-published">Aula publicada</Label></div>
                       <div><Label htmlFor="selected-category">Módulo</Label><Select value={selectedVideo.category_id} onValueChange={(value) => void moveVideo(selectedVideo, value)}><SelectTrigger id="selected-category"><SelectValue /></SelectTrigger><SelectContent>{categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}</SelectContent></Select></div>
 
-                      <Button variant="outline" onClick={() => void deleteVideo(selectedVideo)} className="gap-2 self-end text-destructive"><Trash2 className="h-4 w-4" /> Excluir aula</Button>
+                      <Button variant="outline" onClick={() => void deleteVideo(selectedVideo)} className="gap-2 self-end text-destructive"><Trash2 className="h-4 w-4" /> {localizeText("Excluir aula")}</Button>
                     </div>
                   </details>
                 )}
@@ -318,7 +321,7 @@ export default function Tutorial() {
             <CardHeader><CardTitle className="flex items-center gap-2"><FolderPlus className="h-5 w-5" /> Novo módulo</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div><Label htmlFor="category-title">Nome</Label><Input maxLength={80} id="category-title" value={categoryTitle} onChange={(e) => setCategoryTitle(e.target.value)} placeholder="Ex.: Primeiros passos" /></div>
-              <div><Label htmlFor="category-description">Descrição</Label><Textarea id="category-description" value={categoryDescription} onChange={(e) => setCategoryDescription(e.target.value)} placeholder="O que o usuário aprenderá neste módulo" /></div>
+              <div><Label htmlFor="category-description">Descrição</Label><Textarea id="category-description" value={categoryDescription} onChange={(e) => setCategoryDescription(e.target.value)} placeholder={localizeText("O que o usuário aprenderá neste módulo")} /></div>
               <Button onClick={createCategory} disabled={savingCategory || !categoryTitle.trim()} className="gap-2">
                 {savingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Criar módulo
               </Button>
@@ -332,7 +335,7 @@ export default function Tutorial() {
                 <legend className="text-sm font-medium">Origem do vídeo</legend>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="video-source" value="youtube" checked={videoSource === 'youtube'} onChange={() => { setVideoSource('youtube'); setVideoFile(null); }} className="accent-primary" /><Youtube className="h-4 w-4" /> YouTube</label>
-                  <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="video-source" value="file" checked={videoSource === 'file'} onChange={() => setVideoSource('file')} className="accent-primary" /><Upload className="h-4 w-4" /> Arquivo de vídeo</label>
+                  <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="video-source" value="file" checked={videoSource === 'file'} onChange={() => setVideoSource('file')} className="accent-primary" /><Upload className="h-4 w-4" /> {localizeText("Arquivo de vídeo")}</label>
                 </div>
               </fieldset>
               {videoSource === 'youtube' ? (
@@ -347,7 +350,7 @@ export default function Tutorial() {
                   </p>
                 </div>
               ) : (
-                <div key="video-file"><Label htmlFor="tutorial-video-file">Arquivo de vídeo</Label><Input id="tutorial-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} disabled={uploading} /><p className="mt-2 text-xs text-muted-foreground">Seu vídeo é enviado na qualidade original. Para maior compatibilidade, prefira MP4 (H.264).</p></div>
+                <div key="video-file"><Label htmlFor="tutorial-video-file">{localizeText("Arquivo de vídeo")}</Label><Input id="tutorial-video-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} disabled={uploading} /><p className="mt-2 text-xs text-muted-foreground">Seu vídeo é enviado na qualidade original. Para maior compatibilidade, prefira MP4 (H.264).</p></div>
               )}
               <div><Label htmlFor="video-title">Título</Label><Input maxLength={120} id="video-title" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} placeholder="Título do vídeo" /></div>
               <div><Label htmlFor="upload-module">Módulo</Label><Select value={videoCategory} onValueChange={setVideoCategory}><SelectTrigger id="upload-module"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.title}</SelectItem>)}</SelectContent></Select></div>

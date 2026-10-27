@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +34,7 @@ interface HealthMetric {
 }
 
 export const FinancialHealthScore = () => {
+  usePortugalTranslation();
   const [overallScore, setOverallScore] = useState(0);
   const [metrics, setMetrics] = useState<HealthMetric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -338,7 +341,7 @@ export const FinancialHealthScore = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Análise baseada em 5 pilares: margem de lucro, diversificação, consistência de custos, controle de estoque e precificação.</p>
+                <p>{localizeText("Análise baseada em 5 pilares: margem de lucro, diversificação, consistência de custos, controle de estoque e precificação.")}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

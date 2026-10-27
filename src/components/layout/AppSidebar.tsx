@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { preloadRoute } from '@/lib/routePreload';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -18,7 +20,7 @@ import {
   List,
   ArrowLeftRight,
   History,
-  
+
   AlertOctagon,
   BarChart3,
   Receipt,
@@ -47,6 +49,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 
 export function AppSidebar() {
+  usePortugalTranslation();
   const { t } = useTranslation();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const location = useLocation();
@@ -98,7 +101,7 @@ export function AppSidebar() {
       url: '/relatorios',
       icon: BarChart3,
       children: [
-        { title: 'Estoque', url: '/relatorios/estoque', icon: Package },
+        { title: localizeText("Estoque"), url: '/relatorios/estoque', icon: Package },
         { title: 'Perdas', url: '/relatorios/perdas', icon: AlertOctagon },
         { title: 'Produtividade', url: '/relatorios/produtividade', icon: Activity },
       ],
@@ -147,16 +150,16 @@ export function AppSidebar() {
       <SidebarHeader className={`p-4 ${isCollapsed ? 'px-2' : 'px-5'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full'}`}>
           {isCollapsed ? (
-            <img 
-              src="/lovable-uploads/51eac01a-23f2-4ae9-b4d9-3185f48d4798.png" 
-              alt="CalculaAi" 
+            <img
+              src="/lovable-uploads/51eac01a-23f2-4ae9-b4d9-3185f48d4798.png"
+              alt="CalculaAi"
               className="h-9 w-9 object-contain"
             />
           ) : (
             <div className="w-full space-y-2">
-              <img 
-                src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png" 
-                alt="CalculaAi - Precificação Inteligente" 
+              <img
+                src="/lovable-uploads/0e811681-8a8b-43c8-a9cd-3f9b5fda38c5.png"
+                alt={localizeText("CalculaAi - Precificação Inteligente")}
                 className="h-9 w-full object-contain object-left"
               />
               {isAdmin && (
@@ -247,7 +250,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
+                      <NavLink
                         to={item.url}
                         onPointerEnter={() => preloadRoute(item.url)}
                         onFocus={() => preloadRoute(item.url)}
@@ -256,8 +259,8 @@ export function AppSidebar() {
                         className={`
                           relative flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                           transition-all duration-200 group
-                          ${active 
-                            ? 'bg-primary text-primary-foreground shadow-brand' 
+                          ${active
+                            ? 'bg-primary text-primary-foreground shadow-brand'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                           }
                           ${isCollapsed ? 'justify-center px-2' : ''}
@@ -291,6 +294,7 @@ interface CollapsibleSubmenuProps {
 }
 
 function CollapsibleSubmenu({ item, parentMatched, currentPath, onNavigate }: CollapsibleSubmenuProps) {
+  usePortugalTranslation();
   const [open, setOpen] = useState(parentMatched);
 
   useEffect(() => {

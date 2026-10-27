@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -19,6 +21,7 @@ interface NotificationSettings {
 }
 
 export const NotificationSettings = () => {
+  usePortugalTranslation();
   const [settings, setSettings] = useState<NotificationSettings>({
     low_stock: true,
     unpriced_recipes: true,
@@ -85,8 +88,8 @@ export const NotificationSettings = () => {
   const notificationTypes = [
     {
       key: 'low_stock' as keyof NotificationSettings,
-      title: 'Estoque Baixo',
-      description: 'Alertas quando produtos atingirem o estoque mínimo',
+      title: localizeText("Estoque Baixo"),
+      description: localizeText("Alertas quando produtos atingirem o estoque mínimo"),
       icon: <Package className="h-4 w-4" />,
       priority: 'Alta',
       color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
@@ -94,7 +97,7 @@ export const NotificationSettings = () => {
     {
       key: 'unpriced_recipes' as keyof NotificationSettings,
       title: 'Receitas Sem Preço',
-      description: 'Lembretes para receitas que precisam de precificação',
+      description: localizeText("Lembretes para receitas que precisam de precificação"),
       icon: <DollarSign className="h-4 w-4" />,
       priority: 'Média',
       color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
@@ -110,7 +113,7 @@ export const NotificationSettings = () => {
     {
       key: 'sales_opportunities' as keyof NotificationSettings,
       title: 'Oportunidades de Venda',
-      description: 'Produtos com alta demanda mas estoque baixo - não perca vendas!',
+      description: localizeText("Produtos com alta demanda mas estoque baixo - não perca vendas!"),
       icon: <TrendingUp className="h-4 w-4" />,
       priority: 'Média',
       color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'

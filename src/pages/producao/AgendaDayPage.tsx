@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, isValid } from 'date-fns';
@@ -43,6 +45,7 @@ interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rend
 interface FuncOpt { id: string; nome: string; cargo: string | null; }
 
 export default function AgendaDayPage() {
+  usePortugalTranslation();
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -317,7 +320,7 @@ export default function AgendaDayPage() {
       )}
 
       {isLoading ? (
-        <div className="p-8 text-center text-muted-foreground">Carregando...</div>
+        <div className="p-8 text-center text-muted-foreground">{localizeText("Carregando...")}</div>
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -415,6 +418,7 @@ function Coluna({
   onOpenDetails: (tarefa: ProducaoTarefa) => void;
   onRemove: (id: string) => void;
 }) {
+  usePortugalTranslation();
   const { isOver, setNodeRef } = useDroppable({ id: col.id });
   const Icon = col.icon;
   return (
@@ -462,6 +466,7 @@ function TarefaCard({
   dragging?: boolean;
   readOnly?: boolean;
 }) {
+  usePortugalTranslation();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
   const atrasada = tarefa.status !== 'feito' && Boolean(tarefa.fim_previsto) && new Date(tarefa.fim_previsto!).getTime() < Date.now();
   return (
@@ -560,6 +565,7 @@ function HistoricoTarefaModal({
   onOpenChange: (open: boolean) => void;
   onChangeFuncionario: (tarefa: ProducaoTarefa, funcionarioId: string) => Promise<unknown>;
 }) {
+  usePortugalTranslation();
   const [editing, setEditing] = useState(false);
   const [funcionarioId, setFuncionarioId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -624,8 +630,7 @@ function HistoricoTarefaModal({
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => { setEditing(false); setFuncionarioId(tarefa.funcionario_id); }}>Cancelar</Button>
                   <Button onClick={salvarResponsavel} disabled={saving || !funcionarioId}>
-                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar
-                  </Button>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{localizeText("Salvar")}</Button>
                 </div>
               </div>
             )}
@@ -687,6 +692,7 @@ function NovaTarefaModal({
   dataStr: string;
   onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null; area_id?: string | null }) => void;
 }) {
+  usePortugalTranslation();
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
   const [receitaId, setReceitaId] = useState('');
@@ -764,7 +770,7 @@ function NovaTarefaModal({
                   </PopoverTrigger>
                   <PopoverContent data-command-popover="" className="p-0 w-[--radix-popover-trigger-width]" align="start" avoidCollisions collisionPadding={8}>
                     <Command>
-                      <CommandInput placeholder="Buscar receita..." />
+                      <CommandInput placeholder={localizeText("Buscar receita...")} />
                       <CommandList className="max-h-[260px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                         <CommandEmpty>Nenhuma receita.</CommandEmpty>
                         <CommandGroup>
@@ -796,9 +802,8 @@ function NovaTarefaModal({
           <div>
             <Label>Funcionário responsável *</Label>
             {funcionarios.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-                Nenhum funcionário cadastrado. Cadastre em{' '}
-                <a className="text-primary underline" href="/precificacao/folha-pagamento">Folha de Pagamento</a>.
+              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">{localizeText("Nenhum funcionário cadastrado. Cadastre em")}{' '}
+                <a className="text-primary underline" href="/precificacao/folha-pagamento">{localizeText("Folha de Pagamento")}</a>.
               </div>
             ) : (
               <Select value={funcionarioId} onValueChange={setFuncionarioId}>

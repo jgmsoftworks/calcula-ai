@@ -1,3 +1,4 @@
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import React, { useState, useEffect } from 'react';
 import { CurrencyInput } from './currency-input';
 import { Input } from '@/components/ui/input';
@@ -43,21 +44,21 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
       
       switch (tipo) {
         case 'valor':
-          return new Intl.NumberFormat('pt-BR', {
+          return new Intl.NumberFormat(getBusinessRegion().locale, {
             style: 'currency',
-            currency: 'BRL'
+            currency: getBusinessRegion().currency
           }).format(num);
         case 'percentual':
-          return `${new Intl.NumberFormat('pt-BR', {
+          return `${new Intl.NumberFormat(getBusinessRegion().locale, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
           }).format(num)}%`;
         case 'quantidade_un':
-          return new Intl.NumberFormat('pt-BR', {
+          return new Intl.NumberFormat(getBusinessRegion().locale, {
             maximumFractionDigits: 0
           }).format(num);
         case 'quantidade_continua':
-          return new Intl.NumberFormat('pt-BR', {
+          return new Intl.NumberFormat(getBusinessRegion().locale, {
             minimumFractionDigits: 0,
             maximumFractionDigits: 3
           }).format(num);
@@ -105,7 +106,7 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
       }
       
       if (formatWhileTyping) {
-        const { text, caret } = formatQuantityInput(inputValue, e.target.selectionStart ?? inputValue.length);
+        const { text, caret } = formatQuantityInput(inputValue, e.target.selectionStart ?? inputValue.length, getBusinessRegion().country === 'PT' ? ' ' : '.');
         // Update the DOM before React commits so editing in the middle keeps its caret.
         e.target.value = text;
         e.target.setSelectionRange(caret, caret);
@@ -179,7 +180,7 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
       if (placeholder !== undefined) return placeholder;
       
       switch (tipo) {
-        case 'valor': return 'R$ 0,00';
+        case 'valor': return formatMoney(0);
         case 'percentual': return '0,00%';
         case 'quantidade_un': return '0';
         case 'quantidade_continua': return '0,000';

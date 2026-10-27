@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,6 +14,7 @@ interface CmvCardProps {
 }
 
 export function CmvCard({ cmvResult, animationDelay = '0ms' }: CmvCardProps) {
+  usePortugalTranslation();
   const { cmvDisponivel, cmvValor, cmvPercentual, breakdown } = cmvResult;
 
   return (
@@ -44,11 +48,11 @@ export function CmvCard({ cmvResult, animationDelay = '0ms' }: CmvCardProps) {
               <>
                 <div className="flex items-baseline gap-2">
                   <p className="text-2xl font-bold font-display text-foreground">
-                    R$ {formatBRL(cmvValor)}
+                    {formatMoney(cmvValor)}
                   </p>
                   {cmvPercentual !== null ? (
                     <Badge variant="secondary" className="text-xs font-medium px-1.5 py-0.5 rounded-md">
-                      {cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                      {cmvPercentual.toLocaleString(getBusinessRegion().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-xs font-medium px-1.5 py-0.5 rounded-md text-muted-foreground">
@@ -68,9 +72,7 @@ export function CmvCard({ cmvResult, animationDelay = '0ms' }: CmvCardProps) {
                     Indisponível
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Aguardando fechamento do estoque do mês anterior
-                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{localizeText("Aguardando fechamento do estoque do mês anterior")}</p>
               </>
             )}
           </div>
@@ -95,35 +97,36 @@ function BreakdownContent({
   cmvPercentual: number | null;
   cmvDisponivel: boolean;
 }) {
+  usePortugalTranslation();
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-foreground">Memória de cálculo</p>
       <div className="space-y-1.5 text-xs">
         <Row
-          label="Estoque inicial"
-          value={breakdown.estoqueInicial !== null ? `R$ ${formatBRL(breakdown.estoqueInicial)}` : '—'}
+          label={localizeText("Estoque inicial")}
+          value={breakdown.estoqueInicial !== null ? `${formatMoney(breakdown.estoqueInicial)}` : '—'}
           muted={breakdown.estoqueInicial === null}
         />
-        <Row label="(+) Compras líquidas" value={`R$ ${formatBRL(breakdown.comprasLiquidas)}`} />
-        <Row label="(−) Estoque final" value={`R$ ${formatBRL(breakdown.estoqueFinal)}`} />
+        <Row label="(+) Compras líquidas" value={`${formatMoney(breakdown.comprasLiquidas)}`} />
+        <Row label={localizeText("(−) Estoque final")} value={`${formatMoney(breakdown.estoqueFinal)}`} />
         <div className="border-t border-border my-1.5" />
         <Row
           label="(=) CMV"
-          value={cmvDisponivel && cmvValor !== null ? `R$ ${formatBRL(cmvValor)}` : '—'}
+          value={cmvDisponivel && cmvValor !== null ? `${formatMoney(cmvValor)}` : '—'}
           bold
           muted={!cmvDisponivel}
         />
         <div className="border-t border-border my-1.5" />
         <Row
-          label="Faturamento líquido"
-          value={breakdown.faturamentoLiquido !== null ? `R$ ${formatBRL(breakdown.faturamentoLiquido)}` : '—'}
+          label={localizeText("Faturamento líquido")}
+          value={breakdown.faturamentoLiquido !== null ? `${formatMoney(breakdown.faturamentoLiquido)}` : '—'}
           muted={breakdown.faturamentoLiquido === null}
         />
         <Row
           label="CMV %"
           value={
             cmvPercentual !== null
-              ? `${cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+              ? `${cmvPercentual.toLocaleString(getBusinessRegion().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
               : '—'
           }
           muted={cmvPercentual === null}
@@ -156,6 +159,7 @@ function Row({
   bold?: boolean;
   muted?: boolean;
 }) {
+  usePortugalTranslation();
   return (
     <div className="flex items-center justify-between">
       <span className={`${muted ? 'text-muted-foreground/60' : 'text-muted-foreground'} ${bold ? 'font-semibold' : ''}`}>

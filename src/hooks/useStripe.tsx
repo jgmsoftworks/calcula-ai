@@ -1,3 +1,4 @@
+import { useBusinessRegion } from '@/contexts/BusinessRegionContext';
 import { trackFunnel } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,7 @@ interface SubscriptionData {
 }
 
 export const useStripe = () => {
+  const { country } = useBusinessRegion();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -58,7 +60,7 @@ export const useStripe = () => {
       console.log('[CHECKOUT] Iniciando checkout:', { planType, billing, userId: user.id, affiliateCode });
 
       // Se há código de afiliado, usar sempre a edge function
-      if (affiliateCode) {
+      if (affiliateCode && country === 'BR') {
         const { data, error } = await supabase.functions.invoke('affiliate-checkout', {
           body: { planType, billing, affiliateCode }
         });

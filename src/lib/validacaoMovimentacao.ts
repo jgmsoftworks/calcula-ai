@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 export type ItemValidacaoEstoque = {
   produto_id: string;
   tipo: 'entrada' | 'saida';
@@ -40,7 +41,7 @@ export function verificarSaldosDisponiveis(
   saldos: readonly SaldoProduto[]
 ): string | null {
   const porId = new Map(saldos.map(produto => [produto.id, produto]));
-  const formatar = (valor: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(valor);
+  const formatar = (valor: number) => new Intl.NumberFormat(getBusinessRegion().locale, { maximumFractionDigits: 3 }).format(valor);
   for (const [id, total] of saidas) {
     const produto = porId.get(id);
     if (!produto || !Number.isFinite(Number(produto.estoque_atual))) {

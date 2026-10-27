@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +18,7 @@ import {
 } from '@/hooks/useExportRelatorioEstoque';
 
 export function RelatorioPosicao() {
+  usePortugalTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchProdutos } = useEstoque();
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -85,7 +89,7 @@ export function RelatorioPosicao() {
 
   const totaisExport = {
     'Total de SKUs': totais.skus,
-    'Valor total em estoque': `R$ ${formatBRL(totais.valorTotal)}`,
+    'Valor total em estoque': `${formatMoney(totais.valorTotal)}`,
   };
 
   const handleExcel = () => exportarRelatorioExcel(
@@ -102,7 +106,7 @@ export function RelatorioPosicao() {
       <Card className="p-4 space-y-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
           <div className="min-w-0 flex-1">
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Buscar produto</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">{localizeText("Buscar produto")}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -142,15 +146,15 @@ export function RelatorioPosicao() {
             </div>
           </div>
           <div className="rounded-xl bg-emerald-500/10 p-3">
-            <p className="text-xs text-muted-foreground">Valor total em estoque</p>
-            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">R$ {formatBRL(totais.valorTotal)}</p>
+            <p className="text-xs text-muted-foreground">{localizeText("Valor total em estoque")}</p>
+            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(totais.valorTotal)}</p>
           </div>
         </div>
       </Card>
 
       <div className="space-y-2 xl:hidden">
         {loading && (
-          <Card className="p-8 text-center text-sm text-muted-foreground">Carregando...</Card>
+          <Card className="p-8 text-center text-sm text-muted-foreground">{localizeText("Carregando...")}</Card>
         )}
         {!loading && rows.length === 0 && (
           <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum produto encontrado</Card>
@@ -176,16 +180,16 @@ export function RelatorioPosicao() {
                 <p className="font-semibold">{formatNumber(r.estoque_atual, 2)} <span className="text-xs font-normal uppercase text-muted-foreground">{r.unidade}</span></p>
               </div>
               <div>
-                <p className="text-[11px] text-muted-foreground">Estoque mínimo</p>
+                <p className="text-[11px] text-muted-foreground">{localizeText("Estoque mínimo")}</p>
                 <p className="font-semibold">{formatNumber(r.estoque_minimo, 2)}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground">Custo unitário</p>
-                <p className="font-semibold">R$ {formatBRL(r.custo_unitario)}</p>
+                <p className="font-semibold">{formatMoney(r.custo_unitario)}</p>
               </div>
               <div>
-                <p className="text-[11px] text-muted-foreground">Valor em estoque</p>
-                <p className="font-semibold">R$ {formatBRL(r.valor_estoque)}</p>
+                <p className="text-[11px] text-muted-foreground">{localizeText("Valor em estoque")}</p>
+                <p className="font-semibold">{formatMoney(r.valor_estoque)}</p>
               </div>
             </div>
           </Card>
@@ -204,13 +208,13 @@ export function RelatorioPosicao() {
                 <TableHead className="text-right">Saldo</TableHead>
                 <TableHead className="text-right">Mínimo</TableHead>
                 <TableHead className="text-right">Custo Un.</TableHead>
-                <TableHead className="text-right">Valor Estoque</TableHead>
+                <TableHead className="text-right">{localizeText("Valor Estoque")}</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{localizeText("Carregando...")}</TableCell></TableRow>
               )}
               {!loading && rows.length === 0 && (
                 <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</TableCell></TableRow>
@@ -223,8 +227,8 @@ export function RelatorioPosicao() {
                   <TableCell className="text-center text-sm uppercase">{r.unidade}</TableCell>
                   <TableCell className="text-right">{formatNumber(r.estoque_atual, 2)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{formatNumber(r.estoque_minimo, 2)}</TableCell>
-                  <TableCell className="text-right">R$ {formatBRL(r.custo_unitario)}</TableCell>
-                  <TableCell className="text-right font-semibold">R$ {formatBRL(r.valor_estoque)}</TableCell>
+                  <TableCell className="text-right">{formatMoney(r.custo_unitario)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatMoney(r.valor_estoque)}</TableCell>
                   <TableCell className="text-center">
                     {r.status === 'OK' && <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-0">OK</Badge>}
                     {r.status === 'Abaixo' && <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-0 gap-1"><AlertTriangle className="h-3 w-3" />Abaixo</Badge>}

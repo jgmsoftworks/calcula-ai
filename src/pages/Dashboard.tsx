@@ -1,3 +1,4 @@
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -24,7 +25,7 @@ import { AdminKPICards } from '@/components/admin/AdminKPICards';
 import { AdminChannelComparison } from '@/components/admin/AdminChannelComparison';
 import { AdminRevenueChart } from '@/components/admin/AdminRevenueChart';
 import { format } from 'date-fns';
-import { ptBR, enUS } from 'date-fns/locale';
+import { ptBR, pt, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 
 const Dashboard = () => {
@@ -39,7 +40,7 @@ const Dashboard = () => {
     user?.email?.split('@')[0] ||
     'user';
 
-  const dateLocale = i18n.language === 'pt-BR' ? ptBR : enUS;
+  const dateLocale = i18n.language === 'pt-BR' ? ptBR : i18n.language === 'pt-PT' ? pt : enUS;
 
   const loading = isAdmin ? adminMetrics.loading : data.loading;
 
@@ -110,7 +111,7 @@ const Dashboard = () => {
   const userStats = [
     {
       title: t('dashboard.stockValue'),
-      value: `R$ ${data.valorEmEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: `${formatMoney(data.valorEmEstoque)}`,
       icon: Package,
       gradient: 'from-[#0483e4] to-[#2c4dc7]',
       iconBg: 'bg-[#0483e4]/10',
@@ -118,7 +119,7 @@ const Dashboard = () => {
     },
     {
       title: t('dashboard.entriesMonth'),
-      value: `R$ ${data.totalEntradasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: `${formatMoney(data.totalEntradasMes)}`,
       icon: ArrowUpRight,
       gradient: 'from-[#16a34a] to-[#15803d]',
       iconBg: 'bg-[#16a34a]/10',
@@ -126,7 +127,7 @@ const Dashboard = () => {
     },
     {
       title: t('dashboard.exitsMonth'),
-      value: `R$ ${data.totalSaidasMes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: `${formatMoney(data.totalSaidasMes)}`,
       icon: ArrowDownRight,
       gradient: 'from-[#7328b1] to-[#af1188]',
       iconBg: 'bg-[#7328b1]/10',
@@ -222,10 +223,10 @@ const Dashboard = () => {
                 <BarChart data={data.dailyMovements} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${(value / 1).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => formatMoney(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '8px 12px', fontSize: '12px' }}
-                    formatter={(value: number, name: string) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, name === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')]}
+                    formatter={(value: number, name: string) => [`${formatMoney(value)}`, name === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')]}
                     labelFormatter={(label) => `${t('dashboard.day')} ${label}`}
                   />
                   <Legend formatter={(value) => value === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')} />
@@ -256,7 +257,7 @@ const Dashboard = () => {
                 {data.cmvResult.breakdown.estoqueInicial !== null ? (
                   <div>
                     <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
-                      R$ {data.cmvResult.breakdown.estoqueInicial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatMoney(data.cmvResult.breakdown.estoqueInicial)}
                     </p>
                     {data.cmvResult.breakdown.estoqueInicialEstimado && (
                       <span className="text-xs text-muted-foreground mt-1 inline-block">{t('dashboard.estimated')}</span>
@@ -289,7 +290,7 @@ const Dashboard = () => {
                   </div>
                 ) : data.cmvResult.cmvPercentual !== null ? (
                   <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
-                    {data.cmvResult.cmvPercentual.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                    {data.cmvResult.cmvPercentual.toLocaleString(getBusinessRegion().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                   </p>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground">

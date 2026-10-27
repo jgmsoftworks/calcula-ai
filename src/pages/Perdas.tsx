@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion } from '@/lib/business-region';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,6 +12,7 @@ import { formatBRL } from '@/lib/formatters';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function Perdas() {
+  usePortugalTranslation();
   const { fetchPerdas, excluirPerda, loading } = usePerdas();
   const [perdas, setPerdas] = useState<Perda[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -55,7 +59,7 @@ export default function Perdas() {
       </div>
 
       {loading ? (
-        <Card className="p-8 text-center text-muted-foreground">Carregando...</Card>
+        <Card className="p-8 text-center text-muted-foreground">{localizeText("Carregando...")}</Card>
       ) : perdas.length === 0 ? (
         <Card className="p-10 text-center glass-card">
           <AlertTriangle className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
@@ -74,7 +78,7 @@ export default function Perdas() {
                   <Badge variant="outline" className="text-[10px]">{p.tipo === 'produto' ? 'Produto' : 'Receita'}</Badge>
                 </div>
                 <p className="break-words text-xs leading-relaxed text-muted-foreground">
-                  {new Date(p.data_perda).toLocaleString('pt-BR')} · Qtd: {p.quantidade} · {p.motivo}
+                  {new Date(p.data_perda).toLocaleString(getBusinessRegion().locale)} · Qtd: {p.quantidade} · {p.motivo}
                   {p.motivo === 'Outro' && p.motivo_outro ? ` (${p.motivo_outro})` : ''}
                   {p.responsavel ? ` · ${p.responsavel}` : ''}
                 </p>
@@ -97,14 +101,12 @@ export default function Perdas() {
       <AlertDialog open={!!perdaParaExcluir} onOpenChange={(o) => !o && setPerdaParaExcluir(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir perda?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação remove o registro da perda. A movimentação de estoque já realizada NÃO será revertida.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{localizeText("Excluir perda?")}</AlertDialogTitle>
+            <AlertDialogDescription>{localizeText("Esta ação remove o registro da perda. A movimentação de estoque já realizada NÃO será revertida.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">{localizeText("Excluir")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { Label } from '@/components/ui/label';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,6 +37,7 @@ interface ProjecaoTabProps {
 }
 
 export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, tempMaoObra = [], onAddMaoObraTemp, onRemoveMaoObraTemp }: ProjecaoTabProps) => {
+  usePortugalTranslation();
   const { user } = useAuth();
   const tiposQuery = useTiposProduto();
   const tiposProduto = tiposQuery.data || [];
@@ -81,9 +85,9 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
                   <SelectValue placeholder={tiposQuery.isPending ? "Carregando tipos…" : "Selecione o tipo"}>{selectedTipoLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent searchable>
-                  {tiposQuery.isFetching && !tiposProduto.length && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">Carregando tipos de produto…</p>}
+                  {tiposQuery.isFetching && !tiposProduto.length && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">{localizeText("Carregando tipos de produto…")}</p>}
                   {tiposQuery.isError && !tiposQuery.isFetching && !tiposProduto.length && <p className="px-3 py-4 text-sm text-destructive">Não foi possível carregar os tipos. Tente novamente.</p>}
-                  {!tiposQuery.isPending && !tiposQuery.isError && !tiposProduto.length && <p className="px-3 py-4 text-sm text-muted-foreground">Nenhum tipo cadastrado. Use o botão + para adicionar.</p>}
+                  {!tiposQuery.isPending && !tiposQuery.isError && !tiposProduto.length && <p className="px-3 py-4 text-sm text-muted-foreground">{localizeText("Nenhum tipo cadastrado. Use o botão + para adicionar.")}</p>}
                   {tiposProduto.map((tipo) => (
                     <SelectItem key={tipo.id} value={tipo.id}>
                       {tipo.nome}
@@ -198,7 +202,7 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-primary">
-                        R$ {formatBRL(mo.valor_total || 0)}
+                        {formatMoney(mo.valor_total || 0)}
                       </span>
                       <Button
                         variant="ghost"
@@ -214,7 +218,7 @@ export const ProjecaoTab = ({ mode = 'edit', receita, formData, onFormChange, te
                 <div className="flex justify-between items-center pt-2 border-t font-bold">
                   <span>Total:</span>
                   <span className="text-primary">
-                    R$ {formatBRL(totalMaoObra)}
+                    {formatMoney(totalMaoObra)}
                   </span>
                 </div>
               </div>

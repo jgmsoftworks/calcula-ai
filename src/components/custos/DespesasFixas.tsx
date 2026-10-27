@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +39,7 @@ interface CategoriasDespesas {
 }
 
 export function DespesasFixas() {
+  usePortugalTranslation();
   const [despesas, setDespesas] = useState<DespesaFixa[]>([]);
   const [categorias, setCategorias] = useState<CategoriasDespesas[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -157,7 +161,7 @@ export function DespesasFixas() {
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
       toast({
-        title: "Erro ao salvar",
+        title: localizeText("Erro ao salvar"),
         description: "Tente novamente mais tarde",
         variant: "destructive"
       });
@@ -212,14 +216,14 @@ export function DespesasFixas() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'currency',
-      currency: 'BRL'
+      currency: getBusinessRegion().currency
     }).format(value);
   };
 
   const formatCurrencyInput = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -395,9 +399,7 @@ export function DespesasFixas() {
             {filteredDespesas.length === 0 ? (
               <div className="text-center py-12 rounded-xl bg-muted/30 border border-dashed border-border/50">
                 <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium font-display text-muted-foreground mb-1">
-                  Nenhuma despesa cadastrada
-                </p>
+                <p className="text-sm font-medium font-display text-muted-foreground mb-1">{localizeText("Nenhuma despesa cadastrada")}</p>
                 <p className="text-xs text-muted-foreground">
                   Clique em "Adicionar Despesa" para começar.
                 </p>

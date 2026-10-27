@@ -1,3 +1,4 @@
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import * as React from 'react';
 import { Input } from './input';
 import { cn } from '@/lib/utils';
@@ -10,13 +11,12 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<'input'>, 'type' 
   max?: number;
 }
 
-const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const format = (value: number) => formatter.format(value).replace(/\u00a0/g, ' ');
+const format = (value: number) => formatMoney(value).replace(/[\u00a0\u202f]/g, ' ');
 const digits = (value: string) => value.replace(/\D/g, '');
 
 // Keep the caret next to the edited digit when the mask inserts separators.
 function caretPosition(text: string, digitsToRight: number) {
-  if (!digitsToRight) return text.length;
+  if (!digitsToRight) return text.search(/\d[^\d]*$/) + 1;
   let remaining = digitsToRight;
   for (let index = text.length - 1; index >= 0; index--) {
     if (/\d/.test(text[index]) && --remaining === 0) {
@@ -28,7 +28,7 @@ function caretPosition(text: string, digitsToRight: number) {
 }
 
 function pastedAmount(text: string): number | null {
-  const clean = text.trim().replace(/^R\$\s*/i, '').replace(/\s/g, '');
+  const clean = text.trim().replace(getBusinessRegion().currency === 'EUR' ? /^(?:€|EUR)\s*|\s*(?:€|EUR)$/gi : /^(?:R\$|BRL)\s*/i, '').replace(/\s/g, '');
   if (!/^\d[\d.,]*$/.test(clean)) return null;
   let normalized: string;
   if (clean.includes(',')) {
@@ -46,7 +46,7 @@ function pastedAmount(text: string): number | null {
 
 /** Monetary keyboard: digits fill cents; pasted amounts retain their monetary value. */
 export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ value, onChange, min, max, className, onFocus, onClick, onBlur, onPaste, onKeyDown, onWheel, placeholder = 'R$ 0,00', ...props }, forwardedRef) => {
+  ({ value, onChange, min, max, className, onFocus, onClick, onBlur, onPaste, onKeyDown, onWheel, placeholder = format(0), ...props }, forwardedRef) => {
     const safeValue = Number.isFinite(value) ? value : 0;
     // A fresh state object also restores the caret when only a separator was deleted.
     const [{ text }, setDisplay] = React.useState(() => ({ text: safeValue === 0 ? '' : format(safeValue) }));

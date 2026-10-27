@@ -1,3 +1,5 @@
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { initialBusinessCountry, isAppLanguage, isBusinessCountry, type BusinessCountry } from '@/lib/business-region';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Card, CardContent } from '@/components/ui/card';
@@ -89,6 +91,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState<BusinessCountry>(() => initialBusinessCountry());
   const [loading, setLoading] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -166,10 +169,6 @@ const Auth = () => {
     setSearchParams(next, { replace: true });
   };
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
-    i18n.changeLanguage(newLang);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,7 +208,7 @@ const Auth = () => {
     trackFunnel('signup_started', { method: 'email' });
     setLoading(true);
     try {
-      const { data, error } = await signUp(email, password, fullName, businessName, phone);
+      const { data, error } = await signUp(email, password, fullName, businessName, phone, country, isAppLanguage(i18n.language) ? i18n.language : undefined);
       if (error) {
         let errorMessage = t('auth.tryAgain');
         if (error.message.includes('Password should be at least')) errorMessage = t('auth.passwordMinLength');
@@ -344,14 +343,7 @@ const Auth = () => {
         >
           {resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="rounded-full h-9 px-3 text-xs font-bold text-muted-foreground bg-background/80 dark:bg-black/80 backdrop-blur-md"
-          onClick={toggleLanguage}
-        >
-          {i18n.language === 'pt-BR' ? '🇺🇸 EN' : '🇧🇷 PT'}
-        </Button>
+        <LanguageSelector />
       </div>
 
       {/* ============ AUTH — centralizado ============ */}
@@ -449,14 +441,29 @@ const Auth = () => {
 
                     <TabsContent value="signup" className="animate-fade-in space-y-4 mt-0">
                       <div className="rounded-xl bg-primary/5 px-3 py-2 text-center">
-                        <p className="text-sm font-semibold text-primary">Experimente grátis por 7 dias</p>
+                        <p className="text-sm font-semibold text-primary">{t('regional.trialTitle')}</p>
                         <p className="mt-1 text-xs text-muted-foreground">Recursos e limites do Iniciante. Sem cartão e sem cobrança automática.</p>
                       </div>
                       <form onSubmit={handleSignup} className="space-y-2.5">
+                        <label className="block space-y-1 text-sm font-medium">
+                          {t('regional.country')}
+                          <select className="h-11 w-full rounded-xl border bg-background px-3" value={country} onChange={event => {
+                            const next = event.target.value;
+                            if (!isBusinessCountry(next)) return;
+                            setCountry(next);
+                            const params = new URLSearchParams(searchParams);
+                            params.set('country', next);
+                            params.set('lang', next === 'PT' ? 'pt-PT' : 'pt-BR');
+                            setSearchParams(params, { replace: true });
+                            void i18n.changeLanguage(next === 'PT' ? 'pt-PT' : 'pt-BR');
+                          }}>
+                            <option value="BR">Brasil · BRL (R$)</option><option value="PT">Portugal · EUR (€)</option>
+                          </select>
+                        </label>
                         <InputField compact id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
                         <div className="grid gap-2.5 sm:grid-cols-2">
                           <InputField compact id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
-                          <InputField compact id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
+                          <InputField compact id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={country === 'PT' ? '+351 912 345 678' : t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
                         </div>
                         <InputField compact id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
                         <InputField compact id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
@@ -479,7 +486,7 @@ const Auth = () => {
                         </div>
 
                         <Button type="submit" disabled={loading || !acceptTerms || !acceptPrivacy} className="w-full h-11 rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] disabled:opacity-50 disabled:hover:translate-y-0">
-                          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Começar meus 7 dias grátis</span><ArrowRight className="h-4 w-4 ml-2" /></>}
+                          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('regional.trialStart')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
                         </Button>
 
                         <Divider />

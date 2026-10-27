@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -45,6 +48,7 @@ interface MaoObraModalProps {
 }
 
 export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode = false, onAddTemp }: MaoObraModalProps) => {
+  usePortugalTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
@@ -270,9 +274,7 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
                 </SelectTrigger>
                 <SelectContent>
                   {funcionarios.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      Nenhum funcionário com mão de obra direta cadastrado
-                    </div>
+                    <div className="p-2 text-sm text-muted-foreground">{localizeText("Nenhum funcionário com mão de obra direta cadastrado")}</div>
                   ) : (
                     funcionarios.map((func) => (
                       <SelectItem key={func.id} value={func.id}>
@@ -315,7 +317,7 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
               <div>
                 <Label className="text-muted-foreground">Valor Total</Label>
                 <p className="text-2xl font-bold text-primary">
-                  R$ {valorTotal.toFixed(2).replace('.', ',')}
+                  {formatMoney(valorTotal)}
                 </p>
               </div>
               <Button
@@ -351,7 +353,7 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="font-bold text-primary">
-                          R$ {mo.valor_total.toFixed(2).replace('.', ',')}
+                          {formatMoney(mo.valor_total)}
                         </span>
                         <Button
                           variant="ghost"
@@ -369,7 +371,7 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
                 <div className="flex justify-between items-center pt-3 border-t font-bold">
                   <span>Total:</span>
                   <span className="text-xl text-primary">
-                    R$ {totalGeral.toFixed(2).replace('.', ',')}
+                    {formatMoney(totalGeral)}
                   </span>
                 </div>
               </>

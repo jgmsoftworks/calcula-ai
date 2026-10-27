@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,7 +24,7 @@ export default function NotificacoesPainel() {
     if (diffDays < 1) return 'Hoje';
     if (diffDays === 1) return 'Ontem';
     if (diffDays < 7) return `${diffDays} dias atrás`;
-    return notificationDate.toLocaleDateString('pt-BR');
+    return notificationDate.toLocaleDateString(getBusinessRegion().locale);
   };
 
   return (

@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 // Fixed: All SelectItem values are non-empty strings
 import { useState, useEffect } from 'react';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
@@ -62,6 +64,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 export function ListaProdutos() {
+  usePortugalTranslation();
   const { deleteProduto } = useEstoque();
   const { exportarProdutos } = useExportProdutos();
   const { fetchMarcas, fetchCategorias } = useMarcasCategorias();
@@ -267,7 +270,7 @@ export function ListaProdutos() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
           <div className="xl:col-span-2">
             <Input
-              placeholder="Busque por nome, código interno ou código de barras..."
+              placeholder={localizeText("Busque por nome, código interno ou código de barras...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -343,7 +346,7 @@ export function ListaProdutos() {
       {/* ===== Filtros Mobile ===== */}
       <Card className="w-full min-w-0 max-w-full space-y-3 overflow-hidden p-3 xl:hidden">
         <Input
-          placeholder="Buscar produto..."
+          placeholder={localizeText("Buscar produto...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -405,15 +408,15 @@ export function ListaProdutos() {
               <TableHead>Marcas</TableHead>
               <TableHead>Categorias</TableHead>
               <TableHead>Unidade</TableHead>
-              <TableHead className="text-right">Estoque Atual</TableHead>
+              <TableHead className="text-right">{localizeText("Estoque Atual")}</TableHead>
               <TableHead className="text-right">Custo Unit.</TableHead>
-              <TableHead className="text-right">Valor em Estoque</TableHead>
+              <TableHead className="text-right">{localizeText("Valor em Estoque")}</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={10} className="text-center py-8">Carregando produtos...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8">{localizeText("Carregando produtos...")}</TableCell></TableRow>
             ) : produtos.length === 0 ? (
               <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">{isError ? 'Não foi possível carregar os produtos.' : 'Nenhum produto encontrado'}</TableCell></TableRow>
             ) : (
@@ -488,7 +491,7 @@ export function ListaProdutos() {
       {/* ===== Lista Mobile (cards) ===== */}
       <div className="w-full min-w-0 max-w-full space-y-2 overflow-x-hidden xl:hidden">
         {loading ? (
-          <Card className="p-6 text-center text-sm text-muted-foreground">Carregando produtos...</Card>
+          <Card className="p-6 text-center text-sm text-muted-foreground">{localizeText("Carregando produtos...")}</Card>
         ) : produtos.length === 0 ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">{isError ? 'Não foi possível carregar os produtos.' : 'Nenhum produto encontrado'}</Card>
         ) : (
@@ -547,7 +550,7 @@ export function ListaProdutos() {
                 </div>
                 <div className="mt-3 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 text-sm min-[420px]:grid-cols-3">
                   <div className="min-w-0">
-                    <p className="text-muted-foreground">Estoque</p>
+                    <p className="text-muted-foreground">{localizeText("Estoque")}</p>
                     <p className="truncate font-semibold">{formatters.quantidadeContinua(produto.estoque_atual)}</p>
                   </div>
                   <div className="min-w-0">
@@ -615,9 +618,7 @@ export function ListaProdutos() {
                   está sendo usado em{' '}
                   <span className="font-semibold text-foreground">
                     {receitasUsando.length} {receitasUsando.length === 1 ? 'receita' : 'receitas'}
-                  </span>
-                  . Remova-o das receitas antes de excluir.
-                </AlertDialogDescription>
+                  </span>{localizeText(". Remova-o das receitas antes de excluir.")}</AlertDialogDescription>
 
                 <div className="max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-muted/30 divide-y divide-border/50">
                   {receitasUsando.map((r) => (
@@ -642,9 +643,7 @@ export function ListaProdutos() {
               <>
                 <AlertDialogDescription className="text-[15px] leading-relaxed text-foreground/80">
                   Você está prestes a remover{' '}
-                  <span className="font-semibold text-foreground">"{produtoParaExcluir?.nome}"</span>{' '}
-                  da sua lista de estoque.
-                </AlertDialogDescription>
+                  <span className="font-semibold text-foreground">"{produtoParaExcluir?.nome}"</span>{' '}{localizeText("da sua lista de estoque.")}</AlertDialogDescription>
 
                 <div className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">

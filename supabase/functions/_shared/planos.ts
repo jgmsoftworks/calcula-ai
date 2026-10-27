@@ -12,6 +12,7 @@ export interface PlanoRow {
   versao_preco: number;
   versao_preco_anual: number;
   ativo: boolean;
+  moeda: string;
 }
 
 export type Billing = "monthly" | "yearly";
@@ -42,17 +43,27 @@ export function normalizeSlug(slug?: string | null) {
 }
 
 /** Busca o plano ativo pelo slug. Retorna null se não existir. */
-export async function getPlano(slug: string): Promise<PlanoRow | null> {
+export async function getPlano(slug: string, country = 'BR'): Promise<PlanoRow | null> {
   const supabase = serviceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("planos")
     .select(
-      "slug, nome_publico, preco_centavos, preco_anual_centavos, stripe_product_id, stripe_price_id, stripe_price_id_anual, versao_preco, versao_preco_anual, ativo",
+      "slug, nome_publico, preco_centavos, preco_anual_centavos, stripe_product_id, stripe_price_id, stripe_price_id_anual, versao_preco, versao_preco_anual, ativo, moeda",
     )
 
     .eq("slug", normalizeSlug(slug))
     .maybeSingle();
-  return (data as PlanoRow) ?? null;
+  if (error) throw error;
+  if (!data) return null;
+  if (country === 'BR') return data as PlanoRow;
+  if (country !== 'PT') throw new Error('Unsupported business country');
+  const { data: prices, error: priceError } = await supabase.from('plan_market_prices')
+    .select('*').eq('plan_slug', normalizeSlug(slug)).eq('country_code', country).eq('active', true);
+  if (priceError) throw priceError;
+  const monthly = prices?.find(p => p.billing === 'monthly');
+  const yearly = prices?.find(p => p.billing === 'yearly');
+  return { ...data, moeda: 'eur', preco_centavos: monthly?.amount_cents ?? 0, preco_anual_centavos: yearly?.amount_cents ?? 0,
+    stripe_price_id: monthly?.stripe_price_id ?? null, stripe_price_id_anual: yearly?.stripe_price_id ?? null } as PlanoRow;
 }
 
 /**
@@ -74,6 +85,11 @@ export async function slugFromStripe(
       .maybeSingle();
     if (data?.slug) return data.slug as string;
 
+
+    const { data: market, error: marketError } = await supabase.from('plan_market_prices')
+      .select('plan_slug').eq('stripe_price_id', priceId).maybeSingle();
+    if (marketError) throw marketError;
+    if (market?.plan_slug) return market.plan_slug;
 
     const { data: hist } = await supabase
       .from("planos_precos_historico")
@@ -100,4 +116,13 @@ export async function slugFromStripe(
   }
 
   return null;
+}
+
+export async function getAccountMarket(userId: string) {
+  const { data, error } = await serviceClient().from('profiles')
+    .select('business_country, preferred_locale, region_confirmed').eq('user_id', userId).single();
+  if (error || !data?.region_confirmed || !['BR', 'PT'].includes(data.business_country)) {
+    throw new Error('Confirme o país da sua conta antes de escolher um plano.');
+  }
+  return { country: data.business_country as 'BR' | 'PT', locale: data.preferred_locale === 'en' ? 'en' as const : data.business_country === 'PT' ? 'pt' as const : 'pt-BR' as const };
 }

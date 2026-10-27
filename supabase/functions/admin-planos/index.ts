@@ -1,3 +1,4 @@
+import { validMarketPrice } from '../_shared/marketRules.ts';
 // Central de gestão de planos (Master ADM).
 // Ações: list, update_plano, subscribers, historico
 // Ao alterar preço, cria um NOVO Stripe Price (nunca apaga o antigo) para não
@@ -25,6 +26,28 @@ serve(async (req) => {
     log("action", { action, userId });
 
     switch (action) {
+      case "market_prices": {
+        const { data, error } = await supabase.from('plan_market_prices').select('*').eq('country_code', 'PT').eq('active', true);
+        if (error) throw error;
+        return jsonResponse({ prices: data });
+      }
+      case "attach_portugal_price": {
+        const slug = String(body.slug ?? '');
+        const billing = String(body.billing ?? '');
+        const priceId = String(body.price_id ?? '');
+        if (!['monthly','yearly'].includes(billing) || !/^price_[A-Za-z0-9]+$/.test(priceId)) throw new Error('Preço ou período inválido');
+        const { data: plan, error } = await supabase.from('planos').select('stripe_product_id').eq('slug', slug).single();
+        if (error || !plan) throw new Error('Plano não encontrado');
+        const price = await stripe.prices.retrieve(priceId);
+        if (!validMarketPrice(price, 'PT', billing, price.unit_amount ?? 0) || price.product !== plan.stripe_product_id) {
+          throw new Error('Use um preço ativo em EUR, do mesmo produto e do período escolhido.');
+        }
+        const { error: activateError } = await supabase.rpc('activate_portugal_price', {
+          p_slug: slug, p_billing: billing, p_amount: price.unit_amount, p_price_id: priceId,
+        });
+        if (activateError) throw activateError;
+        return jsonResponse({ amount_cents: price.unit_amount, currency: price.currency });
+      }
       case "list": {
         const { data, error } = await supabase
           .from("planos")
@@ -66,6 +89,7 @@ serve(async (req) => {
             id: s.id,
             email: typeof customer === "string" ? null : customer.email,
             amount: (item?.price.unit_amount ?? 0) / 100,
+            currency: item?.price.currency ?? null,
             price_id: item?.price.id ?? null,
             product_id:
               typeof item?.price.product === "string" ? item?.price.product : null,

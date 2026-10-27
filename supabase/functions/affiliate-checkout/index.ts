@@ -1,3 +1,4 @@
+import { getAccountMarket } from '../_shared/planos.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -34,6 +35,14 @@ serve(async (req) => {
   try {
     let { planType, billing, affiliateCode, direct } = await req.json();
     
+    // Portugal uses the EUR catalog. BRL affiliate discounts/commissions must never be relabelled.
+    const bearer = req.headers.get('Authorization')?.replace('Bearer ', '');
+    if (bearer) {
+      const { data: account } = await supabaseClient.auth.getUser(bearer);
+      if (account.user && (await getAccountMarket(account.user.id)).country === 'PT') {
+        return new Response(JSON.stringify({ error: 'Em Portugal, escolha o seu plano na página Planos da sua conta.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
     // Sanitizar planType: remover espaços e caracteres especiais
     planType = planType?.trim().toLowerCase().replace(/[^a-z_]/g, '');
     

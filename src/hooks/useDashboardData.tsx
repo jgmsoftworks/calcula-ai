@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { getCurrentMonthRangeBrasilia, type CmvResult } from '@/lib/cmvCalculations';
+import { getCurrentMonthRange, type CmvResult } from '@/lib/cmvCalculations';
 import { fetchDashboardData } from '@/lib/dashboardData';
 
 export type PeriodFilter = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
@@ -112,10 +112,10 @@ export const useDashboardData = (enabled = true) => {
   }, [filters]);
 
 
-  const { start: monthStart } = getCurrentMonthRangeBrasilia();
+  const { start: monthStart } = getCurrentMonthRange();
   const query = useQuery({
     queryKey: ['dashboard', user?.id, monthStart, filters.period, filters.startDate?.toISOString(), filters.endDate?.toISOString()],
-    queryFn: ({ signal }) => fetchDashboardData(user!.id, monthStart, getCurrentMonthRangeBrasilia().end, signal),
+    queryFn: ({ signal }) => fetchDashboardData(user!.id, monthStart, getCurrentMonthRange().end, signal),
     enabled: enabled && !!user?.id,
     staleTime: 0,
     refetchOnMount: 'always',

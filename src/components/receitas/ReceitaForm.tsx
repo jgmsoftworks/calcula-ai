@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { trackRecipeCreated } from '@/lib/funnel-analytics';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
@@ -63,6 +65,7 @@ interface ReceitaFormProps {
 }
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
+  usePortugalTranslation();
   const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -701,7 +704,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
               <TabsTrigger className="min-h-11" disabled={saving} value="sub-receitas">3 Sub-receitas</TabsTrigger>
               <TabsTrigger className="min-h-11" disabled={saving} value="embalagens">4 Embalagens</TabsTrigger>
               <TabsTrigger className="min-h-11" disabled={saving} value="projecao">5 Projeção</TabsTrigger>
-              <TabsTrigger className="min-h-11" disabled={saving} value="precificacao">6 Precificação</TabsTrigger>
+              <TabsTrigger className="min-h-11" disabled={saving} value="precificacao">{localizeText("6 Precificação")}</TabsTrigger>
             </TabsList>
           </div>
 

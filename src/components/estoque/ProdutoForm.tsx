@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { ArrowLeft, Camera, X, Sparkles } from 'lucide-react';
@@ -36,6 +38,7 @@ interface ProdutoFormProps {
 }
 
 export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) {
+  usePortugalTranslation();
   const { gerarCodigoInterno, createProduto, updateProduto, uploadImagemProduto } = useEstoque();
   const [saving, setSaving] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -197,7 +200,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
         <fieldset disabled={saving} className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-24 pr-1">
           <Tabs value={tab} onValueChange={setTab} className="w-full min-w-0">
             <TabsList aria-label="Dados do produto" className="sticky top-0 z-10 bg-muted grid w-full grid-cols-3 h-auto gap-1">
-              <TabsTrigger value="estoque" className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">Estoque & Custos</TabsTrigger>
+              <TabsTrigger value="estoque" className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">{localizeText("Estoque & Custos")}</TabsTrigger>
               <TabsTrigger value="nutricional" className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">Rótulo nutricional</TabsTrigger>
               <TabsTrigger value="historico" disabled={!produto} className="min-h-12 text-xs sm:text-sm px-1 sm:px-3 py-2 whitespace-normal leading-tight">Histórico</TabsTrigger>
             </TabsList>
@@ -374,7 +377,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
                     </div>
 
                     <div>
-                      <Label htmlFor="produto-total">Valor Total em Estoque</Label>
+                      <Label htmlFor="produto-total">{localizeText("Valor Total em Estoque")}</Label>
                       <Input id="produto-total"
                         value={formatters.valor(valorTotalEstoque)}
                         disabled
@@ -385,7 +388,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="produto-estoque">Estoque Atual *</Label>
+                      <Label htmlFor="produto-estoque">{localizeText("Estoque Atual *")}</Label>
                       <NumericInputPtBr id="produto-estoque"
                         tipo="quantidade_continua"
                         value={estoque_atual}
@@ -395,7 +398,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
                     </div>
 
                     <div>
-                      <Label htmlFor="produto-minimo">Estoque Mínimo</Label>
+                      <Label htmlFor="produto-minimo">{localizeText("Estoque Mínimo")}</Label>
                       <NumericInputPtBr id="produto-minimo"
                         tipo="quantidade_continua"
                         value={watch('estoque_minimo') || 0}

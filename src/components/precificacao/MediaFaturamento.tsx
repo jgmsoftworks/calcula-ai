@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -21,6 +24,7 @@ interface FaturamentoHistorico {
 }
 
 export function MediaFaturamento() {
+  usePortugalTranslation();
   const [faturamentosHistoricos, setFaturamentosHistoricos] = useState<FaturamentoHistorico[]>([]);
   const [novoFaturamento, setNovoFaturamento] = useState({
     valor: '',
@@ -62,11 +66,11 @@ export function MediaFaturamento() {
   }, [saveConfiguration]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat(getBusinessRegion().locale, { style: 'currency', currency: getBusinessRegion().currency }).format(value);
   };
 
   const formatCurrencyInput = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+    return new Intl.NumberFormat(getBusinessRegion().locale, { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   };
 
   const parseInputValue = (value: string) => {
@@ -101,14 +105,14 @@ export function MediaFaturamento() {
     setFaturamentosHistoricos(novosFaturamentos);
     salvarFaturamentos(novosFaturamentos);
     setNovoFaturamento({ valor: '', mes: new Date().getMonth() + 1, ano: new Date().getFullYear() });
-    toast({ title: "Faturamento adicionado", description: "Dados salvos com sucesso" });
+    toast({ title: localizeText("Faturamento adicionado"), description: localizeText("Dados salvos com sucesso") });
   };
 
   const removerFaturamento = (id: string) => {
     const novosFaturamentos = faturamentosHistoricos.filter(f => f.id !== id);
     setFaturamentosHistoricos(novosFaturamentos);
     salvarFaturamentos(novosFaturamentos);
-    toast({ title: "Faturamento removido", description: "Item removido com sucesso" });
+    toast({ title: localizeText("Faturamento removido"), description: "Item removido com sucesso" });
   };
 
   const calcularEstatisticas = () => {    
@@ -133,7 +137,7 @@ export function MediaFaturamento() {
     }));
 
   const chartConfig = {
-    valor: { label: "Faturamento", color: "hsl(var(--primary))" },
+    valor: { label: localizeText("Faturamento"), color: "hsl(var(--primary))" },
   };
 
   return (
@@ -142,15 +146,13 @@ export function MediaFaturamento() {
       <Card className="glass-card overflow-hidden">
         <div className="h-1 bg-gradient-brand-horizontal" />
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">Lançar Faturamento</CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Adicione os faturamentos mensais que já aconteceram
-          </p>
+          <CardTitle className="text-base font-display">{localizeText("Lançar Faturamento")}</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">{localizeText("Adicione os faturamentos mensais que já aconteceram")}</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Valor do Faturamento</Label>
+              <Label className="text-xs font-medium text-muted-foreground">{localizeText("Valor do Faturamento")}</Label>
               <NumericInputPtBr
                 tipo="valor"
                 value={parseInputValue(novoFaturamento.valor)}
@@ -271,7 +273,7 @@ export function MediaFaturamento() {
       <Card className="glass-card overflow-hidden">
         <div className="h-1 bg-gradient-brand-horizontal" />
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">Evolução do Faturamento</CardTitle>
+          <CardTitle className="text-base font-display">{localizeText("Evolução do Faturamento")}</CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
             Últimos 6 meses lançados
           </p>
@@ -322,7 +324,7 @@ export function MediaFaturamento() {
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <div className="text-center space-y-2">
                   <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
-                  <p className="text-xs">Adicione faturamentos para ver o gráfico</p>
+                  <p className="text-xs">{localizeText("Adicione faturamentos para ver o gráfico")}</p>
                 </div>
               </div>
             )}
@@ -335,7 +337,7 @@ export function MediaFaturamento() {
         <Card className="glass-card overflow-hidden">
           <div className="h-1 bg-gradient-brand-horizontal" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">Faturamentos Lançados</CardTitle>
+            <CardTitle className="text-base font-display">{localizeText("Faturamentos Lançados")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -378,10 +380,8 @@ export function MediaFaturamento() {
           <div className="h-1 bg-gradient-brand-horizontal" />
           <CardContent className="p-12 text-center">
             <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-30" />
-            <h3 className="text-sm font-medium font-display mb-1">Nenhum faturamento lançado</h3>
-            <p className="text-xs text-muted-foreground">
-              Adicione seus faturamentos mensais para calcular a média histórica
-            </p>
+            <h3 className="text-sm font-medium font-display mb-1">{localizeText("Nenhum faturamento lançado")}</h3>
+            <p className="text-xs text-muted-foreground">{localizeText("Adicione seus faturamentos mensais para calcular a média histórica")}</p>
           </CardContent>
         </Card>
       )}

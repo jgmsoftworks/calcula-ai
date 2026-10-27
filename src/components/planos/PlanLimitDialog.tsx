@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -15,6 +17,7 @@ const featureNames: Record<PlanFeature, string> = {
 export default function PlanLimitDialog({ feature, result, onClose, onReturnFocus }: {
   feature: PlanFeature; result: PlanLimitResult; onClose: () => void; onReturnFocus: () => void;
 }) {
+  usePortugalTranslation();
   const navigate = useNavigate();
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [mood, setMood] = useState<MascotMood>('neutral');
@@ -41,7 +44,7 @@ export default function PlanLimitDialog({ feature, result, onClose, onReturnFocu
             ? `O plano ${plan}, inclusive durante o teste grátis, não inclui baixar ou imprimir fichas técnicas. Conheça os planos que liberam esse recurso.`
             : `Você atingiu o limite de ${result.maxAllowed !== undefined ? `${result.maxAllowed} ` : ''}${featureNames[feature]} do plano ${plan}. Escolha um plano com mais espaço para continuar criando.`}
         </DialogDescription>
-        <p className="mt-3 text-xs text-muted-foreground">Tudo o que você já cadastrou continua salvo.</p>
+        <p className="mt-3 text-xs text-muted-foreground">{localizeText("Tudo o que você já cadastrou continua salvo.")}</p>
         <div className="mt-7 grid grid-cols-[0.8fr_1.2fr] gap-2">
           <Button variant="ghost" className="min-h-11 rounded-xl text-muted-foreground" {...reaction('sad')} onClick={onClose}>Agora não</Button>
           <Button className="min-h-11 gap-1.5 rounded-xl bg-gradient-to-r from-[#0483e4] to-[#7328b1] px-2 text-white shadow-md hover:brightness-110" {...reaction('happy')}

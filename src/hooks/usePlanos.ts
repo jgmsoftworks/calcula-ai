@@ -1,3 +1,4 @@
+import { useBusinessRegion } from '@/contexts/BusinessRegionContext';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,12 +32,16 @@ export interface Plano {
   ordem: number;
   limites: PlanoLimites;
   features: string[];
+  market_price_available?: boolean;
+  market_annual_available?: boolean;
 }
 
-export const formatPreco = (centavos: number) => {
+export const formatPreco = (centavos: number, currency = 'BRL') => {
   if (!centavos) return 'Grátis';
-  return `R$ ${(centavos / 100).toFixed(2).replace('.', ',')}`;
+  return new Intl.NumberFormat(currency.toUpperCase() === 'EUR' ? 'pt-PT' : 'pt-BR', { style: 'currency', currency: currency.toUpperCase() }).format(centavos / 100).replace(/[\u00a0\u202f]/g, ' ');
 };
+export const planPriceAvailable = (plan: Plano, billing: Billing = 'monthly') =>
+  billing === 'yearly' ? plan.market_annual_available !== false : plan.market_price_available !== false;
 
 /** Preço do plano conforme a periodicidade escolhida. */
 export const precoDoPlano = (plano: Plano, billing: Billing) =>
@@ -45,6 +50,7 @@ export const precoDoPlano = (plano: Plano, billing: Billing) =>
 
 /** Fonte central de planos — sempre vinda do banco (tabela public.planos). */
 export const usePlanos = (incluirInativos = false) => {
+  const { country } = useBusinessRegion();
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,9 +62,24 @@ export const usePlanos = (incluirInativos = false) => {
       if (!incluirInativos) query = query.eq('ativo', true);
       const { data, error } = await query;
       if (error) throw error;
+      let marketPrices: { plan_slug: string; billing: string; amount_cents: number; stripe_price_id: string }[] = [];
+      if (country === 'PT' && !incluirInativos) {
+        const result = await supabase.from('plan_market_prices').select('*').eq('country_code', country).eq('active', true);
+        if (result.error) throw result.error;
+        marketPrices = result.data || [];
+      }
+      const marketFields = (slug: string) => {
+        if (country !== 'PT' || incluirInativos) return {};
+        const monthly = marketPrices.find(p => p.plan_slug === slug && p.billing === 'monthly');
+        const yearly = marketPrices.find(p => p.plan_slug === slug && p.billing === 'yearly');
+        return { moeda: 'eur', preco_centavos: monthly?.amount_cents ?? 0, preco_anual_centavos: yearly?.amount_cents ?? 0,
+          stripe_price_id: monthly?.stripe_price_id ?? null, stripe_price_id_anual: yearly?.stripe_price_id ?? null,
+          market_price_available: !!monthly, market_annual_available: !!yearly };
+      };
       setPlanos(
         (data || []).map((p: any) => ({
           ...p,
+          ...marketFields(p.slug),
           limites: (p.limites || {}) as PlanoLimites,
           features: Array.isArray(p.features) ? (p.features as string[]) : [],
         })) as Plano[],
@@ -70,7 +91,7 @@ export const usePlanos = (incluirInativos = false) => {
     } finally {
       setLoading(false);
     }
-  }, [incluirInativos]);
+  }, [incluirInativos, country]);
 
   useEffect(() => {
     load();

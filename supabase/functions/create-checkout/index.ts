@@ -1,7 +1,8 @@
+import { marketCurrency, validMarketPrice } from '../_shared/marketRules.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getPlano, normalizeSlug, normalizeBilling, precoDoPlano } from "../_shared/planos.ts";
+import { getPlano, getAccountMarket, normalizeSlug, normalizeBilling, precoDoPlano } from "../_shared/planos.ts";
 import { enforceRateLimit } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
@@ -95,7 +96,8 @@ serve(async (req) => {
 
     // 1) Fonte central: tabela public.planos (mensal ou anual)
     let priceId: string | undefined;
-    const plano = await getPlano(planType);
+    const market = await getAccountMarket(user.id);
+    const plano = await getPlano(planType, market.country);
     if (plano?.ativo) {
       const preco = precoDoPlano(plano, billing);
       if (preco.priceId && preco.centavos > 0) {
@@ -109,7 +111,7 @@ serve(async (req) => {
     
     if (!priceId) {
       logStep("Invalid plan configuration", { planType, billing });
-      throw new Error(`Invalid plan type: ${planType}`);
+      return new Response(JSON.stringify({ error: market.country === 'PT' ? 'Os planos em euros estão a ser preparados. Não foi efetuada qualquer cobrança.' : 'Plano indisponível.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     logStep("Plan validated", { planType, priceId });
@@ -124,7 +126,8 @@ serve(async (req) => {
 
     // Verificar conexão com Stripe
     try {
-      await stripe.prices.retrieve(priceId);
+      const stripePrice = await stripe.prices.retrieve(priceId);
+      if (!plano || !validMarketPrice(stripePrice, market.country, billing, precoDoPlano(plano, billing).centavos)) throw new Error('Invalid price currency, amount or interval');
       logStep("Price ID validated in Stripe", { priceId });
     } catch (stripeError) {
       const errorMessage = stripeError instanceof Error ? stripeError.message : String(stripeError);
@@ -164,10 +167,14 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
+      locale: market.locale,
+      currency: marketCurrency(market.country),
+      ...(market.country === 'PT' ? { billing_address_collection: 'required' as const, tax_id_collection: { enabled: true } } : {}),
       success_url: `${origin}/auth/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/planos?canceled=true`,
       metadata: {
         user_id: user.id,
+        country: market.country,
         plan_type: planType,
         billing_cycle: billing
       }

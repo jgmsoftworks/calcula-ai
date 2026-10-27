@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +43,7 @@ export function SubReceitasTab({
   prefetchedSubReceitas,
   hasSubReceitaMarkup = true
 }: SubReceitasTabProps) {
+  usePortugalTranslation();
   const [search, setSearch] = useState('');
   const [suggestionLimit, setSuggestionLimit] = useState(20);
   const matches = useMemo(() => {
@@ -91,7 +95,7 @@ export function SubReceitasTab({
                   Para usar sub-receitas, você precisa:
                 </p>
                 <ol className="text-sm text-amber-800 dark:text-amber-200 list-decimal list-inside space-y-1">
-                  <li>Ir para a página <strong>Precificação</strong></li>
+                  <li>Ir para a página <strong>{localizeText("Precificação")}</strong></li>
                   <li>Criar um <strong>Markup de Sub-receitas</strong></li>
                   <li>Voltar às suas receitas e selecionar esse markup nas receitas que deseja usar como sub-receitas</li>
                   <li>Finalizar essas receitas (status "Finalizada")</li>
@@ -118,7 +122,7 @@ export function SubReceitasTab({
 
           {matches.length > receitas.length && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>{receitas.length} de {matches.length} resultados. Busque pelo nome.</span>
+              <span>{receitas.length} de {matches.length} {localizeText("resultados. Busque pelo nome.")}</span>
               <Button type="button" variant="outline" className="min-h-11" onClick={() => setSuggestionLimit(limit => limit + 20)}>Mostrar mais</Button>
             </div>
           )}
@@ -138,7 +142,7 @@ export function SubReceitasTab({
                     <div>
                       <p className="font-medium">{r.nome}</p>
                       <p className="text-sm text-muted-foreground">
-                        R$ {formatBRL(r.preco_venda)} / {r.rendimento_unidade || 'un'}
+                        {formatMoney(r.preco_venda)} / {r.rendimento_unidade || 'un'}
                       </p>
                     </div>
                   </div>
@@ -170,7 +174,7 @@ export function SubReceitasTab({
           <div className="space-y-4">
           <div className="flex justify-end">
             <Badge variant="secondary" className="text-base px-4 py-2">
-              Total: R$ {formatBRL(total)}
+              Total: {formatMoney(total)}
             </Badge>
           </div>
           {/* Mobile cards */}
@@ -199,9 +203,9 @@ export function SubReceitasTab({
                       step={0.01}
                     />
                     <span className="text-xs text-muted-foreground">{unidade}</span>
-                    <span className="ml-auto text-sm font-semibold">R$ {formatBRL(custoTotal)}</span>
+                    <span className="ml-auto text-sm font-semibold">{formatMoney(custoTotal)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Unit: R$ {formatNumber(custoUnitario, 4)}</p>
+                  <p className="text-xs text-muted-foreground">Unit: {formatMoney(custoUnitario, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</p>
                 </div>
               );
             })}
@@ -241,8 +245,8 @@ export function SubReceitasTab({
                         step={0.01}
                       />
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-right tabular-nums">R$ {formatNumber(custoUnitario, 4)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right tabular-nums">R$ {formatBRL(custoTotal)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">{formatMoney(custoUnitario, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">{formatMoney(custoTotal)}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, Crown, Zap, CreditCard, Gift } from 'lucide-react';
 import { PlanType } from '@/hooks/usePlanLimits';
-import { Plano, formatPreco, precoDoPlano, Billing } from '@/hooks/usePlanos';
+import { Plano, planPriceAvailable, formatPreco, precoDoPlano, Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 
 interface PlanSelectorProps {
@@ -58,7 +58,7 @@ export const PlanSelector = ({ plano, currentPlan, billing = 'monthly', onSelect
         </div>
 
         <div className="flex items-baseline justify-center gap-1">
-          <span className="text-3xl font-bold">{formatPreco(preco)}</span>
+          <span className="text-3xl font-bold">{planPriceAvailable(plano, billing) ? formatPreco(preco, plano.moeda) : 'Preço em definição'}</span>
           {preco > 0 && <span className="text-muted-foreground">{billing === 'yearly' ? '/ano' : '/mês'}</span>}
         </div>
 
@@ -78,7 +78,7 @@ export const PlanSelector = ({ plano, currentPlan, billing = 'monthly', onSelect
           className="w-full"
           variant={isCurrentPlan ? 'secondary' : 'default'}
           onClick={handlePlanSelect}
-          disabled={loading}
+          disabled={loading || !planPriceAvailable(plano, billing)}
         >
           {loading ? 'Carregando...' :
            isCurrentPlan ? (

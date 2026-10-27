@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,7 +132,7 @@ export function useExportReceitas() {
       const lucroDesejado = markupDetalhes?.lucroDesejado ?? markupBase?.margem_lucro ?? 0;
       const tituloSugestao = (markupDetalhes || markupBase) 
         ? `Sugestão Preço (${lucroDesejado}% lucro)` 
-        : 'Sugestão Preço (R$)';
+        : `Sugestão Preço (${getBusinessRegion().currency})`;
 
       // Buscar TODAS as configurações de markup do usuário em uma única consulta
       const { data: todasConfiguracoes } = await supabase
@@ -193,13 +194,13 @@ export function useExportReceitas() {
           'É Sub-receita': r.markup?.tipo === 'sub_receita' ? 'Sim' : 'Não',
           'Rendimento (valor)': r.rendimento_valor || 0,
           'Rendimento (unidade)': r.rendimento_unidade || 'un',
-          'Custo Total (R$)': custoTotal,
-          'Preço de Venda (R$)': r.preco_venda,
-          'Lucro Bruto Atual (R$)': lucroBrutoAtual,
-          'Lucro Líquido Atual (R$)': lucroLiquidoAtual,
+          [`Custo Total (${getBusinessRegion().currency})`]: custoTotal,
+          [`Preço de Venda (${getBusinessRegion().currency})`]: r.preco_venda,
+          [`Lucro Bruto Atual (${getBusinessRegion().currency})`]: lucroBrutoAtual,
+          [`Lucro Líquido Atual (${getBusinessRegion().currency})`]: lucroLiquidoAtual,
           [tituloSugestao]: (markupDetalhes || markupBase) ? sugestaoPreco : '—',
-          'Lucro Bruto (R$)': lucroBruto,
-          'Lucro Líquido (R$)': lucroLiquido
+          [`Lucro Bruto (${getBusinessRegion().currency})`]: lucroBruto,
+          [`Lucro Líquido (${getBusinessRegion().currency})`]: lucroLiquido
         };
       });
 
@@ -216,7 +217,7 @@ export function useExportReceitas() {
         colsMonetarias.forEach(col => {
           const cellAddress = col + (R + 1);
           if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
-            ws[cellAddress].z = '_-R$ * #,##0.00_-;-R$ * #,##0.00_-;_-R$ * "-"??_-;_-@_-';
+            ws[cellAddress].z = getBusinessRegion().currency === 'EUR' ? '#,##0.00 \"€\"' : '\"R$\" #,##0.00';
           }
         });
       }

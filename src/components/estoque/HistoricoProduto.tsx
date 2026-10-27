@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +21,7 @@ interface HistoricoProdutoProps {
 }
 
 export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
+  usePortugalTranslation();
   const { fetchHistoricoProduto } = useEstoque();
   const [movimentacoes, setMovimentacoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,9 +43,7 @@ export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
 
   if (loading) {
     return (
-      <Card className="p-8 text-center text-muted-foreground">
-        Carregando histórico...
-      </Card>
+      <Card className="p-8 text-center text-muted-foreground">{localizeText("Carregando histórico...")}</Card>
     );
   }
 
