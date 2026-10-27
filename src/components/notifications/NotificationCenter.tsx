@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState } from 'react';
 import { Bell, Check, X, AlertTriangle, Info, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ export const NotificationCenter = () => {
     if (diffMins < 60) return `${diffMins}m`;
     if (diffHours < 24) return `${diffHours}h`;
     if (diffDays < 7) return `${diffDays}d`;
-    return notificationDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return notificationDate.toLocaleDateString(getBusinessRegion().locale, { day: '2-digit', month: '2-digit' });
   };
 
   return (

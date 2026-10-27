@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { productUnit } from '@/lib/productUnits';
 import { formatters } from '@/lib/formatters';
@@ -8,6 +10,7 @@ interface ProdutoCardProps {
 }
 
 export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
+  usePortugalTranslation();
   return (
     <Card 
       className="flex min-h-20 cursor-pointer items-center gap-3 p-3 transition-all active:scale-[0.99] sm:block sm:min-h-0 sm:hover:scale-[1.02] sm:hover:shadow-lg"
@@ -36,7 +39,7 @@ export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
         <p className="text-primary font-bold text-base">
           {formatters.valor(produto.custo_unitario)} <span className="text-xs font-normal text-muted-foreground">/ {productUnit(produto.unidade_compra).symbol}</span>
         </p>
-        <p className="text-xs text-muted-foreground">Estoque: {formatters.quantidadeContinua(produto.estoque_atual)} {productUnit(produto.unidade_compra).symbol}</p>
+        <p className="text-xs text-muted-foreground">{localizeText("Estoque:")} {formatters.quantidadeContinua(produto.estoque_atual)} {productUnit(produto.unidade_compra).symbol}</p>
       </div>
     </Card>
   );

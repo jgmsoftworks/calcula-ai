@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +20,7 @@ interface MarcasSelectorProps {
 }
 
 export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
+  usePortugalTranslation();
   const { fetchMarcas } = useMarcasCategorias();
   const [marcas, setMarcas] = useState<{ id: string; nome: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,7 +66,7 @@ export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
           </PopoverTrigger>
           <PopoverContent data-command-popover="" className="w-full p-0" align="start">
             <Command>
-              <CommandInput placeholder="Buscar marca..." />
+              <CommandInput placeholder={localizeText("Buscar marca...")} />
               <CommandEmpty>Nenhuma marca encontrada.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
                 {marcas.map((marca) => (

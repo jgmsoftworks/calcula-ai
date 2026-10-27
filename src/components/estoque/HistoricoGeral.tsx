@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 // Fixed: All SelectItem values are non-empty - verified 2025-01-05
 import { useState, useEffect } from 'react';
 import { Calendar, FileText, SlidersHorizontal } from 'lucide-react';
@@ -28,6 +30,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function HistoricoGeral() {
+  usePortugalTranslation();
   const { fetchHistoricoGeral } = useMovimentacoes();
   const [movimentacoes, setMovimentacoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,7 +154,7 @@ export function HistoricoGeral() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8">Carregando histórico...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8">{localizeText("Carregando histórico...")}</TableCell></TableRow>
             ) : movimentacoes.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</TableCell></TableRow>
             ) : (
@@ -187,7 +190,7 @@ export function HistoricoGeral() {
       {/* Lista Mobile (cards) */}
       <div className="md:hidden space-y-2">
         {loading ? (
-          <Card className="p-6 text-center text-sm text-muted-foreground">Carregando histórico...</Card>
+          <Card className="p-6 text-center text-sm text-muted-foreground">{localizeText("Carregando histórico...")}</Card>
         ) : movimentacoes.length === 0 ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">Nenhuma movimentação encontrada</Card>
         ) : (

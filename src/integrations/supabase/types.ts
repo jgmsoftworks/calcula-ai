@@ -1691,6 +1691,12 @@ export type Database = {
           },
         ]
       }
+      plan_market_prices: {
+        Row: { id: string; plan_slug: string; country_code: string; currency: string; billing: string; amount_cents: number; stripe_price_id: string; active: boolean; created_at: string }
+        Insert: { id?: string; plan_slug: string; country_code: string; currency?: string; billing: string; amount_cents: number; stripe_price_id: string; active?: boolean; created_at?: string }
+        Update: { active?: boolean }
+        Relationships: []
+      }
       planos: {
         Row: {
           ativo: boolean
@@ -2183,6 +2189,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_country: string
+          business_currency: string
+          preferred_locale: string
+          region_confirmed: boolean
           access_mode: string
           trial_started_at: string | null
           access_blocked_at: string | null
@@ -2240,6 +2250,10 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          business_country?: string
+          business_currency?: string
+          preferred_locale?: string
+          region_confirmed?: boolean
           access_mode?: string
           trial_started_at?: string | null
           access_blocked_at?: string | null
@@ -2297,6 +2311,10 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          business_country?: string
+          business_currency?: string
+          preferred_locale?: string
+          region_confirmed?: boolean
           access_mode?: string
           trial_started_at?: string | null
           access_blocked_at?: string | null

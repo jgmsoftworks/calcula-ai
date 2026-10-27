@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +28,7 @@ function today() {
 const COLORS = ['#0483e4', '#1c93d8', '#36a3cc', '#50b3c0', '#6ac3b4', '#84d3a8', '#9ee39c', '#b8f390', '#d2ff84', '#f96e0c'];
 
 export function RelatorioRanking() {
+  usePortugalTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchHistoricoGeral } = useMovimentacoes();
   const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
@@ -161,7 +165,7 @@ export function RelatorioRanking() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>}
+              {loading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{localizeText("Carregando...")}</TableCell></TableRow>}
               {!loading && rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Sem dados para o período</TableCell></TableRow>}
               {rows.map((r) => (
                 <TableRow key={r.posicao}>
@@ -169,7 +173,7 @@ export function RelatorioRanking() {
                   <TableCell className="font-medium">{r.produto}</TableCell>
                   <TableCell className="text-right font-semibold">{formatNumber(r.qtd, 2)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{r.vezes}</TableCell>
-                  <TableCell className="text-right">R$ {formatBRL(r.valor)}</TableCell>
+                  <TableCell className="text-right">{formatMoney(r.valor)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

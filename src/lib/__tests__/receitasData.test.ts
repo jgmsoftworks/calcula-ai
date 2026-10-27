@@ -5,6 +5,7 @@ vi.mock('@/integrations/supabase/client', async () => {
   const { createClient } = await import('@supabase/supabase-js');
   return { supabase: createClient('https://example.supabase.co', 'public-test-key', {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: (input, init) => globalThis.fetch(input, init) },
   }) };
 });
 const fetchMock = vi.fn();

@@ -1,3 +1,4 @@
+import { BusinessRegionProvider } from '@/contexts/BusinessRegionContext';
 import { lazy, Suspense } from 'react';
 import { AcquisitionReturn } from '@/components/AcquisitionReturn';
 import '@/i18n';
@@ -69,6 +70,7 @@ const App = () => (
       disableTransitionOnChange={false}
     >
       <AuthProvider>
+        <BusinessRegionProvider>
         <ActivityProvider>
           <CookieConsentProvider>
           <TooltipProvider>
@@ -143,6 +145,7 @@ const App = () => (
           </TooltipProvider>
           </CookieConsentProvider>
         </ActivityProvider>
+        </BusinessRegionProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

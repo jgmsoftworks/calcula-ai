@@ -30,6 +30,19 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('plans selection', () => {
+  it('does not offer free checkout or BRL fallback when Portugal prices are not configured', () => {
+    mocks.catalog = mocks.catalog.map(p => ({ ...p, moeda: 'eur', preco_centavos: 0, preco_anual_centavos: 0, market_price_available: false, market_annual_available: false }));
+    render(<Planos />);
+    expect(screen.getAllByRole('button', { name: 'regional.notAvailable' })).toHaveLength(3);
+    for (const button of screen.getAllByRole('button', { name: 'regional.notAvailable' })) expect(button).toBeDisabled();
+    expect(screen.queryByText('Grátis')).toBeNull();
+    expect(mocks.createCheckout).not.toHaveBeenCalled();
+  });
+  it('uses configured EUR amounts independently from the business language', () => {
+    mocks.catalog[0] = { ...mocks.catalog[0], moeda: 'eur', preco_centavos: 500, market_price_available: true };
+    render(<Planos />);
+    expect(within(card('Iniciante')).getByText('5,00 €')).toBeVisible();
+  });
   it('identifies the trial plan and states the actual PDF restriction and quotas', () => {
     render(<Planos />);
     expect(within(card('Iniciante')).getByText('Seu plano no teste')).toBeVisible();

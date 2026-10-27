@@ -1,3 +1,4 @@
+import { PortugalPrices } from '@/components/admin/PortugalPrices';
 import { planDisplayName } from '@/lib/plan-names';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -154,6 +155,7 @@ const AdminPlanos = () => {
         </Button>
       </div>
 
+      <PortugalPrices />
       <Tabs defaultValue="planos">
         <TabsList>
           <TabsTrigger value="planos"><Layers className="h-4 w-4 mr-2" />Planos</TabsTrigger>
@@ -278,7 +280,7 @@ const AdminPlanos = () => {
                   {stripeSubs.map(s => (
                     <tr key={s.id} className="border-b border-border/40">
                       <td className="p-2">{s.email ?? '—'}</td>
-                      <td className="p-2">R$ {s.amount.toFixed(2).replace('.', ',')}</td>
+                      <td className="p-2">{formatPreco(Math.round(s.amount * 100), s.currency || 'BRL')}</td>
                       <td className="p-2">{s.interval === 'year' ? 'Anual' : 'Mensal'}</td>
                       <td className="p-2">{new Date(s.current_period_end * 1000).toLocaleDateString('pt-BR')}</td>
                       <td className="p-2 font-mono text-xs break-all">{s.price_id}</td>

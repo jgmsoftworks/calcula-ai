@@ -1,8 +1,9 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 
-const BRASILIA_TZ = 'America/Sao_Paulo';
+// Historical function names retained for callers; timestamps use the account timezone.
 
 /**
  * Formata data e hora completa no timezone de Brasília
@@ -10,7 +11,7 @@ const BRASILIA_TZ = 'America/Sao_Paulo';
  */
 export function formatDateTimeBrasilia(dateString: string | Date): string {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-  const zonedDate = toZonedTime(date, BRASILIA_TZ);
+  const zonedDate = toZonedTime(date, getBusinessRegion().timeZone);
   return format(zonedDate, 'dd/MM/yyyy HH:mm', { locale: ptBR });
 }
 
@@ -20,7 +21,7 @@ export function formatDateTimeBrasilia(dateString: string | Date): string {
  */
 export function formatDateBrasilia(dateString: string | Date): string {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-  const zonedDate = toZonedTime(date, BRASILIA_TZ);
+  const zonedDate = toZonedTime(date, getBusinessRegion().timeZone);
   return format(zonedDate, 'dd/MM/yyyy', { locale: ptBR });
 }
 
@@ -30,7 +31,7 @@ export function formatDateBrasilia(dateString: string | Date): string {
  */
 export function formatTimeBrasilia(dateString: string | Date): string {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-  const zonedDate = toZonedTime(date, BRASILIA_TZ);
+  const zonedDate = toZonedTime(date, getBusinessRegion().timeZone);
   return format(zonedDate, 'HH:mm', { locale: ptBR });
 }
 
@@ -40,6 +41,6 @@ export function formatTimeBrasilia(dateString: string | Date): string {
  */
 export function formatDateTimeWithLabel(dateString: string | Date): string {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-  const zonedDate = toZonedTime(date, BRASILIA_TZ);
+  const zonedDate = toZonedTime(date, getBusinessRegion().timeZone);
   return format(zonedDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 }

@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion } from '@/lib/business-region';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +25,7 @@ interface DeletionStatus {
 }
 
 export default function MinhaPrivacidade() {
+  usePortugalTranslation();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -143,7 +147,7 @@ export default function MinhaPrivacidade() {
           <AlertDescription className="space-y-2">
             <p>
               Sua conta será permanentemente apagada em{' '}
-              <strong>{new Date(status.scheduledFor!).toLocaleDateString('pt-BR')}</strong>.
+              <strong>{new Date(status.scheduledFor!).toLocaleDateString(getBusinessRegion().locale)}</strong>.
               Após essa data, todos os seus dados serão removidos de forma irreversível.
             </p>
             <Button onClick={handleCancel} disabled={loadingCancel} variant="outline" size="sm">
@@ -211,8 +215,7 @@ export default function MinhaPrivacidade() {
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" /> Excluir minha conta
-            </CardTitle>
+              <Trash2 className="h-5 w-5" />{localizeText("Excluir minha conta")}</CardTitle>
             <CardDescription>
               Sua conta será desativada imediatamente e permanentemente apagada em <strong>30 dias</strong>.
               Durante esse período, você pode cancelar a exclusão fazendo login novamente.

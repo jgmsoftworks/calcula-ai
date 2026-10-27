@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion, currencySymbol } from '@/lib/business-region';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +23,7 @@ interface EncargoItem {
 }
 
 export const EncargosVenda = () => {
+  usePortugalTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -91,7 +95,7 @@ export const EncargosVenda = () => {
       console.error('Erro ao carregar encargos:', error);
       toast({
         title: "Erro ao carregar dados",
-        description: "Não foi possível carregar os encargos salvos",
+        description: localizeText("Não foi possível carregar os encargos salvos"),
         variant: "destructive"
       });
     }
@@ -173,7 +177,7 @@ export const EncargosVenda = () => {
   };
 
   const formatCurrencyInput = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -382,7 +386,7 @@ export const EncargosVenda = () => {
           <div className={`hidden md:grid gap-3 mb-3 ${categoria === 'outros' ? 'grid-cols-[1fr_80px_90px_56px]' : 'grid-cols-[1fr_80px_90px]'}`}>
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Nome</p>
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">%</p>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">R$</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">{currencySymbol()}</p>
             {categoria === 'outros' && <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide text-center">Ações</p>}
           </div>
 
@@ -442,7 +446,7 @@ export const EncargosVenda = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-muted-foreground">Carregando encargos...</p>
+        <p className="text-sm text-muted-foreground">{localizeText("Carregando encargos...")}</p>
       </div>
     );
   }
@@ -476,7 +480,7 @@ export const EncargosVenda = () => {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={cancelarEdicaoModal} className="rounded-xl">Cancelar</Button>
-              <Button onClick={salvarEdicaoModal} className="rounded-xl">Salvar</Button>
+              <Button onClick={salvarEdicaoModal} className="rounded-xl">{localizeText("Salvar")}</Button>
             </div>
           </div>
         </DialogContent>

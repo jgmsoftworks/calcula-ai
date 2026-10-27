@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle, Lock, RefreshCw, LogOut, CheckCircle2, Sparkles } from 'lucide-react';
@@ -10,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export function SubscriptionStatusGate({ children }: { children: React.ReactNode }) {
+  usePortugalTranslation();
   const access = useSubscriptionStatus();
   const { signOut } = useAuth();
   const { pathname } = useLocation();
@@ -49,7 +53,7 @@ export function SubscriptionStatusGate({ children }: { children: React.ReactNode
           </div>
           <div className="flex gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-left">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div><p className="font-semibold">Seus dados continuam salvos</p><p className="mt-1 text-sm text-muted-foreground">Assine um plano e continue nesta mesma conta, com seus produtos, receitas e histórico. O acesso será liberado após a confirmação do pagamento.</p></div>
+            <div><p className="font-semibold">{localizeText("Seus dados continuam salvos")}</p><p className="mt-1 text-sm text-muted-foreground">Assine um plano e continue nesta mesma conta, com seus produtos, receitas e histórico. O acesso será liberado após a confirmação do pagamento.</p></div>
           </div>
           <div className="space-y-3">
             <Button asChild size="lg" className="w-full bg-gradient-to-r from-[#0483e4] to-[#7328b1] text-white"><Link to="/planos"><Sparkles className="mr-2 h-4 w-4" />Escolher plano e continuar</Link></Button>
@@ -71,7 +75,7 @@ export function SubscriptionStatusGate({ children }: { children: React.ReactNode
     {access.showWarning && access.inGracePeriod && <div className="sticky top-0 z-40 border-b border-amber-500/30 bg-amber-500/15">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
         <p className="text-sm"><strong>Pagamento em atraso.</strong> Regularize para continuar usando.
-          {access.graceEndsAt && <> Prazo: {new Date(access.graceEndsAt).toLocaleDateString('pt-BR')}.</>}
+          {access.graceEndsAt && <> Prazo: {new Date(access.graceEndsAt).toLocaleDateString(getBusinessRegion().locale)}.</>}
         </p>
         <Button size="sm" onClick={() => void openPortal()} disabled={portalLoading}>Regularizar pagamento</Button>
       </div>

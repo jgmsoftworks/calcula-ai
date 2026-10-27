@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +51,7 @@ function traduzirErro(erroTecnico: string): string {
 }
 
 export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
+  usePortugalTranslation();
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
@@ -152,15 +155,14 @@ export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
 
       {/* Upload */}
       <div className="space-y-2">
-        <Label>2. Selecionar Arquivo Preenchido</Label>
+        <Label>{localizeText("2. Selecionar Arquivo Preenchido")}</Label>
         <Input
           type="file"
           accept=".xlsx,.xls"
           onChange={handleFileChange}
         />
         {arquivo && (
-          <p className="text-sm text-muted-foreground">
-            Arquivo selecionado: {arquivo.name}
+          <p className="text-sm text-muted-foreground">{localizeText("Arquivo selecionado:")}{arquivo.name}
           </p>
         )}
         
@@ -171,14 +173,14 @@ export function ImportProdutosExcel({ onSuccess }: { onSuccess: () => void }) {
             <li><strong>nome*</strong>: Nome do produto</li>
             <li><strong>unidade_compra*</strong>: Unidade (cm, cx, fd, g, k, l, m, ml, pct, un)</li>
             <li><strong>custo_unitario*</strong>: Custo (número decimal)</li>
-            <li><strong>estoque_atual*</strong>: Quantidade em estoque (número)</li>
+            <li><strong>{localizeText("estoque_atual*")}</strong>{localizeText(": Quantidade em estoque (número)")}</li>
           </ul>
           <p className="font-medium text-sm mt-3">Campos opcionais:</p>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
             <li><strong>codigos_barras</strong>: Códigos de barras separados por vírgula</li>
             <li><strong>marcas</strong>: Marcas separadas por vírgula</li>
             <li><strong>categorias</strong>: Categorias separadas por vírgula</li>
-            <li><strong>estoque_minimo</strong>: Quantidade mínima desejada</li>
+            <li><strong>{localizeText("estoque_minimo")}</strong>: Quantidade mínima desejada</li>
             <li><strong>unidade_uso</strong>: Unidade para receitas (quando diferente da compra)</li>
             <li><strong>fator_conversao</strong>: Fator de conversão entre unidades</li>
           </ul>

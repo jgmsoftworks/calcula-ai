@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -50,7 +51,7 @@ export const useActivityLog = () => {
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays} dia${diffInDays > 1 ? 's' : ''} atrás`;
     
-    return date.toLocaleDateString('pt-BR');
+    return date.toLocaleDateString(getBusinessRegion().locale);
   };
 
   const logActivity = useCallback(async (

@@ -1,9 +1,11 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { trackFunnel } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
 import { ArrowRight, Check, ChevronDown, Loader2, LockKeyhole, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
-import { usePlanos, formatPreco, precoDoPlano, type Plano, type Billing } from '@/hooks/usePlanos';
+import { usePlanos, formatPreco, planPriceAvailable, precoDoPlano, type Plano, type Billing } from '@/hooks/usePlanos';
 import { useStripe } from '@/hooks/useStripe';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +15,7 @@ import { annualSaving, comparisonRows, limitLabel, planBenefits, planPositioning
 import '@/components/planos/plans.css';
 
 const Planos = () => {
+  usePortugalTranslation();
   const { t } = useTranslation();
   const { currentPlan, loading, reloadPlan } = usePlanLimits();
   const access = useSubscriptionStatus();
@@ -40,6 +43,7 @@ const Planos = () => {
   useEffect(() => { trackFunnel('plans_view'); }, []);
 
   const handleSelectPlan = async (plano: Plano) => {
+    if (!planPriceAvailable(plano, billing) && !manageSubscription) return;
     if (busy || access.loading || access.error) return;
     trackFunnel('plan_selected', { plan: plano.slug, billing, action: manageSubscription ? 'manage_subscription' : 'checkout' });
     setProcessingPlan(plano.slug);
@@ -99,9 +103,9 @@ const Planos = () => {
           </div>
         </div>
 
-        {planosLoading ? <div role="status" className="plans-grid" aria-label="Carregando planos">
+        {planosLoading ? <div role="status" className="plans-grid" aria-label={localizeText("Carregando planos")}>
           {[0, 1, 2].map(value => <div key={value} className="h-96 animate-pulse rounded-2xl border border-border bg-muted/40 motion-reduce:animate-none" />)}
-          <span className="sr-only">Carregando planos…</span>
+          <span className="sr-only">{localizeText("Carregando planos…")}</span>
         </div> : plansError || planos.length === 0 ? <div role="alert" className="rounded-2xl border border-border bg-card p-8 text-center">
           <h3 className="font-semibold">Não foi possível carregar os planos agora.</h3><p className="mt-2 text-sm text-muted-foreground">Tente novamente para consultar os valores e continuar.</p>
           <Button variant="outline" className="mt-4" onClick={() => void reloadPlans()}>Carregar planos novamente</Button>
@@ -111,6 +115,7 @@ const Planos = () => {
             const featured = plano.slug === 'professional';
             const positioning = planPositioning[plano.slug];
             const saving = annualSaving(plano);
+            const marketUnavailable = !planPriceAvailable(plano, billing);
             const annualUnavailable = billing === 'yearly' && plano.preco_centavos > 0 && plano.preco_anual_centavos <= 0;
             const price = precoDoPlano(plano, billing);
             return <article key={plano.id} className={`plans-card ${featured ? 'plans-card-featured' : ''}`} aria-labelledby={`plan-${plano.slug}`} data-current={isCurrent}>
@@ -123,17 +128,17 @@ const Planos = () => {
                 <p className="plans-card-description">{positioning?.description || plano.descricao}</p>
               </div>
               <div className="plans-price-block" aria-live="polite" aria-atomic="true">
-                <div className="plans-price">{annualUnavailable ? <strong className="text-xl">Anual indisponível</strong> : <><strong>{formatPreco(price)}</strong>{price > 0 && <span>/{billing === 'yearly' ? 'ano' : 'mês'}</span>}</>}</div>
-                <p className="plans-price-note">{annualUnavailable ? 'Você pode escolher a cobrança mensal.' : billing === 'yearly' && price > 0
-                  ? `${formatPreco(price)} cobrados por ano. Equivale a ${formatPreco(Math.round(price / 12))}/mês.`
+                <div className="plans-price">{marketUnavailable ? <strong className="text-xl">{t('regional.pricePending')}</strong> : annualUnavailable ? <strong className="text-xl">Anual indisponível</strong> : <><strong>{formatPreco(price, plano.moeda)}</strong>{price > 0 && <span>/{billing === 'yearly' ? 'ano' : 'mês'}</span>}</>}</div>
+                <p className="plans-price-note">{marketUnavailable ? t('regional.billingPending') : annualUnavailable ? 'Você pode escolher a cobrança mensal.' : billing === 'yearly' && price > 0
+                  ? `${formatPreco(price, plano.moeda)} cobrados por ano. Equivale a ${formatPreco(Math.round(price / 12), plano.moeda)}/mês.`
                   : price > 0 ? 'Cobrança mensal.' : 'Sem cobrança.'}</p>
                 <p className="plans-saving">{saving > 0 && !annualUnavailable ? billing === 'yearly'
-                  ? <>Economia de <strong>{formatPreco(saving)}</strong> em relação a 12 mensalidades.</>
-                  : <>No anual, economize <strong>{formatPreco(saving)}</strong> por ano.</> : '\u00a0'}</p>
+                  ? <>Economia de <strong>{formatPreco(saving, plano.moeda)}</strong> em relação a 12 mensalidades.</>
+                  : <>No anual, economize <strong>{formatPreco(saving, plano.moeda)}</strong> por ano.</> : '\u00a0'}</p>
               </div>
-              <Button className="plans-select-button" onClick={() => void handleSelectPlan(plano)} disabled={busy || loading || access.loading || access.error || annualUnavailable} aria-busy={processingPlan === plano.slug}>
+              <Button className="plans-select-button" onClick={() => void handleSelectPlan(plano)} disabled={busy || loading || access.loading || access.error || annualUnavailable || (marketUnavailable && !manageSubscription)} aria-busy={processingPlan === plano.slug}>
                 {processingPlan === plano.slug ? <><Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />Abrindo…</>
-                  : annualUnavailable ? 'Indisponível no anual' : manageSubscription ? isCurrent ? 'Gerenciar meu plano' : 'Alterar assinatura'
+                  : marketUnavailable && !manageSubscription ? t('regional.notAvailable') : annualUnavailable ? 'Indisponível no anual' : manageSubscription ? isCurrent ? 'Gerenciar meu plano' : 'Alterar assinatura'
                   : <>Escolher {plano.nome_publico}<ArrowRight className="h-4 w-4" aria-hidden="true" /></>}
               </Button>
               <div className="plans-card-features">
@@ -149,19 +154,19 @@ const Planos = () => {
           })}
         </div>}
         {manageSubscription && <p className="mt-4 text-center text-sm text-muted-foreground">Ao alterar sua assinatura, você escolhe o novo plano e confere os valores na próxima tela.</p>}
-        <div className="plans-reassurance"><span><LockKeyhole className="h-4 w-4" aria-hidden="true" />Pagamento seguro</span><span>Mesma conta, dados preservados</span><span>Sem refazer seus cadastros</span></div>
+        <div className="plans-reassurance"><span><LockKeyhole className="h-4 w-4" aria-hidden="true" />Pagamento seguro</span><span>Mesma conta, dados preservados</span><span>{localizeText("Sem refazer seus cadastros")}</span></div>
       </section>
 
       {!planosLoading && !plansError && planos.length > 0 && <section className="plans-comparison" aria-labelledby="plans-comparison-title">
         <div className="plans-section-heading"><p className="plans-section-kicker">CADA DETALHE CONTA</p><h2 id="plans-comparison-title" className="font-display text-2xl font-bold">Veja o que muda em cada plano.</h2><p className="mt-2 text-sm text-muted-foreground">Os limites abaixo valem para a sua conta.</p></div>
         <div className="plans-table-scroll" role="region" aria-label="Comparação de recursos dos planos" tabIndex={0}>
           <table className="plans-table">
-            <caption className="sr-only">Limites de receitas, matérias-primas, precificação, fichas técnicas e estoque por plano.</caption>
+            <caption className="sr-only">{localizeText("Limites de receitas, matérias-primas, precificação, fichas técnicas e estoque por plano.")}</caption>
             <thead><tr><th scope="col">Na sua rotina</th>{planos.map(plano => <th scope="col" key={plano.id} data-featured={plano.slug === 'professional'}>{plano.nome_publico}</th>)}</tr></thead>
             <tbody>{comparisonRows.map(row => <tr key={row.key}><th scope="row">{row.label}{row.explanation && <span>{row.explanation}</span>}</th>{planos.map(plano => <td key={plano.id} data-featured={plano.slug === 'professional'}>{limitLabel(plano.limites?.[row.key])}</td>)}</tr>)}</tbody>
           </table>
         </div>
-        <p className="plans-table-hint">No celular, deslize a tabela para comparar todos os planos.</p>
+        <p className="plans-table-hint">{localizeText("No celular, deslize a tabela para comparar todos os planos.")}</p>
       </section>}
 
       <section className="plans-faq" aria-labelledby="plans-faq-title">

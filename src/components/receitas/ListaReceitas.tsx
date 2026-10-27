@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -21,6 +23,7 @@ import type { ReceitaComDados } from '@/types/receitas';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 
 export function ListaReceitas() {
+  usePortugalTranslation();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -247,7 +250,7 @@ export function ListaReceitas() {
             </Select>
           </div>
 
-          {tiposQuery.isPending && <p role="status" className="text-sm text-muted-foreground">Carregando tipos de produto…</p>}
+          {tiposQuery.isPending && <p role="status" className="text-sm text-muted-foreground">{localizeText("Carregando tipos de produto…")}</p>}
           {tiposQuery.isError && (
             <div id="tipos-filter-error" role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 p-3 text-sm">
               <span>Não foi possível carregar os tipos de produto.</span>

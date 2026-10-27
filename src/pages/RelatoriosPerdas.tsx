@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -22,7 +23,7 @@ function groupBy<T>(arr: T[], key: (it: T) => string) {
 function exportCSV(perdas: Perda[]) {
   const headers = ['Data', 'Tipo', 'Item', 'Quantidade', 'Custo unitário', 'Custo total', 'Motivo', 'Responsável', 'Observação'];
   const rows = perdas.map((p) => [
-    new Date(p.data_perda).toLocaleString('pt-BR'),
+    new Date(p.data_perda).toLocaleString(getBusinessRegion().locale),
     p.tipo,
     p.nome_item,
     String(p.quantidade).replace('.', ','),
@@ -233,7 +234,7 @@ export default function RelatoriosPerdas() {
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="break-words font-semibold leading-snug">{p.nome_item}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{new Date(p.data_perda).toLocaleString('pt-BR')}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{new Date(p.data_perda).toLocaleString(getBusinessRegion().locale)}</p>
                     </div>
                     <p className="shrink-0 font-semibold text-destructive">{formatBRL(Number(p.custo_total))}</p>
                   </div>
@@ -277,7 +278,7 @@ export default function RelatoriosPerdas() {
                     <tr><td colSpan={7} className="text-center text-muted-foreground p-8">Nenhuma perda no período.</td></tr>
                   ) : perdas.map((p) => (
                     <tr key={p.id} className="border-t border-border/30 hover:bg-muted/20">
-                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(p.data_perda).toLocaleString('pt-BR')}</td>
+                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{new Date(p.data_perda).toLocaleString(getBusinessRegion().locale)}</td>
                       <td className="p-3">
                         <Badge variant="outline" className="text-[10px]">{p.tipo === 'produto' ? 'Produto' : 'Receita'}</Badge>
                       </td>

@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
@@ -23,6 +26,7 @@ interface PrecificacaoTabProps {
 }
 
 export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange, onUpdate }: PrecificacaoTabProps) {
+  usePortugalTranslation();
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
   const [markups, setMarkups] = useState<any[]>([]);
@@ -305,7 +309,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                   ? 'text-muted-foreground cursor-not-allowed' 
                   : 'text-primary'
               )}
-              placeholder="R$ 0,00"
+              placeholder={formatMoney(0)}
             />
             {isMarkupSubReceitaAtual && (
               <p className="text-[11px] text-muted-foreground mt-2">
@@ -348,7 +352,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
           </CardHeader>
           <CardContent className="pb-4">
             <p className="text-2xl md:text-3xl font-bold font-display text-secondary">
-              R$ {formatBRL(precoKg)}
+              {formatMoney(precoKg)}
             </p>
           </CardContent>
         </Card>
@@ -385,7 +389,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               </CardHeader>
               <CardContent className="pb-4">
                 <p className="text-2xl md:text-3xl font-bold font-display text-foreground">
-                  R$ {formatBRL(custoUnitario)}
+                  {formatMoney(custoUnitario)}
                 </p>
                 {!isSubReceita && rendimento > 0 && (
                   <p className="text-[11px] text-muted-foreground mt-1">
@@ -429,9 +433,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
             </div>
             <div>
               <CardTitle className="text-base font-display">Markup da Receita</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Selecione o markup para calcular a precificação
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{localizeText("Selecione o markup para calcular a precificação")}</p>
             </div>
           </div>
         </CardHeader>
@@ -440,7 +442,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
             <div className="text-center py-8 text-muted-foreground border border-dashed border-border/60 rounded-2xl">
               <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500/70" />
               <p className="font-semibold text-sm">Nenhum markup configurado</p>
-              <p className="text-xs mt-1 text-muted-foreground">Vá para a aba Precificação para criar seus markups.</p>
+              <p className="text-xs mt-1 text-muted-foreground">{localizeText("Vá para a aba Precificação para criar seus markups.")}</p>
             </div>
           ) : (
             <>
@@ -515,9 +517,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               {!formData.markup_id && (
                 <div className="flex items-center gap-3 p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl">
                   <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
-                    Selecione um markup para ativar os cálculos de precificação.
-                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">{localizeText("Selecione um markup para ativar os cálculos de precificação.")}</p>
                 </div>
               )}
 
@@ -562,6 +562,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 }
 
 function CostItem({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  usePortugalTranslation();
   return (
     <div className={cn(
       "rounded-xl p-3 text-center",
@@ -576,7 +577,7 @@ function CostItem({ label, value, highlight = false }: { label: string; value: n
         {label}
       </div>
       <div className={cn("text-sm font-bold font-display", highlight && "text-primary-foreground")}>
-        R$ {formatBRL(value)}
+        {formatMoney(value)}
       </div>
     </div>
   );
@@ -585,6 +586,7 @@ function CostItem({ label, value, highlight = false }: { label: string; value: n
 function MarkupOption({ markup, isSelected, onSelect, type }: { 
   markup: any; isSelected: boolean; onSelect: () => void; type: string 
 }) {
+  usePortugalTranslation();
   return (
     <button
       onClick={onSelect}

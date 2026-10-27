@@ -1,3 +1,8 @@
+import { useBusinessRegion } from '@/contexts/BusinessRegionContext';
+import { formatPortuguesePhone, formatPortuguesePostcode } from '@/lib/business-region';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -82,6 +87,9 @@ interface UserProfile {
 }
 
 const PerfilNegocio = () => {
+  const { t } = usePortugalTranslation();
+  const region = useBusinessRegion();
+  const portugal = region.country === 'PT';
   const { user } = useAuth();
   const { toast } = useToast();
   const { saveConfiguration, loadConfiguration } = useOptimizedUserConfigurations();
@@ -101,7 +109,7 @@ const PerfilNegocio = () => {
     bairro: '',
     cidade: '',
     estado: '',
-    pais: 'Brasil',
+    pais: region.name,
     telefone_comercial: '',
     celular: '',
     email_comercial: '',
@@ -148,6 +156,7 @@ const PerfilNegocio = () => {
   };
 
   const formatCNPJCPF = (value: string) => {
+    if (portugal) return value.replace(/\D/g, '').slice(0, 9);
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) {
       return formatCPF(value);
@@ -156,6 +165,7 @@ const PerfilNegocio = () => {
   };
 
   const formatPhone = (value: string) => {
+    if (portugal) return formatPortuguesePhone(value);
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 10) {
       return numbers
@@ -170,6 +180,7 @@ const PerfilNegocio = () => {
   };
 
   const formatCEP = (value: string) => {
+    if (portugal) return formatPortuguesePostcode(value);
     return value
       .replace(/\D/g, '')
       .replace(/^(\d{5})(\d)/, '$1-$2')
@@ -217,7 +228,7 @@ const PerfilNegocio = () => {
           bairro: data.bairro || '',
           cidade: data.cidade || '',
           estado: data.estado || '',
-          pais: data.pais || 'Brasil',
+          pais: data.pais || region.name,
           telefone_comercial: data.telefone_comercial || '',
           celular: data.celular || '',
           email_comercial: data.email_comercial || '',
@@ -281,7 +292,7 @@ const PerfilNegocio = () => {
 
       toast({
         title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso"
+        description: localizeText("Suas informações foram salvas com sucesso")
       });
     } catch (error: any) {
       console.error('Erro ao salvar perfil:', error);
@@ -301,7 +312,7 @@ const PerfilNegocio = () => {
       const validation = validateImageFile(file, 2 * 1024 * 1024);
       if (!validation.ok) {
         toast({
-          title: "Arquivo inválido",
+          title: localizeText("Arquivo inválido"),
           description: validation.error,
           variant: "destructive"
         });
@@ -355,12 +366,12 @@ const PerfilNegocio = () => {
       
       toast({
         title: "Logo atualizado",
-        description: "Seu logo foi salvo com sucesso"
+        description: localizeText("Seu logo foi salvo com sucesso")
       });
     } catch (error) {
       console.error('Erro ao salvar logo:', error);
       toast({
-        title: "Erro ao salvar logo",
+        title: localizeText("Erro ao salvar logo"),
         description: "Tente novamente em alguns instantes",
         variant: "destructive"
       });
@@ -370,7 +381,7 @@ const PerfilNegocio = () => {
   };
 
   const buscarEnderecoPorCEP = async (cep: string) => {
-    if (!cep || cep.replace(/\D/g, '').length !== 8) return;
+    if (portugal || !cep || cep.replace(/\D/g, '').length !== 8) return;
     
     setIsLoadingCEP(true);
     try {
@@ -397,12 +408,12 @@ const PerfilNegocio = () => {
       }));
       
       toast({
-        title: "Endereço encontrado",
+        title: localizeText("Endereço encontrado"),
         description: "Dados preenchidos automaticamente. Preencha o número."
       });
     } catch (error) {
       toast({
-        title: "Erro ao buscar CEP",
+        title: localizeText("Erro ao buscar CEP"),
         description: "Tente novamente em alguns instantes",
         variant: "destructive"
       });
@@ -418,12 +429,15 @@ const PerfilNegocio = () => {
         <Building2 className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Perfil de Negócio</h1>
-          <p className="text-muted-foreground">
-            Cadastre as informações completas da sua empresa
-          </p>
+          <p className="text-muted-foreground">{localizeText("Cadastre as informações completas da sua empresa")}</p>
         </div>
       </div>
 
+      <Card><CardHeader><CardTitle>{t('regional.settingsTitle')}</CardTitle></CardHeader>
+        <CardContent className="space-y-3"><p className="font-medium">{region.name} · {region.currency}</p>
+          <p className="text-sm text-muted-foreground">{t('regional.currencyNote', { currency: region.currency })}</p>
+          <LanguageSelector />
+        </CardContent></Card>
       <div className="space-y-8">
         
         {/* Seção: Logo da Empresa */}
@@ -501,7 +515,7 @@ const PerfilNegocio = () => {
             <CardContent className="p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="nome_fantasia">Nome Fantasia *</Label>
+                  <Label htmlFor="nome_fantasia">{localizeText("Nome Fantasia *")}</Label>
                   <Input
                     id="nome_fantasia"
                     value={profile.nome_fantasia}
@@ -513,18 +527,18 @@ const PerfilNegocio = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="razao_social">Razão Social</Label>
+                  <Label htmlFor="razao_social">{localizeText("Razão Social")}</Label>
                   <Input
                     id="razao_social"
                     value={profile.razao_social}
                     onChange={(e) => setProfile(prev => ({ ...prev, razao_social: e.target.value }))}
-                    placeholder="Razão social da empresa"
+                    placeholder={localizeText("Razão social da empresa")}
                     className="input-premium"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cnpj_cpf">CNPJ / CPF *</Label>
+                  <Label htmlFor="cnpj_cpf">{portugal ? 'NIF / NIPC' : 'CNPJ / CPF *'}</Label>
                   <Input
                     id="cnpj_cpf"
                     value={profile.cnpj_cpf}
@@ -532,7 +546,7 @@ const PerfilNegocio = () => {
                       const formatted = formatCNPJCPF(e.target.value);
                       setProfile(prev => ({ ...prev, cnpj_cpf: formatted }));
                     }}
-                    placeholder="00.000.000/0000-00 ou 000.000.000-00"
+                    placeholder={portugal ? '123456789' : '00.000.000/0000-00 ou 000.000.000-00'}
                     className="input-premium"
                   />
                 </div>
@@ -544,7 +558,7 @@ const PerfilNegocio = () => {
                     <SelectTrigger id="business_type"><SelectValue placeholder="Selecione o tipo de negócio" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="food">Alimentação</SelectItem>
-                      <SelectItem value="retail">Varejo</SelectItem>
+                      <SelectItem value="retail">{localizeText("Varejo")}</SelectItem>
                       <SelectItem value="service">Serviços</SelectItem>
                       <SelectItem value="manufacturing">Indústria</SelectItem>
                       <SelectItem value="consulting">Consultoria</SelectItem>
@@ -563,15 +577,13 @@ const PerfilNegocio = () => {
         {/* Seção: Endereço */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-accent" />
-            Endereço
-          </h2>
+            <MapPin className="h-5 w-5 text-accent" />{localizeText("Endereço")}</h2>
           
           <Card className="card-premium">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="cep">CEP</Label>
+                  <Label htmlFor="cep">{portugal ? 'Código postal' : 'CEP'}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="cep"
@@ -580,11 +592,11 @@ const PerfilNegocio = () => {
                         const formatted = formatCEP(e.target.value);
                         setProfile(prev => ({ ...prev, cep: formatted }));
                       }}
-                      placeholder="00000-000"
+                      placeholder={portugal ? '1000-001' : '00000-000'}
                       className="input-premium"
                       maxLength={9}
                     />
-                    <Button
+                    {!portugal && <Button
                       type="button"
                       onClick={() => buscarEnderecoPorCEP(profile.cep)}
                       disabled={isLoadingCEP || !profile.cep}
@@ -593,27 +605,27 @@ const PerfilNegocio = () => {
                       className="border-primary/20 hover:border-primary/50 hover:bg-primary/5 shrink-0"
                     >
                       <Search className="h-4 w-4" />
-                    </Button>
+                    </Button>}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Digite o CEP e clique na lupa
+                    {portugal ? 'Preencha a morada correspondente ao código postal.' : 'Digite o CEP e clique na lupa'}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="estado">Estado</Label>
+                  <Label htmlFor="estado">{portugal ? 'Distrito / Região' : 'Estado'}</Label>
                   <Input
                     id="estado"
                     value={profile.estado}
-                    onChange={(e) => setProfile(prev => ({ ...prev, estado: e.target.value.toUpperCase() }))}
-                    placeholder="SP"
+                    onChange={(e) => setProfile(prev => ({ ...prev, estado: portugal ? e.target.value : e.target.value.toUpperCase() }))}
+                    placeholder={portugal ? 'Lisboa' : 'SP'}
                     className="input-premium"
-                    maxLength={2}
+                    maxLength={portugal ? 100 : 2}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="logradouro">Logradouro</Label>
+                  <Label htmlFor="logradouro">{localizeText("Logradouro")}</Label>
                   <Input
                     id="logradouro"
                     value={profile.logradouro}
@@ -665,7 +677,7 @@ const PerfilNegocio = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bairro">Bairro</Label>
+                  <Label htmlFor="bairro">{localizeText("Bairro")}</Label>
                   <Input
                     id="bairro"
                     value={profile.bairro}
@@ -722,13 +734,13 @@ const PerfilNegocio = () => {
                       const formatted = formatPhone(e.target.value);
                       setProfile(prev => ({ ...prev, telefone_comercial: formatted }));
                     }}
-                    placeholder="(11) 3000-0000"
+                    placeholder={portugal ? '+351 212 345 678' : '(11) 3000-0000'}
                     className="input-premium"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="celular">Celular</Label>
+                  <Label htmlFor="celular">{localizeText("Celular")}</Label>
                   <Input
                     id="celular"
                     value={profile.celular}
@@ -736,7 +748,7 @@ const PerfilNegocio = () => {
                       const formatted = formatPhone(e.target.value);
                       setProfile(prev => ({ ...prev, celular: formatted }));
                     }}
-                    placeholder="(11) 99999-9999"
+                    placeholder={portugal ? '+351 912 345 678' : '(11) 99999-9999'}
                     className="input-premium"
                   />
                 </div>
@@ -774,8 +786,8 @@ const PerfilNegocio = () => {
             <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5 text-primary" />Segurança da conta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">Se você recebeu uma senha inicial por e-mail, recomendamos trocá-la por uma senha pessoal no primeiro acesso.</p>
-            <Button variant="outline" asChild><Link to="/reset-password?from=profile">Alterar senha</Link></Button>
+            <p className="text-muted-foreground">{localizeText("Se você recebeu uma senha inicial por e-mail, recomendamos trocá-la por uma senha pessoal no primeiro acesso.")}</p>
+            <Button variant="outline" asChild><Link to="/reset-password?from=profile">{localizeText("Alterar senha")}</Link></Button>
           </CardContent>
         </Card>
 

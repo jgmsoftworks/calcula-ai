@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion, currencySymbol } from '@/lib/business-region';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -47,6 +50,7 @@ interface MarkupsProps {
 }
 
 export function Markups({ globalPeriod = "12" }: MarkupsProps) {
+  usePortugalTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [blocos, setBlocos] = useState<MarkupBlock[]>([]);
   const [modalEdicaoNome, setModalEdicaoNome] = useState(false);
@@ -679,9 +683,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'currency',
-      currency: 'BRL'
+      currency: getBusinessRegion().currency
     }).format(value);
   };
 
@@ -838,12 +842,12 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
   const renderMarkupGrid = (bloco: MarkupBlock, calculated: CalculatedMarkup | undefined, hasCalculated: boolean) => {
     const items = [
-      { label: 'Gasto sobre faturamento', value: hasCalculated ? formatPercentage(calculated!.gastoSobreFaturamento) : '0', suffix: '%', color: '#0483e4' },
+      { label: localizeText("Gasto sobre faturamento"), value: hasCalculated ? formatPercentage(calculated!.gastoSobreFaturamento) : '0', suffix: '%', color: '#0483e4' },
       { label: 'Impostos', value: hasCalculated ? formatPercentage(calculated!.impostos) : '0', suffix: '%', color: '#2c4dc7' },
       { label: 'Taxas meios pgto.', value: hasCalculated ? formatPercentage(calculated!.taxasMeiosPagamento) : '0', suffix: '%', color: '#7328b1' },
       { label: 'Comissões / plataformas', value: hasCalculated ? formatPercentage(calculated!.comissoesPlataformas) : '0', suffix: '%', color: '#af1188' },
       { label: 'Outros', value: hasCalculated ? formatPercentage(calculated!.outros) : '0', suffix: '%', color: '#dd0b52' },
-      { label: 'Valor fixo (R$)', value: hasCalculated ? formatCurrency(calculated!.valorEmReal) : formatCurrency(0), suffix: '', color: '#f96e0c' },
+      { label: `Valor fixo (${currencySymbol()})`, value: hasCalculated ? formatCurrency(calculated!.valorEmReal) : formatCurrency(0), suffix: '', color: '#f96e0c' },
     ];
 
     return (
@@ -1021,7 +1025,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                   </Select>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-muted-foreground">Média de faturamento</p>
+                  <p className="text-[10px] text-muted-foreground">{localizeText("Média de faturamento")}</p>
                   <p className="text-sm font-bold font-display" style={{ color: gColor.bg }}>
                     {formatCurrency(calcularValorPeriodoBloco(bloco.periodo))}
                   </p>
@@ -1099,9 +1103,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
               Cancelar
             </Button>
             <Button onClick={salvarNome}>
-              <Check className="h-4 w-4 mr-2" />
-              Salvar
-            </Button>
+              <Check className="h-4 w-4 mr-2" />{localizeText("Salvar")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

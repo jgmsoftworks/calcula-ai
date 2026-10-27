@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const ResetPassword = () => {
+  usePortugalTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +43,7 @@ const ResetPassword = () => {
     if (password !== confirmPassword) {
       toast({
         title: "Erro",
-        description: "As senhas não coincidem",
+        description: localizeText("As senhas não coincidem"),
         variant: "destructive",
       });
       return;
@@ -49,7 +52,7 @@ const ResetPassword = () => {
     if (password.length < 8) {
       toast({
         title: "Erro",
-        description: "A senha deve ter pelo menos 8 caracteres",
+        description: localizeText("A senha deve ter pelo menos 8 caracteres"),
         variant: "destructive",
       });
       return;
@@ -76,15 +79,15 @@ const ResetPassword = () => {
       }
 
       toast({
-        title: "Senha atualizada!",
-        description: "Sua senha foi redefinida com sucesso",
+        title: localizeText("Senha atualizada!"),
+        description: localizeText("Sua senha foi redefinida com sucesso"),
       });
 
       window.history.replaceState({}, '', '/reset-password');
       navigate(isSetup ? '/?welcome=true' : searchParams.get('from') === 'profile' ? '/perfil' : '/auth', { replace: true });
     } catch (error: unknown) {
       toast({
-        title: "Erro ao redefinir senha",
+        title: localizeText("Erro ao redefinir senha"),
         description: error instanceof Error ? error.message : "Tente novamente",
         variant: "destructive",
       });
@@ -125,16 +128,14 @@ const ResetPassword = () => {
               <div className="mx-auto w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center">
                 <Lock className="h-6 w-6 text-white" />
               </div>
-              <CardTitle className="text-xl font-semibold">Nova Senha</CardTitle>
-              <CardDescription>
-                Crie uma senha segura para sua conta
-              </CardDescription>
+              <CardTitle className="text-xl font-semibold">{localizeText("Nova Senha")}</CardTitle>
+              <CardDescription>{localizeText("Crie uma senha segura para sua conta")}</CardDescription>
             </CardHeader>
 
             <CardContent className="p-6">
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-2 group">
-                  <Label htmlFor="password" className="text-base font-medium">Nova Senha</Label>
+                  <Label htmlFor="password" className="text-base font-medium">{localizeText("Nova Senha")}</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                       <Lock className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -154,7 +155,7 @@ const ResetPassword = () => {
                 </div>
 
                 <div className="space-y-2 group">
-                  <Label htmlFor="confirmPassword" className="text-base font-medium">Confirmar Senha</Label>
+                  <Label htmlFor="confirmPassword" className="text-base font-medium">{localizeText("Confirmar Senha")}</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                       <CheckCircle className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />

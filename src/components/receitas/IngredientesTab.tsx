@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -37,6 +40,7 @@ export function IngredientesTab({
   onUpdateQuantidadeTemp,
   prefetchedProdutos
 }: IngredientesTabProps) {
+  usePortugalTranslation();
   const [search, setSearch] = useState('');
   const [suggestionLimit, setSuggestionLimit] = useState(20);
   const matches = useMemo(() => {
@@ -86,7 +90,7 @@ export function IngredientesTab({
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setSuggestionLimit(20); }}
-                placeholder="Buscar ingredientes..."
+                placeholder={localizeText("Buscar ingredientes...")}
                 className="pl-9"
               />
             </div>
@@ -94,7 +98,7 @@ export function IngredientesTab({
 
           {matches.length > produtos.length && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>{produtos.length} de {matches.length} resultados. Busque pelo nome ou código.</span>
+              <span>{produtos.length} de {matches.length} {localizeText("resultados. Busque pelo nome ou código.")}</span>
               <Button type="button" variant="outline" className="min-h-11" onClick={() => setSuggestionLimit(limit => limit + 20)}>Mostrar mais</Button>
             </div>
           )}
@@ -108,7 +112,7 @@ export function IngredientesTab({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm md:text-base truncate">{produto.nome}</p>
                     <p className="text-xs md:text-sm text-muted-foreground truncate">
-                      R$ {formatNumber(produto.custo_unitario, 4)} / {produto.unidade_uso || produto.unidade_compra}
+                      {formatMoney(produto.custo_unitario, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} / {produto.unidade_uso || produto.unidade_compra}
                     </p>
                   </div>
                   <Button
@@ -161,15 +165,15 @@ export function IngredientesTab({
                           onChange={(e) => handleUpdateQuantidade(ingrediente.id, e.target.value)}
                         />
                         <span className="text-xs text-muted-foreground">{unidade}</span>
-                        <span className="ml-auto text-sm font-semibold">R$ {formatBRL(custoTotal)}</span>
+                        <span className="ml-auto text-sm font-semibold">{formatMoney(custoTotal)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Unit: R$ {formatNumber(custoUnitario, 4)}</p>
+                      <p className="text-xs text-muted-foreground">Unit: {formatMoney(custoUnitario, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</p>
                     </div>
                   );
                 })}
                 <div className="flex justify-between items-center pt-2 border-t">
                   <span className="font-semibold">Total:</span>
-                  <span className="font-semibold">R$ {formatBRL(total)}</span>
+                  <span className="font-semibold">{formatMoney(total)}</span>
                 </div>
               </div>
 
@@ -205,8 +209,8 @@ export function IngredientesTab({
                           />
                         </TableCell>
                         <TableCell className="text-right">{unidade}</TableCell>
-                        <TableCell className="whitespace-nowrap text-right tabular-nums">R$ {formatNumber(custoUnitario, 4)}</TableCell>
-                        <TableCell className="whitespace-nowrap text-right tabular-nums">R$ {formatBRL(custoTotal)}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right tabular-nums">{formatMoney(custoUnitario, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right tabular-nums">{formatMoney(custoTotal)}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" aria-label={`Remover ${ingrediente.produto?.nome || 'ingrediente'}`} onClick={() => handleRemoveIngrediente(ingrediente.id)}>
                             <Trash2 className="h-4 w-4" />
@@ -217,7 +221,7 @@ export function IngredientesTab({
                   })}
                   <TableRow>
                     <TableCell colSpan={4} className="text-right font-semibold">Total:</TableCell>
-                    <TableCell className="text-right font-semibold">R$ {formatBRL(total)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatMoney(total)}</TableCell>
                     <TableCell></TableCell>
                   </TableRow>
                 </TableBody>

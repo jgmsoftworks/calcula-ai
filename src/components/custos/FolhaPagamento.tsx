@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
@@ -49,6 +52,7 @@ interface Funcionario {
 }
 
 export function FolhaPagamento() {
+  usePortugalTranslation();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
@@ -201,7 +205,7 @@ export function FolhaPagamento() {
     } catch (error) {
       console.error('Erro ao salvar funcionário:', error);
       toast({
-        title: "Erro ao salvar",
+        title: localizeText("Erro ao salvar"),
         description: "Tente novamente mais tarde",
         variant: "destructive"
       });
@@ -210,7 +214,7 @@ export function FolhaPagamento() {
 
   // Função para formatar valores monetários para exibição (sem símbolo R$)
   const formatCurrencyDisplay = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
@@ -227,7 +231,7 @@ export function FolhaPagamento() {
   const formatBrazilianNumber = (value: number | string) => {
     const numValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
     if (isNaN(numValue) || numValue === 0) return '0,00'; // Retornar '0,00' ao invés de string vazia
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(numValue);
@@ -293,7 +297,7 @@ export function FolhaPagamento() {
 
   // Função para formatar valor como moeda para input
   const formatCurrencyInput = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -574,9 +578,9 @@ export function FolhaPagamento() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat(getBusinessRegion().locale, {
       style: 'currency',
-      currency: 'BRL'
+      currency: getBusinessRegion().currency
     }).format(value);
   };
 
@@ -610,7 +614,7 @@ export function FolhaPagamento() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-display text-foreground">Folha de Pagamento</h1>
+          <h1 className="text-2xl font-bold font-display text-foreground">{localizeText("Folha de Pagamento")}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Total da Folha: <span className="font-bold text-foreground">{formatCurrency(getTotalFolha())}</span>
           </p>
@@ -703,7 +707,7 @@ export function FolhaPagamento() {
                   <div className="mt-4 p-4 rounded-xl bg-[#0483e4]/5 border border-[#0483e4]/20">
                     <div className="text-center mb-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo Total deste Funcionário</p>
-                      <p className="text-xl font-bold font-display text-[#0483e4]">R$ {formatCurrencyDisplay(calculateCustoTotalFormulario())}</p>
+                      <p className="text-xl font-bold font-display text-[#0483e4]">{formatMoney(calculateCustoTotalFormulario())}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-center">
                       <div>
@@ -713,7 +717,7 @@ export function FolhaPagamento() {
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo/Hora</p>
                         <p className="text-sm font-bold font-display text-[#7328b1]">
-                          {calculateHorasTotais() > 0 ? `R$ ${formatCustoPorHora(calculateCustoPorHora())}` : "—"}
+                          {calculateHorasTotais() > 0 ? `${formatMoney(calculateCustoPorHora(), { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : "—"}
                         </p>
                       </div>
                     </div>
@@ -740,7 +744,7 @@ export function FolhaPagamento() {
           <div className="h-1 bg-gradient-brand-horizontal" />
           <CardContent className="p-12 text-center">
             <User className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium font-display mb-1">Nenhum funcionário cadastrado</p>
+            <p className="text-sm font-medium font-display mb-1">{localizeText("Nenhum funcionário cadastrado")}</p>
             <p className="text-xs text-muted-foreground">Clique em "Novo Funcionário" para começar</p>
           </CardContent>
         </Card>
@@ -774,11 +778,11 @@ export function FolhaPagamento() {
                     <div className="hidden md:flex items-center gap-6">
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo/Hora</p>
-                        <p className="text-sm font-bold font-display text-[#7328b1]">R$ {formatCurrencyDisplay(calculateCustoPorHoraFuncionario(funcionario))}</p>
+                        <p className="text-sm font-bold font-display text-[#7328b1]">{formatMoney(calculateCustoPorHoraFuncionario(funcionario))}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
-                        <p className="text-sm font-bold font-display text-foreground">R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}</p>
+                        <p className="text-sm font-bold font-display text-foreground">{formatMoney(calculateCustoTotal(funcionario))}</p>
                       </div>
                     </div>
                     <div className="flex gap-0.5">
@@ -799,11 +803,11 @@ export function FolhaPagamento() {
                 <div className="flex md:hidden items-center gap-4 mt-2 pt-2 border-t border-border/30">
                   <div>
                     <p className="text-[10px] text-muted-foreground">Custo/Hora</p>
-                    <p className="text-xs font-bold text-[#7328b1]">R$ {formatCurrencyDisplay(calculateCustoPorHoraFuncionario(funcionario))}</p>
+                    <p className="text-xs font-bold text-[#7328b1]">{formatMoney(calculateCustoPorHoraFuncionario(funcionario))}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground">Total</p>
-                    <p className="text-xs font-bold">R$ {formatCurrencyDisplay(calculateCustoTotal(funcionario))}</p>
+                    <p className="text-xs font-bold">{formatMoney(calculateCustoTotal(funcionario))}</p>
                   </div>
                 </div>
               </CardContent>

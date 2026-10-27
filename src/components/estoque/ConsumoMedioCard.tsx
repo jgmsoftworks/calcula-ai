@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, BarChart3, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,8 +69,8 @@ export function ConsumoMedioCard({ produtoId, unidade }: ConsumoMedioCardProps) 
 
   const fmtQtd = (n: number) =>
     Number.isInteger(n)
-      ? new Intl.NumberFormat('pt-BR').format(n)
-      : new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+      ? new Intl.NumberFormat(getBusinessRegion().locale).format(n)
+      : new Intl.NumberFormat(getBusinessRegion().locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   return (
     <div className="rounded-lg bg-muted/30 p-3 space-y-2 border border-border/50">

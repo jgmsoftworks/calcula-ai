@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +45,7 @@ export function GeralTab({
   onAddPassoTemp,
   onRemovePassoTemp 
 }: GeralTabProps) {
+  usePortugalTranslation();
   const [novoPasso, setNovoPasso] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -480,9 +483,7 @@ export function GeralTab({
                         autoFocus
                       />
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleEditPasso(passo.id)}>
-                          Salvar
-                        </Button>
+                        <Button size="sm" onClick={() => handleEditPasso(passo.id)}>{localizeText("Salvar")}</Button>
                         <Button 
                           size="sm" 
                           variant="ghost" 

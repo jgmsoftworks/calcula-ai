@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Plus, Pencil, Trash2, ChefHat, User as UserIcon, Clock, Link2, Link2Off, ChevronsUpDown, Check, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,7 @@ interface ReceitaOpt { id: string; nome: string; imagem_url: string | null; rend
 interface FuncOpt { id: string; nome: string; cargo: string | null }
 
 export default function CronogramaPage() {
+  usePortugalTranslation();
   const { user } = useAuth();
   const areas = useProducaoAreas();
   const recorrentes = useProducaoRecorrentes(); // todas
@@ -121,7 +124,7 @@ export default function CronogramaPage() {
       </div>
 
       {(areas.isLoading || recorrentes.isLoading) ? (
-        <div className="text-muted-foreground text-sm">Carregando...</div>
+        <div className="text-muted-foreground text-sm">{localizeText("Carregando...")}</div>
       ) : (
         <>
           {/* GRADE - Desktop / Tablet */}
@@ -349,7 +352,7 @@ export default function CronogramaPage() {
       <AlertDialog open={!!confirmDelArea} onOpenChange={(o) => !o && setConfirmDelArea(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir área "{confirmDelArea?.nome}"?</AlertDialogTitle>
+            <AlertDialogTitle>{localizeText("Excluir área \"")}{confirmDelArea?.nome}"?</AlertDialogTitle>
             <AlertDialogDescription>
               As tarefas recorrentes desta área também serão removidas. Tarefas já criadas na Agenda não são afetadas.
             </AlertDialogDescription>
@@ -362,9 +365,7 @@ export default function CronogramaPage() {
                 if (confirmDelArea) areas.remover.mutate(confirmDelArea.id);
                 setConfirmDelArea(null);
               }}
-            >
-              Excluir
-            </AlertDialogAction>
+            >{localizeText("Excluir")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -398,6 +399,7 @@ export default function CronogramaPage() {
 /* ---------------- Mini cartão de tarefa na grade ---------------- */
 
 function MiniTarefaCard({ tarefa, cor, onClick }: { tarefa: ProducaoRecorrente; cor: string | null; onClick: () => void }) {
+  usePortugalTranslation();
   const iniciais = (tarefa.funcionario?.nome ?? '?')
     .split(' ')
     .filter(Boolean)
@@ -449,6 +451,7 @@ function AreaModal({ open, area, onClose, onSave }: {
   onClose: () => void;
   onSave: (v: { nome: string; cor: string }) => void;
 }) {
+  usePortugalTranslation();
   const [nome, setNome] = useState('');
   const [cor, setCor] = useState(CORES[0]);
   useEffect(() => {
@@ -506,6 +509,7 @@ function GerenciarAreasModal({ open, areas, onClose, onEdit, onDelete, onCreate 
   onDelete: (a: ProducaoArea) => void;
   onCreate: () => void;
 }) {
+  usePortugalTranslation();
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
@@ -523,7 +527,7 @@ function GerenciarAreasModal({ open, areas, onClose, onEdit, onDelete, onCreate 
               <button onClick={() => onEdit(a)} className="text-muted-foreground hover:text-primary p-1" aria-label="Editar">
                 <Pencil className="h-3.5 w-3.5" />
               </button>
-              <button onClick={() => onDelete(a)} className="text-muted-foreground hover:text-destructive p-1" aria-label="Excluir">
+              <button onClick={() => onDelete(a)} className="text-muted-foreground hover:text-destructive p-1" aria-label={localizeText("Excluir")}>
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -556,6 +560,7 @@ function RecorrenteModal({
   onSave: (v: RecorrenteInput) => void;
   onDelete?: () => void;
 }) {
+  usePortugalTranslation();
   const [areaId, setAreaId] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
   const [vincularReceita, setVincularReceita] = useState(false);
@@ -656,7 +661,7 @@ function RecorrenteModal({
                   </PopoverTrigger>
                   <PopoverContent data-command-popover="" className="p-0 w-[--radix-popover-trigger-width]" align="start" avoidCollisions collisionPadding={8}>
                     <Command>
-                      <CommandInput placeholder="Buscar receita..." />
+                      <CommandInput placeholder={localizeText("Buscar receita...")} />
                       <CommandList className="max-h-[260px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                         <CommandEmpty>Nenhuma receita.</CommandEmpty>
                         <CommandGroup>
@@ -688,8 +693,7 @@ function RecorrenteModal({
           <div>
             <Label>Funcionário responsável *</Label>
             {funcionarios.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-                Nenhum funcionário. Cadastre em <a className="text-primary underline" href="/precificacao/folha-pagamento">Folha de Pagamento</a>.
+              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">{localizeText("Nenhum funcionário. Cadastre em")}<a className="text-primary underline" href="/precificacao/folha-pagamento">{localizeText("Folha de Pagamento")}</a>.
               </div>
             ) : (
               <Select value={funcionarioId} onValueChange={setFuncionarioId}>
@@ -745,8 +749,7 @@ function RecorrenteModal({
         <DialogFooter className="flex-col sm:flex-row gap-2">
           {onDelete && (
             <Button variant="outline" onClick={onDelete} className="text-destructive hover:text-destructive w-full sm:w-auto sm:mr-auto">
-              <Trash2 className="h-4 w-4 mr-1.5" /> Excluir
-            </Button>
+              <Trash2 className="h-4 w-4 mr-1.5" />{localizeText("Excluir")}</Button>
           )}
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Cancelar</Button>
           <Button onClick={submit} disabled={!canSave} className="w-full sm:w-auto">{tarefa ? 'Salvar' : 'Criar'}</Button>

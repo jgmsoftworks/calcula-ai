@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Loader2, ImageOff } from 'lucide-react';
 import {
@@ -26,6 +28,7 @@ export function SugestaoFotosModal({
   barcode,
   onSelect,
 }: SugestaoFotosModalProps) {
+  usePortugalTranslation();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [downloadingIdx, setDownloadingIdx] = useState<number | null>(null);
@@ -87,9 +90,7 @@ export function SugestaoFotosModal({
 
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            Buscando imagens...
-          </div>
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />{localizeText("Buscando imagens...")}</div>
         ) : images.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <ImageOff className="h-10 w-10 mb-2" />

@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 import { useState } from 'react';
 import jsPDF from 'jspdf';
 import { sections } from '@/data/tutorialData';
@@ -215,7 +216,7 @@ export function useExportTutorialPDF() {
 
       doc.setFontSize(11);
       const now = new Date();
-      const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const dateStr = now.toLocaleDateString(getBusinessRegion().locale, { day: '2-digit', month: 'long', year: 'numeric' });
       doc.text('Gerado em ' + dateStr, PAGE_W / 2, 200, { align: 'center' });
 
       doc.setFontSize(12);

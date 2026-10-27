@@ -1,3 +1,6 @@
+import { useBusinessRegion } from '@/contexts/BusinessRegionContext';
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { trackFunnel } from '@/lib/funnel-analytics';
 import { useEffect, useState } from 'react';
@@ -7,9 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { usePlanos, formatPreco, precoDoPlano, Billing } from '@/hooks/usePlanos';
+import { usePlanos, formatPreco, planPriceAvailable, precoDoPlano, Billing } from '@/hooks/usePlanos';
 
 export default function Checkout() {
+  usePortugalTranslation();
+  const { country } = useBusinessRegion();
   const { user, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -31,11 +36,11 @@ export default function Checkout() {
   }, [planType, plano, planosLoading, planosError, navigate]);
 
   const handleCheckout = async () => {
-    if (!plano) return;
+    if (!plano || !planPriceAvailable(plano, billing)) return;
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke(user && !affiliateCode ? 'create-checkout' : 'affiliate-checkout', {
+      const { data, error } = await supabase.functions.invoke(user && (!affiliateCode || country === 'PT') ? 'create-checkout' : 'affiliate-checkout', {
         body: {
           planType: plano.slug,
           billing,
@@ -82,7 +87,7 @@ export default function Checkout() {
     return null;
   }
 
-  const available = Boolean(affiliateCode) || (precoDoPlano(plano, billing) > 0 && Boolean(billing === 'yearly' ? plano.stripe_price_id_anual : plano.stripe_price_id));
+  const available = planPriceAvailable(plano, billing) && (Boolean(affiliateCode) || (precoDoPlano(plano, billing) > 0 && Boolean(billing === 'yearly' ? plano.stripe_price_id_anual : plano.stripe_price_id)));
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -93,7 +98,7 @@ export default function Checkout() {
           <div className="text-center space-y-2">
             <h3 className="text-lg font-semibold">{plano.nome_publico}</h3>
             <p className="text-2xl font-bold text-primary">
-              {available ? formatPreco(precoDoPlano(plano, billing)) : 'Contratação indisponível'}
+              {available ? formatPreco(precoDoPlano(plano, billing), plano.moeda) : 'Contratação indisponível'}
               {available && precoDoPlano(plano, billing) > 0 && (
                 <span className="text-base font-normal">{billing === 'yearly' ? '/ano' : '/mês'}</span>
               )}
@@ -117,9 +122,7 @@ export default function Checkout() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processando...
-                </>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />{localizeText("Processando...")}</>
               ) : (
                 'Assinar Agora'
               )}

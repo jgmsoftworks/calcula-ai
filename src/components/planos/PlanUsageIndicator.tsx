@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +13,7 @@ interface PlanUsageIndicatorProps {
 }
 
 export const PlanUsageIndicator = ({ featureType, label, className }: PlanUsageIndicatorProps) => {
+  usePortugalTranslation();
   const { planInfo, getCurrentUsage, hasAccess } = usePlanLimits();
   const [currentCount, setCurrentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -33,7 +36,7 @@ export const PlanUsageIndicator = ({ featureType, label, className }: PlanUsageI
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="text-sm text-muted-foreground">Carregando...</span>
+        <span className="text-sm text-muted-foreground">{localizeText("Carregando...")}</span>
       </div>
     );
   }

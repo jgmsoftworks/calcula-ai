@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,11 +43,11 @@ interface MarkupCardProps {
   isLoadingPreloaded?: boolean;
 }
 
-export function MarkupCard({ 
-  markup, 
-  custoTotal, 
-  precoVenda, 
-  isSelected, 
+export function MarkupCard({
+  markup,
+  custoTotal,
+  precoVenda,
+  isSelected,
   onSelect,
   alwaysExpanded = false,
   isApplying = false,
@@ -52,6 +55,7 @@ export function MarkupCard({
   preloadedDetalhes,
   isLoadingPreloaded = false
 }: MarkupCardProps) {
+  usePortugalTranslation();
   const [expanded, setExpanded] = useState(alwaysExpanded || isSelected);
   const hasPreloaded = preloadedDetalhes !== undefined;
   const [detalhes, setDetalhes] = useState<MarkupDetalhado | null>(
@@ -91,32 +95,32 @@ export function MarkupCard({
   // Fallback: Carregar detalhes do markup de user_configurations (only if not preloaded)
   useEffect(() => {
     if (hasPreloaded) return;
-    
+
     const carregarDetalhes = async () => {
       if (!user) {
         setIsLoadingDetalhes(false);
         return;
       }
-      
+
       try {
         const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
-        
+
         const { data, error } = await supabase
           .from('user_configurations')
           .select('configuration')
           .eq('user_id', user.id)
           .eq('type', configKey)
           .maybeSingle();
-        
+
         if (error) {
           console.error('Erro ao carregar detalhes do markup:', error);
           setIsLoadingDetalhes(false);
           return;
         }
-        
+
         if (data?.configuration) {
           const config = data.configuration as unknown as MarkupDetalhado;
-          
+
           if (config.lucroDesejado === undefined || config.markupIdeal === undefined) {
             setDetalhes({
               ...config,
@@ -133,16 +137,16 @@ export function MarkupCard({
         setIsLoadingDetalhes(false);
       }
     };
-    
+
     carregarDetalhes();
   }, [hasPreloaded, user, markup.nome, markup.margem_lucro, markup.markup_ideal]);
 
   // Real-time updates para detalhes do markup
   useEffect(() => {
     if (!user) return;
-    
+
     const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
-    
+
     const channel = supabase
       .channel(`markup-details-${markup.id}`)
       .on(
@@ -160,7 +164,7 @@ export function MarkupCard({
         }
       )
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -168,18 +172,18 @@ export function MarkupCard({
 
   // Valor em Real do bloco (taxa fixa por venda)
   const valorEmRealBloco = detalhes?.valorEmReal ?? 0;
-  
+
   // Pegar os percentuais do bloco
-  const totalPercentuais = (detalhes?.gastoSobreFaturamento ?? 0) + 
-                          (detalhes?.impostos ?? 0) + 
-                          (detalhes?.taxas ?? 0) + 
-                          (detalhes?.comissoes ?? 0) + 
-                          (detalhes?.outros ?? 0) + 
+  const totalPercentuais = (detalhes?.gastoSobreFaturamento ?? 0) +
+                          (detalhes?.impostos ?? 0) +
+                          (detalhes?.taxas ?? 0) +
+                          (detalhes?.comissoes ?? 0) +
+                          (detalhes?.outros ?? 0) +
                           (detalhes?.lucroDesejado ?? markup.margem_lucro);
 
   // Determinar o custo base (unitário ou total)
   let custoBase: number;
-  
+
   // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
   if (markup.tipo !== 'sub_receita' && rendimentoValor && rendimentoValor > 0) {
     custoBase = custoTotal / rendimentoValor;
@@ -196,20 +200,20 @@ export function MarkupCard({
     baseCalculo = custoBase + valorEmRealBloco;
     const divisor = 1 - (totalPercentuais / 100);
     precoSugerido = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
-  } 
+  }
   // CASO 2: SEM "Valor em Real" → usar fórmula tradicional do markup
   else {
     baseCalculo = custoBase;
     precoSugerido = custoBase * markup.markup_ideal;
   }
-  
+
   // Markup aplicado = preço atual / custo unitário
   const markupAplicado = custoBase > 0 ? precoVenda / custoBase : 0;
-  
+
   // Lucro bruto baseado no PREÇO ATUAL digitado
   const lucroBruto = precoVenda - custoBase;
   const margemBruta = precoVenda > 0 ? (lucroBruto / precoVenda) * 100 : 0;
-  
+
   // Calcular lucro líquido considerando TODOS os custos indiretos
   const gastosReais = precoVenda * ((detalhes?.gastoSobreFaturamento ?? 0) / 100);
   const impostosReais = precoVenda * ((detalhes?.impostos ?? 0) / 100);
@@ -227,12 +231,12 @@ export function MarkupCard({
   return (
     <Card className={cn(
       "transition-all duration-200",
-      isSelected 
-        ? 'border-primary border-2 bg-primary/5 shadow-lg shadow-primary/20' 
+      isSelected
+        ? 'border-primary border-2 bg-primary/5 shadow-lg shadow-primary/20'
         : 'hover:border-muted-foreground/20'
     )}>
-      <CardHeader 
-        className={alwaysExpanded ? "" : "cursor-pointer"} 
+      <CardHeader
+        className={alwaysExpanded ? "" : "cursor-pointer"}
         onClick={alwaysExpanded ? undefined : () => setExpanded(!expanded)}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -246,35 +250,35 @@ export function MarkupCard({
                 <TooltipContent className="max-w-md p-4">
                   <div className="space-y-3 text-sm">
                     <div className="font-semibold text-base border-b pb-2">Configurações do Markup</div>
-                    
+
                     {detalhes ? (
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                         <div className="text-muted-foreground">Período:</div>
                         <div className="font-medium text-right">
                           Últimos {detalhes.periodo === 'todos' ? 'todos' : detalhes.periodo} meses
                         </div>
-                        
-                        <div className="text-muted-foreground">Gastos sobre faturamento:</div>
+
+                        <div className="text-muted-foreground">{localizeText("Gastos sobre faturamento:")}</div>
                         <div className="font-medium text-right">{formatNumber(detalhes.gastoSobreFaturamento ?? 0, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Impostos:</div>
                         <div className="font-medium text-right">{formatNumber(detalhes.impostos ?? 0, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Taxas de meios de pagamento:</div>
                         <div className="font-medium text-right">{formatNumber(detalhes.taxas ?? 0, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Comissões e plataformas:</div>
                         <div className="font-medium text-right">{formatNumber(detalhes.comissoes ?? 0, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Outros:</div>
                         <div className="font-medium text-right">{formatNumber(detalhes.outros ?? 0, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Valor em real:</div>
-                        <div className="font-medium text-right">R$ {formatBRL(detalhes.valorEmReal ?? 0)}</div>
-                        
+                        <div className="font-medium text-right">{formatMoney(detalhes.valorEmReal ?? 0)}</div>
+
                         <div className="text-muted-foreground">Lucro desejado sobre vendas:</div>
                         <div className="font-medium text-right">{formatNumber(detalhes.lucroDesejado ?? 0, 2)}%</div>
-                        
+
                         <div className="font-semibold text-primary pt-2 border-t">Markup Ideal:</div>
                         <div className="font-bold text-primary text-right pt-2 border-t">
                           {formatNumber(detalhes.markupIdeal ?? 0, 4)}
@@ -284,16 +288,16 @@ export function MarkupCard({
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                         <div className="text-muted-foreground">Período:</div>
                         <div className="font-medium text-right">Últimos {markup.periodo} meses</div>
-                        
-                        <div className="text-muted-foreground">Gasto sobre Faturamento:</div>
+
+                        <div className="text-muted-foreground">{localizeText("Gasto sobre Faturamento:")}</div>
                         <div className="font-medium text-right">{formatNumber(markup.gasto_sobre_faturamento, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Encargos sobre Venda:</div>
                         <div className="font-medium text-right">{formatNumber(markup.encargos_sobre_venda, 2)}%</div>
-                        
+
                         <div className="text-muted-foreground">Lucro Desejado:</div>
                         <div className="font-medium text-right">{formatNumber(markup.margem_lucro, 2)}%</div>
-                        
+
                         <div className="font-semibold text-primary pt-2 border-t">Markup Ideal:</div>
                         <div className="font-bold text-primary text-right pt-2 border-t">
                           {formatNumber(markup.markup_ideal, 4)}
@@ -372,27 +376,27 @@ export function MarkupCard({
               </CardHeader>
               <CardContent className="space-y-1 px-2 md:px-6 pb-2 md:pb-6">
                 <p className="text-base md:text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
-                  R$ {formatBRL(precoSugerido)}
+                  {formatMoney(precoSugerido)}
                 </p>
                 {valorEmRealBloco > 0 ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <p className="text-[10px] md:text-xs text-muted-foreground cursor-help leading-tight">
-                          Base R$ {formatBRL(baseCalculo)} ÷ {formatNumber(1 - (totalPercentuais/100), 4)}
+                          Base {formatMoney(baseCalculo)} ÷ {formatNumber(1 - (totalPercentuais/100), 4)}
                         </p>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-sm">
                         <div className="space-y-2 text-sm">
                           <p className="font-semibold">Cálculo do Preço Sugerido:</p>
-                          <p>Base = Custo (R$ {formatBRL(custoTotal)}) + Fixo (R$ {formatBRL(valorEmRealBloco)})</p>
-                          <p>Base = R$ {formatBRL(baseCalculo)}</p>
+                          <p>Base = Custo ({formatMoney(custoTotal)}) + Fixo ({formatMoney(valorEmRealBloco)})</p>
+                          <p>Base = {formatMoney(baseCalculo)}</p>
                           <p>Percentuais = {formatNumber(totalPercentuais, 2)}%</p>
                           <p className="font-semibold text-primary">
                             Preço = Base ÷ (1 - {formatNumber(totalPercentuais/100, 4)})
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Fórmula que garante {formatNumber(detalhes?.lucroDesejado ?? markup.margem_lucro, 1)}% 
+                            Fórmula que garante {formatNumber(detalhes?.lucroDesejado ?? markup.margem_lucro, 1)}%
                             de lucro líquido sobre o preço final
                           </p>
                         </div>
@@ -401,7 +405,7 @@ export function MarkupCard({
                   </TooltipProvider>
                 ) : (
                   <p className="text-[10px] md:text-xs text-muted-foreground leading-tight">
-                    (R$ {formatBRL(custoTotal)} × {formatNumber(markup.markup_ideal, 4)})
+                    ({formatMoney(custoTotal)} × {formatNumber(markup.markup_ideal, 4)})
                   </p>
                 )}
               </CardContent>
@@ -412,7 +416,7 @@ export function MarkupCard({
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
               <span className="font-medium">Lucro Bruto (un.)</span>
               <div className="text-right">
-                <span className="font-bold text-green-600">R$ {formatBRL(lucroBruto)}</span>
+                <span className="font-bold text-green-600">{formatMoney(lucroBruto)}</span>
                 <span className="text-muted-foreground ml-2">({formatNumber(margemBruta, 1)}%)</span>
               </div>
             </div>
@@ -428,8 +432,8 @@ export function MarkupCard({
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p className="text-sm">
-                      Lucro após descontar todos os custos diretos (R$ {formatBRL(custosDirectosCompletos)}) 
-                      e indiretos (R$ {formatBRL(totalCustosIndiretos)})
+                      Lucro após descontar todos os custos diretos ({formatMoney(custosDirectosCompletos)})
+                      e indiretos ({formatMoney(totalCustosIndiretos)})
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -437,11 +441,11 @@ export function MarkupCard({
               <div className="text-right">
                 <span className={cn(
                   "font-bold",
-                  margemLiquida >= (detalhes?.lucroDesejado ?? markup.margem_lucro) 
-                    ? "text-green-600" 
+                  margemLiquida >= (detalhes?.lucroDesejado ?? markup.margem_lucro)
+                    ? "text-green-600"
                     : "text-orange-600"
                 )}>
-                  R$ {formatBRL(lucroLiquido)}
+                  {formatMoney(lucroLiquido)}
                 </span>
                 <span className="text-muted-foreground ml-2">
                   ({formatNumber(margemLiquida, 1)}%)
@@ -450,9 +454,9 @@ export function MarkupCard({
             </div>
 
             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-              <span className="font-medium">Faturamento Bruto (total)</span>
+              <span className="font-medium">{localizeText("Faturamento Bruto (total)")}</span>
               <div className="text-right">
-                <span className="font-bold">R$ {formatBRL(markup.tipo !== 'sub_receita' ? precoVenda * (rendimentoValor || 1) : precoVenda)}</span>
+                <span className="font-bold">{formatMoney(markup.tipo !== 'sub_receita' ? precoVenda * (rendimentoValor || 1) : precoVenda)}</span>
                 <span className="text-muted-foreground ml-2">(100%)</span>
               </div>
             </div>

@@ -271,7 +271,8 @@
     "processing": "Processing...",
     "creating": "Creating...",
     "updating": "Updating...",
-    "deleting": "Removing..."
+    "deleting": "Removing...",
+    "tryAgain": "Try again"
   },
   "estoque": {
     "searchPlaceholder": "Search by name, internal code or barcode...",
@@ -523,5 +524,21 @@
   "language": {
     "pt-BR": "Português (BR)",
     "en": "English"
+  },
+  "regional": {
+    "country": "Business country",
+    "welcome": "Let’s set up your account",
+    "explanation": "Choose where your business operates. Costs, prices and reports will use this country’s currency.",
+    "fixedCurrency": "The currency is fixed for this account. Changing the language later does not convert amounts.",
+    "continue": "Confirm and continue",
+    "loading": "Preparing your account…",
+    "error": "We could not load your account settings. Please try again.",
+    "trialTitle": "Try free for 7 days",
+    "trialStart": "Start my 7 free days",
+    "settingsTitle": "Country, currency and language",
+    "currencyNote": "Your products and recipes use {{currency}}. Changing the language does not change the currency.",
+    "billingPending": "Euro subscriptions are being prepared. You will not be charged.",
+    "pricePending": "Price coming soon",
+    "notAvailable": "Coming soon in Portugal"
   }
 }

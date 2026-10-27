@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -115,6 +117,7 @@ const correspondeBusca = (conteudo: unknown[], busca: string) => {
 };
 
 export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
+  usePortugalTranslation();
   const { user } = useAuth();
   const { registrarPerdas, calcularCustoReceita } = usePerdas();
   const [etapa, setEtapa] = useState<'tipo' | 'formulario'>('tipo');
@@ -378,10 +381,8 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               <span className="flex items-start gap-3">
                 <span className="rounded-lg bg-blue-500/10 p-2 text-blue-600"><Package className="h-5 w-5" /></span>
                 <span>
-                  <span className="block font-semibold">Produtos do estoque</span>
-                  <span className="mt-1 block text-sm text-muted-foreground">
-                    Itens cadastrados diretamente na Lista de Produtos, como ingredientes, embalagens e materiais.
-                  </span>
+                  <span className="block font-semibold">{localizeText("Produtos do estoque")}</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{localizeText("Itens cadastrados diretamente na Lista de Produtos, como ingredientes, embalagens e materiais.")}</span>
                 </span>
               </span>
             </button>
@@ -431,7 +432,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                         {produto.categorias?.slice(0, 2).map(categoria => <Badge key={categoria} variant="outline" className="text-[10px]">{categoria}</Badge>)}
                         {produto.marcas?.slice(0, 1).map(marca => <Badge key={marca} variant="secondary" className="text-[10px]">{marca}</Badge>)}
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">Estoque: {produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{localizeText("Estoque:")} {produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}</p>
                     </div>
                     <Button type="button" size="icon" onClick={() => abrirItemParaAdicionar(produto.id)} aria-label={`Adicionar ${produto.nome}`} className="h-9 w-9 shrink-0 rounded-full">
                       <Plus className="h-4 w-4" />
@@ -476,7 +477,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
+            <p className="text-xs text-muted-foreground">{localizeText("Cada item será salvo separadamente no histórico.")}</p>
           </div>
 
           {false && (<div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.9fr)]">
@@ -513,8 +514,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                           {produto.categorias?.slice(0, 2).map(categoria => <Badge key={categoria} variant="outline" className="text-[10px]">{categoria}</Badge>)}
                           {produto.marcas?.slice(0, 1).map(marca => <Badge key={marca} variant="secondary" className="text-[10px]">{marca}</Badge>)}
                         </span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          Estoque: {produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}
+                        <span className="mt-1 block text-xs text-muted-foreground">{localizeText("Estoque:")}{produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}
                         </span>
                       </span>
                     </button>
@@ -606,7 +606,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                       </div>
                     ))}
                 </div>
-                <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
+                <p className="text-xs text-muted-foreground">{localizeText("Cada item será salvo separadamente no histórico.")}</p>
               </div>
             </div>
           </div>)}
@@ -644,7 +644,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 collisionPadding={8}
               >
                 <Command>
-                  <CommandInput placeholder="Buscar por nome, marca ou categoria..." />
+                  <CommandInput placeholder={localizeText("Buscar por nome, marca ou categoria...")} />
                   <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhum produto.</CommandEmpty>
                     <CommandGroup>
@@ -714,7 +714,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 collisionPadding={8}
               >
                 <Command>
-                  <CommandInput placeholder="Buscar receita..." />
+                  <CommandInput placeholder={localizeText("Buscar receita...")} />
                   <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhuma receita.</CommandEmpty>
                     <CommandGroup>
@@ -792,7 +792,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Cada item será salvo separadamente no histórico.</p>
+            <p className="text-xs text-muted-foreground">{localizeText("Cada item será salvo separadamente no histórico.")}</p>
           </div>
         )}
           </div>)}
@@ -891,7 +891,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       <AlertDialog open={confirmacaoOpen} onOpenChange={(value) => !saving && setConfirmacaoOpen(value)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deseja dar baixa no estoque?</AlertDialogTitle>
+            <AlertDialogTitle>{localizeText("Deseja dar baixa no estoque?")}</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">
                 {itens.length === 1 ? 'A perda selecionada será registrada' : `As ${itens.length} perdas selecionadas serão registradas`} de qualquer forma, cada uma separadamente no histórico.

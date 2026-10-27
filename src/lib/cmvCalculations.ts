@@ -1,3 +1,4 @@
+import { getBusinessRegion } from '@/lib/business-region';
 // ============================================================
 // CMV Calculations — Lógica isolada para Custo de Mercadoria Vendida
 // Fórmula: CMV = Estoque Inicial + Compras Líquidas - Estoque Final
@@ -6,7 +7,7 @@
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { supabase } from '@/integrations/supabase/client';
 
-const BRASILIA_TZ = 'America/Sao_Paulo';
+// The account region, not the browser timezone, defines monthly boundaries.
 
 // Motivos que invalidam uma entrada como "compra"
 const MOTIVOS_EXCLUIDOS = ['ajuste', 'inventário', 'transferência', 'bonificação', 'cancelamento'];
@@ -50,16 +51,16 @@ interface ProdutoEstoque {
 // getCurrentMonthRangeBrasilia
 // Retorna { start, end } em ISO UTC para o mês atual em Brasília
 // -------------------------------------------------------
-export function getCurrentMonthRangeBrasilia(): { start: string; end: string } {
+export function getCurrentMonthRange(): { start: string; end: string } {
   const now = new Date();
-  const nowBrasilia = toZonedTime(now, BRASILIA_TZ);
+  const nowBrasilia = toZonedTime(now, getBusinessRegion().timeZone);
 
   // Primeiro dia do mês às 00:00:00 em Brasília
   const startOfMonth = new Date(nowBrasilia.getFullYear(), nowBrasilia.getMonth(), 1, 0, 0, 0);
-  const startUTC = fromZonedTime(startOfMonth, BRASILIA_TZ);
+  const startUTC = fromZonedTime(startOfMonth, getBusinessRegion().timeZone);
 
   // Momento atual convertido
-  const endUTC = fromZonedTime(nowBrasilia, BRASILIA_TZ);
+  const endUTC = fromZonedTime(nowBrasilia, getBusinessRegion().timeZone);
 
   return {
     start: startUTC.toISOString(),
@@ -73,7 +74,7 @@ export function getCurrentMonthRangeBrasilia(): { start: string; end: string } {
 // -------------------------------------------------------
 export function getCompetenciaAnterior(): string {
   const now = new Date();
-  const nowBrasilia = toZonedTime(now, BRASILIA_TZ);
+  const nowBrasilia = toZonedTime(now, getBusinessRegion().timeZone);
   const year = nowBrasilia.getFullYear();
   const month = nowBrasilia.getMonth(); // 0-indexed, já é o mês anterior ao atual
 
@@ -219,7 +220,7 @@ export async function calcularCmvCompleto(
   signal?: AbortSignal,
 ): Promise<CmvResult> {
   const competenciaAnterior = getCompetenciaAnterior();
-  const { start, end } = getCurrentMonthRangeBrasilia();
+  const { start, end } = getCurrentMonthRange();
 
   // Buscar EI real e faturamento em paralelo
   const [estoqueInicialReal, faturamentoLiquido] = await Promise.all([
@@ -280,3 +281,6 @@ export async function calcularCmvCompleto(
     breakdown,
   };
 }
+
+/** @deprecated Use getCurrentMonthRange. Kept for existing integrations. */
+export const getCurrentMonthRangeBrasilia = getCurrentMonthRange;

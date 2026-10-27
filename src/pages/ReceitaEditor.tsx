@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -8,6 +10,7 @@ import { useReceitas } from '@/hooks/useReceitas';
 import { NewItemPlanGate } from '@/components/planos/NewItemPlanGate';
 
 export default function ReceitaEditor() {
+  usePortugalTranslation();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { fetchReceitaCompleta } = useReceitas();
@@ -43,9 +46,7 @@ export default function ReceitaEditor() {
         </Button>
         {isPending || isFetching ? (
           <div role="status" className="flex min-h-64 items-center justify-center gap-3 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-            Carregando receita…
-          </div>
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />{localizeText("Carregando receita…")}</div>
         ) : (
           <div role="alert" className="rounded-2xl border bg-card p-6 text-center">
             <h1 className="text-lg font-semibold">Não foi possível carregar esta receita</h1>

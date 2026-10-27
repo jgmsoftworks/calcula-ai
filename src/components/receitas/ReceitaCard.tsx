@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { formatMoney } from '@/lib/business-region';
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button, type ButtonProps } from '@/components/ui/button';
@@ -39,7 +42,7 @@ interface ReceitaCardProps {
   isLoadingPreloaded?: boolean;
 }
 
-const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" }: { icon: LucideIcon; title: string; onClick?: ButtonProps['onClick']; disabled?: boolean; variant?: ButtonProps['variant'] }) => (
+const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" }: { icon: LucideIcon; title: string; onClick?: ButtonProps['onClick']; disabled?: boolean; variant?: ButtonProps['variant'] }) => { usePortugalTranslation(); return (
   <TooltipProvider delayDuration={200}>
     <Tooltip>
       <TooltipTrigger asChild>
@@ -57,9 +60,10 @@ const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" 
       <TooltipContent side="bottom"><p className="text-xs">{title}</p></TooltipContent>
     </Tooltip>
   </TooltipProvider>
-);
+); };
 
 export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLoadingPreloaded }: ReceitaCardProps) {
+  usePortugalTranslation();
   const { deleteReceita, fetchReceitaCompleta, duplicarReceita } = useReceitas();
   const { user } = useAuth();
   const { exportarReceitaPDF, exporting: exportingPDF } = useExportReceitaPDF();
@@ -245,18 +249,17 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
               <ActionButton icon={Copy} title="Duplicar" onClick={handleDuplicate} disabled={duplicating} />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <span><ActionButton icon={Trash2} title="Excluir" /></span>
+                  <span><ActionButton icon={Trash2} title={localizeText("Excluir")} /></span>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tem certeza que deseja excluir a receita "{receita.nome}"? Esta ação não pode ser desfeita.
+                    <AlertDialogTitle>{localizeText("Excluir receita?")}</AlertDialogTitle>
+                    <AlertDialogDescription>{localizeText("Tem certeza que deseja excluir a receita \"")}{receita.nome}"? Esta ação não pode ser desfeita.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete}>{localizeText("Excluir")}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -284,7 +287,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
           <div className="grid grid-cols-2 gap-1.5 md:gap-2 xl:grid-cols-4">
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">Preço Venda</div>
-              <div className="text-sm md:text-lg font-bold font-display">R$ {formatBRL(receita.preco_venda)}</div>
+              <div className="text-sm md:text-lg font-bold font-display">{formatMoney(receita.preco_venda)}</div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
               <div className="text-[10px] md:text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5 md:mb-1">
@@ -300,7 +303,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                 "text-sm md:text-lg font-bold font-display",
                 isSubReceita ? 'text-foreground' : lucroBruto > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
               )}>
-                {isSubReceita ? '—' : `R$ ${formatBRL(lucroBruto)}`}
+                {isSubReceita ? '—' : `${formatMoney(lucroBruto)}`}
               </div>
             </div>
             <div className="rounded-xl bg-muted/50 p-2 md:p-3 text-center">
@@ -312,7 +315,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                   "text-sm md:text-lg font-bold font-display",
                   isSubReceita ? 'text-foreground' : !markupDetalhes ? 'text-muted-foreground' : lucroLiquido > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
                 )}>
-                  {isSubReceita ? '—' : markupDetalhes ? `R$ ${formatBRL(lucroLiquido)}` : '—'}
+                  {isSubReceita ? '—' : markupDetalhes ? `${formatMoney(lucroLiquido)}` : '—'}
                 </div>
               )}
             </div>
@@ -330,6 +333,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 }
 
 function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; value: string | number }) {
+  usePortugalTranslation();
   return (
     <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-1 rounded-lg bg-muted/60 text-[10px] md:text-xs">
       {Icon && <Icon className="h-3 w-3 text-muted-foreground" />}
@@ -340,6 +344,7 @@ function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; val
 }
 
 function FinancialCell({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  usePortugalTranslation();
   return (
     <div className={cn(
       "rounded-xl p-2 md:p-3 text-center transition-colors",
@@ -354,7 +359,7 @@ function FinancialCell({ label, value, highlight = false }: { label: string; val
         {label}
       </div>
       <div className={cn("text-xs md:text-sm font-bold font-display", highlight && "text-primary-foreground")}>
-        R$ {formatBRL(value)}
+        {formatMoney(value)}
       </div>
     </div>
   );

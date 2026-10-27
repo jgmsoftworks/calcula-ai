@@ -1,3 +1,4 @@
+import type { BusinessCountry, AppLanguage } from '@/lib/business-region';
 import { authReturnUrl } from '@/lib/acquisition';
 import { startGoogleSignIn } from '@/lib/google-auth';
 import { useState, useEffect, createContext, useContext } from 'react';
@@ -11,7 +12,7 @@ interface AuthContextType {
   emailVerified: boolean;
   isAdmin: boolean;
   isFornecedor: boolean;
-  signUp: (email: string, password: string, fullName?: string, businessName?: string, phone?: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, password: string, fullName?: string, businessName?: string, phone?: string, country?: BusinessCountry, language?: AppLanguage) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: Error | null; openedInNewTab: boolean }>;
   signOut: () => Promise<void>;
@@ -114,7 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName?: string, businessName?: string, phone?: string) => {
+  const signUp = async (email: string, password: string, fullName?: string, businessName?: string, phone?: string, country?: BusinessCountry, language?: AppLanguage) => {
     const redirectUrl = authReturnUrl();
     
     const { data, error } = await supabase.auth.signUp({
@@ -126,6 +127,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           full_name: fullName,
           business_name: businessName,
           phone: phone,
+          business_country: country ?? 'BR',
+          preferred_locale: language ?? (country === 'PT' ? 'pt-PT' : 'pt-BR'),
         }
       }
     });

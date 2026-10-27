@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import {
@@ -17,6 +19,7 @@ interface CategoriasModalProps {
 }
 
 export function CategoriasModal({ open, onOpenChange }: CategoriasModalProps) {
+  usePortugalTranslation();
   const { fetchCategorias, createCategoria, updateCategoria, deleteCategoria } = useMarcasCategorias();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [novoNome, setNovoNome] = useState('');
@@ -101,9 +104,7 @@ export function CategoriasModal({ open, onOpenChange }: CategoriasModalProps) {
                       <Button
                         size="sm"
                         onClick={() => handleUpdate(categoria.id)}
-                      >
-                        Salvar
-                      </Button>
+                      >{localizeText("Salvar")}</Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -141,9 +142,7 @@ export function CategoriasModal({ open, onOpenChange }: CategoriasModalProps) {
               ))}
 
               {categorias.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma categoria cadastrada
-                </p>
+                <p className="text-center text-muted-foreground py-8">{localizeText("Nenhuma categoria cadastrada")}</p>
               )}
             </div>
           </ScrollArea>

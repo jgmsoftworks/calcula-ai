@@ -1,3 +1,6 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -33,6 +36,7 @@ interface AppLayoutProps {
 }
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
+  usePortugalTranslation();
   const { t, i18n } = useTranslation();
   const { user, loading, emailVerified, resendConfirmation, signOut, isAdmin } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -120,9 +124,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
-  const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
-  };
 
   const handleSignOut = async () => {
     try {
@@ -152,7 +153,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   }
 
   const pageInfo = getPageInfo(location.pathname);
-  const currentLang = i18n.language?.startsWith('pt') ? 'pt-BR' : 'en';
 
   return (
     <SidebarProvider>
@@ -176,29 +176,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               </div>
 
               <TrialBadge />
-              {/* Language Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden h-9 w-9 rounded-full sm:inline-flex"
-                    aria-label="Alterar idioma"
-                  >
-                    <Globe className="h-4.5 w-4.5 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuRadioGroup value={currentLang} onValueChange={handleLanguageChange}>
-                    <DropdownMenuRadioItem value="pt-BR" className="cursor-pointer">
-                      🇧🇷 Português (BR)
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="en" className="cursor-pointer">
-                      🇺🇸 English
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="hidden sm:block"><LanguageSelector /></div>
               
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -244,7 +222,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                     variant="outline"
                     size="icon"
                     className="h-9 w-9 rounded-full border-primary/20 bg-primary/5 hover:bg-primary/10"
-                    aria-label="Abrir menu do usuário"
+                    aria-label={localizeText("Abrir menu do usuário")}
                   >
                     <User className="h-4.5 w-4.5 text-primary" />
                   </Button>
@@ -262,13 +240,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                       <CirclePlay className="h-4 w-4" /> {t('header.tutorial')}
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem
-                    onClick={() => handleLanguageChange(currentLang === 'pt-BR' ? 'en' : 'pt-BR')}
-                    className="cursor-pointer gap-2.5 py-2.5 sm:hidden"
-                  >
-                    <Globe className="h-4 w-4" />
-                    {currentLang === 'pt-BR' ? 'Mudar para English' : 'Mudar para Português'}
-                  </DropdownMenuItem>
+                  <div className="p-2 sm:hidden"><LanguageSelector /></div>
                   <DropdownMenuSeparator className="sm:hidden" />
                   {!isAdmin && (
                     <>

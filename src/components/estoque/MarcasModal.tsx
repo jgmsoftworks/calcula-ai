@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import {
@@ -17,6 +19,7 @@ interface MarcasModalProps {
 }
 
 export function MarcasModal({ open, onOpenChange }: MarcasModalProps) {
+  usePortugalTranslation();
   const { fetchMarcas, createMarca, updateMarca, deleteMarca } = useMarcasCategorias();
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [novoNome, setNovoNome] = useState('');
@@ -101,9 +104,7 @@ export function MarcasModal({ open, onOpenChange }: MarcasModalProps) {
                       <Button
                         size="sm"
                         onClick={() => handleUpdate(marca.id)}
-                      >
-                        Salvar
-                      </Button>
+                      >{localizeText("Salvar")}</Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -141,9 +142,7 @@ export function MarcasModal({ open, onOpenChange }: MarcasModalProps) {
               ))}
 
               {marcas.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma marca cadastrada
-                </p>
+                <p className="text-center text-muted-foreground py-8">{localizeText("Nenhuma marca cadastrada")}</p>
               )}
             </div>
           </ScrollArea>

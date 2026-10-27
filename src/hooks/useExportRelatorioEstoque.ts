@@ -1,3 +1,4 @@
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { formatBRL, formatNumber } from '@/lib/formatters';
@@ -19,7 +20,7 @@ export interface ColunaExport {
 
 function fmtCell(v: any, fmt?: ColunaExport['format']): string {
   if (v === null || v === undefined || v === '') return '-';
-  if (fmt === 'currency') return `R$ ${formatBRL(Number(v) || 0)}`;
+  if (fmt === 'currency') return `${formatMoney(Number(v) || 0)}`;
   if (fmt === 'number') return formatNumber(Number(v) || 0, 2);
   if (fmt === 'int') return String(Math.round(Number(v) || 0));
   return String(v);
@@ -41,7 +42,7 @@ export async function exportarRelatorioExcel(
   const wb = XLSX.utils.book_new();
   const headerLines: any[][] = [
     [meta.titulo],
-    [`Gerado em: ${meta.geradoEm || new Date().toLocaleString('pt-BR')}`],
+    [`Gerado em: ${meta.geradoEm || new Date().toLocaleString(getBusinessRegion().locale)}`],
   ];
   if (meta.filtros && meta.filtros.length) {
     headerLines.push([`Filtros: ${meta.filtros.join(' | ')}`]);
@@ -87,7 +88,7 @@ export async function exportarRelatorioPDF(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(110);
-  doc.text(`Gerado em: ${meta.geradoEm || new Date().toLocaleString('pt-BR')}`, marginX, y);
+  doc.text(`Gerado em: ${meta.geradoEm || new Date().toLocaleString(getBusinessRegion().locale)}`, marginX, y);
   y += 4;
   if (meta.empresa) {
     doc.text(meta.empresa, marginX, y);

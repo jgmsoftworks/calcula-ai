@@ -1,3 +1,5 @@
+import { localizeText } from '@/i18n/localizeText';
+import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +35,7 @@ export function CategoriasDespesasModal({
   categorias, 
   onCategoriaUpdated 
 }: CategoriasDespesasModalProps) {
+  usePortugalTranslation();
   const [novaCategoria, setNovaCategoria] = useState('');
   const [descricaoCategoria, setDescricaoCategoria] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -196,12 +199,12 @@ export function CategoriasDespesasModal({
           {filteredCategorias.length > 0 && (
             <>
               <div>
-                <Label htmlFor="busca">Buscar categoria</Label>
+                <Label htmlFor="busca">{localizeText("Buscar categoria")}</Label>
                 <Input
                   id="busca"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Digite para buscar..."
+                  placeholder={localizeText("Digite para buscar...")}
                   className="mt-1"
                 />
               </div>
