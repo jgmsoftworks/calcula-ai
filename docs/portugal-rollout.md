@@ -14,13 +14,15 @@ Entrada: `https://calculaaibr.com/auth?mode=signup&trial=1&source=landing&countr
 
 ## Cobrança
 
-Os planos de Portugal não têm preço inicial: não foi aplicada uma conversão dos preços em reais, nem criado qualquer preço ou cobrança em produção. Sem preço configurado, o botão de contratação permanece indisponível.
+Preços mensais aprovados em 27/10/2026: Iniciante €4,90; Profissional €12,90; Empresarial €19,90. O catálogo foi criado e o total de cada Checkout foi validado no Stripe de testes. Os identificadores estão em `portugal-pricing.json`. Não foram definidos preços anuais.
+
+A conexão Stripe disponível expõe somente o ambiente de testes. Nenhum identificador desse ambiente foi inserido no catálogo de produção; a contratação em EUR permanece indisponível até criar e validar os preços na conta de produção.
 
 `plan_market_prices` guarda preços recorrentes EUR por plano e período, incluindo o histórico para reconhecer assinantes antigos. A função de checkout escolhe o mercado pelo perfil autenticado, verifica moeda, valor e período no Stripe e mantém o vínculo à mesma conta.
 
 A área administrativa aceita um Stripe Price ativo, em EUR, do mesmo produto e período. Associar esse identificador libera aquele plano/período. Não associar antes de decidir os valores, o tratamento de IVA e as condições comerciais. Os descontos e as comissões de afiliados brasileiros não são aplicados às contas portuguesas.
 
-Antes de anunciar vendas: definir os três preços em EUR e a oferta anual, validar IVA/faturação e termos/privacidade para o mercado de destino, conferir o portal de assinatura e realizar um pagamento e cancelamento no ambiente de testes. O conector Stripe disponível nesta sessão expõe apenas a área de testes; não houve pagamento real. A landing brasileira e as campanhas não são alteradas por esta entrega.
+Antes de anunciar vendas: conectar a conta Stripe de produção, criar os três preços mensais aprovados nos produtos já existentes, validar IVA/faturação e termos/privacidade para o mercado de destino, conferir o portal de assinatura e realizar um pagamento e cancelamento no ambiente de testes. O comportamento `inclusive` foi usado nos preços de teste para manter o valor final aprovado; isso não configura recolhimento de IVA. Não houve pagamento nem criação de assinatura real. A landing brasileira e as campanhas não são alteradas por esta entrega.
 
 ## Validação
 
