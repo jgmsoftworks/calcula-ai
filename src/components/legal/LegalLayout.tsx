@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 interface LegalLayoutProps {
   title: string;
   lastUpdated: string;
+  version?: string;
   children: ReactNode;
 }
 
-export function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
+export function LegalLayout({ title, lastUpdated, version = '1.0.0', children }: LegalLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/40 bg-card/40 backdrop-blur-xl sticky top-0 z-10">
@@ -35,7 +36,7 @@ export function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) 
         <article className="prose prose-sm sm:prose-base max-w-none dark:prose-invert prose-headings:font-display prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mb-2 prose-a:text-primary">
           <h1>{title}</h1>
           <p className="text-sm text-muted-foreground !mt-0">
-            Última atualização: <strong>{lastUpdated}</strong> · Versão 1.0.0
+            Última atualização: <strong>{lastUpdated}</strong> · Versão {version}
           </p>
           <hr className="my-6" />
           {children}

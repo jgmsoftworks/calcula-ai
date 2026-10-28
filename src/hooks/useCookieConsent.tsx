@@ -43,7 +43,8 @@ async function recordConsentRows(
   ];
 
   try {
-    await supabase.from('user_consents').insert(rows as any);
+    const { error } = await supabase.from('user_consents').insert(rows as any);
+    if (error) throw error;
   } catch (err) {
     // Não bloquear UX em caso de falha de gravação
     console.warn('[consent] Falha ao registrar consentimento no servidor', err);

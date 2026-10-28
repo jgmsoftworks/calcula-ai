@@ -3,18 +3,18 @@
  *
  * - Versionado (qualquer alteração nesse texto/categorias deve incrementar CONSENT_VERSION)
  * - Persistido em localStorage para uso pré-login
- * - Persistido também no Supabase (tabela user_consents) para prova jurídica
+ * - Persistido também no Supabase (tabela user_consents) para histórico de preferências
  * - Integrado com Google Consent Mode v2
  */
 
-export const CONSENT_VERSION = '1.0.0';
+export const CONSENT_VERSION = '1.1.0';
 export const CONSENT_STORAGE_KEY = 'calculaai_cookie_consent_v1';
 export const ANON_ID_KEY = 'calculaai_anon_id';
 
 export type ConsentCategory = 'necessary' | 'analytics' | 'marketing';
 
 export interface CookieConsent {
-  necessary: true; // sempre true por força LGPD/legítimo interesse
+  necessary: true; // recursos necessários ao funcionamento
   analytics: boolean;
   marketing: boolean;
   version: string;
@@ -35,7 +35,7 @@ export function getStoredConsent(): CookieConsent | null {
     const raw = localStorage.getItem(CONSENT_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CookieConsent;
-    if (parsed.version !== CONSENT_VERSION) return null; // força re-consent em mudança de versão
+    if (parsed.version !== CONSENT_VERSION || parsed.necessary !== true || typeof parsed.analytics !== 'boolean' || typeof parsed.marketing !== 'boolean' || typeof parsed.acceptedAt !== 'string' || !Number.isFinite(Date.parse(parsed.acceptedAt))) return null; // força re-consent em mudança de versão
     return parsed;
   } catch {
     return null;
@@ -69,6 +69,8 @@ export function getOrCreateAnonymousId(): string {
 export function applyConsentToGtag(consent: CookieConsent): void {
   if (typeof window === 'undefined') return;
   const w = window as any;
+  // Also stop collection when a script was loaded before consent withdrawal.
+  w['ga-disable-G-HN35ZG4EPG'] = !consent.analytics;
 
   // Garantir dataLayer e gtag stub
   w.dataLayer = w.dataLayer || [];

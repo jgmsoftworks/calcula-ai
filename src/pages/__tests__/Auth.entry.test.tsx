@@ -30,6 +30,20 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('authentication page entry', () => {
+  it('requires both document choices before Google signup', async () => {
+    googleLogin.mockResolvedValue({ error: null, openedInNewTab: true });
+    openAuth('/auth?mode=signup');
+    const button = screen.getByRole('button', { name: 'auth.signupWithGoogle' });
+    fireEvent.click(button);
+    expect(googleLogin).not.toHaveBeenCalled();
+    const choices = screen.getAllByRole('checkbox');
+    fireEvent.click(choices[0]);
+    fireEvent.click(button);
+    expect(googleLogin).not.toHaveBeenCalled();
+    fireEvent.click(choices[1]);
+    fireEvent.click(button);
+    await waitFor(() => expect(googleLogin).toHaveBeenCalledOnce());
+  });
   it('releases the Google button after opening a separate login tab', async () => {
     googleLogin.mockResolvedValue({ error: null, openedInNewTab: true });
     openAuth();

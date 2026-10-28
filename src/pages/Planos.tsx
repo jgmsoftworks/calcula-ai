@@ -1,4 +1,6 @@
 import { localizeText } from '@/i18n/localizeText';
+import { getLegalStatus } from '@/lib/legal';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { trackFunnel } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
@@ -17,6 +19,7 @@ import '@/components/planos/plans.css';
 const Planos = () => {
   usePortugalTranslation();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { currentPlan, loading, reloadPlan } = usePlanLimits();
   const access = useSubscriptionStatus();
   const manageSubscription = access.hasSubscription && access.status !== 'canceled';
@@ -51,6 +54,11 @@ const Planos = () => {
       if (manageSubscription || precoDoPlano(plano, billing) === 0) {
         await openCustomerPortal();
       } else {
+        const legal = await getLegalStatus();
+        if (!legal.accepted) {
+          navigate('/confirmar-documentos');
+          return;
+        }
         const affiliateCode = new URLSearchParams(window.location.search).get('ref');
         await createCheckout(plano.slug, billing, affiliateCode || undefined);
       }

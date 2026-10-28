@@ -13,6 +13,7 @@ import { ActivityProvider } from "@/contexts/ActivityContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import { CookieConsentProvider } from "@/hooks/useCookieConsent";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+import { LegalAcceptanceGate } from "@/components/legal/LegalAcceptanceGate";
 
 const AppLayoutRoute = lazy(() => import("@/components/layout/AppLayoutRoute"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -81,8 +82,9 @@ const App = () => (
               <AcquisitionReturn />
               <CookieBanner />
               <Suspense fallback={<div role="status" className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">Carregando…</div>}>
-              <Routes>
+              <LegalAcceptanceGate><Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/confirmar-documentos" element={<Navigate to="/planos" replace />} />
                 <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/termos-de-uso" element={<TermosUso />} />
                 <Route path="/cookies" element={<PoliticaCookies />} />
@@ -139,7 +141,7 @@ const App = () => (
                 </Route>
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+              </Routes></LegalAcceptanceGate>
               </Suspense>
             </BrowserRouter>
           </TooltipProvider>
