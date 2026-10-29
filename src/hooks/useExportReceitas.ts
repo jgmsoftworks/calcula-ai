@@ -39,7 +39,7 @@ export function useExportReceitas() {
             .maybeSingle(),
           supabase
             .from('markups')
-            .select('id, nome, tipo, markup_ideal, margem_lucro')
+            .select('id, nome, tipo, markup_ideal, margem_lucro, gasto_sobre_faturamento, encargos_sobre_venda')
             .eq('id', markupId)
             .maybeSingle(),
         ]);
