@@ -24,8 +24,6 @@ export function maxAllowedProfitPercentage(costPercentagesTotal: number): number
     return 0;
   }
 
-  return Math.max(
-    0,
-    Math.floor((MARKUP_PERCENTAGE_LIMIT - 0.01 - costPercentagesTotal) * 100) / 100,
-  );
+  const available = MARKUP_PERCENTAGE_LIMIT - 0.01 - costPercentagesTotal;
+  return Math.max(0, Number(available.toFixed(2)));
 }
