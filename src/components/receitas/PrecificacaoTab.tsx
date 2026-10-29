@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface PrecificacaoTabProps {
@@ -180,9 +181,6 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
     setSelectorOpen(false);
 
     try {
-      onFormChange('markup_id', markupId);
-      onFormChange('markup_tipo', markup.tipo);
-      
       const configKey = `markup_${markup.nome.toLowerCase().replace(/\s+/g, '_')}`;
       const { data } = await supabase
         .from('user_configurations')
@@ -194,6 +192,33 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       const detalhes = data?.configuration as any;
       const valorEmReal = detalhes?.valorEmReal ?? 0;
 
+      const totalPercentuais = markup.tipo === 'sub_receita'
+        ? 0
+        : detalhes
+          ? sumMarkupPercentages(
+              detalhes.gastoSobreFaturamento,
+              detalhes.impostos,
+              detalhes.taxas,
+              detalhes.comissoes,
+              detalhes.outros,
+              detalhes.lucroDesejado ?? markup.margem_lucro,
+            )
+          : sumMarkupPercentages(
+              markup.gasto_sobre_faturamento,
+              markup.encargos_sobre_venda,
+              markup.margem_lucro,
+            );
+
+      if (markup.tipo !== 'sub_receita' && !isValidMarkupPercentageTotal(totalPercentuais)) {
+        toast.error(
+          `Este bloco soma ${totalPercentuais.toFixed(2).replace('.', ',')}%. Corrija o markup para ficar abaixo de 100% antes de usá-lo.`,
+        );
+        return;
+      }
+
+      onFormChange('markup_id', markupId);
+      onFormChange('markup_tipo', markup.tipo);
+
       let custoBase: number;
       if (markup.tipo !== 'sub_receita' && receita.rendimento_valor && receita.rendimento_valor > 0) {
         custoBase = custoTotal / receita.rendimento_valor;
@@ -203,13 +228,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
 
       let precoVenda: number;
       if (valorEmReal > 0) {
-        const totalPercentuais = 
-          (detalhes?.gastoSobreFaturamento ?? 0) + (detalhes?.impostos ?? 0) + 
-          (detalhes?.taxas ?? 0) + (detalhes?.comissoes ?? 0) + 
-          (detalhes?.outros ?? 0) + (detalhes?.lucroDesejado ?? markup.margem_lucro);
         const baseCalculo = custoBase + valorEmReal;
         const divisor = 1 - (totalPercentuais / 100);
-        precoVenda = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+        precoVenda = baseCalculo / divisor;
       } else {
         precoVenda = custoBase * markup.markup_ideal;
       }

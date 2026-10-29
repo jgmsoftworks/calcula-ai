@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Info, Check, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info, Check, Loader2, AlertTriangle } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -173,13 +174,25 @@ export function MarkupCard({
   // Valor em Real do bloco (taxa fixa por venda)
   const valorEmRealBloco = detalhes?.valorEmReal ?? 0;
 
-  // Pegar os percentuais do bloco
-  const totalPercentuais = (detalhes?.gastoSobreFaturamento ?? 0) +
-                          (detalhes?.impostos ?? 0) +
-                          (detalhes?.taxas ?? 0) +
-                          (detalhes?.comissoes ?? 0) +
-                          (detalhes?.outros ?? 0) +
-                          (detalhes?.lucroDesejado ?? markup.margem_lucro);
+  // Pegar os percentuais do bloco. Se a configuração detalhada ainda não carregou,
+  // usar os agregados persistidos no próprio markup.
+  const totalPercentuais = detalhes
+    ? sumMarkupPercentages(
+        detalhes.gastoSobreFaturamento,
+        detalhes.impostos,
+        detalhes.taxas,
+        detalhes.comissoes,
+        detalhes.outros,
+        detalhes.lucroDesejado ?? markup.margem_lucro,
+      )
+    : sumMarkupPercentages(
+        markup.gasto_sobre_faturamento,
+        markup.encargos_sobre_venda,
+        markup.margem_lucro,
+      );
+
+  const configuracaoPercentualValida =
+    markup.tipo === 'sub_receita' || isValidMarkupPercentageTotal(totalPercentuais);
 
   // Determinar o custo base (unitário ou total)
   let custoBase: number;
@@ -192,19 +205,20 @@ export function MarkupCard({
     custoBase = custoTotal;
   }
 
-  let precoSugerido: number;
-  let baseCalculo: number;
+  let precoSugerido: number | null = null;
+  let baseCalculo = custoBase;
 
-  // CASO 1: COM "Valor em Real" → usar fórmula que garante % exato
-  if (valorEmRealBloco > 0) {
-    baseCalculo = custoBase + valorEmRealBloco;
-    const divisor = 1 - (totalPercentuais / 100);
-    precoSugerido = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
-  }
-  // CASO 2: SEM "Valor em Real" → usar fórmula tradicional do markup
-  else {
-    baseCalculo = custoBase;
-    precoSugerido = custoBase * markup.markup_ideal;
+  if (configuracaoPercentualValida) {
+    // CASO 1: COM "Valor em Real" → usar fórmula que garante % exato
+    if (valorEmRealBloco > 0) {
+      baseCalculo = custoBase + valorEmRealBloco;
+      const divisor = 1 - (totalPercentuais / 100);
+      precoSugerido = divisor > 0 ? baseCalculo / divisor : null;
+    }
+    // CASO 2: SEM "Valor em Real" → usar fórmula tradicional do markup
+    else if (Number.isFinite(Number(markup.markup_ideal)) && Number(markup.markup_ideal) > 0) {
+      precoSugerido = custoBase * Number(markup.markup_ideal);
+    }
   }
 
   // Markup aplicado = preço atual / custo unitário
@@ -375,10 +389,17 @@ export function MarkupCard({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 px-2 md:px-6 pb-2 md:pb-6">
-                <p className="text-base md:text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
-                  {formatMoney(precoSugerido)}
-                </p>
-                {valorEmRealBloco > 0 ? (
+                {precoSugerido !== null ? (
+                  <p className="text-base md:text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
+                    {formatMoney(precoSugerido)}
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <p className="text-sm font-semibold">Configuração inválida</p>
+                  </div>
+                )}
+                {precoSugerido !== null && valorEmRealBloco > 0 ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -403,9 +424,13 @@ export function MarkupCard({
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                ) : (
+                ) : precoSugerido !== null ? (
                   <p className="text-[10px] md:text-xs text-muted-foreground leading-tight">
                     ({formatMoney(custoTotal)} × {formatNumber(markup.markup_ideal, 4)})
+                  </p>
+                ) : (
+                  <p className="text-[10px] md:text-xs text-destructive leading-tight">
+                    A soma dos percentuais é {formatNumber(totalPercentuais, 2)}%. Corrija o bloco para ficar abaixo de 100%.
                   </p>
                 )}
               </CardContent>
@@ -466,7 +491,7 @@ export function MarkupCard({
             <Button
               variant={isSelected ? "default" : "outline"}
               onClick={onSelect}
-              disabled={isApplying}
+              disabled={isApplying || !configuracaoPercentualValida}
             >
               {isApplying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {isApplying ? 'Aplicando...' : (isSelected ? 'Selecionado' : 'Selecionar')}

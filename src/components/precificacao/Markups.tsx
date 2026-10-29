@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, Loader2 } from 'lucide-react';
+import { Calculator, Plus, Trash2, Edit2, Check, X, Info, Settings, Loader2, AlertTriangle } from 'lucide-react';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,6 +22,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { PlanRestrictedArea } from '@/components/planos/PlanRestrictedArea';
 import { formatBRL, formatNumber } from '@/lib/formatters';
+import {
+  calculateMarkupMultiplier,
+  isValidMarkupPercentageTotal,
+  maxAllowedProfitPercentage,
+  sumMarkupPercentages,
+} from '@/lib/markupMath';
 
 interface MarkupBlock {
   id: string;
@@ -546,14 +552,27 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           });
         }
 
-        // Calcular markup ideal correto baseado nos valores atualizados
-        const totalEncargos = calculatedFinal.gastoSobreFaturamento + calculatedFinal.impostos + calculatedFinal.taxasMeiosPagamento + calculatedFinal.comissoesPlataformas + calculatedFinal.outros;
-        const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-        
-        // Sub-receita sempre tem markup 1.0 (sem lucro)
-        const markupIdealCorreto = bloco.id === 'subreceita-fixo' 
-          ? 1.0 
-          : (totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.0);
+        // Calcular markup ideal somente para configurações matematicamente válidas.
+        const totalEncargos = sumMarkupPercentages(
+          calculatedFinal.gastoSobreFaturamento,
+          calculatedFinal.impostos,
+          calculatedFinal.taxasMeiosPagamento,
+          calculatedFinal.comissoesPlataformas,
+          calculatedFinal.outros,
+        );
+        const totalPercentuais = sumMarkupPercentages(totalEncargos, bloco.lucroDesejado);
+
+        if (bloco.id !== 'subreceita-fixo' && !isValidMarkupPercentageTotal(totalPercentuais)) {
+          console.warn(
+            `⚠️ [SALVAR MARKUPS] Bloco "${bloco.nome}" não salvo: total de ${totalPercentuais.toFixed(2)}% precisa ficar abaixo de 100%.`,
+          );
+          continue;
+        }
+
+        // Sub-receita sempre tem markup 1.0 (sem lucro).
+        const markupIdealCorreto = bloco.id === 'subreceita-fixo'
+          ? 1.0
+          : (calculateMarkupMultiplier(totalPercentuais) ?? 1.0);
 
         const markupData = {
           user_id: user.id,
@@ -658,28 +677,6 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     } finally {
       isMarkupSaving.current = false;
     }
-  };
-
-  const calcularMarkupIdealParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
-    const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
-    const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-    
-    // Garantir margem mínima de 20% se não houver lucro desejado configurado
-    const margemFinal = totalPercentuais === 0 ? 20 : totalPercentuais;
-    const markup = 100 / (100 - margemFinal);
-    
-    return isFinite(markup) && markup > 1 ? markup : 1.25; // Mínimo de 25% markup
-  };
-
-  const calcularMarkupAplicadoParaBanco = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
-    const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
-    const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-    
-    // Garantir margem mínima de 20% se não houver lucro desejado configurado
-    const margemFinal = totalPercentuais === 0 ? 20 : totalPercentuais;
-    const markup = 100 / (100 - margemFinal);
-    
-    return isFinite(markup) && markup > 1 ? markup : 1.25; // Mínimo de 25% markup
   };
 
   const formatCurrency = (value: number) => {
@@ -815,7 +812,31 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     setNomeTemp('');
   };
 
+  const calcularTotalCustosPercentuais = (calculated?: CalculatedMarkup) =>
+    sumMarkupPercentages(
+      calculated?.gastoSobreFaturamento,
+      calculated?.impostos,
+      calculated?.taxasMeiosPagamento,
+      calculated?.comissoesPlataformas,
+      calculated?.outros,
+    );
+
   const atualizarBloco = (id: string, campo: keyof MarkupBlock, valor: any) => {
+    if (campo === 'lucroDesejado') {
+      const calculated = calculatedMarkups.get(id);
+      const totalCustos = calcularTotalCustosPercentuais(calculated);
+      const totalComNovoLucro = sumMarkupPercentages(totalCustos, Number(valor));
+
+      if (!isValidMarkupPercentageTotal(totalComNovoLucro)) {
+        toast({
+          title: 'Configuração inválida',
+          description: `Custos + encargos + lucro chegariam a ${formatPercentage(totalComNovoLucro)}%. O total precisa ficar abaixo de 100%.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     const novosBlocos = blocos.map(bloco => 
       bloco.id === id ? { ...bloco, [campo]: valor } : bloco
     );
@@ -832,12 +853,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   };
 
   const calcularMarkupIdealParaExibicao = (bloco: MarkupBlock, calculated: CalculatedMarkup) => {
-    const totalPercentuais = calculated.gastoSobreFaturamento + calculated.impostos + 
-                            calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + 
-                            calculated.outros + bloco.lucroDesejado;
-    
-    const markup = 100 / (100 - totalPercentuais);
-    return isFinite(markup) ? markup : 1;
+    const totalPercentuais = sumMarkupPercentages(
+      calcularTotalCustosPercentuais(calculated),
+      bloco.lucroDesejado,
+    );
+    return calculateMarkupMultiplier(totalPercentuais);
   };
 
   const renderMarkupGrid = (bloco: MarkupBlock, calculated: CalculatedMarkup | undefined, hasCalculated: boolean) => {
@@ -893,7 +913,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         
         const calculated = calculatedMarkups.get('subreceita-fixo');
         const markupIdealSubreceita = calculated 
-          ? calcularMarkupIdealParaExibicao(blocoSub, calculated) 
+          ? (calcularMarkupIdealParaExibicao(blocoSub, calculated) ?? 1)
           : 1;
         
         return (
@@ -948,7 +968,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       {blocos.filter(b => b.id !== 'subreceita-fixo').map((bloco, index) => {
         const calculated = calculatedMarkups.get(bloco.id);
         const hasCalculated = calculated !== undefined;
+        const totalCustosPercentuais = calcularTotalCustosPercentuais(calculated);
+        const totalPercentuais = sumMarkupPercentages(totalCustosPercentuais, bloco.lucroDesejado);
+        const blocoInvalido = hasCalculated && !isValidMarkupPercentageTotal(totalPercentuais);
         const markupIdeal = hasCalculated ? calcularMarkupIdealParaExibicao(bloco, calculated) : 1;
+        const lucroMaximo = maxAllowedProfitPercentage(totalCustosPercentuais);
         
         // Brand gradient colors cycling
         const gradients = [
@@ -1044,7 +1068,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                     <NumericInputPtBr
                       tipo="percentual"
                       min={0}
-                      max={100}
+                      max={lucroMaximo}
                       value={bloco.lucroDesejado}
                       onChange={(valor) => atualizarBloco(bloco.id, 'lucroDesejado', valor)}
                       className="font-bold text-lg h-9"
@@ -1065,11 +1089,23 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <p className="text-2xl font-bold font-display" style={{ color: gColor.bg }}>
-                    {hasCalculated ? formatNumber(markupIdeal, 4) : '1,0000'}
+                  <p className="text-2xl font-bold font-display" style={{ color: blocoInvalido ? undefined : gColor.bg }}>
+                    {blocoInvalido ? 'Inválido' : (hasCalculated && markupIdeal !== null ? formatNumber(markupIdeal, 4) : '1,0000')}
                   </p>
                 </div>
               </div>
+
+              {blocoInvalido && (
+                <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Este bloco soma {formatPercentage(totalPercentuais)}%.</p>
+                    <p className="text-xs leading-relaxed">
+                      Reduza custos, encargos ou lucro desejado. A soma precisa ficar abaixo de 100% para existir um preço válido.
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         );

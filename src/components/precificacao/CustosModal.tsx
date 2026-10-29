@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { AlertTriangle } from 'lucide-react';
+import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
 import { calcularCustoTotalFuncionario, type FuncionarioCusto } from '@/lib/folhaPagamentoUtils';
 
 interface MarkupBlock {
@@ -345,8 +347,19 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     return 'outros';
   }, [categoriasMap]);
 
-  const calcularMarkup = useCallback((states: Record<string, boolean>) => {
-    if (!encargosVenda.length && !despesasFixas.length && !folhaPagamento.length) return;
+  const calcularMarkup = useCallback((states: Record<string, boolean>): Partial<MarkupBlock> => {
+    if (!encargosVenda.length && !despesasFixas.length && !folhaPagamento.length) {
+      const vazio = {
+        gastoSobreFaturamento: 0,
+        impostos: 0,
+        taxasMeiosPagamento: 0,
+        comissoesPlataformas: 0,
+        outros: 0,
+        valorEmReal: 0,
+      };
+      setCurrentMarkupValues(prev => ({ ...prev, ...vazio }));
+      return vazio;
+    }
 
     console.log('🧮 Calculando markup com estados:', states);
     console.log('📋 Despesas fixas disponíveis:', despesasFixas.map(d => ({ id: d.id, nome: d.nome, valor: d.valor, ativo: d.ativo })));
@@ -460,16 +473,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       ...prev,
       ...categorias
     }));
-    
-    // Atualizar valores locais para mostrar em tempo real
-    setCurrentMarkupValues(prev => ({
-      ...prev,
-      ...categorias
-    }));
-    
-    // Removido: não notificar o componente pai em cada cálculo para evitar loops de requisições
 
-  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, onMarkupUpdate, faturamentosHistoricos, markupBlock?.periodo]);
+    // Retornar o cálculo imediatamente para validação/salvamento sem depender de state assíncrono.
+    return categorias;
+
+  }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, faturamentosHistoricos, markupBlock?.periodo]);
 
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {
@@ -491,17 +499,26 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
   const handleSalvar = async () => {
     try {
       console.log('💾 Iniciando salvamento com estados:', tempCheckboxStates);
-      
-      // IMPORTANTE: Calcular markup ANTES de salvar para garantir valores corretos
-      const markupCalculado = await new Promise<any>((resolve) => {
-        // Calcular markup com os estados temporários
-        calcularMarkup(tempCheckboxStates);
-        
-        // Aguardar um pequeno delay para garantir que o cálculo seja concluído
-        setTimeout(() => {
-          resolve(currentMarkupValues);
-        }, 100);
-      });
+
+      // Calcular e validar com os valores desta tentativa, sem depender do state assíncrono do React.
+      const markupCalculado = calcularMarkup(tempCheckboxStates);
+      const totalPercentuais = sumMarkupPercentages(
+        markupCalculado.gastoSobreFaturamento,
+        markupCalculado.impostos,
+        markupCalculado.taxasMeiosPagamento,
+        markupCalculado.comissoesPlataformas,
+        markupCalculado.outros,
+        markupBlock?.id === 'subreceita-fixo' ? 0 : markupBlock?.lucroDesejado,
+      );
+
+      if (markupBlock?.id !== 'subreceita-fixo' && !isValidMarkupPercentageTotal(totalPercentuais)) {
+        toast({
+          title: 'Configuração inválida',
+          description: `A soma de custos, encargos e lucro é ${formatPercentage(totalPercentuais)}%. Reduza os percentuais para ficar abaixo de 100%.`,
+          variant: 'destructive',
+        });
+        return;
+      }
       
       console.log('🧮 Markup calculado para salvamento:', markupCalculado);
       
@@ -578,6 +595,18 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     calcularMarkup(checkboxStates);
     onOpenChange(false);
   };
+
+  const totalPercentuaisAtuais = sumMarkupPercentages(
+    currentMarkupValues.gastoSobreFaturamento,
+    currentMarkupValues.impostos,
+    currentMarkupValues.taxasMeiosPagamento,
+    currentMarkupValues.comissoesPlataformas,
+    currentMarkupValues.outros,
+    markupBlock?.id === 'subreceita-fixo' ? 0 : markupBlock?.lucroDesejado,
+  );
+  const configuracaoInvalida =
+    markupBlock?.id !== 'subreceita-fixo' &&
+    !isValidMarkupPercentageTotal(totalPercentuaisAtuais);
 
   const renderEncargosPorCategoria = (categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros', titulo: string) => {
     const encargosDaCategoria = encargosVenda.filter(e => getCategoriaByNome(e.nome) === categoria);
@@ -780,6 +809,20 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
             </Card>
           </TabsContent>
            </Tabs>
+
+            {configuracaoInvalida && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">
+                    Este bloco soma {formatPercentage(totalPercentuaisAtuais)}%.
+                  </p>
+                  <p className="text-xs leading-relaxed">
+                    Custos, encargos e lucro desejado precisam somar menos de 100%. Remova ou reduza algum item antes de salvar.
+                  </p>
+                </div>
+              </div>
+            )}
            
             <DialogFooter className="gap-2 pt-4">
               <Button 
@@ -790,7 +833,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
               </Button>
               <Button 
                 onClick={handleSalvar}
-                disabled={!hasUnsavedChanges}
+                disabled={!hasUnsavedChanges || configuracaoInvalida}
               >
                 {markupBlock ? "Salvar Configurações" : "Criar Bloco de Markup"}
               </Button>

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import type { ReceitaComDados } from '@/types/receitas';
+import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
 
 export function useExportReceitas() {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export function useExportReceitas() {
             .maybeSingle(),
           supabase
             .from('markups')
-            .select('id, nome, tipo, markup_ideal, margem_lucro')
+            .select('id, nome, tipo, markup_ideal, margem_lucro, gasto_sobre_faturamento, encargos_sobre_venda')
             .eq('id', markupId)
             .maybeSingle(),
         ]);
@@ -49,6 +50,30 @@ export function useExportReceitas() {
 
         if (markupData) {
           markupBase = markupData;
+        }
+      }
+
+      if (markupBase && markupBase.tipo !== 'sub_receita') {
+        const totalPercentuaisSelecionado = markupDetalhes
+          ? sumMarkupPercentages(
+              markupDetalhes.gastoSobreFaturamento,
+              markupDetalhes.impostos,
+              markupDetalhes.taxas,
+              markupDetalhes.comissoes,
+              markupDetalhes.outros,
+              markupDetalhes.lucroDesejado ?? markupBase.margem_lucro,
+            )
+          : sumMarkupPercentages(
+              markupBase.gasto_sobre_faturamento,
+              markupBase.encargos_sobre_venda,
+              markupBase.margem_lucro,
+            );
+
+        if (!isValidMarkupPercentageTotal(totalPercentuaisSelecionado)) {
+          toast.error(
+            `O markup selecionado soma ${totalPercentuaisSelecionado.toFixed(2).replace('.', ',')}%. Corrija o bloco para ficar abaixo de 100% antes de exportar.`,
+          );
+          return;
         }
       }
 
@@ -97,7 +122,7 @@ export function useExportReceitas() {
         if (valorEmRealBloco > 0) {
           baseCalculo = custoBase + valorEmRealBloco;
           const divisor = 1 - (totalPercentuais / 100);
-          precoSugerido = divisor > 0 ? baseCalculo / divisor : baseCalculo * 2;
+          precoSugerido = baseCalculo / divisor;
         } 
         // CASO 2: SEM "Valor em Real" - IGUAL ao MarkupCard linha 166-168
         else {
