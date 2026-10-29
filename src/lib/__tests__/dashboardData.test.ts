@@ -71,11 +71,19 @@ describe('dashboard totals with shared movement data', () => {
       estoque_fechamentos_mensais: [{ valor_estoque_fechamento: 120 }],
     };
     const result = await fetch();
-    expect(result).toMatchObject({ valorEmEstoque: 130, totalEntradasMes: 64, totalSaidasMes: 33 });
-    expect(result.cmvResult).toEqual({
-      cmvDisponivel: true, cmvValor: 22, cmvPercentual: 75,
+    expect(result).toMatchObject({
+      valorEmEstoque: 130,
+      totalEntradasMes: 64,
+      totalSaidasMes: 33,
+      cmvMedioReceitas: 50,
+      cmvReceitasConsideradas: 1,
+    });
+    expect(result.cmvResult).toMatchObject({
+      cmvDisponivel: true,
+      cmvValor: 22,
       breakdown: { estoqueInicial: 120, estoqueInicialEstimado: false, comprasLiquidas: 32, estoqueFinal: 130, faturamentoLiquido: 33 },
     });
+    expect(result.cmvResult.cmvPercentual).toBeCloseTo((22 / 33) * 100);
     expect(result.dailyMovements.find(day => day.day === '21')).toEqual({ day: '21', entradas: 64, saidas: 33 });
     expect(mocks.requests).toHaveLength(4);
     expect(mocks.requests.filter(r => r.table === 'movimentacoes')).toHaveLength(1);
@@ -95,7 +103,8 @@ describe('dashboard totals with shared movement data', () => {
     })];
     const result = await fetch();
     // (5 + 2 + 3 + 10) / 2 portions / 20 sale price = 50%.
-    expect(result.cmvResult.cmvPercentual).toBe(50);
+    expect(result.cmvMedioReceitas).toBe(50);
+    expect(result.cmvReceitasConsideradas).toBe(1);
   });
 
   it('includes records beyond 1000 in every dataset and in the final totals', async () => {
@@ -107,7 +116,8 @@ describe('dashboard totals with shared movement data', () => {
     };
     const result = await fetch();
     expect(result).toMatchObject({ valorEmEstoque: 1001, totalEntradasMes: 1000, totalSaidasMes: 14 });
-    expect(result.cmvResult.cmvPercentual).toBeCloseTo((1000 * 20 + 50) / 1001);
+    expect(result.cmvMedioReceitas).toBeCloseTo((1000 * 20 + 50) / 1001);
+    expect(result.cmvReceitasConsideradas).toBe(1001);
     expect(result.cmvResult.breakdown.faturamentoLiquido).toBe(14);
     for (const table of ['produtos', 'movimentacoes', 'receitas']) {
       const pages = mocks.requests.filter(r => r.table === table);
@@ -123,6 +133,8 @@ describe('dashboard totals with shared movement data', () => {
       cmvDisponivel: true, cmvValor: 0, cmvPercentual: null,
       breakdown: { estoqueInicial: 10, estoqueInicialEstimado: true, comprasLiquidas: 10, estoqueFinal: 20, faturamentoLiquido: null },
     });
+    expect(result.cmvMedioReceitas).toBeNull();
+    expect(result.cmvReceitasConsideradas).toBe(0);
     expect(mocks.requests.filter(r => r.table === 'movimentacoes')).toHaveLength(1);
   });
 
