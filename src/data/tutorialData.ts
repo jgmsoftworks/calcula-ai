@@ -75,7 +75,7 @@ export const sections: TutorialSection[] = [
     gradient: 'from-[hsl(205,96%,46%)] to-[hsl(228,63%,48%)]',
     gradientBg: 'from-[hsl(205,96%,46%,0.08)] to-[hsl(228,63%,48%,0.04)]',
     mainImage: dashboardImg,
-    intro: 'O Dashboard é a primeira tela que você vê ao entrar no CalculaAi. Ele funciona como o painel de controle do seu negócio — mostra em tempo real o valor total do seu estoque, quanto entrou e saiu no mês, um gráfico detalhado dia a dia e o cálculo automático do CMV (Custo de Mercadoria Vendida).',
+    intro: 'O Dashboard é a primeira tela que você vê ao entrar no CalculaAi. Ele funciona como o painel de controle do seu negócio — mostra em tempo real o valor total do seu estoque, quanto entrou e saiu no mês, um gráfico detalhado dia a dia e o CMV médio das receitas finais precificadas.',
     subScreens: [
       {
         title: 'Cards de Resumo (Topo)',
@@ -106,16 +106,17 @@ export const sections: TutorialSection[] = [
         ],
       },
       {
-        title: 'Saldo Inicial e CMV %',
+        title: 'Saldo Inicial e CMV médio das receitas',
         image: dashboardImg,
-        description: 'Na parte inferior do Dashboard, dois cards adicionais trazem métricas financeiras essenciais:',
+        description: 'Na parte inferior do Dashboard, dois cards adicionais ajudam a acompanhar estoque e precificação:',
         bullets: [
           '**Saldo Inicial do Estoque (Mês)**: Mostra quanto valia seu estoque no primeiro dia do mês. Esse valor é "congelado" automaticamente pelo sistema no fechamento de cada mês.',
-          '**CMV % (Custo de Mercadoria Vendida)**: Indica qual percentual do valor das suas saídas foi gasto com mercadoria. É calculado como: CMV% = (Saldo Inicial + Entradas - Saldo Final) / Faturamento × 100.',
+          '**CMV médio das receitas**: Mostra a média simples do CMV percentual das receitas finais que possuem custo e preço de venda válidos.',
+          '**Sub-receitas não entram na média**: elas são componentes de custo de outras receitas e não devem distorcer o indicador geral.',
         ],
         tips: [
           'Se aparecer "(estimado)" ao lado do saldo inicial, significa que o sistema calculou retroativamente — no próximo mês fechará automaticamente.',
-          'Um CMV% saudável geralmente fica entre 25% e 35% para alimentação. Acima disso, revise seus custos ou preços de venda.',
+          'Receitas sem custo válido ou sem preço de venda não entram no CMV médio até serem completadas.',
           'Clique em "Atualizar" para forçar o recálculo dos dados do Dashboard.',
         ],
       },

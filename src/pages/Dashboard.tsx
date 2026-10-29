@@ -246,7 +246,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Saldo Inicial + CMV % */}
+      {/* Saldo Inicial + CMV médio das receitas */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
           <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
@@ -283,19 +283,19 @@ const Dashboard = () => {
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.cmvPercent')}</p>
-                {!data.cmvResult.cmvDisponivel ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm">{t('dashboard.unavailable')}</span>
-                  </div>
-                ) : data.cmvResult.cmvPercentual !== null ? (
-                  <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
-                    {data.cmvResult.cmvPercentual.toLocaleString(getBusinessRegion().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                  </p>
+                {data.cmvMedioReceitas !== null ? (
+                  <>
+                    <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+                      {data.cmvMedioReceitas.toLocaleString(getBusinessRegion().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                    </p>
+                    <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+                      {t('dashboard.cmvAverageHint')}
+                    </p>
+                  </>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm">{t('dashboard.noSales')}</span>
+                    <span className="text-sm">{t('dashboard.noPricedRecipes')}</span>
                   </div>
                 )}
               </div>

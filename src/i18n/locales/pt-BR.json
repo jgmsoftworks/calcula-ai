@@ -105,9 +105,11 @@
     "initialBalance": "Saldo Inicial de Estoque (mês)",
     "estimated": "(estimado)",
     "noEstimateData": "Sem dados para estimar",
-    "cmvPercent": "CMV %",
+    "cmvPercent": "CMV médio das receitas",
     "unavailable": "Indisponível",
-    "noSales": "Sem vendas no período"
+    "noSales": "Sem vendas no período",
+    "noPricedRecipes": "Sem receitas finais precificadas",
+    "cmvAverageHint": "Média calculada apenas com receitas finais que possuem custo e preço válidos. Sub-receitas não entram no cálculo."
   },
   "plans": {
     "chooseYourPlan": "Escolha seu Plano",

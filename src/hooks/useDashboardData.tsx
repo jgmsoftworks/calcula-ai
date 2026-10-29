@@ -8,8 +8,12 @@ import { fetchDashboardData } from '@/lib/dashboardData';
 export type PeriodFilter = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
 export interface DashboardData {
-  // CMV real
+  // CMV operacional legado (mantido para saldo inicial de estoque)
   cmvResult: CmvResult;
+
+  // CMV médio teórico das receitas finais válidas
+  cmvMedioReceitas: number | null;
+  cmvReceitasConsideradas: number;
 
   // Cards de estoque
   valorEmEstoque: number;
@@ -49,6 +53,8 @@ const EMPTY_DATA: DashboardData = {
     cmvPercentual: null,
     breakdown: { estoqueInicial: null, estoqueInicialEstimado: false, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
   },
+  cmvMedioReceitas: null,
+  cmvReceitasConsideradas: 0,
   valorEmEstoque: 0,
   totalEntradasMes: 0,
   totalSaidasMes: 0,

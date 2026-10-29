@@ -105,9 +105,11 @@
     "initialBalance": "Initial Stock Balance (month)",
     "estimated": "(estimated)",
     "noEstimateData": "No data to estimate",
-    "cmvPercent": "COGS %",
+    "cmvPercent": "Average recipe COGS",
     "unavailable": "Unavailable",
-    "noSales": "No sales in the period"
+    "noSales": "No sales in the period",
+    "noPricedRecipes": "No priced final recipes",
+    "cmvAverageHint": "Average calculated only from final recipes with valid cost and selling price. Sub-recipes are excluded."
   },
   "plans": {
     "chooseYourPlan": "Choose your Plan",
