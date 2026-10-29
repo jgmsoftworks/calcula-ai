@@ -14,6 +14,11 @@ describe('markupMath', () => {
     expect(calculateMarkupMultiplier(total)).toBeCloseTo(3.3333333333);
   });
 
+  it('permite 99,99% mas nunca 100%', () => {
+    expect(isValidMarkupPercentageTotal(99.99)).toBe(true);
+    expect(calculateMarkupMultiplier(99.99)).toBeCloseTo(10000);
+  });
+
   it('bloqueia total igual a 100%', () => {
     expect(isValidMarkupPercentageTotal(100)).toBe(false);
     expect(calculateMarkupMultiplier(100)).toBeNull();
