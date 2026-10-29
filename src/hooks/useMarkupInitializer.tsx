@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
+import { calculateMarkupMultiplier, isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
 
 const log = createLogger('markup');
 
@@ -47,13 +48,16 @@ export function useMarkupInitializer(enabled = true) {
   }, []);
 
   const calcularMarkupIdeal = useCallback((bloco: MarkupBlock, calculated: CalculatedMarkup) => {
-    const totalEncargos = calculated.gastoSobreFaturamento + calculated.impostos + calculated.taxasMeiosPagamento + calculated.comissoesPlataformas + calculated.outros;
-    const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-    
-    const margemFinal = totalPercentuais === 0 ? 20 : totalPercentuais;
-    const markup = 100 / (100 - margemFinal);
-    
-    return isFinite(markup) && markup > 1 ? markup : 1.25;
+    const totalPercentuais = sumMarkupPercentages(
+      calculated.gastoSobreFaturamento,
+      calculated.impostos,
+      calculated.taxasMeiosPagamento,
+      calculated.comissoesPlataformas,
+      calculated.outros,
+      bloco.lucroDesejado,
+    );
+
+    return calculateMarkupMultiplier(totalPercentuais);
   }, []);
 
   const inicializarMarkups = useCallback(async () => {
@@ -179,12 +183,27 @@ export function useMarkupInitializer(enabled = true) {
         const folhaPagamentoSelecionada = folhaPagamento ? folhaPagamento.filter(f => config[f.id]).map(f => f.id) : [];
         const encargosVendaSelecionados = encargosVenda ? encargosVenda.filter(e => config[e.id]).map(e => e.id) : [];
 
-        // Calcular markup ideal correto baseado no calcularMarkupIdeal
-        const totalEncargos = categorias.gastoSobreFaturamento + categorias.impostos + categorias.taxasMeiosPagamento + categorias.comissoesPlataformas + categorias.outros;
-        const totalPercentuais = totalEncargos + bloco.lucroDesejado;
-        const markupIdealCorreto = totalPercentuais > 0 ? 100 / (100 - totalPercentuais) : 1.25;
-
+        // Calcular markup ideal apenas quando a soma percentual for válida.
+        const totalPercentuais = sumMarkupPercentages(
+          categorias.gastoSobreFaturamento,
+          categorias.impostos,
+          categorias.taxasMeiosPagamento,
+          categorias.comissoesPlataformas,
+          categorias.outros,
+          bloco.lucroDesejado,
+        );
         const ehSubReceita = bloco.id === 'subreceita-fixo';
+
+        if (!ehSubReceita && !isValidMarkupPercentageTotal(totalPercentuais)) {
+          log.warn(
+            `⚠️ Bloco "${bloco.nome}" ignorado na inicialização: total de ${totalPercentuais.toFixed(2)}% precisa ficar abaixo de 100%.`,
+          );
+          continue;
+        }
+
+        const markupIdealCorreto = ehSubReceita
+          ? 1.0
+          : (calcularMarkupIdeal(bloco, categorias) ?? 1.0);
 
         const markupData = {
           user_id: user.id,
@@ -194,8 +213,8 @@ export function useMarkupInitializer(enabled = true) {
           margem_lucro: bloco.lucroDesejado,
           gasto_sobre_faturamento: categorias.gastoSobreFaturamento,
           encargos_sobre_venda: categorias.impostos + categorias.taxasMeiosPagamento + categorias.comissoesPlataformas + categorias.outros,
-          markup_ideal: ehSubReceita ? 1.0 : markupIdealCorreto,
-          markup_aplicado: ehSubReceita ? 1.0 : markupIdealCorreto,
+          markup_ideal: markupIdealCorreto,
+          markup_aplicado: markupIdealCorreto,
           preco_sugerido: categorias.valorEmReal,
           despesas_fixas_selecionadas: despesasFixasSelecionadas,
           folha_pagamento_selecionada: folhaPagamentoSelecionada,
