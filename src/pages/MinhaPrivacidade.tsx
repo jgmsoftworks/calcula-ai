@@ -1,3 +1,4 @@
+import { LEGAL_RELEASE } from '@/lib/legal';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion } from '@/lib/business-region';
@@ -46,7 +47,7 @@ export default function MinhaPrivacidade() {
       .select('deletion_requested_at, deletion_scheduled_for, deletion_reason')
       .eq('user_id', user.id)
       .maybeSingle();
-    if (data?.deletion_scheduled_for && new Date(data.deletion_scheduled_for) > new Date()) {
+    if (data?.deletion_scheduled_for) {
       setStatus({
         pending: true,
         scheduledFor: data.deletion_scheduled_for,
@@ -77,6 +78,7 @@ export default function MinhaPrivacidade() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       toast({ title: 'Download iniciado', description: 'Seus dados foram exportados em JSON.' });
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
@@ -95,7 +97,7 @@ export default function MinhaPrivacidade() {
       if (error) throw error;
       toast({
         title: 'Exclusão agendada',
-        description: `Sua conta será apagada em 30 dias. Você pode cancelar a qualquer momento até lá.`,
+        description: `Sua solicitação foi agendada com janela de recuperação de 30 dias. Confira também o cancelamento da assinatura em Planos.`,
       });
       setConfirmText('');
       setReason('');
@@ -146,9 +148,9 @@ export default function MinhaPrivacidade() {
           <AlertTitle>Exclusão de conta agendada</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>
-              Sua conta será permanentemente apagada em{' '}
+              Sua exclusão está agendada para processamento a partir de{' '}
               <strong>{new Date(status.scheduledFor!).toLocaleDateString(getBusinessRegion().locale)}</strong>.
-              Após essa data, todos os seus dados serão removidos de forma irreversível.
+              Registros sujeitos a obrigações legais e cópias de segurança podem ter retenção específica. Consulte a Política de Privacidade.
             </p>
             <Button onClick={handleCancel} disabled={loadingCancel} variant="outline" size="sm">
               {loadingCancel && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -164,7 +166,7 @@ export default function MinhaPrivacidade() {
             <Download className="h-5 w-5" /> Exportar meus dados
           </CardTitle>
           <CardDescription>
-            Baixe uma cópia completa dos seus dados em formato JSON (LGPD Art. 18, II — direito de acesso e portabilidade).
+            Baixe os registros da conta cobertos pela exportação automática em JSON. O arquivo informa seu escopo; anexos e registros de provedores externos podem exigir solicitação ao atendimento.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -217,8 +219,8 @@ export default function MinhaPrivacidade() {
             <CardTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-5 w-5" />{localizeText("Excluir minha conta")}</CardTitle>
             <CardDescription>
-              Sua conta será desativada imediatamente e permanentemente apagada em <strong>30 dias</strong>.
-              Durante esse período, você pode cancelar a exclusão fazendo login novamente.
+              A solicitação agenda a exclusão para depois de uma janela de recuperação de <strong>30 dias</strong>.
+              Durante esse período, você pode cancelar a solicitação nesta página. Confira também sua assinatura na área de planos: a solicitação de exclusão não confirma o cancelamento da cobrança.
               <br />
               LGPD Art. 18, VI — direito de eliminação.
             </CardDescription>
@@ -245,7 +247,7 @@ export default function MinhaPrivacidade() {
                   <AlertDialogTitle>Confirmar exclusão da conta</AlertDialogTitle>
                   <AlertDialogDescription className="space-y-2">
                     <span className="block">
-                      Esta ação agendará a exclusão permanente de <strong>todos os seus dados</strong>{' '}
+                      Esta ação solicitará a exclusão dos <strong>dados de uso da conta</strong>{' '}
                       (receitas, produtos, movimentações, histórico) em <strong>30 dias</strong>.
                     </span>
                     <span className="block">
@@ -277,7 +279,7 @@ export default function MinhaPrivacidade() {
       )}
 
       <p className="text-xs text-muted-foreground text-center pt-4">
-        Encarregado de Dados (DPO): privacidade@calculaaibr.com
+        {LEGAL_RELEASE.operator.privacyEmail ? <>Privacidade: <a href={`mailto:${LEGAL_RELEASE.operator.privacyEmail}`}>{LEGAL_RELEASE.operator.privacyEmail}</a></> : 'Canal de privacidade pendente na versão em preparação.'}
       </p>
     </div>
   );

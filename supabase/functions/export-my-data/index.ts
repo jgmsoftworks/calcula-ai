@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
+import { collectPrivacyExport } from "../_shared/privacyExport.ts";
 import { enforceRateLimit } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
@@ -7,42 +8,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Tabelas que possuem coluna user_id pertencente ao titular
-const USER_DATA_TABLES = [
-  'profiles',
-  'user_configurations',
-  'user_roles',
-  'produtos',
-  'receitas',
-  'receita_ingredientes',
-  'receita_embalagens',
-  'receita_sub_receitas',
-  'receita_mao_obra',
-  'receita_passos_preparo',
-  'movimentacoes',
-  'movimentacoes_pdv',
-  'movimentacoes_receitas',
-  'estoque_receitas',
-  'estoque_fechamentos_mensais',
-  'comprovantes',
-  'categorias',
-  'marcas',
-  'tipos_produto',
-  'fornecedores',
-  'despesas_fixas',
-  'categorias_despesas_fixas',
-  'encargos_venda',
-  'folha_pagamento',
-  'markups',
-  'notifications',
-  'ordens_producao',
-  'data_export_requests',
-  'account_deletion_requests',
-  'user_consents',
-];
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+  if (req.method !== 'POST') return new Response(null, { status: 405, headers: { ...corsHeaders, Allow: 'POST, OPTIONS' } });
 
   const limited = await enforceRateLimit(req, { bucket: "export-my-data", limit: 3, windowSeconds: 3600 }, corsHeaders);
   if (limited) return limited;
@@ -81,8 +50,10 @@ serve(async (req) => {
         generated_at: new Date().toISOString(),
         user_id: userId,
         email: userData.user.email,
-        format_version: '1.0',
-        legal_basis: 'LGPD Art. 18, II - direito de acesso e portabilidade',
+        format_version: '2.0',
+        scope: 'Registros da conta nas tabelas listadas. Não inclui arquivos binários, backups nem registros dos provedores externos.',
+        consistency: 'Leituras paginadas; alterações feitas durante a exportação podem aparecer em momentos diferentes.',
+        purpose: 'Cópia de acesso aos registros da conta',
       },
       auth_user: {
         id: userData.user.id,
@@ -95,38 +66,17 @@ serve(async (req) => {
       },
     };
 
-    const counts: Record<string, number> = {};
+    const { data: records, counts } = await collectPrivacyExport(userId, async (query, from, to) => {
+      return await admin.from(query.table).select('*')
+        .in(query.column, query.values).order(query.order).range(from, to);
+    });
+    Object.assign(exportData, records);
 
-    for (const table of USER_DATA_TABLES) {
-      try {
-        const { data, error } = await admin
-          .from(table)
-          .select('*')
-          .eq('user_id', userId);
-        if (error) {
-          console.warn(`[export-my-data] ${table}:`, error.message);
-          continue;
-        }
-        exportData[table] = data ?? [];
-        counts[table] = data?.length ?? 0;
-      } catch (e: any) {
-        console.warn(`[export-my-data] falha ${table}:`, e.message);
-      }
-    }
-
-    // Log audit
-    try {
-      await admin.from('data_export_requests').insert({
-        user_id: userId,
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        ip_address: ip,
-        user_agent: ua,
-        records_count: counts,
-      });
-    } catch (e) {
-      console.warn('[export-my-data] log error:', e);
-    }
+    const { error: auditError } = await admin.from('data_export_requests').insert({
+      user_id: userId, status: 'completed', completed_at: new Date().toISOString(),
+      ip_address: ip, user_agent: ua, records_count: counts,
+    });
+    if (auditError) throw new Error('Export audit failed');
 
     const filename = `calcula-ai-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
     return new Response(JSON.stringify(exportData, null, 2), {
@@ -134,12 +84,13 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   } catch (err: any) {
-    console.error('[export-my-data] erro:', err);
-    return new Response(JSON.stringify({ error: 'Erro ao exportar dados' }), {
+    console.error('[export-my-data] falha ao preparar exportação');
+    return new Response(JSON.stringify({ error: 'Não foi possível concluir a exportação. Tente novamente ou solicite uma cópia pelo atendimento.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-const mocks = vi.hoisted(() => ({ access: {} as Record<string, unknown>, checkout: vi.fn(), portal: vi.fn(), refresh: vi.fn(), signOut: vi.fn(), reloadPlan: vi.fn() }));
+const mocks = vi.hoisted(() => ({ access: {} as Record<string, unknown>, legalStatus: vi.fn(), checkout: vi.fn(), portal: vi.fn(), refresh: vi.fn(), signOut: vi.fn(), reloadPlan: vi.fn() }));
+vi.mock('@/lib/legal', () => ({ getLegalStatus: mocks.legalStatus }));
 vi.mock('@/hooks/useSubscriptionStatus', () => ({ useSubscriptionStatus: () => ({ ...mocks.access, refresh: mocks.refresh }) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ signOut: mocks.signOut }) }));
 vi.mock('@/hooks/usePlanLimits', () => ({ usePlanLimits: () => ({ currentPlan: 'lite', loading: false, reloadPlan: mocks.reloadPlan }) }));
@@ -22,6 +23,7 @@ import Planos from '@/pages/Planos';
 beforeEach(() => {
   mocks.access = { loading: false, error: false, isBlocked: false, isTrial: true, trialExpired: false, daysRemaining: 7, hasSubscription: false, status: 'active' };
   vi.clearAllMocks();
+  mocks.legalStatus.mockResolvedValue({ accepted: true });
 });
 afterEach(cleanup);
 const open = (children: React.ReactNode, route = '/') => render(<MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>);
@@ -53,13 +55,22 @@ describe('seven-day Iniciante trial', () => {
     Object.assign(mocks.access, { isBlocked: expired, trialExpired: expired, daysRemaining: expired ? 0 : 7 });
     open(<SubscriptionStatusGate><Planos /></SubscriptionStatusGate>, '/planos');
     fireEvent.click(screen.getByRole('button', { name: 'Escolher Iniciante' }));
-    expect(mocks.checkout).toHaveBeenCalledWith('lite', 'monthly', undefined);
+    await waitFor(() => expect(mocks.checkout).toHaveBeenCalledWith('lite', 'monthly', undefined));
     expect(mocks.portal).not.toHaveBeenCalled();
   });
   it('uses the existing subscription portal instead of creating a duplicate subscription', () => {
+    mocks.legalStatus.mockResolvedValue({ accepted: false });
     Object.assign(mocks.access, { isTrial: false, hasSubscription: true });
     open(<Planos />, '/planos');
     fireEvent.click(screen.getByRole('button', { name: 'Gerenciar meu plano' }));
     expect(mocks.portal).toHaveBeenCalled(); expect(mocks.checkout).not.toHaveBeenCalled();
+    expect(mocks.legalStatus).not.toHaveBeenCalled();
+  });
+  it('requires acknowledgement before starting a new checkout from plans', async () => {
+    mocks.legalStatus.mockResolvedValue({ accepted: false });
+    open(<Planos />, '/planos');
+    fireEvent.click(screen.getByRole('button', { name: 'Escolher Iniciante' }));
+    await waitFor(() => expect(mocks.legalStatus).toHaveBeenCalled());
+    expect(mocks.checkout).not.toHaveBeenCalled();
   });
 });

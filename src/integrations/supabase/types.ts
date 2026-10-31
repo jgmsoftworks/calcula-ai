@@ -3429,6 +3429,14 @@ export type Database = {
       }
     }
     Functions: {
+      legal_acceptance_status: {
+        Args: Record<PropertyKey, never>;
+        Returns: { version: string; content_sha256: string; accepted: boolean }[];
+      };
+      accept_legal_documents: {
+        Args: { p_version: string; p_content_sha256: string; p_accept_terms: boolean; p_acknowledge_privacy: boolean };
+        Returns: undefined;
+      };
       get_my_access: { Args: Record<PropertyKey, never>; Returns: Json }
       listar_produtos_pagina: {
         Args: { p_busca?: string; p_marcas?: string[]; p_categorias?: string[]; p_unidade?: string; p_abaixo_minimo?: boolean; p_pagina?: number; p_tamanho?: number }

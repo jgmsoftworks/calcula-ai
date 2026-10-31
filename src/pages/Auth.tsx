@@ -32,7 +32,6 @@ import { acquisitionDestination, consumeAcquisition, rememberAcquisition } from 
 import { trackFunnel } from '@/lib/funnel-analytics';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
-import { CONSENT_VERSION } from '@/lib/consent';
 import { AuthAnimation } from '@/components/AuthAnimation';
 import authLogo from '@/assets/logo-calculaai-auth.webp';
 import './Auth.css';
@@ -200,7 +199,7 @@ const Auth = () => {
     if (!acceptTerms || !acceptPrivacy) {
       toast({
         title: 'Aceite necessário',
-        description: 'Para criar sua conta, é necessário ler e aceitar os Termos de Uso e a Política de Privacidade.',
+        description: 'Para criar sua conta, aceite os Termos de Uso e confirme a leitura da Política de Privacidade.',
         variant: 'destructive',
       });
       return;
@@ -227,15 +226,8 @@ const Auth = () => {
       const newUserId = data?.user?.id ?? null;
       if (newUserId) {
         trackFunnel('signup_completed', { method: 'email' });
-        const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
-        try {
-          await supabase.from('user_consents').insert([
-            { user_id: newUserId, consent_type: 'terms_of_use', accepted: true, version: CONSENT_VERSION, user_agent: ua },
-            { user_id: newUserId, consent_type: 'privacy_policy', accepted: true, version: CONSENT_VERSION, user_agent: ua },
-          ] as any);
-        } catch (consentErr) {
-          console.warn('[auth] Falha ao registrar consentimentos legais', consentErr);
-        }
+        // The authenticated gate records the final receipt, including after email confirmation.
+
       }
 
       if (data?.session) {
@@ -299,6 +291,10 @@ const Auth = () => {
   };
 
   const handleGoogleLogin = async () => {
+    if (mode === 'signup' && (!acceptTerms || !acceptPrivacy)) {
+      toast({ title: 'Confira os documentos', description: 'Aceite os Termos de Uso e confirme a leitura da Política de Privacidade para continuar.', variant: 'destructive' });
+      return;
+    }
     if (mode === 'signup') trackFunnel('signup_started', { method: 'google' });
     setLoading(true);
     try {
@@ -479,7 +475,7 @@ const Auth = () => {
                           <label className="flex items-start gap-2 cursor-pointer">
                             <Checkbox id="acceptPrivacy" checked={acceptPrivacy} onCheckedChange={(v) => setAcceptPrivacy(v === true)} className="mt-0.5" />
                             <span className="text-xs text-muted-foreground leading-snug">
-                              Li e aceito a{' '}
+                              Li e estou ciente da{' '}
                               <Link to="/politica-de-privacidade" target="_blank" className="text-primary underline underline-offset-2">Política de Privacidade</Link>.
                             </span>
                           </label>
