@@ -2,7 +2,8 @@ import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { trackRecipeCreated } from '@/lib/funnel-analytics';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { recipeSavePayload, recipeSaveError } from '@/lib/recipe-save';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -66,10 +67,14 @@ interface ReceitaFormProps {
 
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   usePortugalTranslation();
-  const { createReceita, updateReceita, fetchReceitaCompleta, uploadImagemReceita, loading } = useReceitas();
+  const { saveReceitaCompleta, fetchReceitaCompleta, loading } = useReceitas();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [saveId] = useState(() => receita?.id || crypto.randomUUID());
+  const lastAttempt = useRef<{ payload: string; requestId: string } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
   // Prefetched data for child tabs
   const [prefetchedProdutos, setPrefetchedProdutos] = useState<any[]>([]);
@@ -97,8 +102,6 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       ambiente: { temperatura: 0, tempo: 0, unidade: 'horas' }
     },
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // Estados temporários para modo criação
   const [tempIngredientes, setTempIngredientes] = useState<TempIngrediente[]>([]);
@@ -197,7 +200,6 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           ambiente: { temperatura: 0, tempo: 0, unidade: 'horas' }
         },
       });
-      setImagePreview(receita.imagem_url);
     }
   }, [receita]);
 
@@ -288,18 +290,6 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       setFormData(prev => ({ ...prev, markup_tipo: null }));
     }
   }, [formData.markup_id, formData.markup_tipo]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleAddIngredienteTemp = (produto: any, quantidade: number) => {
     setTempIngredientes([...tempIngredientes, {
@@ -393,257 +383,38 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   };
 
   const handleSave = async () => {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!formData.nome.trim()) {
       toast.error('Nome da receita é obrigatório');
       return;
     }
-
+    savingRef.current = true;
     setSaving(true);
+    setSaveError(null);
     try {
-      if (isCreating) {
-        // MODO CRIAÇÃO: Salvar tudo de uma vez
-        const novaReceita = await createReceita(formData);
-        if (!novaReceita?.id) {
-          return;
-        }
-
-        // Inserir ingredientes
-        if (tempIngredientes.length > 0) {
-          const { error: errorIngredientes } = await supabase
-            .from('receita_ingredientes')
-            .insert(
-              tempIngredientes.map(ing => ({
-                receita_id: novaReceita.id,
-                produto_id: ing.produto_id,
-                quantidade: ing.quantidade
-              }))
-            );
-          
-          if (errorIngredientes) throw errorIngredientes;
-        }
-
-        // Inserir sub-receitas
-        if (tempSubReceitas.length > 0) {
-          const { error: errorSubReceitas } = await supabase
-            .from('receita_sub_receitas')
-            .insert(
-              tempSubReceitas.map(sub => ({
-                receita_id: novaReceita.id,
-                sub_receita_id: sub.sub_receita_id,
-                quantidade: sub.quantidade
-              }))
-            );
-          
-          if (errorSubReceitas) throw errorSubReceitas;
-        }
-
-        // Inserir embalagens
-        if (tempEmbalagens.length > 0) {
-          const { error: errorEmbalagens } = await supabase
-            .from('receita_embalagens')
-            .insert(
-              tempEmbalagens.map(emb => ({
-                receita_id: novaReceita.id,
-                produto_id: emb.produto_id,
-                quantidade: emb.quantidade
-              }))
-            );
-          
-          if (errorEmbalagens) throw errorEmbalagens;
-        }
-
-        // Inserir passos de preparo
-        if (tempPassos.length > 0) {
-          const { error: errorPassos } = await supabase
-            .from('receita_passos_preparo')
-            .insert(
-              tempPassos.map(passo => ({
-                receita_id: novaReceita.id,
-                ordem: passo.ordem,
-                descricao: passo.descricao
-              }))
-            );
-          
-          if (errorPassos) throw errorPassos;
-        }
-
-        // Inserir mão de obra
-        if (tempMaoObra.length > 0) {
-          const { error: errorMaoObra } = await supabase
-            .from('receita_mao_obra')
-            .insert(
-              tempMaoObra.map(mo => ({
-                receita_id: novaReceita.id,
-                funcionario_id: mo.funcionario_id,
-                funcionario_nome: mo.funcionario_nome,
-                funcionario_cargo: mo.funcionario_cargo,
-                custo_por_hora: mo.custo_por_hora,
-                tempo: mo.tempo,
-                unidade_tempo: mo.unidade_tempo,
-                valor_total: mo.valor_total,
-              }))
-            );
-          
-          if (errorMaoObra) throw errorMaoObra;
-        }
-
-        // Upload de imagem se houver
-        if (imageFile) {
-          await uploadImagemReceita(imageFile, novaReceita.id);
-        }
-
-        if (user) trackRecipeCreated(user.id, novaReceita.numero_sequencial);
-        toast.success('Receita criada com sucesso!');
-      } else {
-        // MODO EDIÇÃO: Processar diferenças e salvar tudo de uma vez
-        const updated = await updateReceita(receita!.id, formData);
-        if (!updated) return;
-        
-        // Processar ingredientes
-        const ingredientesOriginais = receitaCompleta?.ingredientes?.map(i => i.id) || [];
-        const ingredientesAtuais = tempIngredientes.map(i => i.id);
-        
-        const ingredientesParaDeletar = ingredientesOriginais.filter(id => !ingredientesAtuais.includes(id));
-        const ingredientesParaInserir = tempIngredientes.filter(i => !ingredientesOriginais.includes(i.id));
-        const ingredientesParaAtualizar = tempIngredientes.filter(i => ingredientesOriginais.includes(i.id));
-        
-        if (ingredientesParaDeletar.length > 0) {
-          await supabase.from('receita_ingredientes').delete().in('id', ingredientesParaDeletar);
-        }
-        
-        if (ingredientesParaInserir.length > 0) {
-          await supabase.from('receita_ingredientes').insert(
-            ingredientesParaInserir.map(i => ({
-              receita_id: receita!.id,
-              produto_id: i.produto_id,
-              quantidade: i.quantidade
-            }))
-          );
-        }
-        
-        for (const ing of ingredientesParaAtualizar) {
-          await supabase.from('receita_ingredientes')
-            .update({ quantidade: ing.quantidade })
-            .eq('id', ing.id);
-        }
-        
-        // Processar sub-receitas
-        const subReceitasOriginais = receitaCompleta?.sub_receitas?.map(s => s.id) || [];
-        const subReceitasAtuais = tempSubReceitas.map(s => s.id);
-        
-        const subReceitasParaDeletar = subReceitasOriginais.filter(id => !subReceitasAtuais.includes(id));
-        const subReceitasParaInserir = tempSubReceitas.filter(s => !subReceitasOriginais.includes(s.id));
-        const subReceitasParaAtualizar = tempSubReceitas.filter(s => subReceitasOriginais.includes(s.id));
-        
-        if (subReceitasParaDeletar.length > 0) {
-          await supabase.from('receita_sub_receitas').delete().in('id', subReceitasParaDeletar);
-        }
-        
-        if (subReceitasParaInserir.length > 0) {
-          await supabase.from('receita_sub_receitas').insert(
-            subReceitasParaInserir.map(s => ({
-              receita_id: receita!.id,
-              sub_receita_id: s.sub_receita_id,
-              quantidade: s.quantidade
-            }))
-          );
-        }
-        
-        for (const sub of subReceitasParaAtualizar) {
-          await supabase.from('receita_sub_receitas')
-            .update({ quantidade: sub.quantidade })
-            .eq('id', sub.id);
-        }
-        
-        // Processar embalagens
-        const embalagensOriginais = receitaCompleta?.embalagens?.map(e => e.id) || [];
-        const embalagensAtuais = tempEmbalagens.map(e => e.id);
-        
-        const embalagensParaDeletar = embalagensOriginais.filter(id => !embalagensAtuais.includes(id));
-        const embalagensParaInserir = tempEmbalagens.filter(e => !embalagensOriginais.includes(e.id));
-        const embalagensParaAtualizar = tempEmbalagens.filter(e => embalagensOriginais.includes(e.id));
-        
-        if (embalagensParaDeletar.length > 0) {
-          await supabase.from('receita_embalagens').delete().in('id', embalagensParaDeletar);
-        }
-        
-        if (embalagensParaInserir.length > 0) {
-          await supabase.from('receita_embalagens').insert(
-            embalagensParaInserir.map(e => ({
-              receita_id: receita!.id,
-              produto_id: e.produto_id,
-              quantidade: e.quantidade
-            }))
-          );
-        }
-        
-        for (const emb of embalagensParaAtualizar) {
-          await supabase.from('receita_embalagens')
-            .update({ quantidade: emb.quantidade })
-            .eq('id', emb.id);
-        }
-        
-        // Processar passos
-        const passosOriginais = receitaCompleta?.passos?.map(p => p.id) || [];
-        const passosAtuais = tempPassos.map(p => p.id);
-        
-        const passosParaDeletar = passosOriginais.filter(id => !passosAtuais.includes(id));
-        const passosParaInserir = tempPassos.filter(p => !passosOriginais.includes(p.id));
-        
-        if (passosParaDeletar.length > 0) {
-          await supabase.from('receita_passos_preparo').delete().in('id', passosParaDeletar);
-        }
-        
-        if (passosParaInserir.length > 0) {
-          await supabase.from('receita_passos_preparo').insert(
-            passosParaInserir.map(p => ({
-              receita_id: receita!.id,
-              ordem: p.ordem,
-              descricao: p.descricao
-            }))
-          );
-        }
-        
-        // Processar mão de obra
-        const maoObraOriginais = receitaCompleta?.mao_obra?.map(mo => mo.id) || [];
-        const maoObraAtuais = tempMaoObra.map(mo => mo.id);
-        
-        const maoObraParaDeletar = maoObraOriginais.filter(id => !maoObraAtuais.includes(id));
-        const maoObraParaInserir = tempMaoObra.filter(mo => !maoObraOriginais.includes(mo.id));
-        
-        if (maoObraParaDeletar.length > 0) {
-          await supabase.from('receita_mao_obra').delete().in('id', maoObraParaDeletar);
-        }
-        
-        if (maoObraParaInserir.length > 0) {
-          await supabase.from('receita_mao_obra').insert(
-            maoObraParaInserir.map(mo => ({
-              receita_id: receita!.id,
-              funcionario_id: mo.funcionario_id,
-              funcionario_nome: mo.funcionario_nome,
-              funcionario_cargo: mo.funcionario_cargo,
-              custo_por_hora: mo.custo_por_hora,
-              tempo: mo.tempo,
-              unidade_tempo: mo.unidade_tempo,
-              valor_total: mo.valor_total,
-            }))
-          );
-        }
-        
-        if (imageFile) {
-          await uploadImagemReceita(imageFile, receita!.id);
-        }
-
-        toast.success('Receita atualizada com sucesso!');
+      const payload = recipeSavePayload(saveId, isCreating, receitaCompleta?.updated_at || null, formData, {
+        ingredientes: tempIngredientes,
+        sub_receitas: tempSubReceitas,
+        embalagens: tempEmbalagens,
+        passos: tempPassos,
+        mao_obra: tempMaoObra,
+      }, receitaCompleta);
+      const fingerprint = JSON.stringify(payload);
+      if (lastAttempt.current?.payload !== fingerprint) {
+        lastAttempt.current = { payload: fingerprint, requestId: crypto.randomUUID() };
       }
-
+      const saved = await saveReceitaCompleta({ ...payload, p_request_id: lastAttempt.current.requestId });
+      if (isCreating && user) trackRecipeCreated(user.id, saved.numero_sequencial);
+      toast.success(isCreating ? 'Receita criada com sucesso!' : 'Receita atualizada com sucesso!');
       void queryClient.invalidateQueries({ queryKey: ['receitas-lista', user?.id] });
       onClose();
-    } catch (error: any) {
-      console.error('Erro ao salvar receita:', error);
-      toast.error('Erro ao salvar receita');
+    } catch (error: unknown) {
+      console.error('Erro ao salvar receita completa:', error);
+      const message = recipeSaveError(error);
+      setSaveError(message);
+      toast.error(message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -681,6 +452,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           </p>
         </div>
       </div>
+
+      {saveError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{saveError}</p>}
 
       <div className="min-w-0 rounded-2xl border bg-card shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">

@@ -6,12 +6,30 @@ import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { isPlanLimitError } from '@/lib/plan-access';
+import { savedRecipeResponse, type RecipeSaveRequest } from '@/lib/recipe-save';
 import type { Receita, ReceitaCompleta, ReceitaIngrediente, ReceitaEmbalagem, ReceitaPasso } from '@/types/receitas';
 
 export function useReceitas() {
   const { user } = useAuth();
   const { requestAccess } = usePlanGate();
   const [loading, setLoading] = useState(false);
+
+  const saveReceitaCompleta = async (request: RecipeSaveRequest) => {
+    if (!user) throw new Error('Sessão indisponível.');
+    setLoading(true);
+    try {
+      // The RPC enforces permissions/limits and commits all recipe rows together.
+      // No preflight count on retry: a lost response may already have used the last plan slot.
+      const { data, error } = await supabase.rpc('salvar_receita_completa', request);
+      if (error) throw error;
+      return savedRecipeResponse(data, request.p_receita_id);
+    } catch (error) {
+      if (isPlanLimitError(error)) await requestAccess('receitas');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const gerarNumeroSequencial = async () => {
     if (!user) return 1;
@@ -484,6 +502,7 @@ export function useReceitas() {
 
   return {
     loading,
+    saveReceitaCompleta,
     gerarNumeroSequencial,
     fetchReceitaCompleta,
     createReceita,
