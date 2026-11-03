@@ -1,6 +1,6 @@
 // Helpers compartilhados para as edge functions de admin Stripe.
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +19,7 @@ export function jsonResponse(body: unknown, status = 200) {
 export interface AdminContext {
   userId: string;
   email: string;
-  supabase: ReturnType<typeof createClient>;
+  supabase: SupabaseClient;
   stripe: Stripe;
   stripeLegacy: Stripe | null;
 }

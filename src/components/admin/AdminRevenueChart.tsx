@@ -7,14 +7,15 @@ interface Props {
 }
 
 export const AdminRevenueChart = ({ metrics }: Props) => {
+  if (metrics.error) return null;
   return (
     <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
       {/* MRR + Users Growth */}
       <Card className="glass-card overflow-hidden lg:col-span-2">
         <div className="h-1 bg-gradient-brand-horizontal" />
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">Crescimento Mensal</CardTitle>
-          <CardDescription className="text-xs">Novos usuários e receita estimada (6 meses)</CardDescription>
+          <CardTitle className="text-base font-display">Novos cadastros</CardTitle>
+          <CardDescription className="text-xs">Cadastros por mês (6 meses); não representam receita</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="h-64">
@@ -24,7 +25,6 @@ export const AdminRevenueChart = ({ metrics }: Props) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
                   <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${v}`} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
@@ -33,14 +33,10 @@ export const AdminRevenueChart = ({ metrics }: Props) => {
                       padding: '8px 12px',
                       fontSize: '12px',
                     }}
-                    formatter={(value: number, name: string) => [
-                      name === 'users' ? value : `R$ ${value.toFixed(2)}`,
-                      name === 'users' ? 'Novos Usuários' : 'MRR Estimado'
-                    ]}
+                    formatter={(value: number) => [value, 'Novos cadastros']}
                   />
-                  <Legend formatter={(value) => value === 'users' ? 'Novos Usuários' : 'MRR Estimado'} />
+                  <Legend formatter={() => 'Novos cadastros'} />
                   <Bar yAxisId="left" dataKey="users" fill="hsl(205 96% 46%)" radius={[3, 3, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="mrr" fill="hsl(273 63% 42%)" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -56,8 +52,8 @@ export const AdminRevenueChart = ({ metrics }: Props) => {
       <Card className="glass-card overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">Distribuição de Planos</CardTitle>
-          <CardDescription className="text-xs">Proporção atual</CardDescription>
+          <CardTitle className="text-base font-display">Planos registrados nos perfis</CardTitle>
+          <CardDescription className="text-xs">Distribuição de acesso; não indica assinaturas pagas</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="h-52">
