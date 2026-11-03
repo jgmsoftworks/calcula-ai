@@ -22,6 +22,7 @@ export interface Receita {
 }
 
 export interface ReceitaIngrediente {
+  updated_at?: string;
   id: string;
   receita_id: string;
   produto_id: string;
@@ -38,6 +39,7 @@ export interface ReceitaIngrediente {
 }
 
 export interface ReceitaEmbalagem {
+  updated_at?: string;
   id: string;
   receita_id: string;
   produto_id: string;
@@ -53,6 +55,7 @@ export interface ReceitaEmbalagem {
 }
 
 export interface ReceitaPasso {
+  updated_at?: string;
   id: string;
   receita_id: string;
   ordem: number;
@@ -61,6 +64,7 @@ export interface ReceitaPasso {
 }
 
 export interface ReceitaSubReceita {
+  updated_at?: string;
   id: string;
   receita_id: string;
   sub_receita_id: string;

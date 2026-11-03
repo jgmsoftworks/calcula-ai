@@ -2732,6 +2732,8 @@ export type Database = {
           created_at: string
           id: string
           imagem_url: string | null
+          last_save_request_id: string | null
+          last_save_payload_hash: string | null
           markup_id: string | null
           nome: string
           numero_sequencial: number
@@ -2754,6 +2756,8 @@ export type Database = {
           created_at?: string
           id?: string
           imagem_url?: string | null
+          last_save_request_id?: string | null
+          last_save_payload_hash?: string | null
           markup_id?: string | null
           nome: string
           numero_sequencial: number
@@ -2776,6 +2780,8 @@ export type Database = {
           created_at?: string
           id?: string
           imagem_url?: string | null
+          last_save_request_id?: string | null
+          last_save_payload_hash?: string | null
           markup_id?: string | null
           nome?: string
           numero_sequencial?: number
@@ -3429,6 +3435,18 @@ export type Database = {
       }
     }
     Functions: {
+      salvar_receita_completa: {
+        Args: {
+          p_receita_id: string
+          p_request_id: string
+          p_receita: Json
+          p_componentes: Json
+          p_criar?: boolean
+          p_expected_updated_at?: string | null
+          p_expected_components?: Json
+        }
+        Returns: Json
+      }
       get_my_access: { Args: Record<PropertyKey, never>; Returns: Json }
       listar_produtos_pagina: {
         Args: { p_busca?: string; p_marcas?: string[]; p_categorias?: string[]; p_unidade?: string; p_abaixo_minimo?: boolean; p_pagina?: number; p_tamanho?: number }

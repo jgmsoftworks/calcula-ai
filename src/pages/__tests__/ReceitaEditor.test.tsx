@@ -15,8 +15,7 @@ const mocks = vi.hoisted(() => ({
   fetchTodasReceitas: vi.fn(),
   fetchReceitaCompleta: vi.fn(),
   fetchTiposProduto: vi.fn(),
-  createReceita: vi.fn(),
-  updateReceita: vi.fn(),
+  saveReceitaCompleta: vi.fn(),
   from: vi.fn(),
 }));
 
@@ -98,8 +97,7 @@ beforeEach(() => {
   mocks.fetchTodasReceitas.mockResolvedValue([recipe]);
   mocks.fetchReceitaCompleta.mockResolvedValue(recipe);
   mocks.fetchTiposProduto.mockResolvedValue([]);
-  mocks.createReceita.mockResolvedValue({ id: 'created-recipe' });
-  mocks.updateReceita.mockResolvedValue(true);
+  mocks.saveReceitaCompleta.mockImplementation(async request => ({ id: request.p_receita_id, numero_sequencial: 1, updated_at: '2026-11-03T00:00:00Z' }));
   mocks.from.mockImplementation(() => {
     const query = {
       select: () => query, eq: () => query, ilike: () => query, neq: () => query,
@@ -139,7 +137,7 @@ describe('recipe editor navigation', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Nova Receita' }));
     expect(await screen.findByRole('dialog')).toHaveTextContent('limite de 5 receitas do plano Iniciante');
     expect(screen.queryByLabelText('Nome da Receita *')).toBeNull();
-    expect(mocks.createReceita).not.toHaveBeenCalled();
+    expect(mocks.saveReceitaCompleta).not.toHaveBeenCalled();
     const mascot = document.querySelector('.plan-mascot');
     const later = screen.getByRole('button', { name: 'Agora não' });
     const plans = screen.getByRole('button', { name: 'Conhecer planos' });
@@ -187,19 +185,19 @@ describe('recipe editor navigation', () => {
     fireEvent.change(screen.getByLabelText('Nome da Receita *'), { target: { value: 'Bolo atualizado' } });
     for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar' }));
-    await waitFor(() => expect(mocks.updateReceita).toHaveBeenCalledWith(recipe.id, expect.objectContaining({ nome: 'Bolo atualizado' })));
+    await waitFor(() => expect(mocks.saveReceitaCompleta).toHaveBeenCalledWith(expect.objectContaining({ p_receita_id: recipe.id, p_criar: false, p_receita: expect.objectContaining({ nome: 'Bolo atualizado' }) })));
     expect(await screen.findByPlaceholderText('Buscar receita')).toHaveValue('Bolo');
   });
 
   it('keeps unsaved edits on a failed save and lets the user cancel', async () => {
-    mocks.updateReceita.mockResolvedValue(false);
+    mocks.saveReceitaCompleta.mockRejectedValue(new Error('Falha simulada'));
     openPage('/receitas/recipe-1/editar');
     await waitFor(() => expect(screen.getByLabelText('Nome da Receita *')).toHaveValue(recipe.nome));
     fireEvent.change(screen.getByLabelText('Nome da Receita *'), { target: { value: 'Alteração não salva' } });
     for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Atualizar' })).toBeEnabled());
-    expect(mocks.updateReceita).toHaveBeenCalled();
+    expect(mocks.saveReceitaCompleta).toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Editar Receita' })).toBeInTheDocument();
     for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Etapa anterior' }));
     expect(screen.getByLabelText('Nome da Receita *')).toHaveValue('Alteração não salva');
@@ -212,7 +210,7 @@ describe('recipe editor navigation', () => {
     fireEvent.change(await screen.findByLabelText('Nome da Receita *'), { target: { value: 'Bolo novo' } });
     for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }));
-    await waitFor(() => expect(mocks.createReceita).toHaveBeenCalledWith(expect.objectContaining({ nome: 'Bolo novo' })));
+    await waitFor(() => expect(mocks.saveReceitaCompleta).toHaveBeenCalledWith(expect.objectContaining({ p_criar: true, p_receita: expect.objectContaining({ nome: 'Bolo novo' }) })));
     expect(await screen.findByPlaceholderText('Buscar receita')).toBeInTheDocument();
   });
 
