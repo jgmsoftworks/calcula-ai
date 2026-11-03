@@ -17,28 +17,8 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { formatBRL } from '@/lib/formatters';
 import { Activity, CreditCard, Link as LinkIcon, Settings, FileText, RefreshCw, Ban, RotateCcw, AlertTriangle } from 'lucide-react';
 
-// Tipos mínimos para o painel
-interface AccountMetrics {
-  label: string;
-  account: { name: string | null; email: string | null; country: string | null } | null;
-  active_subscriptions: number;
-  trialing: number;
-  past_due: number;
-  canceled_last_30d: number;
-  mrr_brl: number;
-  revenue_last_30d_brl: number;
-  balance_available_brl: number;
-  balance_pending_brl: number;
-  recent_charges: Array<{
-    id: string;
-    amount: number;
-    created: number;
-    customer_email: string | null;
-    status: string;
-    description: string | null;
-  }>;
-  error?: string;
-}
+import { AdminFinancialPanel } from '@/components/admin/AdminFinancialPanel';
+import type { StripeDashboardData } from '@/lib/adminFinancial';
 
 interface SubRow {
   id: string;
@@ -106,104 +86,27 @@ export default function AdminStripe() {
 
 // ---------------- DASHBOARD ----------------
 function DashboardTab() {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<{ current: AccountMetrics; legacy: AccountMetrics | null } | null>(null);
-  const { toast } = useToast();
-
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<StripeDashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('stripe-admin-dashboard');
-    setLoading(false);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    setData(data);
+    try {
+      const result = await supabase.functions.invoke('stripe-admin-dashboard');
+      if (result.error || !result.data?.current) throw new Error('report_unavailable');
+      setData(result.data); setError(null);
+    } catch {
+      setData(null); setError('Consulta financeira indisponível. Tente atualizar.');
+    } finally { setLoading(false); }
   };
-
-  useEffect(() => { load(); }, []);
-
+  useEffect(() => { void load(); }, []);
   if (loading && !data) return <LoadingSpinner />;
-  if (!data) return null;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`}/>Atualizar
-        </Button>
-      </div>
-      <AccountSection metrics={data.current} />
-      {data.legacy && (
-        <>
-          <div className="border-t pt-6">
-            <Badge variant="outline" className="mb-3"><AlertTriangle className="w-3 h-3 mr-1"/>Conta Legada (somente leitura)</Badge>
-          </div>
-          <AccountSection metrics={data.legacy} />
-        </>
-      )}
-    </div>
-  );
-}
-
-function AccountSection({ metrics }: { metrics: AccountMetrics }) {
-  if (metrics.error) {
-    return (
-      <Card>
-        <CardHeader><CardTitle className="text-destructive">Erro: {metrics.label}</CardTitle></CardHeader>
-        <CardContent className="text-sm text-muted-foreground">{metrics.error}</CardContent>
-      </Card>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <h2 className="text-xl font-semibold">{metrics.label}</h2>
-        {metrics.account && (
-          <span className="text-sm text-muted-foreground">
-            {metrics.account.name ?? metrics.account.email} · {metrics.account.country}
-          </span>
-        )}
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Kpi label="MRR" value={formatBRL(metrics.mrr_brl)} />
-        <Kpi label="Receita 30d" value={formatBRL(metrics.revenue_last_30d_brl)} />
-        <Kpi label="Assinaturas ativas" value={String(metrics.active_subscriptions)} />
-        <Kpi label="Em trial" value={String(metrics.trialing)} />
-        <Kpi label="Inadimplentes" value={String(metrics.past_due)} tone={metrics.past_due > 0 ? 'warn' : undefined} />
-        <Kpi label="Cancelados 30d" value={String(metrics.canceled_last_30d)} />
-        <Kpi label="Saldo disponível" value={formatBRL(metrics.balance_available_brl)} />
-        <Kpi label="Saldo pendente" value={formatBRL(metrics.balance_pending_brl)} />
-      </div>
-      <Card>
-        <CardHeader><CardTitle className="text-base">Últimas cobranças</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {metrics.recent_charges.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="text-sm">{new Date(c.created * 1000).toLocaleString('pt-BR')}</TableCell>
-                  <TableCell className="text-sm">{c.customer_email ?? '—'}</TableCell>
-                  <TableCell><Badge variant={c.status === 'succeeded' ? 'default' : 'secondary'}>{c.status}</Badge></TableCell>
-                  <TableCell className="text-right font-medium">{formatBRL(c.amount)}</TableCell>
-                </TableRow>
-              ))}
-              {metrics.recent_charges.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Sem cobranças recentes</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Kpi({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={`text-2xl font-bold mt-1 ${tone === 'warn' ? 'text-orange-600' : ''}`}>{value}</p>
-      </CardContent>
-    </Card>
-  );
+  return <div className="space-y-4">
+    <div className="flex justify-end"><Button variant="outline" size="sm" onClick={load} disabled={loading}>
+      <RefreshCw className="w-4 h-4 mr-2" />Atualizar
+    </Button></div>
+    <AdminFinancialPanel data={data} error={error} showTransactions />
+  </div>;
 }
 
 // ---------------- SUBSCRIPTIONS ----------------
