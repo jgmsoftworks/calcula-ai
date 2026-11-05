@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { isPlanLimitError } from '@/lib/plan-access';
-import { recipeDuplicateRequest, savedRecipeResponse, type RecipeSaveRequest } from '@/lib/recipe-save';
+import { recipeDuplicateRequest, savedRecipeResponse, isRecipeMarkupRequired, RECIPE_MARKUP_REQUIRED, type RecipeSaveRequest } from '@/lib/recipe-save';
 import type { Receita, ReceitaCompleta, ReceitaIngrediente, ReceitaEmbalagem, ReceitaPasso } from '@/types/receitas';
 
 export function useReceitas() {
@@ -132,6 +132,10 @@ export function useReceitas() {
   const createReceita = async (data: Partial<Receita>) => {
     if (!user) return null;
     if (!await requestAccess('receitas')) return null;
+    if (!data.markup_id?.trim()) {
+      toast.error(RECIPE_MARKUP_REQUIRED);
+      return null;
+    }
 
     setLoading(true);
     try {
@@ -417,7 +421,8 @@ export function useReceitas() {
       } catch (error: unknown) {
         console.error('Erro ao duplicar receita:', error);
         // saveReceitaCompleta already opens the plan dialog on a server denial.
-        if (!isPlanLimitError(error)) toast.error('Não foi possível confirmar a duplicação. Tente novamente.');
+        if (isRecipeMarkupRequired(error)) toast.error('Abra a receita original e selecione um markup na etapa Precificação antes de duplicar.');
+        else if (!isPlanLimitError(error)) toast.error('Não foi possível confirmar a duplicação. Tente novamente.');
         return false;
       } finally {
         copying.current.delete(key);

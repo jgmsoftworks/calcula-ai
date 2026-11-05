@@ -3,7 +3,7 @@ import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { trackRecipeCreated } from '@/lib/funnel-analytics';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect, useRef } from 'react';
-import { recipeSavePayload, recipeSaveError } from '@/lib/recipe-save';
+import { recipeSavePayload, recipeSaveError, RECIPE_MARKUP_REQUIRED, isRecipeMarkupRequired } from '@/lib/recipe-save';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -120,6 +120,9 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
 
   const handleFormChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'markup_id' && value) {
+      setSaveError(prev => prev === RECIPE_MARKUP_REQUIRED ? null : prev);
+    }
   };
 
   const handlePrevious = () => {
@@ -388,6 +391,12 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       toast.error('Nome da receita é obrigatório');
       return;
     }
+    if (!formData.markup_id?.trim()) {
+      setActiveTab('precificacao');
+      setSaveError(RECIPE_MARKUP_REQUIRED);
+      toast.error(localizeText(RECIPE_MARKUP_REQUIRED));
+      return;
+    }
     savingRef.current = true;
     setSaving(true);
     setSaveError(null);
@@ -411,6 +420,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     } catch (error: unknown) {
       console.error('Erro ao salvar receita completa:', error);
       const message = recipeSaveError(error);
+      if (isRecipeMarkupRequired(error)) setActiveTab('precificacao');
       setSaveError(message);
       toast.error(message);
     } finally {
@@ -453,7 +463,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
         </div>
       </div>
 
-      {saveError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{saveError}</p>}
+      {saveError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{localizeText(saveError)}</p>}
 
       <div className="min-w-0 rounded-2xl border bg-card shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">

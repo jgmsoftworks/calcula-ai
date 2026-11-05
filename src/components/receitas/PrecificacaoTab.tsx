@@ -453,8 +453,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               <TrendingUp className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <CardTitle className="text-base font-display">Markup da Receita</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">{localizeText("Selecione o markup para calcular a precificação")}</p>
+              <CardTitle className="text-base font-display">Markup da Receita *</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">{localizeText("Selecione um markup para salvar a receita.")}</p>
             </div>
           </div>
         </CardHeader>
@@ -473,6 +473,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
                   <Button
                     variant="outline"
                     role="combobox"
+                    aria-label="Markup da Receita"
+                    aria-required="true"
                     className={cn(
                       "w-full justify-between h-auto py-3 px-4 rounded-xl border-border/60",
                       "hover:bg-muted/50 transition-all",
@@ -538,7 +540,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
               {!formData.markup_id && (
                 <div className="flex items-center gap-3 p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl">
                   <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                  <p className="text-sm text-amber-700 dark:text-amber-300">{localizeText("Selecione um markup para ativar os cálculos de precificação.")}</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">{localizeText("Selecione um markup para salvar a receita.")}</p>
                 </div>
               )}
 

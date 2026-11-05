@@ -359,3 +359,25 @@ GRANT USAGE ON SCHEMA public,auth,private TO authenticated,anon;
 GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA private TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated,anon;
+
+-- Product cost propagation captured from production 2026-11-05.
+CREATE OR REPLACE FUNCTION public.trigger_produto_atualizado()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $$
+DECLARE receita_record RECORD;
+BEGIN
+  IF OLD.custo_unitario = NEW.custo_unitario
+     AND OLD.fator_conversao IS NOT DISTINCT FROM NEW.fator_conversao
+     AND OLD.unidade_uso IS NOT DISTINCT FROM NEW.unidade_uso THEN
+    RETURN NEW;
+  END IF;
+  FOR receita_record IN SELECT DISTINCT receita_id FROM receita_ingredientes WHERE produto_id = NEW.id LOOP
+    PERFORM atualizar_preco_receita(receita_record.receita_id);
+  END LOOP;
+  FOR receita_record IN SELECT DISTINCT receita_id FROM receita_embalagens WHERE produto_id = NEW.id LOOP
+    PERFORM atualizar_preco_receita(receita_record.receita_id);
+  END LOOP;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER after_produto_update AFTER UPDATE ON public.produtos FOR EACH ROW EXECUTE FUNCTION public.trigger_produto_atualizado();

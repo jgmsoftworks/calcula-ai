@@ -40,3 +40,20 @@ Os testes da duplicação exercitam o hook real, falhas de leitura/escrita, conf
 Aplicar a migração `atomic_recipe_save` antes do frontend. Ela acrescenta dois campos opcionais e uma função nova, compatíveis com o frontend anterior. Conferir a assinatura/ACL no banco e a chamada `salvar_receita_completa` no bundle publicado. O rollback do frontend pode ser feito mantendo a migração aditiva; não apagar os registros de receitas.
 
 A extensão para Duplicar reutiliza essa migração e não exige nova alteração de banco. Publicar o frontend atualizado.
+# Markup obrigatório
+
+Criação, edição e duplicação pelo salvamento completo exigem `markup_id` explícito.
+O editor mostra a etapa Precificação e conserva os dados preenchidos quando a
+seleção está vazia. A duplicação de uma ficha antiga sem markup orienta editar a
+original primeiro. O markup `sub_receita` é uma seleção válida.
+
+A migração `20261105134000_require_recipe_markup.sql` rejeita o pedido no RPC
+antes de gravar qualquer linha (`22023`, detalhe `recipe_markup_required`). Ela
+mantém a validação de propriedade do markup, as permissões, os limites e a
+transação existentes. Não altera registros históricos nem transforma a coluna
+em `NOT NULL`: a remoção de um markup ainda pode deixar fichas antigas sem
+seleção; elas exigirão uma nova seleção no próximo salvamento completo.
+
+Nas fichas históricas sem markup, a atualização de custo não substitui mais
+`preco_venda`. Somente o tipo explícito `sub_receita` acompanha o custo. Preços
+eventualmente alterados antes desta correção não são reconstruídos.
