@@ -1,18 +1,20 @@
 import { fetchTiposProduto as loadTiposProduto } from '@/lib/tiposProdutoData';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { resizeImageToSquare } from '@/lib/imageUtils';
 import { usePlanGate } from '@/contexts/PlanLimitContext';
 import { isPlanLimitError } from '@/lib/plan-access';
-import { savedRecipeResponse, type RecipeSaveRequest } from '@/lib/recipe-save';
+import { recipeDuplicateRequest, savedRecipeResponse, type RecipeSaveRequest } from '@/lib/recipe-save';
 import type { Receita, ReceitaCompleta, ReceitaIngrediente, ReceitaEmbalagem, ReceitaPasso } from '@/types/receitas';
 
 export function useReceitas() {
   const { user } = useAuth();
   const { requestAccess } = usePlanGate();
   const [loading, setLoading] = useState(false);
+  const pendingCopies = useRef(new Map<string, { request: RecipeSaveRequest; name: string }>());
+  const copying = useRef(new Map<string, Promise<boolean>>());
 
   const saveReceitaCompleta = async (request: RecipeSaveRequest) => {
     if (!user) throw new Error('Sessão indisponível.');
@@ -371,133 +373,59 @@ export function useReceitas() {
     }
   };
 
-  const duplicarReceita = async (receitaId: string): Promise<boolean> => {
-    if (!user) return false;
-    if (!await requestAccess('receitas')) return false;
+  const duplicarReceita = (receitaId: string): Promise<boolean> => {
+    if (!user) return Promise.resolve(false);
+    const key = `${user.id}:${receitaId}`;
+    const inFlight = copying.current.get(key);
+    if (inFlight) return inFlight;
 
-    setLoading(true);
-    try {
-      // 1. Buscar receita completa
-      const receitaCompleta = await fetchReceitaCompleta(receitaId);
-      if (!receitaCompleta) throw new Error('Receita não encontrada');
+    // Register the promise before the first await, including the plan check.
+    const attempt = Promise.resolve().then(async () => {
+      setLoading(true);
+      try {
+        let pending = pendingCopies.current.get(key);
+        if (!pending) {
+          if (!await requestAccess('receitas')) return false;
+          const receitaCompleta = await fetchReceitaCompleta(receitaId);
+          if (!receitaCompleta) return false;
 
-      // 2. Gerar nome único
-      const nomeBase = `${receitaCompleta.nome} (Cópia)`;
-      const { data: existentes } = await supabase
-        .from('receitas')
-        .select('nome')
-        .eq('user_id', user.id)
-        .ilike('nome', `${receitaCompleta.nome} (Cópia%`);
+          const nomeBase = `${receitaCompleta.nome} (Cópia)`;
+          const { data: existentes, error } = await supabase
+            .from('receitas')
+            .select('nome')
+            .eq('user_id', user.id)
+            .ilike('nome', `${receitaCompleta.nome} (Cópia%`);
+          if (error) throw error;
 
-      let nomeUnico = nomeBase;
-      if (existentes && existentes.length > 0) {
-        const nomesExistentes = new Set(existentes.map(r => r.nome));
-        if (nomesExistentes.has(nomeBase)) {
+          const nomesExistentes = new Set((existentes || []).map(r => r.nome));
+          let nomeUnico = nomeBase;
           let contador = 2;
-          while (nomesExistentes.has(`${receitaCompleta.nome} (Cópia ${contador})`)) {
-            contador++;
+          while (nomesExistentes.has(nomeUnico)) {
+            nomeUnico = `${receitaCompleta.nome} (Cópia ${contador++})`;
           }
-          nomeUnico = `${receitaCompleta.nome} (Cópia ${contador})`;
+          pending = { request: recipeDuplicateRequest(receitaCompleta, nomeUnico), name: nomeUnico };
+          pendingCopies.current.set(key, pending);
         }
+
+        // One transaction writes the parent and all five component groups.
+        // A retry keeps the IDs, name and payload and skips the preflight quota:
+        // a lost response may already have committed the last allowed recipe.
+        await saveReceitaCompleta(pending.request);
+        pendingCopies.current.delete(key);
+        toast.success(`Receita duplicada: "${pending.name}"`);
+        return true;
+      } catch (error: unknown) {
+        console.error('Erro ao duplicar receita:', error);
+        // saveReceitaCompleta already opens the plan dialog on a server denial.
+        if (!isPlanLimitError(error)) toast.error('Não foi possível confirmar a duplicação. Tente novamente.');
+        return false;
+      } finally {
+        copying.current.delete(key);
+        setLoading(false);
       }
-
-      // 3. Criar nova receita
-      const numeroSequencial = await gerarNumeroSequencial();
-      const { data: novaReceita, error: erroCriar } = await supabase
-        .from('receitas')
-        .insert([{
-          nome: nomeUnico,
-          tipo_produto_id: receitaCompleta.tipo_produto_id || null,
-          rendimento_valor: receitaCompleta.rendimento_valor,
-          rendimento_unidade: receitaCompleta.rendimento_unidade,
-          observacoes: receitaCompleta.observacoes,
-          status: receitaCompleta.status || 'finalizada',
-          preco_venda: receitaCompleta.preco_venda || 0,
-          tempo_preparo_total: receitaCompleta.tempo_preparo_total || 0,
-          tempo_preparo_unidade: receitaCompleta.tempo_preparo_unidade || 'minutos',
-          tempo_preparo_mao_obra: receitaCompleta.tempo_preparo_mao_obra || 0,
-          peso_unitario: receitaCompleta.peso_unitario,
-          conservacao: receitaCompleta.conservacao,
-          markup_id: receitaCompleta.markup_id,
-          user_id: user.id,
-          numero_sequencial: numeroSequencial,
-        }])
-        .select()
-        .single();
-
-      if (erroCriar || !novaReceita) throw erroCriar || new Error('Erro ao criar receita');
-
-      // 4. Copiar dados relacionados em paralelo
-      const novaReceitaId = novaReceita.id;
-      const promises: PromiseLike<any>[] = [];
-
-      if (receitaCompleta.ingredientes?.length > 0) {
-        promises.push(supabase.from('receita_ingredientes').insert(
-          receitaCompleta.ingredientes.map(i => ({
-            receita_id: novaReceitaId,
-            produto_id: i.produto_id,
-            quantidade: i.quantidade,
-          }))
-        ).select());
-      }
-
-      if (receitaCompleta.embalagens?.length > 0) {
-        promises.push(supabase.from('receita_embalagens').insert(
-          receitaCompleta.embalagens.map(e => ({
-            receita_id: novaReceitaId,
-            produto_id: e.produto_id,
-            quantidade: e.quantidade,
-          }))
-        ).select());
-      }
-
-      if (receitaCompleta.sub_receitas?.length > 0) {
-        promises.push(supabase.from('receita_sub_receitas').insert(
-          receitaCompleta.sub_receitas.map(s => ({
-            receita_id: novaReceitaId,
-            sub_receita_id: s.sub_receita_id,
-            quantidade: s.quantidade,
-          }))
-        ).select());
-      }
-
-      if (receitaCompleta.mao_obra?.length > 0) {
-        promises.push(supabase.from('receita_mao_obra').insert(
-          receitaCompleta.mao_obra.map(m => ({
-            receita_id: novaReceitaId,
-            funcionario_id: m.funcionario_id,
-            funcionario_nome: m.funcionario_nome,
-            funcionario_cargo: m.funcionario_cargo,
-            tempo: m.tempo,
-            unidade_tempo: m.unidade_tempo,
-            custo_por_hora: m.custo_por_hora,
-            valor_total: m.valor_total,
-          }))
-        ).select());
-      }
-
-      if (receitaCompleta.passos?.length > 0) {
-        promises.push(supabase.from('receita_passos_preparo').insert(
-          receitaCompleta.passos.map(p => ({
-            receita_id: novaReceitaId,
-            ordem: p.ordem,
-            descricao: p.descricao,
-          }))
-        ).select());
-      }
-
-      await Promise.all(promises);
-
-      toast.success(`Receita duplicada: "${nomeUnico}"`);
-      return true;
-    } catch (error: any) {
-      console.error('Erro ao duplicar receita:', error);
-      if (isPlanLimitError(error)) await requestAccess('receitas');
-      else toast.error('Não foi possível duplicar a receita. Tente novamente.');
-      return false;
-    } finally {
-      setLoading(false);
-    }
+    });
+    copying.current.set(key, attempt);
+    return attempt;
   };
 
   return {

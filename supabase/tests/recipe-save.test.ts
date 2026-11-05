@@ -3,6 +3,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import { recipeDuplicateRequest, type RecipeSaveRequest } from '../../src/lib/recipe-save';
+import type { ReceitaCompleta } from '../../src/types/receitas';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const owner=id(1), other=id(2), original=id(10), sub=id(11), foreign=id(12), product=id(20), markup=id(30);
@@ -37,6 +39,26 @@ async function snapshot() {
     'packages',(select jsonb_agg(to_jsonb(r) order by id) from receita_embalagens r),
     'steps',(select jsonb_agg(to_jsonb(r) order by id) from receita_passos_preparo r),
     'labor',(select jsonb_agg(to_jsonb(r) order by id) from receita_mao_obra r)) as data`)).rows[0];
+}
+async function prepareCopy() {
+  await save();
+  const source = (await db.query<{ data: ReceitaCompleta }>(
+    'select row_to_json(r) as data from receitas r where id=$1', [original],
+  )).rows[0].data;
+  for (let i=0;i<keys.length;i++) {
+    const rows = (await db.query<{ data: never }>(
+      `select coalesce(json_agg(t order by id),'[]') as data from ${tables[i]} t where receita_id=$1`, [original],
+    )).rows[0].data;
+    source[keys[i]] = rows;
+  }
+  return recipeDuplicateRequest(source, `${source.nome} (Cópia)`);
+}
+async function saveCopy(request: RecipeSaveRequest) {
+  return (await db.query<{ result: unknown }>(
+    'select public.salvar_receita_completa($1,$2,$3::jsonb,$4::jsonb,$5,$6::timestamptz,$7::jsonb) as result',
+    [request.p_receita_id,request.p_request_id,JSON.stringify(request.p_receita),JSON.stringify(request.p_componentes),
+      request.p_criar,request.p_expected_updated_at,request.p_expected_components],
+  )).rows[0].result;
 }
 beforeAll(async()=>{
   db=new PGlite();
@@ -146,5 +168,42 @@ describe('Atomic recipe save in PostgreSQL with RLS and plan triggers',()=>{
   it('denies anonymous execution',async()=>{
     await db.exec('reset role; set role anon;');
     await expect(save()).rejects.toMatchObject({code:'42501'});
+  });
+  it.each(tables)('rolls back a copy built by the frontend helper when %s fails, preserving the entire source', async table=>{
+    const request=await prepareCopy();
+    const before=await snapshot();
+    await db.query("select set_config('test.fail_table',$1,false)",[table]);
+    await expect(saveCopy(request)).rejects.toMatchObject({code:'23514'});
+    expect(await snapshot()).toEqual(before);
+    await db.query("select set_config('test.fail_table','',false)");
+    const first=await saveCopy(request);
+    const after=await snapshot();
+    expect(await saveCopy(request)).toEqual(first);
+    expect(await snapshot()).toEqual(after);
+  });
+  it('copies quantities, labor, steps and pricing, leaves source rows intact and acknowledges a retry at the plan limit', async()=>{
+    const request=await prepareCopy();
+    const before=(await snapshot()).data as Record<string, Record<string, unknown>[]>;
+    const first=await saveCopy(request);
+    const after=(await snapshot()).data as Record<string, Record<string, unknown>[]>;
+    for(const key of Object.keys(before)) {
+      const sourceRows=before[key];
+      for(const row of sourceRows) expect(after[key].find(r=>r.id===row.id)).toEqual(row);
+    }
+    for(let i=0;i<tables.length;i++) {
+      const rows=(await db.query<{ data: Record<string, unknown> }>(
+        `select row_to_json(t) as data from ${tables[i]} t where receita_id=$1`,[request.p_receita_id],
+      )).rows.map(r=>r.data);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject(request.p_componentes[keys[i]][0]);
+      expect(rows[0].receita_id).toBe(request.p_receita_id);
+    }
+    const copy=(await db.query<{ data: Record<string, unknown> }>(
+      'select row_to_json(r) as data from receitas r where id=$1',[request.p_receita_id],
+    )).rows[0].data;
+    expect(copy).toMatchObject({nome:'Bolo atualizado (Cópia)',preco_venda:77,rendimento_valor:10,markup_id:markup});
+    await db.query("select set_config('test.fail_table','receita_ingredientes',false)");
+    expect(await saveCopy(request)).toEqual(first);
+    expect((await snapshot()).data).toEqual(after);
   });
 });

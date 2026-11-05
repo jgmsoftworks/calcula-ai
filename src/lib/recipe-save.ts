@@ -21,6 +21,23 @@ export type RecipeSavePayload = {
 export type RecipeSaveRequest = RecipeSavePayload & { p_request_id: string };
 export type SavedRecipe = { id: string; numero_sequencial: number; updated_at: string };
 
+// A copy owns fresh component IDs; reusing source IDs would move or overwrite its rows.
+// Keep this request unchanged when retrying an unconfirmed copy.
+export function recipeDuplicateRequest(recipe: ReceitaCompleta, name: string): RecipeSaveRequest {
+  const copy = <T extends { id: string }>(items: T[]) =>
+    items.map(item => ({ ...item, id: crypto.randomUUID() }));
+  return {
+    ...recipeSavePayload(crypto.randomUUID(), true, null, { ...recipe, nome: name }, {
+      ingredientes: copy(recipe.ingredientes),
+      sub_receitas: copy(recipe.sub_receitas),
+      embalagens: copy(recipe.embalagens),
+      passos: copy(recipe.passos),
+      mao_obra: copy(recipe.mao_obra),
+    }),
+    p_request_id: crypto.randomUUID(),
+  };
+}
+
 // Whitelist writable fields; joined products and client-supplied owner/sequence never leave the form.
 export function recipeSavePayload(id: string, creating: boolean, expectedUpdatedAt: string | null,
   recipe: Partial<Receita>, components: RecipeSaveComponents, original: ReceitaCompleta | null = null): RecipeSavePayload {
