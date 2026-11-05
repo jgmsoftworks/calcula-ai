@@ -14,17 +14,29 @@ O editor criava/atualizava a receita e depois gravava cada grupo de componentes 
 
 As imagens continuam no fluxo independente de Storage já usado pela aba Geral; a RPC não altera `imagem_url`. Os campos de imagem inativos no formulário principal foram removidos. A garantia de repetição se aplica ao formulário aberto; recarregar a página continua descartando o estado local. Esta alteração não tenta identificar nem apagar registros antigos potencialmente incompletos.
 
+## Duplicação de receitas
+
+O botão Duplicar também usa `salvar_receita_completa`. O cliente lê a ficha e os cinco grupos, verifica os erros de leitura e prepara a cópia com IDs novos para a receita e cada componente. O banco atribui o número sequencial e verifica o limite do plano na mesma transação. A receita de origem não é alterada.
+
+Cliques simultâneos na mesma receita compartilham uma operação. Uma tentativa sem confirmação conserva o mesmo nome, conteúdo e IDs enquanto o card permanecer montado. Repetir não refaz a consulta de limite antes da RPC: a resposta perdida pode corresponder à última vaga já ocupada. A RPC confirma o resultado anterior sem criar outra receita. Após sucesso, um novo clique inicia outra cópia intencional. O estado de tentativa é separado por conta e receita; sair da tela ou recarregá-la encerra essa proteção local.
+
+A duplicação conserva o comportamento anterior para imagens: arquivos e URLs de imagens não são copiados. Esta correção cobre os dados da ficha e os cinco grupos já duplicados anteriormente, incluindo passos em texto; não altera Storage nem tenta reparar cópias históricas.
+
 ## Verificação
 
 ```sh
 npm run test:recipe-db
-npx vitest run src/components/receitas/ReceitaForm.save.test.tsx src/pages/__tests__/ReceitaEditor.test.tsx src/hooks/__tests__/recipe-entitlements.test.tsx src/lib/funnel-analytics.test.ts
+npx vitest run src/hooks/__tests__/recipe-duplication.test.tsx src/components/receitas/ReceitaForm.save.test.tsx src/pages/__tests__/ReceitaEditor.test.tsx src/hooks/__tests__/recipe-entitlements.test.tsx src/lib/funnel-analytics.test.ts
 npx tsc --project tsconfig.app.json --noEmit
 npm run build
 ```
 
 Os testes de banco usam PostgreSQL em PGlite, esquema relevante e funções/gatilhos de cálculo, sequência e limite capturados do projeto. Auth e a consulta de acesso são simuladas. Eles verificam rollback em cada um dos cinco grupos, criação/repetição, limite, RLS, referências entre contas, conflitos, metadados e permissão anônima. Não usam dados nem credenciais de produção. Os testes React usam o formulário, a aba de ingredientes e o hook reais, com respostas de RPC controladas.
 
+Os testes da duplicação exercitam o hook real, falhas de leitura/escrita, confirmação inválida, clique repetido, nova cópia após sucesso e repetição após perda da resposta. Os testes PostgreSQL também recebem a carga gerada pelo mesmo helper de duplicação usado no frontend, verificam rollback em cada grupo e a integridade das linhas da origem.
+
 ## Publicação e reversão
 
 Aplicar a migração `atomic_recipe_save` antes do frontend. Ela acrescenta dois campos opcionais e uma função nova, compatíveis com o frontend anterior. Conferir a assinatura/ACL no banco e a chamada `salvar_receita_completa` no bundle publicado. O rollback do frontend pode ser feito mantendo a migração aditiva; não apagar os registros de receitas.
+
+A extensão para Duplicar reutiliza essa migração e não exige nova alteração de banco. Publicar o frontend atualizado.
