@@ -38,7 +38,7 @@ vi.mock('@/components/receitas/IngredientesTab', () => ({
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub-receitas</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
 vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: () => <div>Projeção</div> }));
-vi.mock('@/components/receitas/PrecificacaoTab', () => ({ PrecificacaoTab: () => <div>Precificação</div> }));
+vi.mock('@/components/receitas/PrecificacaoTab', () => ({ PrecificacaoTab: ({formData,onFormChange}: any) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value)}><option value="">Selecione</option><option value="markup">Normal</option></select></label> }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => ({
     'receitas.newRecipe': 'Nova Receita', 'receitas.searchRecipe': 'Buscar receita',
@@ -59,7 +59,7 @@ const recipe: ReceitaCompleta = {
   id: 'recipe-1', user_id: 'owner', numero_sequencial: 1, nome: 'Bolo de teste',
   rendimento_valor: 10, rendimento_unidade: 'un', tempo_preparo_total: 30,
   tempo_preparo_mao_obra: 0, conservacao: null, observacoes: null, imagem_url: null,
-  markup_id: null, preco_venda: 40, status: 'finalizada', peso_unitario: 100,
+  markup_id: 'markup', preco_venda: 40, status: 'finalizada', peso_unitario: 100,
   created_at: '', updated_at: '', embalagens: [], sub_receitas: [], passos: [], mao_obra: [],
   ingredientes: [{ id: 'ingredient-1', receita_id: 'recipe-1', produto_id: 'flour', quantidade: 250,
     produto: { id: 'flour', nome: 'Farinha de teste', marcas: null, custo_unitario: 8,
@@ -209,6 +209,7 @@ describe('recipe editor navigation', () => {
     openPage('/receitas/nova');
     fireEvent.change(await screen.findByLabelText('Nome da Receita *'), { target: { value: 'Bolo novo' } });
     for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
+    fireEvent.change(screen.getByLabelText('Markup'), { target: { value: 'markup' } });
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }));
     await waitFor(() => expect(mocks.saveReceitaCompleta).toHaveBeenCalledWith(expect.objectContaining({ p_criar: true, p_receita: expect.objectContaining({ nome: 'Bolo novo' }) })));
     expect(await screen.findByPlaceholderText('Buscar receita')).toBeInTheDocument();

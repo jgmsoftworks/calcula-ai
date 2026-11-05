@@ -66,6 +66,7 @@ beforeAll(async()=>{
   const migration = readdirSync('supabase/migrations').find(name => name.endsWith('_atomic_recipe_save.sql'));
   if (!migration) throw new Error('Recipe save migration not found');
   await db.exec(readFileSync(`supabase/migrations/${migration}`,'utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261105134000_require_recipe_markup.sql','utf8'));
 },30000);
 afterAll(async()=>{await db?.close();});
 beforeEach(async()=>{
@@ -205,5 +206,55 @@ describe('Atomic recipe save in PostgreSQL with RLS and plan triggers',()=>{
     await db.query("select set_config('test.fail_table','receita_ingredientes',false)");
     expect(await saveCopy(request)).toEqual(first);
     expect((await snapshot()).data).toEqual(after);
+  });
+});
+
+describe('Required markup in the recipe save API',()=>{
+  it.each([undefined,null,'','   '])('rejects creation without an explicit markup (%s), before any write',async value=>{
+    const recipeInput=payload.recipe as Record<string,unknown>;
+    if(value===undefined) delete recipeInput.markup_id; else recipeInput.markup_id=value;
+    const before=await snapshot();
+    await expect(save(id(15),true)).rejects.toMatchObject({code:'22023',detail:'recipe_markup_required'});
+    expect(await snapshot()).toEqual(before);
+  });
+  it('rejects removing the markup while editing without losing saved components or price',async()=>{
+    (payload.recipe as Record<string,unknown>).markup_id=null;
+    const before=await snapshot();
+    await expect(save()).rejects.toMatchObject({code:'22023',detail:'recipe_markup_required'});
+    expect(await snapshot()).toEqual(before);
+  });
+  it('rejects a markup owned by another account',async()=>{
+    await db.exec(`reset role; insert into markups values ('${id(32)}','${other}','normal',2); set role authenticated;`);
+    payload.recipe.markup_id=id(32);
+    const before=await snapshot();
+    await expect(save()).rejects.toMatchObject({code:'42501'});
+    expect(await snapshot()).toEqual(before);
+  });
+  it('accepts the sub-recipe markup and keeps its automatic cost price',async()=>{
+    payload.recipe.markup_id=id(31);
+    await save();
+    const row=(await db.query<{price:number;cost:number}>('select preco_venda::float as price,calcular_custo_receita(id)::float as cost from receitas where id=$1',[original])).rows[0];
+    expect(row.price).toBe(row.cost);expect(row.cost).toBeGreaterThan(0);
+  });
+  it('requires a markup when saving a legacy recipe, and accepts it after selection',async()=>{
+    await db.exec(`reset role; update receitas set markup_id=null where id='${original}'; set role authenticated;`);
+    version=(await db.query<{v:string}>('select updated_at::text as v from receitas where id=$1',[original])).rows[0].v;
+    (payload.recipe as Record<string,unknown>).markup_id=null;
+    const before=await snapshot();
+    await expect(save()).rejects.toMatchObject({detail:'recipe_markup_required'});
+    expect(await snapshot()).toEqual(before);
+    payload.recipe.markup_id=markup;
+    await save();
+    expect((await db.query('select markup_id,preco_venda::float as price from receitas where id=$1',[original])).rows[0]).toEqual({markup_id:markup,price:77});
+  });
+  it('preserves legacy and normal prices on ingredient changes while updating sub-recipe cost',async()=>{
+    await db.exec(`reset role;
+      insert into receitas(id,user_id,nome,preco_venda) values ('${id(15)}','${owner}','Legacy',50);
+      insert into receita_ingredientes(id,receita_id,produto_id,quantidade) values
+        ('${id(150)}','${id(15)}','${product}',1000),('${id(151)}','${sub}','${product}',1000);
+      update produtos set custo_unitario=60 where id='${product}';
+      set role authenticated;`);
+    const rows=(await db.query('select nome,preco_venda::float as price from receitas where user_id=$1 order by nome',[owner])).rows;
+    expect(rows).toEqual([{nome:'Legacy',price:50},{nome:'Original',price:77},{nome:'Sub',price:60}]);
   });
 });

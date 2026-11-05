@@ -21,6 +21,14 @@ export type RecipeSavePayload = {
 export type RecipeSaveRequest = RecipeSavePayload & { p_request_id: string };
 export type SavedRecipe = { id: string; numero_sequencial: number; updated_at: string };
 
+export const RECIPE_MARKUP_REQUIRED = 'Selecione um markup na etapa Precificação antes de salvar a receita.';
+
+export function isRecipeMarkupRequired(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return ('details' in error && error.details === 'recipe_markup_required') ||
+    ('message' in error && error.message === RECIPE_MARKUP_REQUIRED);
+}
+
 // A copy owns fresh component IDs; reusing source IDs would move or overwrite its rows.
 // Keep this request unchanged when retrying an unconfirmed copy.
 export function recipeDuplicateRequest(recipe: ReceitaCompleta, name: string): RecipeSaveRequest {
@@ -41,6 +49,7 @@ export function recipeDuplicateRequest(recipe: ReceitaCompleta, name: string): R
 // Whitelist writable fields; joined products and client-supplied owner/sequence never leave the form.
 export function recipeSavePayload(id: string, creating: boolean, expectedUpdatedAt: string | null,
   recipe: Partial<Receita>, components: RecipeSaveComponents, original: ReceitaCompleta | null = null): RecipeSavePayload {
+  if (!recipe.markup_id?.trim()) throw new Error(RECIPE_MARKUP_REQUIRED);
   const versions = (items: { id: string; updated_at?: string }[] = []) =>
     items.map(({ id, updated_at }) => ({ id, updated_at: updated_at ?? null }));
   return {
@@ -81,6 +90,7 @@ export function savedRecipeResponse(value: Json, expectedId: string): SavedRecip
 }
 
 export function recipeSaveError(error: unknown): string {
+  if (isRecipeMarkupRequired(error)) return RECIPE_MARKUP_REQUIRED;
   if (error && typeof error === 'object' && 'code' in error && error.code === '40001') {
     return 'Esta receita mudou desde que você abriu o editor. Suas alterações continuam aqui. Confira a versão salva antes de tentar novamente.';
   }

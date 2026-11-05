@@ -21,7 +21,11 @@ vi.mock('@/components/receitas/GeralTab', () => ({
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
 vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: () => <div>Projeção</div> }));
-vi.mock('@/components/receitas/PrecificacaoTab', () => ({ PrecificacaoTab: () => <div>Precificação</div> }));
+vi.mock('@/components/receitas/PrecificacaoTab', () => ({
+  PrecificacaoTab: ({formData,onFormChange}: any) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value || null)}>
+    <option value="">Selecione</option><option value="markup-normal">Normal</option><option value="markup-sub">Sub-receita</option>
+  </select></label>,
+}));
 
 const produto = { user_id:m.user.id,id:'chocolate',nome:'Chocolate sintético',custo_unitario:40,unidade_compra:'kg',unidade_uso:'g',fator_conversao:1000,ativo:true };
 const otherProduto = {...produto,id:'cacau',nome:'Cacau sintético'};
@@ -29,7 +33,7 @@ const ingredient = {id:'ingredient-1',receita_id:'recipe-1',produto_id:produto.i
 const recipe = {
   id:'recipe-1',user_id:m.user.id,numero_sequencial:1,nome:'Bolo sintético',rendimento_valor:10,
   rendimento_unidade:'un',tempo_preparo_total:30,tempo_preparo_mao_obra:0,conservacao:null,
-  observacoes:null,imagem_url:null,markup_id:null,preco_venda:40,status:'finalizada',peso_unitario:100,
+  observacoes:null,imagem_url:null,markup_id:'markup-normal',preco_venda:40,status:'finalizada',peso_unitario:100,
   created_at:'2026-11-01T00:00:00Z',updated_at:'2026-11-01T00:00:00Z',embalagens:[],sub_receitas:[],passos:[],mao_obra:[],ingredientes:[ingredient],
 };
 beforeEach(() => {
@@ -43,15 +47,16 @@ beforeEach(() => {
     const query = {
       select:()=>query, eq:()=>query, order:()=>query,
       maybeSingle:async()=>({data:null,error:null}),
+      single:async()=>({data:{tipo:'normal'},error:null}),
       then:(resolve:any)=>Promise.resolve({data,error:null}).then(resolve),
     };
     return query;
   });
 });
 afterEach(cleanup);
-function open(create=false) {
+function open(create=false, withoutMarkup=false) {
   return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}>
-    <ReceitaForm receita={create?null:structuredClone(recipe) as any} onClose={m.close}/>
+    <ReceitaForm receita={create?null:{...structuredClone(recipe),markup_id:withoutMarkup?null:recipe.markup_id} as any} onClose={m.close}/>
   </QueryClientProvider>);
 }
 async function changeIngredient() {
@@ -63,8 +68,9 @@ async function changeIngredient() {
   fireEvent.change(quantities[0],{target:{value:'200'}});
   await waitFor(()=>expect(screen.getAllByDisplayValue('200').length).toBeGreaterThan(0));
 }
-async function save(fromStep=1,create=false) {
+async function save(fromStep=1,create=false,selectMarkup=true) {
   for(let i=fromStep;i<5;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+  if (create && selectMarkup) fireEvent.change(screen.getByLabelText('Markup'),{target:{value:'markup-normal'}});
   fireEvent.click(screen.getByRole('button',{name:create?'Criar':'Atualizar'}));
   await waitFor(()=>expect(screen.getByRole('button',{name:create?'Criar':'Atualizar'})).toBeEnabled());
 }
@@ -133,5 +139,36 @@ describe('Atomic save feedback and retries',()=>{
     expect(screen.getByRole('alert')).toHaveTextContent('mudou desde que você abriu');
     m.rpc.mockResolvedValueOnce({data:null,error:null});await save(5);
     expect(m.success).not.toHaveBeenCalled();expect(m.close).not.toHaveBeenCalled();
+  });
+});
+
+describe('Required recipe markup',()=>{
+  it.each([true,false])('blocks saving without a markup and retains the form (creating=%s)',async create=>{
+    open(create,true);
+    await waitFor(()=>expect(screen.getByLabelText('Nome')).toHaveValue(create?'':'Bolo sintético'));
+    fireEvent.change(screen.getByLabelText('Nome'),{target:{value:'Nome preservado'}});
+    await save(0,create,false);
+    expect(m.rpc).not.toHaveBeenCalled();expect(m.close).not.toHaveBeenCalled();expect(m.success).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Selecione um markup');
+    expect(screen.getByLabelText('Markup')).toBeVisible();
+    fireEvent.change(screen.getByLabelText('Markup'),{target:{value:'markup-normal'}});
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await save(5,create,false);
+    expect(m.rpc).toHaveBeenCalledWith('salvar_receita_completa',expect.objectContaining({p_receita:expect.objectContaining({nome:'Nome preservado',markup_id:'markup-normal'})}));
+    expect(m.close).toHaveBeenCalledOnce();
+  });
+  it('accepts the explicitly selected sub-recipe markup',async()=>{
+    open(true);fireEvent.change(screen.getByLabelText('Nome'),{target:{value:'Recheio'}});
+    for(let i=0;i<5;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    fireEvent.change(screen.getByLabelText('Markup'),{target:{value:'markup-sub'}});
+    await save(5,true,false);
+    expect(m.rpc.mock.calls[0][1].p_receita.markup_id).toBe('markup-sub');
+    expect(m.close).toHaveBeenCalledOnce();
+  });
+  it('explains a backend markup rejection without a plan-limit dialog',async()=>{
+    m.rpc.mockResolvedValue({data:null,error:{code:'22023',details:'recipe_markup_required'}});
+    await changeIngredient();await save();
+    expect(screen.getByRole('alert')).toHaveTextContent('Selecione um markup');
+    expect(m.requestAccess).not.toHaveBeenCalled();expect(m.close).not.toHaveBeenCalled();
   });
 });

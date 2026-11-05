@@ -185,3 +185,11 @@ describe('Atomic recipe duplication', () => {
     expect(m.requestAccess).toHaveBeenCalledTimes(2);
   });
 });
+
+it('requires selecting a markup on the original before duplicating an old unassigned recipe',async()=>{
+  source.markup_id = '';
+  const {result}=renderHook(useReceitas);
+  await act(async()=>{expect(await result.current.duplicarReceita('original')).toBe(false);});
+  expect(m.rpc).not.toHaveBeenCalled();expect(m.write).not.toHaveBeenCalled();expect(m.success).not.toHaveBeenCalled();
+  expect(m.error).toHaveBeenCalledWith('Abra a receita original e selecione um markup na etapa Precificação antes de duplicar.');
+});
