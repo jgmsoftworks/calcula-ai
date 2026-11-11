@@ -38,6 +38,7 @@ beforeAll(async () => {
   await db.exec(readFileSync('supabase/migrations/20261015190500_movimentacao_estoque_atomica_e_saldo_nao_negativo.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261111130041_geladeira_receitas.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261111133415_integrar_geladeira_estoque.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261111143000_saldo_inicial_geladeira.sql','utf8'));
 }, 30000);
 afterAll(async () => { await db.close(); });
 beforeEach(async () => {
@@ -169,6 +170,44 @@ async function lose(item: string, quantity=1, deduct=true, request=randomUUID())
   return db.query('select registrar_perdas_geladeira($1,$2,null,null,$3,$4,$5)',[JSON.stringify([{tipo:'geladeira',item_id:item,quantidade:quantity}]),'Vencimento','Maria',deduct,request]);
 }
 async function count(table: string) { return (await db.query<{n:number}>(`select count(*)::int n from ${table}`)).rows[0].n; }
+async function registerWithBalance(recipe=final, quantity=3, minimum=2, request=randomUUID()) {
+  return (await db.query<{id:string}>('select cadastrar_item_geladeira_com_saldo($1,$2,$3,$4) id',[recipe,quantity,minimum,request])).rows[0].id;
+}
+describe('Initial fridge stock', () => {
+  it('registers the balance and minimum with a costed entry and keeps ingredients unchanged', async () => {
+    await registerWithBalance();
+    expect(await balance()).toBe(3);
+    expect((await db.query<{n:number}>('select estoque_minimo::float n from geladeira_itens')).rows[0].n).toBe(2);
+    expect((await db.query('select tipo,motivo,quantidade::float quantidade,custo_unitario::float custo,saldo_anterior::float anterior,saldo_atual::float atual from geladeira_movimentacoes')).rows[0])
+      .toEqual({tipo:'entrada',motivo:'Saldo inicial',quantidade:3,custo:1.7,anterior:0,atual:3});
+    expect((await db.query<{n:number}>('select sum(estoque_atual)::float n from produtos')).rows[0].n).toBe(200);
+  });
+  it('retries exactly once and rejects a second registration or changed payload', async () => {
+    const request=randomUUID(), event=await registerWithBalance(final,3,2,request);
+    expect(await registerWithBalance(final,3,2,request)).toBe(event);
+    await expect(registerWithBalance(final,4,2,request)).rejects.toThrow('outra movimentação');
+    await expect(registerWithBalance()).rejects.toThrow('já está na Geladeira');
+    expect(await balance()).toBe(3);
+    expect(await count('geladeira_movimentacoes')).toBe(1);
+  });
+  it('supports fractional balances and rejects invalid quantities and inaccessible recipes without partial registration', async () => {
+    for (const value of [0,-1,NaN,Infinity,0.0001]) await expect(registerWithBalance(final,value)).rejects.toThrow();
+    for (const recipe of [foreign,draft,invalid]) await expect(registerWithBalance(recipe)).rejects.toThrow();
+    expect(await count('geladeira_itens')).toBe(0);
+    await registerWithBalance(sub,1.25,0);
+    expect(await balance(sub)).toBe(1.25);
+  });
+  it('rolls back the registration if history cannot be saved', async () => {
+    await db.exec(`reset role; create function fail_initial_stock_test() returns trigger language plpgsql as $$ begin raise exception 'history failed'; end $$;
+      create trigger fail_initial_stock_test before insert on geladeira_movimentacoes for each row execute function fail_initial_stock_test(); set role authenticated;`);
+    try {
+      await expect(registerWithBalance()).rejects.toThrow('history failed');
+      expect(await count('geladeira_itens')).toBe(0);
+    } finally {
+      await db.exec('reset role; drop trigger fail_initial_stock_test on geladeira_movimentacoes; drop function fail_initial_stock_test(); set role authenticated;');
+    }
+  });
+});
 describe('Geladeira within the shared stock workflows', () => {
   it('registers finalized recipes with zero balance and no physical movement', async () => {
     const item = await fridgeItem();

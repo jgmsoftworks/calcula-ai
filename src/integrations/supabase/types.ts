@@ -3545,6 +3545,7 @@ export type Database = {
     }
     Functions: {
       cadastrar_item_geladeira: { Args: { p_receita_id: string; p_estoque_minimo?: number }; Returns: string }
+      cadastrar_item_geladeira_com_saldo: { Args: { p_receita_id: string; p_saldo_inicial: number; p_estoque_minimo: number; p_request_id: string }; Returns: string }
       finalizar_movimentacao_integrada: { Args: { p_itens: Json; p_responsavel: string; p_observacao: string | null; p_request_id: string }; Returns: Json }
       registrar_perdas_geladeira: { Args: { p_itens: Json; p_motivo: string; p_motivo_outro: string | null; p_observacao: string | null; p_responsavel: string | null; p_baixar_estoque: boolean; p_request_id: string }; Returns: number }
 

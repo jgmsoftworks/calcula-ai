@@ -67,6 +67,8 @@ describe('Geladeira interaction', () => {
     expect(details.getByText(/25,00/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Quantidade (kg)')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Estoque mínimo (kg)'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Saldo inicial (kg)'), { target: { value: '1,25' } });
+    expect((screen.getByLabelText('Valor total em estoque') as HTMLInputElement).value).toMatch(/31,25/);
     expect(mocks.rpc).not.toHaveBeenCalled();
     fireEvent.keyDown(selector, { key: 'Enter' });
     fireEvent.change(await screen.findByRole('textbox', { name: 'Buscar receita' }), { target: { value: 'nuvem' } });
@@ -81,8 +83,46 @@ describe('Geladeira interaction', () => {
     expect(screen.queryByLabelText('Estoque mínimo (kg)')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Estoque mínimo (un)')).toHaveValue('');
     expect(screen.getByLabelText('Estoque mínimo (un)')).toHaveAttribute('placeholder', '');
+    expect(screen.getByLabelText('Saldo inicial (un)')).toHaveValue('');
+    expect(screen.getByLabelText('Valor total em estoque')).toHaveValue('');
     fireEvent.click(screen.getByRole('button',{name:'Adicionar à Geladeira'}));
     await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('cadastrar_item_geladeira',{p_receita_id:'r2',p_estoque_minimo:0}));
     await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+  it('calculates the initial stock value and keeps one request across a failed save and retry', async () => {
+    mocks.from.mockImplementation(table => {
+      const data = table === 'receitas' ? [recipe] : [];
+      const query = { select:()=>query,eq:()=>query,order:()=>query,range:()=>query,abortSignal:()=>query,
+        then:(resolve: (r:unknown)=>unknown) => Promise.resolve({ data, count:data.length, error:null }).then(resolve) };
+      return query;
+    });
+    mocks.rpc.mockResolvedValueOnce({data:null,error:{message:'Falha na conexão'}}).mockResolvedValueOnce({data:'event',error:null});
+    render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><Geladeira /></BrowserRouter></QueryClientProvider>);
+    await screen.findByText('Sua Geladeira está vazia');
+    fireEvent.click(screen.getAllByRole('button',{name:'Adicionar receita'})[0]);
+    const selector=await screen.findByRole('combobox',{name:'Selecionar receita'});
+    await waitFor(()=>expect(selector).not.toBeDisabled());
+    fireEvent.keyDown(selector,{key:'Enter'});
+    fireEvent.keyDown(await screen.findByRole('option',{name:/Recheio de Ninho/}),{key:'Enter'});
+    const quantity=screen.getByLabelText('Saldo inicial (kg)'), total=screen.getByLabelText('Valor total em estoque');
+    expect(quantity).toHaveValue('');
+    expect(quantity).toHaveAttribute('placeholder','');
+    expect(total).toHaveAttribute('readonly');
+    fireEvent.change(quantity,{target:{value:'1,25'}});
+    expect((total as HTMLInputElement).value).toMatch(/31,25/);
+    fireEvent.change(quantity,{target:{value:''}});
+    expect(total).toHaveValue('');
+    fireEvent.change(quantity,{target:{value:'2,5'}});
+    expect((total as HTMLInputElement).value).toMatch(/62,50/);
+    fireEvent.change(screen.getByLabelText('Estoque mínimo (kg)'),{target:{value:'1'}});
+    const submit=screen.getByRole('button',{name:'Adicionar à Geladeira'});
+    fireEvent.click(submit);
+    await screen.findByRole('alert');
+    expect(mocks.rpc).toHaveBeenCalledWith('cadastrar_item_geladeira_com_saldo',{p_receita_id:'r1',p_saldo_inicial:2.5,p_estoque_minimo:1,p_request_id:expect.any(String)});
+    expect(quantity).toHaveValue('2,5');
+    fireEvent.click(submit);
+    await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
+    expect(mocks.rpc.mock.calls[1]).toEqual(mocks.rpc.mock.calls[0]);
   });
 });

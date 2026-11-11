@@ -33,6 +33,7 @@ export default function Geladeira() {
   const [page, setPage] = useState(0);
   const [modal, setModal] = useState<Modal | null>(null);
   const [receitaId, setReceitaId] = useState('');
+  const [saldoInicial, setSaldoInicial] = useState(0);
   const [minimo, setMinimo] = useState(0);
   const [observacao, setObservacao] = useState('');
   const [saving, setSaving] = useState(false);
@@ -62,12 +63,14 @@ export default function Geladeira() {
 
   function openModal(tipo: Modal['tipo'], item?: GeladeiraItem) {
     setModal({ tipo, item }); setReceitaId(item?.receita_id || '');
+    setSaldoInicial(0);
     setMinimo(item?.estoque_minimo || 0);
     setObservacao(''); setSaveError(''); pending.current = null;
   }
   function closeModal() { if (!savingRef.current) setModal(null); }
   function selectRecipe(id: string) {
     setReceitaId(id);
+    setSaldoInicial(0);
     setMinimo(0);
     setSaveError('');
     pending.current = null;
@@ -76,14 +79,16 @@ export default function Geladeira() {
     event.preventDefault();
     if (!modal || !user || !selected || savingRef.current) return;
     if (modal.tipo === 'cadastro' && !receitaPodeEntrar(selected)) { setSaveError('Informe o rendimento e a unidade na receita antes de adicionar.'); return; }
-    const args = { p_receita_id: selected.id, p_tipo: modal.tipo, p_quantidade: 0,
+    const args = { p_receita_id: selected.id, p_tipo: modal.tipo, p_quantidade: modal.tipo === 'cadastro' ? saldoInicial : 0,
       p_estoque_minimo: modal.tipo === 'minimo' || !modal.item ? minimo : null, p_observacao: observacao || null };
     const signature = JSON.stringify(args);
     if (pending.current?.signature !== signature) pending.current = { signature, id: crypto.randomUUID() };
     savingRef.current = true; setSaving(true); setSaveError('');
     try {
       const { error } = modal.tipo === 'cadastro'
-        ? await supabase.rpc('cadastrar_item_geladeira', { p_receita_id: selected.id, p_estoque_minimo: minimo })
+        ? saldoInicial > 0
+          ? await supabase.rpc('cadastrar_item_geladeira_com_saldo', { p_receita_id: selected.id, p_saldo_inicial: saldoInicial, p_estoque_minimo: minimo, p_request_id: pending.current.id })
+          : await supabase.rpc('cadastrar_item_geladeira', { p_receita_id: selected.id, p_estoque_minimo: minimo })
         : await supabase.rpc('movimentar_geladeira', { ...args, p_request_id: pending.current.id });
       if (error) throw error;
       await Promise.all([
@@ -180,9 +185,19 @@ export default function Geladeira() {
                   <strong className="text-lg tabular-nums text-primary">{unitMoney(selectedCost)}</strong>
                 </div>
               </section>}
-              {selected && modal && (modal.tipo === 'minimo' || !modal.item) && <div className="space-y-2">
-                <Label htmlFor="geladeira-minimo">Estoque mínimo ({selectedUnit})</Label>
-                <NumericInputPtBr id="geladeira-minimo" tipo="quantidade_continua" value={minimo} onChange={setMinimo} min={0} placeholder="" />
+              {selected && modal && (modal.tipo === 'minimo' || !modal.item) && <div className="grid gap-4 sm:grid-cols-2">
+                {modal.tipo === 'cadastro' && <div className="space-y-2">
+                  <Label htmlFor="geladeira-saldo-inicial">Saldo inicial ({selectedUnit})</Label>
+                  <NumericInputPtBr id="geladeira-saldo-inicial" tipo="quantidade_continua" value={saldoInicial} onChange={setSaldoInicial} min={0} placeholder="" />
+                </div>}
+                <div className={`space-y-2 ${modal.tipo === 'minimo' ? 'sm:col-span-2' : ''}`}>
+                  <Label htmlFor="geladeira-minimo">Estoque mínimo ({selectedUnit})</Label>
+                  <NumericInputPtBr id="geladeira-minimo" tipo="quantidade_continua" value={minimo} onChange={setMinimo} min={0} placeholder="" />
+                </div>
+                {modal.tipo === 'cadastro' && <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="geladeira-valor-total">Valor total em estoque</Label>
+                  <Input id="geladeira-valor-total" readOnly value={saldoInicial > 0 ? money(selectedCost === null ? null : saldoInicial * selectedCost) : ''} className="bg-primary/5 font-semibold tabular-nums text-primary" />
+                </div>}
               </div>}
               {modal?.tipo === 'remocao' ? <p className="text-sm">Remover esta receita da lista da Geladeira? A ficha técnica e o histórico serão preservados.</p> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : null}
             </fieldset>
