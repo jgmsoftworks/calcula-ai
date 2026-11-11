@@ -178,8 +178,13 @@ export default function Geladeira() {
                     className="max-h-[min(300px,var(--radix-select-content-available-height,300px))]"
                     viewportClassName="max-h-52" collisionPadding={16}>
                     {pickerRecipes.map(r => <SelectItem key={r.id} value={r.id} disabled={!receitaPodeEntrar(r)} textValue={`${r.nome} ${r.numero_sequencial} ${r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}`}>
-                      <span className="block font-medium">{r.nome}</span>
-                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">#{r.numero_sequencial} · {r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}{!receitaPodeEntrar(r) ? ' · Ajuste o rendimento na receita' : ''}</span>
+                      <span className="flex min-w-0 items-center gap-3">
+                        {r.imagem_url ? <img src={r.imagem_url} alt="" loading="lazy" decoding="async" className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ChefHat aria-hidden="true" className="h-5 w-5" /></span>}
+                        <span className="min-w-0 whitespace-normal">
+                          <span className="block break-words font-medium leading-snug">{r.nome}</span>
+                          <span className="mt-0.5 block text-xs font-normal text-muted-foreground">#{r.numero_sequencial} · {r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}{!receitaPodeEntrar(r) ? ' · Ajuste o rendimento na receita' : ''}</span>
+                        </span>
+                      </span>
                     </SelectItem>)}
                   </SelectContent>
                 </Select>

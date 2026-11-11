@@ -132,7 +132,9 @@ describe('Geladeira interaction', () => {
     fireEvent.keyDown(selector,{key:'Enter'});
     const search = await screen.findByRole('textbox', { name: 'Buscar receita' });
     fireEvent.change(search, { target: { value: '1' } });
-    fireEvent.keyDown(await screen.findByRole('option',{name:/Recheio de Ninho/}),{key:'Enter'});
+    const recipeOption = await screen.findByRole('option',{name:/Recheio de Ninho/});
+    expect(recipeOption.querySelector('img')).toHaveAttribute('src', '/recheio.jpg');
+    fireEvent.keyDown(recipeOption,{key:'Enter'});
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     const details = within(screen.getByRole('region', { name: 'Dados da receita selecionada' }));
     expect(details.getByRole('img', { name: 'Recheio de Ninho' })).toHaveAttribute('src', '/recheio.jpg');
@@ -147,7 +149,9 @@ describe('Geladeira interaction', () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
     fireEvent.keyDown(selector, { key: 'Enter' });
     fireEvent.change(await screen.findByRole('textbox', { name: 'Buscar receita' }), { target: { value: 'nuvem' } });
-    fireEvent.keyDown(await screen.findByRole('option', { name: /Bolo Nuvem/ }), { key: 'Enter' });
+    const cakeOption = await screen.findByRole('option', { name: /Bolo Nuvem/ });
+    expect(cakeOption.querySelector('img')).toBeNull();
+    fireEvent.keyDown(cakeOption, { key: 'Enter' });
     const newDetails = within(screen.getByRole('region', { name: 'Dados da receita selecionada' }));
     expect(newDetails.getByRole('heading', { name: 'Bolo Nuvem' })).toBeInTheDocument();
     expect(newDetails.queryByRole('img')).not.toBeInTheDocument();
