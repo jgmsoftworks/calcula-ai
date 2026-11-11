@@ -3544,6 +3544,8 @@ export type Database = {
       }
     }
     Functions: {
+      listar_usos_receita: { Args: { p_receita_id: string }; Returns: Json }
+      excluir_receita_com_vinculos: { Args: { p_receita_id: string; p_expected_updated_at: string; p_usos: Json }; Returns: undefined }
       cadastrar_item_geladeira: { Args: { p_receita_id: string; p_estoque_minimo?: number }; Returns: string }
       remover_item_da_geladeira: { Args: { p_receita_id: string; p_request_id: string }; Returns: string }
       cadastrar_item_geladeira_com_saldo: { Args: { p_receita_id: string; p_saldo_inicial: number; p_estoque_minimo: number; p_request_id: string }; Returns: string }

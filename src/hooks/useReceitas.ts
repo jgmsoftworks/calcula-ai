@@ -204,54 +204,6 @@ export function useReceitas() {
     }
   };
 
-  const deleteReceita = async (id: string) => {
-    if (!user) return false;
-
-    setLoading(true);
-    try {
-      // Verificar se está sendo usada como sub-receita em outras receitas
-      const { data: receitasQueUsam } = await supabase
-        .from('receita_sub_receitas')
-        .select(`
-          receita:receitas!receita_sub_receitas_receita_id_fkey(nome)
-        `)
-        .eq('sub_receita_id', id);
-
-      if (receitasQueUsam && receitasQueUsam.length > 0) {
-        // Extrair nomes das receitas que usam esta sub-receita
-        const nomes = receitasQueUsam
-          .map((r: any) => r.receita?.nome)
-          .filter(Boolean)
-          .join(', ');
-        
-        toast.error(
-          `Não é possível excluir esta receita pois está sendo usada como sub-receita em: ${nomes}`
-        );
-        return false;
-      }
-
-      // Se não está sendo usada, prosseguir com exclusão
-      const { error } = await supabase
-        .from('receitas')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      toast.success('Receita excluída com sucesso!');
-      return true;
-    } catch (error: any) {
-      console.error('Erro ao excluir receita:', error);
-      toast.error(error.code === '23503' && String(error.message).includes('geladeira_itens')
-        ? 'Remova esta receita da Geladeira antes de excluí-la. O saldo precisa estar zerado.'
-        : 'Erro ao excluir receita');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const uploadImagemReceita = async (file: File, receitaId: string) => {
     if (!user) return null;
 
@@ -442,7 +394,6 @@ export function useReceitas() {
     fetchReceitaCompleta,
     createReceita,
     updateReceita,
-    deleteReceita,
     duplicarReceita,
     uploadImagemReceita,
     deleteImagemReceita,

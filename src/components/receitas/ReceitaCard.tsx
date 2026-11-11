@@ -15,17 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatBRL } from '@/lib/formatters';
 import type { ReceitaComDados, ReceitaCompleta } from '@/types/receitas';
 import { ReceitaPreviewModal } from './ReceitaPreviewModal';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { ExcluirReceitaModal } from './ExcluirReceitaModal';
 import {
   Tooltip,
   TooltipContent,
@@ -64,7 +54,7 @@ const ActionButton = ({ icon: Icon, title, onClick, disabled, variant = "ghost" 
 
 export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLoadingPreloaded }: ReceitaCardProps) {
   usePortugalTranslation();
-  const { deleteReceita, fetchReceitaCompleta, duplicarReceita } = useReceitas();
+  const { fetchReceitaCompleta, duplicarReceita } = useReceitas();
   const { user } = useAuth();
   const { exportarReceitaPDF, exporting: exportingPDF } = useExportReceitaPDF();
   const [markupDetalhes, setMarkupDetalhes] = useState<any>(null);
@@ -74,10 +64,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
   const [duplicating, setDuplicating] = useState(false);
   const [isLoadingDetalhes, setIsLoadingDetalhes] = useState(true);
 
-  const handleDelete = async () => {
-    const success = await deleteReceita(receita.id);
-    if (success) onDelete();
-  };
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const custoTotal = (receita.custo_ingredientes || 0) + 
                      (receita.custo_embalagens || 0) + 
@@ -247,22 +234,9 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
               <ActionButton icon={Eye} title="Visualizar" onClick={handleOpenPreview} disabled={loadingPreview} />
               <ActionButton icon={Edit} title="Editar" onClick={() => onEdit(receita)} />
               <ActionButton icon={Copy} title="Duplicar" onClick={handleDuplicate} disabled={duplicating} />
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <span><ActionButton icon={Trash2} title={localizeText("Excluir")} /></span>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{localizeText("Excluir receita?")}</AlertDialogTitle>
-                    <AlertDialogDescription>{localizeText("Tem certeza que deseja excluir a receita \"")}{receita.nome}"? Esta ação não pode ser desfeita.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>{localizeText("Excluir")}</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <ActionButton icon={Trash2} title={localizeText("Excluir")} onClick={() => setDeleteOpen(true)} />
+              {deleteOpen && <ExcluirReceitaModal receitaId={receita.id} nome={receita.nome}
+                onClose={() => setDeleteOpen(false)} onDeleted={onDelete} />}
             </div>
           </div>
 
