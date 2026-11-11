@@ -43,6 +43,7 @@ export default function CronogramaPage() {
   const areas = useProducaoAreas();
   const recorrentes = useProducaoRecorrentes(); // todas
   const hojeDow = new Date().getDay();
+  const [diaSelecionado, setDiaSelecionado] = useState(() => new Date().getDay());
 
   const [areaModal, setAreaModal] = useState<{ open: boolean; area?: ProducaoArea }>({ open: false });
   const [confirmDelArea, setConfirmDelArea] = useState<ProducaoArea | null>(null);
@@ -79,6 +80,12 @@ export default function CronogramaPage() {
         (map[key][d] ??= []).push(r);
       }
     }
+    for (const porDia of Object.values(map)) {
+      for (const tarefas of Object.values(porDia)) {
+        tarefas.sort((a, b) => (a.hora_inicio || '99:99').localeCompare(b.hora_inicio || '99:99')
+          || a.titulo.localeCompare(b.titulo));
+      }
+    }
     return map;
   }, [recorrentes.data]);
 
@@ -87,7 +94,8 @@ export default function CronogramaPage() {
     { id: SEM_AREA_KEY, nome: 'Sem área', cor: null },
   ];
 
-  const totalTarefas = recorrentes.data?.length ?? 0;
+  const totalPorDia = (dia: number) => linhas.reduce((total, linha) => total + (grid[linha.id]?.[dia]?.length ?? 0), 0);
+  const totalTarefas = totalPorDia(diaSelecionado);
 
   return (
     <div className="space-y-4 xl:space-y-6 xl:p-6">
@@ -103,212 +111,82 @@ export default function CronogramaPage() {
               <ClipboardList className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl font-bold tracking-tight font-display sm:text-2xl">Cronograma semanal</h1>
+              <h1 className="text-xl font-bold tracking-tight font-display sm:text-2xl">Cronograma diário</h1>
               <p className="text-sm text-muted-foreground">
-                Grade viva das áreas × dias da semana. Toque em uma célula para criar, no cartão para editar.
+                Selecione um dia para ver as tarefas por área.
               </p>
             </div>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
             <Badge variant="secondary" className="rounded-full h-8 px-3">
-              {totalTarefas} {totalTarefas === 1 ? 'tarefa' : 'tarefas'}
+              {totalTarefas} {totalTarefas === 1 ? 'tarefa no dia' : 'tarefas no dia'}
             </Badge>
             <Button variant="outline" size="sm" onClick={() => setGerenciarAreas(true)}>
               <Settings2 className="h-4 w-4 mr-2" /> Gerenciar áreas
             </Button>
-            <Button size="sm" onClick={() => setTarefaModal({ open: true })}>
+            <Button size="sm" onClick={() => setTarefaModal({ open: true, preDia: diaSelecionado })}>
               <Plus className="h-4 w-4 mr-2" /> Nova tarefa
             </Button>
           </div>
         </div>
       </div>
 
+      <nav aria-label="Dia do cronograma" className="grid grid-cols-7 gap-1 rounded-xl border bg-card p-1 sm:gap-2 sm:p-2">
+        {DIAS_ORDEM.map(dia => (
+          <button key={dia} type="button" onClick={() => setDiaSelecionado(dia)}
+            aria-label={`Ver ${DIAS_LABEL[dia].full}`} aria-pressed={diaSelecionado === dia}
+            aria-current={dia === hojeDow ? 'date' : undefined}
+            className={cn('flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              diaSelecionado === dia ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
+            <span className="font-semibold">{DIAS_LABEL[dia].curto}</span>
+            <span className="text-xs tabular-nums">{areas.isLoading || recorrentes.isLoading ? '—' : totalPorDia(dia)}</span>
+          </button>
+        ))}
+      </nav>
+
       {(areas.isLoading || recorrentes.isLoading) ? (
-        <div className="text-muted-foreground text-sm">{localizeText("Carregando...")}</div>
+        <div role="status" className="text-muted-foreground text-sm">{localizeText("Carregando...")}</div>
+      ) : areas.isError || recorrentes.isError ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border p-4 text-sm">
+          <p>Não foi possível carregar o cronograma.</p>
+          <Button variant="outline" onClick={() => { void areas.refetch(); void recorrentes.refetch(); }}>Tentar novamente</Button>
+        </div>
       ) : (
-        <>
-          {/* GRADE - Desktop / Tablet */}
-          <div className="hidden overflow-hidden rounded-2xl border bg-card xl:block">
-            <div className="overflow-x-auto">
-              <div className="min-w-[860px]">
-                {/* Header dos dias */}
-                <div className="grid sticky top-0 z-10 bg-muted/50 backdrop-blur border-b" style={{ gridTemplateColumns: '200px repeat(7, minmax(0, 1fr))' }}>
-                  <div className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Área
+        <section aria-label={`Cronograma de ${DIAS_LABEL[diaSelecionado].full}`} className="space-y-4">
+          {linhas.map(linha => {
+            const semArea = linha.id === SEM_AREA_KEY;
+            const tarefas = grid[linha.id]?.[diaSelecionado] ?? [];
+            return (
+              <section key={linha.id} aria-label={linha.nome} className="overflow-hidden rounded-xl border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 sm:px-5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    {semArea ? <Link2Off aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      : <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: linha.cor ?? '#64748b' }} />}
+                    <h2 className="break-words text-sm font-semibold">{linha.nome}</h2>
+                    <span className="text-xs tabular-nums text-muted-foreground">{tarefas.length}</span>
+                    {linha.area && <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground"
+                      aria-label={`Editar área ${linha.nome}`} onClick={() => setAreaModal({ open: true, area: linha.area })}>
+                      <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
+                    </Button>}
                   </div>
-                  {DIAS_ORDEM.map((d) => {
-                    const hoje = d === hojeDow;
-                    return (
-                      <div
-                        key={d}
-                        className={cn(
-                          'px-2 py-3 text-center border-l',
-                          hoje && 'bg-primary/5'
-                        )}
-                      >
-                        <div className={cn('text-[11px] font-semibold uppercase tracking-wider', hoje ? 'text-primary' : 'text-muted-foreground')}>
-                          {DIAS_LABEL[d].curto}
-                        </div>
-                        {hoje && <div className="mx-auto mt-1 h-1 w-6 rounded-full bg-primary" />}
-                      </div>
-                    );
-                  })}
+                  <Button variant="ghost" size="sm" aria-label={`Adicionar tarefa em ${linha.nome}`}
+                    onClick={() => setTarefaModal({ open: true, preAreaId: semArea ? null : linha.id, preDia: diaSelecionado })}>
+                    <Plus aria-hidden="true" className="mr-1.5 h-4 w-4" /> Adicionar tarefa
+                  </Button>
                 </div>
-
-                {/* Linhas por área */}
-                {linhas.map((linha) => {
-                  const semArea = linha.id === SEM_AREA_KEY;
-                  const porDia = grid[linha.id] ?? {};
-                  const totalLinha = Object.values(porDia).reduce((acc, arr) => acc + arr.length, 0);
-                  return (
-                    <div
-                      key={linha.id}
-                      className={cn('grid border-b last:border-b-0 group/row', semArea && 'bg-muted/20')}
-                      style={{ gridTemplateColumns: '200px repeat(7, minmax(0, 1fr))' }}
-                    >
-                      {/* Cabeçalho da linha */}
-                      <div className="px-4 py-3 flex items-start gap-2 border-r bg-card/50">
-                        {semArea ? (
-                          <Link2Off className="h-3.5 w-3.5 mt-1 text-muted-foreground shrink-0" />
-                        ) : (
-                          <span className="h-2.5 w-2.5 mt-1.5 rounded-full shrink-0" style={{ backgroundColor: linha.cor ?? '#64748b' }} />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold leading-tight truncate">{linha.nome}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {totalLinha === 0 ? 'Sem tarefas' : `${totalLinha} ${totalLinha === 1 ? 'tarefa' : 'tarefas'}`}
-                          </p>
-                        </div>
-                        {!semArea && linha.area && (
-                          <button
-                            onClick={() => setAreaModal({ open: true, area: linha.area })}
-                            className="opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
-                            aria-label="Editar área"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Células dos dias */}
-                      {DIAS_ORDEM.map((d) => {
-                        const tarefas = porDia[d] ?? [];
-                        const hoje = d === hojeDow;
-                        return (
-                          <div
-                            key={d}
-                            className={cn(
-                              'border-l p-1.5 min-h-[92px] relative group/cell',
-                              hoje && 'bg-primary/[0.03]'
-                            )}
-                          >
-                            <div className="space-y-1.5">
-                              {tarefas.map((t) => (
-                                <MiniTarefaCard
-                                  key={t.id}
-                                  tarefa={t}
-                                  cor={linha.cor}
-                                  onClick={() => setTarefaModal({ open: true, tarefa: t })}
-                                />
-                              ))}
-                            </div>
-                            {tarefas.length === 0 ? (
-                              <button
-                                onClick={() => setTarefaModal({ open: true, preAreaId: semArea ? null : linha.id, preDia: d })}
-                                className="absolute inset-1.5 rounded-lg border border-dashed border-transparent hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-all"
-                                aria-label={`Adicionar tarefa em ${DIAS_LABEL[d].full}`}
-                              >
-                                <Plus className="h-4 w-4 text-primary/70" />
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => setTarefaModal({ open: true, preAreaId: semArea ? null : linha.id, preDia: d })}
-                                className="w-full mt-1 h-6 rounded-md text-[11px] text-muted-foreground/60 hover:text-primary hover:bg-primary/5 opacity-0 group-hover/cell:opacity-100 transition-all flex items-center justify-center gap-1"
-                              >
-                                <Plus className="h-3 w-3" /> tarefa
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-
-                {/* Rodapé: adicionar área */}
-                <div className="p-3 border-t bg-muted/20">
-                  <button
-                    onClick={() => setAreaModal({ open: true })}
-                    className="w-full py-2 rounded-lg border border-dashed text-sm text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors inline-flex items-center justify-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" /> Nova área
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* MOBILE: cada área é um card com scroll horizontal de dias */}
-          <div className="space-y-3 xl:hidden">
-            {linhas.map((linha) => {
-              const semArea = linha.id === SEM_AREA_KEY;
-              const porDia = grid[linha.id] ?? {};
-              const totalLinha = Object.values(porDia).reduce((acc, arr) => acc + arr.length, 0);
-              return (
-                <div key={linha.id} className="rounded-2xl border bg-card overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2.5 border-b bg-muted/30">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {semArea ? (
-                        <Link2Off className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      ) : (
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: linha.cor ?? '#64748b' }} />
-                      )}
-                      <p className="text-sm font-semibold truncate">{linha.nome}</p>
-                      <Badge variant="secondary" className="rounded-full text-[10px] h-5">{totalLinha}</Badge>
-                    </div>
-                    {!semArea && linha.area && (
-                      <button onClick={() => setAreaModal({ open: true, area: linha.area })} className="text-muted-foreground">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                {tarefas.length ? (
+                  <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
+                    {tarefas.map(tarefa => <TarefaDiaCard key={tarefa.id} tarefa={tarefa} cor={linha.cor}
+                      onClick={() => setTarefaModal({ open: true, tarefa })} />)}
                   </div>
-                  <div className="overflow-x-auto md:overflow-visible">
-                    <div className="flex min-w-max md:grid md:min-w-0 md:grid-cols-2 lg:grid-cols-3">
-                      {DIAS_ORDEM.map((d) => {
-                        const tarefas = porDia[d] ?? [];
-                        const hoje = d === hojeDow;
-                        return (
-                          <div key={d} className={cn('w-[160px] border-r p-2 md:w-auto md:border-b lg:min-h-[132px]', hoje && 'bg-primary/[0.04]')}>
-                            <div className={cn('text-[10px] font-semibold uppercase tracking-wider mb-2 text-center', hoje ? 'text-primary' : 'text-muted-foreground')}>
-                              {DIAS_LABEL[d].curto}
-                            </div>
-                            <div className="space-y-1.5">
-                              {tarefas.map((t) => (
-                                <MiniTarefaCard key={t.id} tarefa={t} cor={linha.cor} onClick={() => setTarefaModal({ open: true, tarefa: t })} />
-                              ))}
-                              <button
-                                onClick={() => setTarefaModal({ open: true, preAreaId: semArea ? null : linha.id, preDia: d })}
-                                className="w-full h-8 rounded-md border border-dashed text-[11px] text-muted-foreground hover:text-primary hover:border-primary/40 flex items-center justify-center gap-1"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <button
-              onClick={() => setAreaModal({ open: true })}
-              className="w-full py-3 rounded-2xl border border-dashed text-sm text-muted-foreground hover:text-primary hover:border-primary/40 inline-flex items-center justify-center gap-2"
-            >
-              <Plus className="h-4 w-4" /> Nova área
-            </button>
-          </div>
-        </>
+                ) : <p className="px-4 py-5 text-sm text-muted-foreground sm:px-5">Nenhuma tarefa para este dia.</p>}
+              </section>
+            );
+          })}
+          <Button variant="outline" className="w-full border-dashed" onClick={() => setAreaModal({ open: true })}>
+            <Plus aria-hidden="true" className="mr-2 h-4 w-4" /> Nova área
+          </Button>
+        </section>
       )}
 
       {/* Modais */}
@@ -396,47 +274,26 @@ export default function CronogramaPage() {
   );
 }
 
-/* ---------------- Mini cartão de tarefa na grade ---------------- */
+/* ---------------- Tarefa do dia ---------------- */
 
-function MiniTarefaCard({ tarefa, cor, onClick }: { tarefa: ProducaoRecorrente; cor: string | null; onClick: () => void }) {
+function TarefaDiaCard({ tarefa, cor, onClick }: { tarefa: ProducaoRecorrente; cor: string | null; onClick: () => void }) {
   usePortugalTranslation();
-  const iniciais = (tarefa.funcionario?.nome ?? '?')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0])
-    .join('')
-    .toUpperCase();
-
+  const inicio = tarefa.hora_inicio?.slice(0, 5);
+  const fim = tarefa.hora_fim?.slice(0, 5);
+  const horario = inicio && fim ? `${inicio} – ${fim}` : inicio || (fim ? `Até ${fim}` : 'Sem horário');
   return (
-    <button
-      onClick={onClick}
-      className="w-full text-left group/card relative rounded-lg bg-card/80 backdrop-blur border border-border/60 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden"
-    >
-      <span
-        className="absolute inset-y-0 left-0 w-1"
-        style={{ backgroundColor: cor ?? 'hsl(var(--muted-foreground))' }}
-      />
-      <div className="pl-2.5 pr-2 py-1.5 space-y-1">
-        <div className="flex items-start gap-1.5">
-          {tarefa.receita_id && <ChefHat className="h-3 w-3 mt-0.5 text-primary shrink-0" />}
-          <p className="text-[11.5px] font-semibold leading-tight line-clamp-2 flex-1">
-            {tarefa.titulo}
-          </p>
-        </div>
-        <div className="flex items-center justify-between gap-1">
-          {(tarefa.hora_inicio || tarefa.hora_fim) ? (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-              <Clock className="h-2.5 w-2.5" />
-              {tarefa.hora_inicio?.slice(0, 5) ?? '--:--'}
-            </span>
-          ) : <span />}
-          <span
-            className="h-4 w-4 rounded-full bg-primary/15 text-primary text-[8.5px] font-bold flex items-center justify-center"
-            title={tarefa.funcionario?.nome ?? ''}
-          >
-            {iniciais}
-          </span>
+    <button type="button" onClick={onClick} aria-label={`Editar tarefa ${tarefa.titulo}`}
+      className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-card p-4 pl-5 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: cor ?? 'hsl(var(--muted-foreground))' }} />
+      <div className="flex items-start gap-3">
+        {tarefa.receita?.imagem_url ? <img src={tarefa.receita.imagem_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+          : tarefa.receita_id && <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ChefHat aria-hidden="true" className="h-5 w-5" /></span>}
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-sm font-semibold leading-snug">{tarefa.titulo}</p>
+          <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 tabular-nums"><Clock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />{horario}</p>
+            <p className="flex items-start gap-1.5"><UserIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /><span className="break-words">{tarefa.funcionario?.nome || 'Sem responsável'}</span></p>
+          </div>
         </div>
       </div>
     </button>
@@ -722,6 +579,7 @@ function RecorrenteModal({
                       on ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'
                     )}
                     title={DIAS_LABEL[d].full}
+                    aria-pressed={on}
                   >
                     {DIAS_LABEL[d].curto}
                   </button>
