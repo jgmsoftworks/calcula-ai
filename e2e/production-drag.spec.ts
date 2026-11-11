@@ -72,6 +72,7 @@ test('shared page drag uses the existing move API and asks for actual yield befo
     }else await route.fulfill({json:{tasks:[task],date:'2026-11-11',expiresAt:'2026-11-12T12:00:00Z'}});
   });
   await page.goto('/producao-compartilhada/fixture-token');
+  await page.getByRole('dialog',{name:'Aviso de cookies'}).getByRole('button',{name:'Recusar opcionais',exact:true}).click();
   await page.getByLabel('Buscar produção').fill('Assar');
   await drag(page,page.getByRole('heading',{name:'Assar bolos'}),target(page,'Em produção',isMobile),isMobile);
   await expect.poll(()=>moves.length).toBe(1);
