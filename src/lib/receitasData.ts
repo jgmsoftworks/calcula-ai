@@ -1,7 +1,34 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { ReceitaComDados } from '@/types/receitas';
+import type { ReceitaComDados, ReceitaCompleta } from '@/types/receitas';
 
 export const RECEITAS_PAGE_SIZE = 24;
+
+export async function fetchReceitaParaVisualizacao(userId: string, receitaId: string, signal?: AbortSignal): Promise<ReceitaCompleta> {
+  let query = supabase.from('receitas').select(`
+    *, tipo_produto:tipos_produto(id, nome), markup:markups(id, nome, tipo),
+    ingredientes:receita_ingredientes(*, produto:produtos(id, nome, marcas, custo_unitario, unidade_compra, unidade_uso, fator_conversao)),
+    embalagens:receita_embalagens(*, produto:produtos(id, nome, custo_unitario, unidade_compra, unidade_uso, fator_conversao)),
+    mao_obra:receita_mao_obra(*),
+    sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
+      *, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(id, nome, preco_venda, rendimento_unidade, rendimento_valor)
+    )
+  `).eq('user_id', userId).eq('id', receitaId);
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query.single();
+  if (error) throw error;
+  if (!data) throw new Error('Receita não encontrada.');
+  // Preparation steps have no foreign key relation exposed by PostgREST.
+  // Load them only after the owner-scoped recipe lookup succeeds.
+  let stepsQuery = supabase.from('receita_passos_preparo').select('*').eq('receita_id', receitaId).order('ordem');
+  if (signal) stepsQuery = stepsQuery.abortSignal(signal);
+  const { data: passos, error: stepsError } = await stepsQuery;
+  if (stepsError) throw stepsError;
+  const receita = data as unknown as ReceitaCompleta;
+  return { ...receita, ingredientes: receita.ingredientes || [], embalagens: receita.embalagens || [],
+    mao_obra: receita.mao_obra || [], sub_receitas: receita.sub_receitas || [],
+    passos: passos || [],
+  };
+}
 
 export const RECEITA_CUSTO_SELECT = `
     *, tipo_produto:tipos_produto(id, nome), markup:markups(id, nome, tipo),
@@ -23,13 +50,13 @@ export interface ReceitaFilters {
 // already fetched for costing, avoiding three redundant aggregate joins.
 interface ProdutoCusto {
   quantidade: number;
-  produto: { custo_unitario: number; unidade_uso: string | null; fator_conversao: number | null } | null;
+  produto?: { custo_unitario: number; unidade_uso: string | null; fator_conversao: number | null } | null;
 }
 interface ComponentesCusto {
   ingredientes?: ProdutoCusto[];
   embalagens?: ProdutoCusto[];
   mao_obra?: { valor_total: number }[];
-  sub_receitas?: { quantidade: number; sub_receita: { preco_venda: number; rendimento_valor: number | null } | null }[];
+  sub_receitas?: { quantidade: number; sub_receita?: { preco_venda: number; rendimento_valor: number | null } | null }[];
 }
 export function calcularDadosReceita<T extends ComponentesCusto>(receita: T) {
   const custoProdutos = (items: ProdutoCusto[] | undefined) => (items || []).reduce((sum, item) => {

@@ -39,6 +39,7 @@ beforeAll(async () => {
   await db.exec(readFileSync('supabase/migrations/20261111130041_geladeira_receitas.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261111133415_integrar_geladeira_estoque.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261111143000_saldo_inicial_geladeira.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261111150000_remover_item_lista_geladeira.sql','utf8'));
 }, 30000);
 afterAll(async () => { await db.close(); });
 beforeEach(async () => {
@@ -206,6 +207,39 @@ describe('Initial fridge stock', () => {
     } finally {
       await db.exec('reset role; drop trigger fail_initial_stock_test on geladeira_movimentacoes; drop function fail_initial_stock_test(); set role authenticated;');
     }
+  });
+});
+async function removeFromList(recipe=final, request=randomUUID()) {
+  return (await db.query<{id:string}>('select remover_item_da_geladeira($1,$2) id',[recipe,request])).rows[0].id;
+}
+describe('Removing only the fridge list entry', () => {
+  it('preserves the recipe, previous history and final balance snapshot without a physical outflow', async () => {
+    await registerWithBalance();
+    await removeFromList();
+    expect(await balance()).toBeUndefined();
+    expect((await db.query('select id from receitas where id=$1',[final])).rows).toHaveLength(1);
+    expect(await count('geladeira_movimentacoes')).toBe(2);
+    expect((await db.query("select tipo,quantidade::float quantidade,saldo_anterior::float anterior,saldo_atual::float atual from geladeira_movimentacoes where tipo='remocao'")).rows[0])
+      .toEqual({tipo:'remocao',quantidade:0,anterior:3,atual:3});
+    expect((await db.query("select id from geladeira_movimentacoes where tipo='saida'")).rows).toHaveLength(0);
+    expect((await db.query<{n:number}>('select sum(estoque_atual)::float n from produtos')).rows[0].n).toBe(200);
+  });
+  it('does not delete a newly registered item when an old removal request is retried', async () => {
+    await registerWithBalance();
+    const request=randomUUID(), event=await removeFromList(final,request);
+    await registerWithBalance(final,5);
+    expect(await removeFromList(final,request)).toBe(event);
+    expect(await balance()).toBe(5);
+    await expect(removeFromList(sub,request)).rejects.toThrow('outra operação');
+  });
+  it('rejects cross-account removal and inactive access', async () => {
+    await registerWithBalance();
+    await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);
+    await expect(removeFromList()).rejects.toThrow();
+    await db.exec(`select set_config('request.jwt.claim.sub','${user}',false); select set_config('test.access','false',false)`);
+    await expect(removeFromList()).rejects.toThrow('acesso ativo');
+    await db.exec("select set_config('test.access','true',false)");
+    expect(await balance()).toBe(3);
   });
 });
 describe('Geladeira within the shared stock workflows', () => {

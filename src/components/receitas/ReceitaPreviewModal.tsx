@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { formatBRL } from '@/lib/formatters';
 import type { ReceitaCompleta } from '@/types/receitas';
+import { calcularDadosReceita } from '@/lib/receitasData';
 import { Clock, Package, Users, ChefHat } from 'lucide-react';
 
 interface ReceitaPreviewModalProps {
@@ -23,30 +25,11 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
   if (!receita) return null;
 
   // Calcular custos
-  const custoIngredientes = receita.ingredientes.reduce((acc, ing) => {
-    const produto = ing.produto;
-    if (!produto) return acc;
-    const fatorConversao = produto.fator_conversao || 1;
-    const custoUnitario = produto.custo_unitario / fatorConversao;
-    return acc + (ing.quantidade * custoUnitario);
-  }, 0);
-
-  const custoSubReceitas = receita.sub_receitas.reduce((acc, sr) => {
-    const subReceita = sr.sub_receita;
-    if (!subReceita || !subReceita.rendimento_valor) return acc;
-    const custoUnitario = subReceita.preco_venda / subReceita.rendimento_valor;
-    return acc + (sr.quantidade * custoUnitario);
-  }, 0);
-
-  const custoEmbalagens = receita.embalagens.reduce((acc, emb) => {
-    const produto = emb.produto;
-    if (!produto) return acc;
-    const fatorConversao = produto.fator_conversao || 1;
-    const custoUnitario = produto.custo_unitario / fatorConversao;
-    return acc + (emb.quantidade * custoUnitario);
-  }, 0);
-
-  const custoMaoObra = receita.mao_obra.reduce((acc, mo) => acc + mo.valor_total, 0);
+  const dados = calcularDadosReceita(receita);
+  const custoIngredientes = dados.custo_ingredientes;
+  const custoSubReceitas = dados.custo_sub_receitas;
+  const custoEmbalagens = dados.custo_embalagens;
+  const custoMaoObra = dados.custo_mao_obra;
 
   const custoTotal = custoIngredientes + custoSubReceitas + custoEmbalagens + custoMaoObra;
   const precoVenda = receita.preco_venda || 0;
@@ -57,8 +40,9 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2 pr-6">
             <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
-            <span className="truncate">Preview da Receita #{receita.numero_sequencial}</span>
+            <span className="whitespace-normal break-words">Detalhes da receita #{receita.numero_sequencial}</span>
           </DialogTitle>
+          <DialogDescription className="sr-only">Ficha técnica de {receita.nome}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -206,7 +190,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                     {receita.ingredientes.map((ing) => {
                       const produto = ing.produto;
                       if (!produto) return null;
-                      const fatorConversao = produto.fator_conversao || 1;
+                      const fatorConversao = produto.unidade_uso ? produto.fator_conversao || 1 : 1;
                       const custoUnitario = produto.custo_unitario / fatorConversao;
                       const custoTotal = ing.quantidade * custoUnitario;
                       return (
@@ -252,8 +236,8 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                   <TableBody>
                     {receita.sub_receitas.map((sr) => {
                       const subReceita = sr.sub_receita;
-                      if (!subReceita || !subReceita.rendimento_valor) return null;
-                      const custoUnitario = subReceita.preco_venda / subReceita.rendimento_valor;
+                      if (!subReceita) return null;
+                      const custoUnitario = subReceita.rendimento_valor && subReceita.rendimento_valor > 0 ? subReceita.preco_venda / subReceita.rendimento_valor : subReceita.preco_venda;
                       const custoTotal = sr.quantidade * custoUnitario;
                       return (
                         <TableRow key={sr.id}>
@@ -301,7 +285,7 @@ export function ReceitaPreviewModal({ receita, open, onOpenChange }: ReceitaPrev
                     {receita.embalagens.map((emb) => {
                       const produto = emb.produto;
                       if (!produto) return null;
-                      const fatorConversao = produto.fator_conversao || 1;
+                      const fatorConversao = produto.unidade_uso ? produto.fator_conversao || 1 : 1;
                       const custoUnitario = produto.custo_unitario / fatorConversao;
                       const custoTotal = emb.quantidade * custoUnitario;
                       return (

@@ -33,7 +33,7 @@ export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
       )}
 
       <div className="min-w-0 flex-1 space-y-1">
-        <h4 className="line-clamp-2 text-sm font-semibold sm:min-h-[2.5rem]">
+        <h4 className="whitespace-normal break-words text-sm font-semibold sm:min-h-[2.5rem]">
           {produto.nome}
         </h4>
         {produto.origem_estoque === 'geladeira' && <p className="text-xs text-muted-foreground">Geladeira</p>}

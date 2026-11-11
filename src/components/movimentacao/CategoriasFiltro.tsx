@@ -48,10 +48,10 @@ export function CategoriasFiltro({
     })).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [produtos, resumo]);
   const totalProdutos = total ?? produtos.length;
-  return <ScrollArea className="w-full whitespace-nowrap">
+  return <ScrollArea className="w-full">
       <div className="flex gap-4 px-1 py-3 pb-5 sm:gap-5 sm:px-4 sm:py-4 sm:pb-6">
         {/* Botão Todos */}
-        <button onClick={() => onSelectCategoria(null)} className="flex flex-col items-center gap-2 shrink-0">
+        <button onClick={() => onSelectCategoria(null)} className="flex w-24 shrink-0 flex-col items-center gap-2">
           <div className={`relative ${!categoriaSelecionada ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
             <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
               <AvatarFallback className="bg-primary/10">
@@ -62,13 +62,13 @@ export function CategoriasFiltro({
               {totalProdutos}
             </Badge>
           </div>
-          <span className="text-xs font-medium text-center max-w-[80px] line-clamp-2">
+          <span className="w-full whitespace-normal break-words text-center text-xs font-medium leading-snug">
             Todos
           </span>
         </button>
 
         {/* Círculos de Categorias */}
-        {categorias.map(categoria => <button key={categoria.nome} onClick={() => onSelectCategoria(categoria.nome)} className="flex flex-col items-center gap-2 shrink-0">
+        {categorias.map(categoria => <button key={categoria.nome} onClick={() => onSelectCategoria(categoria.nome)} className="flex w-24 shrink-0 flex-col items-center gap-2">
             <div className={`relative ${categoriaSelecionada === categoria.nome ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
               <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
                 {categoria.imagem ? <AvatarImage src={categoria.imagem} alt={categoria.nome} className="object-cover" /> : <AvatarFallback className="bg-muted">
@@ -79,7 +79,7 @@ export function CategoriasFiltro({
                 {categoria.count}
               </Badge>
             </div>
-            <span className="text-xs font-medium text-center max-w-[80px] line-clamp-2">
+            <span className="w-full whitespace-normal break-words text-center text-xs font-medium leading-snug">
               {categoria.nome}
             </span>
           </button>)}

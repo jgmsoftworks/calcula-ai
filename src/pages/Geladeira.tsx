@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { ChefHat, MoreHorizontal, Plus, Refrigerator, Search } from 'lucide-react';
+import { ChefHat, Pencil, Plus, Refrigerator, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchTodasReceitas } from '@/lib/receitasData';
-import { custoUnitarioGeladeira, fetchGeladeira, OPERACAO_LABEL, receitaPodeEntrar, type GeladeiraItem } from '@/lib/geladeiraData';
+import { fetchReceitaParaVisualizacao, fetchTodasReceitas } from '@/lib/receitasData';
+import { custoUnitarioGeladeira, fetchGeladeira, receitaPodeEntrar, type GeladeiraItem } from '@/lib/geladeiraData';
+import { ReceitaPreviewModal } from '@/components/receitas/ReceitaPreviewModal';
 import { formatMoney } from '@/lib/business-region';
 import { formatters } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const qty = (value: number) => formatters.quantidadeContinua(value);
@@ -32,6 +31,7 @@ export default function Geladeira() {
   const [saldo, setSaldo] = useState('todos');
   const [page, setPage] = useState(0);
   const [modal, setModal] = useState<Modal | null>(null);
+  const [previewItem, setPreviewItem] = useState<GeladeiraItem | null>(null);
   const [receitaId, setReceitaId] = useState('');
   const [saldoInicial, setSaldoInicial] = useState(0);
   const [minimo, setMinimo] = useState(0);
@@ -44,6 +44,8 @@ export default function Geladeira() {
     queryFn: ({ signal }) => fetchGeladeira(user!.id, signal), staleTime: 0 });
   const recipesQuery = useQuery({ queryKey: ['geladeira-receitas', user?.id], enabled: !!user && !!modal && !modal.item,
     queryFn: () => fetchTodasReceitas(user!.id, { status: 'finalizada' }), staleTime: 0 });
+  const previewQuery = useQuery({ queryKey: ['geladeira-receita-detalhes', user?.id, previewItem?.receita_id], enabled: !!user && !!previewItem,
+    queryFn: ({ signal }) => fetchReceitaParaVisualizacao(user!.id, previewItem!.receita_id, signal), staleTime: 0 });
   const items = itemsQuery.data || [];
   const filtered = useMemo(() => items.filter(item => {
     const sub = item.receita.markup?.tipo === 'sub_receita';
@@ -89,7 +91,9 @@ export default function Geladeira() {
         ? saldoInicial > 0
           ? await supabase.rpc('cadastrar_item_geladeira_com_saldo', { p_receita_id: selected.id, p_saldo_inicial: saldoInicial, p_estoque_minimo: minimo, p_request_id: pending.current.id })
           : await supabase.rpc('cadastrar_item_geladeira', { p_receita_id: selected.id, p_estoque_minimo: minimo })
-        : await supabase.rpc('movimentar_geladeira', { ...args, p_request_id: pending.current.id });
+        : modal.tipo === 'remocao'
+          ? await supabase.rpc('remover_item_da_geladeira', { p_receita_id: selected.id, p_request_id: pending.current.id })
+          : await supabase.rpc('movimentar_geladeira', { ...args, p_request_id: pending.current.id });
       if (error) throw error;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['geladeira', user.id] }),
@@ -103,14 +107,14 @@ export default function Geladeira() {
     } finally { savingRef.current = false; setSaving(false); }
   }
   const actions = (item: GeladeiraItem) => <div className="flex items-center justify-end gap-1">
-    <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Mais opções para ${item.receita.nome}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => openModal('minimo', item)}>Editar estoque mínimo</DropdownMenuItem>
-        <DropdownMenuItem asChild><Link to={`/receitas/${item.receita_id}/editar`}>Abrir receita</Link></DropdownMenuItem>
-        <DropdownMenuItem disabled={item.estoque_atual !== 0} className="text-destructive" onClick={() => openModal('remocao', item)}>Remover da Geladeira</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Editar ${item.receita.nome} na Geladeira`} title="Editar item da Geladeira" onClick={() => openModal('minimo', item)}><Pencil className="h-4 w-4" /></Button>
+    <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive hover:text-destructive" aria-label={`Remover ${item.receita.nome} da Geladeira`} title="Remover da Geladeira" onClick={() => openModal('remocao', item)}><Trash2 className="h-4 w-4" /></Button>
   </div>;
+  const recipeButton = (item: GeladeiraItem) => <button type="button" onClick={() => setPreviewItem(item)} aria-label={`Ver informações de ${item.receita.nome}`}
+    className="flex min-w-0 items-center gap-3 rounded-lg text-left outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring">
+    {item.receita.imagem_url ? <img src={item.receita.imagem_url} alt={item.receita.nome} loading="lazy" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ChefHat aria-hidden="true" className="h-5 w-5" /></span>}
+    <span className="min-w-0"><span className="block whitespace-normal break-words font-semibold">{item.receita.nome}</span><span className="mt-1 block text-xs text-muted-foreground">#{item.receita.numero_sequencial}</span></span>
+  </button>;
   return <div className="min-w-0 space-y-5">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="max-w-xl text-sm text-muted-foreground">Receitas prontas e sub-receitas armazenadas, com custo atualizado pela ficha técnica.</p>
@@ -126,13 +130,13 @@ export default function Geladeira() {
       <div className="rounded-xl border border-dashed px-5 py-14 text-center"><Refrigerator className="mx-auto mb-4 h-9 w-9 text-muted-foreground" /><p className="font-semibold">{items.length ? 'Nenhuma receita encontrada' : 'Sua Geladeira está vazia'}</p><p className="mt-2 text-sm text-muted-foreground">{items.length ? 'Ajuste a busca ou os filtros.' : 'Adicione uma receita final ou sub-receita e registre as entradas em Movimentações.'}</p>{!items.length && <Button className="mt-5" onClick={() => openModal('cadastro')}>Adicionar receita</Button>}</div> : <>
       <div className="hidden overflow-hidden rounded-xl border bg-card lg:block"><Table><TableHeader><TableRow><TableHead>Receita</TableHead><TableHead>Tipo</TableHead><TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Mínimo</TableHead><TableHead className="text-right">Custo por unidade</TableHead><TableHead className="text-right">Custo armazenado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
         <TableBody>{visible.map(item => { const cost = custoUnitarioGeladeira(item.receita); return <TableRow key={item.id}>
-          <TableCell><Link className="font-medium hover:text-primary" to={`/receitas/${item.receita_id}/editar`}>{item.receita.nome}</Link><span className="mt-1 block text-xs text-muted-foreground">#{item.receita.numero_sequencial}</span></TableCell>
+          <TableCell className="min-w-[220px] max-w-[380px]">{recipeButton(item)}</TableCell>
           <TableCell><Badge variant="secondary" className="whitespace-nowrap">{item.receita.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}</Badge></TableCell>
           <TableCell className={`whitespace-nowrap text-right font-medium tabular-nums ${item.estoque_atual < item.estoque_minimo ? 'text-amber-700 dark:text-amber-400' : ''}`}>{qty(item.estoque_atual)} {item.unidade}{item.estoque_atual < item.estoque_minimo && <span className="block text-xs font-normal">Abaixo do mínimo</span>}</TableCell>
           <TableCell className="text-right tabular-nums">{qty(item.estoque_minimo)} {item.unidade}</TableCell><TableCell className="whitespace-nowrap text-right tabular-nums">{unitMoney(cost)} / {item.unidade}</TableCell><TableCell className="whitespace-nowrap text-right font-medium tabular-nums">{money(cost === null ? null : cost * item.estoque_atual)}</TableCell><TableCell>{actions(item)}</TableCell>
         </TableRow>; })}</TableBody></Table></div>
       <div className="divide-y rounded-xl border bg-card lg:hidden">{visible.map(item => { const cost = custoUnitarioGeladeira(item.receita); return <div key={item.id} className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-2"><div className="min-w-0"><Link to={`/receitas/${item.receita_id}/editar`} className="break-words font-semibold">{item.receita.nome}</Link><p className="mt-1 text-xs text-muted-foreground">#{item.receita.numero_sequencial} · {item.receita.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}</p></div>{actions(item)}</div>
+        <div className="flex items-start justify-between gap-2"><div className="min-w-0">{recipeButton(item)}<p className="mt-2 text-xs text-muted-foreground">{item.receita.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}</p></div>{actions(item)}</div>
         <dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-muted-foreground">Quantidade</dt><dd className="mt-1 font-semibold">{qty(item.estoque_atual)} {item.unidade}</dd></div><div className="text-right"><dt className="text-xs text-muted-foreground">Custo armazenado</dt><dd className="mt-1 font-semibold">{money(cost === null ? null : cost * item.estoque_atual)}</dd></div><div><dt className="text-xs text-muted-foreground">Mínimo</dt><dd>{qty(item.estoque_minimo)} {item.unidade}</dd></div><div className="text-right"><dt className="text-xs text-muted-foreground">Custo por {item.unidade}</dt><dd>{unitMoney(cost)}</dd></div></dl>
         {item.estoque_atual < item.estoque_minimo && <p className="text-xs text-amber-700 dark:text-amber-400">Abaixo do mínimo</p>}
       </div>; })}</div>
@@ -143,7 +147,7 @@ export default function Geladeira() {
     <Dialog open={!!modal} onOpenChange={open => { if (!open) closeModal(); }}>
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px] sm:p-0">
         <DialogHeader className="shrink-0 px-5 pb-4 pt-6 text-left sm:px-6">
-          <DialogTitle className="pr-9 leading-snug">{modal?.item ? `${OPERACAO_LABEL[modal.tipo]} · Geladeira` : 'Adicionar receita à Geladeira'}</DialogTitle>
+          <DialogTitle className="pr-9 leading-snug">{modal?.tipo === 'remocao' ? 'Remover da Geladeira' : modal?.item ? 'Editar item da Geladeira' : 'Adicionar receita à Geladeira'}</DialogTitle>
           <DialogDescription>{modal?.item ? modal.item.receita.nome : 'Escolha a receita para carregar os dados e o custo.'}</DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="flex min-h-0 flex-col">
@@ -199,7 +203,7 @@ export default function Geladeira() {
                   <Input id="geladeira-valor-total" readOnly value={saldoInicial > 0 ? money(selectedCost === null ? null : saldoInicial * selectedCost) : ''} className="bg-primary/5 font-semibold tabular-nums text-primary" />
                 </div>}
               </div>}
-              {modal?.tipo === 'remocao' ? <p className="text-sm">Remover esta receita da lista da Geladeira? A ficha técnica e o histórico serão preservados.</p> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : null}
+              {modal?.tipo === 'remocao' ? <div className="space-y-3 text-sm"><p>Este item será removido somente da lista da Geladeira. <strong>A receita cadastrada não será apagada</strong>, e o histórico será preservado.</p>{!!modal.item?.estoque_atual && <p className="text-muted-foreground">O saldo de <strong>{qty(modal.item.estoque_atual)} {selectedUnit}</strong> deixará de aparecer na Geladeira.</p>}</div> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : null}
             </fieldset>
             {saveError && <p role="alert" className="mt-4 text-sm text-destructive">{saveError}</p>}
           </div>
@@ -208,6 +212,12 @@ export default function Geladeira() {
             <Button type="submit" className="flex-1 sm:flex-none" disabled={saving || !selected} variant={modal?.tipo === 'remocao' ? 'destructive' : 'default'}>{saving ? 'Salvando…' : modal?.tipo === 'remocao' ? 'Remover' : modal?.tipo === 'cadastro' ? 'Adicionar à Geladeira' : 'Salvar'}</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+    <ReceitaPreviewModal receita={previewQuery.data || null} open={!!previewItem && !!previewQuery.data} onOpenChange={open => { if (!open) setPreviewItem(null); }} />
+    <Dialog open={!!previewItem && !previewQuery.data} onOpenChange={open => { if (!open) setPreviewItem(null); }}>
+      <DialogContent><DialogHeader><DialogTitle className="pr-8 break-words">{previewItem?.receita.nome}</DialogTitle><DialogDescription>Informações da receita</DialogDescription></DialogHeader>
+        {previewQuery.isError ? <div role="alert" className="space-y-3"><p>Não foi possível carregar a receita.</p><Button onClick={() => void previewQuery.refetch()}>Tentar novamente</Button></div> : <p role="status">Carregando receita…</p>}
       </DialogContent>
     </Dialog>
   </div>;

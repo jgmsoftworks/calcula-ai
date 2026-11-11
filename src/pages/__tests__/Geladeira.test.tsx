@@ -18,6 +18,7 @@ beforeEach(() => {
   mocks.from.mockImplementation(table => {
     const data = table === 'geladeira_itens' ? [item] : table === 'receitas' ? [recipe] : [];
     const query = { select:()=>query,eq:()=>query,order:()=>query,range:()=>query,abortSignal:()=>query,
+      single:()=>Promise.resolve({data:{...recipe,ingredientes:[{id:'ingredient',quantidade:1,produto:{nome:'Leite em pó',custo_unitario:50,unidade_compra:'kg',fator_conversao:1}}],embalagens:[],sub_receitas:[],mao_obra:[],passos:[],observacoes:'Conservar refrigerado.'},error:null}),
       then:(resolve: (r:unknown)=>unknown) => Promise.resolve({ data, count:data.length, error:null }).then(resolve) };
     return query;
   });
@@ -29,6 +30,39 @@ async function open() {
   await screen.findAllByText('Recheio de Ninho');
 }
 describe('Geladeira interaction', () => {
+  it('opens the complete recipe with its saved photo without editing or moving stock', async () => {
+    await open();
+    expect(screen.getAllByRole('img',{name:recipe.nome})[0]).toHaveAttribute('src','/recheio.jpg');
+    fireEvent.click(screen.getAllByRole('button',{name:`Ver informações de ${recipe.nome}`})[0]);
+    const dialog=await screen.findByRole('dialog',{name:'Detalhes da receita #1'});
+    expect(within(dialog).getByRole('img',{name:recipe.nome})).toHaveAttribute('src','/recheio.jpg');
+    expect(within(dialog).getByText('Leite em pó')).toBeInTheDocument();
+    expect(within(dialog).getByText('Conservar refrigerado.')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it('edits the fridge minimum through the pencil without changing the recipe or balance', async () => {
+    await open();
+    fireEvent.click(screen.getAllByRole('button',{name:`Editar ${recipe.nome} na Geladeira`})[0]);
+    expect(screen.getByRole('dialog',{name:'Editar item da Geladeira'})).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Saldo inicial/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Estoque mínimo (kg)'),{target:{value:'3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
+    await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('movimentar_geladeira',expect.objectContaining({p_receita_id:'r1',p_tipo:'minimo',p_quantidade:0,p_estoque_minimo:3})));
+  });
+  it('requires confirmation to remove only the list entry, including an item with a balance', async () => {
+    await open();
+    fireEvent.click(screen.getAllByRole('button',{name:`Remover ${recipe.nome} da Geladeira`})[0]);
+    expect(screen.getByText('A receita cadastrada não será apagada')).toBeInTheDocument();
+    expect(screen.getByText(/deixará de aparecer na Geladeira/)).toHaveTextContent('1,5 kg');
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'Cancelar'}));
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('button',{name:`Remover ${recipe.nome} da Geladeira`})[0]);
+    fireEvent.click(screen.getByRole('button',{name:'Remover'}));
+    await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('remover_item_da_geladeira',{p_receita_id:'r1',p_request_id:expect.any(String)}));
+    await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
   it('shows the recipe cost for the stored amount and supports name filtering', async () => {
     await open();
     expect(screen.getAllByText(/37,50/).length).toBeGreaterThan(0);
