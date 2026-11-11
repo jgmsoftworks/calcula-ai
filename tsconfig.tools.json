@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": { "types": ["node"], "lib": ["ES2023", "DOM"] },
+  "include": ["vitest*.config.ts", "playwright.config.ts", "playwright-fixture.ts", "e2e/**/*.ts"]
+}
