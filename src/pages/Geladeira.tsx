@@ -33,7 +33,6 @@ export default function Geladeira() {
   const [page, setPage] = useState(0);
   const [modal, setModal] = useState<Modal | null>(null);
   const [receitaId, setReceitaId] = useState('');
-  const [recipeSearch, setRecipeSearch] = useState('');
   const [minimo, setMinimo] = useState(0);
   const [observacao, setObservacao] = useState('');
   const [saving, setSaving] = useState(false);
@@ -59,11 +58,10 @@ export default function Geladeira() {
   const selected = modal?.item?.receita || recipesQuery.data?.find(r => r.id === receitaId);
   const selectedCost = selected ? custoUnitarioGeladeira(selected) : null;
   const selectedUnit = modal?.item?.unidade || selected?.rendimento_unidade || '';
-  const pickerRecipes = (recipesQuery.data || []).filter(r => !items.some(item => item.receita_id === r.id)
-    && `${r.nome} ${r.numero_sequencial}`.toLocaleLowerCase().includes(recipeSearch.toLocaleLowerCase()));
+  const pickerRecipes = (recipesQuery.data || []).filter(r => !items.some(item => item.receita_id === r.id));
 
   function openModal(tipo: Modal['tipo'], item?: GeladeiraItem) {
-    setModal({ tipo, item }); setReceitaId(item?.receita_id || ''); setRecipeSearch('');
+    setModal({ tipo, item }); setReceitaId(item?.receita_id || '');
     setMinimo(item?.estoque_minimo || 0);
     setObservacao(''); setSaveError(''); pending.current = null;
   }
@@ -133,10 +131,20 @@ export default function Geladeira() {
     </>}
     <Dialog open={!!modal} onOpenChange={open => { if (!open) closeModal(); }}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"><DialogHeader><DialogTitle>{modal?.item ? `${modal.tipo === 'cadastro' ? 'Cadastro' : OPERACAO_LABEL[modal.tipo]} · Geladeira` : 'Adicionar receita à Geladeira'}</DialogTitle><DialogDescription>{modal?.item ? modal.item.receita.nome : 'Selecione uma receita final ou sub-receita já cadastrada.'}</DialogDescription></DialogHeader>
       <form onSubmit={save} className="space-y-4"><fieldset disabled={saving} className="min-w-0 space-y-4">
-        {!modal?.item && <div className="space-y-2"><Label htmlFor="geladeira-receita-busca">Receita</Label><Input id="geladeira-receita-busca" placeholder="Buscar receita..." value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} />
-          {recipesQuery.isPending ? <p role="status" className="text-sm text-muted-foreground">Carregando receitas…</p> : recipesQuery.isError ? <div role="alert"><p>Erro ao carregar receitas.</p><Button type="button" variant="outline" onClick={() => void recipesQuery.refetch()}>Tentar novamente</Button></div> :
-            <Select value={receitaId} onValueChange={setReceitaId}><SelectTrigger aria-label="Selecionar receita"><SelectValue placeholder="Selecione uma receita" /></SelectTrigger><SelectContent searchable={false}>{selected && !pickerRecipes.some(r => r.id === selected.id) && <SelectItem value={selected.id}>{selected.nome}</SelectItem>}{pickerRecipes.map(r => <SelectItem key={r.id} value={r.id} disabled={!receitaPodeEntrar(r)}>{r.nome} · {r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}{!receitaPodeEntrar(r) ? ' (ajuste o rendimento)' : ''}</SelectItem>)}</SelectContent></Select>}
-          {recipesQuery.isSuccess && !pickerRecipes.length && <p className="text-sm text-muted-foreground">Nenhuma receita disponível para esta busca. Receitas já adicionadas recebem novas entradas em Movimentações.</p>}
+        {!modal?.item && <div className="space-y-2">
+          <Label htmlFor="geladeira-receita">Receita</Label>
+          <Select value={receitaId} onValueChange={setReceitaId} disabled={recipesQuery.isPending || recipesQuery.isError || !pickerRecipes.length}>
+            <SelectTrigger id="geladeira-receita" aria-label="Selecionar receita">
+              <SelectValue placeholder={recipesQuery.isPending ? 'Carregando receitas…' : 'Selecione uma receita'} />
+            </SelectTrigger>
+            <SelectContent searchable searchPlaceholder="Buscar receita por nome ou código…" searchLabel="Buscar receita">
+              {pickerRecipes.map(r => <SelectItem key={r.id} value={r.id} disabled={!receitaPodeEntrar(r)} textValue={`${r.nome} ${r.numero_sequencial} ${r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}`}>
+                {r.nome} · {r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}{!receitaPodeEntrar(r) ? ' (ajuste o rendimento)' : ''}
+              </SelectItem>)}
+            </SelectContent>
+          </Select>
+          {recipesQuery.isError && <div role="alert"><p>Erro ao carregar receitas.</p><Button type="button" variant="outline" onClick={() => void recipesQuery.refetch()}>Tentar novamente</Button></div>}
+          {recipesQuery.isSuccess && !pickerRecipes.length && <p className="text-sm text-muted-foreground">Nenhuma receita disponível. Receitas já adicionadas recebem novas entradas em Movimentações.</p>}
           <p className="text-xs text-muted-foreground">A receita precisa ter rendimento e unidade preenchidos. As entradas e saídas são registradas em Movimentações.</p>
         </div>}
         {selected && modal?.tipo !== 'remocao' && <div className="rounded-lg bg-muted/50 p-3 text-sm"><div className="flex justify-between gap-3"><span>Custo por {selectedUnit}</span><strong>{unitMoney(selectedCost)}</strong></div><p className="mt-1 text-xs text-muted-foreground">Calculado automaticamente pela receita, sem aplicar o markup de venda.</p>{modal?.item && <p className="mt-2">Saldo atual: <strong>{qty(modal.item.estoque_atual)} {selectedUnit}</strong></p>}</div>}

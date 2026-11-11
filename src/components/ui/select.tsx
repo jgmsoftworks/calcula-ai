@@ -103,8 +103,8 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { searchable?: boolean }
->(({ className, children, position = "popper", searchable, sideOffset = 8, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { searchable?: boolean; searchPlaceholder?: string; searchLabel?: string }
+>(({ className, children, position = "popper", searchable, searchPlaceholder = "Buscar opção…", searchLabel = "Buscar opção", sideOffset = 8, ...props }, ref) => {
   const { open, choose } = React.useContext(SelectOpenContext)
   const [query, setQuery] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -150,7 +150,7 @@ const SelectContent = React.forwardRef<
         }}>
           <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input ref={inputRef} value={query} onChange={event => setQuery(event.target.value)}
-            aria-label="Buscar opção" placeholder="Buscar opção…" autoComplete="off" spellCheck={false} />
+            aria-label={searchLabel} placeholder={searchPlaceholder} autoComplete="off" spellCheck={false} />
         </div>}
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport ref={viewportRef} className="min-h-0 w-full flex-1 p-0.5">

@@ -46,7 +46,13 @@ describe('Geladeira interaction', () => {
     await screen.findByText('Sua Geladeira está vazia');
     expect(screen.queryByRole('button',{name:'Histórico'})).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button',{name:'Adicionar receita'})[0]);
-    fireEvent.keyDown(await screen.findByRole('combobox',{name:'Selecionar receita'}),{key:'Enter'});
+    const selector = await screen.findByRole('combobox',{name:'Selecionar receita'});
+    await waitFor(() => expect(selector).not.toBeDisabled());
+    expect(screen.queryByRole('textbox', { name: 'Buscar receita' })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Buscar receita...')).not.toBeInTheDocument();
+    fireEvent.keyDown(selector,{key:'Enter'});
+    const search = await screen.findByRole('textbox', { name: 'Buscar receita' });
+    fireEvent.change(search, { target: { value: '1' } });
     fireEvent.keyDown(await screen.findByRole('option',{name:/Recheio de Ninho/}),{key:'Enter'});
     expect(screen.queryByLabelText('Quantidade (kg)')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
