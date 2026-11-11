@@ -1,3 +1,5 @@
+import { formatInTimeZone } from 'date-fns-tz';
+import { getBusinessRegion } from '@/lib/business-region';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -72,7 +74,7 @@ export function useProducaoRecorrentes(areaId?: string | null, opts?: { semArea?
     mutationFn: async (input: RecorrenteInput) => {
       const { data, error } = await supabase
         .from('producao_tarefas_recorrentes')
-        .insert({ user_id: user!.id, ...input })
+        .insert({ user_id: user!.id, ...input, data_inicio: input.data_inicio ?? formatInTimeZone(new Date(),getBusinessRegion().timeZone,'yyyy-MM-dd') })
         .select()
         .single();
       if (error) throw error;

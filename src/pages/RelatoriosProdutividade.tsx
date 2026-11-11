@@ -20,6 +20,7 @@ interface TarefaProdutividade extends LinhaRendimento {
   fim_previsto: string | null;
   iniciado_em: string | null;
   concluido_em: string | null;
+  tempo_producao_segundos: number | null;
   funcionario_id: string;
   funcionario: { id: string; nome: string; cargo: string | null } | null;
 }
@@ -33,6 +34,9 @@ interface ProdutividadeProfissional {
   minutosPrevistos: number;
   minutosRealizados: number;
   taxaConclusao: number;
+  temposInformados: number;
+  minutosComparaveis: number;
+  minutosPrevistosComparaveis: number;
 }
 
 const toDateInput = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -65,6 +69,7 @@ export default function RelatoriosProdutividade() {
   });
   const [tarefas, setTarefas] = useState<TarefaProdutividade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const validarPeriodo = () => {
     if (!dataInicio || !dataFim) {
@@ -94,18 +99,19 @@ export default function RelatoriosProdutividade() {
     let active = true;
 
     const carregar = async () => {
-      setLoading(true);
+      setLoading(true); setLoadError('');
       const data: unknown[] = [];
       let error: { message: string } | null = null;
       for (let offset = 0; ; offset += 500) {
         const result = await supabase
         .from('producao_tarefas')
         .select(`
-          id, titulo, data_producao, receita_id, receita_nome, rendimento_previsto, rendimento_real, rendimento_unidade, status, inicio_previsto, fim_previsto, iniciado_em, concluido_em, funcionario_id,
+          id, titulo, data_producao, receita_id, receita_nome, rendimento_previsto, rendimento_real, rendimento_unidade, status, inicio_previsto, fim_previsto, iniciado_em, concluido_em, tempo_producao_segundos, funcionario_id,
           receita:receitas!producao_tarefas_receita_id_fkey(id,nome),
           funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo)
         `)
         .eq('user_id', user.id)
+        .is('cancelado_em', null)
         .gte('data_producao', periodoAplicado.inicio)
         .lte('data_producao', periodoAplicado.fim)
         .order('data_producao', { ascending: true }).order('id').range(offset, offset + 499);
@@ -118,6 +124,7 @@ export default function RelatoriosProdutividade() {
 
       if (!active) return;
       if (error) {
+        setLoadError(error.message);
         setTarefas([]);
         toast({ title: 'Não foi possível carregar o relatório', description: error.message, variant: 'destructive' });
       } else {
@@ -142,12 +149,18 @@ export default function RelatoriosProdutividade() {
         concluidas: 0,
         minutosPrevistos: 0,
         minutosRealizados: 0,
-        taxaConclusao: 0,
+        taxaConclusao: 0, temposInformados: 0, minutosComparaveis: 0, minutosPrevistosComparaveis: 0,
       };
       atual.atividades += 1;
       if (tarefa.status === 'feito') atual.concluidas += 1;
       atual.minutosPrevistos += minutosEntreDatas(tarefa.inicio_previsto, tarefa.fim_previsto);
-      atual.minutosRealizados += minutosEntreDatas(tarefa.iniciado_em, tarefa.concluido_em);
+      if (tarefa.status === 'feito' && tarefa.tempo_producao_segundos !== null) {
+        const real = tarefa.tempo_producao_segundos / 60;
+        atual.minutosRealizados += real;
+        atual.temposInformados += 1;
+        const previsto = minutosEntreDatas(tarefa.inicio_previsto, tarefa.fim_previsto);
+        if (previsto > 0) { atual.minutosComparaveis += real; atual.minutosPrevistosComparaveis += previsto; }
+      }
       agrupados.set(tarefa.funcionario_id, atual);
     });
     return Array.from(agrupados.values())
@@ -163,9 +176,12 @@ export default function RelatoriosProdutividade() {
       atividades,
       concluidas,
       minutos,
+      temposInformados: profissionais.reduce((sum,p)=>sum+p.temposInformados,0),
       taxaConclusao: atividades ? (concluidas / atividades) * 100 : 0,
     };
   }, [profissionais]);
+
+  if (loadError) return <div role="alert" className="space-y-4"><h1 className="text-2xl font-semibold">Produtividade</h1><p>Não foi possível carregar o relatório.</p><Button onClick={() => setPeriodoAplicado(p => ({...p}))}>Tentar novamente</Button></div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -206,8 +222,8 @@ export default function RelatoriosProdutividade() {
         </Card>
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-4 w-4" /> Horas trabalhadas</div>
-          <p className="mt-1 text-2xl font-bold">{formatarDuracao(totais.minutos)}</p>
-          <p className="text-[11px] text-muted-foreground">tempo real registrado</p>
+          <p className="mt-1 text-2xl font-bold">{totais.temposInformados ? formatarDuracao(totais.minutos) : 'Não informado'}</p>
+          <p className="text-[11px] text-muted-foreground">tempo das concluídas · {totais.concluidas - totais.temposInformados} sem registro</p>
         </Card>
         <Card className="p-4 glass-card">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><BarChart3 className="h-4 w-4" /> Atividades</div>
@@ -232,9 +248,9 @@ export default function RelatoriosProdutividade() {
             Nenhum profissional teve atividades nesse período.
           </Card>
         ) : profissionais.map((profissional) => {
-          const diferenca = profissional.minutosRealizados - profissional.minutosPrevistos;
-          const usoDoTempo = profissional.minutosPrevistos > 0 && profissional.minutosRealizados > 0
-            ? (profissional.minutosRealizados / profissional.minutosPrevistos) * 100
+          const diferenca = profissional.minutosComparaveis - profissional.minutosPrevistosComparaveis;
+          const usoDoTempo = profissional.minutosPrevistosComparaveis > 0
+            ? (profissional.minutosComparaveis / profissional.minutosPrevistosComparaveis) * 100
             : null;
           const dentroDoPrevisto = usoDoTempo !== null && usoDoTempo <= 100;
           return (
@@ -253,7 +269,7 @@ export default function RelatoriosProdutividade() {
               <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3 text-sm">
                 <div>
                   <p className="text-[11px] text-muted-foreground">Horas trabalhadas</p>
-                  <p className="font-semibold">{formatarDuracao(profissional.minutosRealizados)}</p>
+                  <p className="font-semibold">{profissional.temposInformados ? formatarDuracao(profissional.minutosRealizados) : 'Não informado'}</p>
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground">Atividades</p>
@@ -262,8 +278,8 @@ export default function RelatoriosProdutividade() {
               </div>
 
               <div className="mt-3 border-t border-border/40 pt-3">
-                <p className="text-[11px] text-muted-foreground">Previsto × realizado</p>
-                <p className="text-sm font-medium">{formatarDuracao(profissional.minutosPrevistos)} × {formatarDuracao(profissional.minutosRealizados)}</p>
+                <p className="text-[11px] text-muted-foreground">Previsto × realizado (concluídas com horários)</p>
+                <p className="text-sm font-medium">{formatarDuracao(profissional.minutosPrevistosComparaveis)} × {usoDoTempo !== null ? formatarDuracao(profissional.minutosComparaveis) : 'Não informado'}</p>
                 {usoDoTempo === null ? (
                   <p className="mt-1 text-[11px] text-muted-foreground">Sem dados de tempo suficientes</p>
                 ) : dentroDoPrevisto ? (
@@ -292,7 +308,7 @@ export default function RelatoriosProdutividade() {
                 <th className="p-4 text-left">Profissional</th>
                 <th className="p-4 text-center">Horas trabalhadas</th>
                 <th className="p-4 text-center">Atividades realizadas</th>
-                <th className="p-4 text-center">Previsto × realizado</th>
+                <th className="p-4 text-center">Previsto × realizado (concluídas com horários)</th>
                 <th className="p-4 text-center">Taxa de conclusão</th>
               </tr>
             </thead>
@@ -302,9 +318,9 @@ export default function RelatoriosProdutividade() {
               ) : profissionais.length === 0 ? (
                 <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">Nenhum profissional teve atividades nesse período.</td></tr>
               ) : profissionais.map((profissional) => {
-                const diferenca = profissional.minutosRealizados - profissional.minutosPrevistos;
-                const usoDoTempo = profissional.minutosPrevistos > 0 && profissional.minutosRealizados > 0
-                  ? (profissional.minutosRealizados / profissional.minutosPrevistos) * 100
+                const diferenca = profissional.minutosComparaveis - profissional.minutosPrevistosComparaveis;
+                const usoDoTempo = profissional.minutosPrevistosComparaveis > 0
+                  ? (profissional.minutosComparaveis / profissional.minutosPrevistosComparaveis) * 100
                   : null;
                 const dentroDoPrevisto = usoDoTempo !== null && usoDoTempo <= 100;
                 return (
@@ -313,16 +329,16 @@ export default function RelatoriosProdutividade() {
                       <p className="font-semibold">{profissional.nome}</p>
                       <p className="text-xs text-muted-foreground">{profissional.cargo || 'Profissional'}</p>
                     </td>
-                    <td className="p-4 text-center font-semibold">{formatarDuracao(profissional.minutosRealizados)}</td>
+                    <td className="p-4 text-center font-semibold">{profissional.temposInformados ? formatarDuracao(profissional.minutosRealizados) : 'Não informado'}</td>
                     <td className="p-4 text-center">
                       <span className="font-semibold">{profissional.concluidas}</span>
                       <span className="text-muted-foreground"> de {profissional.atividades}</span>
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <span className="font-medium">{formatarDuracao(profissional.minutosPrevistos)}</span>
+                        <span className="font-medium">{formatarDuracao(profissional.minutosPrevistosComparaveis)}</span>
                         <span className="text-muted-foreground">×</span>
-                        <span className="font-medium">{formatarDuracao(profissional.minutosRealizados)}</span>
+                        <span className="font-medium">{usoDoTempo !== null ? formatarDuracao(profissional.minutosComparaveis) : 'Não informado'}</span>
                       </div>
                       {usoDoTempo === null ? (
                         <p className="mt-1 text-[11px] text-muted-foreground">Sem dados de tempo suficientes</p>

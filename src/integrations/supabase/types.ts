@@ -1997,6 +1997,11 @@ export type Database = {
       }
       producao_tarefas: {
         Row: {
+          cancelado_em: string | null
+          duplicada_de: string | null
+          criacao_chave: string | null
+          tempo_producao_segundos: number | null
+          etapa_iniciada_em: string | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
           rendimento_unidade?: string | null
@@ -2021,6 +2026,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancelado_em?: string | null
+          duplicada_de?: string | null
+          criacao_chave?: string | null
+          tempo_producao_segundos?: number | null
+          etapa_iniciada_em?: string | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
           rendimento_unidade?: string | null
@@ -2045,6 +2055,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancelado_em?: string | null
+          duplicada_de?: string | null
+          criacao_chave?: string | null
+          tempo_producao_segundos?: number | null
+          etapa_iniciada_em?: string | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
           rendimento_unidade?: string | null
@@ -2101,6 +2116,7 @@ export type Database = {
       }
       producao_tarefas_historico: {
         Row: {
+          detalhes: Json | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
           rendimento_unidade?: string | null
@@ -2117,6 +2133,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          detalhes?: Json | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
           rendimento_unidade?: string | null
@@ -2133,6 +2150,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          detalhes?: Json | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
           rendimento_unidade?: string | null
@@ -3565,6 +3583,11 @@ export type Database = {
       }
     }
     Functions: {
+      criar_tarefa_producao: { Args: { p_data: string; p_chave: string; p_input: Json }; Returns: Json }
+      editar_tarefa_producao: { Args: { p_tarefa_id: string; p_expected_updated_at: string; p_input: Json }; Returns: Json }
+      cancelar_tarefa_producao: { Args: { p_tarefa_id: string; p_expected_updated_at: string; p_restaurar?: boolean }; Returns: Json }
+      reordenar_tarefas_producao: { Args: { p_data: string; p_status: Database["public"]["Enums"]["producao_status"]; p_ids: string[]; p_versions: Json }; Returns: undefined }
+
       materializar_cronograma_producao: { Args: { p_data: string; p_timezone?: string }; Returns: number }
       mover_tarefa_producao: { Args: { p_tarefa_id: string; p_status: Database["public"]["Enums"]["producao_status"]; p_expected_updated_at: string; p_rendimento_real?: number | null }; Returns: Json }
       avancar_producao_compartilhada: { Args: { p_link_id: string; p_tarefa_id: string; p_expected_updated_at: string; p_rendimento_real?: number | null }; Returns: Json }

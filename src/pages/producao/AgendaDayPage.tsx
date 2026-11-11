@@ -1,810 +1,125 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { getBusinessRegion } from '@/lib/business-region';
-import { ReceitaProducaoFields } from '@/components/producao/ReceitaProducaoFields';
-import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
-import { rendimentoPrevisto, rendimentoDaTarefa, formatarRendimento, temReceitaProducao } from '@/lib/producaoRendimento';
-import { localizeText } from '@/i18n/localizeText';
-import { useTranslation as usePortugalTranslation } from 'react-i18next';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { format, parseISO, isValid } from 'date-fns';
+import { addDays, format, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2, Share2, Copy, Link2 as Link2Icon, Loader2,
-  CheckCircle2, PlayCircle, Circle, Download, Info, Pencil, History,
-} from 'lucide-react';
-import {
-  DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
-  useSensor, useSensors, useDraggable, useDroppable,
-} from '@dnd-kit/core';
+import { formatInTimeZone } from 'date-fns-tz';
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Printer, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useProducaoTarefas, ProducaoStatus, ProducaoTarefa } from '@/hooks/useProducaoTarefas';
-import { useProducaoAreas } from '@/hooks/useProducaoAreas';
-import { formatTimeBrasilia } from '@/lib/dateUtils';
-import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { ProducaoBoard, ProducaoCard, ETAPAS } from '@/components/producao/ProducaoBoard';
+import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
+import { CompartilharProducaoDialog } from '@/components/producao/CompartilharProducaoDialog';
+import { useProducaoTarefas, type ProducaoTarefa, type ProducaoStatus } from '@/hooks/useProducaoTarefas';
+import { temReceitaProducao, formatarRendimento } from '@/lib/producaoRendimento';
+import { getBusinessRegion } from '@/lib/business-region';
 import { toast } from '@/hooks/use-toast';
+import { imprimirProducao } from '@/lib/producaoPdf';
 
-const COLUNAS: { id: ProducaoStatus; label: string; icon: any; color: string }[] = [
-  { id: 'a_fazer', label: 'A fazer', icon: Circle, color: 'text-slate-500' },
-  { id: 'em_producao', label: 'Em produção', icon: PlayCircle, color: 'text-blue-600' },
-  { id: 'feito', label: 'Feito', icon: CheckCircle2, color: 'text-emerald-600' },
-];
-
-interface ReceitaOpt { id: string; nome: string; numero_sequencial: number; rendimento_valor: number | null; rendimento_unidade: string | null; imagem_url: string | null; }
-interface FuncOpt { id: string; nome: string; cargo: string | null; }
+export const normalizarBusca = (value:string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+const fail=(cause:unknown)=>toast({title:'Não foi possível concluir a ação',description:(cause as Error)?.message||'Tente novamente.',variant:'destructive'});
+type Confirmation={id:string;kind:'cancelar'|'restaurar'|'reabrir';status?:ProducaoStatus};
 
 export default function AgendaDayPage() {
-  usePortugalTranslation();
-  const { date } = useParams<{ date: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  const parsedDate = useMemo(() => (date ? parseISO(date) : null), [date]);
-  const dataStr = date ?? '';
-
-  const { data: tarefas = [], isLoading, criar, mover, alterarResponsavel, remover } = useProducaoTarefas(dataStr);
-  const { data: areas = [] } = useProducaoAreas();
-  const queryClient = useQueryClient();
-  const [selectedAreaFilter, setSelectedAreaFilter] = useState<string | 'todas' | 'sem'>('todas');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [concluirTarefa, setConcluirTarefa] = useState<ProducaoTarefa | null>(null);
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
-  const [shareExpiresAt, setShareExpiresAt] = useState('');
-  const [shareQrCode, setShareQrCode] = useState('');
-  const [shareLoading, setShareLoading] = useState(false);
-  const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
-  const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  const [tarefaDetalhes, setTarefaDetalhes] = useState<ProducaoTarefa | null>(null);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      const [f, r] = await Promise.all([
-        supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
-        supabase.from('receitas').select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade, imagem_url').eq('user_id', user.id).order('nome'),
-      ]);
-      setFuncionarios((f.data ?? []) as FuncOpt[]);
-      setReceitas((r.data ?? []) as ReceitaOpt[]);
-    })();
-  }, [user?.id]);
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-
-  const shareStorageKey = user?.id && dataStr ? `producao-share:${user.id}:${dataStr}` : '';
-
-  useEffect(() => {
-    if (!shareStorageKey) return;
-    const restoreShareLink = async () => {
-      try {
-        const saved = JSON.parse(localStorage.getItem(shareStorageKey) ?? 'null') as { url?: string; expiresAt?: string } | null;
-        if (!saved?.url || !saved.expiresAt || new Date(saved.expiresAt) <= new Date()) {
-          localStorage.removeItem(shareStorageKey);
-          return;
-        }
-        const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
-          body: { action: 'status', date: dataStr },
-        });
-        if (!error && data?.active) {
-          setShareUrl(saved.url);
-          setShareExpiresAt(saved.expiresAt);
-        } else {
-          localStorage.removeItem(shareStorageKey);
-        }
-      } catch {
-        localStorage.removeItem(shareStorageKey);
-      }
-    };
-    void restoreShareLink();
-  }, [shareStorageKey, dataStr]);
-
-  useEffect(() => {
-    if (!shareUrl) {
-      setShareQrCode('');
-      return;
+  const {date=''}=useParams();
+  const navigate=useNavigate();
+  const parsed=parseISO(date);
+  const valid=isValid(parsed)&&/^\d{4}-\d{2}-\d{2}$/.test(date);
+  const api=useProducaoTarefas(valid?date:'',true);
+  const tasks=api.data??[];
+  const [search,setSearch]=useState('');
+  const [area,setArea]=useState('todas');
+  const [responsavel,setResponsavel]=useState('todos');
+  const [canceladas,setCanceladas]=useState(false);
+  const [share,setShare]=useState(false);
+  const [history,setHistory]=useState<string|null>(null);
+  const [completion,setCompletion]=useState<ProducaoTarefa|null>(null);
+  const [confirm,setConfirm]=useState<Confirmation|null>(null);
+  const active=tasks.filter(t=>!t.cancelado_em);
+  const canceled=tasks.filter(t=>t.cancelado_em);
+  const filtered=!!search.trim()||area!=='todas'||responsavel!=='todos';
+  const visible=(canceladas?canceled:active).filter(t=>(area==='todas'||(area==='sem'?!t.area_id:t.area_id===area))
+    &&(responsavel==='todos'||t.funcionario_id===responsavel)
+    &&normalizarBusca([t.titulo,t.receita?.nome,t.receita_nome,t.funcionario?.nome].join(' ')).includes(normalizarBusca(search.trim())));
+  const areas=Array.from(new Map(tasks.filter(t=>t.area).map(t=>[t.area_id,t.area!])).entries());
+  const employees=Array.from(new Map(tasks.map(t=>[t.funcionario_id,t.funcionario?.nome??'Responsável indisponível'])).entries());
+  const changeDay=(next:string)=>{setCompletion(null);setHistory(null);setConfirm(null);navigate(`/producao/agenda/${next}`);};
+  const requestMove=(task:ProducaoTarefa,status:ProducaoStatus)=>{
+    if(task.status===status)return;
+    if(task.status==='a_fazer'&&status==='feito'){toast({title:'Inicie a produção antes de finalizar.'});return;}
+    if(status==='a_fazer'||task.status==='feito'){setConfirm({id:task.id,kind:'reabrir',status});return;}
+    if(status==='feito'&&temReceitaProducao(task)){setCompletion(task);return;}
+    void api.mover(task,status).catch(fail);
+  };
+  const finish=async(real:number)=>{
+    if(!completion)return;
+    try {await api.mover(completion,'feito',real);}
+    catch(cause){
+      // Close the stale form and refetch; never silently submit an old yield against a new recipe/version.
+      if((cause as {code?:string}).code==='40001'){setCompletion(null);await api.refetch();toast({title:'A tarefa foi atualizada',description:'Confira os novos dados e finalize novamente.'});}
+      throw cause;
     }
-    QRCode.toDataURL(shareUrl, { width: 280, margin: 2, errorCorrectionLevel: 'M' })
-      .then(setShareQrCode)
-      .catch(() => setShareQrCode(''));
-  }, [shareUrl]);
-
-  useEffect(() => {
-    if (!user?.id || !parsedDate || !isValid(parsedDate)) return;
-    let active = true;
-    void supabase.rpc('materializar_cronograma_producao', { p_data: dataStr, p_timezone: getBusinessRegion().timeZone }).then(({ error }) => {
-      if (!active) return;
-      if (error) toast({ title: 'Não foi possível carregar as tarefas recorrentes', description: error.message, variant: 'destructive' });
-      else void queryClient.invalidateQueries({ queryKey: ['producao-tarefas', user.id, dataStr] });
-    });
-    return () => { active = false; };
-  }, [user?.id, dataStr, parsedDate, queryClient]);
-
-  const requestMove = (tarefa: ProducaoTarefa, novoStatus: ProducaoStatus) => {
-    if (mover.isPending) return;
-    if (novoStatus === 'feito' && temReceitaProducao(tarefa)) setConcluirTarefa(tarefa);
-    else mover.mutate({ tarefa, novoStatus });
   };
-
-  const handleDragEnd = (e: DragEndEvent) => {
-    setActiveId(null);
-    const tarefa = tarefas.find((t) => t.id === e.active.id);
-    const novoStatus = e.over?.id as ProducaoStatus | undefined;
-    if (!tarefa || !novoStatus) return;
-    if (!['a_fazer', 'em_producao', 'feito'].includes(novoStatus)) return;
-    if (tarefa.status === novoStatus) return;
-    requestMove(tarefa, novoStatus);
-  };
-
-  const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
-
-  const generateShareLink = async () => {
-    setShareLoading(true);
-    const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
-      body: { action: 'create', date: dataStr },
-    });
-    if (error || data?.error) {
-      toast({ title: 'Erro ao gerar link', description: data?.error ?? error?.message, variant: 'destructive' });
-    } else {
-      const url = `${window.location.origin}/producao-compartilhada/${data.token}`;
-      setShareUrl(url);
-      setShareExpiresAt(data.expiresAt);
-      if (shareStorageKey) localStorage.setItem(shareStorageKey, JSON.stringify({ url, expiresAt: data.expiresAt }));
-      toast({ title: 'Link gerado por 24 horas' });
-    }
-    setShareLoading(false);
-  };
-
-  const revokeShareLink = async () => {
-    setShareLoading(true);
-    const { data, error } = await supabase.functions.invoke('producao-compartilhada', {
-      body: { action: 'revoke', date: dataStr },
-    });
-    if (error || data?.error) toast({ title: 'Erro ao revogar link', description: data?.error ?? error?.message, variant: 'destructive' });
-    else {
-      setShareUrl('');
-      setShareExpiresAt('');
-      if (shareStorageKey) localStorage.removeItem(shareStorageKey);
-      toast({ title: 'Link revogado' });
-    }
-    setShareLoading(false);
-  };
-
-  const copyShareLink = async () => {
-    await navigator.clipboard.writeText(shareUrl);
-    toast({ title: 'Link copiado' });
-  };
-
-  const downloadQrCode = () => {
-    if (!shareQrCode) return;
-    const anchor = document.createElement('a');
-    anchor.href = shareQrCode;
-    anchor.download = `producao-${dataStr}-qrcode.png`;
-    anchor.click();
-  };
-
-  const imprimir = () => {
-    if (!parsedDate) return;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const w = doc.internal.pageSize.getWidth();
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-    doc.text('Producao do dia', w / 2, 15, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-    doc.text(format(parsedDate, "dd/MM/yyyy - EEEE", { locale: ptBR }), w / 2, 22, { align: 'center' });
-    let y = 32;
-    COLUNAS.forEach((col) => {
-      const itens = tarefas.filter((t) => t.status === col.id);
-      if (!itens.length) return;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-      doc.setFillColor(240, 240, 245); doc.rect(10, y - 5, w - 20, 7, 'F');
-      doc.text(`${col.label} (${itens.length})`, 12, y);
-      y += 8;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-      itens.forEach((t) => {
-        if (y > 275) { doc.addPage(); y = 20; }
-        doc.setFont('helvetica', 'bold');
-        doc.text(`- ${t.titulo}`, 12, y); y += 5;
-        doc.setFont('helvetica', 'normal');
-        const meta: string[] = [];
-        meta.push(`Responsavel: ${t.funcionario?.nome ?? '-'}`);
-        if (t.receita?.nome) meta.push(`Receita: ${t.receita.nome}${t.quantidade ? ` x${t.quantidade}` : ''}`);
-        if (t.inicio_previsto || t.fim_previsto) {
-          const ini = t.inicio_previsto ? format(new Date(t.inicio_previsto), 'dd/MM HH:mm') : '?';
-          const fim = t.fim_previsto ? format(new Date(t.fim_previsto), 'dd/MM HH:mm') : '?';
-          meta.push(`Previsto: ${ini} - ${fim}`);
-        }
-        if (t.iniciado_em) meta.push(`Inicio: ${formatTimeBrasilia(t.iniciado_em)}`);
-        if (t.concluido_em) meta.push(`Fim: ${formatTimeBrasilia(t.concluido_em)}`);
-        doc.text(meta.join('  |  '), 15, y); y += 5;
-        if (t.observacoes) { doc.text(`Obs: ${t.observacoes}`, 15, y); y += 5; }
-        y += 2;
-      });
-      y += 4;
-    });
-    doc.save(`producao-${dataStr}.pdf`);
-  };
-
-  if (!parsedDate || !isValid(parsedDate)) {
-    return <div className="p-6">Data inválida. <Button variant="link" onClick={() => navigate('/producao/agenda')}>Voltar</Button></div>;
-  }
-
-  const activeTarefa = activeId ? tarefas.find((t) => t.id === activeId) : null;
-
-  return (
-    <div className="space-y-5 xl:space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <Button variant="outline" size="icon" onClick={() => navigate('/producao/agenda')} aria-label="Voltar">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="min-w-0 pt-0.5">
-            <h1 className="text-xl font-semibold font-display capitalize leading-tight sm:text-2xl">
-              {format(parsedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {tarefas.length} {tarefas.length === 1 ? 'tarefa' : 'tarefas'} no total
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex xl:justify-end">
-          <Button className="w-full sm:w-auto" variant="outline" onClick={() => setShareModalOpen(true)} disabled={!tarefas.length}>
-            <Share2 className="h-4 w-4 mr-2" /> Compartilhar dia
-          </Button>
-          <Button className="w-full sm:w-auto" variant="outline" onClick={imprimir} disabled={!tarefas.length}>
-            <Printer className="h-4 w-4 mr-2" /> Imprimir
-          </Button>
-          <Button className="col-span-2 w-full sm:w-auto" onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Nova tarefa
-          </Button>
-        </div>
-      </div>
-
-      {areas.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 xl:flex-wrap xl:overflow-visible">
-          <button
-            onClick={() => setSelectedAreaFilter('todas')}
-            className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-              selectedAreaFilter === 'todas' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
-          >Todas ({tarefas.length})</button>
-          {areas.map((a) => {
-            const count = tarefas.filter((t) => t.area_id === a.id).length;
-            const on = selectedAreaFilter === a.id;
-            return (
-              <button key={a.id} onClick={() => setSelectedAreaFilter(a.id)}
-                className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5',
-                  on ? 'text-white border-transparent' : 'bg-card hover:bg-muted')}
-                style={on ? { backgroundColor: a.cor } : {}}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: on ? 'rgba(255,255,255,0.9)' : a.cor }} />
-                {a.nome} ({count})
-              </button>
-            );
-          })}
-          {tarefas.some((t) => !t.area_id) && (
-            <button onClick={() => setSelectedAreaFilter('sem')}
-              className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-                selectedAreaFilter === 'sem' ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card hover:bg-muted')}
-            >Sem área ({tarefas.filter((t) => !t.area_id).length})</button>
-          )}
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="p-8 text-center text-muted-foreground">{localizeText("Carregando...")}</div>
-      ) : (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            {COLUNAS.map((col) => {
-              const itens = tarefas.filter((t) => {
-                if (t.status !== col.id) return false;
-                if (selectedAreaFilter === 'todas') return true;
-                if (selectedAreaFilter === 'sem') return !t.area_id;
-                return t.area_id === selectedAreaFilter;
-              });
-              return <Coluna
-                key={col.id}
-                col={col}
-                itens={itens}
-                onOpenDetails={setTarefaDetalhes}
-                onAdvance={tarefa => requestMove(tarefa, tarefa.status === 'a_fazer' ? 'em_producao' : 'feito')}
-                onRemove={(id) => remover.mutate(id)}
-              />;
-            })}
-          </div>
-          <DragOverlay>
-            {activeTarefa ? <TarefaCard tarefa={activeTarefa} onOpenDetails={() => {}} onRemove={() => {}} dragging readOnly /> : null}
-          </DragOverlay>
-        </DndContext>
-      )}
-
-      {concluirTarefa && <ConcluirProducaoModal tarefa={concluirTarefa} onClose={() => setConcluirTarefa(null)} onConfirm={real => mover.mutateAsync({ tarefa: concluirTarefa, novoStatus: 'feito', rendimentoReal: real })} />}
-
-      <NovaTarefaModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        funcionarios={funcionarios}
-        receitas={receitas}
-        areas={areas}
-        dataStr={dataStr}
-        onCreate={(v) => criar.mutate(v, { onSuccess: () => setModalOpen(false) })}
-      />
-
-      <HistoricoTarefaModal
-        tarefa={tarefaDetalhes ? tarefas.find((t) => t.id === tarefaDetalhes.id) ?? tarefaDetalhes : null}
-        funcionarios={funcionarios}
-        open={!!tarefaDetalhes}
-        onOpenChange={(open) => { if (!open) setTarefaDetalhes(null); }}
-        onChangeFuncionario={(tarefa, funcionarioId) => alterarResponsavel.mutateAsync({ tarefa, funcionarioId })}
-      />
-
-      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Compartilhar produção do dia</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Quem receber o link poderá visualizar as tarefas, filtrar por responsável e apenas avançar de <strong>A fazer</strong> para <strong>Em produção</strong> e depois para <strong>Feito</strong>. O link expira em 24 horas.
-            </div>
-            {shareUrl ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Link temporário</Label>
-                  <div className="flex gap-2">
-                    <Input value={shareUrl} readOnly className="text-xs" />
-                    <Button size="icon" variant="outline" onClick={copyShareLink} aria-label="Copiar link"><Copy className="h-4 w-4" /></Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Válido até {format(new Date(shareExpiresAt), 'dd/MM/yyyy HH:mm')}.</p>
-                </div>
-                {shareQrCode && (
-                  <div className="flex flex-col items-center gap-3 rounded-xl border bg-white p-4">
-                    <img src={shareQrCode} alt="QR Code do link temporário" className="h-52 w-52" />
-                    <Button variant="outline" size="sm" onClick={downloadQrCode}>
-                      <Download className="mr-2 h-4 w-4" /> Baixar QR Code
-                    </Button>
-                  </div>
-                )}
-                <Button variant="destructive" className="w-full" onClick={revokeShareLink} disabled={shareLoading}>
-                  {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Revogar link agora'}
-                </Button>
-              </>
-            ) : (
-              <Button className="w-full" onClick={generateShareLink} disabled={shareLoading}>
-                {shareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Link2Icon className="mr-2 h-4 w-4" />Gerar link válido por 24 horas</>}
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-    </div>
-  );
-}
-
-/* ---------------- Coluna ---------------- */
-
-function Coluna({
-  col, itens, onOpenDetails, onRemove, onAdvance,
-}: {
-  col: { id: ProducaoStatus; label: string; icon: any; color: string };
-  itens: ProducaoTarefa[];
-  onOpenDetails: (tarefa: ProducaoTarefa) => void;
-  onAdvance: (tarefa: ProducaoTarefa) => void;
-  onRemove: (id: string) => void;
-}) {
-  usePortugalTranslation();
-  const { isOver, setNodeRef } = useDroppable({ id: col.id });
-  const Icon = col.icon;
-  return (
-    <Card
-      ref={setNodeRef}
-      className={cn(
-        'rounded-2xl p-3 transition-colors xl:min-h-[400px]',
-        isOver ? 'bg-primary/5 border-primary/50' : 'bg-muted/30'
-      )}
-    >
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-2">
-          <Icon className={cn('h-4 w-4', col.color)} />
-          <h3 className="text-sm font-semibold">{col.label}</h3>
-        </div>
-        <Badge variant="secondary" className="rounded-full">{itens.length}</Badge>
-      </div>
-      <div className="space-y-2">
-        {itens.map((t) => (
-          <TarefaCard
-            key={t.id}
-            tarefa={t}
-            onOpenDetails={() => onOpenDetails(t)}
-            onRemove={() => onRemove(t.id)}
-            onAdvance={() => onAdvance(t)}
-          />
-        ))}
-        {!itens.length && (
-          <div className="rounded-xl border border-dashed py-6 text-center text-sm text-muted-foreground xl:py-8 xl:text-xs">
-            Arraste tarefas para cá
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-/* ---------------- Card ---------------- */
-
-function TarefaCard({
-  tarefa, onOpenDetails, onRemove, dragging, readOnly, onAdvance,
-}: {
-  tarefa: ProducaoTarefa;
-  onOpenDetails: () => void;
-  onRemove: () => void;
-  dragging?: boolean;
-  readOnly?: boolean;
-  onAdvance?: () => void;
-}) {
-  usePortugalTranslation();
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
-  const rendimento = rendimentoDaTarefa(tarefa);
-  const atrasada = tarefa.status !== 'feito' && Boolean(tarefa.fim_previsto) && new Date(tarefa.fim_previsto!).getTime() < Date.now();
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={cn(
-        'group bg-card border rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing',
-        atrasada && 'border-red-300 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20',
-        (isDragging || dragging) && 'opacity-60 rotate-1'
-      )}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {tarefa.area?.cor && <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tarefa.area.cor }} title={tarefa.area?.nome} />}
-          <p className="text-sm font-semibold leading-tight truncate">{tarefa.titulo}</p>
-        </div>
-        {!readOnly && (
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={onOpenDetails}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-              aria-label="Ver histórico da tarefa"
-              title="Histórico e responsável"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={onRemove}
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-              aria-label="Remover"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
-      {tarefa.receita?.nome && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-          <ChefHat className="h-3.5 w-3.5 text-primary" />
-          <span className="truncate">{tarefa.receita.nome}{tarefa.quantidade ? ` × ${tarefa.quantidade}` : ''}</span>
-        </div>
-      )}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-        <UserIcon className="h-3.5 w-3.5" />
-        <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
-      </div>
-      {temReceitaProducao(tarefa) && <p className="my-2 rounded-lg bg-primary/5 p-2 text-xs text-primary">Previsto: {rendimento.previsto === null ? '—' : `${formatarRendimento(rendimento.previsto)} ${rendimento.unidade}`}{rendimento.real !== null && ` · Realizado: ${formatarRendimento(rendimento.real)} ${rendimento.unidade}`}</p>}
-      {!readOnly && tarefa.status !== 'feito' && onAdvance && <Button size="sm" variant="outline" className="my-2 w-full" onPointerDown={event => event.stopPropagation()} onClick={onAdvance}>{tarefa.status === 'a_fazer' ? 'Iniciar produção' : 'Finalizar produção'}</Button>}
-      {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
-          <Clock className={cn('h-3 w-3 text-primary', atrasada && 'text-red-600')} />
-          <span className="truncate">
-            {tarefa.inicio_previsto ? format(new Date(tarefa.inicio_previsto), "dd/MM HH:mm") : '—'}
-            {' → '}
-            {tarefa.fim_previsto ? format(new Date(tarefa.fim_previsto), "dd/MM HH:mm") : '—'}
-          </span>
-          {atrasada && <Badge variant="destructive" className="ml-auto h-5 text-[10px]">Atrasada</Badge>}
-        </div>
-      )}
-      {(tarefa.iniciado_em || tarefa.concluido_em) && (
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40">
-          {tarefa.iniciado_em && (
-            <Badge variant="outline" className="text-[10px] gap-1 h-5">
-              <Clock className="h-2.5 w-2.5" /> Início {formatTimeBrasilia(tarefa.iniciado_em)}
-            </Badge>
-          )}
-          {tarefa.concluido_em && (
-            <Badge variant="outline" className="text-[10px] gap-1 h-5 border-emerald-300 text-emerald-700">
-              <CheckCircle2 className="h-2.5 w-2.5" /> Fim {formatTimeBrasilia(tarefa.concluido_em)}
-            </Badge>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---------------- Modal ---------------- */
-
-const STATUS_LABEL: Record<ProducaoStatus, string> = {
-  a_fazer: 'A fazer',
-  em_producao: 'Em produção',
-  feito: 'Feito',
-};
-
-function HistoricoTarefaModal({
-  tarefa, funcionarios, open, onOpenChange, onChangeFuncionario,
-}: {
-  tarefa: ProducaoTarefa | null;
-  funcionarios: FuncOpt[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onChangeFuncionario: (tarefa: ProducaoTarefa, funcionarioId: string) => Promise<unknown>;
-}) {
-  usePortugalTranslation();
-  const [editing, setEditing] = useState(false);
-  const [funcionarioId, setFuncionarioId] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setEditing(false);
-    setFuncionarioId(tarefa?.funcionario_id ?? '');
-  }, [tarefa?.id, tarefa?.funcionario_id, open]);
-
-  if (!tarefa) return null;
-
-  const historico = [...(tarefa.historico ?? [])].sort(
-    (a, b) => new Date(b.movido_em).getTime() - new Date(a.movido_em).getTime(),
-  );
-  const nomeFuncionario = (id: string | null) => funcionarios.find((f) => f.id === id)?.nome ?? 'Responsável não encontrado';
-
-  const salvarResponsavel = async () => {
-    if (!funcionarioId || funcionarioId === tarefa.funcionario_id) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
+  const confirmedTask=tasks.find(t=>t.id===confirm?.id);
+  const confirmationPending=!!confirmedTask&&api.pendingIds.has(confirmedTask.id);
+  const applyConfirmation=async()=>{
+    if(!confirm||!confirmedTask)return;
     try {
-      await onChangeFuncionario(tarefa, funcionarioId);
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
+      if(confirm.kind==='reabrir')await api.mover(confirmedTask,confirm.status??'em_producao');
+      else await api.cancelar(confirmedTask,confirm.kind==='restaurar');
+      setConfirm(null);
+    }catch(cause){fail(cause);await api.refetch();setConfirm(null);}
   };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle className="pr-8">{tarefa.titulo}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-5">
-          <div className="rounded-xl border bg-muted/30 p-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Responsável atual</p>
-                {!editing && <p className="mt-1 font-semibold">{tarefa.funcionario?.nome ?? '—'}</p>}
-              </div>
-              {!editing && (
-                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                  <Pencil className="mr-2 h-3.5 w-3.5" /> Editar
-                </Button>
-              )}
-            </div>
-
-            {editing && (
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Select value={funcionarioId} onValueChange={setFuncionarioId}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                  <SelectContent>
-                    {funcionarios.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => { setEditing(false); setFuncionarioId(tarefa.funcionario_id); }}>Cancelar</Button>
-                  <Button onClick={salvarResponsavel} disabled={saving || !funcionarioId}>
-                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{localizeText("Salvar")}</Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Histórico da tarefa</h3>
-              <Badge variant="secondary" className="ml-auto">{historico.length} registros</Badge>
-            </div>
-
-            <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-              {historico.map((registro) => {
-                const trocaResponsavel = registro.evento_tipo === 'responsavel';
-                const descricao = trocaResponsavel
-                  ? `${nomeFuncionario(registro.funcionario_anterior_id)} → ${nomeFuncionario(registro.funcionario_novo_id)}`
-                  : registro.de_status
-                    ? `${STATUS_LABEL[registro.de_status]} → ${STATUS_LABEL[registro.para_status]}`
-                    : 'Tarefa criada em A fazer';
-                return (
-                  <div key={registro.id} className="flex gap-3 rounded-xl border p-3">
-                    <div className={cn(
-                      'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                      trocaResponsavel ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700',
-                    )}>
-                      {trocaResponsavel ? <UserIcon className="h-4 w-4" /> : <History className="h-4 w-4" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{trocaResponsavel ? 'Responsável alterado' : 'Situação alterada'}</p>
-                      <p className="text-sm text-muted-foreground">{descricao}</p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {format(new Date(registro.movido_em), "dd/MM/yyyy 'às' HH:mm")}
-                        {registro.origem === 'link_compartilhado' ? ' • pelo link compartilhado' : ' • pelo aplicativo'}
-                        {registro.rendimento_real != null && ` · Rendeu ${formatarRendimento(registro.rendimento_real)} ${registro.rendimento_unidade || ''}`}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              {!historico.length && (
-                <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhum registro encontrado.</div>
-              )}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function NovaTarefaModal({
-  open, onOpenChange, funcionarios, receitas, areas, onCreate, dataStr,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  funcionarios: FuncOpt[];
-  receitas: ReceitaOpt[];
-  areas: { id: string; nome: string; cor: string }[];
-  dataStr: string;
-  onCreate: (v: { titulo: string; funcionario_id: string; receita_id?: string | null; quantidade?: number | null; observacoes?: string | null; inicio_previsto?: string | null; fim_previsto?: string | null; area_id?: string | null }) => void;
-}) {
-  usePortugalTranslation();
-  const [titulo, setTitulo] = useState('');
-  const [vincularReceita, setVincularReceita] = useState(false);
-  const [receitaId, setReceitaId] = useState('');
-  const [quantidade, setQuantidade] = useState<number>(1);
-  const [funcionarioId, setFuncionarioId] = useState('');
-  const [areaId, setAreaId] = useState<string>('');
-  const [observacoes, setObservacoes] = useState('');
-  const [inicioPrev, setInicioPrev] = useState('');
-  const [fimPrev, setFimPrev] = useState('');
-
-  useEffect(() => {
-    if (!open) {
-      setTitulo(''); setVincularReceita(false); setReceitaId('');
-      setQuantidade(1); setFuncionarioId(''); setAreaId(''); setObservacoes('');
-      setInicioPrev(''); setFimPrev('');
-    } else {
-      setInicioPrev(`${dataStr}T08:00`);
-      setFimPrev(`${dataStr}T10:00`);
-    }
-  }, [open, dataStr]);
-
-
-  const receitaSel = receitas.find((r) => r.id === receitaId);
-  const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || rendimentoPrevisto(receitaSel, quantidade) !== null);
-
-  const submit = () => {
-    if (!canSave) return;
-    if (inicioPrev && fimPrev && new Date(fimPrev) < new Date(inicioPrev)) {
-      toast({ title: 'Horário inválido', description: 'Fim previsto deve ser após o início.', variant: 'destructive' });
-      return;
-    }
-    onCreate({
-      titulo: titulo.trim(),
-      funcionario_id: funcionarioId,
-      receita_id: vincularReceita ? receitaId : null,
-      quantidade: vincularReceita ? quantidade : null,
-      observacoes: observacoes.trim() || null,
-      inicio_previsto: inicioPrev ? new Date(inicioPrev).toISOString() : null,
-      fim_previsto: fimPrev ? new Date(fimPrev).toISOString() : null,
-      area_id: areas.length > 0 && areaId ? areaId : null,
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:p-0">
-        <DialogHeader className="px-6 pb-4 pt-6">
-          <DialogTitle>Nova tarefa de produção</DialogTitle>
-        </DialogHeader>
-        <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-6">
-          <div>
-            <Label>Título da tarefa *</Label>
-            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Assar bolos do dia" autoFocus />
-          </div>
-
-          <ReceitaProducaoFields receitas={receitas} receitaId={receitaId} quantidade={quantidade} onQuantityChange={setQuantidade}
-            onRecipeChange={id => { setReceitaId(id); setVincularReceita(!!id); setQuantidade(1); }} />
-
-          <div>
-            <Label>Funcionário responsável *</Label>
-            {funcionarios.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">{localizeText("Nenhum funcionário cadastrado. Cadastre em")}{' '}
-                <a className="text-primary underline" href="/precificacao/folha-pagamento">{localizeText("Folha de Pagamento")}</a>.
-              </div>
-            ) : (
-              <Select value={funcionarioId} onValueChange={setFuncionarioId}>
-                <SelectTrigger><SelectValue placeholder="Selecione um funcionário" /></SelectTrigger>
-                <SelectContent>
-                  {funcionarios.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.nome}{f.cargo ? ` — ${f.cargo}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          {areas.length > 0 && (
-            <div>
-              <Label>Área</Label>
-              <Select value={areaId} onValueChange={setAreaId}>
-                <SelectTrigger><SelectValue placeholder="Selecione uma área (opcional)" /></SelectTrigger>
-                <SelectContent>
-                  {areas.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: a.cor }} />
-                        {a.nome}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Início previsto</Label>
-              <Input type="datetime-local" value={inicioPrev} onChange={(e) => setInicioPrev(e.target.value)} />
-            </div>
-            <div>
-              <Label>Fim previsto</Label>
-              <Input type="datetime-local" value={fimPrev} onChange={(e) => setFimPrev(e.target.value)} />
-            </div>
-          </div>
-
-          <div>
-            <Label>Observações</Label>
-            <Textarea rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Opcional" />
-          </div>
-        </div>
-        <DialogFooter className="gap-2 border-t px-6 py-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={!canSave}>Criar tarefa</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  const detailed=tasks.find(t=>t.id===history);
+  if(!valid)return <div className="space-y-4"><p>Data inválida.</p><Button onClick={()=>navigate('/producao/agenda')}>Voltar à agenda</Button></div>;
+  return <div className="min-w-0 space-y-5">
+    <header className="flex flex-wrap items-start justify-between gap-4">
+      <div><Button variant="ghost" size="sm" className="-ml-3 mb-2" onClick={()=>navigate('/producao/agenda')}><ArrowLeft className="mr-2 h-4 w-4"/>Agenda</Button>
+        <h1 className="text-2xl font-semibold capitalize">{format(parsed,"EEEE, dd 'de' MMMM",{locale:ptBR})}</h1>
+        {!api.isError&&!api.isLoading&&<p className="mt-1 text-sm text-muted-foreground">{active.length} tarefas no dia{filtered?` · ${visible.length} no filtro`:''}</p>}
+      </div>
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button variant="outline" aria-label="Imprimir tarefas exibidas" disabled={!visible.length||api.isError} onClick={()=>void imprimirProducao(date,visible,filtered?'Filtros aplicados':canceladas?'Tarefas canceladas':'Todas as tarefas').catch(fail)}><Printer className="h-4 w-4"/><span className="hidden sm:inline">Imprimir</span></Button>
+        <Button variant="outline" onClick={()=>setShare(true)} disabled={!active.length||api.isError}><Share2 className="h-4 w-4"/><span className="hidden sm:inline">Compartilhar</span></Button>
+        <Button onClick={()=>navigate(`/producao/agenda/${date}/nova`)}><Plus className="h-4 w-4"/>Nova tarefa</Button>
+      </div>
+    </header>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="outline" size="icon" aria-label="Dia anterior" onClick={()=>changeDay(format(addDays(parsed,-1),'yyyy-MM-dd'))}><ChevronLeft/></Button>
+      <Input aria-label="Dia da produção" type="date" className="w-auto" value={date} onChange={e=>{if(e.target.value)changeDay(e.target.value);}}/>
+      <Button variant="outline" size="icon" aria-label="Próximo dia" onClick={()=>changeDay(format(addDays(parsed,1),'yyyy-MM-dd'))}><ChevronRight/></Button>
+      <Button variant="ghost" onClick={()=>changeDay(formatInTimeZone(new Date(),getBusinessRegion().timeZone,'yyyy-MM-dd'))}>Hoje</Button>
+    </div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(200px,1fr)_220px_250px]">
+      <Input aria-label="Buscar tarefas" placeholder="Buscar tarefa, receita ou responsável…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <Select value={area} onValueChange={setArea}><SelectTrigger aria-label="Filtrar área"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="todas">Todas as áreas</SelectItem><SelectItem value="sem">Sem área</SelectItem>{areas.map(([id,a])=><SelectItem key={id} value={id!}>{a.nome}</SelectItem>)}</SelectContent></Select>
+      <Select value={responsavel} onValueChange={setResponsavel}><SelectTrigger aria-label="Filtrar responsável"><SelectValue/></SelectTrigger><SelectContent searchable><SelectItem value="todos">Todos os responsáveis</SelectItem>{employees.map(([id,nome])=><SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent></Select>
+    </div>
+    <div className="flex flex-wrap items-center gap-3 text-sm">
+      {filtered&&<Button variant="ghost" size="sm" onClick={()=>{setSearch('');setArea('todas');setResponsavel('todos');}}>Limpar filtros</Button>}
+      {(canceled.length>0||canceladas)&&<Button size="sm" variant={canceladas?'secondary':'ghost'} onClick={()=>setCanceladas(v=>!v)}>{canceladas?'Voltar ao quadro':`Canceladas (${canceled.length})`}</Button>}
+      {filtered&&!canceladas&&<span className="text-xs text-muted-foreground">Limpe os filtros para reorganizar a ordem das tarefas.</span>}
+    </div>
+    {api.isError?<div role="alert" className="rounded-xl border border-destructive/30 p-6"><p>Não foi possível carregar a produção deste dia.</p><Button className="mt-3" variant="outline" onClick={()=>void api.refetch()}>Tentar novamente</Button></div>
+      :api.isLoading?<p role="status" className="py-10 text-center text-muted-foreground">Carregando produção…</p>
+      :canceladas?<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{visible.map(t=><div key={t.id}><p className="mb-2 text-xs text-muted-foreground">{t.duplicada_de?'Cópia duplicada arquivada':'Cancelada neste dia'}</p><ProducaoCard tarefa={t} pending={api.pendingIds.has(t.id)} onHistory={()=>setHistory(t.id)} onRestore={()=>setConfirm({id:t.id,kind:'restaurar'})}/></div>)}{!visible.length&&<p>Nenhuma tarefa cancelada neste filtro.</p>}</div>
+      :<ProducaoBoard tasks={visible} pendingIds={api.pendingIds} allowReorder={!filtered}
+        onAdvance={t=>requestMove(t,t.status==='a_fazer'?'em_producao':'feito')} onMove={requestMove}
+        onReorder={(status,column)=>void api.reordenar(status,column).catch(fail)}
+        onEdit={t=>navigate(`/producao/agenda/${date}/${t.id}/editar`)} onHistory={t=>setHistory(t.id)}
+        onCancel={t=>setConfirm({id:t.id,kind:'cancelar'})} onReopen={t=>setConfirm({id:t.id,kind:'reabrir',status:t.status==='feito'?'em_producao':'a_fazer'})}/>}
+    {completion&&<ConcluirProducaoModal tarefa={completion} onClose={()=>setCompletion(null)} onConfirm={finish}/>}
+    <CompartilharProducaoDialog key={date} dataStr={date} open={share} onOpenChange={setShare}/>
+    <AlertDialog open={!!confirm} onOpenChange={open=>{if(!open&&!confirmationPending)setConfirm(null);}}>
+      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{confirm?.kind==='cancelar'?'Cancelar tarefa deste dia?':confirm?.kind==='restaurar'?'Restaurar tarefa?':'Reabrir tarefa?'}</AlertDialogTitle>
+        <AlertDialogDescription className="break-words">{confirmedTask?.titulo}. {confirm?.kind==='cancelar'?'A tarefa sairá do quadro deste dia. O histórico será preservado e você poderá restaurá-la. O cronograma dos outros dias continua igual.':confirm?.kind==='restaurar'?(confirmedTask?.duplicada_de?'Esta cópia voltará como uma tarefa avulsa.':'A tarefa voltará ao quadro deste dia.'):confirmedTask?.status==='feito'?'A conclusão atual será desfeita. O rendimento anterior continuará no histórico e será solicitado novamente ao finalizar.':'A tarefa voltará para A fazer. O tempo já registrado e o histórico serão preservados.'}</AlertDialogDescription>
+      </AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={confirmationPending}>Voltar</AlertDialogCancel><Button variant={confirm?.kind==='cancelar'?'destructive':'default'} disabled={confirmationPending||!confirmedTask} onClick={()=>void applyConfirmation()}>{confirmationPending?'Salvando…':'Confirmar'}</Button></AlertDialogFooter></AlertDialogContent>
+    </AlertDialog>
+    <Dialog open={!!detailed} onOpenChange={open=>{if(!open)setHistory(null);}}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>Histórico da tarefa</DialogTitle><DialogDescription className="break-words">{detailed?.titulo}</DialogDescription></DialogHeader>
+      <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-2">{detailed&&<ProducaoCard tarefa={detailed}/>}
+        {[...(detailed?.historico??[])].sort((a,b)=>b.movido_em.localeCompare(a.movido_em)).map(event=><div key={event.id} className="border-l-2 pl-3 text-sm"><p className="font-medium">{event.evento_tipo==='cancelamento'?'Tarefa cancelada':event.evento_tipo==='restauracao'?'Tarefa restaurada':event.evento_tipo==='edicao'?'Dados da tarefa editados':event.evento_tipo==='responsavel'?'Responsável alterado':event.de_status?`${ETAPAS.find(e=>e.id===event.de_status)?.nome} → ${ETAPAS.find(e=>e.id===event.para_status)?.nome}`:'Tarefa criada'}</p><p className="text-xs text-muted-foreground">{formatInTimeZone(event.movido_em,getBusinessRegion().timeZone,'dd/MM/yyyy HH:mm')}{event.origem==='link_compartilhado'?' · Link compartilhado':''}</p>{event.rendimento_real!=null&&<p className="mt-1">Realizado: {formatarRendimento(event.rendimento_real)} {event.rendimento_unidade}</p>}</div>)}
+      </div></DialogContent></Dialog>
+  </div>;
 }
