@@ -28,6 +28,7 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "src",
+    "e2e/fixtures/**/*.tsx"
   ]
 }

@@ -66,6 +66,7 @@ export default function ProducaoCompartilhadaPage(){
     }
   };
   const employees=Array.from(new Set(tasks.map(t=>t.funcionario?.nome).filter(Boolean))) as string[];
+  const advance=(task:SharedTask)=>{if(task.status==='em_producao'&&temReceitaProducao(task))setCompletion(task);else void move(task).catch(()=>{});};
   const visible=tasks.filter(t=>(employee==='todos'||t.funcionario?.nome===employee)&&normalize([t.titulo,t.receita?.nome,t.receita_nome,t.funcionario?.nome,t.area?.nome].join(' ')).includes(normalize(search.trim())));
   if(loading&&!date)return <main className="flex min-h-screen items-center justify-center"><Loader2 aria-label="Carregando produção" className="animate-spin text-primary"/></main>;
   if(error&&!date)return <main className="mx-auto max-w-md space-y-4 p-8"><h1 className="text-xl font-semibold">Produção indisponível</h1><p role="alert">{error}</p><Button onClick={()=>void load()}>Tentar novamente</Button></main>;
@@ -74,7 +75,9 @@ export default function ProducaoCompartilhadaPage(){
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap gap-3"><Input className="min-w-48 flex-1" aria-label="Buscar produção" placeholder="Buscar tarefa, receita ou responsável…" value={search} onChange={e=>setSearch(e.target.value)}/><Select value={employee} onValueChange={setEmployee}><SelectTrigger aria-label="Filtrar responsável" className="w-full sm:w-64"><SelectValue/></SelectTrigger><SelectContent searchable><SelectItem value="todos">Todos os responsáveis</SelectItem>{employees.map(name=><SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select><Button variant="outline" disabled={loading||pending.size>0} onClick={()=>void load()} aria-label="Atualizar produção"><RefreshCw className={loading?'animate-spin':''}/></Button></div>
       {(error||moveError)&&<p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{error||moveError}</p>}
-      <ProducaoBoard tasks={visible} pendingIds={pending} onAdvance={task=>{if(task.status==='em_producao'&&temReceitaProducao(task))setCompletion(task);else void move(task).catch(()=>{});}}/>
+      <ProducaoBoard tasks={visible} pendingIds={pending} onAdvance={advance}
+        canMove={(task,status)=>(task.status==='a_fazer'&&status==='em_producao')||(task.status==='em_producao'&&status==='feito')}
+        onMove={task=>advance(task)}/>
     </div>
     {completion&&<ConcluirProducaoModal tarefa={completion} onClose={()=>setCompletion(null)} onConfirm={real=>move(completion,real)}/>}
   </main>;
