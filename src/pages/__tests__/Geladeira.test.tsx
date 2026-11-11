@@ -80,7 +80,7 @@ describe('Geladeira interaction', () => {
     expect(newDetails.getByText(/5,00/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Estoque mínimo (kg)')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Estoque mínimo (un)')).toHaveValue('');
-    expect(screen.getByLabelText('Estoque mínimo (un)')).toHaveAttribute('placeholder', '0');
+    expect(screen.getByLabelText('Estoque mínimo (un)')).toHaveAttribute('placeholder', '');
     fireEvent.click(screen.getByRole('button',{name:'Adicionar à Geladeira'}));
     await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('cadastrar_item_geladeira',{p_receita_id:'r2',p_estoque_minimo:0}));
     await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

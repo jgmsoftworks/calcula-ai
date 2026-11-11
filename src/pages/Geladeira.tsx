@@ -182,10 +182,9 @@ export default function Geladeira() {
               </section>}
               {selected && modal && (modal.tipo === 'minimo' || !modal.item) && <div className="space-y-2">
                 <Label htmlFor="geladeira-minimo">Estoque mínimo ({selectedUnit})</Label>
-                <NumericInputPtBr id="geladeira-minimo" tipo="quantidade_continua" value={minimo} onChange={setMinimo} min={0} placeholder="0" />
-                <p className="text-xs text-muted-foreground">Deixe em zero se não quiser definir um mínimo.</p>
+                <NumericInputPtBr id="geladeira-minimo" tipo="quantidade_continua" value={minimo} onChange={setMinimo} min={0} placeholder="" />
               </div>}
-              {modal?.tipo === 'remocao' ? <p className="text-sm">Remover esta receita da lista da Geladeira? A ficha técnica e o histórico serão preservados.</p> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : selected ? <p className="text-xs text-muted-foreground">Após adicionar, registre as entradas e saídas em Movimentações.</p> : null}
+              {modal?.tipo === 'remocao' ? <p className="text-sm">Remover esta receita da lista da Geladeira? A ficha técnica e o histórico serão preservados.</p> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : null}
             </fieldset>
             {saveError && <p role="alert" className="mt-4 text-sm text-destructive">{saveError}</p>}
           </div>
