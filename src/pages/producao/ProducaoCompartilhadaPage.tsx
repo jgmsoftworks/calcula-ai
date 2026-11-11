@@ -51,6 +51,7 @@ export default function ProducaoCompartilhadaPage(){
   const move=async(task:SharedTask,real?:number)=>{
     if(locks.current.has(task.id))return;
     locks.current.add(task.id);setPending(new Set(locks.current));sequence.current++;setLoading(false);setMoveError('');
+    setTasks(current=>current.map(t=>t.id===task.id?{...t,status:task.status==='a_fazer'?'em_producao':'feito'}:t));
     try{
       const {data,error:failure}=await supabase.functions.invoke('producao-compartilhada',{body:{action:'move',token,taskId:task.id,expectedUpdatedAt:task.updated_at,rendimentoReal:real??null}});
       if(failure||data?.error){
@@ -60,7 +61,7 @@ export default function ProducaoCompartilhadaPage(){
       if(!alive.current)return;
       setTasks(current=>current.map(t=>t.id===task.id?{...t,...data.task}:t));
       if(channel.current?.state==='joined')void channel.current.send({type:'broadcast',event:'refresh',payload:{taskId:task.id}});
-    }catch(cause){if(alive.current){setCompletion(null);setMoveError((cause as Error).message+' Confira a tarefa e tente novamente.');}throw cause;}
+    }catch(cause){if(alive.current){setTasks(current=>current.map(t=>t.id===task.id?task:t));setCompletion(null);setMoveError((cause as Error).message+' Confira a tarefa e tente novamente.');}throw cause;}
     finally{
       locks.current.delete(task.id);if(alive.current){setPending(new Set(locks.current));await load(true);}
     }

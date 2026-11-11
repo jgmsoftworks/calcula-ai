@@ -109,7 +109,7 @@ export function ProducaoBoard<T extends BoardTask>(props:BoardProps<T>) {
           </BoardColumn>;
         })}
       </div>
-      <DragOverlay style={{pointerEvents:'none'}}>{active?<div aria-hidden="true" className="rotate-1 opacity-90"><ProducaoCard tarefa={active}/></div>:null}</DragOverlay>
+      <DragOverlay dropAnimation={null} style={{pointerEvents:'none'}}>{active?<div aria-hidden="true" className="opacity-95"><ProducaoCard tarefa={active}/></div>:null}</DragOverlay>
     </DndContext>;
 }
 function StageTab({stage,count,selected,onSelect}:{stage:typeof ETAPAS[number];count:number;selected:boolean;onSelect:()=>void}) {
@@ -130,7 +130,7 @@ function SortableTask<T extends BoardTask>({task,props,disabled,onUp,onDown}:{ta
   return <div ref={setNodeRef} className={cn(!disabled&&'cursor-grab active:cursor-grabbing')}
     onMouseDown={event=>{if(!interactive(event.target))listeners?.onMouseDown?.(event);}}
     onTouchStart={event=>{if(!interactive(event.target))listeners?.onTouchStart?.(event);}}
-    style={{transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.25 : 1}}>
+    style={{transform:isDragging?undefined:CSS.Transform.toString(transform),transition:isDragging?undefined:transition,opacity:isDragging?0:1}}>
     <ProducaoCard tarefa={task} pending={pending}
       handle={props.onMove||props.onReorder?<button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners} disabled={disabled} aria-label={`Mover ${task.titulo}`} title="Arraste o cartão para outra etapa" className="flex h-10 w-10 shrink-0 touch-none cursor-grab items-center justify-center rounded-lg text-muted-foreground hover:bg-muted disabled:cursor-default disabled:opacity-30"><GripVertical className="h-4 w-4"/></button>:undefined}
       onAdvance={task.status!=='feito'?()=>props.onAdvance(task):undefined}
