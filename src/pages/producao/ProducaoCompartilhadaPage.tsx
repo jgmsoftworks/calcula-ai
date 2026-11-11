@@ -51,6 +51,7 @@ export default function ProducaoCompartilhadaPage(){
   const move=async(task:SharedTask,real?:number)=>{
     if(locks.current.has(task.id))return;
     locks.current.add(task.id);setPending(new Set(locks.current));sequence.current++;setLoading(false);setMoveError('');
+    setTasks(current=>current.map(t=>t.id===task.id?{...t,status:task.status==='a_fazer'?'em_producao':'feito'}:t));
     try{
       const {data,error:failure}=await supabase.functions.invoke('producao-compartilhada',{body:{action:'move',token,taskId:task.id,expectedUpdatedAt:task.updated_at,rendimentoReal:real??null}});
       if(failure||data?.error){
@@ -60,13 +61,13 @@ export default function ProducaoCompartilhadaPage(){
       if(!alive.current)return;
       setTasks(current=>current.map(t=>t.id===task.id?{...t,...data.task}:t));
       if(channel.current?.state==='joined')void channel.current.send({type:'broadcast',event:'refresh',payload:{taskId:task.id}});
-    }catch(cause){if(alive.current){setCompletion(null);setMoveError((cause as Error).message+' Confira a tarefa e tente novamente.');}throw cause;}
+    }catch(cause){if(alive.current){setTasks(current=>current.map(t=>t.id===task.id?task:t));setCompletion(null);setMoveError((cause as Error).message+' Confira a tarefa e tente novamente.');}throw cause;}
     finally{
       locks.current.delete(task.id);if(alive.current){setPending(new Set(locks.current));await load(true);}
     }
   };
   const employees=Array.from(new Set(tasks.map(t=>t.funcionario?.nome).filter(Boolean))) as string[];
-  const advance=(task:SharedTask)=>{if(task.status==='em_producao'&&temReceitaProducao(task))setCompletion(task);else void move(task).catch(()=>{});};
+  const advance=(task:SharedTask)=>{if(task.status==='em_producao'&&temReceitaProducao(task)){setCompletion(task);return false;}void move(task).catch(()=>{});return true;};
   const visible=tasks.filter(t=>(employee==='todos'||t.funcionario?.nome===employee)&&normalize([t.titulo,t.receita?.nome,t.receita_nome,t.funcionario?.nome,t.area?.nome].join(' ')).includes(normalize(search.trim())));
   if(loading&&!date)return <main className="flex min-h-screen items-center justify-center"><Loader2 aria-label="Carregando produção" className="animate-spin text-primary"/></main>;
   if(error&&!date)return <main className="mx-auto max-w-md space-y-4 p-8"><h1 className="text-xl font-semibold">Produção indisponível</h1><p role="alert">{error}</p><Button onClick={()=>void load()}>Tentar novamente</Button></main>;

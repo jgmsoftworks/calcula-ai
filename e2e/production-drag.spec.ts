@@ -64,10 +64,14 @@ test('same-column ordering still works and dropping outside does not move',async
 test('shared page drag uses the existing move API and asks for actual yield before finishing',async({page,isMobile})=>{
   let task={id:'task',titulo:'Assar bolos',status:'a_fazer',updated_at:'2026-11-11T12:00:00Z',receita_id:'recipe',rendimento_previsto:12,rendimento_unidade:'un',rendimento_real:null as number|null,funcionario:{nome:'Ana'}};
   const moves:Array<Record<string,unknown>>=[];
+  let releaseStart!:()=>void;
+  const delayedStart=new Promise<void>(resolve=>{releaseStart=resolve;});
   await page.route('**/functions/v1/producao-compartilhada',async route=>{
     const body=route.request().postDataJSON();
     if(body.action==='move'){
-      moves.push(body);task={...task,status:task.status==='a_fazer'?'em_producao':'feito',rendimento_real:body.rendimentoReal};
+      moves.push(body);
+      if(moves.length===1)await delayedStart;
+      task={...task,status:task.status==='a_fazer'?'em_producao':'feito',rendimento_real:body.rendimentoReal};
       await route.fulfill({json:{task}});
     }else await route.fulfill({json:{tasks:[task],date:'2026-11-11',expiresAt:'2026-11-12T12:00:00Z'}});
   });
@@ -77,6 +81,20 @@ test('shared page drag uses the existing move API and asks for actual yield befo
   await drag(page,page.getByRole('heading',{name:'Assar bolos'}),target(page,'Em produção',isMobile),isMobile);
   await expect.poll(()=>moves.length).toBe(1);
   if(isMobile)await page.getByRole('tab',{name:/Em produção/}).click();
+  try{
+    // The server has not replied: the card must already be in the destination.
+    await expect(page.getByRole('region',{name:'Em produção',exact:true}).getByRole('article',{name:'Assar bolos'})).toHaveAttribute('aria-busy','true');
+    const frames=await page.evaluate(async()=>{
+      const frames:Array<{copies:number;stage:string|null}>=[];
+      for(let frame=0;frame<20;frame++){
+        await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+        const cards=document.querySelectorAll('article[aria-label="Assar bolos"]');
+        frames.push({copies:cards.length,stage:cards[0]?.closest('section')?.id??null});
+      }
+      return frames;
+    });
+    expect(frames.every(frame=>frame.copies===1&&frame.stage==='board-em_producao')).toBe(true);
+  }finally{releaseStart();}
   await expect(page.getByRole('button',{name:'Finalizar produção',exact:true})).toBeEnabled();
   await drag(page,page.getByRole('heading',{name:'Assar bolos'}),target(page,'Feito',isMobile),isMobile);
   await expect(page.getByRole('dialog')).toBeVisible();expect(moves).toHaveLength(1);
@@ -85,4 +103,24 @@ test('shared page drag uses the existing move API and asks for actual yield befo
   await page.getByLabel('Quanto rendeu? (un)').fill('11');
   await page.getByRole('dialog').getByRole('button',{name:'Finalizar produção',exact:true}).click();
   await expect.poll(()=>moves.length).toBe(2);expect(moves[1].rendimentoReal).toBe(11);
+});
+
+test('failed shared save returns only the affected card and explains the failure',async({page,isMobile})=>{
+  let rejectSave!:()=>void;
+  const pendingSave=new Promise<void>(resolve=>{rejectSave=resolve;});
+  const task={id:'task',titulo:'Assar bolos',status:'a_fazer',updated_at:'2026-11-11T12:00:00Z',funcionario:{nome:'Ana'}};
+  await page.route('**/functions/v1/producao-compartilhada',async route=>{
+    if(route.request().postDataJSON().action==='move'){
+      await pendingSave;await route.fulfill({json:{error:'Falha simulada ao salvar'}});
+    }else await route.fulfill({json:{tasks:[task],date:'2026-11-11',expiresAt:'2026-11-12T12:00:00Z'}});
+  });
+  await page.goto('/producao-compartilhada/fixture-token');
+  await page.getByRole('dialog',{name:'Aviso de cookies'}).getByRole('button',{name:'Recusar opcionais',exact:true}).click();
+  await drag(page,page.getByRole('heading',{name:'Assar bolos'}),target(page,'Em produção',isMobile),isMobile);
+  if(isMobile)await page.getByRole('tab',{name:/Em produção/}).click();
+  try{await expect(page.getByRole('region',{name:'Em produção',exact:true}).getByRole('article')).toHaveAttribute('aria-busy','true');}
+  finally{rejectSave();}
+  await expect(page.getByRole('alert')).toContainText('Falha simulada ao salvar');
+  if(isMobile)await page.getByRole('tab',{name:/A fazer/}).click();
+  await expect(page.getByRole('region',{name:'A fazer',exact:true}).getByRole('button',{name:'Iniciar produção'})).toBeEnabled();
 });

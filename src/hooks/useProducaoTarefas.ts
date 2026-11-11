@@ -57,6 +57,10 @@ export function useProducaoTarefas(dataProducao: string, materializar = false) {
   const key = ['producao-tarefas', user?.id, dataProducao];
   const locks = useRef(new Set<string>());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  // Keep the visual position stable while RPCs and realtime refetches settle.
+  // Server data remains authoritative; removing this layer also rolls back failures.
+  const [moving, setMoving] = useState<Record<string, ProducaoStatus>>({});
+  const [ordering, setOrdering] = useState<{status:ProducaoStatus;ids:string[]}|null>(null);
   const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const preparation = useQuery({
     queryKey: ['producao-materializar', user?.id, dataProducao], enabled: !!user?.id && !!dataProducao && materializar,
@@ -107,7 +111,11 @@ export function useProducaoTarefas(dataProducao: string, materializar = false) {
       if(syncChannelRef.current?.state==='joined') void syncChannelRef.current.send({type:'broadcast',event:'refresh',payload:{}});
       await qc.invalidateQueries({queryKey:key});
       return result;
-    } finally { locks.current.delete(id);setPendingIds(new Set(locks.current)); }
+    } finally {
+      locks.current.delete(id);setPendingIds(new Set(locks.current));
+      setMoving(current=>{const next={...current};delete next[id];return next;});
+      if(id==='order')setOrdering(null);
+    }
   };
   const saveResult = (data: unknown) => {
     const task=data as ProducaoTarefa;
@@ -123,6 +131,7 @@ export function useProducaoTarefas(dataProducao: string, materializar = false) {
     if(error) throw error;toast({title:'Tarefa atualizada'});return saveResult(data);
   });
   const mover = (tarefa:ProducaoTarefa,novoStatus:ProducaoStatus,rendimentoReal?:number) => run(tarefa.id,async()=>{
+    setMoving(current=>({...current,[tarefa.id]:novoStatus}));
     const {data,error}=await supabase.rpc('mover_tarefa_producao',{p_tarefa_id:tarefa.id,p_status:novoStatus,p_expected_updated_at:tarefa.updated_at,p_rendimento_real:rendimentoReal??null});
     if(error){await qc.invalidateQueries({queryKey:key});throw error;}return saveResult(data);
   });
@@ -131,8 +140,15 @@ export function useProducaoTarefas(dataProducao: string, materializar = false) {
     if(error) throw error;toast({title:restaurar?'Tarefa restaurada':'Tarefa cancelada',description:'O histórico foi preservado.'});return saveResult(data);
   });
   const reordenar = (status:ProducaoStatus,tarefas:ProducaoTarefa[]) => run('order',async()=>{
+    setOrdering({status,ids:tarefas.map(t=>t.id)});
     const {error}=await supabase.rpc('reordenar_tarefas_producao',{p_data:dataProducao,p_status:status,p_ids:tarefas.map(t=>t.id),p_versions:Object.fromEntries(tarefas.map(t=>[t.id,t.updated_at]))});
     if(error){await qc.invalidateQueries({queryKey:key});throw error;}
   });
-  return {...query,isLoading:query.isLoading || (materializar && preparation.isPending),isError:query.isError || (materializar && preparation.isError),error:query.error || (materializar?preparation.error:null),refetch:refresh,criar,editar,mover,cancelar,reordenar,pendingIds};
+  let data=query.data?.map(task=>moving[task.id]?{...task,status:moving[task.id]}:task);
+  if(data&&ordering){
+    const positions=new Map(ordering.ids.map((id,index)=>[id,index]));
+    const column=data.filter(task=>task.status===ordering.status).sort((a,b)=>(positions.get(a.id)??Infinity)-(positions.get(b.id)??Infinity));
+    let index=0;data=data.map(task=>task.status===ordering.status?column[index++]:task);
+  }
+  return {...query,data,isLoading:query.isLoading || (materializar && preparation.isPending),isError:query.isError || (materializar && preparation.isError),error:query.error || (materializar?preparation.error:null),refetch:refresh,criar,editar,mover,cancelar,reordenar,pendingIds};
 }
