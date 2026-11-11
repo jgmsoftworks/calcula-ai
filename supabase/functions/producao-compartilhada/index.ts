@@ -107,13 +107,18 @@ serve(async (req) => {
     }).eq('id', link.id);
 
     if (action === 'get') {
-      const { data: tasks, error } = await admin.from('producao_tarefas').select(`
+      const tasks: unknown[] = [];
+      for (let offset=0;;offset+=500) {
+      const { data, error } = await admin.from('producao_tarefas').select(`
         id, titulo, quantidade, status, observacoes, ordem, inicio_previsto, fim_previsto, iniciado_em, concluido_em, updated_at, receita_id, receita_nome, rendimento_previsto, rendimento_real, rendimento_unidade,
         receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url, rendimento_valor, rendimento_unidade),
         funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
         area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor)
-      `).eq('user_id', link.user_id).eq('data_producao', link.data_producao).order('ordem');
+      `).eq('user_id', link.user_id).eq('data_producao', link.data_producao).is('cancelado_em',null).order('ordem').order('inicio_previsto',{nullsFirst:false}).order('id').range(offset,offset+499);
       if (error) throw error;
+      tasks.push(...(data??[]));
+      if(!data || data.length<500) break;
+      }
       return json({
         date: link.data_producao,
         expiresAt: link.expira_em,

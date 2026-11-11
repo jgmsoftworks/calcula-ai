@@ -1,247 +1,81 @@
-import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
-import { rendimentoDaTarefa, formatarRendimento, temReceitaProducao, type ProducaoRendimento } from '@/lib/producaoRendimento';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle2, ChefHat, Circle, Clock, Loader2, PlayCircle, RefreshCw, Search, User } from 'lucide-react';
+import { formatInTimeZone } from 'date-fns-tz';
+import { ChefHat, Loader2, RefreshCw } from 'lucide-react';
+import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
+import { ProducaoBoard, type BoardTask } from '@/components/producao/ProducaoBoard';
+import { temReceitaProducao } from '@/lib/producaoRendimento';
+import { getBusinessRegion } from '@/lib/business-region';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type Status = 'a_fazer' | 'em_producao' | 'feito';
-type SharedTask = ProducaoRendimento & {
-  id: string;
-  titulo: string;
-  quantidade: number | null;
-  status: Status;
-  observacoes: string | null;
-  inicio_previsto: string | null;
-  fim_previsto: string | null;
-  iniciado_em: string | null;
-  concluido_em: string | null;
-  updated_at: string;
-  funcionario?: { nome: string; cargo: string | null } | null;
-  area?: { nome: string; cor: string | null } | null;
-};
-
-const columns: Array<{ id: Status; label: string; icon: typeof Circle; color: string }> = [
-  { id: 'a_fazer', label: 'A fazer', icon: Circle, color: 'text-slate-500' },
-  { id: 'em_producao', label: 'Em produção', icon: PlayCircle, color: 'text-blue-600' },
-  { id: 'feito', label: 'Feito', icon: CheckCircle2, color: 'text-emerald-600' },
-];
-
-export default function ProducaoCompartilhadaPage() {
-  const { token = '' } = useParams<{ token: string }>();
-  const [tasks, setTasks] = useState<SharedTask[]>([]);
-  const [date, setDate] = useState('');
-  const [expiresAt, setExpiresAt] = useState('');
-  const [syncChannel, setSyncChannel] = useState('');
-  const [filter, setFilter] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [movingId, setMovingId] = useState<string | null>(null);
-  const [concluirTarefa, setConcluirTarefa] = useState<SharedTask | null>(null);
-  const [error, setError] = useState('');
-  const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
-  const load = useCallback(async (quiet = false) => {
-    if (!quiet) setLoading(true);
-    const { data, error: invokeError } = await supabase.functions.invoke('producao-compartilhada', {
-      body: { action: 'get', token },
-    });
-    if (invokeError || data?.error) {
-      setError(data?.error ?? 'Este link é inválido ou expirou.');
-    } else {
-      setTasks(data.tasks ?? []);
-      setDate(data.date);
-      setExpiresAt(data.expiresAt);
-      setSyncChannel(data.syncChannel ?? '');
-      setError('');
-    }
-    setLoading(false);
-  }, [token]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  useEffect(() => {
-    if (error) return;
-
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void load(true);
-    }, 30_000);
-
-    const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') void load(true);
-    };
-
-    window.addEventListener('focus', refreshWhenVisible);
-    document.addEventListener('visibilitychange', refreshWhenVisible);
-
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener('focus', refreshWhenVisible);
-      document.removeEventListener('visibilitychange', refreshWhenVisible);
-    };
-  }, [error, load]);
-
-  useEffect(() => {
-    if (!syncChannel || error) return;
-
-    const channel = supabase
-      .channel(syncChannel)
-      .on('broadcast', { event: 'refresh' }, () => {
-        void load(true);
-      })
-      .subscribe();
-
-    syncChannelRef.current = channel;
-
-    return () => {
-      if (syncChannelRef.current === channel) syncChannelRef.current = null;
-      void supabase.removeChannel(channel);
-    };
-  }, [error, load, syncChannel]);
-
-  const visibleTasks = useMemo(() => {
-    const query = filter.trim().toLocaleLowerCase('pt-BR');
-    if (!query) return tasks;
-    return tasks.filter((task) => task.funcionario?.nome?.toLocaleLowerCase('pt-BR').includes(query));
-  }, [filter, tasks]);
-
-  const move = async (task: SharedTask, rendimentoReal?: number) => {
-    setMovingId(task.id);
-
-    const nextStatus: Status | null = task.status === 'a_fazer'
-      ? 'em_producao'
-      : task.status === 'em_producao'
-        ? 'feito'
-        : null;
-
-    const previousTasks = tasks;
-    if (nextStatus) {
-      const now = new Date().toISOString();
-      const applyOptimisticMove = () => setTasks((current) => current.map((item) => {
-        if (item.id !== task.id) return item;
-        return {
-          ...item,
-          status: nextStatus,
-          iniciado_em: nextStatus === 'em_producao' && !item.iniciado_em ? now : item.iniciado_em,
-          concluido_em: nextStatus === 'feito' && !item.concluido_em ? now : item.concluido_em,
-        };
-      }));
-      const transitionDocument = document as Document & {
-        startViewTransition?: (callback: () => void) => unknown;
-      };
-      if (transitionDocument.startViewTransition) {
-        transitionDocument.startViewTransition(() => flushSync(applyOptimisticMove));
-      } else {
-        applyOptimisticMove();
+type SharedTask=BoardTask&{updated_at:string;funcionario_id?:string};
+const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+export default function ProducaoCompartilhadaPage(){
+  const {token=''}=useParams();
+  const [tasks,setTasks]=useState<SharedTask[]>([]);const [date,setDate]=useState('');const [expires,setExpires]=useState('');const [channelName,setChannelName]=useState('');
+  const [search,setSearch]=useState('');const [employee,setEmployee]=useState('todos');
+  const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [moveError,setMoveError]=useState('');
+  const [pending,setPending]=useState<Set<string>>(new Set());const locks=useRef(new Set<string>());
+  const [completion,setCompletion]=useState<SharedTask|null>(null);
+  const channel=useRef<ReturnType<typeof supabase.channel>|null>(null);
+  const sequence=useRef(0);const alive=useRef(true);
+  const load=useCallback(async(quiet=false)=>{
+    if(quiet&&locks.current.size)return;
+    const request=++sequence.current;
+    if(!quiet)setLoading(true);
+    try{
+      const {data,error:failure}=await supabase.functions.invoke('producao-compartilhada',{body:{action:'get',token}});
+      if(failure||data?.error)throw new Error(data?.error??'Não foi possível carregar. O link pode ter expirado.');
+      if(!alive.current||request!==sequence.current)return;
+      setTasks((data.tasks??[]).filter((t:SharedTask)=>!t.cancelado_em));setDate(data.date);setExpires(data.expiresAt);setChannelName(data.syncChannel??'');setError('');
+    }catch(cause){if(alive.current&&request===sequence.current)setError((cause as Error).message);}
+    finally{if(alive.current&&request===sequence.current)setLoading(false);}
+  },[token]);
+  const invalidateLoad=useCallback(()=>{sequence.current+=1;},[]);
+  useEffect(()=>{alive.current=true;setTasks([]);setDate('');setCompletion(null);void load();return()=>{alive.current=false;invalidateLoad();};},[load,invalidateLoad]);
+  useEffect(()=>{
+    const refresh=()=>{if(document.visibilityState==='visible')void load(true);};
+    const timer=window.setInterval(refresh,30_000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
+    return()=>{window.clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+  },[load]);
+  useEffect(()=>{
+    if(!channelName)return;
+    const connection=supabase.channel(channelName).on('broadcast',{event:'refresh'},()=>void load(true)).subscribe();channel.current=connection;
+    return()=>{channel.current=null;void supabase.removeChannel(connection);};
+  },[channelName,load]);
+  const move=async(task:SharedTask,real?:number)=>{
+    if(locks.current.has(task.id))return;
+    locks.current.add(task.id);setPending(new Set(locks.current));sequence.current++;setLoading(false);setMoveError('');
+    try{
+      const {data,error:failure}=await supabase.functions.invoke('producao-compartilhada',{body:{action:'move',token,taskId:task.id,expectedUpdatedAt:task.updated_at,rendimentoReal:real??null}});
+      if(failure||data?.error){
+        const details=failure?.context instanceof Response?await failure.context.clone().json().catch(()=>null):null;
+        throw new Error(data?.error??details?.error??'Não foi possível avançar. Confira os dados atualizados e tente novamente.');
       }
+      if(!alive.current)return;
+      setTasks(current=>current.map(t=>t.id===task.id?{...t,...data.task}:t));
+      if(channel.current?.state==='joined')void channel.current.send({type:'broadcast',event:'refresh',payload:{taskId:task.id}});
+    }catch(cause){if(alive.current){setCompletion(null);setMoveError((cause as Error).message+' Confira a tarefa e tente novamente.');}throw cause;}
+    finally{
+      locks.current.delete(task.id);if(alive.current){setPending(new Set(locks.current));await load(true);}
     }
-
-    const { data, error: invokeError } = await supabase.functions.invoke('producao-compartilhada', {
-      body: { action: 'move', token, taskId: task.id, expectedUpdatedAt: task.updated_at, rendimentoReal: rendimentoReal ?? null },
-    });
-    if (invokeError || data?.error) {
-      setTasks(previousTasks);
-      const details = invokeError?.context instanceof Response ? await invokeError.context.clone().json().catch(() => null) : null;
-      const message = data?.error ?? details?.error ?? 'Não foi possível avançar a tarefa. Atualize e tente novamente.';
-      setError(message);
-      await load(true);
-      setMovingId(null);
-      throw new Error(message);
-    } else {
-      setTasks((current) => current.map((item) => item.id === task.id ? { ...item, ...data.task } : item));
-      setError('');
-      const channel = syncChannelRef.current;
-      if (channel?.state === 'joined') {
-        await channel.send({ type: 'broadcast', event: 'refresh', payload: { taskId: task.id } });
-      }
-    }
-    setMovingId(null);
   };
-
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-
-  if (error && !date) return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5">
-      <Card className="max-w-md space-y-4 rounded-3xl p-8 text-center">
-        <Clock className="mx-auto h-10 w-10 text-muted-foreground" />
-        <h1 className="text-xl font-semibold">Link indisponível</h1>
-        <p className="text-sm text-muted-foreground">{error}</p>
-      </Card>
-    </main>
-  );
-
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10"><ChefHat className="h-6 w-6 text-primary" /></div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-primary">Produção do dia</p>
-              <h1 className="text-xl font-bold capitalize">{date && format(parseISO(date), "EEEE, dd 'de' MMMM", { locale: ptBR })}</h1>
-            </div>
-          </div>
-          <div className="text-right text-xs text-muted-foreground">
-            <p>Atualização automática</p>
-            <p>Link válido até {expiresAt && format(new Date(expiresAt), 'dd/MM HH:mm')}</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[240px] flex-1 sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filtrar por responsável" className="pl-9" />
-          </div>
-          <Button variant="outline" onClick={() => load()}><RefreshCw className="mr-2 h-4 w-4" />Atualizar</Button>
-          <Badge variant="secondary" className="h-9 px-3">{visibleTasks.length} tarefas</Badge>
-        </div>
-
-        {error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          {columns.map((column) => {
-            const items = visibleTasks.filter((task) => task.status === column.id);
-            const Icon = column.icon;
-            return (
-              <section key={column.id} className="min-h-[240px] rounded-2xl border bg-white p-3 sm:p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className={cn('flex items-center gap-2 font-semibold', column.color)}><Icon className="h-5 w-5" />{column.label}</div>
-                  <Badge variant="outline">{items.length}</Badge>
-                </div>
-                <div className="space-y-3">
-                  {items.map((task) => (
-                    <Card key={task.id} style={{ viewTransitionName: `task-${task.id}` }} className="space-y-3 rounded-xl p-4 shadow-sm transition-all duration-300">
-                      <div className="flex items-start justify-between gap-3">
-                        <div><h2 className="font-semibold leading-tight">{task.titulo}</h2>{task.receita?.nome && <p className="mt-1 text-xs text-muted-foreground">{task.receita.nome}{task.quantidade ? ` · ${task.quantidade}` : ''}</p>}</div>
-                        {task.area && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.area.cor ?? '#64748b' }} />}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground"><User className="h-4 w-4" /><span>{task.funcionario?.nome ?? 'Sem responsável'}</span></div>
-                      {temReceitaProducao(task) && <p className="rounded-lg bg-primary/5 p-2 text-xs text-primary">Previsto: {rendimentoDaTarefa(task).previsto === null ? '—' : `${formatarRendimento(rendimentoDaTarefa(task).previsto!)} ${rendimentoDaTarefa(task).unidade}`}{task.rendimento_real != null && ` · Realizado: ${formatarRendimento(task.rendimento_real)} ${task.rendimento_unidade}`}</p>}
-                      {task.observacoes && <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">{task.observacoes}</p>}
-                      {task.status !== 'feito' && (
-                        <Button className="w-full" onClick={() => { if (task.status === 'em_producao' && temReceitaProducao(task)) setConcluirTarefa(task); else void move(task).catch(() => {}); }} disabled={movingId === task.id}>
-                          {movingId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : task.status === 'a_fazer' ? 'Iniciar produção' : 'Marcar como feito'}
-                        </Button>
-                      )}
-                    </Card>
-                  ))}
-                  {!items.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma tarefa</p>}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      </div>
-      {concluirTarefa && <ConcluirProducaoModal tarefa={concluirTarefa} onClose={() => setConcluirTarefa(null)} onConfirm={real => move(concluirTarefa, real)} />}
-    </main>
-  );
+  const employees=Array.from(new Set(tasks.map(t=>t.funcionario?.nome).filter(Boolean))) as string[];
+  const visible=tasks.filter(t=>(employee==='todos'||t.funcionario?.nome===employee)&&normalize([t.titulo,t.receita?.nome,t.receita_nome,t.funcionario?.nome,t.area?.nome].join(' ')).includes(normalize(search.trim())));
+  if(loading&&!date)return <main className="flex min-h-screen items-center justify-center"><Loader2 aria-label="Carregando produção" className="animate-spin text-primary"/></main>;
+  if(error&&!date)return <main className="mx-auto max-w-md space-y-4 p-8"><h1 className="text-xl font-semibold">Produção indisponível</h1><p role="alert">{error}</p><Button onClick={()=>void load()}>Tentar novamente</Button></main>;
+  return <main className="min-h-screen bg-background">
+    <header className="border-b bg-card"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6"><div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-3 text-primary"><ChefHat/></div><div><p className="text-sm text-muted-foreground">Produção do dia</p><h1 className="text-xl font-semibold capitalize">{date&&format(parseISO(date),"EEEE, dd 'de' MMMM",{locale:ptBR})}</h1></div></div><p className="text-xs text-muted-foreground">Link válido até {expires&&formatInTimeZone(expires,getBusinessRegion().timeZone,'dd/MM HH:mm')}</p></div></header>
+    <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
+      <div className="flex flex-wrap gap-3"><Input className="min-w-48 flex-1" aria-label="Buscar produção" placeholder="Buscar tarefa, receita ou responsável…" value={search} onChange={e=>setSearch(e.target.value)}/><Select value={employee} onValueChange={setEmployee}><SelectTrigger aria-label="Filtrar responsável" className="w-full sm:w-64"><SelectValue/></SelectTrigger><SelectContent searchable><SelectItem value="todos">Todos os responsáveis</SelectItem>{employees.map(name=><SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select><Button variant="outline" disabled={loading||pending.size>0} onClick={()=>void load()} aria-label="Atualizar produção"><RefreshCw className={loading?'animate-spin':''}/></Button></div>
+      {(error||moveError)&&<p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{error||moveError}</p>}
+      <ProducaoBoard tasks={visible} pendingIds={pending} onAdvance={task=>{if(task.status==='em_producao'&&temReceitaProducao(task))setCompletion(task);else void move(task).catch(()=>{});}}/>
+    </div>
+    {completion&&<ConcluirProducaoModal tarefa={completion} onClose={()=>setCompletion(null)} onConfirm={real=>move(completion,real)}/>}
+  </main>;
 }

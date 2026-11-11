@@ -38,6 +38,7 @@ const Movimentacao = lazy(() => import("./pages/Movimentacao"));
 const Receitas = lazy(() => import("./pages/Receitas"));
 const ReceitaEditor = lazy(() => import("./pages/ReceitaEditor"));
 const AgendaPage = lazy(() => import("./pages/producao/AgendaPage"));
+const TarefaEditorPage = lazy(() => import("./pages/producao/TarefaEditorPage"));
 const AgendaDayPage = lazy(() => import("./pages/producao/AgendaDayPage"));
 const RecorrenteEditorPage = lazy(() => import("./pages/producao/RecorrenteEditorPage"));
 const CronogramaPage = lazy(() => import("./pages/producao/CronogramaPage"));
@@ -128,6 +129,8 @@ const App = () => (
                   <Route path="/producao/cronograma/nova" element={<RecorrenteEditorPage />} />
                   <Route path="/producao/cronograma/:id/editar" element={<RecorrenteEditorPage />} />
                   <Route path="/producao/agenda" element={<AgendaPage />} />
+                  <Route path="/producao/agenda/:date/nova" element={<TarefaEditorPage />} />
+                  <Route path="/producao/agenda/:date/:id/editar" element={<TarefaEditorPage />} />
                   <Route path="/producao/agenda/:date" element={<AgendaDayPage />} />
                   <Route path="/movimentacao" element={<Navigate to="/estoque/movimentacoes" replace />} />
                   <Route path="/custos" element={<Navigate to="/precificacao/despesas-fixas" replace />} />
