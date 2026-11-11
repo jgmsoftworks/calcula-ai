@@ -39,29 +39,34 @@ export function HistoricoGeral() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<string>('todos');
+  const [origemFiltro, setOrigemFiltro] = useState<'todos' | 'produto' | 'geladeira'>('todos');
+  const [error, setError] = useState(false);
   const [responsavelFiltro, setResponsavelFiltro] = useState('');
 
-  const loadHistorico = async () => {
-    setLoading(true);
-    const data = await fetchHistoricoGeral({
-      dataInicio: dataInicio || undefined,
-      dataFim: dataFim || undefined,
-      tipo: tipoFiltro !== 'todos' ? (tipoFiltro as 'entrada' | 'saida') : undefined,
-      responsavel: responsavelFiltro || undefined,
-    });
-    setMovimentacoes(data);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    loadHistorico();
-  }, [dataInicio, dataFim, tipoFiltro, responsavelFiltro]);
+    let active = true;
+    setLoading(true); setError(false);
+    fetchHistoricoGeral({
+      dataInicio: dataInicio || undefined, dataFim: dataFim || undefined,
+      tipo: tipoFiltro !== 'todos' ? tipoFiltro as 'entrada' | 'saida' : undefined,
+      responsavel: responsavelFiltro || undefined,
+      origemEstoque: origemFiltro === 'todos' ? undefined : origemFiltro,
+    }).then(data => { if (active) setMovimentacoes(data); })
+      .catch(() => { if (active) { setError(true); setMovimentacoes([]); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [dataInicio, dataFim, tipoFiltro, responsavelFiltro, origemFiltro]);
 
   const activeFiltersCount = (tipoFiltro !== 'todos' ? 1 : 0) + (responsavelFiltro ? 1 : 0);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Local do estoque">
+        {([['todos', 'Todos'], ['produto', 'Lista de Produtos'], ['geladeira', 'Geladeira']] as const).map(([value, label]) =>
+          <Button key={value} variant={origemFiltro === value ? 'default' : 'outline'} onClick={() => setOrigemFiltro(value)}>{label}</Button>)}
+      </div>
+      {error && <p role="alert" className="text-sm text-destructive">Não foi possível carregar o histórico. Tente novamente ao atualizar a página.</p>}
       {/* Filtros Desktop */}
       <Card className="p-4 hidden md:block">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -161,15 +166,15 @@ export function HistoricoGeral() {
               movimentacoes.map((mov: any) => (
                 <TableRow key={mov.id}>
                   <TableCell>{format(new Date(mov.data_hora), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
-                  <TableCell>{mov.produtos?.nome || 'N/A'}</TableCell>
+                  <TableCell>{mov.produtos?.nome || 'N/A'}{mov.motivo && <p className="text-xs text-muted-foreground">{mov.motivo}</p>}</TableCell>
                   <TableCell>
                     <Badge variant={mov.tipo === 'entrada' ? 'default' : 'destructive'}>
                       {mov.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">{formatters.quantidadeContinua(mov.quantidade)}</TableCell>
-                  <TableCell className="text-right">{formatters.valor(mov.custo_aplicado)}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatters.valor(mov.subtotal)}</TableCell>
+                  <TableCell className="text-right">{formatters.quantidadeContinua(mov.quantidade)} {mov.unidade || ''}</TableCell>
+                  <TableCell className="text-right">{mov.custo_aplicado === null ? '—' : formatters.valor(mov.custo_aplicado)}</TableCell>
+                  <TableCell className="text-right font-semibold">{mov.subtotal === null ? '—' : formatters.valor(mov.subtotal)}</TableCell>
                   <TableCell>{mov.responsavel}</TableCell>
                   <TableCell className="capitalize">{mov.origem}</TableCell>
                   <TableCell className="text-center">
@@ -205,18 +210,19 @@ export function HistoricoGeral() {
                 </span>
               </div>
               <h4 className="font-semibold text-sm leading-tight">{mov.produtos?.nome || 'N/A'}</h4>
+              {mov.motivo && <p className="text-xs text-muted-foreground">{mov.motivo}</p>}
               <div className="grid grid-cols-3 gap-2 pt-2 border-t text-xs">
                 <div>
                   <p className="text-muted-foreground">Qtd</p>
-                  <p className="font-medium">{formatters.quantidadeContinua(mov.quantidade)}</p>
+                  <p className="font-medium">{formatters.quantidadeContinua(mov.quantidade)} {mov.unidade || ''}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Custo</p>
-                  <p className="font-medium">{formatters.valor(mov.custo_aplicado)}</p>
+                  <p className="font-medium">{mov.custo_aplicado === null ? '—' : formatters.valor(mov.custo_aplicado)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-muted-foreground">Subtotal</p>
-                  <p className="font-semibold text-primary">{formatters.valor(mov.subtotal)}</p>
+                  <p className="font-semibold text-primary">{mov.subtotal === null ? '—' : formatters.valor(mov.subtotal)}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 pt-2 border-t text-[11px] text-muted-foreground">

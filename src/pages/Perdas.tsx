@@ -75,10 +75,10 @@ export default function Perdas() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold truncate">{p.nome_item}</p>
-                  <Badge variant="outline" className="text-[10px]">{p.tipo === 'produto' ? 'Produto' : 'Receita'}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{p.origem_estoque === 'geladeira' ? 'Geladeira' : p.tipo === 'produto' ? 'Produto' : 'Receita'}</Badge>
                 </div>
                 <p className="break-words text-xs leading-relaxed text-muted-foreground">
-                  {new Date(p.data_perda).toLocaleString(getBusinessRegion().locale)} · Qtd: {p.quantidade} · {p.motivo}
+                  {new Date(p.data_perda).toLocaleString(getBusinessRegion().locale)} · Qtd: {p.quantidade} {p.unidade || ''} · {p.motivo}
                   {p.motivo === 'Outro' && p.motivo_outro ? ` (${p.motivo_outro})` : ''}
                   {p.responsavel ? ` · ${p.responsavel}` : ''}
                 </p>

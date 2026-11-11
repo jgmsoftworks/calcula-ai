@@ -1,3 +1,4 @@
+import { fetchGeladeira, geladeiraComoProduto } from '@/lib/geladeiraData';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState, useMemo } from 'react';
@@ -20,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Package, ChefHat, ArrowLeft, Plus, Trash2, Search, ChevronsUpDown, Check } from 'lucide-react';
+import { Package, ChefHat, Refrigerator, ArrowLeft, Plus, Trash2, Search, ChevronsUpDown, Check } from 'lucide-react';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +37,7 @@ interface Props {
 }
 
 interface ProdutoOpt {
+  custo_indisponivel?: boolean;
   id: string;
   nome: string;
   custo_unitario: number;
@@ -61,7 +63,7 @@ interface ReceitaOpt {
 interface FuncionarioOpt { id: string; nome: string; cargo: string | null; }
 interface ItemPerda {
   id: string;
-  tipo: 'produto' | 'receita';
+  tipo: 'produto' | 'receita' | 'geladeira';
   nome: string;
   quantidade: number;
   custoUnitario: number;
@@ -121,9 +123,13 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
   const { registrarPerdas, calcularCustoReceita } = usePerdas();
   const [etapa, setEtapa] = useState<'tipo' | 'formulario'>('tipo');
-  const [tipo, setTipo] = useState<'produto' | 'receita'>('produto');
+  const [tipo, setTipo] = useState<'produto' | 'receita' | 'geladeira'>('produto');
   const [itens, setItens] = useState<ItemPerda[]>([]);
   const [produtos, setProdutos] = useState<ProdutoOpt[]>([]);
+  const [geladeira, setGeladeira] = useState<ProdutoOpt[]>([]);
+  const [geladeiraErro, setGeladeiraErro] = useState(false);
+  const [geladeiraLoading, setGeladeiraLoading] = useState(false);
+  const produtosDisponiveis = tipo === 'geladeira' ? geladeira : produtos;
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [funcionarios, setFuncionarios] = useState<FuncionarioOpt[]>([]);
   const [produtoId, setProdutoId] = useState<string>('');
@@ -166,6 +172,16 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     })();
   }, [open, user]);
 
+  useEffect(() => {
+    if (!open || !user) return;
+    let active = true;
+    setGeladeiraLoading(true); setGeladeiraErro(false); setGeladeira([]);
+    fetchGeladeira(user.id).then(items => { if (active) setGeladeira(items.map(geladeiraComoProduto)); })
+      .catch(() => { if (active) setGeladeiraErro(true); })
+      .finally(() => { if (active) setGeladeiraLoading(false); });
+    return () => { active = false; };
+  }, [open, user?.id]);
+
   // Reset when modal opens
   useEffect(() => {
     if (open) {
@@ -200,17 +216,17 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     }
   }, [receitaId, tipo, receitas]);
 
-  const produtoSel = useMemo(() => produtos.find(p => p.id === produtoId), [produtos, produtoId]);
+  const produtoSel = useMemo(() => produtosDisponiveis.find(p => p.id === produtoId), [produtosDisponiveis, produtoId]);
   const receitaSel = useMemo(() => receitas.find(r => r.id === receitaId), [receitas, receitaId]);
 
   const itensFiltrados = useMemo(() => {
-    if (tipo === 'produto') {
-      return produtos.filter(p => correspondeBusca([p.nome, ...(p.marcas || []), ...(p.categorias || [])], busca));
+    if (tipo !== 'receita') {
+      return produtosDisponiveis.filter(p => correspondeBusca([p.nome, ...(p.marcas || []), ...(p.categorias || [])], busca));
     }
     return receitas.filter(r => correspondeBusca([r.nome, r.numero_sequencial, r.tipo_produto], busca));
-  }, [busca, produtos, receitas, tipo]);
+  }, [busca, produtosDisponiveis, receitas, tipo]);
 
-  const custoUnit = tipo === 'produto'
+  const custoUnit = tipo !== 'receita'
     ? (produtoSel?.custo_unitario || 0)
     : (receitaSel?.rendimento_valor && receitaSel.rendimento_valor > 0
       ? receitaSel.custo_total / receitaSel.rendimento_valor
@@ -223,14 +239,14 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     : (funcionarios.find(f => f.id === responsavelSel)?.nome || '');
 
   const podeAdicionar =
-    quantidade > 0 &&
-    (tipo === 'produto' ? !!produtoId : !!receitaId);
+    Number.isFinite(quantidade) && quantidade > 0 && !(tipo === 'geladeira' && produtoSel?.custo_indisponivel) &&
+    (tipo !== 'receita' ? !!produtoId : !!receitaId);
 
   const podeSalvar =
     itens.length > 0 &&
     (motivo !== 'Outro' || motivoOutro.trim().length > 0);
 
-  const escolherTipo = (novoTipo: 'produto' | 'receita') => {
+  const escolherTipo = (novoTipo: 'produto' | 'receita' | 'geladeira') => {
     setTipo(novoTipo);
     setItens([]);
     setProdutoId('');
@@ -242,7 +258,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
 
   const adicionarItem = () => {
     if (!podeAdicionar) return;
-    const selecionado = tipo === 'produto' ? produtoSel : receitaSel;
+    const selecionado = tipo !== 'receita' ? produtoSel : receitaSel;
     if (!selecionado) return;
 
     setItens(atuais => {
@@ -268,7 +284,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   };
 
   const abrirItemParaAdicionar = (id: string) => {
-    if (tipo === 'produto') setProdutoId(id);
+    if (tipo !== 'receita') setProdutoId(id);
     else setReceitaId(id);
     setQuantidade(1);
     setItemModalOpen(true);
@@ -287,6 +303,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     const salvo = await registrarPerdas(itens.map(item => ({
         tipo: item.tipo,
         produto_id: item.tipo === 'produto' ? item.id : null,
+        geladeira_item_id: item.tipo === 'geladeira' ? item.id : null,
         receita_id: item.tipo === 'receita' ? item.id : null,
         nome_item: item.nome,
         quantidade: item.quantidade,
@@ -364,7 +381,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <span>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'produto' ? 'produtos' : 'receitas'}`}</span>
+            <span>{etapa === 'tipo' ? 'O que você perdeu?' : `Registrar perda de ${tipo === 'geladeira' ? 'itens da Geladeira' : tipo === 'produto' ? 'produtos' : 'receitas'}`}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -386,6 +403,12 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 </span>
               </span>
             </button>
+            <button type="button" onClick={() => escolherTipo('geladeira')}
+              className="w-full rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className="flex items-start gap-3"><span className="rounded-lg bg-primary/10 p-2 text-primary"><Refrigerator className="h-5 w-5" /></span>
+                <span><span className="block font-semibold">Geladeira</span><span className="mt-1 block text-sm text-muted-foreground">Receitas e sub-receitas armazenadas. A baixa desconta o saldo da Geladeira.</span></span>
+              </span>
+            </button>
             <button
               type="button"
               onClick={() => escolherTipo('receita')}
@@ -396,7 +419,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 <span>
                   <span className="block font-semibold">Receitas produzidas</span>
                   <span className="mt-1 block text-sm text-muted-foreground">
-                    Itens criados na aba Receitas, como bolos, doces, massas e outros produtos preparados.
+                    Produção que não está armazenada na Geladeira. Ao dar baixa, os ingredientes da receita são descontados.
                   </span>
                 </span>
               </span>
@@ -407,18 +430,20 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           </div>
         ) : (
           <>
+          {tipo === 'geladeira' && geladeiraErro && <p role="alert" className="text-sm text-destructive">Não foi possível carregar a Geladeira. Feche e abra novamente para tentar.</p>}
+          {tipo === 'geladeira' && geladeiraLoading && <p role="status" className="text-sm text-muted-foreground">Carregando Geladeira…</p>}
           <div className="space-y-3 rounded-xl border bg-muted/10 p-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={busca}
                 onChange={event => setBusca(event.target.value)}
-                placeholder={`Buscar ${tipo === 'produto' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
+                placeholder={`Buscar ${tipo !== 'receita' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
                 className="pl-9"
               />
             </div>
             <div className="h-[min(17.5rem,40vh)] min-h-48 space-y-2 overflow-y-auto pr-1 sm:h-[17.5rem]">
-              {tipo === 'produto' ? (
+              {tipo !== 'receita' ? (
                 (itensFiltrados as ProdutoOpt[]).length === 0 ? (
                   <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
                 ) : (itensFiltrados as ProdutoOpt[]).map(produto => (
@@ -432,7 +457,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                         {produto.categorias?.slice(0, 2).map(categoria => <Badge key={categoria} variant="outline" className="text-[10px]">{categoria}</Badge>)}
                         {produto.marcas?.slice(0, 1).map(marca => <Badge key={marca} variant="secondary" className="text-[10px]">{marca}</Badge>)}
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{localizeText("Estoque:")} {produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{localizeText("Estoque:")} {produto.estoque_atual} {produto.unidade_compra} · Custo: {produto.custo_indisponivel ? 'Indisponível: ajuste o rendimento' : formatBRL(produto.custo_unitario)}</p>
                     </div>
                     <Button type="button" size="icon" onClick={() => abrirItemParaAdicionar(produto.id)} aria-label={`Adicionar ${produto.nome}`} className="h-9 w-9 shrink-0 rounded-full">
                       <Plus className="h-4 w-4" />
@@ -471,7 +496,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 <div className="flex h-full items-center justify-center rounded-lg border border-dashed bg-background/50 px-4 text-center text-xs text-muted-foreground">Clique no + de um item para adicioná-lo.</div>
               ) : itens.map(item => (
                 <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
-                  {item.tipo === 'produto' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
+                  {item.tipo !== 'receita' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
                   <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.nome}</p><p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p></div>
                   <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                 </div>
@@ -487,12 +512,12 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 <Input
                   value={busca}
                   onChange={event => setBusca(event.target.value)}
-                  placeholder={`Buscar ${tipo === 'produto' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
+                  placeholder={`Buscar ${tipo !== 'receita' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
                   className="pl-9"
                 />
               </div>
               <div className="h-[min(17.5rem,40vh)] min-h-48 space-y-2 overflow-y-auto pr-1 sm:h-[17.5rem]">
-                {tipo === 'produto' ? (
+                {tipo !== 'receita' ? (
                   (itensFiltrados as ProdutoOpt[]).length === 0 ? (
                     <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
                   ) : (itensFiltrados as ProdutoOpt[]).map(produto => (
@@ -514,7 +539,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                           {produto.categorias?.slice(0, 2).map(categoria => <Badge key={categoria} variant="outline" className="text-[10px]">{categoria}</Badge>)}
                           {produto.marcas?.slice(0, 1).map(marca => <Badge key={marca} variant="secondary" className="text-[10px]">{marca}</Badge>)}
                         </span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{localizeText("Estoque:")}{produto.estoque_atual} {produto.unidade_compra} · Custo: {formatBRL(produto.custo_unitario)}
+                        <span className="mt-1 block text-xs text-muted-foreground">{localizeText("Estoque:")}{produto.estoque_atual} {produto.unidade_compra} · Custo: {produto.custo_indisponivel ? 'Indisponível: ajuste o rendimento' : formatBRL(produto.custo_unitario)}
                         </span>
                       </span>
                     </button>
@@ -556,14 +581,14 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
 
             <div className="min-w-0 space-y-3 lg:border-l lg:pl-4">
               <div className="rounded-xl border bg-card p-4">
-                {tipo === 'produto' ? (
+                {tipo !== 'receita' ? (
                   produtoSel ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         {produtoSel.imagem_url
                           ? <img src={produtoSel.imagem_url} alt={produtoSel.nome} className="h-16 w-16 rounded-xl object-cover" />
                           : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600"><Package className="h-7 w-7" /></span>}
-                        <div><p className="font-semibold">{produtoSel.nome}</p><p className="text-sm text-muted-foreground">{formatBRL(produtoSel.custo_unitario)} por {produtoSel.unidade_compra}</p></div>
+                        <div><p className="font-semibold">{produtoSel.nome}</p><p className="text-sm text-muted-foreground">{produtoSel.custo_indisponivel ? 'Indisponível: ajuste o rendimento' : formatBRL(produtoSel.custo_unitario)} por {produtoSel.unidade_compra}</p></div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
@@ -600,7 +625,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                     </div>
                   ) : itens.map(item => (
                       <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
-                        {item.tipo === 'produto' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
+                        {item.tipo !== 'receita' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.nome}</p><p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p></div>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                       </div>
@@ -612,7 +637,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           </div>)}
 
           {false && (<div>
-          {tipo === 'produto' ? (
+          {tipo !== 'receita' ? (
           <div className="space-y-2">
             <Label>Produto</Label>
             <Popover open={popoverProdutoOpen} onOpenChange={setPopoverProdutoOpen}>
@@ -648,7 +673,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                   <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
                     <CommandEmpty>Nenhum produto.</CommandEmpty>
                     <CommandGroup>
-                      {produtos.map(p => {
+                      {produtosDisponiveis.map(p => {
                         const searchValue = [p.nome, ...(p.marcas || []), ...(p.categorias || [])].join(' ').toLowerCase();
                         return (
                           <CommandItem
@@ -767,7 +792,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
         </div>
 
         <Button type="button" variant="secondary" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2">
-          <Plus className="h-4 w-4" /> Adicionar {tipo === 'produto' ? 'produto' : 'receita'} à lista
+          <Plus className="h-4 w-4" /> Adicionar {tipo !== 'receita' ? 'produto' : 'receita'} à lista
         </Button>
 
         {itens.length > 0 && (
@@ -779,7 +804,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <div className="max-h-40 space-y-2 overflow-y-auto">
               {itens.map(item => (
                 <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
-                  {item.tipo === 'produto'
+                  {item.tipo !== 'receita'
                     ? <Package className="h-4 w-4 shrink-0 text-blue-600" />
                     : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
                   <div className="min-w-0 flex-1">
@@ -853,15 +878,15 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       <Dialog open={itemModalOpen} onOpenChange={setItemModalOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-md p-5 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Adicionar {tipo === 'produto' ? 'produto' : 'receita'}</DialogTitle>
+            <DialogTitle>Adicionar {tipo !== 'receita' ? 'produto' : 'receita'}</DialogTitle>
           </DialogHeader>
-          {tipo === 'produto' && produtoSel ? (
+          {tipo !== 'receita' && produtoSel ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3 rounded-xl border bg-muted/20 p-3">
                 {produtoSel.imagem_url
                   ? <img src={produtoSel.imagem_url} alt={produtoSel.nome} className="h-16 w-16 rounded-xl object-cover" />
                   : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600"><Package className="h-7 w-7" /></span>}
-                <div className="min-w-0"><p className="truncate font-semibold">{produtoSel.nome}</p><p className="text-sm text-muted-foreground">Disponível: {produtoSel.estoque_atual} {produtoSel.unidade_compra}</p><p className="text-sm text-muted-foreground">Custo unitário: {formatBRL(produtoSel.custo_unitario)}</p></div>
+                <div className="min-w-0"><p className="truncate font-semibold">{produtoSel.nome}</p><p className="text-sm text-muted-foreground">Disponível: {produtoSel.estoque_atual} {produtoSel.unidade_compra}</p><p className="text-sm text-muted-foreground">Custo unitário: {produtoSel.custo_indisponivel ? 'Indisponível: ajuste o rendimento' : formatBRL(produtoSel.custo_unitario)}</p></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
@@ -897,7 +922,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 {itens.length === 1 ? 'A perda selecionada será registrada' : `As ${itens.length} perdas selecionadas serão registradas`} de qualquer forma, cada uma separadamente no histórico.
               </span>
               <span className="block">
-                {tipo === 'produto'
+                {tipo === 'geladeira' ? 'Ao dar baixa, a quantidade será descontada do saldo da Geladeira e aparecerá no Histórico Geral.' : tipo === 'produto'
                   ? 'Ao dar baixa, a quantidade será descontada do produto e aparecerá no histórico de Movimentações.'
                   : 'Ao dar baixa, os ingredientes usados na receita serão descontados e aparecerão no histórico de Movimentações.'}
               </span>

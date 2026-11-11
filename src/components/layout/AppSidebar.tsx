@@ -70,12 +70,12 @@ export function AppSidebar() {
       icon: Package,
       children: [
         { title: t('nav.listaProdutos'), url: '/estoque', icon: List, exact: true },
+        { title: 'Geladeira', url: '/estoque/geladeira', icon: Refrigerator },
         { title: t('nav.movimentacoes'), url: '/estoque/movimentacoes', icon: ArrowLeftRight },
         { title: t('nav.historicoGeral'), url: '/estoque/historico', icon: History },
         { title: 'Perdas', url: '/estoque/perdas', icon: AlertOctagon },
       ],
     },
-    { title: 'Geladeira', url: '/geladeira', icon: Refrigerator },
     {
       title: t('nav.precificacao'),
       url: '/precificacao',

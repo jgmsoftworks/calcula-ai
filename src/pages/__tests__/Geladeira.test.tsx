@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
+import '@/test/setup';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -34,25 +35,22 @@ describe('Geladeira interaction', () => {
     fireEvent.change(screen.getByRole('textbox',{name:'Buscar na Geladeira'}),{target:{value:'inexistente'}});
     expect(screen.getByText('Nenhuma receita encontrada')).toBeInTheDocument();
   });
-  it('accepts fractional stock entries and retries with the same request ID after a lost response', async () => {
-    await open();
-    mocks.rpc.mockResolvedValueOnce({data:null,error:{message:'Falha de conexão'}});
-    fireEvent.click(screen.getAllByRole('button',{name:'Entrada de Recheio de Ninho'})[0]);
-    const input = screen.getByLabelText('Quantidade (kg)');
-    fireEvent.focus(input); fireEvent.change(input,{target:{value:'0,25'}}); fireEvent.blur(input);
+  it('keeps only the recipe list here and registers new items with zero balance', async () => {
+    mocks.from.mockImplementation(table => {
+      const data = table === 'receitas' ? [recipe] : [];
+      const query = { select:()=>query,eq:()=>query,order:()=>query,range:()=>query,abortSignal:()=>query,
+        then:(resolve: (r:unknown)=>unknown) => Promise.resolve({ data, count:data.length, error:null }).then(resolve) };
+      return query;
+    });
+    render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><Geladeira /></BrowserRouter></QueryClientProvider>);
+    await screen.findByText('Sua Geladeira está vazia');
+    expect(screen.queryByRole('button',{name:'Histórico'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button',{name:'Adicionar receita'})[0]);
+    fireEvent.keyDown(await screen.findByRole('combobox',{name:'Selecionar receita'}),{key:'Enter'});
+    fireEvent.keyDown(await screen.findByRole('option',{name:/Recheio de Ninho/}),{key:'Enter'});
+    expect(screen.queryByLabelText('Quantidade (kg)')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
-    await screen.findByRole('alert');
-    expect(mocks.rpc.mock.calls[0][1].p_quantidade).toBe(0.25);
-    fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
+    await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('cadastrar_item_geladeira',{p_receita_id:'r1',p_estoque_minimo:0}));
     await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(mocks.rpc.mock.calls[1][1].p_request_id).toBe(mocks.rpc.mock.calls[0][1].p_request_id);
-  });
-  it('rejects a withdrawal above the available balance before sending a write', async () => {
-    await open(); fireEvent.click(screen.getAllByRole('button',{name:'Saída de Recheio de Ninho'})[0]);
-    const input = screen.getByLabelText('Quantidade (kg)');
-    fireEvent.focus(input);fireEvent.change(input,{target:{value:'10'}});fireEvent.blur(input);
-    fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
-    expect(await screen.findByRole('alert')).toHaveTextContent('maior que o saldo');
-    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

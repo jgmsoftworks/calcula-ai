@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowDownToLine, ArrowUpFromLine, History, MoreHorizontal, Plus, Refrigerator, Search } from 'lucide-react';
+import { MoreHorizontal, Plus, Refrigerator, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchTodasReceitas } from '@/lib/receitasData';
-import { custoUnitarioGeladeira, fetchGeladeira, fetchHistoricoGeladeira, OPERACAO_LABEL, receitaPodeEntrar, type GeladeiraItem, type GeladeiraOperacao } from '@/lib/geladeiraData';
-import { formatMoney, getBusinessRegion } from '@/lib/business-region';
+import { custoUnitarioGeladeira, fetchGeladeira, OPERACAO_LABEL, receitaPodeEntrar, type GeladeiraItem } from '@/lib/geladeiraData';
+import { formatMoney } from '@/lib/business-region';
 import { formatters } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 const qty = (value: number) => formatters.quantidadeContinua(value);
 const money = (value: number | null) => value === null ? 'Indisponível' : formatMoney(value);
 const unitMoney = (value: number | null) => value === null ? 'Indisponível' : formatMoney(value, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-type Modal = { tipo: GeladeiraOperacao; item?: GeladeiraItem };
+type Modal = { tipo: 'cadastro' | 'minimo' | 'remocao'; item?: GeladeiraItem };
 
 export default function Geladeira() {
   const { user } = useAuth();
@@ -32,11 +32,8 @@ export default function Geladeira() {
   const [saldo, setSaldo] = useState('todos');
   const [page, setPage] = useState(0);
   const [modal, setModal] = useState<Modal | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyPage, setHistoryPage] = useState(0);
   const [receitaId, setReceitaId] = useState('');
   const [recipeSearch, setRecipeSearch] = useState('');
-  const [quantidade, setQuantidade] = useState(0);
   const [minimo, setMinimo] = useState(0);
   const [observacao, setObservacao] = useState('');
   const [saving, setSaving] = useState(false);
@@ -47,8 +44,6 @@ export default function Geladeira() {
     queryFn: ({ signal }) => fetchGeladeira(user!.id, signal), staleTime: 0 });
   const recipesQuery = useQuery({ queryKey: ['geladeira-receitas', user?.id], enabled: !!user && !!modal && !modal.item,
     queryFn: () => fetchTodasReceitas(user!.id, { status: 'finalizada' }), staleTime: 0 });
-  const historyQuery = useQuery({ queryKey: ['geladeira-historico', user?.id, historyPage], enabled: !!user && historyOpen,
-    queryFn: ({ signal }) => fetchHistoricoGeladeira(user!.id, historyPage, signal), staleTime: 0 });
   const items = itemsQuery.data || [];
   const filtered = useMemo(() => items.filter(item => {
     const sub = item.receita.markup?.tipo === 'sub_receita';
@@ -67,28 +62,25 @@ export default function Geladeira() {
   const pickerRecipes = (recipesQuery.data || []).filter(r => !items.some(item => item.receita_id === r.id)
     && `${r.nome} ${r.numero_sequencial}`.toLocaleLowerCase().includes(recipeSearch.toLocaleLowerCase()));
 
-  function openModal(tipo: GeladeiraOperacao, item?: GeladeiraItem) {
+  function openModal(tipo: Modal['tipo'], item?: GeladeiraItem) {
     setModal({ tipo, item }); setReceitaId(item?.receita_id || ''); setRecipeSearch('');
-    setQuantidade(tipo === 'ajuste' ? item?.estoque_atual || 0 : 0); setMinimo(item?.estoque_minimo || 0);
+    setMinimo(item?.estoque_minimo || 0);
     setObservacao(''); setSaveError(''); pending.current = null;
   }
   function closeModal() { if (!savingRef.current) setModal(null); }
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!modal || !user || !selected || savingRef.current) return;
-    if (modal.tipo === 'entrada' && !receitaPodeEntrar(selected)) { setSaveError('Informe o rendimento e a unidade na receita antes de adicionar.'); return; }
-    if (!Number.isFinite(quantidade) || quantidade < 0 || (['entrada', 'saida'].includes(modal.tipo) && quantidade === 0)) {
-      setSaveError('Informe uma quantidade maior que zero.'); return;
-    }
-    if (modal.tipo === 'saida' && quantidade > (modal.item?.estoque_atual || 0)) { setSaveError('A quantidade de saída é maior que o saldo disponível.'); return; }
-    const args = { p_receita_id: selected.id, p_tipo: modal.tipo, p_quantidade: quantidade,
-      p_estoque_minimo: modal.tipo === 'minimo' || !modal.item ? minimo : null,
-      p_observacao: observacao || null, p_saldo_esperado: modal.tipo === 'ajuste' ? modal.item?.estoque_atual ?? null : null };
+    if (modal.tipo === 'cadastro' && !receitaPodeEntrar(selected)) { setSaveError('Informe o rendimento e a unidade na receita antes de adicionar.'); return; }
+    const args = { p_receita_id: selected.id, p_tipo: modal.tipo, p_quantidade: 0,
+      p_estoque_minimo: modal.tipo === 'minimo' || !modal.item ? minimo : null, p_observacao: observacao || null };
     const signature = JSON.stringify(args);
     if (pending.current?.signature !== signature) pending.current = { signature, id: crypto.randomUUID() };
     savingRef.current = true; setSaving(true); setSaveError('');
     try {
-      const { error } = await supabase.rpc('movimentar_geladeira', { ...args, p_request_id: pending.current.id });
+      const { error } = modal.tipo === 'cadastro'
+        ? await supabase.rpc('cadastrar_item_geladeira', { p_receita_id: selected.id, p_estoque_minimo: minimo })
+        : await supabase.rpc('movimentar_geladeira', { ...args, p_request_id: pending.current.id });
       if (error) throw error;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['geladeira', user.id] }),
@@ -99,21 +91,11 @@ export default function Geladeira() {
     } catch (error) {
       const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Não foi possível salvar. Tente novamente.';
       setSaveError(message);
-      // A stale absolute adjustment needs a fresh, reviewed balance. A lost
-      // success response keeps the same request ID until the payload changes.
-      if (error && typeof error === 'object' && 'code' in error && error.code === '40001') {
-        const updated = await itemsQuery.refetch();
-        const item = updated.data?.find(i => i.receita_id === selected.id);
-        if (item) { setModal({ ...modal, item }); setQuantidade(item.estoque_atual); pending.current = null; }
-      }
     } finally { savingRef.current = false; setSaving(false); }
   }
   const actions = (item: GeladeiraItem) => <div className="flex items-center justify-end gap-1">
-    <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Entrada de ${item.receita.nome}`} onClick={() => openModal('entrada', item)}><ArrowDownToLine className="h-4 w-4" /></Button>
-    <Button variant="ghost" size="icon" className="h-11 w-11" disabled={item.estoque_atual === 0} aria-label={`Saída de ${item.receita.nome}`} onClick={() => openModal('saida', item)}><ArrowUpFromLine className="h-4 w-4" /></Button>
     <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Mais opções para ${item.receita.nome}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => openModal('ajuste', item)}>Ajustar saldo</DropdownMenuItem>
         <DropdownMenuItem onClick={() => openModal('minimo', item)}>Editar estoque mínimo</DropdownMenuItem>
         <DropdownMenuItem asChild><Link to={`/receitas/${item.receita_id}/editar`}>Abrir receita</Link></DropdownMenuItem>
         <DropdownMenuItem disabled={item.estoque_atual !== 0} className="text-destructive" onClick={() => openModal('remocao', item)}>Remover da Geladeira</DropdownMenuItem>
@@ -123,8 +105,8 @@ export default function Geladeira() {
   return <div className="min-w-0 space-y-5">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="max-w-xl text-sm text-muted-foreground">Receitas prontas e sub-receitas armazenadas, com custo atualizado pela ficha técnica.</p>
-      <div className="flex shrink-0 gap-2"><Button variant="outline" className="min-h-11" onClick={() => { setHistoryPage(0); setHistoryOpen(true); }}><History className="mr-2 h-4 w-4" />Histórico</Button>
-        <Button className="min-h-11 flex-1" disabled={itemsQuery.isPending || itemsQuery.isError} onClick={() => openModal('entrada')}><Plus className="mr-2 h-4 w-4" />Adicionar receita</Button></div>
+      <div className="flex shrink-0 gap-2">
+        <Button className="min-h-11 flex-1" disabled={itemsQuery.isPending || itemsQuery.isError} onClick={() => openModal('cadastro')}><Plus className="mr-2 h-4 w-4" />Adicionar receita</Button></div>
     </div>
     <div className="flex flex-col gap-3 sm:flex-row">
       <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar na Geladeira" placeholder="Buscar por receita ou código..." className="h-11 pl-9" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /></div>
@@ -132,7 +114,7 @@ export default function Geladeira() {
       <Select value={saldo} onValueChange={v => { setSaldo(v); setPage(0); }}><SelectTrigger aria-label="Filtrar saldo" className="h-11 sm:w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os saldos</SelectItem><SelectItem value="disponivel">Com saldo</SelectItem><SelectItem value="baixo">Abaixo do mínimo</SelectItem></SelectContent></Select>
     </div>
     {itemsQuery.isPending ? <p role="status" className="py-12 text-center text-muted-foreground">Carregando Geladeira…</p> : itemsQuery.isError ? <div role="alert" className="space-y-3 py-10 text-center"><p>Não foi possível carregar a Geladeira.</p><Button variant="outline" onClick={() => void itemsQuery.refetch()}>Tentar novamente</Button></div> : !filtered.length ?
-      <div className="rounded-xl border border-dashed px-5 py-14 text-center"><Refrigerator className="mx-auto mb-4 h-9 w-9 text-muted-foreground" /><p className="font-semibold">{items.length ? 'Nenhuma receita encontrada' : 'Sua Geladeira está vazia'}</p><p className="mt-2 text-sm text-muted-foreground">{items.length ? 'Ajuste a busca ou os filtros.' : 'Adicione uma receita final ou sub-receita e informe a quantidade armazenada.'}</p>{!items.length && <Button className="mt-5" onClick={() => openModal('entrada')}>Adicionar receita</Button>}</div> : <>
+      <div className="rounded-xl border border-dashed px-5 py-14 text-center"><Refrigerator className="mx-auto mb-4 h-9 w-9 text-muted-foreground" /><p className="font-semibold">{items.length ? 'Nenhuma receita encontrada' : 'Sua Geladeira está vazia'}</p><p className="mt-2 text-sm text-muted-foreground">{items.length ? 'Ajuste a busca ou os filtros.' : 'Adicione uma receita final ou sub-receita e registre as entradas em Movimentações.'}</p>{!items.length && <Button className="mt-5" onClick={() => openModal('cadastro')}>Adicionar receita</Button>}</div> : <>
       <div className="hidden overflow-hidden rounded-xl border bg-card lg:block"><Table><TableHeader><TableRow><TableHead>Receita</TableHead><TableHead>Tipo</TableHead><TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Mínimo</TableHead><TableHead className="text-right">Custo por unidade</TableHead><TableHead className="text-right">Custo armazenado</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
         <TableBody>{visible.map(item => { const cost = custoUnitarioGeladeira(item.receita); return <TableRow key={item.id}>
           <TableCell><Link className="font-medium hover:text-primary" to={`/receitas/${item.receita_id}/editar`}>{item.receita.nome}</Link><span className="mt-1 block text-xs text-muted-foreground">#{item.receita.numero_sequencial}</span></TableCell>
@@ -149,23 +131,18 @@ export default function Geladeira() {
       {hasUnknownCost && <p role="alert" className="text-sm text-amber-700 dark:text-amber-400">Há receitas sem rendimento válido. Corrija a ficha técnica para calcular todo o custo armazenado.</p>}
       {lastPage > 0 && <div className="flex items-center justify-center gap-3"><Button variant="outline" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Anterior</Button><span className="text-sm">{currentPage + 1} de {lastPage + 1}</span><Button variant="outline" disabled={currentPage === lastPage} onClick={() => setPage(currentPage + 1)}>Próxima</Button></div>}
     </>}
-    <Dialog open={!!modal} onOpenChange={open => { if (!open) closeModal(); }}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"><DialogHeader><DialogTitle>{modal?.item ? `${OPERACAO_LABEL[modal.tipo]} · Geladeira` : 'Adicionar receita à Geladeira'}</DialogTitle><DialogDescription>{modal?.item ? modal.item.receita.nome : 'Selecione uma receita final ou sub-receita já cadastrada.'}</DialogDescription></DialogHeader>
+    <Dialog open={!!modal} onOpenChange={open => { if (!open) closeModal(); }}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"><DialogHeader><DialogTitle>{modal?.item ? `${modal.tipo === 'cadastro' ? 'Cadastro' : OPERACAO_LABEL[modal.tipo]} · Geladeira` : 'Adicionar receita à Geladeira'}</DialogTitle><DialogDescription>{modal?.item ? modal.item.receita.nome : 'Selecione uma receita final ou sub-receita já cadastrada.'}</DialogDescription></DialogHeader>
       <form onSubmit={save} className="space-y-4"><fieldset disabled={saving} className="min-w-0 space-y-4">
         {!modal?.item && <div className="space-y-2"><Label htmlFor="geladeira-receita-busca">Receita</Label><Input id="geladeira-receita-busca" placeholder="Buscar receita..." value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} />
           {recipesQuery.isPending ? <p role="status" className="text-sm text-muted-foreground">Carregando receitas…</p> : recipesQuery.isError ? <div role="alert"><p>Erro ao carregar receitas.</p><Button type="button" variant="outline" onClick={() => void recipesQuery.refetch()}>Tentar novamente</Button></div> :
             <Select value={receitaId} onValueChange={setReceitaId}><SelectTrigger aria-label="Selecionar receita"><SelectValue placeholder="Selecione uma receita" /></SelectTrigger><SelectContent searchable={false}>{selected && !pickerRecipes.some(r => r.id === selected.id) && <SelectItem value={selected.id}>{selected.nome}</SelectItem>}{pickerRecipes.map(r => <SelectItem key={r.id} value={r.id} disabled={!receitaPodeEntrar(r)}>{r.nome} · {r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}{!receitaPodeEntrar(r) ? ' (ajuste o rendimento)' : ''}</SelectItem>)}</SelectContent></Select>}
-          {recipesQuery.isSuccess && !pickerRecipes.length && <p className="text-sm text-muted-foreground">Nenhuma receita disponível para esta busca. Receitas já adicionadas recebem novas entradas pela lista.</p>}
-          <p className="text-xs text-muted-foreground">A receita precisa estar finalizada e ter rendimento e unidade preenchidos.</p>
+          {recipesQuery.isSuccess && !pickerRecipes.length && <p className="text-sm text-muted-foreground">Nenhuma receita disponível para esta busca. Receitas já adicionadas recebem novas entradas em Movimentações.</p>}
+          <p className="text-xs text-muted-foreground">A receita precisa ter rendimento e unidade preenchidos. As entradas e saídas são registradas em Movimentações.</p>
         </div>}
         {selected && modal?.tipo !== 'remocao' && <div className="rounded-lg bg-muted/50 p-3 text-sm"><div className="flex justify-between gap-3"><span>Custo por {selectedUnit}</span><strong>{unitMoney(selectedCost)}</strong></div><p className="mt-1 text-xs text-muted-foreground">Calculado automaticamente pela receita, sem aplicar o markup de venda.</p>{modal?.item && <p className="mt-2">Saldo atual: <strong>{qty(modal.item.estoque_atual)} {selectedUnit}</strong></p>}</div>}
-        {modal && ['entrada','saida','ajuste'].includes(modal.tipo) && <div className="space-y-2"><Label htmlFor="geladeira-qtd">{modal.tipo === 'ajuste' ? 'Quantidade correta em estoque' : 'Quantidade'}{selectedUnit ? ` (${selectedUnit})` : ''}</Label><NumericInputPtBr id="geladeira-qtd" tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} min={0} placeholder="0" />{modal.tipo === 'ajuste' && <p className="text-xs text-muted-foreground">O saldo será substituído pela quantidade informada.</p>}</div>}
         {modal && (modal.tipo === 'minimo' || !modal.item) && <div className="space-y-2"><Label htmlFor="geladeira-minimo">Estoque mínimo{selectedUnit ? ` (${selectedUnit})` : ''}</Label><NumericInputPtBr id="geladeira-minimo" tipo="quantidade_continua" value={minimo} onChange={setMinimo} min={0} placeholder="0" /></div>}
-        {modal?.tipo === 'remocao' ? <p className="text-sm">Remover esta receita da lista da Geladeira? A ficha técnica e o histórico serão preservados.</p> : <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Ex.: produção do dia" /></div>}
+        {modal?.tipo === 'remocao' ? <p className="text-sm">Remover esta receita da lista da Geladeira? A ficha técnica e o histórico serão preservados.</p> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : null}
       </fieldset>{saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}<DialogFooter><Button type="button" variant="outline" disabled={saving} onClick={closeModal}>Cancelar</Button><Button type="submit" disabled={saving || !selected} variant={modal?.tipo === 'remocao' ? 'destructive' : 'default'}>{saving ? 'Salvando…' : modal?.tipo === 'remocao' ? 'Remover' : 'Salvar'}</Button></DialogFooter></form>
-    </DialogContent></Dialog>
-    <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Histórico da Geladeira</DialogTitle><DialogDescription>Entradas, saídas e ajustes dos produtos preparados.</DialogDescription></DialogHeader>
-      {historyQuery.isPending ? <p role="status">Carregando histórico…</p> : historyQuery.isError ? <div role="alert"><p>Erro ao carregar histórico.</p><Button variant="outline" onClick={() => void historyQuery.refetch()}>Tentar novamente</Button></div> : !historyQuery.data?.items.length ? <p className="py-6 text-center text-muted-foreground">Nenhuma movimentação registrada.</p> : <div className="divide-y">{historyQuery.data.items.map(m => <div key={m.id} className="space-y-1 py-3 text-sm"><div className="flex justify-between gap-3"><strong className="break-words">{m.receita_nome}</strong><Badge variant="secondary">{OPERACAO_LABEL[m.tipo as GeladeiraOperacao]}</Badge></div><p className="text-xs text-muted-foreground">{new Date(m.created_at).toLocaleString(getBusinessRegion().locale, { timeZone: getBusinessRegion().timeZone })}</p><p>Saldo: {qty(m.saldo_anterior)} → {qty(m.saldo_atual)} {m.unidade}</p>{m.quantidade !== 0 && <p className="text-muted-foreground">{m.quantidade > 0 ? '+' : ''}{qty(m.quantidade)} {m.unidade} · Custo na data: {unitMoney(m.custo_unitario)} / {m.unidade}</p>}{m.observacao && <p className="break-words text-muted-foreground">{m.observacao}</p>}</div>)}</div>}
-      {(historyQuery.data?.total || 0) > 30 && <div className="flex items-center justify-between gap-3"><Button variant="outline" disabled={historyPage === 0} onClick={() => setHistoryPage(p => p - 1)}>Anterior</Button><span className="text-sm">{historyPage + 1} de {Math.ceil((historyQuery.data?.total || 0) / 30)}</span><Button variant="outline" disabled={(historyPage + 1) * 30 >= (historyQuery.data?.total || 0)} onClick={() => setHistoryPage(p => p + 1)}>Próxima</Button></div>}
     </DialogContent></Dialog>
   </div>;
 }

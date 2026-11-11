@@ -1,3 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchGeladeira, geladeiraComoProduto } from '@/lib/geladeiraData';
 import { useCallback, useState } from 'react';
 import { useProdutosMovimentacao } from '@/hooks/useProdutosPage';
 import { CategoriasFiltro } from '@/components/movimentacao/CategoriasFiltro';
@@ -12,6 +15,9 @@ import { useTranslation } from 'react-i18next';
 
 export default function Movimentacao() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [origem, setOrigem] = useState<'produto' | 'geladeira'>('produto');
+  const geladeira = useQuery({ queryKey: ['geladeira', user?.id], enabled: !!user, queryFn: ({ signal }) => fetchGeladeira(user!.id, signal), staleTime: 0 });
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [carrinho, setCarrinho] = useState<any[]>([]);
@@ -21,6 +27,11 @@ export default function Movimentacao() {
   const { produtos, resumo, isPending: loading, isError, isFetching, isFetchingNextPage, isPlaceholderData, searching, hasNextPage, fetchNextPage, refetch: loadProdutos } = useProdutosMovimentacao({
     search: searchTerm, categorias: categoriaSelecionada ? [categoriaSelecionada] : [],
   });
+  const itensGeladeira = (geladeira.data || []).map(geladeiraComoProduto).filter(item =>
+    `${item.nome} ${item.codigo_interno}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()));
+  const exibindoGeladeira = origem === 'geladeira';
+  const itensVisiveis = exibindoGeladeira ? itensGeladeira : produtos;
+  const erroAtual = exibindoGeladeira ? geladeira.isError : isError;
   const loadMore = useCallback(() => { void fetchNextPage({ cancelRefetch: false }); }, [fetchNextPage]);
 
   const handleSelectProduto = (produto: any) => {
@@ -34,7 +45,7 @@ export default function Movimentacao() {
       return false;
     }
     if (item.tipo === 'saida') {
-      const produto = produtos.find(p => p.id === item.produto_id) || (produtoSelecionado?.id === item.produto_id ? produtoSelecionado : null);
+      const produto = itensVisiveis.find(p => p.id === item.produto_id) || (produtoSelecionado?.id === item.produto_id ? produtoSelecionado : null);
       const outrasSaidas = carrinho
         .filter((cartItem: any) => cartItem.produto_id === item.produto_id && cartItem.tipo === 'saida')
         .reduce((soma: number, cartItem: any) => soma + cartItem.quantidade, 0);
@@ -50,11 +61,15 @@ export default function Movimentacao() {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <div className="flex gap-2" role="group" aria-label="Local do estoque">
+        <Button variant={origem === 'produto' ? 'default' : 'outline'} onClick={() => { setOrigem('produto'); setCategoriaSelecionada(null); }}>Lista de Produtos</Button>
+        <Button variant={exibindoGeladeira ? 'default' : 'outline'} onClick={() => { setOrigem('geladeira'); setCategoriaSelecionada(null); }}>Geladeira</Button>
+      </div>
       {/* Search */}
       <div className="glass-card flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
         <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
-          placeholder={t('movimentacao.searchPlaceholder')}
+          placeholder={exibindoGeladeira ? 'Buscar na Geladeira...' : t('movimentacao.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 border-0 bg-transparent focus-visible:ring-0 h-9 text-sm"
@@ -66,15 +81,15 @@ export default function Movimentacao() {
         )}
       </div>
 
-      {isError && <div role="alert" className="rounded-xl border p-4 text-sm">
-        Não foi possível atualizar os produtos. <Button variant="link" onClick={() => { void loadProdutos(); }}>Tentar novamente</Button>
+      {erroAtual && <div role="alert" className="rounded-xl border p-4 text-sm">
+        Não foi possível atualizar os itens. <Button variant="link" onClick={() => { void (exibindoGeladeira ? geladeira.refetch() : loadProdutos()); }}>Tentar novamente</Button>
       </div>}
 
       {/* Category Filter */}
       <CategoriasFiltro 
-        produtos={produtos}
-        resumo={resumo?.categorias}
-        total={resumo?.totalBusca}
+        produtos={itensVisiveis}
+        resumo={exibindoGeladeira ? undefined : resumo?.categorias}
+        total={exibindoGeladeira ? itensGeladeira.length : resumo?.totalBusca}
         categoriaSelecionada={categoriaSelecionada}
         onSelectCategoria={setCategoriaSelecionada}
       />
@@ -83,17 +98,17 @@ export default function Movimentacao() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <ListaProdutos 
-            produtos={produtos}
-            loading={loading}
+            produtos={itensVisiveis}
+            loading={exibindoGeladeira ? geladeira.isPending : loading}
             categoriaSelecionada={categoriaSelecionada}
             onSelectProduto={handleSelectProduto}
-            hasMore={!!hasNextPage}
-            loadingMore={isFetchingNextPage}
-            updating={isFetching || searching}
-            canLoadMore={!isFetching && !isPlaceholderData && !searching && !isError}
+            hasMore={!exibindoGeladeira && !!hasNextPage}
+            loadingMore={!exibindoGeladeira && isFetchingNextPage}
+            updating={exibindoGeladeira ? geladeira.isFetching : isFetching || searching}
+            canLoadMore={!exibindoGeladeira && !isFetching && !isPlaceholderData && !searching && !isError}
             onLoadMore={loadMore}
-            resetKey={`${searchTerm}:${categoriaSelecionada || ''}`}
-            hasError={isError}
+            resetKey={`${origem}:${searchTerm}:${categoriaSelecionada || ''}`}
+            hasError={erroAtual}
           />
         </div>
 
@@ -101,7 +116,7 @@ export default function Movimentacao() {
           <CarrinhoMovimentacao 
             carrinho={carrinho} 
             onCarrinhoChange={setCarrinho}
-            onSuccess={loadProdutos}
+            onSuccess={() => { void loadProdutos(); void geladeira.refetch(); }}
           />
         </div>
       </div>

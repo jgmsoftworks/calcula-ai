@@ -49,6 +49,9 @@ export type Database = {
       }
       geladeira_movimentacoes: {
         Row: {
+          comprovante_id: string | null
+          responsavel: string | null
+          motivo: string | null
           id: string
           user_id: string
           item_id: string | null
@@ -66,6 +69,9 @@ export type Database = {
           created_at: string
         }
         Insert: {
+          comprovante_id?: string | null
+          responsavel?: string | null
+          motivo?: string | null
           id?: string
           user_id?: string
           item_id?: string | null
@@ -83,6 +89,9 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          comprovante_id?: string | null
+          responsavel?: string | null
+          motivo?: string | null
           id?: string
           user_id?: string
           item_id?: string | null
@@ -99,7 +108,7 @@ export type Database = {
           solicitacao?: Json
           created_at?: string
         }
-        Relationships: []
+        Relationships: [{ foreignKeyName: "geladeira_movimentacoes_comprovante_id_fkey"; columns: ["comprovante_id"]; isOneToOne: false; referencedRelation: "comprovantes"; referencedColumns: ["id"] }]
       }
 
       account_deletion_requests: {
@@ -734,6 +743,7 @@ export type Database = {
       }
       comprovantes: {
         Row: {
+          geladeira_solicitacao: Json | null
           created_at: string
           data_hora: string
           id: string
@@ -744,6 +754,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          geladeira_solicitacao?: Json | null
           created_at?: string
           data_hora?: string
           id?: string
@@ -754,6 +765,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          geladeira_solicitacao?: Json | null
           created_at?: string
           data_hora?: string
           id?: string
@@ -1709,6 +1721,9 @@ export type Database = {
       }
       perdas: {
         Row: {
+          origem_estoque: string | null
+          unidade: string | null
+          geladeira_item_id: string | null
           created_at: string
           custo_total: number
           custo_unitario: number
@@ -1727,6 +1742,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          origem_estoque?: string | null
+          unidade?: string | null
+          geladeira_item_id?: string | null
           created_at?: string
           custo_total?: number
           custo_unitario?: number
@@ -1745,6 +1763,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          origem_estoque?: string | null
+          unidade?: string | null
+          geladeira_item_id?: string | null
           created_at?: string
           custo_total?: number
           custo_unitario?: number
@@ -3523,6 +3544,10 @@ export type Database = {
       }
     }
     Functions: {
+      cadastrar_item_geladeira: { Args: { p_receita_id: string; p_estoque_minimo?: number }; Returns: string }
+      finalizar_movimentacao_integrada: { Args: { p_itens: Json; p_responsavel: string; p_observacao: string | null; p_request_id: string }; Returns: Json }
+      registrar_perdas_geladeira: { Args: { p_itens: Json; p_motivo: string; p_motivo_outro: string | null; p_observacao: string | null; p_responsavel: string | null; p_baixar_estoque: boolean; p_request_id: string }; Returns: number }
+
       movimentar_geladeira: {
         Args: { p_receita_id: string; p_tipo: string; p_quantidade: number; p_request_id: string; p_estoque_minimo?: number | null; p_observacao?: string | null; p_saldo_esperado?: number | null }
         Returns: string

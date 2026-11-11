@@ -15,7 +15,7 @@ import { ArrowDownLeft, ArrowUpRight, Package, ShoppingCart } from 'lucide-react
 import { cn } from '@/lib/utils';
 
 interface MovimentacaoModalProps {
-  produto: Produto | null;
+  produto: (Produto & { origem_estoque?: 'produto' | 'geladeira'; custo_indisponivel?: boolean }) | null;
   open: boolean;
   onClose: () => void;
   onAddToCart: (item: any) => boolean | void;
@@ -42,6 +42,7 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
 
   if (!produto) return null;
 
+  const naGeladeira = produto.origem_estoque === 'geladeira';
   const compra = productUnit(produto.unidade_compra);
   const uso = productUnit(produto.unidade_uso);
   const fator = Number(produto.fator_conversao);
@@ -52,7 +53,7 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
   const estoqueInsuficiente = tipo === 'saida' && quantidade > disponivel + 0.000000001;
   const subtotal = quantidade * custoAplicado;
   const valido = !!produto.id && !!motivo && Number.isFinite(quantidade) && quantidade > 0 &&
-    Number.isFinite(custoAplicado) && custoAplicado >= 0 && Number.isFinite(subtotal) && !estoqueInsuficiente;
+    Number.isFinite(custoAplicado) && custoAplicado >= 0 && Number.isFinite(subtotal) && !estoqueInsuficiente && !produto.custo_indisponivel;
   const quantidadeFormatada = formatters.quantidadeContinua(quantidade);
 
   const mudarTipo = (value: 'entrada' | 'saida') => {
@@ -64,7 +65,7 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
     if (!valido) return;
     const added = onAddToCart({
       produto_id: produto.id, produto_nome: produto.nome, imagem_url: produto.imagem_url,
-      unidade_compra: produto.unidade_compra, tipo, motivo, quantidade,
+      unidade_compra: produto.unidade_compra, origem_estoque: produto.origem_estoque || 'produto', tipo, motivo, quantidade,
       custo_aplicado: custoAplicado, subtotal,
     });
     if (added !== false) onClose();
@@ -74,7 +75,7 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
     <DialogContent className="left-0 top-0 flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 max-sm:data-[state=open]:animate-none max-sm:data-[state=closed]:animate-none sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[calc(100dvh-1rem)] sm:w-[calc(100vw-1rem)] sm:max-w-[740px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:p-0">
       <div className="shrink-0 border-b px-4 py-4 pr-14 sm:px-6">
         <DialogTitle className="text-lg font-semibold">{localizeText("Movimentar estoque")}</DialogTitle>
-        <DialogDescription className="sr-only">Confira o produto e informe a entrada ou saída na unidade de compra.</DialogDescription>
+        <DialogDescription className="sr-only">Confira o item e informe a entrada ou saída na unidade indicada.</DialogDescription>
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:flex-initial sm:space-y-5 sm:p-6">
@@ -86,7 +87,7 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
                 : <Package aria-hidden="true" className="h-7 w-7 text-primary/60 sm:h-10 sm:w-10" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="mb-0.5 text-xs font-medium text-muted-foreground sm:mb-1">Produto #{produto.codigo_interno}</p>
+              <p className="mb-0.5 text-xs font-medium text-muted-foreground sm:mb-1">{naGeladeira ? 'Geladeira · Receita' : 'Produto'} #{produto.codigo_interno}</p>
               <h3 className="break-words text-base font-semibold leading-snug sm:text-xl">{produto.nome}</h3>
               {(!!produto.marcas?.length || !!produto.categorias?.length) && <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:mt-2">
                 {!!produto.marcas?.length && <p className="break-words text-xs text-muted-foreground sm:w-full sm:text-sm">{produto.marcas.join(' · ')}</p>}
@@ -94,17 +95,17 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
               </div>}
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t p-3 sm:grid-cols-4 sm:gap-4 sm:px-5 sm:py-4">
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Compra</span><span className="hidden sm:inline">Unidade de compra</span></dt><dd className="break-words text-sm font-semibold sm:mt-1">{compra.label}</dd></div>
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Uso</span><span className="hidden sm:inline">Unidade de uso</span></dt><dd className="break-words text-sm font-semibold sm:mt-1">{produto.unidade_uso ? uso.label : 'Não configurada'}</dd></div>
+          <dl className={cn("grid grid-cols-2 gap-x-3 gap-y-2 border-t p-3 sm:gap-4 sm:px-5 sm:py-4", naGeladeira ? "sm:grid-cols-3" : "sm:grid-cols-4")}>
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span>{naGeladeira ? 'Unidade da receita' : 'Unidade de compra'}</span></dt><dd className="break-words text-sm font-semibold sm:mt-1">{compra.label}</dd></div>
+            {!naGeladeira && <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Uso</span><span className="hidden sm:inline">Unidade de uso</span></dt><dd className="break-words text-sm font-semibold sm:mt-1">{produto.unidade_uso ? uso.label : 'Não configurada'}</dd></div>}
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">{localizeText("Estoque")}</span><span className="hidden sm:inline">{localizeText("Estoque atual")}</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{formatters.quantidadeContinua(estoque)} {compra.symbol}</dd></div>
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Custo</span><span className="hidden sm:inline">{localizeText("Custo cadastrado")}</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{formatters.valor(produto.custo_unitario || 0)}{compra.symbol && <span className="font-normal text-muted-foreground"> / {compra.symbol}</span>}</dd></div>
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:block"><dt className="text-xs text-muted-foreground"><span className="sm:hidden">Custo</span><span className="hidden sm:inline">{localizeText("Custo cadastrado")}</span></dt><dd className="break-words text-sm font-semibold tabular-nums sm:mt-1">{produto.custo_indisponivel ? 'Indisponível' : formatters.valor(produto.custo_unitario || 0)}{compra.symbol && <span className="font-normal text-muted-foreground"> / {compra.symbol}</span>}</dd></div>
           </dl>
           <div className="border-t bg-accent/5 px-3 py-2 text-xs leading-relaxed sm:px-5 sm:py-3 sm:text-sm">
-            <span className="font-medium">Uso nas receitas: </span>
+            {naGeladeira ? <>Custo calculado automaticamente pela receita. A quantidade corresponde à unidade de rendimento.</> : <><span className="font-medium">Uso nas receitas: </span>
             {temConversao
               ? <>1 {compra.symbol} = {formatters.quantidadeContinua(fator)} {uso.symbol}</>
-              : produto.unidade_uso ? 'Conversão não configurada no cadastro.' : 'Unidade de uso não configurada no cadastro.'}
+              : produto.unidade_uso ? 'Conversão não configurada no cadastro.' : 'Unidade de uso não configurada no cadastro.'}</>}
           </div>
         </section>
 
@@ -137,15 +138,16 @@ export function MovimentacaoModal({ produto, open, onClose, onAddToCart, saidasP
             <NumericInputPtBr id="mov-quantidade" tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} min={0.001}
               aria-invalid={estoqueInsuficiente} aria-describedby={estoqueInsuficiente ? 'mov-estoque-error' : 'mov-quantidade-hint'} />
             <p id="mov-quantidade-hint" className="text-xs text-muted-foreground">
-              {temConversao ? `Equivale a ${formatters.quantidadeContinua(quantidade * fator)} ${uso.symbol} para uso.` : `Movimentação na unidade de compra${compra.symbol ? ` (${compra.symbol})` : ''}.`}
+              {naGeladeira ? `Movimentação na unidade de rendimento (${compra.symbol}).` : temConversao ? `Equivale a ${formatters.quantidadeContinua(quantidade * fator)} ${uso.symbol} para uso.` : `Movimentação na unidade de compra${compra.symbol ? ` (${compra.symbol})` : ''}.`}
             </p>
             {saidasPendentes > 0 && <p className="text-xs text-muted-foreground">Já no carrinho: {formatters.quantidadeContinua(saidasPendentes)} {compra.symbol} em saídas.</p>}
             {estoqueInsuficiente && <p id="mov-estoque-error" role="alert" className="text-sm text-destructive">{localizeText("Estoque insuficiente. Disponível:")} {formatters.quantidadeContinua(disponivel)} {compra.symbol}.</p>}
           </div>
           <div className="min-w-0 space-y-2">
             <Label htmlFor="mov-custo">Custo{compra.symbol ? ` por ${compra.symbol}` : ' unitário'}</Label>
-            <NumericInputPtBr id="mov-custo" tipo="valor" value={custoAplicado} onChange={setCustoAplicado} min={0} readOnly={tipo === 'saida'} className={tipo === 'saida' ? 'bg-muted/40' : ''} />
-            {tipo === 'saida' && <p className="text-xs text-muted-foreground">{localizeText("Custo cadastrado do produto.")}</p>}
+            <NumericInputPtBr id="mov-custo" tipo="valor" value={custoAplicado} onChange={setCustoAplicado} min={0} readOnly={naGeladeira || tipo === 'saida'} className={naGeladeira || tipo === 'saida' ? 'bg-muted/40' : ''} />
+            {(naGeladeira || tipo === 'saida') && <p className="text-xs text-muted-foreground">{naGeladeira ? 'Custo da receita, atualizado ao confirmar a movimentação.' : localizeText('Custo cadastrado do produto.')}</p>}
+            {produto.custo_indisponivel && <p role="alert" className="text-sm text-destructive">Corrija o rendimento da receita para calcular o custo.</p>}
           </div>
         </div>
       </div>

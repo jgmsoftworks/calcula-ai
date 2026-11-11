@@ -38,7 +38,8 @@ export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
               </Button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {item.origem_estoque === 'geladeira' && <Badge variant="secondary">Geladeira</Badge>}
               {item.tipo === 'entrada' ? (
                 <Badge variant="outline" className="text-primary border-primary/30">
                   <ArrowUpCircle className="h-3 w-3 mr-1" />

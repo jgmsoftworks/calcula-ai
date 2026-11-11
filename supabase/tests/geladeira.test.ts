@@ -28,7 +28,16 @@ beforeAll(async () => {
     grant select,update,delete on receitas to authenticated;
     grant select on produtos to authenticated;
   `);
+  await db.exec(`
+    alter table produtos add column nome text default 'Ingrediente', add column ativo boolean default true;
+    create table comprovantes(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users(id) on delete cascade,numero integer,tipo text,responsavel text,observacao text,data_hora timestamptz default now(),created_at timestamptz default now());
+    create table movimentacoes(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users(id) on delete cascade,comprovante_id uuid references comprovantes(id),produto_id uuid references produtos(id),tipo text,motivo text,quantidade numeric,custo_aplicado numeric,subtotal numeric,responsavel text,origem text,data_hora timestamptz default now(),created_at timestamptz default now());
+    create table perdas(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users(id) on delete cascade,tipo text check(tipo in ('produto','receita')),produto_id uuid references produtos(id),receita_id uuid references receitas(id) on delete set null,nome_item text,quantidade numeric,custo_unitario numeric,custo_total numeric,motivo text,motivo_outro text,observacao text,responsavel text,data_perda timestamptz default now());
+    grant select on comprovantes,movimentacoes,perdas to authenticated;
+  `);
+  await db.exec(readFileSync('supabase/migrations/20261015190500_movimentacao_estoque_atomica_e_saldo_nao_negativo.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261111130041_geladeira_receitas.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261111133415_integrar_geladeira_estoque.sql','utf8'));
 }, 30000);
 afterAll(async () => { await db.close(); });
 beforeEach(async () => {
@@ -40,7 +49,7 @@ beforeEach(async () => {
       ('${foreign}','${other}','Receita alheia',1,'un','finalizada',50),
       ('${draft}','${user}','Rascunho',1,'un','rascunho',50),
       ('${invalid}','${user}','Sem rendimento',0,'un','finalizada',50);
-    insert into produtos values('${id(20)}','${user}',10,'g',1000,100),('${id(21)}','${user}',2,null,null,100);
+    insert into produtos(id,user_id,custo_unitario,unidade_uso,fator_conversao,estoque_atual) values('${id(20)}','${user}',10,'g',1000,100),('${id(21)}','${user}',2,null,null,100);
     insert into receita_ingredientes values('${final}','${id(20)}',500),('${sub}','${id(20)}',1000);
     insert into receita_embalagens values('${final}','${id(21)}',2);
     insert into receita_mao_obra values('${final}',3);
@@ -144,5 +153,90 @@ describe('Geladeira: database constraints, accounting and isolation', () => {
     await expect(move(final,'entrada',1)).rejects.toThrow('history failed');
     expect(await balance()).toBe(10);
     await db.exec('reset role; drop trigger fail_fridge_test on geladeira_movimentacoes; drop function fail_fridge_test(); set role authenticated;');
+  });
+});
+
+async function fridgeItem(recipe = final) {
+  return (await db.query<{ id: string }>('select cadastrar_item_geladeira($1,2) as id', [recipe])).rows[0].id;
+}
+function line(item: string, source = 'geladeira', tipo = 'entrada', quantity = 5) {
+  return {produto_id:item,origem_estoque:source,tipo,quantidade:quantity,motivo:'Produção interna',custo_aplicado:999,subtotal:999*quantity};
+}
+async function checkout(items: unknown[], request = randomUUID()) {
+  return (await db.query<{receipt: {id: string}}>('select finalizar_movimentacao_integrada($1,$2,$3,$4) receipt',[JSON.stringify(items),'Maria','Produção do dia',request])).rows[0].receipt;
+}
+async function lose(item: string, quantity=1, deduct=true, request=randomUUID()) {
+  return db.query('select registrar_perdas_geladeira($1,$2,null,null,$3,$4,$5)',[JSON.stringify([{tipo:'geladeira',item_id:item,quantidade:quantity}]),'Vencimento','Maria',deduct,request]);
+}
+async function count(table: string) { return (await db.query<{n:number}>(`select count(*)::int n from ${table}`)).rows[0].n; }
+describe('Geladeira within the shared stock workflows', () => {
+  it('registers finalized recipes with zero balance and no physical movement', async () => {
+    const item = await fridgeItem();
+    expect(await fridgeItem()).toBe(item);
+    expect(await balance()).toBe(0);
+    expect(await count('geladeira_movimentacoes')).toBe(0);
+    for (const recipe of [foreign,draft,invalid]) await expect(fridgeItem(recipe)).rejects.toThrow();
+  });
+  it('uses one receipt for product and fridge lines, with recipe cost computed on the server', async () => {
+    const item = await fridgeItem();
+    const receipt = await checkout([line(id(21),'produto','saida',2),line(item)]);
+    expect(await balance()).toBe(5);
+    expect(await count('comprovantes')).toBe(1);
+    const ledger = (await db.query<{comprovante_id:string,custo:number,responsavel:string,motivo:string}>('select comprovante_id,custo_unitario::float custo,responsavel,motivo from geladeira_movimentacoes')).rows[0];
+    expect(ledger).toEqual({comprovante_id:receipt.id,custo:1.7,responsavel:'Maria',motivo:'Produção interna'});
+    expect((await db.query<{n:number}>('select estoque_atual::float n from produtos where id=$1',[id(20)])).rows[0].n).toBe(100);
+    expect((await db.query<{n:number}>('select estoque_atual::float n from produtos where id=$1',[id(21)])).rows[0].n).toBe(98);
+  });
+  it('rejects cumulative withdrawals and does not use same-cart entries to inflate availability', async () => {
+    const item = await fridgeItem(); await move();
+    await expect(checkout([line(id(21),'produto','saida',2),line(item,'geladeira','entrada',100),line(item,'geladeira','saida',6),line(item,'geladeira','saida',6)])).rejects.toThrow('Estoque insuficiente');
+    expect(await count('comprovantes')).toBe(0);
+    expect(await balance()).toBe(10);
+    expect((await db.query<{n:number}>('select estoque_atual::float n from produtos where id=$1',[id(21)])).rows[0].n).toBe(100);
+  });
+  it('rolls back purchased-product changes if a later fridge line fails', async () => {
+    const item = await fridgeItem();
+    await expect(checkout([line(id(21),'produto','saida',2),line(item,'geladeira','entrada',0.0001)])).rejects.toThrow();
+    expect(await balance()).toBe(0);
+    expect(await count('movimentacoes')).toBe(0);
+    expect(await count('comprovantes')).toBe(0);
+    expect((await db.query<{n:number}>('select estoque_atual::float n from produtos where id=$1',[id(21)])).rows[0].n).toBe(100);
+  });
+  it('retries mixed checkout exactly once and rejects modified requests', async () => {
+    const item = await fridgeItem(), request=randomUUID();
+    const items=[line(id(21),'produto','saida',2),line(item)];
+    const first=await checkout(items,request);
+    expect(await checkout(items,request)).toEqual(first);
+    expect(await balance()).toBe(5);
+    expect(await count('movimentacoes')).toBe(1);
+    expect(await count('geladeira_movimentacoes')).toBe(1);
+    await expect(checkout([line(item,'geladeira','entrada',7)],request)).rejects.toThrow('outra movimentação');
+  });
+  it('records losses in the existing losses table and deducts only the prepared balance', async () => {
+    const item=await fridgeItem(); await move();
+    const request=randomUUID();await lose(item,2,true,request);await lose(item,2,true,request);
+    expect(await balance()).toBe(8);
+    expect(await count('perdas')).toBe(1);
+    const loss=(await db.query<{tipo:string,origem_estoque:string,custo:number,unidade:string}>('select tipo,origem_estoque,custo_total::float custo,unidade from perdas')).rows[0];
+    expect(loss).toEqual({tipo:'receita',origem_estoque:'geladeira',custo:3.4,unidade:'un'});
+    expect((await db.query<{n:number}>('select sum(estoque_atual)::float n from produtos')).rows[0].n).toBe(200);
+    expect((await db.query<{motivo:string}>("select motivo from geladeira_movimentacoes where tipo='saida'")).rows[0].motivo).toBe('Perda - Vencimento');
+    await expect(lose(item,3,true,request)).rejects.toThrow('outra perda');
+  });
+  it('supports a loss without stock deduction or artificial history events', async () => {
+    const item=await fridgeItem(); await lose(item,2,false);
+    expect(await balance()).toBe(0);
+    expect(await count('perdas')).toBe(1);
+    expect(await count('geladeira_movimentacoes')).toBe(0);
+    expect((await db.query<{custo:number}>('select custo_total::float custo from perdas')).rows[0].custo).toBe(3.4);
+  });
+  it('rejects insufficient loss quantities and cross-account stock access without writes', async () => {
+    const item=await fridgeItem(); await move();
+    await expect(lose(item,11)).rejects.toThrow();
+    expect(await count('perdas')).toBe(0);
+    await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);
+    await expect(checkout([line(item)])).rejects.toThrow();
+    await expect(lose(item)).rejects.toThrow();
+    expect(await count('comprovantes')).toBe(0);
   });
 });

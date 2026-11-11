@@ -107,7 +107,8 @@ const App = () => (
                   <Route path="/admin-configuracoes" element={<AdminSettings />} />
                   <Route path="/" element={<Index />} />
                   <Route path="/estoque" element={<Estoque />} />
-                  <Route path="/geladeira" element={<Geladeira />} />
+                  <Route path="/estoque/geladeira" element={<Geladeira />} />
+                  <Route path="/geladeira" element={<Navigate to="/estoque/geladeira" replace />} />
                   <Route path="/estoque/novo" element={<ProdutoEditor />} />
                   <Route path="/estoque/:id/editar" element={<ProdutoEditor />} />
                   <Route path="/estoque/movimentacoes" element={<Movimentacao />} />

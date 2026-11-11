@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { produtosKey } from '@/lib/produtosData';
+import { useState, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -31,10 +33,14 @@ export interface Perda {
   data_perda: string;
   created_at: string;
   updated_at: string;
+  origem_estoque?: string | null;
+  unidade?: string | null;
+  geladeira_item_id?: string | null;
 }
 
 export interface NovaPerdaInput {
-  tipo: 'produto' | 'receita';
+  tipo: 'produto' | 'receita' | 'geladeira';
+  geladeira_item_id?: string | null;
   produto_id?: string | null;
   receita_id?: string | null;
   nome_item: string;
@@ -49,6 +55,8 @@ export interface NovaPerdaInput {
 
 export function usePerdas() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const tentativa = useRef<{ assinatura: string; id: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchPerdas = async (filters?: {
@@ -98,10 +106,12 @@ export function usePerdas() {
     const referencia = inputs[0];
 
     try {
-      const { error } = await supabase.rpc('registrar_perdas_transacional', {
+      const geladeira = referencia.tipo === 'geladeira';
+      if (inputs.some(input => (input.tipo === 'geladeira') !== geladeira)) throw new Error('Registre as perdas da Geladeira em um lote separado.');
+      const args = {
         p_itens: inputs.map(input => ({
           tipo: input.tipo,
-          item_id: input.tipo === 'produto' ? input.produto_id : input.receita_id,
+          item_id: input.tipo === 'geladeira' ? input.geladeira_item_id : input.tipo === 'produto' ? input.produto_id : input.receita_id,
           quantidade: input.quantidade,
         })),
         p_motivo: referencia.motivo,
@@ -109,8 +119,16 @@ export function usePerdas() {
         p_observacao: referencia.observacao || null,
         p_responsavel: referencia.responsavel || null,
         p_baixar_estoque: referencia.baixar_estoque,
-      });
+      };
+      const assinatura = JSON.stringify(args);
+      if (tentativa.current?.assinatura !== assinatura) tentativa.current = { assinatura, id: crypto.randomUUID() };
+      const { error } = geladeira
+        ? await supabase.rpc('registrar_perdas_geladeira', { ...args, p_request_id: tentativa.current.id })
+        : await supabase.rpc('registrar_perdas_transacional', args);
       if (error) throw error;
+      tentativa.current = null;
+      void queryClient.invalidateQueries({ queryKey: ['geladeira', user.id] });
+      void queryClient.invalidateQueries({ queryKey: produtosKey(user.id) });
 
       if (!options?.silent) {
         toast.success(referencia.baixar_estoque

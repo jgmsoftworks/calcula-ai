@@ -36,8 +36,9 @@ export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
         <h4 className="line-clamp-2 text-sm font-semibold sm:min-h-[2.5rem]">
           {produto.nome}
         </h4>
+        {produto.origem_estoque === 'geladeira' && <p className="text-xs text-muted-foreground">Geladeira</p>}
         <p className="text-primary font-bold text-base">
-          {formatters.valor(produto.custo_unitario)} <span className="text-xs font-normal text-muted-foreground">/ {productUnit(produto.unidade_compra).symbol}</span>
+          {produto.custo_indisponivel ? 'Custo indisponível' : formatters.valor(produto.custo_unitario)} <span className="text-xs font-normal text-muted-foreground">/ {productUnit(produto.unidade_compra).symbol}</span>
         </p>
         <p className="text-xs text-muted-foreground">{localizeText("Estoque:")} {formatters.quantidadeContinua(produto.estoque_atual)} {productUnit(produto.unidade_compra).symbol}</p>
       </div>

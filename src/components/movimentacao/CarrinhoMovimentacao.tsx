@@ -53,6 +53,7 @@ export function CarrinhoMovimentacao({
     const items = carrinho.map((item: any) => ({
       produto_id: item.produto_id,
       produto_nome: item.produto_nome,
+      origem_estoque: item.origem_estoque || 'produto',
       tipo: item.tipo,
       motivo: item.motivo,
       quantidade: item.quantidade,

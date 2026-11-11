@@ -34,12 +34,14 @@ export async function fetchGeladeira(userId: string, signal?: AbortSignal): Prom
     if (!data || data.length < 250) return items.sort((a, b) => a.receita.nome.localeCompare(b.receita.nome));
   }
 }
-export async function fetchHistoricoGeladeira(userId: string, page: number, signal?: AbortSignal) {
-  let query = supabase.from('geladeira_movimentacoes')
-    .select('id,user_id,item_id,receita_id,receita_nome,unidade,tipo,quantidade,saldo_anterior,saldo_atual,custo_unitario,observacao,request_id,created_at', { count: 'exact' })
-    .eq('user_id', userId).order('created_at', { ascending: false }).order('id', { ascending: false }).range(page * 30, page * 30 + 29);
-  if (signal) query = query.abortSignal(signal);
-  const { data, error, count } = await query;
-  if (error) throw error;
-  return { items: data || [], total: count || 0 };
+export function geladeiraComoProduto(item: GeladeiraItem) {
+  return {
+    ...item, id: item.id, nome: item.receita.nome, codigo_interno: item.receita.numero_sequencial,
+    unidade_compra: item.unidade, unidade_uso: null, fator_conversao: null,
+    custo_unitario: custoUnitarioGeladeira(item.receita) ?? 0,
+    custo_indisponivel: custoUnitarioGeladeira(item.receita) === null,
+    imagem_url: item.receita.imagem_url, marcas: [], codigos_barras: [], ativo: true,
+    categorias: [item.receita.markup?.tipo === 'sub_receita' ? 'Sub-receitas' : 'Receitas finais'],
+    origem_estoque: 'geladeira' as const,
+  };
 }
