@@ -5,8 +5,8 @@ const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const owner=id(1),other=id(2),recipe=id(10),employee=id(20),task=id(30),link=id(40);
 let db:PGlite;
 let archivalProof:unknown;
-let resetRepairProof:any;
-type Task={id:string;status:string;updated_at:string;rendimento_previsto:number|null;rendimento_real:number|null;rendimento_unidade:string|null;receita_nome:string|null;cancelado_em:string|null;duplicada_de:string|null;recorrente_id:string|null;ordem:number;tempo_producao_segundos:number|null};
+let resetRepairProof:{task:Task;history:Record<string,unknown>};
+type Task={iniciado_em:string|null;id:string;status:string;updated_at:string;rendimento_previsto:number|null;rendimento_real:number|null;rendimento_unidade:string|null;receita_nome:string|null;cancelado_em:string|null;duplicada_de:string|null;recorrente_id:string|null;ordem:number;tempo_producao_segundos:number|null};
 async function current(key=task){return (await db.query<{data:Task}>('select to_jsonb(t) as data from producao_tarefas t where id=$1',[key])).rows[0].data;}
 async function move(status:string,real:number|null=null,version?:string,key=task){return (await db.query<{data:Task}>('select mover_tarefa_producao($1,$2::producao_status,$3::timestamptz,$4) as data',[key,status,version??(await current(key)).updated_at,real])).rows[0].data;}
 beforeAll(async()=>{
@@ -37,7 +37,7 @@ beforeAll(async()=>{
     update producao_tarefas set iniciado_em='2026-11-11T18:15:00Z',concluido_em='2026-11-11T18:20:00Z' where id='${id(60)}';
     insert into producao_tarefas_historico(user_id,tarefa_id,para_status) values('${owner}','${id(60)}','a_fazer');`);
   await db.exec(readFileSync('supabase/migrations/20261111193000_corrigir_kanban_producao.sql','utf8'));
-  resetRepairProof={task:await current(id(60)),history:(await db.query("select detalhes from producao_tarefas_historico where evento_tipo='edicao'")).rows[0]?.detalhes};
+  resetRepairProof={task:await current(id(60)),history:(await db.query<{detalhes:Record<string,unknown>}>("select detalhes from producao_tarefas_historico where evento_tipo='edicao'")).rows[0]?.detalhes};
   archivalProof=(await db.query(`select (select count(*)::int from producao_tarefas) total,
     (select count(*)::int from producao_tarefas where cancelado_em is null) active,
     (select count(*)::int from producao_tarefas_historico) history,
@@ -197,7 +197,7 @@ it('returning to A fazer discards the attempt and a new start uses a fresh times
   await db.exec('reset role;set role service_role;');
   await db.query('select avancar_producao_compartilhada($1,$2,$3,null)',[link,task,returned.updated_at]);
   const restarted=await current();expect(restarted.status).toBe('em_producao');
-  expect(new Date((restarted as any).iniciado_em).getTime()).toBeGreaterThanOrEqual(restartAt-1000);
+  expect(new Date(restarted.iniciado_em).getTime()).toBeGreaterThanOrEqual(restartAt-1000);
   await db.exec('reset role;set role authenticated;');
   const done=await move('feito',70);expect(Number(done.tempo_producao_segundos)).toBeLessThan(10);
 });

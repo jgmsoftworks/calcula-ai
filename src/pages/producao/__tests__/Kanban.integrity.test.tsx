@@ -1,15 +1,18 @@
+import type { ProducaoTarefa, ProducaoStatus } from '@/hooks/useProducaoTarefas';
+type TestTask=Partial<ProducaoTarefa>&Pick<ProducaoTarefa,'id'|'titulo'|'status'>;
+type TestDnd={children?:React.ReactNode;onDragEnd:(event:{active:{id:string};over:{id:string}|null})=>void};
 import React from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AgendaDayPage from '../AgendaDayPage';
-const state=vi.hoisted(()=>({tasks:[] as any[],error:false,pending:new Set<string>(),mover:vi.fn(),cancelar:vi.fn(),refetch:vi.fn(),reordenar:vi.fn(),dnd:{} as any,pdf:vi.fn()}));
+const state=vi.hoisted(()=>({tasks:[] as TestTask[],error:false,pending:new Set<string>(),mover:vi.fn(),cancelar:vi.fn(),refetch:vi.fn(),reordenar:vi.fn(),dnd:{} as TestDnd,pdf:vi.fn()}));
 vi.mock('@/hooks/useProducaoTarefas',()=>({useProducaoTarefas:()=>({data:state.tasks,isLoading:false,isError:state.error,pendingIds:state.pending,mover:state.mover,cancelar:state.cancelar,refetch:state.refetch,reordenar:state.reordenar})}));
 vi.mock('@/components/producao/CompartilharProducaoDialog',()=>({CompartilharProducaoDialog:()=>null}));
 vi.mock('@/lib/producaoPdf',()=>({imprimirProducao:state.pdf}));
-vi.mock('@dnd-kit/core',()=>({DndContext:(props:any)=>{state.dnd=props;return <>{props.children}</>;},DragOverlay:()=>null,useDroppable:()=>({setNodeRef:()=>{},isOver:false}),PointerSensor:class {},KeyboardSensor:class {},useSensor:()=>({}),useSensors:()=>[],pointerWithin:()=>[],closestCenter:()=>[]}));
-vi.mock('@dnd-kit/sortable',()=>({SortableContext:({children}:any)=><>{children}</>,useSortable:()=>({setNodeRef:()=>{},setActivatorNodeRef:()=>{},attributes:{},listeners:{},isDragging:false}),verticalListSortingStrategy:()=>{},sortableKeyboardCoordinates:()=>{},arrayMove:(items:any[],from:number,to:number)=>{const result=[...items];result.splice(to,0,result.splice(from,1)[0]);return result;}}));
-const task=(id:string,status='a_fazer')=>({id,titulo:`Tarefa ${id}`,status,area_id:null,funcionario_id:'emp',funcionario:{nome:'Ana'},quantidade:1,receita_id:null,updated_at:'2026-11-11T12:00:00Z',historico:[]});
+vi.mock('@dnd-kit/core',()=>({DndContext:(props:TestDnd)=>{state.dnd=props;return <>{props.children}</>;},DragOverlay:()=>null,useDroppable:()=>({setNodeRef:()=>{},isOver:false}),PointerSensor:class {},KeyboardSensor:class {},useSensor:()=>({}),useSensors:()=>[],pointerWithin:()=>[],closestCenter:()=>[]}));
+vi.mock('@dnd-kit/sortable',()=>({SortableContext:({children}:{children:React.ReactNode})=><>{children}</>,useSortable:()=>({setNodeRef:()=>{},setActivatorNodeRef:()=>{},attributes:{},listeners:{},isDragging:false}),verticalListSortingStrategy:()=>{},sortableKeyboardCoordinates:()=>{},arrayMove:<T,>(items:T[],from:number,to:number)=>{const result=[...items];result.splice(to,0,result.splice(from,1)[0]);return result;}}));
+const task=(id:string,status:ProducaoStatus='a_fazer')=>({id,titulo:`Tarefa ${id}`,status,area_id:null,funcionario_id:'emp',funcionario:{id:'emp',nome:'Ana',cargo:null},quantidade:1,receita_id:null,updated_at:'2026-11-11T12:00:00Z',historico:[]});
 const tree=()=> <MemoryRouter initialEntries={['/producao/agenda/2026-11-11']}><Routes><Route path="/producao/agenda/:date" element={<AgendaDayPage/>}/><Route path="/producao/agenda/:date/nova" element={<h1>Página de nova tarefa</h1>}/></Routes></MemoryRouter>;
 function open(){return render(tree());}
 async function menu(name:string){fireEvent.pointerDown(screen.getByRole('button',{name:`Opções de Tarefa ${name}`}),{button:0,ctrlKey:false,pointerType:'mouse'});await screen.findByRole('menu');}

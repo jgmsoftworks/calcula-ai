@@ -1,3 +1,4 @@
+import { ETAPAS } from '@/lib/producaoEtapas';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { addDays, format, isValid, parseISO } from 'date-fns';
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { ProducaoBoard, ProducaoCard, ETAPAS } from '@/components/producao/ProducaoBoard';
+import { ProducaoBoard, ProducaoCard } from '@/components/producao/ProducaoBoard';
 import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
 import { CompartilharProducaoDialog } from '@/components/producao/CompartilharProducaoDialog';
 import { useProducaoTarefas, type ProducaoTarefa, type ProducaoStatus } from '@/hooks/useProducaoTarefas';
@@ -18,7 +19,7 @@ import { getBusinessRegion } from '@/lib/business-region';
 import { toast } from '@/hooks/use-toast';
 import { imprimirProducao } from '@/lib/producaoPdf';
 
-export const normalizarBusca = (value:string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+const normalizarBusca = (value:string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
 const fail=(cause:unknown)=>toast({title:'Não foi possível concluir a ação',description:(cause as Error)?.message||'Tente novamente.',variant:'destructive'});
 type Confirmation={id:string;kind:'cancelar'|'restaurar'|'reabrir';status?:ProducaoStatus};
 

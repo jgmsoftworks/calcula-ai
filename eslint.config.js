@@ -5,7 +5,12 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "playwright-report", "test-results"] },
+  {
+    ...js.configs.recommended,
+    files: ["scripts/**/*.mjs", "tests/**/*.mjs"],
+    languageOptions: { globals: globals.node },
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -25,5 +30,13 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-vars": "off",
     },
-  }
+  },
+  {
+    files: ["supabase/functions/**/*.ts"],
+    languageOptions: { globals: { ...globals.browser, Deno: "readonly" } },
+  },
+  {
+    files: ["*.config.ts", "playwright-fixture.ts", "e2e/**/*.ts", "supabase/tests/**/*.ts"],
+    languageOptions: { globals: globals.node },
+  },
 );

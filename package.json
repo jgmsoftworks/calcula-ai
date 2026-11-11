@@ -9,7 +9,19 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:recipe-db": "vitest run --config vitest.recipe-db.config.ts"
+    "test:recipe-db": "node scripts/run-isolated.mjs node_modules/vitest/vitest.mjs run --config vitest.recipe-db.config.ts",
+    "test": "npm run test:unit && npm run test:billing && npm run test:database && npm run test:trial && npm run test:portugal && npm run test:tooling",
+    "test:unit": "node scripts/run-isolated.mjs node_modules/vitest/vitest.mjs run",
+    "test:billing": "node scripts/run-isolated.mjs node_modules/vitest/vitest.mjs run --config vitest.billing.config.ts",
+    "test:database": "node scripts/run-isolated.mjs node_modules/vitest/vitest.mjs run --config vitest.database.config.ts",
+    "test:trial": "node scripts/run-isolated.mjs tests/trial-database.mjs",
+    "test:portugal": "node scripts/run-isolated.mjs tests/portugal-database.mjs",
+    "test:tooling": "node --test tests/quality-tools.test.mjs",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.tools.json",
+    "lint:check": "node scripts/check-lint.mjs",
+    "check": "npm run typecheck && npm run lint:check && npm test && npm run build",
+    "check:all": "npm run check && npm run test:e2e"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
@@ -105,5 +117,10 @@
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
     "vitest": "^4.1.6"
+  },
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "npm": ">=11.0.0 <12"
   }
 }

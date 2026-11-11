@@ -1,9 +1,10 @@
+import type { ProducaoTarefa } from '@/hooks/useProducaoTarefas';
 import React from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import TarefaEditorPage from '../TarefaEditorPage';
-const state=vi.hoisted(()=>({tasks:[] as any[],criar:vi.fn(),editar:vi.fn(),refetch:vi.fn()}));
+const state=vi.hoisted(()=>({tasks:[] as Partial<ProducaoTarefa>[],criar:vi.fn(),editar:vi.fn(),refetch:vi.fn()}));
 vi.mock('@/hooks/useProducaoTarefas',()=>({useProducaoTarefas:()=>({data:state.tasks,isLoading:false,criar:state.criar,editar:state.editar,refetch:state.refetch})}));
 vi.mock('@/hooks/useProducaoAreas',()=>({useProducaoAreas:()=>({data:[],isLoading:false})}));
 vi.mock('@/hooks/useProducaoOpcoes',()=>({useProducaoOpcoes:()=>({data:{funcionarios:[{id:'emp',nome:'Ana'}],receitas:[{id:'recipe',nome:'Bolo',imagem_url:'https://example.test/bolo.png',rendimento_valor:12,rendimento_unidade:'un'}]},isPending:false})}));

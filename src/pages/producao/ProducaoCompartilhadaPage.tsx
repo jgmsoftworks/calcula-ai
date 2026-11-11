@@ -36,7 +36,8 @@ export default function ProducaoCompartilhadaPage(){
     }catch(cause){if(alive.current&&request===sequence.current)setError((cause as Error).message);}
     finally{if(alive.current&&request===sequence.current)setLoading(false);}
   },[token]);
-  useEffect(()=>{alive.current=true;setTasks([]);setDate('');setCompletion(null);void load();return()=>{alive.current=false;sequence.current++;};},[load]);
+  const invalidateLoad=useCallback(()=>{sequence.current+=1;},[]);
+  useEffect(()=>{alive.current=true;setTasks([]);setDate('');setCompletion(null);void load();return()=>{alive.current=false;invalidateLoad();};},[load,invalidateLoad]);
   useEffect(()=>{
     const refresh=()=>{if(document.visibilityState==='visible')void load(true);};
     const timer=window.setInterval(refresh,30_000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
