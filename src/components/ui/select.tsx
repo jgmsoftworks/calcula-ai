@@ -103,8 +103,8 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { searchable?: boolean; searchPlaceholder?: string; searchLabel?: string }
->(({ className, children, position = "popper", searchable, searchPlaceholder = "Buscar opção…", searchLabel = "Buscar opção", sideOffset = 8, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { searchable?: boolean; searchPlaceholder?: string; searchLabel?: string; viewportClassName?: string }
+>(({ className, children, position = "popper", searchable, searchPlaceholder = "Buscar opção…", searchLabel = "Buscar opção", viewportClassName, sideOffset = 8, ...props }, ref) => {
   const { open, choose } = React.useContext(SelectOpenContext)
   const [query, setQuery] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -128,7 +128,7 @@ const SelectContent = React.forwardRef<
         ref={ref}
         data-select-menu=""
         className={cn(
-          "relative z-50 flex max-h-[min(360px,var(--radix-select-content-available-height))] max-w-[calc(100vw-1.5rem)] min-w-[8rem] flex-col overflow-hidden rounded-[15px] border bg-popover p-1.5 text-popover-foreground shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "relative z-50 flex max-h-[min(360px,var(--radix-select-content-available-height,360px))] max-w-[calc(100vw-1.5rem)] min-w-[8rem] flex-col overflow-hidden rounded-[15px] border bg-popover p-1.5 text-popover-foreground shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           position === "popper" && "w-[var(--radix-select-trigger-width)]",
           className
         )}
@@ -136,7 +136,7 @@ const SelectContent = React.forwardRef<
         sideOffset={sideOffset}
         {...props}
       >
-        {hasSearch && <div className="field-select-search" onKeyDown={event => {
+        {hasSearch && <div className="field-select-search shrink-0" onKeyDown={event => {
           // Typing must edit the query instead of activating Select's typeahead.
           if (event.key === "Escape" || event.key === "Tab") return
           event.stopPropagation()
@@ -153,7 +153,7 @@ const SelectContent = React.forwardRef<
             aria-label={searchLabel} placeholder={searchPlaceholder} autoComplete="off" spellCheck={false} />
         </div>}
         <SelectScrollUpButton />
-        <SelectPrimitive.Viewport ref={viewportRef} className="min-h-0 w-full flex-1 p-0.5">
+        <SelectPrimitive.Viewport ref={viewportRef} className={cn("min-h-0 w-full flex-1 overscroll-contain p-0.5", viewportClassName)}>
           {children}
         </SelectPrimitive.Viewport>
         {hasSearch && query.trim() && matches === 0 && <p role="status" className="px-3 py-5 text-center text-sm text-muted-foreground">Nenhuma opção encontrada.</p>}
