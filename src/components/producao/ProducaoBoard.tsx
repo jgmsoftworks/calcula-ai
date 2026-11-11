@@ -109,7 +109,7 @@ export function ProducaoBoard<T extends BoardTask>(props:BoardProps<T>) {
           </BoardColumn>;
         })}
       </div>
-      <DragOverlay>{active?<div className="rotate-1 opacity-90"><ProducaoCard tarefa={active}/></div>:null}</DragOverlay>
+      <DragOverlay style={{pointerEvents:'none'}}>{active?<div aria-hidden="true" className="rotate-1 opacity-90"><ProducaoCard tarefa={active}/></div>:null}</DragOverlay>
     </DndContext>;
 }
 function StageTab({stage,count,selected,onSelect}:{stage:typeof ETAPAS[number];count:number;selected:boolean;onSelect:()=>void}) {
