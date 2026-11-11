@@ -26,6 +26,7 @@ const MarkupsPage = lazy(() => import("./pages/precificacao/MarkupsPage"));
 const DespesasFixasPage = lazy(() => import("./pages/precificacao/DespesasFixasPage"));
 const FolhaPagamentoPage = lazy(() => import("./pages/precificacao/FolhaPagamentoPage"));
 const EncargosVendaPage = lazy(() => import("./pages/precificacao/EncargosVendaPage"));
+const Geladeira = lazy(() => import("./pages/Geladeira"));
 const Estoque = lazy(() => import("./pages/Estoque"));
 const ProdutoEditor = lazy(() => import("./pages/ProdutoEditor"));
 const EstoqueHistorico = lazy(() => import("./pages/EstoqueHistorico"));
@@ -106,6 +107,7 @@ const App = () => (
                   <Route path="/admin-configuracoes" element={<AdminSettings />} />
                   <Route path="/" element={<Index />} />
                   <Route path="/estoque" element={<Estoque />} />
+                  <Route path="/geladeira" element={<Geladeira />} />
                   <Route path="/estoque/novo" element={<ProdutoEditor />} />
                   <Route path="/estoque/:id/editar" element={<ProdutoEditor />} />
                   <Route path="/estoque/movimentacoes" element={<Movimentacao />} />

@@ -2,6 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 import type { ReceitaComDados } from '@/types/receitas';
 
 export const RECEITAS_PAGE_SIZE = 24;
+
+export const RECEITA_CUSTO_SELECT = `
+    *, tipo_produto:tipos_produto(id, nome), markup:markups(id, nome, tipo),
+    ingredientes:receita_ingredientes(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
+    embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
+    mao_obra:receita_mao_obra(valor_total),
+    sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
+      quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
+    )
+`;
 export interface ReceitaFilters {
   search?: string;
   tipo?: string;
@@ -63,15 +73,7 @@ export async function fetchReceitasPage(
     if (filters.subReceita === 'subreceita' && !subMarkupIds.length) return { receitas: [], total: 0 };
   }
 
-  let query = supabase.from('receitas').select(`
-    *, tipo_produto:tipos_produto(id, nome), markup:markups(id, nome, tipo),
-    ingredientes:receita_ingredientes(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
-    embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
-    mao_obra:receita_mao_obra(valor_total),
-    sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
-      quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
-    )
-  `, { count: 'exact' }).eq('user_id', userId)
+  let query = supabase.from('receitas').select(RECEITA_CUSTO_SELECT, { count: 'exact' }).eq('user_id', userId)
     .order('numero_sequencial', { ascending: false }).order('id', { ascending: false });
   const orFilters: string[] = [];
   const search = filters.search?.trim();

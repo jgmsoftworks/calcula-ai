@@ -2,6 +2,7 @@
 // Browser module caching shares these imports with React.lazy in App.tsx.
 const loaders: Record<string, () => Promise<unknown>> = {
   '/': () => import('@/pages/Index'),
+  '/geladeira': () => import('@/pages/Geladeira'),
   '/estoque': () => import('@/pages/Estoque'),
   '/estoque/movimentacoes': () => import('@/pages/Movimentacao'),
   '/estoque/historico': () => import('@/pages/EstoqueHistorico'),

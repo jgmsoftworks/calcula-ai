@@ -243,7 +243,9 @@ export function useReceitas() {
       return true;
     } catch (error: any) {
       console.error('Erro ao excluir receita:', error);
-      toast.error('Erro ao excluir receita');
+      toast.error(error.code === '23503' && String(error.message).includes('geladeira_itens')
+        ? 'Remova esta receita da Geladeira antes de excluí-la. O saldo precisa estar zerado.'
+        : 'Erro ao excluir receita');
       return false;
     } finally {
       setLoading(false);

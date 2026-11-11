@@ -7,6 +7,7 @@ import {
   Calculator,
   Home,
   Package,
+  Refrigerator,
   Building2,
   TrendingUp,
   ChefHat,
@@ -74,6 +75,7 @@ export function AppSidebar() {
         { title: 'Perdas', url: '/estoque/perdas', icon: AlertOctagon },
       ],
     },
+    { title: 'Geladeira', url: '/geladeira', icon: Refrigerator },
     {
       title: t('nav.precificacao'),
       url: '/precificacao',

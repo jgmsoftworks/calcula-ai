@@ -14,6 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      geladeira_itens: {
+        Row: {
+          id: string
+          user_id: string
+          receita_id: string
+          unidade: string
+          estoque_atual: number
+          estoque_minimo: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          receita_id?: string
+          unidade?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          receita_id?: string
+          unidade?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [{ foreignKeyName: "geladeira_itens_receita_id_fkey"; columns: ["receita_id"]; isOneToOne: true; referencedRelation: "receitas"; referencedColumns: ["id"] }]
+      }
+      geladeira_movimentacoes: {
+        Row: {
+          id: string
+          user_id: string
+          item_id: string | null
+          receita_id: string | null
+          receita_nome: string
+          unidade: string
+          tipo: string
+          quantidade: number
+          saldo_anterior: number
+          saldo_atual: number
+          custo_unitario: number | null
+          observacao: string | null
+          request_id: string
+          solicitacao: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          item_id?: string | null
+          receita_id?: string | null
+          receita_nome?: string
+          unidade?: string
+          tipo?: string
+          quantidade?: number
+          saldo_anterior?: number
+          saldo_atual?: number
+          custo_unitario?: number | null
+          observacao?: string | null
+          request_id?: string
+          solicitacao?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          item_id?: string | null
+          receita_id?: string | null
+          receita_nome?: string
+          unidade?: string
+          tipo?: string
+          quantidade?: number
+          saldo_anterior?: number
+          saldo_atual?: number
+          custo_unitario?: number | null
+          observacao?: string | null
+          request_id?: string
+          solicitacao?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+
       account_deletion_requests: {
         Row: {
           cancelled_at: string | null
@@ -3435,6 +3523,11 @@ export type Database = {
       }
     }
     Functions: {
+      movimentar_geladeira: {
+        Args: { p_receita_id: string; p_tipo: string; p_quantidade: number; p_request_id: string; p_estoque_minimo?: number | null; p_observacao?: string | null; p_saldo_esperado?: number | null }
+        Returns: string
+      }
+
       salvar_receita_completa: {
         Args: {
           p_receita_id: string
