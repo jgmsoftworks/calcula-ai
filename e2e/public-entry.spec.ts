@@ -26,6 +26,9 @@ test('protected recipe editor redirects an anonymous browser to login', async ({
 test('unknown route offers a working return to the application', async ({ page }) => {
   await page.goto('/e2e-route-that-does-not-exist');
   await expect(page.getByRole('heading', { name: 'Página não encontrada' })).toBeVisible();
+  const cookies = page.getByRole('dialog', { name: 'Aviso de cookies' });
+  await cookies.getByRole('button', { name: 'Recusar opcionais', exact: true }).click();
+  await expect(cookies).toBeHidden();
   await page.getByRole('link', { name: 'Voltar ao Dashboard' }).click();
   await expect(page).toHaveURL(/\/auth(?:\?|$)/);
 });

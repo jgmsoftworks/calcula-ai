@@ -16,7 +16,7 @@ concurrency:
 jobs:
   quality:
     name: Types, lint baseline, isolated tests and build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -31,7 +31,8 @@ jobs:
 
   browser:
     name: Browser smoke (desktop and mobile, isolated)
-    runs-on: ubuntu-latest
+    # Playwright in the lockfile supports Ubuntu 24.04, not the moving latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
