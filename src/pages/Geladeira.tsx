@@ -21,7 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 const qty = (value: number) => formatters.quantidadeContinua(value);
 const money = (value: number | null) => value === null ? 'Indisponível' : formatMoney(value);
 const unitMoney = (value: number | null) => value === null ? 'Indisponível' : formatMoney(value, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-type Modal = { tipo: 'cadastro' | 'minimo' | 'remocao'; item?: GeladeiraItem };
+type Modal = { tipo: 'cadastro' | 'edicao' | 'remocao'; item?: GeladeiraItem };
 
 export default function Geladeira() {
   const { user } = useAuth();
@@ -34,10 +34,12 @@ export default function Geladeira() {
   const [previewItem, setPreviewItem] = useState<GeladeiraItem | null>(null);
   const [receitaId, setReceitaId] = useState('');
   const [saldoInicial, setSaldoInicial] = useState(0);
+  const [quantidadeAtual, setQuantidadeAtual] = useState(0);
   const [minimo, setMinimo] = useState(0);
   const [observacao, setObservacao] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [saldoDesatualizado, setSaldoDesatualizado] = useState(false);
   const pending = useRef<{ signature: string; id: string } | null>(null);
   const savingRef = useRef(false);
   const itemsQuery = useQuery({ queryKey: ['geladeira', user?.id], enabled: !!user,
@@ -61,13 +63,15 @@ export default function Geladeira() {
   const selected = modal?.item?.receita || recipesQuery.data?.find(r => r.id === receitaId);
   const selectedCost = selected ? custoUnitarioGeladeira(selected) : null;
   const selectedUnit = modal?.item?.unidade || selected?.rendimento_unidade || '';
+  const quantidadeModal = modal?.tipo === 'edicao' ? quantidadeAtual : saldoInicial;
   const pickerRecipes = (recipesQuery.data || []).filter(r => !items.some(item => item.receita_id === r.id));
 
   function openModal(tipo: Modal['tipo'], item?: GeladeiraItem) {
     setModal({ tipo, item }); setReceitaId(item?.receita_id || '');
     setSaldoInicial(0);
+    setQuantidadeAtual(item?.estoque_atual ?? 0);
     setMinimo(item?.estoque_minimo || 0);
-    setObservacao(''); setSaveError(''); pending.current = null;
+    setObservacao(''); setSaveError(''); setSaldoDesatualizado(false); pending.current = null;
   }
   function closeModal() { if (!savingRef.current) setModal(null); }
   function selectRecipe(id: string) {
@@ -77,12 +81,22 @@ export default function Geladeira() {
     setSaveError('');
     pending.current = null;
   }
+  async function recarregarSaldo() {
+    const result = await itemsQuery.refetch();
+    if (result.error) { setSaveError('Não foi possível atualizar o saldo. Tente novamente.'); return; }
+    const item = result.data?.find(item => item.id === modal?.item?.id);
+    if (!item) { setSaveError('Este item já foi removido da Geladeira.'); return; }
+    openModal('edicao', item);
+  }
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (!modal || !user || !selected || savingRef.current) return;
+    if (!modal || !user || !selected || savingRef.current || saldoDesatualizado) return;
     if (modal.tipo === 'cadastro' && !receitaPodeEntrar(selected)) { setSaveError('Informe o rendimento e a unidade na receita antes de adicionar.'); return; }
-    const args = { p_receita_id: selected.id, p_tipo: modal.tipo, p_quantidade: modal.tipo === 'cadastro' ? saldoInicial : 0,
-      p_estoque_minimo: modal.tipo === 'minimo' || !modal.item ? minimo : null, p_observacao: observacao || null };
+    const ajustandoSaldo = modal.tipo === 'edicao' && quantidadeAtual !== modal.item?.estoque_atual;
+    const args = { p_receita_id: selected.id, p_tipo: modal.tipo === 'edicao' ? (ajustandoSaldo ? 'ajuste' : 'minimo') : modal.tipo,
+      p_quantidade: modal.tipo === 'cadastro' ? saldoInicial : ajustandoSaldo ? quantidadeAtual : 0,
+      p_estoque_minimo: modal.tipo === 'edicao' || !modal.item ? minimo : null, p_observacao: observacao || null,
+      p_saldo_esperado: ajustandoSaldo ? modal.item!.estoque_atual : null };
     const signature = JSON.stringify(args);
     if (pending.current?.signature !== signature) pending.current = { signature, id: crypto.randomUUID() };
     savingRef.current = true; setSaving(true); setSaveError('');
@@ -104,10 +118,11 @@ export default function Geladeira() {
     } catch (error) {
       const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Não foi possível salvar. Tente novamente.';
       setSaveError(message);
+      setSaldoDesatualizado(!!error && typeof error === 'object' && 'code' in error && error.code === '40001');
     } finally { savingRef.current = false; setSaving(false); }
   }
   const actions = (item: GeladeiraItem) => <div className="flex items-center justify-end gap-1">
-    <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Editar ${item.receita.nome} na Geladeira`} title="Editar item da Geladeira" onClick={() => openModal('minimo', item)}><Pencil className="h-4 w-4" /></Button>
+    <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Editar ${item.receita.nome} na Geladeira`} title="Editar item da Geladeira" onClick={() => openModal('edicao', item)}><Pencil className="h-4 w-4" /></Button>
     <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive hover:text-destructive" aria-label={`Remover ${item.receita.nome} da Geladeira`} title="Remover da Geladeira" onClick={() => openModal('remocao', item)}><Trash2 className="h-4 w-4" /></Button>
   </div>;
   const recipeButton = (item: GeladeiraItem) => <button type="button" onClick={() => setPreviewItem(item)} aria-label={`Ver informações de ${item.receita.nome}`}
@@ -182,34 +197,37 @@ export default function Geladeira() {
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 pb-4 text-sm">
                   <div><dt className="text-xs text-muted-foreground">Unidade do estoque</dt><dd className="mt-1 font-medium">{selectedUnit}</dd></div>
                   <div><dt className="text-xs text-muted-foreground">Rendimento da receita</dt><dd className="mt-1 font-medium">{selected.rendimento_valor === null ? 'Indisponível' : qty(selected.rendimento_valor)} {selected.rendimento_unidade}</dd></div>
-                  {modal?.item && <div className="col-span-2"><dt className="text-xs text-muted-foreground">Saldo atual</dt><dd className="mt-1 font-medium">{qty(modal.item.estoque_atual)} {selectedUnit}</dd></div>}
                 </dl>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-primary/5 px-4 py-3">
                   <div><p className="text-sm font-medium">Custo por {selectedUnit}</p><p className="mt-0.5 text-xs text-muted-foreground">Atualizado pela ficha técnica</p></div>
                   <strong className="text-lg tabular-nums text-primary">{unitMoney(selectedCost)}</strong>
                 </div>
               </section>}
-              {selected && modal && (modal.tipo === 'minimo' || !modal.item) && <div className="grid gap-4 sm:grid-cols-2">
-                {modal.tipo === 'cadastro' && <div className="space-y-2">
+              {selected && modal && (modal.tipo === 'edicao' || !modal.item) && <div className="grid gap-4 sm:grid-cols-2">
+                {modal.tipo === 'cadastro' ? <div className="space-y-2">
                   <Label htmlFor="geladeira-saldo-inicial">Saldo inicial ({selectedUnit})</Label>
                   <NumericInputPtBr id="geladeira-saldo-inicial" tipo="quantidade_continua" value={saldoInicial} onChange={setSaldoInicial} min={0} placeholder="" />
+                </div> : <div className="space-y-2">
+                  <Label htmlFor="geladeira-quantidade-atual">Quantidade atual ({selectedUnit})</Label>
+                  <NumericInputPtBr key={`${modal.item?.id}:${modal.item?.updated_at}:${modal.item?.estoque_atual}`} id="geladeira-quantidade-atual" tipo="quantidade_continua" value={quantidadeAtual} onChange={setQuantidadeAtual} min={0} placeholder="" />
                 </div>}
-                <div className={`space-y-2 ${modal.tipo === 'minimo' ? 'sm:col-span-2' : ''}`}>
+                <div className="space-y-2">
                   <Label htmlFor="geladeira-minimo">Estoque mínimo ({selectedUnit})</Label>
                   <NumericInputPtBr id="geladeira-minimo" tipo="quantidade_continua" value={minimo} onChange={setMinimo} min={0} placeholder="" />
                 </div>
-                {modal.tipo === 'cadastro' && <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="geladeira-valor-total">Valor total em estoque</Label>
-                  <Input id="geladeira-valor-total" readOnly value={saldoInicial > 0 ? money(selectedCost === null ? null : saldoInicial * selectedCost) : ''} className="bg-primary/5 font-semibold tabular-nums text-primary" />
-                </div>}
+                  <Input id="geladeira-valor-total" readOnly value={modal.tipo === 'edicao' || quantidadeModal > 0 ? money(selectedCost === null ? null : quantidadeModal * selectedCost) : ''} className="bg-primary/5 font-semibold tabular-nums text-primary" />
+                </div>
               </div>}
-              {modal?.tipo === 'remocao' ? <div className="space-y-3 text-sm"><p>Este item será removido somente da lista da Geladeira. <strong>A receita cadastrada não será apagada</strong>, e o histórico será preservado.</p>{!!modal.item?.estoque_atual && <p className="text-muted-foreground">O saldo de <strong>{qty(modal.item.estoque_atual)} {selectedUnit}</strong> deixará de aparecer na Geladeira.</p>}</div> : modal?.tipo === 'minimo' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre o estoque mínimo" /></div> : null}
+              {modal?.tipo === 'remocao' ? <div className="space-y-3 text-sm"><p>Este item será removido somente da lista da Geladeira. <strong>A receita cadastrada não será apagada</strong>, e o histórico será preservado.</p>{!!modal.item?.estoque_atual && <p className="text-muted-foreground">O saldo de <strong>{qty(modal.item.estoque_atual)} {selectedUnit}</strong> deixará de aparecer na Geladeira.</p>}</div> : modal?.tipo === 'edicao' ? <div className="space-y-2"><Label htmlFor="geladeira-obs">Observação (opcional)</Label><Input id="geladeira-obs" maxLength={500} value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observação sobre a alteração" /></div> : null}
             </fieldset>
             {saveError && <p role="alert" className="mt-4 text-sm text-destructive">{saveError}</p>}
+            {saldoDesatualizado && <Button type="button" variant="outline" className="mt-3" disabled={itemsQuery.isFetching} onClick={() => void recarregarSaldo()}>{itemsQuery.isFetching ? 'Atualizando saldo…' : 'Recarregar saldo'}</Button>}
           </div>
           <DialogFooter className="shrink-0 flex-row gap-2 border-t px-5 py-4 sm:space-x-0 sm:px-6">
             <Button type="button" variant="outline" className="flex-1 sm:flex-none" disabled={saving} onClick={closeModal}>Cancelar</Button>
-            <Button type="submit" className="flex-1 sm:flex-none" disabled={saving || !selected} variant={modal?.tipo === 'remocao' ? 'destructive' : 'default'}>{saving ? 'Salvando…' : modal?.tipo === 'remocao' ? 'Remover' : modal?.tipo === 'cadastro' ? 'Adicionar à Geladeira' : 'Salvar'}</Button>
+            <Button type="submit" className="flex-1 sm:flex-none" disabled={saving || !selected || saldoDesatualizado} variant={modal?.tipo === 'remocao' ? 'destructive' : 'default'}>{saving ? 'Salvando…' : modal?.tipo === 'remocao' ? 'Remover' : modal?.tipo === 'cadastro' ? 'Adicionar à Geladeira' : 'Salvar'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

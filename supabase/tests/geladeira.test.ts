@@ -104,6 +104,16 @@ describe('Geladeira: database constraints, accounting and isolation', () => {
     expect(await balance()).toBe(10);
     expect((await db.query<{ n: number }>('select estoque_minimo::float as n from geladeira_itens')).rows[0].n).toBe(5);
   });
+  it('updates the absolute balance and minimum together and records only the adjustment difference', async () => {
+    await move();
+    const request=randomUUID();
+    const event=await move(final,'ajuste',7,request,10,4);
+    expect(await move(final,'ajuste',7,request,10,4)).toBe(event);
+    expect(await balance()).toBe(7);
+    expect((await db.query<{n:number}>('select estoque_minimo::float n from geladeira_itens')).rows[0].n).toBe(4);
+    expect((await db.query("select tipo,quantidade::float quantidade,saldo_anterior::float anterior,saldo_atual::float atual,custo_unitario::float custo from geladeira_movimentacoes where tipo='ajuste'")).rows)
+      .toEqual([{tipo:'ajuste',quantidade:-3,anterior:10,atual:7,custo:1.7}]);
+  });
   it('preserves past costs after recipe ingredient cost changes', async () => {
     await move(); await db.exec(`reset role; update produtos set custo_unitario=20 where id='${id(20)}'; set role authenticated;`);
     await move(final,'entrada',2);

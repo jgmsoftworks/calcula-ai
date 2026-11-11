@@ -46,9 +46,50 @@ describe('Geladeira interaction', () => {
     fireEvent.click(screen.getAllByRole('button',{name:`Editar ${recipe.nome} na Geladeira`})[0]);
     expect(screen.getByRole('dialog',{name:'Editar item da Geladeira'})).toBeInTheDocument();
     expect(screen.queryByLabelText(/Saldo inicial/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Quantidade atual (kg)')).toHaveValue('1,5');
+    expect(screen.getByLabelText('Quantidade atual (kg)')).not.toHaveAttribute('readonly');
     fireEvent.change(screen.getByLabelText('Estoque mínimo (kg)'),{target:{value:'3'}});
     fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
     await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('movimentar_geladeira',expect.objectContaining({p_receita_id:'r1',p_tipo:'minimo',p_quantidade:0,p_estoque_minimo:3})));
+  });
+  it.each([
+    ['2,5',2.5,'62,50'],
+    ['0,75',0.75,'18,75'],
+    ['0',0,'0,00'],
+  ])('changes the current quantity to %s and recalculates the total before saving', async (input, quantity, total) => {
+    await open();
+    fireEvent.click(screen.getAllByRole('button',{name:`Editar ${recipe.nome} na Geladeira`})[0]);
+    fireEvent.change(screen.getByLabelText('Quantidade atual (kg)'),{target:{value:input}});
+    expect((screen.getByLabelText('Valor total em estoque') as HTMLInputElement).value).toContain(total);
+    fireEvent.change(screen.getByLabelText('Estoque mínimo (kg)'),{target:{value:'1'}});
+    fireEvent.change(screen.getByLabelText('Observação (opcional)'),{target:{value:'Conferência do estoque'}});
+    fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
+    await waitFor(()=>expect(mocks.rpc).toHaveBeenCalledWith('movimentar_geladeira',{
+      p_receita_id:'r1',p_tipo:'ajuste',p_quantidade:quantity,p_estoque_minimo:1,
+      p_saldo_esperado:1.5,p_observacao:'Conferência do estoque',p_request_id:expect.any(String),
+    }));
+    await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+  it('reloads a changed balance before allowing a new adjustment', async () => {
+    mocks.rpc.mockResolvedValueOnce({data:null,error:{code:'40001',message:'O saldo mudou. Recarregue a Geladeira.'}});
+    await open();
+    fireEvent.click(screen.getAllByRole('button',{name:`Editar ${recipe.nome} na Geladeira`})[0]);
+    fireEvent.change(screen.getByLabelText('Quantidade atual (kg)'),{target:{value:'3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('O saldo mudou');
+    expect(screen.getByRole('button',{name:'Salvar'})).toBeDisabled();
+    expect(screen.getByLabelText('Quantidade atual (kg)')).toHaveValue('3');
+    mocks.from.mockImplementation(table => {
+      const data = table === 'geladeira_itens' ? [{...item,estoque_atual:2}] : [];
+      const query = { select:()=>query,eq:()=>query,order:()=>query,range:()=>query,abortSignal:()=>query,
+        then:(resolve: (r:unknown)=>unknown) => Promise.resolve({ data, count:data.length, error:null }).then(resolve) };
+      return query;
+    });
+    fireEvent.click(screen.getByRole('button',{name:'Recarregar saldo'}));
+    await waitFor(()=>expect(screen.getByLabelText('Quantidade atual (kg)')).toHaveValue('2'));
+    fireEvent.change(screen.getByLabelText('Quantidade atual (kg)'),{target:{value:'3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Salvar'}));
+    await waitFor(()=>expect(mocks.rpc).toHaveBeenLastCalledWith('movimentar_geladeira',expect.objectContaining({p_tipo:'ajuste',p_quantidade:3,p_saldo_esperado:2})));
   });
   it('requires confirmation to remove only the list entry, including an item with a balance', async () => {
     await open();
