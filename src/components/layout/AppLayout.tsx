@@ -49,6 +49,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { toast } = useToast();
 
   const getPageInfo = (pathname: string) => {
+    if (pathname.startsWith('/producao/cronograma')) return { title: 'Cronograma' };
     if (pathname === '/estoque/geladeira') return { title: 'Geladeira' };
     const pageMap: Record<string, string> = {
       '/': 'dashboard',

@@ -1,21 +1,17 @@
-import { ReceitaProducaoFields } from '@/components/producao/ReceitaProducaoFields';
 import { formatarRendimento, rendimentoPrevisto } from '@/lib/producaoRendimento';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ClipboardList, Plus, Pencil, Trash2, ChefHat, User as UserIcon, Clock, Link2Off, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProducaoAreas, ProducaoArea } from '@/hooks/useProducaoAreas';
-import { useProducaoRecorrentes, ProducaoRecorrente, RecorrenteInput } from '@/hooks/useProducaoRecorrentes';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useProducaoRecorrentes, ProducaoRecorrente } from '@/hooks/useProducaoRecorrentes';
 import { cn } from '@/lib/utils';
 
 const CORES = ['#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#0ea5e9', '#64748b'];
@@ -32,42 +28,24 @@ const DIAS_LABEL: Record<number, { curto: string; mini: string; full: string }> 
 };
 const SEM_AREA_KEY = '__sem_area__';
 
-interface ReceitaOpt { id: string; nome: string; imagem_url: string | null; rendimento_valor: number | null; rendimento_unidade: string | null }
-interface FuncOpt { id: string; nome: string; cargo: string | null }
-
 export default function CronogramaPage() {
   usePortugalTranslation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const areas = useProducaoAreas();
   const recorrentes = useProducaoRecorrentes(); // todas
   const hojeDow = new Date().getDay();
-  const [diaSelecionado, setDiaSelecionado] = useState(() => new Date().getDay());
+  const diaParam = searchParams.get('dia');
+  const diaSelecionado = diaParam !== null && /^[0-6]$/.test(diaParam) ? Number(diaParam) : hojeDow;
+  const abrirNovaTarefa = (areaId?: string) => {
+    const params = new URLSearchParams({ dia: String(diaSelecionado) });
+    if (areaId) params.set('area', areaId);
+    navigate(`/producao/cronograma/nova?${params}`);
+  };
 
   const [areaModal, setAreaModal] = useState<{ open: boolean; area?: ProducaoArea }>({ open: false });
   const [confirmDelArea, setConfirmDelArea] = useState<ProducaoArea | null>(null);
   const [gerenciarAreas, setGerenciarAreas] = useState(false);
-  const [tarefaModal, setTarefaModal] = useState<{
-    open: boolean;
-    tarefa?: ProducaoRecorrente;
-    preAreaId?: string | null;
-    preDia?: number;
-  }>({ open: false });
-  const [confirmDelTarefa, setConfirmDelTarefa] = useState<ProducaoRecorrente | null>(null);
-
-  const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
-  const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      const [f, r] = await Promise.all([
-        supabase.from('folha_pagamento').select('id, nome, cargo').eq('user_id', user.id).eq('ativo', true).order('nome'),
-        supabase.from('receitas').select('id, nome, imagem_url, rendimento_valor, rendimento_unidade').eq('user_id', user.id).order('nome'),
-      ]);
-      setFuncionarios((f.data ?? []) as FuncOpt[]);
-      setReceitas((r.data ?? []) as ReceitaOpt[]);
-    })();
-  }, [user?.id]);
-
   // Indexa recorrentes por área → dia
   const grid = useMemo(() => {
     const map: Record<string, Record<number, ProducaoRecorrente[]>> = {};
@@ -122,7 +100,7 @@ export default function CronogramaPage() {
             <Button variant="outline" size="sm" onClick={() => setGerenciarAreas(true)}>
               <Settings2 className="h-4 w-4 mr-2" /> Gerenciar áreas
             </Button>
-            <Button size="sm" onClick={() => setTarefaModal({ open: true, preDia: diaSelecionado })}>
+            <Button size="sm" onClick={() => abrirNovaTarefa()}>
               <Plus className="h-4 w-4 mr-2" /> Nova tarefa
             </Button>
           </div>
@@ -131,7 +109,7 @@ export default function CronogramaPage() {
 
       <nav aria-label="Dia do cronograma" className="grid grid-cols-7 gap-1 rounded-xl border bg-card p-1 sm:gap-2 sm:p-2">
         {DIAS_ORDEM.map(dia => (
-          <button key={dia} type="button" onClick={() => setDiaSelecionado(dia)}
+          <button key={dia} type="button" onClick={() => setSearchParams({ dia: String(dia) }, { replace: true })}
             aria-label={`Ver ${DIAS_LABEL[dia].full}`} aria-pressed={diaSelecionado === dia}
             aria-current={dia === hojeDow ? 'date' : undefined}
             className={cn('flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -168,14 +146,14 @@ export default function CronogramaPage() {
                     </Button>}
                   </div>
                   <Button variant="ghost" size="sm" aria-label={`Adicionar tarefa em ${linha.nome}`}
-                    onClick={() => setTarefaModal({ open: true, preAreaId: semArea ? null : linha.id, preDia: diaSelecionado })}>
+                    onClick={() => abrirNovaTarefa(semArea ? undefined : linha.id)}>
                     <Plus aria-hidden="true" className="mr-1.5 h-4 w-4" /> Adicionar tarefa
                   </Button>
                 </div>
                 {tarefas.length ? (
                   <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
                     {tarefas.map(tarefa => <TarefaDiaCard key={tarefa.id} tarefa={tarefa} cor={linha.cor}
-                      onClick={() => setTarefaModal({ open: true, tarefa })} />)}
+                      onClick={() => navigate(`/producao/cronograma/${tarefa.id}/editar?dia=${diaSelecionado}`)} />)}
                   </div>
                 ) : <p className="px-4 py-5 text-sm text-muted-foreground sm:px-5">Nenhuma tarefa para este dia.</p>}
               </section>
@@ -196,23 +174,6 @@ export default function CronogramaPage() {
           if (areaModal.area) await areas.atualizar.mutateAsync({ id: areaModal.area.id, ...v });
           else await areas.criar.mutateAsync(v);
           setAreaModal({ open: false });
-        }}
-      />
-
-      <RecorrenteModal
-        open={tarefaModal.open}
-        tarefa={tarefaModal.tarefa}
-        preAreaId={tarefaModal.preAreaId ?? null}
-        preDia={tarefaModal.preDia}
-        areas={areas.data ?? []}
-        funcionarios={funcionarios}
-        receitas={receitas}
-        onClose={() => setTarefaModal({ open: false })}
-        onDelete={tarefaModal.tarefa ? () => { setConfirmDelTarefa(tarefaModal.tarefa!); setTarefaModal({ open: false }); } : undefined}
-        onSave={async (v) => {
-          if (tarefaModal.tarefa) await recorrentes.atualizar.mutateAsync({ id: tarefaModal.tarefa.id, ...v });
-          else await recorrentes.criar.mutateAsync(v);
-          setTarefaModal({ open: false });
         }}
       />
 
@@ -246,28 +207,6 @@ export default function CronogramaPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!confirmDelTarefa} onOpenChange={(o) => !o && setConfirmDelTarefa(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover "{confirmDelTarefa?.titulo}"?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A partir de hoje esta tarefa recorrente não será mais criada na Agenda.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={() => {
-                if (confirmDelTarefa) recorrentes.remover.mutate(confirmDelTarefa.id);
-                setConfirmDelTarefa(null);
-              }}
-            >
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
@@ -399,67 +338,4 @@ function GerenciarAreasModal({ open, areas, onClose, onEdit, onDelete, onCreate 
       </DialogContent>
     </Dialog>
   );
-}
-
-/* ---------------- Recorrente Modal ---------------- */
-
-function RecorrenteModal({ open, tarefa, preAreaId, preDia, areas, funcionarios, receitas, onClose, onSave, onDelete }: {
-  open: boolean; tarefa?: ProducaoRecorrente; preAreaId: string | null; preDia?: number;
-  areas: ProducaoArea[]; funcionarios: FuncOpt[]; receitas: ReceitaOpt[];
-  onClose: () => void; onSave: (value: RecorrenteInput) => void | Promise<void>; onDelete?: () => void;
-}) {
-  usePortugalTranslation();
-  const [areaId, setAreaId] = useState<string | null>(null);
-  const [titulo, setTitulo] = useState('');
-  const [receitaId, setReceitaId] = useState('');
-  const [quantidade, setQuantidade] = useState(1);
-  const [funcionarioId, setFuncionarioId] = useState('');
-  const [diasSemana, setDiasSemana] = useState<number[]>([]);
-  const [horaInicio, setHoraInicio] = useState('');
-  const [horaFim, setHoraFim] = useState('');
-  const [observacoes, setObservacoes] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    if (!open) return;
-    setAreaId(tarefa ? tarefa.area_id : preAreaId); setTitulo(tarefa?.titulo ?? '');
-    setReceitaId(tarefa?.receita_id ?? ''); setQuantidade(tarefa?.quantidade ?? 1);
-    setFuncionarioId(tarefa?.funcionario_id ?? ''); setDiasSemana(tarefa?.dias_semana ?? (preDia !== undefined ? [preDia] : []));
-    setHoraInicio(tarefa?.hora_inicio?.slice(0, 5) ?? ''); setHoraFim(tarefa?.hora_fim?.slice(0, 5) ?? '');
-    setObservacoes(tarefa?.observacoes ?? ''); setError('');
-  }, [open, tarefa, preAreaId, preDia]);
-  const receita = receitas.find(item => item.id === receitaId);
-  const canSave = !!titulo.trim() && !!funcionarioId && diasSemana.length > 0 && (!receitaId || rendimentoPrevisto(receita, quantidade) !== null);
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault(); if (!canSave || saving) return;
-    setSaving(true); setError('');
-    try { await onSave({area_id:areaId,titulo:titulo.trim(),funcionario_id:funcionarioId,
-      receita_id:receitaId || null,quantidade:receitaId ? quantidade : null,dias_semana:diasSemana,
-      hora_inicio:horaInicio || null,hora_fim:horaFim || null,observacoes:observacoes.trim() || null}); }
-    catch { setError('Não foi possível salvar a tarefa. Tente novamente.'); }
-    finally { setSaving(false); }
-  };
-  return <Dialog open={open} onOpenChange={value => { if (!value && !saving) onClose(); }}>
-    <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:p-0">
-      <DialogHeader className="px-5 pb-4 pt-6 text-left sm:px-6"><DialogTitle className="pr-8">{tarefa ? 'Editar tarefa recorrente' : 'Nova tarefa recorrente'}</DialogTitle><DialogDescription>Organize a produção e o rendimento esperado.</DialogDescription></DialogHeader>
-      <form onSubmit={submit} className="flex min-h-0 flex-col">
-        <fieldset disabled={saving} className="min-h-0 space-y-5 overflow-y-auto px-5 pb-6 sm:px-6">
-          <div className="space-y-2"><Label htmlFor="recorrente-titulo">Título da tarefa</Label><Input id="recorrente-titulo" value={titulo} onChange={event => setTitulo(event.target.value)} placeholder="Ex.: Assar bolos caseiros" autoFocus /></div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label htmlFor="recorrente-area">Área</Label><Select value={areaId ?? '__none__'} onValueChange={value => setAreaId(value === '__none__' ? null : value)}><SelectTrigger id="recorrente-area"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areas.map(area => <SelectItem key={area.id} value={area.id}><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:area.cor}} />{area.nome}</span></SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label htmlFor="recorrente-responsavel">Responsável</Label><Select value={funcionarioId} onValueChange={setFuncionarioId}><SelectTrigger id="recorrente-responsavel"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent searchable searchLabel="Buscar responsável">{funcionarios.map(funcionario => <SelectItem key={funcionario.id} value={funcionario.id} textValue={funcionario.nome}>{funcionario.nome}</SelectItem>)}</SelectContent></Select>{!funcionarios.length && <p className="text-xs text-muted-foreground">Cadastre um responsável em Folha de Pagamento.</p>}</div>
-          </div>
-          <ReceitaProducaoFields receitas={receitas} receitaId={receitaId} quantidade={quantidade} onQuantityChange={setQuantidade} onRecipeChange={id => { setReceitaId(id); setQuantidade(1); }} />
-          <div className="space-y-2"><Label>Repetir nos dias</Label><div className="grid grid-cols-7 gap-1.5">{DIAS_ORDEM.map(dia => <button key={dia} type="button" title={DIAS_LABEL[dia].full} aria-pressed={diasSemana.includes(dia)} onClick={() => setDiasSemana(previous => previous.includes(dia) ? previous.filter(value => value !== dia) : [...previous,dia])} className={cn('h-10 rounded-lg text-xs font-semibold transition-colors',diasSemana.includes(dia) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70')}>{DIAS_LABEL[dia].curto}</button>)}</div></div>
-          <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="recorrente-inicio">Início</Label><Input id="recorrente-inicio" type="time" value={horaInicio} onChange={event => setHoraInicio(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="recorrente-fim">Fim</Label><Input id="recorrente-fim" type="time" value={horaFim} onChange={event => setHoraFim(event.target.value)} /></div></div>
-          <div className="space-y-2"><Label htmlFor="recorrente-observacoes">Observações (opcional)</Label><Textarea id="recorrente-observacoes" rows={2} value={observacoes} onChange={event => setObservacoes(event.target.value)} /></div>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        </fieldset>
-        <DialogFooter className="gap-2 border-t px-5 py-4 sm:px-6">
-          {onDelete && <Button type="button" variant="ghost" onClick={onDelete} disabled={saving} className="text-destructive hover:text-destructive sm:mr-auto"><Trash2 className="mr-2 h-4 w-4" />Excluir</Button>}
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button><Button type="submit" disabled={!canSave || saving}>{saving ? 'Salvando…' : tarefa ? 'Salvar' : 'Criar tarefa'}</Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  </Dialog>;
 }

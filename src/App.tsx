@@ -39,6 +39,7 @@ const Receitas = lazy(() => import("./pages/Receitas"));
 const ReceitaEditor = lazy(() => import("./pages/ReceitaEditor"));
 const AgendaPage = lazy(() => import("./pages/producao/AgendaPage"));
 const AgendaDayPage = lazy(() => import("./pages/producao/AgendaDayPage"));
+const RecorrenteEditorPage = lazy(() => import("./pages/producao/RecorrenteEditorPage"));
 const CronogramaPage = lazy(() => import("./pages/producao/CronogramaPage"));
 const ProducaoCompartilhadaPage = lazy(() => import("./pages/producao/ProducaoCompartilhadaPage"));
 const Planos = lazy(() => import("./pages/Planos"));
@@ -124,6 +125,8 @@ const App = () => (
                   <Route path="/receitas/:id/editar" element={<ReceitaEditor />} />
                   <Route path="/producao" element={<Navigate to="/producao/cronograma" replace />} />
                   <Route path="/producao/cronograma" element={<CronogramaPage />} />
+                  <Route path="/producao/cronograma/nova" element={<RecorrenteEditorPage />} />
+                  <Route path="/producao/cronograma/:id/editar" element={<RecorrenteEditorPage />} />
                   <Route path="/producao/agenda" element={<AgendaPage />} />
                   <Route path="/producao/agenda/:date" element={<AgendaDayPage />} />
                   <Route path="/movimentacao" element={<Navigate to="/estoque/movimentacoes" replace />} />
