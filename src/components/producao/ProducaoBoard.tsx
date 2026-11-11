@@ -66,7 +66,7 @@ export function ProducaoCard({tarefa,pending,onAdvance,onEdit,onHistory,onCancel
 
 interface BoardProps<T extends BoardTask> {
   tasks:T[];pendingIds:Set<string>;allowReorder?:boolean;
-  onAdvance:(task:T)=>void;onMove?:(task:T,status:ProducaoStatus)=>void;onReorder?:(status:ProducaoStatus,tasks:T[])=>void;
+  onAdvance:(task:T)=>void;onMove?:(task:T,status:ProducaoStatus)=>boolean|void;onReorder?:(status:ProducaoStatus,tasks:T[])=>void;
   canMove?:(task:T,status:ProducaoStatus)=>boolean;
   onEdit?:(task:T)=>void;onHistory?:(task:T)=>void;onCancel?:(task:T)=>void;onReopen?:(task:T)=>void;
 }
@@ -82,7 +82,12 @@ export function ProducaoBoard<T extends BoardTask>(props:BoardProps<T>) {
     const task=tasks.find(t=>t.id===event.active.id);if(!task) return;
     const target=tasks.find(t=>t.id===event.over!.id);
     const status=target?.status??ETAPAS.find(e=>e.id===event.over!.id||`tab-${e.id}`===event.over!.id)?.id;if(!status) return;
-    if(status!==task.status){if(!canMove||canMove(task,status))onMove?.(task,status);return;}
+    if(status!==task.status){
+      // A mobile drop should show its destination without requiring a second tap.
+      // False means a confirmation is open: keep showing the original stage.
+      if(onMove&&(!canMove||canMove(task,status))&&onMove(task,status)!==false)setTab(status);
+      return;
+    }
     if(!allowReorder||!onReorder||pendingIds.size)return;
     const column=tasks.filter(t=>t.status===status);
     const from=column.findIndex(t=>t.id===task.id),to=target?column.findIndex(t=>t.id===target.id):column.length-1;

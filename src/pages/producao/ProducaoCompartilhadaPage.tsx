@@ -67,7 +67,7 @@ export default function ProducaoCompartilhadaPage(){
     }
   };
   const employees=Array.from(new Set(tasks.map(t=>t.funcionario?.nome).filter(Boolean))) as string[];
-  const advance=(task:SharedTask)=>{if(task.status==='em_producao'&&temReceitaProducao(task))setCompletion(task);else void move(task).catch(()=>{});};
+  const advance=(task:SharedTask)=>{if(task.status==='em_producao'&&temReceitaProducao(task)){setCompletion(task);return false;}void move(task).catch(()=>{});return true;};
   const visible=tasks.filter(t=>(employee==='todos'||t.funcionario?.nome===employee)&&normalize([t.titulo,t.receita?.nome,t.receita_nome,t.funcionario?.nome,t.area?.nome].join(' ')).includes(normalize(search.trim())));
   if(loading&&!date)return <main className="flex min-h-screen items-center justify-center"><Loader2 aria-label="Carregando produção" className="animate-spin text-primary"/></main>;
   if(error&&!date)return <main className="mx-auto max-w-md space-y-4 p-8"><h1 className="text-xl font-semibold">Produção indisponível</h1><p role="alert">{error}</p><Button onClick={()=>void load()}>Tentar novamente</Button></main>;

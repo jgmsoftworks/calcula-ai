@@ -54,12 +54,15 @@ it('keeps another task draggable while one task is saving and accepts a mobile s
   expect(screen.getByRole('button',{name:'Mover Tarefa two'})).toBeEnabled();
   act(()=>state.dnd.onDragEnd({active:{id:'one'},over:{id:'tab-em_producao'}}));expect(state.mover).not.toHaveBeenCalled();
   act(()=>state.dnd.onDragEnd({active:{id:'two'},over:{id:'tab-em_producao'}}));expect(state.mover).toHaveBeenCalledWith(state.tasks[1],'em_producao');
+  expect(screen.getByRole('tab',{name:/Em produção/})).toHaveAttribute('aria-selected','true');
 });
 it('dragging a recipe to Feito asks for yield and canceling leaves the task in production',()=>{
   state.tasks=[{...task('one','em_producao'),receita_id:'r',rendimento_previsto:12,rendimento_unidade:'un'}];open();
+  fireEvent.click(screen.getByRole('tab',{name:/Em produção/}));
   act(()=>state.dnd.onDragEnd({active:{id:'one'},over:{id:'feito'}}));
   expect(screen.getByLabelText('Quanto rendeu? (un)')).toBeInTheDocument();expect(state.mover).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button',{name:'Cancelar'}));expect(state.mover).not.toHaveBeenCalled();
+  expect(screen.getByRole('tab',{name:/Em produção/})).toHaveAttribute('aria-selected','true');
 });
 it('preserves recipe photos and full titles and has mobile stage tabs',()=>{
   state.tasks=[{...task('one'),titulo:'Uma receita com um nome completo muito longo para caber no cartão',receita:{id:'r',nome:'Receita',imagem_url:'https://example.test/bolo.png'}}];const {container}=open();expect(container.querySelector('img')).toHaveAttribute('src','https://example.test/bolo.png');expect(screen.getByText(state.tasks[0].titulo).className).not.toMatch(/truncate|line-clamp/);fireEvent.click(screen.getByRole('tab',{name:/Em produção/}));expect(screen.getByRole('tab',{name:/Em produção/})).toHaveAttribute('aria-selected','true');

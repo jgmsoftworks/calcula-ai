@@ -48,11 +48,12 @@ export default function AgendaDayPage() {
   const employees=Array.from(new Map(tasks.map(t=>[t.funcionario_id,t.funcionario?.nome??'Responsável indisponível'])).entries());
   const changeDay=(next:string)=>{setCompletion(null);setHistory(null);setConfirm(null);navigate(`/producao/agenda/${next}`);};
   const requestMove=(task:ProducaoTarefa,status:ProducaoStatus)=>{
-    if(task.status===status)return;
-    if(task.status==='a_fazer'&&status==='feito'){toast({title:'Inicie a produção antes de finalizar.'});return;}
-    if(status==='a_fazer'||task.status==='feito'){setConfirm({id:task.id,kind:'reabrir',status});return;}
-    if(status==='feito'&&temReceitaProducao(task)){setCompletion(task);return;}
+    if(task.status===status)return false;
+    if(task.status==='a_fazer'&&status==='feito'){toast({title:'Inicie a produção antes de finalizar.'});return false;}
+    if(status==='a_fazer'||task.status==='feito'){setConfirm({id:task.id,kind:'reabrir',status});return false;}
+    if(status==='feito'&&temReceitaProducao(task)){setCompletion(task);return false;}
     void api.mover(task,status).catch(fail);
+    return true;
   };
   const finish=async(real:number)=>{
     if(!completion)return;
