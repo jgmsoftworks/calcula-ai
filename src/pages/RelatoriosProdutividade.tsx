@@ -1,3 +1,4 @@
+import { RelatorioRendimento, type LinhaRendimento } from '@/components/producao/RelatorioRendimento';
 import { useEffect, useMemo, useState } from 'react';
 import { differenceInCalendarDays, format, startOfMonth } from 'date-fns';
 import { BarChart3, CalendarRange, CheckCircle2, Clock3, Loader2, Users } from 'lucide-react';
@@ -12,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 type Status = 'a_fazer' | 'em_producao' | 'feito';
 
-interface TarefaProdutividade {
+interface TarefaProdutividade extends LinhaRendimento {
   id: string;
   status: Status;
   inicio_previsto: string | null;
@@ -35,17 +36,6 @@ interface ProdutividadeProfissional {
 }
 
 const toDateInput = (date: Date) => format(date, 'yyyy-MM-dd');
-
-const minutosEntreHorarios = (inicio: string | null, fim: string | null) => {
-  if (!inicio || !fim) return 0;
-  const [inicioHora, inicioMinuto] = inicio.split(':').map(Number);
-  const [fimHora, fimMinuto] = fim.split(':').map(Number);
-  if ([inicioHora, inicioMinuto, fimHora, fimMinuto].some(Number.isNaN)) return 0;
-  const inicioTotal = inicioHora * 60 + inicioMinuto;
-  let fimTotal = fimHora * 60 + fimMinuto;
-  if (fimTotal < inicioTotal) fimTotal += 24 * 60;
-  return Math.max(0, fimTotal - inicioTotal);
-};
 
 const minutosEntreDatas = (inicio: string | null, fim: string | null) => {
   if (!inicio || !fim) return 0;
@@ -105,16 +95,26 @@ export default function RelatoriosProdutividade() {
 
     const carregar = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const data: unknown[] = [];
+      let error: { message: string } | null = null;
+      for (let offset = 0; ; offset += 500) {
+        const result = await supabase
         .from('producao_tarefas')
         .select(`
-          id, status, inicio_previsto, fim_previsto, iniciado_em, concluido_em, funcionario_id,
+          id, titulo, data_producao, receita_id, receita_nome, rendimento_previsto, rendimento_real, rendimento_unidade, status, inicio_previsto, fim_previsto, iniciado_em, concluido_em, funcionario_id,
+          receita:receitas!producao_tarefas_receita_id_fkey(id,nome),
           funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo)
         `)
         .eq('user_id', user.id)
         .gte('data_producao', periodoAplicado.inicio)
         .lte('data_producao', periodoAplicado.fim)
-        .order('data_producao', { ascending: true });
+        .order('data_producao', { ascending: true }).order('id').range(offset, offset + 499);
+
+        if (!active) return;
+        if (result.error) { error = result.error; break; }
+        data.push(...(result.data ?? []));
+        if (!result.data || result.data.length < 500) break;
+      }
 
       if (!active) return;
       if (error) {
@@ -146,7 +146,7 @@ export default function RelatoriosProdutividade() {
       };
       atual.atividades += 1;
       if (tarefa.status === 'feito') atual.concluidas += 1;
-      atual.minutosPrevistos += minutosEntreHorarios(tarefa.inicio_previsto, tarefa.fim_previsto);
+      atual.minutosPrevistos += minutosEntreDatas(tarefa.inicio_previsto, tarefa.fim_previsto);
       atual.minutosRealizados += minutosEntreDatas(tarefa.iniciado_em, tarefa.concluido_em);
       agrupados.set(tarefa.funcionario_id, atual);
     });
@@ -353,6 +353,8 @@ export default function RelatoriosProdutividade() {
           </table>
         </div>
       </Card>
+
+      {!loading && <RelatorioRendimento tarefas={tarefas} />}
 
       <p className="text-xs text-muted-foreground">
         Horas realizadas usam o intervalo entre início e conclusão da atividade. Atividades sem os dois registros continuam na contagem, mas não somam horas.

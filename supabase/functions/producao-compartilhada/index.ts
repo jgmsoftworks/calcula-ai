@@ -108,8 +108,8 @@ serve(async (req) => {
 
     if (action === 'get') {
       const { data: tasks, error } = await admin.from('producao_tarefas').select(`
-        id, titulo, quantidade, status, observacoes, ordem, inicio_previsto, fim_previsto, iniciado_em, concluido_em,
-        receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url),
+        id, titulo, quantidade, status, observacoes, ordem, inicio_previsto, fim_previsto, iniciado_em, concluido_em, updated_at, receita_id, receita_nome, rendimento_previsto, rendimento_real, rendimento_unidade,
+        receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url, rendimento_valor, rendimento_unidade),
         funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
         area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor)
       `).eq('user_id', link.user_id).eq('data_producao', link.data_producao).order('ordem');
@@ -125,26 +125,15 @@ serve(async (req) => {
     if (action === 'move') {
       const taskId = String(body?.taskId ?? '');
       const { data: task } = await admin.from('producao_tarefas')
-        .select('id, status, iniciado_em, concluido_em')
+        .select('id, status, iniciado_em, concluido_em, updated_at')
         .eq('id', taskId).eq('user_id', link.user_id).eq('data_producao', link.data_producao).maybeSingle();
       if (!task) return json({ error: 'Tarefa não encontrada.' }, 404);
-      const nextStatus = task.status === 'a_fazer' ? 'em_producao' : task.status === 'em_producao' ? 'feito' : null;
-      if (!nextStatus) return json({ error: 'Esta tarefa já foi concluída.' }, 409);
-      const patch: Record<string, string> = { status: nextStatus };
-      if (nextStatus === 'em_producao' && !task.iniciado_em) patch.iniciado_em = now.toISOString();
-      if (nextStatus === 'feito' && !task.concluido_em) patch.concluido_em = now.toISOString();
-      const { data: updated, error } = await admin.from('producao_tarefas').update(patch)
-        .eq('id', task.id).eq('status', task.status).select('id, status, iniciado_em, concluido_em').maybeSingle();
-      if (error) throw error;
-      if (!updated) return json({ error: 'A tarefa foi alterada por outra pessoa. Atualize a página.' }, 409);
-      await admin.from('producao_tarefas_historico').insert({
-        user_id: link.user_id,
-        tarefa_id: task.id,
-        de_status: task.status,
-        para_status: nextStatus,
-        movido_por: null,
-        origem: 'link_compartilhado',
+      const { data: updated, error } = await admin.rpc('avancar_producao_compartilhada', {
+        p_link_id: link.id, p_tarefa_id: task.id,
+        p_expected_updated_at: body.expectedUpdatedAt ?? task.updated_at,
+        p_rendimento_real: body.rendimentoReal ?? null,
       });
+      if (error) return json({ error: error.message }, error.code === '40001' ? 409 : 400);
       return json({ task: updated });
     }
 

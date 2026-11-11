@@ -1,3 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { getBusinessRegion } from '@/lib/business-region';
+import { ReceitaProducaoFields } from '@/components/producao/ReceitaProducaoFields';
+import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
+import { rendimentoPrevisto, rendimentoDaTarefa, formatarRendimento, temReceitaProducao } from '@/lib/producaoRendimento';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
@@ -6,7 +11,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, Plus, Printer, ChefHat, User as UserIcon, Clock, Trash2, Share2, Copy, Link2 as Link2Icon, Loader2,
-  CheckCircle2, PlayCircle, Circle, ChevronsUpDown, Check, Link2, Link2Off, Download, Info, Pencil, History,
+  CheckCircle2, PlayCircle, Circle, Download, Info, Pencil, History,
 } from 'lucide-react';
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor,
@@ -18,17 +23,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useProducaoTarefas, ProducaoStatus, ProducaoTarefa } from '@/hooks/useProducaoTarefas';
 import { useProducaoAreas } from '@/hooks/useProducaoAreas';
-import { useProducaoRecorrentes } from '@/hooks/useProducaoRecorrentes';
 import { formatTimeBrasilia } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -55,10 +55,10 @@ export default function AgendaDayPage() {
 
   const { data: tarefas = [], isLoading, criar, mover, alterarResponsavel, remover } = useProducaoTarefas(dataStr);
   const { data: areas = [] } = useProducaoAreas();
-  const weekday = parsedDate ? parsedDate.getDay() : null;
-  const { data: recorrentes = [] } = useProducaoRecorrentes();
+  const queryClient = useQueryClient();
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string | 'todas' | 'sem'>('todas');
   const [modalOpen, setModalOpen] = useState(false);
+  const [concluirTarefa, setConcluirTarefa] = useState<ProducaoTarefa | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [shareExpiresAt, setShareExpiresAt] = useState('');
@@ -67,7 +67,7 @@ export default function AgendaDayPage() {
   const [funcionarios, setFuncionarios] = useState<FuncOpt[]>([]);
   const [receitas, setReceitas] = useState<ReceitaOpt[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [materialized, setMaterialized] = useState(false);
+
   const [tarefaDetalhes, setTarefaDetalhes] = useState<ProducaoTarefa | null>(null);
 
   useEffect(() => {
@@ -121,40 +121,22 @@ export default function AgendaDayPage() {
       .catch(() => setShareQrCode(''));
   }, [shareUrl]);
 
-  // Materialize recurring tasks for this weekday if not already created
   useEffect(() => {
-    if (materialized || weekday === null || !user?.id || !dataStr) return;
-    if (!recorrentes.length) { setMaterialized(true); return; }
-    const doDay = recorrentes.filter((r) => (r.dias_semana ?? []).includes(weekday));
-    if (!doDay.length) { setMaterialized(true); return; }
-    (async () => {
-      const { data: existentes } = await supabase
-        .from('producao_tarefas')
-        .select('recorrente_id')
-        .eq('user_id', user.id)
-        .eq('data_producao', dataStr)
-        .not('recorrente_id', 'is', null);
-      const jaCriados = new Set((existentes ?? []).map((e: any) => e.recorrente_id));
-      const paraCriar = doDay.filter((r) => !jaCriados.has(r.id));
-      for (const r of paraCriar) {
-        const inicio = r.hora_inicio ? new Date(`${dataStr}T${r.hora_inicio}`).toISOString() : null;
-        const fim = r.hora_fim ? new Date(`${dataStr}T${r.hora_fim}`).toISOString() : null;
-        await criar.mutateAsync({
-          titulo: r.titulo,
-          funcionario_id: r.funcionario_id,
-          receita_id: r.receita_id ?? null,
-          quantidade: r.quantidade ?? null,
-          observacoes: r.observacoes ?? null,
-          area_id: r.area_id ?? null,
-          recorrente_id: r.id,
-          inicio_previsto: inicio,
-          fim_previsto: fim,
-        } as any);
-      }
-      setMaterialized(true);
-    })();
-  }, [materialized, weekday, recorrentes, user?.id, dataStr, criar]);
+    if (!user?.id || !parsedDate || !isValid(parsedDate)) return;
+    let active = true;
+    void supabase.rpc('materializar_cronograma_producao', { p_data: dataStr, p_timezone: getBusinessRegion().timeZone }).then(({ error }) => {
+      if (!active) return;
+      if (error) toast({ title: 'Não foi possível carregar as tarefas recorrentes', description: error.message, variant: 'destructive' });
+      else void queryClient.invalidateQueries({ queryKey: ['producao-tarefas', user.id, dataStr] });
+    });
+    return () => { active = false; };
+  }, [user?.id, dataStr, parsedDate, queryClient]);
 
+  const requestMove = (tarefa: ProducaoTarefa, novoStatus: ProducaoStatus) => {
+    if (mover.isPending) return;
+    if (novoStatus === 'feito' && temReceitaProducao(tarefa)) setConcluirTarefa(tarefa);
+    else mover.mutate({ tarefa, novoStatus });
+  };
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
@@ -163,7 +145,7 @@ export default function AgendaDayPage() {
     if (!tarefa || !novoStatus) return;
     if (!['a_fazer', 'em_producao', 'feito'].includes(novoStatus)) return;
     if (tarefa.status === novoStatus) return;
-    mover.mutate({ tarefa, novoStatus });
+    requestMove(tarefa, novoStatus);
   };
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
@@ -336,6 +318,7 @@ export default function AgendaDayPage() {
                 col={col}
                 itens={itens}
                 onOpenDetails={setTarefaDetalhes}
+                onAdvance={tarefa => requestMove(tarefa, tarefa.status === 'a_fazer' ? 'em_producao' : 'feito')}
                 onRemove={(id) => remover.mutate(id)}
               />;
             })}
@@ -345,6 +328,8 @@ export default function AgendaDayPage() {
           </DragOverlay>
         </DndContext>
       )}
+
+      {concluirTarefa && <ConcluirProducaoModal tarefa={concluirTarefa} onClose={() => setConcluirTarefa(null)} onConfirm={real => mover.mutateAsync({ tarefa: concluirTarefa, novoStatus: 'feito', rendimentoReal: real })} />}
 
       <NovaTarefaModal
         open={modalOpen}
@@ -411,11 +396,12 @@ export default function AgendaDayPage() {
 /* ---------------- Coluna ---------------- */
 
 function Coluna({
-  col, itens, onOpenDetails, onRemove,
+  col, itens, onOpenDetails, onRemove, onAdvance,
 }: {
   col: { id: ProducaoStatus; label: string; icon: any; color: string };
   itens: ProducaoTarefa[];
   onOpenDetails: (tarefa: ProducaoTarefa) => void;
+  onAdvance: (tarefa: ProducaoTarefa) => void;
   onRemove: (id: string) => void;
 }) {
   usePortugalTranslation();
@@ -443,6 +429,7 @@ function Coluna({
             tarefa={t}
             onOpenDetails={() => onOpenDetails(t)}
             onRemove={() => onRemove(t.id)}
+            onAdvance={() => onAdvance(t)}
           />
         ))}
         {!itens.length && (
@@ -458,16 +445,18 @@ function Coluna({
 /* ---------------- Card ---------------- */
 
 function TarefaCard({
-  tarefa, onOpenDetails, onRemove, dragging, readOnly,
+  tarefa, onOpenDetails, onRemove, dragging, readOnly, onAdvance,
 }: {
   tarefa: ProducaoTarefa;
   onOpenDetails: () => void;
   onRemove: () => void;
   dragging?: boolean;
   readOnly?: boolean;
+  onAdvance?: () => void;
 }) {
   usePortugalTranslation();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
+  const rendimento = rendimentoDaTarefa(tarefa);
   const atrasada = tarefa.status !== 'feito' && Boolean(tarefa.fim_previsto) && new Date(tarefa.fim_previsto!).getTime() < Date.now();
   return (
     <div
@@ -519,6 +508,8 @@ function TarefaCard({
         <UserIcon className="h-3.5 w-3.5" />
         <span className="truncate">{tarefa.funcionario?.nome ?? '—'}</span>
       </div>
+      {temReceitaProducao(tarefa) && <p className="my-2 rounded-lg bg-primary/5 p-2 text-xs text-primary">Previsto: {rendimento.previsto === null ? '—' : `${formatarRendimento(rendimento.previsto)} ${rendimento.unidade}`}{rendimento.real !== null && ` · Realizado: ${formatarRendimento(rendimento.real)} ${rendimento.unidade}`}</p>}
+      {!readOnly && tarefa.status !== 'feito' && onAdvance && <Button size="sm" variant="outline" className="my-2 w-full" onPointerDown={event => event.stopPropagation()} onClick={onAdvance}>{tarefa.status === 'a_fazer' ? 'Iniciar produção' : 'Finalizar produção'}</Button>}
       {(tarefa.inicio_previsto || tarefa.fim_previsto) && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
           <Clock className={cn('h-3 w-3 text-primary', atrasada && 'text-red-600')} />
@@ -665,6 +656,7 @@ function HistoricoTarefaModal({
                       <p className="mt-1 text-[11px] text-muted-foreground">
                         {format(new Date(registro.movido_em), "dd/MM/yyyy 'às' HH:mm")}
                         {registro.origem === 'link_compartilhado' ? ' • pelo link compartilhado' : ' • pelo aplicativo'}
+                        {registro.rendimento_real != null && ` · Rendeu ${formatarRendimento(registro.rendimento_real)} ${registro.rendimento_unidade || ''}`}
                       </p>
                     </div>
                   </div>
@@ -702,7 +694,6 @@ function NovaTarefaModal({
   const [observacoes, setObservacoes] = useState('');
   const [inicioPrev, setInicioPrev] = useState('');
   const [fimPrev, setFimPrev] = useState('');
-  const [popReceita, setPopReceita] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -717,7 +708,7 @@ function NovaTarefaModal({
 
 
   const receitaSel = receitas.find((r) => r.id === receitaId);
-  const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || !!receitaId);
+  const canSave = !!titulo.trim() && !!funcionarioId && (!vincularReceita || rendimentoPrevisto(receitaSel, quantidade) !== null);
 
   const submit = () => {
     if (!canSave) return;
@@ -739,65 +730,18 @@ function NovaTarefaModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:p-0">
+        <DialogHeader className="px-6 pb-4 pt-6">
           <DialogTitle>Nova tarefa de produção</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-6">
           <div>
             <Label>Título da tarefa *</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Assar bolos do dia" autoFocus />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border p-3">
-            <div className="flex items-center gap-2">
-              {vincularReceita ? <Link2 className="h-4 w-4 text-primary" /> : <Link2Off className="h-4 w-4 text-muted-foreground" />}
-              <span className="text-sm font-medium">Vincular a uma receita</span>
-            </div>
-            <Switch checked={vincularReceita} onCheckedChange={setVincularReceita} />
-          </div>
-
-          {vincularReceita && (
-            <>
-              <div>
-                <Label>Receita *</Label>
-                <Popover open={popReceita} onOpenChange={setPopReceita}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                      {receitaSel ? receitaSel.nome : 'Selecione uma receita'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent data-command-popover="" className="p-0 w-[--radix-popover-trigger-width]" align="start" avoidCollisions collisionPadding={8}>
-                    <Command>
-                      <CommandInput placeholder={localizeText("Buscar receita...")} />
-                      <CommandList className="max-h-[260px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
-                        <CommandEmpty>Nenhuma receita.</CommandEmpty>
-                        <CommandGroup>
-                          {receitas.map((r) => (
-                            <CommandItem key={r.id} value={r.nome} onSelect={() => { setReceitaId(r.id); setPopReceita(false); }}>
-                              <Check className={cn('mr-2 h-4 w-4', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
-                              <div className="flex items-center gap-2 min-w-0">
-                                {r.imagem_url ? <img src={r.imagem_url} alt="" className="h-7 w-7 rounded object-cover" /> : <div className="h-7 w-7 rounded bg-muted flex items-center justify-center"><ChefHat className="h-3.5 w-3.5 text-muted-foreground" /></div>}
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{r.nome}</p>
-                                  {r.rendimento_valor ? <p className="text-[11px] text-muted-foreground">Rende {r.rendimento_valor} {r.rendimento_unidade ?? ''}</p> : null}
-                                </div>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label>Quantidade</Label>
-                <NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={(v) => setQuantidade(v)} />
-              </div>
-            </>
-          )}
+          <ReceitaProducaoFields receitas={receitas} receitaId={receitaId} quantidade={quantidade} onQuantityChange={setQuantidade}
+            onRecipeChange={id => { setReceitaId(id); setVincularReceita(!!id); setQuantidade(1); }} />
 
           <div>
             <Label>Funcionário responsável *</Label>
@@ -856,7 +800,7 @@ function NovaTarefaModal({
             <Textarea rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2 border-t px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={!canSave}>Criar tarefa</Button>
         </DialogFooter>

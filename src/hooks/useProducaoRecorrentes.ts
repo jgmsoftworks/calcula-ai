@@ -20,7 +20,7 @@ export interface ProducaoRecorrente {
   ativo: boolean;
   created_at: string;
   updated_at: string;
-  receita?: { id: string; nome: string; imagem_url: string | null } | null;
+  receita?: { id: string; nome: string; imagem_url: string | null; rendimento_valor?: number | null; rendimento_unidade?: string | null } | null;
   funcionario?: { id: string; nome: string; cargo: string | null } | null;
   area?: { id: string; nome: string; cor: string } | null;
 }
@@ -53,7 +53,7 @@ export function useProducaoRecorrentes(areaId?: string | null, opts?: { semArea?
         .from('producao_tarefas_recorrentes')
         .select(`
           *,
-          receita:receitas!producao_tarefas_recorrentes_receita_id_fkey(id, nome, imagem_url),
+          receita:receitas!producao_tarefas_recorrentes_receita_id_fkey(id, nome, imagem_url, rendimento_valor, rendimento_unidade),
           funcionario:folha_pagamento!producao_tarefas_recorrentes_funcionario_id_fkey(id, nome, cargo),
           area:producao_areas!producao_tarefas_recorrentes_area_id_fkey(id, nome, cor)
         `)

@@ -1,3 +1,5 @@
+import { ConcluirProducaoModal } from '@/components/producao/ConcluirProducaoModal';
+import { rendimentoDaTarefa, formatarRendimento, temReceitaProducao, type ProducaoRendimento } from '@/lib/producaoRendimento';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams } from 'react-router-dom';
@@ -12,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 type Status = 'a_fazer' | 'em_producao' | 'feito';
-type SharedTask = {
+type SharedTask = ProducaoRendimento & {
   id: string;
   titulo: string;
   quantidade: number | null;
@@ -22,7 +24,7 @@ type SharedTask = {
   fim_previsto: string | null;
   iniciado_em: string | null;
   concluido_em: string | null;
-  receita?: { nome: string } | null;
+  updated_at: string;
   funcionario?: { nome: string; cargo: string | null } | null;
   area?: { nome: string; cor: string | null } | null;
 };
@@ -42,6 +44,7 @@ export default function ProducaoCompartilhadaPage() {
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [concluirTarefa, setConcluirTarefa] = useState<SharedTask | null>(null);
   const [error, setError] = useState('');
   const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -109,7 +112,7 @@ export default function ProducaoCompartilhadaPage() {
     return tasks.filter((task) => task.funcionario?.nome?.toLocaleLowerCase('pt-BR').includes(query));
   }, [filter, tasks]);
 
-  const move = async (task: SharedTask) => {
+  const move = async (task: SharedTask, rendimentoReal?: number) => {
     setMovingId(task.id);
 
     const nextStatus: Status | null = task.status === 'a_fazer'
@@ -141,12 +144,16 @@ export default function ProducaoCompartilhadaPage() {
     }
 
     const { data, error: invokeError } = await supabase.functions.invoke('producao-compartilhada', {
-      body: { action: 'move', token, taskId: task.id },
+      body: { action: 'move', token, taskId: task.id, expectedUpdatedAt: task.updated_at, rendimentoReal: rendimentoReal ?? null },
     });
     if (invokeError || data?.error) {
       setTasks(previousTasks);
-      setError(data?.error ?? 'Não foi possível avançar a tarefa.');
+      const details = invokeError?.context instanceof Response ? await invokeError.context.clone().json().catch(() => null) : null;
+      const message = data?.error ?? details?.error ?? 'Não foi possível avançar a tarefa. Atualize e tente novamente.';
+      setError(message);
       await load(true);
+      setMovingId(null);
+      throw new Error(message);
     } else {
       setTasks((current) => current.map((item) => item.id === task.id ? { ...item, ...data.task } : item));
       setError('');
@@ -218,9 +225,10 @@ export default function ProducaoCompartilhadaPage() {
                         {task.area && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: task.area.cor ?? '#64748b' }} />}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground"><User className="h-4 w-4" /><span>{task.funcionario?.nome ?? 'Sem responsável'}</span></div>
+                      {temReceitaProducao(task) && <p className="rounded-lg bg-primary/5 p-2 text-xs text-primary">Previsto: {rendimentoDaTarefa(task).previsto === null ? '—' : `${formatarRendimento(rendimentoDaTarefa(task).previsto!)} ${rendimentoDaTarefa(task).unidade}`}{task.rendimento_real != null && ` · Realizado: ${formatarRendimento(task.rendimento_real)} ${task.rendimento_unidade}`}</p>}
                       {task.observacoes && <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">{task.observacoes}</p>}
                       {task.status !== 'feito' && (
-                        <Button className="w-full" onClick={() => move(task)} disabled={movingId === task.id}>
+                        <Button className="w-full" onClick={() => { if (task.status === 'em_producao' && temReceitaProducao(task)) setConcluirTarefa(task); else void move(task).catch(() => {}); }} disabled={movingId === task.id}>
                           {movingId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : task.status === 'a_fazer' ? 'Iniciar produção' : 'Marcar como feito'}
                         </Button>
                       )}
@@ -233,6 +241,7 @@ export default function ProducaoCompartilhadaPage() {
           })}
         </div>
       </div>
+      {concluirTarefa && <ConcluirProducaoModal tarefa={concluirTarefa} onClose={() => setConcluirTarefa(null)} onConfirm={real => move(concluirTarefa, real)} />}
     </main>
   );
 }

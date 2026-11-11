@@ -1,3 +1,4 @@
+import type { ProducaoRendimento } from '@/lib/producaoRendimento';
 import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 
 export type ProducaoStatus = 'a_fazer' | 'em_producao' | 'feito';
 
-export interface ProducaoTarefa {
+export interface ProducaoTarefa extends ProducaoRendimento {
   id: string;
   user_id: string;
   data_producao: string;
@@ -25,7 +26,7 @@ export interface ProducaoTarefa {
   recorrente_id: string | null;
   created_at: string;
   updated_at: string;
-  receita?: { id: string; nome: string; imagem_url: string | null } | null;
+  receita?: { id: string; nome: string; imagem_url: string | null; rendimento_valor?: number | null; rendimento_unidade?: string | null } | null;
   funcionario?: { id: string; nome: string; cargo: string | null } | null;
   area?: { id: string; nome: string; cor: string } | null;
   historico?: Array<{
@@ -37,6 +38,7 @@ export interface ProducaoTarefa {
     funcionario_anterior_id: string | null;
     funcionario_novo_id: string | null;
     origem: 'app' | 'link_compartilhado';
+    rendimento_previsto?: number | null; rendimento_real?: number | null; rendimento_unidade?: string | null;
   }>;
 }
 
@@ -61,12 +63,12 @@ export function useProducaoTarefas(dataProducao: string) {
         .from('producao_tarefas')
         .select(`
           *,
-          receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url),
+          receita:receitas!producao_tarefas_receita_id_fkey(id, nome, imagem_url, rendimento_valor, rendimento_unidade),
           funcionario:folha_pagamento!producao_tarefas_funcionario_id_fkey(id, nome, cargo),
           area:producao_areas!producao_tarefas_area_id_fkey(id, nome, cor),
           historico:producao_tarefas_historico(
             id, de_status, para_status, movido_em, evento_tipo,
-            funcionario_anterior_id, funcionario_novo_id, origem
+            funcionario_anterior_id, funcionario_novo_id, origem, rendimento_previsto, rendimento_real, rendimento_unidade
           )
         `)
         .eq('user_id', user!.id)
@@ -157,22 +159,15 @@ export function useProducaoTarefas(dataProducao: string) {
   });
 
   const mover = useMutation({
-    mutationFn: async ({ tarefa, novoStatus }: { tarefa: ProducaoTarefa; novoStatus: ProducaoStatus }) => {
-      if (tarefa.status === novoStatus) return;
-      const patch: any = { status: novoStatus };
-      if (novoStatus === 'em_producao' && !tarefa.iniciado_em) patch.iniciado_em = new Date().toISOString();
-      if (novoStatus === 'feito' && !tarefa.concluido_em) patch.concluido_em = new Date().toISOString();
-      const { error } = await supabase.from('producao_tarefas').update(patch).eq('id', tarefa.id);
-      if (error) throw error;
-      await supabase.from('producao_tarefas_historico').insert({
-        user_id: user!.id,
-        tarefa_id: tarefa.id,
-        de_status: tarefa.status,
-        para_status: novoStatus,
-        movido_por: user!.id,
+    mutationFn: async ({ tarefa, novoStatus, rendimentoReal }: { tarefa: ProducaoTarefa; novoStatus: ProducaoStatus; rendimentoReal?: number }) => {
+      const { data, error } = await supabase.rpc('mover_tarefa_producao', {
+        p_tarefa_id: tarefa.id, p_status: novoStatus, p_expected_updated_at: tarefa.updated_at,
+        p_rendimento_real: rendimentoReal ?? null,
       });
+      if (error) throw error;
+      return data;
     },
-    onMutate: async ({ tarefa, novoStatus }) => {
+    onMutate: async ({ tarefa, novoStatus, rendimentoReal }) => {
       await qc.cancelQueries({ queryKey: key });
       const anterior = qc.getQueryData<ProducaoTarefa[]>(key);
       const agora = new Date().toISOString();
@@ -184,7 +179,8 @@ export function useProducaoTarefas(dataProducao: string) {
             ...item,
             status: novoStatus,
             iniciado_em: novoStatus === 'em_producao' && !item.iniciado_em ? agora : item.iniciado_em,
-            concluido_em: novoStatus === 'feito' && !item.concluido_em ? agora : item.concluido_em,
+            concluido_em: novoStatus === 'feito' ? agora : null,
+            rendimento_real: novoStatus === 'feito' ? rendimentoReal ?? null : null,
           };
         }),
       );

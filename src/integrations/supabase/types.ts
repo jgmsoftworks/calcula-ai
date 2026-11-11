@@ -1997,6 +1997,10 @@ export type Database = {
       }
       producao_tarefas: {
         Row: {
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
+          receita_nome?: string | null
           area_id: string | null
           concluido_em: string | null
           created_at: string
@@ -2017,6 +2021,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
+          receita_nome?: string | null
           area_id?: string | null
           concluido_em?: string | null
           created_at?: string
@@ -2037,6 +2045,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
+          receita_nome?: string | null
           area_id?: string | null
           concluido_em?: string | null
           created_at?: string
@@ -2089,6 +2101,9 @@ export type Database = {
       }
       producao_tarefas_historico: {
         Row: {
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           de_status: Database["public"]["Enums"]["producao_status"] | null
           evento_tipo: string
           funcionario_anterior_id: string | null
@@ -2102,6 +2117,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           de_status?: Database["public"]["Enums"]["producao_status"] | null
           evento_tipo?: string
           funcionario_anterior_id?: string | null
@@ -2115,6 +2133,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           de_status?: Database["public"]["Enums"]["producao_status"] | null
           evento_tipo?: string
           funcionario_anterior_id?: string | null
@@ -3544,6 +3565,9 @@ export type Database = {
       }
     }
     Functions: {
+      materializar_cronograma_producao: { Args: { p_data: string; p_timezone?: string }; Returns: number }
+      mover_tarefa_producao: { Args: { p_tarefa_id: string; p_status: Database["public"]["Enums"]["producao_status"]; p_expected_updated_at: string; p_rendimento_real?: number | null }; Returns: Json }
+      avancar_producao_compartilhada: { Args: { p_link_id: string; p_tarefa_id: string; p_expected_updated_at: string; p_rendimento_real?: number | null }; Returns: Json }
       listar_usos_receita: { Args: { p_receita_id: string }; Returns: Json }
       excluir_receita_com_vinculos: { Args: { p_receita_id: string; p_expected_updated_at: string; p_usos: Json }; Returns: undefined }
       cadastrar_item_geladeira: { Args: { p_receita_id: string; p_estoque_minimo?: number }; Returns: string }

@@ -1,19 +1,17 @@
+import { ReceitaProducaoFields } from '@/components/producao/ReceitaProducaoFields';
+import { formatarRendimento, rendimentoPrevisto } from '@/lib/producaoRendimento';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, Pencil, Trash2, ChefHat, User as UserIcon, Clock, Link2, Link2Off, ChevronsUpDown, Check, Settings2 } from 'lucide-react';
+import { ClipboardList, Plus, Pencil, Trash2, ChefHat, User as UserIcon, Clock, Link2Off, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { useProducaoAreas, ProducaoArea } from '@/hooks/useProducaoAreas';
 import { useProducaoRecorrentes, ProducaoRecorrente, RecorrenteInput } from '@/hooks/useProducaoRecorrentes';
 import { useAuth } from '@/hooks/useAuth';
@@ -278,6 +276,7 @@ export default function CronogramaPage() {
 
 function TarefaDiaCard({ tarefa, cor, onClick }: { tarefa: ProducaoRecorrente; cor: string | null; onClick: () => void }) {
   usePortugalTranslation();
+  const previsto = rendimentoPrevisto(tarefa.receita, tarefa.quantidade ?? 1);
   const inicio = tarefa.hora_inicio?.slice(0, 5);
   const fim = tarefa.hora_fim?.slice(0, 5);
   const horario = inicio && fim ? `${inicio} – ${fim}` : inicio || (fim ? `Até ${fim}` : 'Sem horário');
@@ -290,6 +289,7 @@ function TarefaDiaCard({ tarefa, cor, onClick }: { tarefa: ProducaoRecorrente; c
           : tarefa.receita_id && <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ChefHat aria-hidden="true" className="h-5 w-5" /></span>}
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-semibold leading-snug">{tarefa.titulo}</p>
+          {previsto !== null && <p className="mt-2 text-xs font-medium text-primary">Previsto: {formatarRendimento(previsto)} {tarefa.receita?.rendimento_unidade}</p>}
           <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
             <p className="flex items-center gap-1.5 tabular-nums"><Clock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />{horario}</p>
             <p className="flex items-start gap-1.5"><UserIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /><span className="break-words">{tarefa.funcionario?.nome || 'Sem responsável'}</span></p>
@@ -403,216 +403,63 @@ function GerenciarAreasModal({ open, areas, onClose, onEdit, onDelete, onCreate 
 
 /* ---------------- Recorrente Modal ---------------- */
 
-function RecorrenteModal({
-  open, tarefa, preAreaId, preDia, areas, funcionarios, receitas, onClose, onSave, onDelete,
-}: {
-  open: boolean;
-  tarefa?: ProducaoRecorrente;
-  preAreaId: string | null;
-  preDia?: number;
-  areas: ProducaoArea[];
-  funcionarios: FuncOpt[];
-  receitas: ReceitaOpt[];
-  onClose: () => void;
-  onSave: (v: RecorrenteInput) => void;
-  onDelete?: () => void;
+function RecorrenteModal({ open, tarefa, preAreaId, preDia, areas, funcionarios, receitas, onClose, onSave, onDelete }: {
+  open: boolean; tarefa?: ProducaoRecorrente; preAreaId: string | null; preDia?: number;
+  areas: ProducaoArea[]; funcionarios: FuncOpt[]; receitas: ReceitaOpt[];
+  onClose: () => void; onSave: (value: RecorrenteInput) => void | Promise<void>; onDelete?: () => void;
 }) {
   usePortugalTranslation();
   const [areaId, setAreaId] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
-  const [vincularReceita, setVincularReceita] = useState(false);
   const [receitaId, setReceitaId] = useState('');
-  const [quantidade, setQuantidade] = useState<number>(1);
+  const [quantidade, setQuantidade] = useState(1);
   const [funcionarioId, setFuncionarioId] = useState('');
   const [diasSemana, setDiasSemana] = useState<number[]>([]);
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFim, setHoraFim] = useState('');
   const [observacoes, setObservacoes] = useState('');
-  const [popReceita, setPopReceita] = useState(false);
-
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   useEffect(() => {
     if (!open) return;
-    setAreaId(tarefa ? (tarefa.area_id ?? null) : preAreaId);
-    setTitulo(tarefa?.titulo ?? '');
-    setVincularReceita(!!tarefa?.receita_id);
-    setReceitaId(tarefa?.receita_id ?? '');
-    setQuantidade(tarefa?.quantidade ?? 1);
-    setFuncionarioId(tarefa?.funcionario_id ?? '');
-    setDiasSemana(tarefa?.dias_semana ?? (preDia !== undefined ? [preDia] : []));
-    setHoraInicio(tarefa?.hora_inicio?.slice(0, 5) ?? '');
-    setHoraFim(tarefa?.hora_fim?.slice(0, 5) ?? '');
-    setObservacoes(tarefa?.observacoes ?? '');
+    setAreaId(tarefa ? tarefa.area_id : preAreaId); setTitulo(tarefa?.titulo ?? '');
+    setReceitaId(tarefa?.receita_id ?? ''); setQuantidade(tarefa?.quantidade ?? 1);
+    setFuncionarioId(tarefa?.funcionario_id ?? ''); setDiasSemana(tarefa?.dias_semana ?? (preDia !== undefined ? [preDia] : []));
+    setHoraInicio(tarefa?.hora_inicio?.slice(0, 5) ?? ''); setHoraFim(tarefa?.hora_fim?.slice(0, 5) ?? '');
+    setObservacoes(tarefa?.observacoes ?? ''); setError('');
   }, [open, tarefa, preAreaId, preDia]);
-
-  const receitaSel = receitas.find((r) => r.id === receitaId);
-  const canSave = !!titulo.trim() && !!funcionarioId && diasSemana.length > 0 && (!vincularReceita || !!receitaId);
-
-  const toggleDia = (d: number) =>
-    setDiasSemana((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
-
-  const submit = () => {
-    if (!canSave) return;
-    onSave({
-      area_id: areaId,
-      titulo: titulo.trim(),
-      funcionario_id: funcionarioId,
-      receita_id: vincularReceita ? receitaId : null,
-      quantidade: vincularReceita ? quantidade : null,
-      dias_semana: diasSemana,
-      hora_inicio: horaInicio || null,
-      hora_fim: horaFim || null,
-      observacoes: observacoes.trim() || null,
-    });
+  const receita = receitas.find(item => item.id === receitaId);
+  const canSave = !!titulo.trim() && !!funcionarioId && diasSemana.length > 0 && (!receitaId || rendimentoPrevisto(receita, quantidade) !== null);
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); if (!canSave || saving) return;
+    setSaving(true); setError('');
+    try { await onSave({area_id:areaId,titulo:titulo.trim(),funcionario_id:funcionarioId,
+      receita_id:receitaId || null,quantidade:receitaId ? quantidade : null,dias_semana:diasSemana,
+      hora_inicio:horaInicio || null,hora_fim:horaFim || null,observacoes:observacoes.trim() || null}); }
+    catch { setError('Não foi possível salvar a tarefa. Tente novamente.'); }
+    finally { setSaving(false); }
   };
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{tarefa ? 'Editar tarefa recorrente' : 'Nova tarefa recorrente'}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Área</Label>
-            <Select value={areaId ?? '__none__'} onValueChange={(v) => setAreaId(v === '__none__' ? null : v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">
-                  <span className="inline-flex items-center gap-2"><Link2Off className="h-3.5 w-3.5" /> Sem área</span>
-                </SelectItem>
-                {areas.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: a.cor }} />
-                      {a.nome}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  return <Dialog open={open} onOpenChange={value => { if (!value && !saving) onClose(); }}>
+    <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:p-0">
+      <DialogHeader className="px-5 pb-4 pt-6 text-left sm:px-6"><DialogTitle className="pr-8">{tarefa ? 'Editar tarefa recorrente' : 'Nova tarefa recorrente'}</DialogTitle><DialogDescription>Organize a produção e o rendimento esperado.</DialogDescription></DialogHeader>
+      <form onSubmit={submit} className="flex min-h-0 flex-col">
+        <fieldset disabled={saving} className="min-h-0 space-y-5 overflow-y-auto px-5 pb-6 sm:px-6">
+          <div className="space-y-2"><Label htmlFor="recorrente-titulo">Título da tarefa</Label><Input id="recorrente-titulo" value={titulo} onChange={event => setTitulo(event.target.value)} placeholder="Ex.: Assar bolos caseiros" autoFocus /></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2"><Label htmlFor="recorrente-area">Área</Label><Select value={areaId ?? '__none__'} onValueChange={value => setAreaId(value === '__none__' ? null : value)}><SelectTrigger id="recorrente-area"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__none__">Sem área</SelectItem>{areas.map(area => <SelectItem key={area.id} value={area.id}><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:area.cor}} />{area.nome}</span></SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label htmlFor="recorrente-responsavel">Responsável</Label><Select value={funcionarioId} onValueChange={setFuncionarioId}><SelectTrigger id="recorrente-responsavel"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent searchable searchLabel="Buscar responsável">{funcionarios.map(funcionario => <SelectItem key={funcionario.id} value={funcionario.id} textValue={funcionario.nome}>{funcionario.nome}</SelectItem>)}</SelectContent></Select>{!funcionarios.length && <p className="text-xs text-muted-foreground">Cadastre um responsável em Folha de Pagamento.</p>}</div>
           </div>
-
-          <div>
-            <Label>Título *</Label>
-            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Assar bolos" autoFocus />
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl border p-3">
-            <div className="flex items-center gap-2">
-              {vincularReceita ? <Link2 className="h-4 w-4 text-primary" /> : <Link2Off className="h-4 w-4 text-muted-foreground" />}
-              <span className="text-sm font-medium">Vincular a uma receita</span>
-            </div>
-            <Switch checked={vincularReceita} onCheckedChange={setVincularReceita} />
-          </div>
-
-          {vincularReceita && (
-            <>
-              <div>
-                <Label>Receita *</Label>
-                <Popover open={popReceita} onOpenChange={setPopReceita}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                      {receitaSel ? receitaSel.nome : 'Selecione'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent data-command-popover="" className="p-0 w-[--radix-popover-trigger-width]" align="start" avoidCollisions collisionPadding={8}>
-                    <Command>
-                      <CommandInput placeholder={localizeText("Buscar receita...")} />
-                      <CommandList className="max-h-[260px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
-                        <CommandEmpty>Nenhuma receita.</CommandEmpty>
-                        <CommandGroup>
-                          {receitas.map((r) => (
-                            <CommandItem key={r.id} value={r.nome} onSelect={() => { setReceitaId(r.id); setPopReceita(false); }}>
-                              <Check className={cn('mr-2 h-4 w-4', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
-                              <div className="flex items-center gap-2 min-w-0">
-                                {r.imagem_url ? <img src={r.imagem_url} alt="" className="h-7 w-7 rounded object-cover" /> : <div className="h-7 w-7 rounded bg-muted flex items-center justify-center"><ChefHat className="h-3.5 w-3.5 text-muted-foreground" /></div>}
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{r.nome}</p>
-                                  {r.rendimento_valor ? <p className="text-[11px] text-muted-foreground">Rende {r.rendimento_valor} {r.rendimento_unidade ?? ''}</p> : null}
-                                </div>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label>Quantidade</Label>
-                <NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={(v) => setQuantidade(v)} />
-              </div>
-            </>
-          )}
-
-          <div>
-            <Label>Funcionário responsável *</Label>
-            {funcionarios.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">{localizeText("Nenhum funcionário. Cadastre em")}<a className="text-primary underline" href="/precificacao/folha-pagamento">{localizeText("Folha de Pagamento")}</a>.
-              </div>
-            ) : (
-              <Select value={funcionarioId} onValueChange={setFuncionarioId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {funcionarios.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div>
-            <Label>Repetir nos dias *</Label>
-            <div className="flex gap-1.5 mt-2">
-              {DIAS_ORDEM.map((d) => {
-                const on = diasSemana.includes(d);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => toggleDia(d)}
-                    className={cn(
-                      'h-9 flex-1 rounded-lg text-xs font-semibold transition-colors',
-                      on ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                    )}
-                    title={DIAS_LABEL[d].full}
-                    aria-pressed={on}
-                  >
-                    {DIAS_LABEL[d].curto}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Hora início</Label>
-              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
-            </div>
-            <div>
-              <Label>Hora fim</Label>
-              <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
-            </div>
-          </div>
-
-          <div>
-            <Label>Observações</Label>
-            <Textarea rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Opcional" />
-          </div>
-        </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          {onDelete && (
-            <Button variant="outline" onClick={onDelete} className="text-destructive hover:text-destructive w-full sm:w-auto sm:mr-auto">
-              <Trash2 className="h-4 w-4 mr-1.5" />{localizeText("Excluir")}</Button>
-          )}
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Cancelar</Button>
-          <Button onClick={submit} disabled={!canSave} className="w-full sm:w-auto">{tarefa ? 'Salvar' : 'Criar'}</Button>
+          <ReceitaProducaoFields receitas={receitas} receitaId={receitaId} quantidade={quantidade} onQuantityChange={setQuantidade} onRecipeChange={id => { setReceitaId(id); setQuantidade(1); }} />
+          <div className="space-y-2"><Label>Repetir nos dias</Label><div className="grid grid-cols-7 gap-1.5">{DIAS_ORDEM.map(dia => <button key={dia} type="button" title={DIAS_LABEL[dia].full} aria-pressed={diasSemana.includes(dia)} onClick={() => setDiasSemana(previous => previous.includes(dia) ? previous.filter(value => value !== dia) : [...previous,dia])} className={cn('h-10 rounded-lg text-xs font-semibold transition-colors',diasSemana.includes(dia) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70')}>{DIAS_LABEL[dia].curto}</button>)}</div></div>
+          <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="recorrente-inicio">Início</Label><Input id="recorrente-inicio" type="time" value={horaInicio} onChange={event => setHoraInicio(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="recorrente-fim">Fim</Label><Input id="recorrente-fim" type="time" value={horaFim} onChange={event => setHoraFim(event.target.value)} /></div></div>
+          <div className="space-y-2"><Label htmlFor="recorrente-observacoes">Observações (opcional)</Label><Textarea id="recorrente-observacoes" rows={2} value={observacoes} onChange={event => setObservacoes(event.target.value)} /></div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        </fieldset>
+        <DialogFooter className="gap-2 border-t px-5 py-4 sm:px-6">
+          {onDelete && <Button type="button" variant="ghost" onClick={onDelete} disabled={saving} className="text-destructive hover:text-destructive sm:mr-auto"><Trash2 className="mr-2 h-4 w-4" />Excluir</Button>}
+          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button><Button type="submit" disabled={!canSave || saving}>{saving ? 'Salvando…' : tarefa ? 'Salvar' : 'Criar tarefa'}</Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+      </form>
+    </DialogContent>
+  </Dialog>;
 }
