@@ -26,16 +26,40 @@ create unique index producao_uma_ocorrencia on public.producao_tarefas(user_id,r
 -- New screens cancel through the RPC; older clients cannot erase production history.
 revoke delete on public.producao_tarefas from authenticated;
 
+-- Repair the current state of older returned tasks; retain the discarded attempt in history.
+with previous as materialized (
+  select id,user_id,iniciado_em,concluido_em,rendimento_real from public.producao_tarefas
+  where status='a_fazer' and (iniciado_em is not null or concluido_em is not null or rendimento_real is not null)
+), repaired as (
+  update public.producao_tarefas t set iniciado_em=null,concluido_em=null,rendimento_real=null
+  from previous p where t.id=p.id returning t.id
+)
+insert into public.producao_tarefas_historico(user_id,tarefa_id,de_status,para_status,evento_tipo,detalhes)
+select p.user_id,p.id,'a_fazer','a_fazer','edicao',jsonb_build_object(
+  'motivo','Limpeza do início de uma tentativa devolvida para A fazer',
+  'iniciado_em_anterior',p.iniciado_em,'concluido_em_anterior',p.concluido_em,'rendimento_real_anterior',p.rendimento_real)
+from previous p join repaired r on r.id=p.id;
+
 update public.producao_tarefas set
   tempo_producao_segundos=case when status='feito' and iniciado_em is not null and concluido_em>=iniciado_em then extract(epoch from concluido_em-iniciado_em) else null end,
   etapa_iniciada_em=case when status='em_producao' and cancelado_em is null then iniciado_em else null end;
 create function public.contabilizar_tempo_producao() returns trigger language plpgsql set search_path='' as $$
 begin
+  -- A fazer means not started, not paused. Discard elapsed time for that attempt.
+  if new.status='a_fazer' then
+    new.iniciado_em:=null;
+    new.concluido_em:=null;
+    new.rendimento_real:=null;
+    new.tempo_producao_segundos:=null;
+    new.etapa_iniciada_em:=null;
+    return new;
+  end if;
   if old.etapa_iniciada_em is not null and (new.status<>'em_producao' or new.cancelado_em is not null) then
     new.tempo_producao_segundos:=coalesce(old.tempo_producao_segundos,0)+greatest(0,extract(epoch from clock_timestamp()-old.etapa_iniciada_em));
     new.etapa_iniciada_em:=null;
   elsif new.status='em_producao' and new.cancelado_em is null and old.etapa_iniciada_em is null then
     new.etapa_iniciada_em:=clock_timestamp();
+    if old.status='a_fazer' then new.iniciado_em:=new.etapa_iniciada_em; end if;
   end if;
   return new;
 end;
@@ -182,7 +206,7 @@ begin
     ordem=(select coalesce(max(t.ordem),-1)+1 from public.producao_tarefas t where t.user_id=p_owner and t.data_producao=v_task.data_producao and t.status=p_status and t.cancelado_em is null),
     receita_nome=v_task.receita_nome,rendimento_previsto=v_task.rendimento_previsto,rendimento_unidade=v_task.rendimento_unidade,
     rendimento_real=p_real,
-    iniciado_em=case when p_status='em_producao' then coalesce(iniciado_em,clock_timestamp()) else iniciado_em end,
+    iniciado_em=case when p_status='a_fazer' then null when p_status='em_producao' and v_old='a_fazer' then clock_timestamp() else iniciado_em end,
     concluido_em=case when p_status='feito' then clock_timestamp() else null end,
     updated_at=clock_timestamp()
     where id=p_tarefa and user_id=p_owner returning * into v_task;

@@ -50,3 +50,12 @@ it('a stale completion closes and refreshes so a retry uses the updated version'
   fireEvent.click(screen.getByRole('button',{name:'Finalizar produção'}));fireEvent.change(screen.getByLabelText('Quanto rendeu? (un)'),{target:{value:'11'}});fireEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Finalizar produção'}));await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());expect(state.refetch).toHaveBeenCalledOnce();
   state.tasks=[{...state.tasks[0],updated_at:'2026-11-11T13:00:00Z'}];view.rerender(tree());fireEvent.click(screen.getByRole('button',{name:'Finalizar produção'}));fireEvent.change(screen.getByLabelText('Quanto rendeu? (un)'),{target:{value:'12'}});fireEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Finalizar produção'}));await waitFor(()=>expect(state.mover).toHaveBeenLastCalledWith(state.tasks[0],'feito',12));
 });
+
+it('returning to A fazer explains the reset and restores the start action without an old start time',async()=>{
+  state.tasks=[{...task('one','em_producao'),iniciado_em:'2026-11-11T18:15:00Z'}];const view=open();
+  expect(screen.getByText('Início: 15:15')).toBeInTheDocument();await menu('one');fireEvent.click(screen.getByRole('menuitem',{name:'Voltar para A fazer'}));
+  expect(screen.getByRole('alertdialog')).toHaveTextContent('sem início nem tempo de produção');
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar'}));await waitFor(()=>expect(state.mover).toHaveBeenCalledWith(state.tasks[0],'a_fazer'));
+  state.tasks=[{...state.tasks[0],status:'a_fazer',iniciado_em:null}];view.rerender(tree());
+  expect(screen.queryByText('Início: 15:15')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'Iniciar produção'})).toBeEnabled();
+});

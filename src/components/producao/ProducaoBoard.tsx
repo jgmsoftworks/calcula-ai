@@ -56,6 +56,7 @@ export function ProducaoCard({tarefa,pending,onAdvance,onEdit,onHistory,onCancel
     <div className="my-3 space-y-2 text-xs text-muted-foreground">
       <p className="flex items-start gap-2"><User className="h-4 w-4 shrink-0"/><span className="break-words">{tarefa.funcionario?.nome??'Sem responsável'}</span></p>
       {(tarefa.inicio_previsto||tarefa.fim_previsto) && <p className="flex flex-wrap items-center gap-2"><Clock className="h-4 w-4"/>{tarefa.inicio_previsto?hora(tarefa.inicio_previsto):'—'} – {tarefa.fim_previsto?hora(tarefa.fim_previsto):'—'}{atraso && <span className="rounded-md bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-950 dark:text-amber-200">Atrasada</span>}</p>}
+      {tarefa.status!=='a_fazer' && tarefa.iniciado_em && <p>Início: {hora(tarefa.iniciado_em)}{tarefa.status==='feito'&&tarefa.concluido_em?` · Fim: ${hora(tarefa.concluido_em)}`:''}</p>}
       {tarefa.observacoes && <p className="whitespace-pre-wrap break-words border-l-2 pl-2 leading-relaxed">{tarefa.observacoes}</p>}
     </div>
     {(onAdvance||onRestore||handle) && <div className="flex items-center gap-2 border-t pt-3">

@@ -5,6 +5,7 @@ const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const owner=id(1),other=id(2),recipe=id(10),employee=id(20),task=id(30),link=id(40);
 let db:PGlite;
 let archivalProof:unknown;
+let resetRepairProof:any;
 type Task={id:string;status:string;updated_at:string;rendimento_previsto:number|null;rendimento_real:number|null;rendimento_unidade:string|null;receita_nome:string|null;cancelado_em:string|null;duplicada_de:string|null;recorrente_id:string|null;ordem:number;tempo_producao_segundos:number|null};
 async function current(key=task){return (await db.query<{data:Task}>('select to_jsonb(t) as data from producao_tarefas t where id=$1',[key])).rows[0].data;}
 async function move(status:string,real:number|null=null,version?:string,key=task){return (await db.query<{data:Task}>('select mover_tarefa_producao($1,$2::producao_status,$3::timestamptz,$4) as data',[key,status,version??(await current(key)).updated_at,real])).rows[0].data;}
@@ -33,8 +34,10 @@ beforeAll(async()=>{
     insert into producao_tarefas(id,user_id,data_producao,titulo,funcionario_id,recorrente_id,status) values
       ('${id(60)}','${owner}','2026-11-11','Duplicada','${employee}','${id(50)}','a_fazer'),
       ('${id(61)}','${owner}','2026-11-11','Duplicada','${employee}','${id(50)}','em_producao');
+    update producao_tarefas set iniciado_em='2026-11-11T18:15:00Z',concluido_em='2026-11-11T18:20:00Z' where id='${id(60)}';
     insert into producao_tarefas_historico(user_id,tarefa_id,para_status) values('${owner}','${id(60)}','a_fazer');`);
   await db.exec(readFileSync('supabase/migrations/20261111193000_corrigir_kanban_producao.sql','utf8'));
+  resetRepairProof={task:await current(id(60)),history:(await db.query("select detalhes from producao_tarefas_historico where evento_tipo='edicao'")).rows[0]?.detalhes};
   archivalProof=(await db.query(`select (select count(*)::int from producao_tarefas) total,
     (select count(*)::int from producao_tarefas where cancelado_em is null) active,
     (select count(*)::int from producao_tarefas_historico) history,
@@ -111,7 +114,7 @@ const input={titulo:'Produzir bolo',funcionario_id:employee,receita_id:recipe,qu
 async function create(key=id(70),value=input){return(await db.query<{data:Task}>("select criar_tarefa_producao('2026-11-11',$1,$2::jsonb) data",[key,JSON.stringify(value)])).rows[0].data;}
 async function cancel(key=task,restore=false){return(await db.query<{data:Task}>('select cancelar_tarefa_producao($1,$2,$3) data',[key,(await current(key)).updated_at,restore])).rows[0].data;}
 it('archives duplicate executions without deleting either row or its historical events',()=>{
-  expect(archivalProof).toEqual({total:2,active:1,history:2,principal:id(61)});
+  expect(archivalProof).toEqual({total:2,active:1,history:3,principal:id(61)});
 });
 it('requires starting production before completion',async()=>{
   const before=await current();await expect(move('feito',50)).rejects.toMatchObject({code:'23514'});expect(await current()).toEqual(before);
@@ -183,4 +186,33 @@ it('counts only active production segments across reopening, preserving earlier 
   await db.exec(`reset role;update producao_tarefas set etapa_iniciada_em=clock_timestamp()-interval '5 minutes',iniciado_em=clock_timestamp()-interval '1 day' where id='${task}';set role authenticated;`);
   await move('feito',72);expect(Number((await current()).tempo_producao_segundos)).toBeGreaterThanOrEqual(900);expect(Number((await current()).tempo_producao_segundos)).toBeLessThan(910);
   expect((await db.query("select rendimento_real::float real from producao_tarefas_historico where para_status='feito' order by movido_em")).rows).toEqual([{real:70},{real:72}]);
+});
+it('returning to A fazer discards the attempt and a new start uses a fresh timestamp, including shared start',async()=>{
+  await move('em_producao');
+  await db.exec(`reset role;update producao_tarefas set iniciado_em='2026-11-11T18:15:00Z',etapa_iniciada_em=clock_timestamp()-interval '10 minutes' where id='${task}';set role authenticated;`);
+  const returned=await move('a_fazer');
+  expect(returned).toMatchObject({iniciado_em:null,concluido_em:null,rendimento_real:null,etapa_iniciada_em:null,tempo_producao_segundos:null});
+  expect((await db.query("select para_status from producao_tarefas_historico where tarefa_id=$1 order by movido_em",[task])).rows).toEqual([{para_status:'em_producao'},{para_status:'a_fazer'}]);
+  const restartAt=Date.now();
+  await db.exec('reset role;set role service_role;');
+  await db.query('select avancar_producao_compartilhada($1,$2,$3,null)',[link,task,returned.updated_at]);
+  const restarted=await current();expect(restarted.status).toBe('em_producao');
+  expect(new Date((restarted as any).iniciado_em).getTime()).toBeGreaterThanOrEqual(restartAt-1000);
+  await db.exec('reset role;set role authenticated;');
+  const done=await move('feito',70);expect(Number(done.tempo_producao_segundos)).toBeLessThan(10);
+});
+it('returning a completed task to A fazer clears execution values but keeps its completed history',async()=>{
+  await move('em_producao');await move('feito',70);
+  const returned=await move('a_fazer');expect(returned).toMatchObject({iniciado_em:null,concluido_em:null,rendimento_real:null,etapa_iniciada_em:null,tempo_producao_segundos:null});
+  expect(returned.rendimento_previsto).toBe(72);
+  expect((await db.query("select rendimento_real::float real from producao_tarefas_historico where para_status='feito'")).rows).toEqual([{real:70}]);
+});
+it('rolls back the reset together with its history when the history write fails',async()=>{
+  await move('em_producao');const before=await current();await db.query("select set_config('test.fail_history','true',false)");
+  await expect(move('a_fazer')).rejects.toMatchObject({code:'23514'});expect(await current()).toEqual(before);
+});
+
+it('repairs older returned tasks while retaining the previous timestamps as audit evidence',()=>{
+  expect(resetRepairProof.task).toMatchObject({status:'a_fazer',iniciado_em:null,concluido_em:null,tempo_producao_segundos:null});
+  expect(resetRepairProof.history).toMatchObject({iniciado_em_anterior:'2026-11-11T18:15:00+00:00',concluido_em_anterior:'2026-11-11T18:20:00+00:00'});
 });
