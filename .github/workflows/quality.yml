@@ -3,7 +3,7 @@ name: Quality
 on:
   pull_request:
   push:
-    branches: [main, 'chore/toolkit-quality-*']
+    branches: [main]
   workflow_dispatch:
 
 permissions:
