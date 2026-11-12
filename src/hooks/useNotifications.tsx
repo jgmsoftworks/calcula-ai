@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -9,27 +9,33 @@ interface Notification {
   type: 'info' | 'warning' | 'success' | 'error';
   read: boolean;
   created_at: string;
-  related_id?: string;
+  related_id?: string | null;
 }
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const userId = user?.id;
+  const requestVersion = useRef(0);
+  const accountVersion = useRef(0);
 
-  const loadNotifications = async () => {
-    if (!user) return;
+  const loadNotifications = useCallback(async () => {
+    const version = ++requestVersion.current;
+    if (!userId) { setNotifications([]); setLoading(false); return; }
+    setLoading(true);
 
     try {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) throw error;
 
+      if (version !== requestVersion.current) return;
       setNotifications(data ? data.map(item => ({
         ...item,
         type: item.type as 'info' | 'warning' | 'success' | 'error'
@@ -37,19 +43,22 @@ export const useNotifications = () => {
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  };
+  }, [userId]);
 
   const markAsRead = async (notificationId: string) => {
+    if (!userId) return;
+    const account = accountVersion.current;
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('id', notificationId);
+        .eq('id', notificationId).eq('user_id', userId);
 
       if (error) throw error;
 
+      if (account !== accountVersion.current) return;
       setNotifications(prev =>
         prev.map(n =>
           n.id === notificationId ? { ...n, read: true } : n
@@ -62,6 +71,7 @@ export const useNotifications = () => {
 
   const markAllAsRead = async () => {
     if (!user) return;
+    const account = accountVersion.current;
 
     try {
       const { error } = await supabase
@@ -72,6 +82,7 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
+      if (account !== accountVersion.current) return;
       setNotifications(prev =>
         prev.map(n => ({ ...n, read: true }))
       );
@@ -87,6 +98,7 @@ export const useNotifications = () => {
     relatedId?: string
   ) => {
     if (!user) return;
+    const account = accountVersion.current;
 
     try {
       const { data, error } = await supabase
@@ -103,7 +115,9 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(prev => [data as Notification, ...prev]);
+      if (account === accountVersion.current) {
+        setNotifications(prev => [data as Notification, ...prev.filter(item => item.id !== data.id)]);
+      }
       return data;
     } catch (error) {
       console.error('Erro ao criar notificação:', error);
@@ -111,37 +125,43 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
-    loadNotifications();
-  }, [user]);
+    accountVersion.current += 1;
+    setNotifications([]);
+    void loadNotifications();
+    return () => { requestVersion.current += 1; accountVersion.current += 1; };
+  }, [loadNotifications]);
 
   // Configurar real-time para novas notificações
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
+    let active = true;
 
     const channel = supabase
-      .channel('notifications')
+      .channel(`notifications:${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${userId}`
         },
         (payload) => {
+          if (!active) return;
           const newNotification = {
             ...payload.new,
             type: payload.new.type as 'info' | 'warning' | 'success' | 'error'
           } as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
+          setNotifications(prev => [newNotification, ...prev.filter(item => item.id !== newNotification.id)]);
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [userId]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

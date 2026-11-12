@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "aaab4d6cc75294a0005c0f8b479da988c60c0e9e",
+  "sourceCommit": "b0029f189abace8b2310c7449246ccbd54ed8304",
   "reviewedAt": "2026-11-12",
-  "errors": 380,
-  "warnings": 56,
+  "errors": 353,
+  "warnings": 50,
   "policy": "Existing debt only. No automatic expansion; reduce as violations are fixed.",
   "entries": [
     {
@@ -351,62 +351,6 @@
       "count": 1
     },
     {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "347e11a11e38abb3",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "408394a60973cd99",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "c5823e4289e576de",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "no-constant-binary-expression",
-      "severity": 2,
-      "message": "Unexpected constant truthiness on the left-hand side of a `&&` expression.",
-      "sourceHash": "5b122a6c79be6fab",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "no-constant-binary-expression",
-      "severity": 2,
-      "message": "Unexpected constant truthiness on the left-hand side of a `&&` expression.",
-      "sourceHash": "d642a5e0529d18b5",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'calcularCustoReceita'. Either include it or remove the dependency array.",
-      "sourceHash": "85caa8011946cefc",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array.",
-      "sourceHash": "54568895ce481148",
-      "count": 1
-    },
-    {
       "path": "src/components/layout/AppLayout.tsx",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -436,30 +380,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "sourceHash": "d57d6a09ba1544c1",
-      "count": 1
-    },
-    {
-      "path": "src/components/notifications/NotificationSettings.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "3ab686333ae13343",
-      "count": 1
-    },
-    {
-      "path": "src/components/notifications/NotificationSettings.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "fbab77f7bbd00ac9",
-      "count": 1
-    },
-    {
-      "path": "src/components/notifications/NotificationSettings.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadSettings'. Either include it or remove the dependency array.",
-      "sourceHash": "024dc4532131f1ea",
       "count": 1
     },
     {
@@ -1239,30 +1159,6 @@
       "count": 1
     },
     {
-      "path": "src/hooks/__tests__/useAdminDashboardMetrics.test.tsx",
-      "rule": "@typescript-eslint/no-unsafe-function-type",
-      "severity": 2,
-      "message": "The `Function` type accepts any function-like value.\nPrefer explicitly defining any function parameters and return type.",
-      "sourceHash": "b41988e40b01d767",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/__tests__/useDashboardData.test.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "37ad29a79725b717",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/__tests__/useDashboardData.test.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "8b0f8823fb465283",
-      "count": 1
-    },
-    {
       "path": "src/hooks/__tests__/usePlanLimits.test.tsx",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -1511,14 +1407,6 @@
       "count": 1
     },
     {
-      "path": "src/hooks/useNotifications.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadNotifications'. Either include it or remove the dependency array.",
-      "sourceHash": "024dc4532131f1ea",
-      "count": 1
-    },
-    {
       "path": "src/hooks/useOptimizedUserConfigurations.tsx",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -1695,115 +1583,11 @@
       "count": 1
     },
     {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "0fe470f0e71a5a4b",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "34ed6f98411011be",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "4ce8997ea7be94ce",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "610bb5bda9787fd0",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "8d2beb73cc156191",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "9c1e087001539ced",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/dashboardData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "a9597da0fb9149ee",
-      "count": 2
-    },
-    {
-      "path": "src/lib/__tests__/produtosData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "0ecf0e8f296d04f0",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/produtosData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "8016f545238c21dd",
-      "count": 1
-    },
-    {
-      "path": "src/lib/__tests__/produtosData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "c1bda15c8e8d989a",
-      "count": 2
-    },
-    {
-      "path": "src/lib/__tests__/produtosData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "e58e9e6b33608751",
-      "count": 2
-    },
-    {
       "path": "src/lib/consent.ts",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "sourceHash": "8ed8a994870c1b7b",
-      "count": 1
-    },
-    {
-      "path": "src/lib/dashboardData.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "16d8b3ba42dbf4f4",
-      "count": 1
-    },
-    {
-      "path": "src/lib/dashboardData.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "f0d9c6d75aaf6137",
       "count": 1
     },
     {
@@ -2095,14 +1879,6 @@
       "count": 1
     },
     {
-      "path": "src/pages/Geladeira.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "The 'items' logical expression could make the dependencies of useMemo Hook (at line 57) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.",
-      "sourceHash": "bcf17cec9817d357",
-      "count": 1
-    },
-    {
       "path": "src/pages/MinhaPrivacidade.tsx",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -2116,14 +1892,6 @@
       "severity": 1,
       "message": "React Hook useEffect has a missing dependency: 'loadStatus'. Either include it or remove the dependency array.",
       "sourceHash": "15039e115b372f8a",
-      "count": 1
-    },
-    {
-      "path": "src/pages/Perdas.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array.",
-      "sourceHash": "f895cbdb1998574e",
       "count": 1
     },
     {
@@ -2148,14 +1916,6 @@
       "severity": 1,
       "message": "React Hook useEffect has a missing dependency: 'loadProfile'. Either include it or remove the dependency array.",
       "sourceHash": "27c7e19d1e112eea",
-      "count": 1
-    },
-    {
-      "path": "src/pages/RelatoriosPerdas.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "ac89d2daef9d18ee",
       "count": 1
     },
     {

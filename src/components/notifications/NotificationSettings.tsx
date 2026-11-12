@@ -20,44 +20,56 @@ interface NotificationSettings {
   low_margin_alerts: boolean;
 }
 
+const DEFAULT_SETTINGS: NotificationSettings = {
+  low_stock: true, unpriced_recipes: true, cost_anomalies: true,
+  sales_opportunities: true, engagement_reminders: true, low_margin_alerts: true,
+};
+
+function readSettings(value: unknown): NotificationSettings {
+  const settings = { ...DEFAULT_SETTINGS };
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return settings;
+  for (const key of Object.keys(settings) as (keyof NotificationSettings)[]) {
+    const candidate = (value as Record<string, unknown>)[key];
+    if (typeof candidate === 'boolean') settings[key] = candidate;
+  }
+  return settings;
+}
+
 export const NotificationSettings = () => {
   usePortugalTranslation();
-  const [settings, setSettings] = useState<NotificationSettings>({
-    low_stock: true,
-    unpriced_recipes: true,
-    cost_anomalies: true,
-    sales_opportunities: true,
-    engagement_reminders: true,
-    low_margin_alerts: true
-  });
+  const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [revision, setRevision] = useState(0);
   const { user } = useAuth();
 
   useEffect(() => {
-    loadSettings();
-  }, [user]);
-
-  const loadSettings = async () => {
-    if (!user) return;
-
-    try {
-      const { data } = await supabase
-        .from('user_configurations')
-        .select('configuration')
-        .eq('user_id', user.id)
-        .eq('type', 'notification_settings')
-        .single();
-
-      if (data?.configuration) {
-        setSettings({ ...settings, ...(data.configuration as any as NotificationSettings) });
+    let active = true;
+    setSettings(DEFAULT_SETTINGS);
+    setLoadError(false);
+    if (!user?.id) { setLoadingSettings(false); return; }
+    setLoadingSettings(true);
+    const load = async () => {
+      try {
+        const { data, error } = await supabase.from('user_configurations')
+          .select('configuration').eq('user_id', user.id)
+          .eq('type', 'notification_settings').maybeSingle();
+        if (error) throw error;
+        if (active) setSettings(readSettings(data?.configuration));
+      } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+        if (active) setLoadError(true);
+      } finally {
+        if (active) setLoadingSettings(false);
       }
-    } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
-    }
-  };
+    };
+    void load();
+    return () => { active = false; };
+  }, [user?.id, revision]);
 
   const saveSettings = async () => {
-    if (!user) return;
+    if (!user || loadingSettings || loadError) return;
 
     setLoading(true);
     try {
@@ -66,8 +78,9 @@ export const NotificationSettings = () => {
         .upsert({
           user_id: user.id,
           type: 'notification_settings',
-          configuration: settings as any
-        });
+          configuration: { ...settings }
+        }, { onConflict: 'user_id,type' });
+      if (error) throw error;
 
       toast.success('Configurações salvas com sucesso!');
     } catch (error) {
@@ -145,6 +158,10 @@ export const NotificationSettings = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {loadError && <div className="space-y-2">
+          <p role="alert" className="text-sm text-destructive">Não foi possível carregar as configurações.</p>
+          <Button variant="outline" onClick={() => setRevision(value => value + 1)}>Tentar novamente</Button>
+        </div>}
         <div className="space-y-4">
           {notificationTypes.map((type) => (
             <div key={type.key} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -168,6 +185,7 @@ export const NotificationSettings = () => {
               </div>
               <Switch
                 id={type.key}
+                disabled={loadingSettings || loadError || loading || !user}
                 checked={settings[type.key]}
                 onCheckedChange={() => handleToggle(type.key)}
               />
@@ -176,7 +194,7 @@ export const NotificationSettings = () => {
         </div>
 
         <div className="flex justify-end pt-4">
-          <Button onClick={saveSettings} disabled={loading}>
+          <Button onClick={saveSettings} disabled={loading || loadingSettings || loadError || !user}>
             {loading ? 'Salvando...' : 'Salvar Configurações'}
           </Button>
         </div>

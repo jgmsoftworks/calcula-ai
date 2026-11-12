@@ -22,7 +22,7 @@ it('shows cached cards on returning, updates in the background, and preserves th
   const first = renderHook(() => useDashboardData(), { wrapper });
   await waitFor(() => expect(first.result.current.data.valorEmEstoque).toBe(130));
   first.unmount();
-  let finish!: (value: any) => void;
+  let finish!: (value: { valorEmEstoque: number }) => void;
   mocks.fetch.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   const second = renderHook(() => useDashboardData(), { wrapper });
   expect(second.result.current.data).toMatchObject({ valorEmEstoque: 130, loading: false, updating: true });
@@ -38,7 +38,7 @@ it('does not expose cached values or late responses from another account', async
   mocks.fetch.mockResolvedValueOnce({ valorEmEstoque: 130 });
   const { result, rerender } = renderHook(() => useDashboardData(), { wrapper: setup() });
   await waitFor(() => expect(result.current.data.valorEmEstoque).toBe(130));
-  let finishOld!: (value: any) => void;
+  let finishOld!: (value: { valorEmEstoque: number }) => void;
   mocks.fetch.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }));
   act(() => { void result.current.refreshData(); });
   mocks.fetch.mockImplementation(() => new Promise(() => {}));
