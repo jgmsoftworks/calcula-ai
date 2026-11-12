@@ -55,9 +55,9 @@ export async function fetchDashboardData(userId: string, monthStart: string, mon
   // (custo unitário da receita / preço de venda) * 100.
   // Sub-receitas e receitas sem custo/preço válidos não entram na média.
   const cmvsIndividuais = receitasParaCmv.data
-    .map(calcularDadosReceita)
-    .filter((r: any) => r.markup?.tipo !== 'sub_receita')
-    .map((r: any): number | null => {
+    .map(receita => calcularDadosReceita(receita))
+    .filter((r) => r.markup?.tipo !== 'sub_receita')
+    .map((r): number | null => {
       const custoTotal =
         (r.custo_ingredientes || 0) +
         (r.custo_embalagens || 0) +

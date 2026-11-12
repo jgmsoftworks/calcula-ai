@@ -1,26 +1,23 @@
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion } from '@/lib/business-region';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Package, ChefHat, AlertTriangle } from 'lucide-react';
-import { usePerdas, Perda } from '@/hooks/usePerdas';
+import { usePerdas, type Perda } from '@/hooks/usePerdas';
+import { usePerdasConsulta } from '@/hooks/usePerdasConsulta';
 import { RegistrarPerdaModal } from '@/components/estoque/perdas/RegistrarPerdaModal';
 import { formatBRL } from '@/lib/formatters';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function Perdas() {
   usePortugalTranslation();
-  const { fetchPerdas, excluirPerda, loading } = usePerdas();
-  const [perdas, setPerdas] = useState<Perda[]>([]);
+  const { excluirPerda } = usePerdas();
+  const { perdas, loading, error, reload: load } = usePerdasConsulta();
   const [modalOpen, setModalOpen] = useState(false);
   const [perdaParaExcluir, setPerdaParaExcluir] = useState<Perda | null>(null);
-
-  const load = async () => setPerdas(await fetchPerdas());
-
-  useEffect(() => { load(); }, []);
 
   const totalPerda = perdas.reduce((s, p) => s + Number(p.custo_total || 0), 0);
   const totalProdutos = perdas.filter(p => p.tipo === 'produto').length;
@@ -60,6 +57,11 @@ export default function Perdas() {
 
       {loading ? (
         <Card className="p-8 text-center text-muted-foreground">{localizeText("Carregando...")}</Card>
+      ) : error ? (
+        <Card className="p-6 space-y-3">
+          <p role="alert">Não foi possível carregar as perdas.</p>
+          <Button variant="outline" onClick={load}>Tentar novamente</Button>
+        </Card>
       ) : perdas.length === 0 ? (
         <Card className="p-10 text-center glass-card">
           <AlertTriangle className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />

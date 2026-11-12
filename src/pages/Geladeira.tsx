@@ -48,7 +48,7 @@ export default function Geladeira() {
     queryFn: () => fetchTodasReceitas(user!.id, { status: 'finalizada' }), staleTime: 0 });
   const previewQuery = useQuery({ queryKey: ['geladeira-receita-detalhes', user?.id, previewItem?.receita_id], enabled: !!user && !!previewItem,
     queryFn: ({ signal }) => fetchReceitaParaVisualizacao(user!.id, previewItem!.receita_id, signal), staleTime: 0 });
-  const items = itemsQuery.data || [];
+  const items = useMemo(() => itemsQuery.data || [], [itemsQuery.data]);
   const filtered = useMemo(() => items.filter(item => {
     const sub = item.receita.markup?.tipo === 'sub_receita';
     return `${item.receita.nome} ${item.receita.numero_sequencial}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())

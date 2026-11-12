@@ -11,7 +11,7 @@ function setup() {
   const client = new QueryClient({ defaultOptions:{queries:{retry:false,retryDelay:0}} }); clients.push(client);
   mocks.from.mockImplementation((table:string) => {
     const result = { data:table==='profiles'?Array.from({length:10},(_,i)=>({user_id:String(i),plan:'professional',created_at:'2026-10-01'})):[],error:null,count:0 };
-    return {select:()=>({eq:()=>Promise.resolve(result),then:(resolve:Function)=>Promise.resolve(result).then(resolve as never)})};
+    return {select:()=>({eq:()=>Promise.resolve(result),then:(resolve:(value:typeof result)=>unknown)=>Promise.resolve(result).then(resolve)})};
   });
   mocks.rpc.mockResolvedValue({data:[],error:null});
   return ({children}:{children:React.ReactNode})=><QueryClientProvider client={client}>{children}</QueryClientProvider>;

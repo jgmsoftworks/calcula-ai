@@ -1,34 +1,48 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type Row = Record<string, unknown>;
+type Result = { data: Row | Row[] | null; error: Error | null };
+type Query = PromiseLike<Result> & {
+  select: (columns: string) => Query;
+  eq: (...args: unknown[]) => Query;
+  gte: (...args: unknown[]) => Query;
+  lte: (...args: unknown[]) => Query;
+  order: (column: string) => Query;
+  range: (from: number, to: number) => Query;
+  abortSignal: (signal: AbortSignal) => Query;
+  maybeSingle: () => Query;
+};
+
 const mocks = vi.hoisted(() => ({
-  tables: {} as Record<string, any[]>,
-  requests: [] as { table: string; from?: number; to?: number; filters: any[]; signal?: AbortSignal; order?: string }[],
+  tables: {} as Record<string, Row[]>,
+  requests: [] as { table: string; from?: number; to?: number; filters: unknown[][]; signal?: AbortSignal; order?: string }[],
   fail: '' as string,
   failFrom: 0,
 }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
   from: (table: string) => {
     const request: typeof mocks.requests[number] = { table, filters: [] };
-    const query: any = {
+    let single = false;
+    const query: Query = {
       select: (columns: string) => {
         if (table === 'receitas' && /custo_(ingredientes|embalagens|mao_obra|sub_receitas)/.test(columns)) {
           throw new Error('column receitas.custo_ingredientes does not exist');
         }
         return query;
       },
-      eq: (...args: any[]) => { request.filters.push(args); return query; },
-      gte: (...args: any[]) => { request.filters.push(args); return query; },
-      lte: (...args: any[]) => { request.filters.push(args); return query; },
+      eq: (...args: unknown[]) => { request.filters.push(args); return query; },
+      gte: (...args: unknown[]) => { request.filters.push(args); return query; },
+      lte: (...args: unknown[]) => { request.filters.push(args); return query; },
       order: (column: string) => { request.order = column; return query; },
       range: (from: number, to: number) => { request.from = from; request.to = to; return query; },
       abortSignal: (signal: AbortSignal) => { request.signal = signal; return query; },
-      maybeSingle: () => { query.single = true; return query; },
-      then: (resolve: any, reject: any) => {
+      maybeSingle: () => { single = true; return query; },
+      then: (resolve, reject) => {
         mocks.requests.push(request);
         const failed = table === mocks.fail && (request.from || 0) >= mocks.failFrom;
         const rows = mocks.tables[table] || [];
         return Promise.resolve({
-          data: failed ? null : query.single ? rows[0] || null : rows.slice(request.from, (request.to ?? rows.length) + 1),
+          data: failed ? null : single ? rows[0] || null : rows.slice(request.from, (request.to ?? rows.length) + 1),
           error: failed ? new Error('offline') : null,
         }).then(resolve, reject);
       },

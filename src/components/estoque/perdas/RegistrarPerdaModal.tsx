@@ -19,9 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Package, ChefHat, Refrigerator, ArrowLeft, Plus, Trash2, Search, ChevronsUpDown, Check } from 'lucide-react';
+import { Package, ChefHat, Refrigerator, ArrowLeft, Plus, Trash2, Search } from 'lucide-react';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -145,11 +143,10 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   const [custoReceitaUnit, setCustoReceitaUnit] = useState(0);
   const [busca, setBusca] = useState('');
   const [itemModalOpen, setItemModalOpen] = useState(false);
-  const [popoverProdutoOpen, setPopoverProdutoOpen] = useState(false);
-  const [popoverReceitaOpen, setPopoverReceitaOpen] = useState(false);
 
   useEffect(() => {
-    if (!open || !user) return;
+    if (!open || !user?.id) return;
+    let active = true;
     (async () => {
       const [{ data: ps }, { data: rs }, { data: fs }] = await Promise.all([
         supabase.from('produtos')
@@ -162,18 +159,22 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           .select('id, nome, cargo')
           .eq('user_id', user.id).eq('ativo', true).order('nome'),
       ]);
-      setProdutos((ps as any) || []);
-      const receitasComCusto = await Promise.all(((rs as any[]) || []).map(async (receita) => {
+      if (!active) return;
+      setProdutos(ps || []);
+      const receitasComCusto = await Promise.all((rs || []).map(async (receita) => {
         const { data: custo } = await supabase.rpc('calcular_custo_receita', { p_receita_id: receita.id });
         return { ...receita, custo_total: Number(custo) || 0 };
       }));
-      setReceitas(receitasComCusto);
-      setFuncionarios((fs as any) || []);
+      if (active) {
+        setReceitas(receitasComCusto);
+        setFuncionarios(fs || []);
+      }
     })();
-  }, [open, user]);
+    return () => { active = false; };
+  }, [open, user?.id]);
 
   useEffect(() => {
-    if (!open || !user) return;
+    if (!open || !user?.id) return;
     let active = true;
     setGeladeiraLoading(true); setGeladeiraErro(false); setGeladeira([]);
     fetchGeladeira(user.id).then(items => { if (active) setGeladeira(items.map(geladeiraComoProduto)); })
@@ -204,17 +205,19 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
   }, [open]);
 
   useEffect(() => {
+    let active = true;
     if (tipo === 'receita' && receitaId) {
       (async () => {
         const custoTotal = await calcularCustoReceita(receitaId);
         const r = receitas.find(x => x.id === receitaId);
         const rendimento = r?.rendimento_valor && r.rendimento_valor > 0 ? r.rendimento_valor : 1;
-        setCustoReceitaUnit(custoTotal / rendimento);
+        if (active) setCustoReceitaUnit(custoTotal / rendimento);
       })();
     } else {
       setCustoReceitaUnit(0);
     }
-  }, [receitaId, tipo, receitas]);
+    return () => { active = false; };
+  }, [receitaId, tipo, receitas, calcularCustoReceita]);
 
   const produtoSel = useMemo(() => produtosDisponiveis.find(p => p.id === produtoId), [produtosDisponiveis, produtoId]);
   const receitaSel = useMemo(() => receitas.find(r => r.id === receitaId), [receitas, receitaId]);
@@ -324,35 +327,6 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       onOpenChange(false);
     }
   };
-
-  // Garante scroll com a roda do mouse dentro do Popover
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.currentTarget.scrollTop += e.deltaY;
-    e.stopPropagation();
-  };
-
-  const estoqueBadge = (p: ProdutoOpt) => {
-    const qtd = p.estoque_atual ?? 0;
-    const min = p.estoque_minimo ?? 0;
-    const variant: 'destructive' | 'secondary' | 'outline' =
-      qtd <= 0 ? 'destructive' : (min > 0 && qtd <= min ? 'secondary' : 'outline');
-    return (
-      <Badge variant={variant} className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">
-        {qtd} {p.unidade_compra}
-      </Badge>
-    );
-  };
-
-  const tagBadge = (label: string, key: 'marca' | 'categoria') => (
-    <Badge
-      key={`${key}-${label}`}
-      variant={key === 'marca' ? 'secondary' : 'outline'}
-      className="text-[10px] px-1 py-0 max-w-[7rem] truncate"
-      title={label}
-    >
-      {label}
-    </Badge>
-  );
 
   return (
     <>
@@ -505,322 +479,6 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
             <p className="text-xs text-muted-foreground">{localizeText("Cada item será salvo separadamente no histórico.")}</p>
           </div>
 
-          {false && (<div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.9fr)]">
-            <div className="flex min-h-0 flex-col gap-3 rounded-xl border bg-muted/10 p-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={busca}
-                  onChange={event => setBusca(event.target.value)}
-                  placeholder={`Buscar ${tipo !== 'receita' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
-                  className="pl-9"
-                />
-              </div>
-              <div className="h-[min(17.5rem,40vh)] min-h-48 space-y-2 overflow-y-auto pr-1 sm:h-[17.5rem]">
-                {tipo !== 'receita' ? (
-                  (itensFiltrados as ProdutoOpt[]).length === 0 ? (
-                    <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhum produto encontrado.</p>
-                  ) : (itensFiltrados as ProdutoOpt[]).map(produto => (
-                    <button
-                      type="button"
-                      key={produto.id}
-                      onClick={() => setProdutoId(produto.id)}
-                      className={cn(
-                        'flex h-[5.5rem] w-full items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
-                        produtoId === produto.id && 'border-primary bg-primary/5 ring-1 ring-primary',
-                      )}
-                    >
-                      {produto.imagem_url
-                        ? <img src={produto.imagem_url} alt={produto.nome} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
-                        : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600"><Package className="h-6 w-6" /></span>}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{produto.nome}</span>
-                        <span className="mt-1 flex flex-wrap gap-1">
-                          {produto.categorias?.slice(0, 2).map(categoria => <Badge key={categoria} variant="outline" className="text-[10px]">{categoria}</Badge>)}
-                          {produto.marcas?.slice(0, 1).map(marca => <Badge key={marca} variant="secondary" className="text-[10px]">{marca}</Badge>)}
-                        </span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{localizeText("Estoque:")}{produto.estoque_atual} {produto.unidade_compra} · Custo: {produto.custo_indisponivel ? 'Indisponível: ajuste o rendimento' : formatBRL(produto.custo_unitario)}
-                        </span>
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  (itensFiltrados as ReceitaOpt[]).length === 0 ? (
-                    <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhuma receita encontrada.</p>
-                  ) : (itensFiltrados as ReceitaOpt[]).map(receita => (
-                    <button
-                      type="button"
-                      key={receita.id}
-                      onClick={() => setReceitaId(receita.id)}
-                      className={cn(
-                        'flex h-[5.5rem] w-full items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 text-left transition-colors hover:border-primary/60',
-                        receitaId === receita.id && 'border-primary bg-primary/5 ring-1 ring-primary',
-                      )}
-                    >
-                      {receita.imagem_url
-                        ? <img src={receita.imagem_url} alt={receita.nome} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
-                        : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600"><ChefHat className="h-6 w-6" /></span>}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">#{receita.numero_sequencial} {receita.nome}</span>
-                        <span className="mt-1 flex flex-wrap gap-1">
-                          {receita.tipo_produto && <Badge variant="outline" className="text-[10px]">{receita.tipo_produto}</Badge>}
-                          {receita.rendimento_valor && <Badge variant="secondary" className="text-[10px]">Rende {receita.rendimento_valor} {receita.rendimento_unidade || 'un'}</Badge>}
-                        </span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          Custo da produção: {formatBRL(receita.custo_total)}
-                          {receita.rendimento_valor && receita.rendimento_valor > 0
-                            ? ` · ${formatBRL(receita.custo_total / receita.rendimento_valor)} por ${receita.rendimento_unidade || 'un'}`
-                            : ''}
-                        </span>
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="min-w-0 space-y-3 lg:border-l lg:pl-4">
-              <div className="rounded-xl border bg-card p-4">
-                {tipo !== 'receita' ? (
-                  produtoSel ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        {produtoSel.imagem_url
-                          ? <img src={produtoSel.imagem_url} alt={produtoSel.nome} className="h-16 w-16 rounded-xl object-cover" />
-                          : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600"><Package className="h-7 w-7" /></span>}
-                        <div><p className="font-semibold">{produtoSel.nome}</p><p className="text-sm text-muted-foreground">{produtoSel.custo_indisponivel ? 'Indisponível: ajuste o rendimento' : formatBRL(produtoSel.custo_unitario)} por {produtoSel.unidade_compra}</p></div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
-                        <div className="space-y-2"><Label>Custo da perda</Label><Input value={formatBRL(custoTotal)} disabled className="bg-muted/40 font-semibold" /></div>
-                      </div>
-                      <Button type="button" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2"><Plus className="h-4 w-4" /> Adicionar produto</Button>
-                    </div>
-                  ) : <p className="py-10 text-center text-sm text-muted-foreground">Selecione um produto ao lado para informar a quantidade.</p>
-                ) : (
-                  receitaSel ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        {receitaSel.imagem_url
-                          ? <img src={receitaSel.imagem_url} alt={receitaSel.nome} className="h-16 w-16 rounded-xl object-cover" />
-                          : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600"><ChefHat className="h-7 w-7" /></span>}
-                        <div className="min-w-0"><p className="truncate font-semibold">#{receitaSel.numero_sequencial} {receitaSel.nome}</p><p className="text-sm text-muted-foreground">Rende {receitaSel.rendimento_valor || 1} {receitaSel.rendimento_unidade || 'un'} · Custo total {formatBRL(receitaSel.custo_total)}</p></div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
-                        <div className="space-y-2"><Label>Custo da perda</Label><Input value={formatBRL(custoTotal)} disabled className="bg-muted/40 font-semibold" /></div>
-                      </div>
-                      <Button type="button" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2"><Plus className="h-4 w-4" /> Adicionar receita</Button>
-                    </div>
-                  ) : <p className="py-10 text-center text-sm text-muted-foreground">Selecione uma receita ao lado para informar a quantidade.</p>
-                )}
-              </div>
-
-              <div className="flex h-[12rem] flex-col gap-2 rounded-xl border bg-muted/20 p-3">
-                <div className="flex items-center justify-between gap-3"><Label>Itens desta perda ({itens.length})</Label><span className="text-sm font-semibold">{formatBRL(custoTotalLote)}</span></div>
-                <div className="h-[7rem] space-y-2 overflow-y-auto pr-1">
-                  {itens.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed bg-background/50 px-4 text-center text-xs text-muted-foreground">
-                      Os itens adicionados aparecerão aqui.
-                    </div>
-                  ) : itens.map(item => (
-                      <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
-                        {item.tipo !== 'receita' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.nome}</p><p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p></div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                </div>
-                <p className="text-xs text-muted-foreground">{localizeText("Cada item será salvo separadamente no histórico.")}</p>
-              </div>
-            </div>
-          </div>)}
-
-          {false && (<div>
-          {tipo !== 'receita' ? (
-          <div className="space-y-2">
-            <Label>Produto</Label>
-            <Popover open={popoverProdutoOpen} onOpenChange={setPopoverProdutoOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-10">
-                  {produtoSel ? (
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      {produtoSel.imagem_url ? (
-                        <img src={produtoSel.imagem_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-                      ) : (
-                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="truncate text-left text-sm">{produtoSel.nome}</span>
-                    </div>
-                  ) : (
-                    'Selecionar produto...'
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent data-command-popover=""
-                className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
-                align="start"
-                side="bottom"
-                sideOffset={4}
-                avoidCollisions
-                collisionPadding={8}
-              >
-                <Command>
-                  <CommandInput placeholder={localizeText("Buscar por nome, marca ou categoria...")} />
-                  <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
-                    <CommandEmpty>Nenhum produto.</CommandEmpty>
-                    <CommandGroup>
-                      {produtosDisponiveis.map(p => {
-                        const searchValue = [p.nome, ...(p.marcas || []), ...(p.categorias || [])].join(' ').toLowerCase();
-                        return (
-                          <CommandItem
-                            key={p.id}
-                            value={searchValue}
-                            onSelect={() => { setProdutoId(p.id); setPopoverProdutoOpen(false); }}
-                            className="items-center gap-2 py-1.5 px-2 cursor-pointer"
-                          >
-                          <Check className={cn('h-4 w-4 shrink-0', produtoId === p.id ? 'opacity-100' : 'opacity-0')} />
-                          {p.imagem_url ? (
-                            <img src={p.imagem_url} alt="" className="h-9 w-9 rounded object-cover shrink-0" />
-                          ) : (
-                            <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                            <div className="flex items-center justify-between gap-2 min-w-0">
-                              <span className="font-medium text-sm truncate">{p.nome}</span>
-                              {estoqueBadge(p)}
-                            </div>
-                            {(p.marcas?.length || p.categorias?.length) ? (
-                              <div className="flex flex-wrap gap-1">
-                                {p.marcas?.slice(0, 1).map(m => tagBadge(m, 'marca'))}
-                                {p.categorias?.slice(0, 1).map(c => tagBadge(c, 'categoria'))}
-                              </div>
-                            ) : null}
-                          </div>
-                        </CommandItem>
-                      );
-                    })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          ) : (
-          <div className="space-y-2">
-            <Label>Receita</Label>
-            <Popover open={popoverReceitaOpen} onOpenChange={setPopoverReceitaOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal h-10">
-                  {receitaSel ? (
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
-                        <ChefHat className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <span className="truncate text-left text-sm">#{receitaSel.numero_sequencial} {receitaSel.nome}</span>
-                    </div>
-                  ) : (
-                    'Selecionar receita...'
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent data-command-popover=""
-                className="p-0 w-[--radix-popover-trigger-width] max-w-[min(95vw,26rem)]"
-                align="start"
-                side="bottom"
-                sideOffset={4}
-                avoidCollisions
-                collisionPadding={8}
-              >
-                <Command>
-                  <CommandInput placeholder={localizeText("Buscar receita...")} />
-                  <CommandList onWheel={handleWheel} className="max-h-[260px] overflow-y-auto">
-                    <CommandEmpty>Nenhuma receita.</CommandEmpty>
-                    <CommandGroup>
-                      {receitas.map(r => (
-                        <CommandItem
-                          key={r.id}
-                          value={`${r.numero_sequencial} ${r.nome}`}
-                          onSelect={() => { setReceitaId(r.id); setPopoverReceitaOpen(false); }}
-                          className="items-center gap-2 py-1.5 px-2 cursor-pointer"
-                        >
-                          <Check className={cn('h-4 w-4 shrink-0', receitaId === r.id ? 'opacity-100' : 'opacity-0')} />
-                          <div className="h-9 w-9 rounded bg-muted flex items-center justify-center shrink-0">
-                            <ChefHat className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                            <div className="flex items-center justify-between gap-2 min-w-0">
-                              <span className="font-medium text-sm truncate">#{r.numero_sequencial} {r.nome}</span>
-                              {r.rendimento_valor ? (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">
-                                  {r.rendimento_valor}{r.rendimento_unidade ? ` ${r.rendimento_unidade}` : ''}
-                                </Badge>
-                              ) : null}
-                            </div>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {receitaSel && (
-              <p className="text-xs text-muted-foreground">
-                Custo unitário estimado: <span className="font-semibold text-foreground">{formatBRL(custoReceitaUnit)}</span>
-                {receitaSel.rendimento_unidade && ` / ${receitaSel.rendimento_unidade}`}
-              </p>
-            )}
-          </div>
-          )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Quantidade</Label>
-            <NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} />
-          </div>
-          <div className="space-y-2">
-            <Label>Custo total</Label>
-            <Input value={formatBRL(custoTotal)} disabled className="bg-muted/40 font-semibold" />
-          </div>
-        </div>
-
-        <Button type="button" variant="secondary" onClick={adicionarItem} disabled={!podeAdicionar} className="w-full gap-2">
-          <Plus className="h-4 w-4" /> Adicionar {tipo !== 'receita' ? 'produto' : 'receita'} à lista
-        </Button>
-
-        {itens.length > 0 && (
-          <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label>{itens.length} {itens.length === 1 ? 'item adicionado' : 'itens adicionados'}</Label>
-              <span className="text-sm font-semibold">{formatBRL(custoTotalLote)}</span>
-            </div>
-            <div className="max-h-40 space-y-2 overflow-y-auto">
-              {itens.map(item => (
-                <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
-                  {item.tipo !== 'receita'
-                    ? <Package className="h-4 w-4 shrink-0 text-blue-600" />
-                    : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{item.nome}</p>
-                    <p className="text-xs text-muted-foreground">Qtd: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p>
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">{localizeText("Cada item será salvo separadamente no histórico.")}</p>
-          </div>
-        )}
-          </div>)}
 
         <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">

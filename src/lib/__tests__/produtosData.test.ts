@@ -1,18 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Produto } from '@/hooks/useEstoque';
-const mocks = vi.hoisted(() => ({ from: vi.fn(), pages: [] as any[] }));
+type Page = { data: Produto[] | null; error: Error | null };
+type QueryMethod = ReturnType<typeof vi.fn<(...args: unknown[]) => CatalogQuery>>;
+interface CatalogQuery extends PromiseLike<Page> {
+  select: QueryMethod;
+  eq: QueryMethod;
+  order: QueryMethod;
+  range: QueryMethod;
+  abortSignal: QueryMethod;
+}
+const mocks = vi.hoisted(() => ({ from: vi.fn(), pages: [] as Page[] }));
+function queryFor(next: () => Page): CatalogQuery {
+  const query: CatalogQuery = {
+    select: vi.fn(() => query), eq: vi.fn(() => query), order: vi.fn(() => query),
+    range: vi.fn(() => query), abortSignal: vi.fn(() => query),
+    then: (resolve, reject) => Promise.resolve(next()).then(resolve, reject),
+  };
+  return query;
+}
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: mocks.from } }));
 import { fetchCatalogoProdutos, filtrarProdutos } from '../produtosData';
-const produto = (id: number, overrides: Partial<Produto> = {}) => ({ id: String(id), nome: `Produto ${id}`, codigo_interno: id, unidade_compra: 'kg', codigos_barras: ['7890123'], marcas: ['Marca A'], categorias: ['Frutas'], estoque_minimo: 2, estoque_atual: 1, ...overrides } as Produto);
+const produto = (id: number, overrides: Partial<Produto> = {}): Produto => ({ user_id: 'account-a', custo_unitario: 5, unidade_uso: null, fator_conversao: null, imagem_url: null, ativo: true, created_at: '', updated_at: '', id: String(id), nome: `Produto ${id}`, codigo_interno: id, unidade_compra: 'kg', codigos_barras: ['7890123'], marcas: ['Marca A'], categorias: ['Frutas'], estoque_minimo: 2, estoque_atual: 1, ...overrides });
 beforeEach(() => { mocks.from.mockReset(); mocks.pages = []; });
 
 describe('product catalog loading and filtering', () => {
   it('reads all pages, carries the account and cancellation signal and normalizes display fields', async () => {
     mocks.pages = [{ data: Array.from({ length: 500 }, (_, i) => produto(i)), error: null }, { data: [produto(500, { nome: '  Último produto  ', unidade_compra: 'KG' })], error: null }];
-    const builders: any[] = [];
+    const builders: CatalogQuery[] = [];
     mocks.from.mockImplementation(() => {
-      const query: any = { then: (resolve: any) => Promise.resolve(mocks.pages.shift()).then(resolve) };
-      for (const method of ['select', 'eq', 'order', 'range', 'abortSignal']) query[method] = vi.fn(() => query);
+      const query = queryFor(() => mocks.pages.shift() ?? { data: [], error: null });
       builders.push(query); return query;
     });
     const signal = new AbortController().signal;
@@ -26,8 +42,7 @@ describe('product catalog loading and filtering', () => {
   });
 
   it('propagates a failed page rather than returning a partial or empty successful catalog', async () => {
-    const query: any = { then: (resolve: any) => Promise.resolve({ data: null, error: new Error('offline') }).then(resolve) };
-    for (const method of ['select', 'eq', 'order', 'range']) query[method] = () => query;
+    const query = queryFor(() => ({ data: null, error: new Error('offline') }));
     mocks.from.mockReturnValue(query);
     await expect(fetchCatalogoProdutos('account-a')).rejects.toThrow('offline');
   });

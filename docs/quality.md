@@ -65,6 +65,38 @@ Não há mudança de schema, dados, fórmulas, cobrança, acesso ou infraestrutu
 Reversão: reverter o commit deste lote (incluindo baseline e testes); publicação
 continua manual pelo Lovable.
 
+### Continuação: perdas e notificações
+
+Base: `b0029f189abace8b2310c7449246ccbd54ed8304`. O segundo lote reduz a dívida de
+380 erros/56 avisos para **353 erros/50 avisos**: mais 33 ocorrências removidas,
+sem aumentar a baseline nem desativar regras.
+
+- Perdas: Limpar descarta os filtros usados pela consulta; datas usam o fuso do
+  negócio, incluindo horário de verão em Portugal. A leitura percorre todas as
+  páginas de 500 registros e rejeita falhas, sem apresentar totais parciais como
+  sucesso. As telas exibem erro, permitem repetir e bloqueiam exportação inválida.
+- Notificações: configurações usam o conflito único já existente `(user_id, type)`
+  no salvamento; erros retornados pelo Supabase deixam de gerar confirmação de
+  sucesso. Preferências não podem ser sobrescritas enquanto a leitura está
+  pendente ou falhou. Leitura, eventos e conclusão de operações antigas não
+  atualizam a lista após troca de conta; itens recebidos em duplicidade são unidos
+  pelo ID. O fluxo de autenticação permanece igual.
+- Manutenção: removidos dois layouts inativos e seus auxiliares do cadastro de
+  perdas. Tipos dos testes de estoque/painel e inferência do CMV foram corrigidos
+  sem alterar fórmulas. A lista vazia da Geladeira passa a manter referência estável.
+
+Validação local: `npm run check` aprovado, 537 cenários (360 frontend, 26 billing,
+123 SQL, 26 trial/Portugal, 2 ferramentas). Regressões de Limpar e falso sucesso
+falharam antes das correções. Testes adicionais verificam filtros/fuso, paginação,
+falha posterior, respostas atrasadas, troca de conta, duplicidade de notificações,
+preservação de preferências e o fluxo atual de registro de perda sem baixa.
+E2E e resultados do commit integrado ficam no workflow da PR.
+
+Contrato de unicidade usado: `supabase/migrations/20250905152558_7a3e2883-f3ba-49c8-a9b9-65e0912950b9.sql`.
+Nenhuma migration, função remota ou registro real foi alterado. Não foram
+atualizadas dependências. Reversão: reverter o commit deste lote e sua baseline;
+a publicação continua manual.
+
 ## Isolamento e limites
 
 `scripts/run-isolated.mjs` bloqueia HTTP/fetch/WebSocket em Node e workers, e usa

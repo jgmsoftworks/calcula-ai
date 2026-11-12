@@ -1,5 +1,5 @@
 import { getBusinessRegion } from '@/lib/business-region';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertOctagon, BarChart3, Calendar, Package, ChefHat, TrendingDown, FileDown } from 'lucide-react';
-import { usePerdas, Perda } from '@/hooks/usePerdas';
+import { usePerdasConsulta } from '@/hooks/usePerdasConsulta';
+import type { Perda } from '@/types/perdas';
+import type { FiltrosPerdas } from '@/lib/perdasData';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 
 function groupBy<T>(arr: T[], key: (it: T) => string) {
@@ -46,26 +48,19 @@ function exportCSV(perdas: Perda[]) {
 }
 
 export default function RelatoriosPerdas() {
-  const { fetchPerdas, loading } = usePerdas();
-  const [perdas, setPerdas] = useState<Perda[]>([]);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-
-  const load = async () => {
-    const filters: any = {};
-    if (dataInicio) filters.dataInicio = new Date(dataInicio).toISOString();
-    if (dataFim) {
-      const d = new Date(dataFim);
-      d.setHours(23, 59, 59, 999);
-      filters.dataFim = d.toISOString();
-    }
-    setPerdas(await fetchPerdas(filters));
+  const [filtrosAplicados, setFiltrosAplicados] = useState<FiltrosPerdas>({});
+  const { perdas, loading, error } = usePerdasConsulta(filtrosAplicados);
+  const load = () => setFiltrosAplicados({
+    dataInicio: dataInicio || undefined,
+    dataFim: dataFim || undefined,
+  });
+  const clear = () => {
+    setDataInicio('');
+    setDataFim('');
+    setFiltrosAplicados({});
   };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const totals = useMemo(() => {
     const total = perdas.reduce((s, p) => s + Number(p.custo_total || 0), 0);
@@ -110,6 +105,7 @@ export default function RelatoriosPerdas() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {error && <p role="alert" className="text-sm text-destructive">Não foi possível carregar as perdas. Aplique os filtros para tentar novamente.</p>}
       {/* Filtros */}
       <Card className="p-4 glass-card">
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
@@ -124,9 +120,9 @@ export default function RelatoriosPerdas() {
           <Button onClick={load} disabled={loading} className="w-full gap-2 sm:w-auto">
             <Calendar className="h-4 w-4" /> Aplicar
           </Button>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => { setDataInicio(''); setDataFim(''); setTimeout(load, 0); }}>Limpar</Button>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={clear}>Limpar</Button>
           <div className="flex-1" />
-          <Button variant="outline" onClick={() => exportCSV(perdas)} disabled={perdas.length === 0} className="w-full gap-2 sm:w-auto">
+          <Button variant="outline" onClick={() => exportCSV(perdas)} disabled={loading || error || perdas.length === 0} className="w-full gap-2 sm:w-auto">
             <FileDown className="h-4 w-4" /> Exportar CSV
           </Button>
         </div>
