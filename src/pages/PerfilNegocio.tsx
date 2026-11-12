@@ -4,7 +4,7 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,13 +30,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { validateImageFile, safeImageExtension } from '@/lib/uploadValidation';
-
-interface BusinessProfile {
-  business_name: string;
-  business_type: string;
-  logo_url?: string;
-  primary_color?: string;
-}
 
 interface UserProfile {
   id?: string; // Add ID for profile updates
@@ -86,13 +79,12 @@ interface UserProfile {
   cor_secundaria?: string;
 }
 
-const PerfilNegocio = () => {
+const PerfilNegocioForm = ({ userId }: { userId: string }) => {
   const { t } = usePortugalTranslation();
   const region = useBusinessRegion();
   const portugal = region.country === 'PT';
-  const { user } = useAuth();
   const { toast } = useToast();
-  const { saveConfiguration, loadConfiguration } = useOptimizedUserConfigurations();
+  const { loadConfiguration } = useOptimizedUserConfigurations();
   
   const [profile, setProfile] = useState<UserProfile>({
     full_name: '',
@@ -134,6 +126,22 @@ const PerfilNegocio = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCEP, setIsLoadingCEP] = useState(false);
   const [semNumero, setSemNumero] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const activeRef = useRef(true);
+  const logoReaderRef = useRef<FileReader | null>(null);
+  const latestCEP = useRef(profile.cep);
+  latestCEP.current = profile.cep;
+
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+      logoReaderRef.current?.abort();
+    };
+  }, []);
+
 
   // Formatting functions
   const formatCNPJ = (value: string) => {
@@ -187,31 +195,25 @@ const PerfilNegocio = () => {
       .substring(0, 9);
   };
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  // Carregar logo após o profile
-  useEffect(() => {
-    loadLogo();
-  }, [profile.logo_empresa_url]);
-
-  // Initialize semNumero state based on profile data
+  // Each account owns its form; effects also ignore superseded requests.
   useEffect(() => {
     setSemNumero(profile.numero === 'S/N');
   }, [profile.numero]);
 
-  const loadProfile = async () => {
-    if (!user) return;
+  useEffect(() => {
+    let active = true;
+    setProfileLoading(true);
+    setProfileError(false);
+    const loadProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) {
+        if (!active) return;
+        if (error || !data) throw error ?? new Error('Perfil não encontrado');
         setProfile({
           id: data.id, // Include the profile ID
           full_name: data.full_name || '',
@@ -247,27 +249,31 @@ const PerfilNegocio = () => {
           cor_primaria: data.cor_primaria || '',
           cor_secundaria: data.cor_secundaria || ''
         });
+      } catch {
+        if (active) setProfileError(true);
+      } finally {
+        if (active) setProfileLoading(false);
       }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-    }
-  };
+    };
+    void loadProfile();
+    return () => { active = false; };
+  }, [userId, region.name, loadAttempt]);
 
-  const loadLogo = async () => {
-    // Priorizar logo_empresa_url do profile (salvo no Storage)
-    if (profile.logo_empresa_url) {
-      setLogoPreview(profile.logo_empresa_url);
-      return;
+  useEffect(() => {
+    let active = true;
+    // A selected file takes precedence over any late legacy-logo response.
+    if (logoFile) return;
+    setLogoPreview(profile.logo_empresa_url || '');
+    if (!profileLoading && !profileError && !profile.logo_empresa_url) {
+      void loadConfiguration('business_logo').then(logo => {
+        if (active) setLogoPreview(typeof logo === 'string' ? logo : '');
+      });
     }
-    // Fallback para configuração antiga
-    const logoConfig = await loadConfiguration('business_logo');
-    if (logoConfig && typeof logoConfig === 'string') {
-      setLogoPreview(logoConfig);
-    }
-  };
+    return () => { active = false; };
+  }, [profile.logo_empresa_url, profileLoading, profileError, logoFile, loadConfiguration]);
 
   const handleProfileUpdate = async () => {
-    if (!user) return;
+    if (profileLoading || profileError || isLoading) return;
     setIsLoading(true);
 
     try {
@@ -281,32 +287,32 @@ const PerfilNegocio = () => {
         .from('profiles')
         .upsert({
           id: profile.id, // Include ID for proper update
-          user_id: user.id,
+          user_id: userId,
           ...profileData
         });
 
-      if (error) {
-        console.error('Erro detalhado do Supabase:', error);
-        throw error;
-      }
+      if (error) throw error;
 
+      if (!activeRef.current) return;
       toast({
         title: "Perfil atualizado",
         description: localizeText("Suas informações foram salvas com sucesso")
       });
-    } catch (error: any) {
-      console.error('Erro ao salvar perfil:', error);
+    } catch (error: unknown) {
+      if (!activeRef.current) return;
       toast({
         title: "Erro ao atualizar perfil",
-        description: error?.message || "Tente novamente em alguns instantes",
+        description: error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+          ? error.message : "Tente novamente em alguns instantes",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      if (activeRef.current) setIsLoading(false);
     }
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLoading) return;
     const file = e.target.files?.[0];
     if (file) {
       const validation = validateImageFile(file, 2 * 1024 * 1024);
@@ -323,29 +329,32 @@ const PerfilNegocio = () => {
       setLogoFile(file);
       
       // Criar preview
+      logoReaderRef.current?.abort();
       const reader = new FileReader();
+      logoReaderRef.current = reader;
       reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setLogoPreview(result);
+        const result = event.target?.result;
+        if (activeRef.current && logoReaderRef.current === reader && typeof result === 'string') setLogoPreview(result);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const saveLogo = async () => {
-    if (!logoFile || !user) return;
+    if (!logoFile || profileLoading || profileError || isLoading) return;
 
     setIsLoading(true);
     try {
       // 1. Fazer upload para o Supabase Storage
       const fileExt = safeImageExtension(logoFile.type);
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('logos-empresas')
         .upload(fileName, logoFile, { upsert: true, contentType: logoFile.type });
       
       if (uploadError) throw uploadError;
+      if (!activeRef.current) return;
       
       // 2. Obter URL pública
       const { data: { publicUrl } } = supabase.storage
@@ -356,27 +365,29 @@ const PerfilNegocio = () => {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ logo_empresa_url: publicUrl })
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
       
       if (updateError) throw updateError;
+      if (!activeRef.current) return;
       
       // Atualizar estado local
       setProfile(prev => ({ ...prev, logo_empresa_url: publicUrl }));
       setLogoPreview(publicUrl);
+      setLogoFile(null);
       
       toast({
         title: "Logo atualizado",
         description: localizeText("Seu logo foi salvo com sucesso")
       });
-    } catch (error) {
-      console.error('Erro ao salvar logo:', error);
+    } catch {
+      if (!activeRef.current) return;
       toast({
         title: localizeText("Erro ao salvar logo"),
         description: "Tente novamente em alguns instantes",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      if (activeRef.current) setIsLoading(false);
     }
   };
 
@@ -387,7 +398,9 @@ const PerfilNegocio = () => {
     try {
       const cepLimpo = cep.replace(/\D/g, '');
       const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      if (!response.ok) throw new Error('Falha na consulta do CEP');
       const data = await response.json();
+      if (!activeRef.current || latestCEP.current !== cep) return;
       
       if (data.erro) {
         toast({
@@ -411,16 +424,23 @@ const PerfilNegocio = () => {
         title: localizeText("Endereço encontrado"),
         description: "Dados preenchidos automaticamente. Preencha o número."
       });
-    } catch (error) {
+    } catch {
+      if (!activeRef.current || latestCEP.current !== cep) return;
       toast({
         title: localizeText("Erro ao buscar CEP"),
         description: "Tente novamente em alguns instantes",
         variant: "destructive"
       });
     } finally {
-      setIsLoadingCEP(false);
+      if (activeRef.current) setIsLoadingCEP(false);
     }
   };
+
+  if (profileLoading) return <p role="status">{localizeText('Carregando perfil...')}</p>;
+  if (profileError) return <div role="alert" className="space-y-4">
+    <p>{localizeText('Não foi possível carregar o perfil. Tente novamente para editar suas informações.')}</p>
+    <Button onClick={() => setLoadAttempt(attempt => attempt + 1)}>{localizeText('Tentar novamente')}</Button>
+  </div>;
 
   return (
     <div className="space-y-6">
@@ -471,12 +491,15 @@ const PerfilNegocio = () => {
                   <input
                     type="file"
                     id="logo-upload"
+                    aria-label="Imagem da empresa"
+                    disabled={isLoading}
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handleLogoChange}
                     className="hidden"
                   />
                   <Button
                     onClick={() => document.getElementById('logo-upload')?.click()}
+                    disabled={isLoading}
                     variant="outline"
                     className="w-full border-primary/20 hover:border-primary/50 hover:bg-primary/5"
                   >
@@ -497,7 +520,7 @@ const PerfilNegocio = () => {
                 </div>
                 
                 <p className="text-xs text-muted-foreground text-center">
-                  Formatos aceitos: JPG, PNG, GIF (máx. 2MB)
+                  Formatos aceitos: JPG, PNG, WebP (máx. 2MB)
                 </p>
               </div>
             </CardContent>
@@ -599,6 +622,7 @@ const PerfilNegocio = () => {
                     {!portugal && <Button
                       type="button"
                       onClick={() => buscarEnderecoPorCEP(profile.cep)}
+                      aria-label="Buscar endereço pelo CEP"
                       disabled={isLoadingCEP || !profile.cep}
                       variant="outline"
                       size="icon"
@@ -806,6 +830,12 @@ const PerfilNegocio = () => {
       </div>
     </div>
   );
+};
+
+const PerfilNegocio = () => {
+  const { user } = useAuth();
+  if (!user) return <p role="status">{localizeText('Carregando perfil...')}</p>;
+  return <PerfilNegocioForm key={user.id} userId={user.id} />;
 };
 
 export default PerfilNegocio;

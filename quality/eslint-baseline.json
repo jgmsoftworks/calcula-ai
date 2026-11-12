@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "b0029f189abace8b2310c7449246ccbd54ed8304",
+  "sourceCommit": "449cedd1e7b1401ee245830a025aec3e2d5c5225",
   "reviewedAt": "2026-11-12",
-  "errors": 353,
-  "warnings": 50,
+  "errors": 349,
+  "warnings": 48,
   "policy": "Existing debt only. No automatic expansion; reduce as violations are fixed.",
   "entries": [
     {
@@ -1419,31 +1419,7 @@
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "28397f3ea96c154a",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useOptimizedUserConfigurations.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
       "sourceHash": "45b97baeafe1f37e",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useOptimizedUserConfigurations.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "4a502e650eacde41",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useOptimizedUserConfigurations.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "cb479d6148951f25",
       "count": 1
     },
     {
@@ -1892,30 +1868,6 @@
       "severity": 1,
       "message": "React Hook useEffect has a missing dependency: 'loadStatus'. Either include it or remove the dependency array.",
       "sourceHash": "15039e115b372f8a",
-      "count": 1
-    },
-    {
-      "path": "src/pages/PerfilNegocio.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "b9ef169b83f8df5c",
-      "count": 1
-    },
-    {
-      "path": "src/pages/PerfilNegocio.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadLogo'. Either include it or remove the dependency array.",
-      "sourceHash": "f96dc5d245a918a1",
-      "count": 1
-    },
-    {
-      "path": "src/pages/PerfilNegocio.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadProfile'. Either include it or remove the dependency array.",
-      "sourceHash": "27c7e19d1e112eea",
       "count": 1
     },
     {

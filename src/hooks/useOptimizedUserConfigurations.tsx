@@ -1,169 +1,104 @@
 import { useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
+import { createLogger } from '@/lib/logger';
 
-interface UserConfiguration {
-  id?: string;
-  type: string;
-  configuration: any;
+const log = createLogger('configurations');
+const CACHE_DURATION = 30000;
+
+function createAccountCache(userId: string | undefined) {
+  return {
+    userId,
+    cache: new Map<string, { data: Json; timestamp: number }>(),
+    pending: new Map<string, { version: number; promise: Promise<Json> }>(),
+    versions: new Map<string, number>(),
+  };
+}
+
+function invalidate(account: ReturnType<typeof createAccountCache>, type: string) {
+  account.versions.set(type, (account.versions.get(type) ?? 0) + 1);
+  account.cache.delete(type);
+  account.pending.delete(type);
 }
 
 export function useOptimizedUserConfigurations() {
   const { user } = useAuth();
-  const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
-  const pendingRequests = useRef<Map<string, Promise<any>>>(new Map());
-  
-  const CACHE_DURATION = 30000; // 30 segundos de cache
+  const userId = user?.id;
+  const accountRef = useRef(createAccountCache(userId));
+  // A new account gets a new container, including when returning after logout.
+  if (accountRef.current.userId !== userId) accountRef.current = createAccountCache(userId);
+  const account = accountRef.current;
 
-  // Função para invalidar cache (usar em real-time updates)
   const invalidateCache = useCallback((type?: string) => {
-    if (type) {
-      cacheRef.current.delete(type);
-      console.log(`🗑️ Cache invalidado para tipo: ${type}`);
-    } else {
-      cacheRef.current.clear();
-      console.log('🗑️ Todo o cache foi invalidado');
+    if (type) invalidate(account, type);
+    else {
+      const types = new Set([...account.cache.keys(), ...account.pending.keys(), ...account.versions.keys()]);
+      types.forEach(key => invalidate(account, key));
     }
-  }, []);
+  }, [account]);
 
   const loadConfiguration = useCallback(async (type: string): Promise<any | null> => {
-    if (!user) return null;
+    if (!userId || accountRef.current !== account) return null;
+    const cached = account.cache.get(type);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) return cached.data;
+    const pending = account.pending.get(type);
+    if (pending) return pending.promise;
 
-    // Verificar cache
-    const cached = cacheRef.current.get(type);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data;
-    }
-
-    // Verificar se já existe uma requisição pendente
-    const pendingKey = `${user.id}-${type}`;
-    if (pendingRequests.current.has(pendingKey)) {
-      return pendingRequests.current.get(pendingKey);
-    }
-
-    const request = (async () => {
+    const version = account.versions.get(type) ?? 0;
+    const request = (async (): Promise<Json> => {
       try {
-      const { data, error } = await supabase
-        .from('user_configurations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('type', type)
-        .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
-        const result = data?.configuration || null;
-        
-        // Armazenar no cache
-        cacheRef.current.set(type, {
-          data: result,
-          timestamp: Date.now()
-        });
-
+        const { data, error } = await supabase.from('user_configurations')
+          .select('configuration').eq('user_id', userId).eq('type', type).maybeSingle();
+        if (accountRef.current !== account) return null;
+        // An invalidation or save supersedes this read. Join the current request/cache.
+        if ((account.versions.get(type) ?? 0) !== version) return loadConfiguration(type);
+        if (error) throw error;
+        const result = data?.configuration ?? null;
+        account.cache.set(type, { data: result, timestamp: Date.now() });
         return result;
-      } catch (error) {
-        console.error('Erro ao carregar configuração:', error);
+      } catch {
+        log.error('Não foi possível carregar a configuração.');
+        // Preserve the existing read API; failed reads are never cached.
         return null;
       } finally {
-        pendingRequests.current.delete(pendingKey);
+        if (account.pending.get(type)?.version === version) account.pending.delete(type);
       }
     })();
-
-    pendingRequests.current.set(pendingKey, request);
+    account.pending.set(type, { version, promise: request });
     return request;
-  }, [user]);
+  }, [account, userId]);
 
   const saveConfiguration = useCallback(async (type: string, configuration: any): Promise<void> => {
-    if (!user) return;
-
+    if (!userId || accountRef.current !== account) throw new Error('Conta indisponível para salvar a configuração.');
+    invalidate(account, type);
+    const version = account.versions.get(type);
     try {
-      // Invalidar cache
-      cacheRef.current.delete(type);
-
-      // 🔥 CORREÇÃO DO BUG: Se configuration é null, DELETAR a entrada
-      if (configuration === null || configuration === undefined) {
-        const { error } = await supabase
-          .from('user_configurations')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('type', type);
-        
-        if (error) {
-          console.error(`Erro ao deletar configuração ${type}:`, error);
-        } else {
-          console.log(`✅ Configuração ${type} deletada com sucesso`);
-        }
-        
-        // Remover do cache também
-        cacheRef.current.delete(type);
-        return;
+      const { error } = configuration == null
+        ? await supabase.from('user_configurations').delete().eq('user_id', userId).eq('type', type)
+        : await supabase.from('user_configurations').upsert({
+          user_id: userId, type, configuration,
+        }, { onConflict: 'user_id,type' });
+      if (error) throw error;
+      const unchanged = account.versions.get(type) === version;
+      // Reads made during the write may still contain the previous database value.
+      invalidate(account, type);
+      if (accountRef.current === account && unchanged) {
+        account.cache.set(type, { data: configuration ?? null, timestamp: Date.now() });
       }
-
-      const { data: existing } = await supabase
-        .from('user_configurations')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('type', type)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from('user_configurations')
-          .update({ configuration })
-          .eq('id', existing.id);
-      } else {
-        await supabase
-          .from('user_configurations')
-          .insert({
-            user_id: user.id,
-            type,
-            configuration
-          });
-      }
-
-      // Atualizar cache com novos dados
-      cacheRef.current.set(type, {
-        data: configuration,
-        timestamp: Date.now()
-      });
     } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
+      invalidate(account, type);
+      log.error('Não foi possível salvar a configuração.');
       throw error;
     }
-  }, [user]);
+  }, [account, userId]);
 
-  return {
-    loadConfiguration,
-    saveConfiguration,
-    invalidateCache,
-    // Nova função para limpeza inteligente de configurações
-    deleteConfiguration: useCallback(async (type: string): Promise<void> => {
-      if (!user) return;
-      
-      try {
-        await saveConfiguration(type, null); // Usa a nova lógica de delete
-        console.log(`🗑️ Configuração ${type} removida com sucesso`);
-      } catch (error) {
-        console.error(`❌ Erro ao remover configuração ${type}:`, error);
-        throw error;
-      }
-    }, [user, saveConfiguration]),
-    
-    // Função para limpeza em lote
-    deleteMultipleConfigurations: useCallback(async (types: string[]): Promise<void> => {
-      if (!user) return;
-      
-      console.log(`🧹 Removendo ${types.length} configurações em lote...`);
-      const results = await Promise.allSettled(
-        types.map(type => saveConfiguration(type, null))
-      );
-      
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
-      
-      console.log(`✅ Limpeza concluída: ${successful} sucessos, ${failed} falhas`);
-    }, [user, saveConfiguration])
-  };
+  const deleteConfiguration = useCallback((type: string): Promise<void> => saveConfiguration(type, null), [saveConfiguration]);
+  const deleteMultipleConfigurations = useCallback(async (types: string[]): Promise<void> => {
+    const results = await Promise.allSettled(types.map(type => deleteConfiguration(type)));
+    const failures = results.filter(result => result.status === 'rejected').length;
+    if (failures) throw new Error(`Não foi possível remover ${failures} configuração(ões). Tente novamente.`);
+  }, [deleteConfiguration]);
+
+  return { loadConfiguration, saveConfiguration, invalidateCache, deleteConfiguration, deleteMultipleConfigurations };
 }
