@@ -97,6 +97,41 @@ Nenhuma migration, função remota ou registro real foi alterado. Não foram
 atualizadas dependências. Reversão: reverter o commit deste lote e sua baseline;
 a publicação continua manual.
 
+### Continuação: perfil e persistência de configurações — 12/11/2026
+
+Base: `449cedd1e7b1401ee245830a025aec3e2d5c5225`. Este lote trata falhas de leitura,
+gravação e concorrência de respostas. A baseline passa de 353 erros/50 avisos para
+**349 erros/48 avisos**, sem novas exceções. Diagnósticos não representam uma
+contagem de funcionalidades quebradas.
+
+- Perfil: o formulário só fica disponível após uma leitura bem-sucedida. Falha
+  ou ausência do registro oferece nova tentativa, sem permitir gravar campos
+  vazios no lugar dos dados existentes. Cada conta possui sua própria instância
+  do formulário; respostas, previews e confirmações antigas não atualizam outra conta.
+- Logo: um arquivo escolhido tem prioridade sobre a resposta tardia do cadastro
+  legado. A confirmação exige upload e atualização do perfil bem-sucedidos.
+  A descrição dos formatos agora corresponde à validação existente (JPG/PNG/WebP).
+- CEP: uma resposta de um CEP que já mudou não preenche o endereço; falhas HTTP
+  não limpam os campos nem geram confirmação de sucesso.
+- Configurações: cache e requisições pendentes pertencem à conta, mantendo os
+  30 segundos existentes. Invalidação e gravação impedem que uma leitura anterior
+  recoloque valores antigos no cache. Valores JSON `false`, `0` e string vazia
+  são preservados. Gravações usam a unicidade `(user_id, type)` existente e
+  verificam erros retornados; remoção em lote informa falhas parciais.
+
+Validação local: `npm run check` aprovado com **563 cenários** (386 frontend,
+26 billing, 123 SQL, 20 trial, 6 Portugal e 2 ferramentas). Foram acrescentados
+26 testes; a primeira execução contra o código anterior reproduziu 14 falhas nos
+17 cenários iniciais. E2E e resultados do commit integrado ficam no workflow da PR.
+Todas as integrações dos novos testes usam doubles e dados sintéticos.
+
+A API legada de leitura de configurações ainda retorna `null` em caso de erro,
+sem cachear a falha; diferenciar ausência de erro em todos os consumidores e
+tipar os dois contratos públicos restantes exige um lote próprio. Não há alteração
+de fórmulas, autenticação, acesso ou cobrança. Não foram executadas migrations,
+escritas em produção, instalação de dependências ou publicação. Reversão: reverter
+o commit deste lote junto da baseline; publicação continua manual pelo Lovable.
+
 ## Isolamento e limites
 
 `scripts/run-isolated.mjs` bloqueia HTTP/fetch/WebSocket em Node e workers, e usa
