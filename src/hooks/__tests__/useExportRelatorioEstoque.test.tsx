@@ -1,7 +1,8 @@
+import type { jsPDF } from 'jspdf';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ excelLoaded: vi.fn(), pdfLoaded: vi.fn(), writeFile: vi.fn(), save: vi.fn(), toast: vi.fn(), docs: [] as any[] }));
+const mocks = vi.hoisted(() => ({ excelLoaded: vi.fn(), pdfLoaded: vi.fn(), writeFile: vi.fn(), save: vi.fn(), toast: vi.fn(), docs: [] as jsPDF[] }));
 vi.mock('sonner', () => ({ toast: { error: mocks.toast } }));
 vi.mock('xlsx', async importOriginal => {
   mocks.excelLoaded();

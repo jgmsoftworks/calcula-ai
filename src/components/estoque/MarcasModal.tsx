@@ -28,14 +28,15 @@ export function MarcasModal({ open, onOpenChange }: MarcasModalProps) {
 
   const loadMarcas = async () => {
     const data = await fetchMarcas();
-    setMarcas(data as Marca[]);
+    setMarcas(data);
   };
 
   useEffect(() => {
-    if (open) {
-      loadMarcas();
-    }
-  }, [open]);
+    if (!open) return;
+    let active = true;
+    fetchMarcas().then(data => { if (active) setMarcas(data); });
+    return () => { active = false; };
+  }, [open, fetchMarcas]);
 
   const handleCreate = async () => {
     if (!novoNome.trim()) return;

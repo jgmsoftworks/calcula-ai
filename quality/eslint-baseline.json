@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "35dabe14ed155198c289e354d32e9a01ff8bb591",
-  "reviewedAt": "2026-11-11",
-  "errors": 442,
-  "warnings": 68,
+  "sourceCommit": "aaab4d6cc75294a0005c0f8b479da988c60c0e9e",
+  "reviewedAt": "2026-11-12",
+  "errors": 380,
+  "warnings": 56,
   "policy": "Existing debt only. No automatic expansion; reduce as violations are fixed.",
   "entries": [
     {
@@ -351,118 +351,6 @@
       "count": 1
     },
     {
-      "path": "src/components/estoque/CategoriasModal.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadCategorias'. Either include it or remove the dependency array.",
-      "sourceHash": "3531216f6648853d",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/CategoriasSelector.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadCategorias'. Either include it or remove the dependency array.",
-      "sourceHash": "27c7e19d1e112eea",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/HistoricoGeral.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "73d0261db27cbf40",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/HistoricoGeral.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "a7b86ef8df69a97d",
-      "count": 2
-    },
-    {
-      "path": "src/components/estoque/HistoricoGeral.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'fetchHistoricoGeral'. Either include it or remove the dependency array.",
-      "sourceHash": "35f2bcd6a9af0627",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/HistoricoProduto.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "73d0261db27cbf40",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/HistoricoProduto.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'fetchHistoricoProduto'. Either include it or remove the dependency array.",
-      "sourceHash": "f7a64c61671b0109",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/ListaProdutos.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "27c871b6ecc946ea",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/ListaProdutos.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "5681140087d25154",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/ListaProdutos.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "8beb348c49b2f884",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/ListaProdutos.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "91ac3829cc21bb73",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/ListaProdutos.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has missing dependencies: 'fetchCategorias' and 'fetchMarcas'. Either include them or remove the dependency array.",
-      "sourceHash": "27c7e19d1e112eea",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/MarcasModal.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadMarcas'. Either include it or remove the dependency array.",
-      "sourceHash": "3531216f6648853d",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/MarcasSelector.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'loadMarcas'. Either include it or remove the dependency array.",
-      "sourceHash": "27c7e19d1e112eea",
-      "count": 1
-    },
-    {
       "path": "src/components/estoque/perdas/RegistrarPerdaModal.tsx",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -519,102 +407,6 @@
       "count": 1
     },
     {
-      "path": "src/components/estoque/relatorios/RelatorioMovimentacoes.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "507d08470e94a23d",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioMovimentacoes.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "a4a092e1cf75162f",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioMovimentacoes.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "d49b80fd29aaa504",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioMovimentacoes.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array.",
-      "sourceHash": "4d54713d4df3e122",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioMovimentacoes.tsx",
-      "rule": null,
-      "severity": 1,
-      "message": "Unused eslint-disable directive (no problems were reported).",
-      "sourceHash": "4d54713d4df3e122",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioPosicao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "1e931aaf5932c676",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioRanking.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "507d08470e94a23d",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioRanking.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "d49b80fd29aaa504",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioRanking.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "d64595add79240b5",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioRanking.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "dcfbb018d5cafdfb",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioRanking.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array.",
-      "sourceHash": "4d54713d4df3e122",
-      "count": 1
-    },
-    {
-      "path": "src/components/estoque/relatorios/RelatorioRanking.tsx",
-      "rule": null,
-      "severity": 1,
-      "message": "Unused eslint-disable directive (no problems were reported).",
-      "sourceHash": "4d54713d4df3e122",
-      "count": 1
-    },
-    {
       "path": "src/components/layout/AppLayout.tsx",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -644,118 +436,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "sourceHash": "d57d6a09ba1544c1",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/__tests__/ListaProdutos.test.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "806a0e6982d26f47",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CarrinhoMovimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "64fa13c237dc09a0",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CarrinhoMovimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "806fdccde6a726f7",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CarrinhoMovimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "8dfb5ebc660bfbc2",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CarrinhoMovimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "c97ae6fa3e8cf7e3",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CarrinhoMovimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "dea5573ad8c5826f",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CarrinhoMovimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "f535fb89764bde70",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/CategoriasFiltro.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "d8275fd0a821f427",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/ItemCarrinho.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "7f5d9914f69b22a2",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/ListaProdutos.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "91b87cefcd3310e8",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/ListaProdutos.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "d8275fd0a821f427",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/MovimentacaoModal.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "21857bc02351840f",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/ProdutoCard.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "0fb7691df2fd2422",
-      "count": 1
-    },
-    {
-      "path": "src/components/movimentacao/ProdutoCard.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "4ca96bfcc14c0e87",
       "count": 1
     },
     {
@@ -1479,14 +1159,6 @@
       "count": 1
     },
     {
-      "path": "src/components/ui/command.tsx",
-      "rule": "@typescript-eslint/no-empty-object-type",
-      "severity": 2,
-      "message": "An interface declaring no members is equivalent to its supertype.",
-      "sourceHash": "132c67484863b5ee",
-      "count": 1
-    },
-    {
       "path": "src/components/ui/form.tsx",
       "rule": "react-refresh/only-export-components",
       "severity": 1,
@@ -1503,14 +1175,6 @@
       "count": 1
     },
     {
-      "path": "src/components/ui/numeric-input-ptbr.tsx",
-      "rule": "react-hooks/exhaustive-deps",
-      "severity": 1,
-      "message": "React Hook useEffect has a missing dependency: 'formatForDisplay'. Either include it or remove the dependency array.",
-      "sourceHash": "de6f1f225057f425",
-      "count": 1
-    },
-    {
       "path": "src/components/ui/sidebar.tsx",
       "rule": "react-refresh/only-export-components",
       "severity": 1,
@@ -1524,14 +1188,6 @@
       "severity": 1,
       "message": "Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.",
       "sourceHash": "a3d0f17956bc7a07",
-      "count": 1
-    },
-    {
-      "path": "src/components/ui/textarea.tsx",
-      "rule": "@typescript-eslint/no-empty-object-type",
-      "severity": 2,
-      "message": "An interface declaring no members is equivalent to its supertype.",
-      "sourceHash": "a1de081c45796f40",
       "count": 1
     },
     {
@@ -1604,14 +1260,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "sourceHash": "8b0f8823fb465283",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/__tests__/useExportRelatorioEstoque.test.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "9dc8dc6aa2df7f64",
       "count": 1
     },
     {
@@ -1799,59 +1447,11 @@
       "count": 4
     },
     {
-      "path": "src/hooks/useExportRelatorioEstoque.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "149c165a750e2ae4",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useExportRelatorioEstoque.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "3c01d07f41813b9a",
-      "count": 2
-    },
-    {
-      "path": "src/hooks/useExportRelatorioEstoque.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "4445f90cdf1ca91c",
-      "count": 2
-    },
-    {
-      "path": "src/hooks/useExportRelatorioEstoque.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "ca335d7820dcdefc",
-      "count": 2
-    },
-    {
-      "path": "src/hooks/useExportRelatorioEstoque.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "edb075ea05d6a47b",
-      "count": 1
-    },
-    {
       "path": "src/hooks/useExportTutorialPDF.ts",
       "rule": "prefer-const",
       "severity": 2,
       "message": "'y' is never reassigned. Use 'const' instead.",
       "sourceHash": "edc0366f9dfbadb3",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useMarcasCategorias.ts",
-      "rule": "@typescript-eslint/ban-ts-comment",
-      "severity": 2,
-      "message": "Do not use \"@ts-nocheck\" because it alters compilation errors.",
-      "sourceHash": "a88f8a860a004bc3",
       "count": 1
     },
     {
@@ -2015,46 +1615,6 @@
       "count": 1
     },
     {
-      "path": "src/hooks/useProducaoAreas.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "956814317517a2c6",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useProducaoRecorrentes.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "956814317517a2c6",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useProducaoTarefas.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "3a26a59aaf4cf6a5",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useProducaoTarefas.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "bba71660f03cbb2d",
-      "count": 1
-    },
-    {
-      "path": "src/hooks/useProducaoTarefas.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "cf5921b1d68dbcf5",
-      "count": 1
-    },
-    {
       "path": "src/hooks/useReceitas.ts",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -2191,22 +1751,6 @@
       "count": 2
     },
     {
-      "path": "src/lib/__tests__/historicoEstoqueData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "8bcabee29afcaa9d",
-      "count": 2
-    },
-    {
-      "path": "src/lib/__tests__/historicoEstoqueData.test.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "bb412168328bb055",
-      "count": 1
-    },
-    {
       "path": "src/lib/__tests__/produtosData.test.ts",
       "rule": "@typescript-eslint/no-explicit-any",
       "severity": 2,
@@ -2260,38 +1804,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "sourceHash": "f0d9c6d75aaf6137",
-      "count": 1
-    },
-    {
-      "path": "src/lib/formatters.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "376ed4819cd07335",
-      "count": 1
-    },
-    {
-      "path": "src/lib/historicoEstoqueData.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "9d0f3c5b6947147e",
-      "count": 1
-    },
-    {
-      "path": "src/lib/historicoEstoqueData.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "eec4155292f90eaf",
-      "count": 1
-    },
-    {
-      "path": "src/lib/logger.ts",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "60dd1d81fb5e036b",
       "count": 1
     },
     {
@@ -2607,54 +2119,6 @@
       "count": 1
     },
     {
-      "path": "src/pages/Movimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "1afed17457ce79b0",
-      "count": 1
-    },
-    {
-      "path": "src/pages/Movimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "3bfe0766a5f1b2b8",
-      "count": 1
-    },
-    {
-      "path": "src/pages/Movimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "3d952167cf3548f6",
-      "count": 1
-    },
-    {
-      "path": "src/pages/Movimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "6b54de61062c1cf8",
-      "count": 1
-    },
-    {
-      "path": "src/pages/Movimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "7d9f798ec3a925ef",
-      "count": 1
-    },
-    {
-      "path": "src/pages/Movimentacao.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "ee73753aa2a5384c",
-      "count": 1
-    },
-    {
       "path": "src/pages/Perdas.tsx",
       "rule": "react-hooks/exhaustive-deps",
       "severity": 1,
@@ -2684,22 +2148,6 @@
       "severity": 1,
       "message": "React Hook useEffect has a missing dependency: 'loadProfile'. Either include it or remove the dependency array.",
       "sourceHash": "27c7e19d1e112eea",
-      "count": 1
-    },
-    {
-      "path": "src/pages/producao/AgendaDayPage.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "4fc670878f64a641",
-      "count": 1
-    },
-    {
-      "path": "src/pages/producao/AgendaDayPage.tsx",
-      "rule": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "sourceHash": "9e93fe43e48219c1",
       "count": 1
     },
     {

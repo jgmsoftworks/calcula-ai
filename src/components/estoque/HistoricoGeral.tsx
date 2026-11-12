@@ -1,3 +1,4 @@
+import type { MovimentoHistorico } from '@/lib/historicoEstoqueData';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 // Fixed: All SelectItem values are non-empty - verified 2025-01-05
@@ -32,7 +33,7 @@ import { ptBR } from 'date-fns/locale';
 export function HistoricoGeral() {
   usePortugalTranslation();
   const { fetchHistoricoGeral } = useMovimentacoes();
-  const [movimentacoes, setMovimentacoes] = useState<any[]>([]);
+  const [movimentacoes, setMovimentacoes] = useState<MovimentoHistorico[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -55,7 +56,7 @@ export function HistoricoGeral() {
       .catch(() => { if (active) { setError(true); setMovimentacoes([]); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [dataInicio, dataFim, tipoFiltro, responsavelFiltro, origemFiltro]);
+  }, [dataInicio, dataFim, tipoFiltro, responsavelFiltro, origemFiltro, fetchHistoricoGeral]);
 
   const activeFiltersCount = (tipoFiltro !== 'todos' ? 1 : 0) + (responsavelFiltro ? 1 : 0);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -163,7 +164,7 @@ export function HistoricoGeral() {
             ) : movimentacoes.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</TableCell></TableRow>
             ) : (
-              movimentacoes.map((mov: any) => (
+              movimentacoes.map((mov) => (
                 <TableRow key={mov.id}>
                   <TableCell>{format(new Date(mov.data_hora), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</TableCell>
                   <TableCell>{mov.produtos?.nome || 'N/A'}{mov.motivo && <p className="text-xs text-muted-foreground">{mov.motivo}</p>}</TableCell>
@@ -172,7 +173,7 @@ export function HistoricoGeral() {
                       {mov.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">{formatters.quantidadeContinua(mov.quantidade)} {mov.unidade || ''}</TableCell>
+                  <TableCell className="text-right">{formatters.quantidadeContinua(mov.quantidade)} {mov.origem_estoque === 'geladeira' ? mov.unidade : ''}</TableCell>
                   <TableCell className="text-right">{mov.custo_aplicado === null ? '—' : formatters.valor(mov.custo_aplicado)}</TableCell>
                   <TableCell className="text-right font-semibold">{mov.subtotal === null ? '—' : formatters.valor(mov.subtotal)}</TableCell>
                   <TableCell>{mov.responsavel}</TableCell>
@@ -199,7 +200,7 @@ export function HistoricoGeral() {
         ) : movimentacoes.length === 0 ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">Nenhuma movimentação encontrada</Card>
         ) : (
-          movimentacoes.map((mov: any) => (
+          movimentacoes.map((mov) => (
             <Card key={mov.id} className="p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Badge variant={mov.tipo === 'entrada' ? 'default' : 'destructive'} className="text-[10px] h-5">
@@ -214,7 +215,7 @@ export function HistoricoGeral() {
               <div className="grid grid-cols-3 gap-2 pt-2 border-t text-xs">
                 <div>
                   <p className="text-muted-foreground">Qtd</p>
-                  <p className="font-medium">{formatters.quantidadeContinua(mov.quantidade)} {mov.unidade || ''}</p>
+                  <p className="font-medium">{formatters.quantidadeContinua(mov.quantidade)} {mov.origem_estoque === 'geladeira' ? mov.unidade : ''}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Custo</p>

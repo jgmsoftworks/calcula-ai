@@ -231,8 +231,8 @@ export function useEstoque() {
     }
   };
 
-  const fetchHistoricoProduto = async (produtoId: string) => {
-    if (!user) return [];
+  const fetchHistoricoProduto = useCallback(async (produtoId: string) => {
+    if (!user?.id) return [];
 
     const { data, error } = await supabase
       .from('movimentacoes')
@@ -247,7 +247,7 @@ export function useEstoque() {
     }
 
     return data || [];
-  };
+  }, [user?.id]);
 
   return {
     gerarCodigoInterno,

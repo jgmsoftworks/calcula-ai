@@ -28,14 +28,15 @@ export function CategoriasModal({ open, onOpenChange }: CategoriasModalProps) {
 
   const loadCategorias = async () => {
     const data = await fetchCategorias();
-    setCategorias(data as Categoria[]);
+    setCategorias(data);
   };
 
   useEffect(() => {
-    if (open) {
-      loadCategorias();
-    }
-  }, [open]);
+    if (!open) return;
+    let active = true;
+    fetchCategorias().then(data => { if (active) setCategorias(data); });
+    return () => { active = false; };
+  }, [open, fetchCategorias]);
 
   const handleCreate = async () => {
     if (!novoNome.trim()) return;

@@ -1,3 +1,4 @@
+import type { Marca, Categoria } from '@/hooks/useMarcasCategorias';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 // Fixed: All SelectItem values are non-empty strings
@@ -98,8 +99,8 @@ export function ListaProdutos() {
   const setAbaixoMinimo = (value: boolean) => setFilter('abaixo', value ? '1' : '');
 
   // Dados dos filtros
-  const [marcas, setMarcas] = useState<any[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
 
   const activeFiltersCount =
     (unidadeFiltro !== 'todas' ? 1 : 0) +
@@ -130,16 +131,20 @@ export function ListaProdutos() {
   const handleForceRefresh = () => { void loadProdutos(); };
 
   useEffect(() => {
+    let active = true;
     const loadFiltros = async () => {
       const [marcasData, categoriasData] = await Promise.all([
         fetchMarcas(),
         fetchCategorias()
       ]);
-      setMarcas(marcasData);
-      setCategorias(categoriasData);
+      if (active) {
+        setMarcas(marcasData);
+        setCategorias(categoriasData);
+      }
     };
     loadFiltros();
-  }, []);
+    return () => { active = false; };
+  }, [fetchMarcas, fetchCategorias]);
 
 
   const handleEdit = (produto: Produto) => {
@@ -180,10 +185,10 @@ export function ListaProdutos() {
       ]);
 
       const map = new Map<string, { id: string; nome: string; tipo: 'ingrediente' | 'embalagem' }>();
-      (ingRes.data || []).forEach((r: any) => {
+      (ingRes.data || []).forEach((r) => {
         if (r.receitas) map.set(r.receitas.id, { id: r.receitas.id, nome: r.receitas.nome, tipo: 'ingrediente' });
       });
-      (embRes.data || []).forEach((r: any) => {
+      (embRes.data || []).forEach((r) => {
         if (r.receitas && !map.has(r.receitas.id)) {
           map.set(r.receitas.id, { id: r.receitas.id, nome: r.receitas.nome, tipo: 'embalagem' });
         }

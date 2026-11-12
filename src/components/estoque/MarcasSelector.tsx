@@ -28,12 +28,14 @@ export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
 
   const loadMarcas = async () => {
     const data = await fetchMarcas();
-    setMarcas(data as { id: string; nome: string }[]);
+    setMarcas(data);
   };
 
   useEffect(() => {
-    loadMarcas();
-  }, []);
+    let active = true;
+    fetchMarcas().then(data => { if (active) setMarcas(data); });
+    return () => { active = false; };
+  }, [fetchMarcas]);
 
   const handleToggle = (nome: string) => {
     if (value.includes(nome)) {

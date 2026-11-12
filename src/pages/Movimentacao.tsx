@@ -1,3 +1,4 @@
+import type { ProdutoMovimentacao, ItemCarrinhoVisual } from '@/types/movimentacao';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchGeladeira, geladeiraComoProduto } from '@/lib/geladeiraData';
@@ -20,9 +21,9 @@ export default function Movimentacao() {
   const geladeira = useQuery({ queryKey: ['geladeira', user?.id], enabled: !!user, queryFn: ({ signal }) => fetchGeladeira(user!.id, signal), staleTime: 0 });
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [carrinho, setCarrinho] = useState<any[]>([]);
+  const [carrinho, setCarrinho] = useState<ItemCarrinhoVisual[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<ProdutoMovimentacao | null>(null);
 
   const { produtos, resumo, isPending: loading, isError, isFetching, isFetchingNextPage, isPlaceholderData, searching, hasNextPage, fetchNextPage, refetch: loadProdutos } = useProdutosMovimentacao({
     search: searchTerm, categorias: categoriaSelecionada ? [categoriaSelecionada] : [],
@@ -34,12 +35,12 @@ export default function Movimentacao() {
   const erroAtual = exibindoGeladeira ? geladeira.isError : isError;
   const loadMore = useCallback(() => { void fetchNextPage({ cancelRefetch: false }); }, [fetchNextPage]);
 
-  const handleSelectProduto = (produto: any) => {
+  const handleSelectProduto = (produto: ProdutoMovimentacao) => {
     setProdutoSelecionado(produto);
     setModalOpen(true);
   };
 
-  const handleAddToCart = (item: any) => {
+  const handleAddToCart = (item: ItemCarrinhoVisual) => {
     if (!item.produto_id) {
       toast.error('Produto inválido. Atualize a página e tente novamente.');
       return false;
@@ -47,8 +48,8 @@ export default function Movimentacao() {
     if (item.tipo === 'saida') {
       const produto = itensVisiveis.find(p => p.id === item.produto_id) || (produtoSelecionado?.id === item.produto_id ? produtoSelecionado : null);
       const outrasSaidas = carrinho
-        .filter((cartItem: any) => cartItem.produto_id === item.produto_id && cartItem.tipo === 'saida')
-        .reduce((soma: number, cartItem: any) => soma + cartItem.quantidade, 0);
+        .filter((cartItem: ItemCarrinhoVisual) => cartItem.produto_id === item.produto_id && cartItem.tipo === 'saida')
+        .reduce((soma: number, cartItem: ItemCarrinhoVisual) => soma + cartItem.quantidade, 0);
       if (produto && outrasSaidas + item.quantidade > Number(produto.estoque_atual) + 0.000000001) {
         toast.error(`Estoque insuficiente para ${produto.nome}. O carrinho já inclui ${outrasSaidas} em saídas; disponível: ${produto.estoque_atual}.`);
         return false;

@@ -1,4 +1,4 @@
-// @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
+import { useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,8 +19,8 @@ export function useMarcasCategorias() {
   const { user } = useAuth();
 
   // ============ MARCAS ============
-  const fetchMarcas = async () => {
-    if (!user) return [];
+  const fetchMarcas = useCallback(async () => {
+    if (!user?.id) return [];
 
     const { data, error } = await supabase
       .from('marcas')
@@ -35,7 +35,7 @@ export function useMarcasCategorias() {
     }
 
     return data || [];
-  };
+  }, [user?.id]);
 
   const createMarca = async (nome: string) => {
     if (!user) {
@@ -130,8 +130,8 @@ export function useMarcasCategorias() {
   };
 
   // ============ CATEGORIAS ============
-  const fetchCategorias = async () => {
-    if (!user) return [];
+  const fetchCategorias = useCallback(async () => {
+    if (!user?.id) return [];
 
     const { data, error } = await supabase
       .from('categorias')
@@ -146,7 +146,7 @@ export function useMarcasCategorias() {
     }
 
     return data || [];
-  };
+  }, [user?.id]);
 
   const createCategoria = async (nome: string) => {
     if (!user) {

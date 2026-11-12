@@ -10,15 +10,15 @@ import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
 import { MOTIVOS_ENTRADA, MOTIVOS_SAIDA } from '@/lib/motivosMovimentacao';
 import { formatters } from '@/lib/formatters';
 import { productUnit } from '@/lib/productUnits';
-import type { Produto } from '@/hooks/useEstoque';
+import type { ProdutoMovimentacao, ItemCarrinhoVisual } from '@/types/movimentacao';
 import { ArrowDownLeft, ArrowUpRight, Package, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MovimentacaoModalProps {
-  produto: (Produto & { origem_estoque?: 'produto' | 'geladeira'; custo_indisponivel?: boolean }) | null;
+  produto: ProdutoMovimentacao | null;
   open: boolean;
   onClose: () => void;
-  onAddToCart: (item: any) => boolean | void;
+  onAddToCart: (item: ItemCarrinhoVisual) => boolean | void;
   saidasPendentes?: number;
 }
 

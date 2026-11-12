@@ -1,7 +1,7 @@
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileSpreadsheet, FileText, Trophy } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { useMovimentacoes } from '@/hooks/useMovimentacoes';
+import { useHistoricoRelatorio } from '@/hooks/useHistoricoRelatorio';
+import type { FiltrosHistoricoEstoque } from '@/lib/historicoEstoqueData';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import {
   useExportRelatorioEstoque,
@@ -30,31 +31,22 @@ const COLORS = ['#0483e4', '#1c93d8', '#36a3cc', '#50b3c0', '#6ac3b4', '#84d3a8'
 export function RelatorioRanking() {
   usePortugalTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
-  const { fetchHistoricoGeral } = useMovimentacoes();
   const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
   const [dataFim, setDataFim] = useState(today());
   const [tipo, setTipo] = useState<string>('saida');
   const [topN, setTopN] = useState<string>('10');
-  const [movs, setMovs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = async () => {
-    setLoading(true);
-    const filters: any = {
-      dataInicio: dataInicio ? `${dataInicio}T00:00:00` : undefined,
-      dataFim: dataFim ? `${dataFim}T23:59:59` : undefined,
-    };
-    if (tipo !== 'todos') filters.tipo = tipo;
-    const data = await fetchHistoricoGeral(filters);
-    setMovs(data);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  const readFilters = (): FiltrosHistoricoEstoque => ({
+    dataInicio: dataInicio || undefined,
+    dataFim: dataFim || undefined,
+    tipo: tipo === 'entrada' || tipo === 'saida' ? tipo : undefined,
+  });
+  const [filtrosAplicados, setFiltrosAplicados] = useState(readFilters);
+  const { movimentacoes: movs, loading, error } = useHistoricoRelatorio(filtrosAplicados);
+  const load = () => setFiltrosAplicados(readFilters());
 
   const rows = useMemo(() => {
     const map = new Map<string, { produto: string; qtd: number; vezes: number; valor: number }>();
-    movs.forEach((m: any) => {
+    movs.forEach((m) => {
       const key = m.produto_id || m.produtos?.nome || 'sem-id';
       const cur = map.get(key) || { produto: m.produtos?.nome || '-', qtd: 0, vezes: 0, valor: 0 };
       cur.qtd += m.quantidade || 0;
@@ -78,8 +70,8 @@ export function RelatorioRanking() {
   ];
 
   const filtrosTxt = [
-    `Período: ${dataInicio} a ${dataFim}`,
-    `Tipo: ${tipo === 'todos' ? 'Todos' : tipo}`,
+    `Período: ${filtrosAplicados.dataInicio || ""} a ${filtrosAplicados.dataFim || ""}`,
+    `Tipo: ${filtrosAplicados.tipo || 'Todos'}`,
     `Top ${topN}`,
   ];
 
@@ -87,6 +79,7 @@ export function RelatorioRanking() {
 
   return (
     <div className="space-y-4">
+      {error && <p role="alert" className="text-sm text-destructive">Não foi possível carregar o relatório. Tente aplicar os filtros novamente.</p>}
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
@@ -125,10 +118,10 @@ export function RelatorioRanking() {
           </div>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
+          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
             <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
           </Button>
-          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
+          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
             <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
           </Button>
         </div>
@@ -142,7 +135,7 @@ export function RelatorioRanking() {
               <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
                 <XAxis type="number" tick={{ fontSize: 11 }} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={160} />
-                <Tooltip formatter={(v: any) => formatNumber(Number(v), 2)} />
+                <Tooltip formatter={(v) => formatNumber(Number(v), 2)} />
                 <Bar dataKey="qtd" radius={[0, 6, 6, 0]}>
                   {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
