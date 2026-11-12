@@ -1,5 +1,5 @@
 import { fetchHistoricoEstoque, type FiltrosHistoricoEstoque } from '@/lib/historicoEstoqueData';
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { produtosKey } from '@/lib/produtosData';
 import { totalizarSaidasPorProduto, verificarSaldosDisponiveis } from '@/lib/validacaoMovimentacao';
@@ -159,11 +159,11 @@ export function useMovimentacoes() {
     }
   };
 
-  const fetchHistoricoGeral = async (filters?: FiltrosHistoricoEstoque) => {
-    if (!user) return [];
+  const fetchHistoricoGeral = useCallback(async (filters?: FiltrosHistoricoEstoque) => {
+    if (!user?.id) return [];
     try { return await fetchHistoricoEstoque(user.id, filters); }
     catch (error) { toast.error('Erro ao carregar histórico'); throw error; }
-  };
+  }, [user?.id]);
 
   const fetchComprovante = async (comprovanteId: string) => {
     if (!user) return null;

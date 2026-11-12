@@ -23,7 +23,7 @@ interface HistoricoProdutoProps {
 export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
   usePortugalTranslation();
   const { fetchHistoricoProduto } = useEstoque();
-  const [movimentacoes, setMovimentacoes] = useState<any[]>([]);
+  const [movimentacoes, setMovimentacoes] = useState<Awaited<ReturnType<ReturnType<typeof useEstoque>['fetchHistoricoProduto']>>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function HistoricoProduto({ produtoId }: HistoricoProdutoProps) {
     return () => {
       mounted = false;
     };
-  }, [produtoId]);
+  }, [produtoId, fetchHistoricoProduto]);
 
   if (loading) {
     return (

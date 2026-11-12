@@ -28,12 +28,14 @@ export function CategoriasSelector({ value, onChange }: CategoriasSelectorProps)
 
   const loadCategorias = async () => {
     const data = await fetchCategorias();
-    setCategorias(data as { id: string; nome: string }[]);
+    setCategorias(data);
   };
 
   useEffect(() => {
-    loadCategorias();
-  }, []);
+    let active = true;
+    fetchCategorias().then(data => { if (active) setCategorias(data); });
+    return () => { active = false; };
+  }, [fetchCategorias]);
 
   const handleToggle = (nome: string) => {
     if (value.includes(nome)) {

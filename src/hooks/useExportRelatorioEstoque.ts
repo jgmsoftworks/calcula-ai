@@ -18,7 +18,7 @@ export interface ColunaExport {
   format?: 'text' | 'number' | 'currency' | 'int';
 }
 
-function fmtCell(v: any, fmt?: ColunaExport['format']): string {
+function fmtCell(v: unknown, fmt?: ColunaExport['format']): string {
   if (v === null || v === undefined || v === '') return '-';
   if (fmt === 'currency') return `${formatMoney(Number(v) || 0)}`;
   if (fmt === 'number') return formatNumber(Number(v) || 0, 2);
@@ -26,7 +26,7 @@ function fmtCell(v: any, fmt?: ColunaExport['format']): string {
   return String(v);
 }
 
-function fmtExcelCell(v: any, fmt?: ColunaExport['format']): any {
+function fmtExcelCell(v: unknown, fmt?: ColunaExport['format']): unknown {
   if (v === null || v === undefined) return '';
   if (fmt === 'currency' || fmt === 'number' || fmt === 'int') return Number(v) || 0;
   return v;
@@ -35,12 +35,12 @@ function fmtExcelCell(v: any, fmt?: ColunaExport['format']): any {
 export async function exportarRelatorioExcel(
   meta: RelatorioMeta,
   colunas: ColunaExport[],
-  rows: any[],
-  totais?: Record<string, any>,
+  rows: Record<string, unknown>[],
+  totais?: Record<string, unknown>,
 ) {
   const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
-  const headerLines: any[][] = [
+  const headerLines: unknown[][] = [
     [meta.titulo],
     [`Gerado em: ${meta.geradoEm || new Date().toLocaleString(getBusinessRegion().locale)}`],
   ];
@@ -70,8 +70,8 @@ export async function exportarRelatorioExcel(
 export async function exportarRelatorioPDF(
   meta: RelatorioMeta,
   colunas: ColunaExport[],
-  rows: any[],
-  totais?: Record<string, any>,
+  rows: Record<string, unknown>[],
+  totais?: Record<string, unknown>,
 ) {
   const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

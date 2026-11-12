@@ -1,3 +1,4 @@
+import type { ItemCarrinhoVisual } from '@/types/movimentacao';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { productUnit } from '@/lib/productUnits';
 import { formatters } from '@/lib/formatters';
 
 interface ItemCarrinhoProps {
-  item: any;
+  item: ItemCarrinhoVisual;
   onRemove: () => void;
 }
 

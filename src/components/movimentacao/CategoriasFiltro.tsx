@@ -1,3 +1,4 @@
+import type { ProdutoMovimentacao } from '@/types/movimentacao';
 import { useMemo } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
 import type { CategoriaResumo } from '@/lib/produtosPageData';
 interface CategoriasFiltroProps {
-  produtos: any[];
+  produtos: ProdutoMovimentacao[];
   resumo?: CategoriaResumo[];
   total?: number;
   categoriaSelecionada: string | null;

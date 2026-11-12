@@ -9,7 +9,7 @@
 
 type Level = 'debug' | 'info' | 'warn' | 'error';
 
-const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV;
+const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
 
 function getEnabledNamespaces(): string[] | null {
   try {

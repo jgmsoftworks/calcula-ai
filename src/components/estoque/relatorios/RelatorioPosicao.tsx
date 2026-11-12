@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Search, FileSpreadsheet, FileText, Package, AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useEstoque } from '@/hooks/useEstoque';
+import { useEstoque, type Produto } from '@/hooks/useEstoque';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import {
   useExportRelatorioEstoque,
@@ -21,21 +21,24 @@ export function RelatorioPosicao() {
   usePortugalTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
   const { fetchProdutos } = useEstoque();
-  const [produtos, setProdutos] = useState<any[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [soAbaixoMin, setSoAbaixoMin] = useState(false);
   const [ocultarZero, setOcultarZero] = useState(false);
 
   useEffect(() => {
+    let active = true;
     (async () => {
       setLoading(true);
       const data = await fetchProdutos();
-      setProdutos(data);
-      setLoading(false);
+      if (active) {
+        setProdutos(data);
+        setLoading(false);
+      }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => { active = false; };
+  }, [fetchProdutos]);
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();

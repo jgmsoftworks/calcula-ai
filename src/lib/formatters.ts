@@ -61,7 +61,7 @@ export const parsePtBrNumber = (value: string | number): number => {
  * Converte qualquer valor para número válido para o banco
  * Garante que nunca retorna NaN, null ou undefined
  */
-export const toSafeNumber = (value: any, defaultValue: number = 0): number => {
+export const toSafeNumber = (value: unknown, defaultValue: number = 0): number => {
   // Se já é número válido, retorna
   if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
     return value;

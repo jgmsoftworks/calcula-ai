@@ -1,3 +1,4 @@
+import type { ItemCarrinhoVisual } from '@/types/movimentacao';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ export function CarrinhoMovimentacao({
   carrinho,
   onCarrinhoChange,
   onSuccess
-}: any) {
+}: { carrinho: ItemCarrinhoVisual[]; onCarrinhoChange: (items: ItemCarrinhoVisual[]) => void; onSuccess?: () => void }) {
   const {
     finalizarMovimentacao
   } = useMovimentacoes();
@@ -25,7 +26,7 @@ export function CarrinhoMovimentacao({
   const [responsavel, setResponsavel] = useState('');
   const [observacao, setObservacao] = useState('');
   const [finalizing, setFinalizing] = useState(false);
-  const [funcionarios, setFuncionarios] = useState<any[]>([]);
+  const [funcionarios, setFuncionarios] = useState<{ id: string; nome: string }[]>([]);
   useEffect(() => {
     if (!user) return;
     const loadFuncionarios = async () => {
@@ -50,7 +51,7 @@ export function CarrinhoMovimentacao({
   const handleFinalizar = async () => {
     if (carrinho.length === 0 || !responsavel) return;
     setFinalizing(true);
-    const items = carrinho.map((item: any) => ({
+    const items = carrinho.map((item) => ({
       produto_id: item.produto_id,
       produto_nome: item.produto_nome,
       origem_estoque: item.origem_estoque || 'produto',
@@ -70,11 +71,11 @@ export function CarrinhoMovimentacao({
     }
   };
   const handleRemoveItem = (index: number) => {
-    const newCarrinho = carrinho.filter((_: any, i: number) => i !== index);
+    const newCarrinho = carrinho.filter((_, i) => i !== index);
     onCarrinhoChange(newCarrinho);
   };
   const totalItens = carrinho.length;
-  const valorTotal = carrinho.reduce((sum: number, item: any) => sum + item.subtotal, 0);
+  const valorTotal = carrinho.reduce((sum, item) => sum + item.subtotal, 0);
   return <Card className="flex h-auto max-w-full flex-col p-4 lg:h-[545px]">
       {/* Cabeçalho - fixo */}
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -92,7 +93,7 @@ export function CarrinhoMovimentacao({
         {carrinho.length === 0 ? <div className="text-center text-muted-foreground py-8 text-sm">
             Nenhum item adicionado
           </div> : <div className="space-y-2 pr-1">
-            {carrinho.map((item: any, index: number) => <ItemCarrinho key={`${item.produto_id}-${index}`} item={item} onRemove={() => handleRemoveItem(index)} />)}
+            {carrinho.map((item, index) => <ItemCarrinho key={`${item.produto_id}-${index}`} item={item} onRemove={() => handleRemoveItem(index)} />)}
           </div>}
       </div>
 

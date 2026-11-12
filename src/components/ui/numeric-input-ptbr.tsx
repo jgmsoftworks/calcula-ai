@@ -1,5 +1,5 @@
 import { getBusinessRegion, formatMoney } from '@/lib/business-region';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CurrencyInput } from './currency-input';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
     const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
     
     // Formatar para exibição baseado no tipo
-    const formatForDisplay = (num: number): string => {
+    const formatForDisplay = useCallback((num: number): string => {
       if (isNaN(num)) return '';
       if (num === 0 && !isFocused) return '';
       
@@ -65,7 +65,7 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
         default:
           return String(num);
       }
-    };
+    }, [tipo, isFocused]);
 
     // Parse entrada para número
     const parseInput = (input: string): number => {
@@ -83,7 +83,7 @@ const DecimalInputPtBr = React.forwardRef<HTMLInputElement, NumericInputPtBrProp
       if (!isFocused) {
         setDisplayValue(formatForDisplay(safeValue));
       }
-    }, [safeValue, isFocused, tipo]);
+    }, [safeValue, isFocused, formatForDisplay]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;

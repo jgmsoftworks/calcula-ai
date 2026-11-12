@@ -1,3 +1,4 @@
+import type { ProdutoMovimentacao } from '@/types/movimentacao';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
@@ -5,8 +6,8 @@ import { productUnit } from '@/lib/productUnits';
 import { formatters } from '@/lib/formatters';
 
 interface ProdutoCardProps {
-  produto: any;
-  onSelect: (produto: any) => void;
+  produto: ProdutoMovimentacao;
+  onSelect: (produto: ProdutoMovimentacao) => void;
 }
 
 export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {

@@ -1,9 +1,12 @@
+import type { ComponentProps } from 'react';
+import type { ProdutoCard } from '../ProdutoCard';
+import type { ProdutoMovimentacao } from '@/types/movimentacao';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { ListaProdutos } from '../ListaProdutos';
-vi.mock('../ProdutoCard', () => ({ ProdutoCard: ({ produto, onSelect }: any) => <button onClick={() => onSelect(produto)}>{produto.nome}</button> }));
+vi.mock('../ProdutoCard', () => ({ ProdutoCard: ({ produto, onSelect }: ComponentProps<typeof ProdutoCard>) => <button onClick={() => onSelect(produto)}>{produto.nome}</button> }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-const product = { id: 'a', nome: 'Morango' };
+const product: ProdutoMovimentacao = { id: 'a', nome: 'Morango', user_id: 'owner', codigo_interno: 1, codigos_barras: [], marcas: [], categorias: [], unidade_compra: 'kg', custo_unitario: 10, estoque_atual: 5, estoque_minimo: 1, unidade_uso: null, fator_conversao: null, imagem_url: null, ativo: true, created_at: '', updated_at: '' };
 describe('incremental movement list', () => {
   it('loads the next batch near the bottom and keeps current products selectable while loading', () => {
     let intersect!: IntersectionObserverCallback;

@@ -84,7 +84,7 @@ export function useProducaoRecorrentes(areaId?: string | null, opts?: { semArea?
       qc.invalidateQueries({ queryKey: ['producao-recorrentes'] });
       toast({ title: 'Tarefa recorrente criada' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   const atualizar = useMutation({

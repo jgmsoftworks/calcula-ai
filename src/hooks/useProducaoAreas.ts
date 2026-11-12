@@ -54,7 +54,7 @@ export function useProducaoAreas() {
       qc.invalidateQueries({ queryKey: key });
       toast({ title: 'Área criada' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   const atualizar = useMutation({

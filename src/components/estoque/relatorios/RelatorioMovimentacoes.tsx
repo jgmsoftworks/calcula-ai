@@ -1,7 +1,7 @@
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion, formatMoney } from '@/lib/business-region';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileSpreadsheet, FileText, ArrowDown, ArrowUp } from 'lucide-react';
-import { useMovimentacoes } from '@/hooks/useMovimentacoes';
+import { useHistoricoRelatorio } from '@/hooks/useHistoricoRelatorio';
+import type { FiltrosHistoricoEstoque } from '@/lib/historicoEstoqueData';
 import { formatBRL, formatNumber } from '@/lib/formatters';
 import {
   useExportRelatorioEstoque,
@@ -28,30 +29,21 @@ function today() {
 export function RelatorioMovimentacoes() {
   usePortugalTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
-  const { fetchHistoricoGeral } = useMovimentacoes();
   const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
   const [dataFim, setDataFim] = useState(today());
   const [tipo, setTipo] = useState<string>('todos');
   const [responsavel, setResponsavel] = useState('');
-  const [movs, setMovs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const readFilters = (): FiltrosHistoricoEstoque => ({
+    dataInicio: dataInicio || undefined,
+    dataFim: dataFim || undefined,
+    tipo: tipo === 'entrada' || tipo === 'saida' ? tipo : undefined,
+    responsavel: responsavel.trim() || undefined,
+  });
+  const [filtrosAplicados, setFiltrosAplicados] = useState(readFilters);
+  const { movimentacoes: movs, loading, error } = useHistoricoRelatorio(filtrosAplicados);
+  const load = () => setFiltrosAplicados(readFilters());
 
-  const load = async () => {
-    setLoading(true);
-    const filters: any = {
-      dataInicio: dataInicio ? `${dataInicio}T00:00:00` : undefined,
-      dataFim: dataFim ? `${dataFim}T23:59:59` : undefined,
-    };
-    if (tipo !== 'todos') filters.tipo = tipo;
-    if (responsavel.trim()) filters.responsavel = responsavel.trim();
-    const data = await fetchHistoricoGeral(filters);
-    setMovs(data);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
-
-  const rows = useMemo(() => movs.map((m: any) => ({
+  const rows = useMemo(() => movs.map((m) => ({
     data: new Date(m.data_hora).toLocaleString(getBusinessRegion().locale),
     produto: m.produtos?.nome || '-',
     tipo: m.tipo,
@@ -83,9 +75,9 @@ export function RelatorioMovimentacoes() {
   ];
 
   const filtrosTxt = [
-    `Período: ${dataInicio} a ${dataFim}`,
-    `Tipo: ${tipo === 'todos' ? 'Todos' : tipo}`,
-    responsavel ? `Responsável: ${responsavel}` : '',
+    `Período: ${filtrosAplicados.dataInicio || ""} a ${filtrosAplicados.dataFim || ""}`,
+    `Tipo: ${filtrosAplicados.tipo || 'Todos'}`,
+    filtrosAplicados.responsavel ? `Responsável: ${filtrosAplicados.responsavel}` : '',
   ].filter(Boolean);
 
   const totaisExport = {
@@ -98,6 +90,7 @@ export function RelatorioMovimentacoes() {
 
   return (
     <div className="space-y-4">
+      {error && <p role="alert" className="text-sm text-destructive">Não foi possível carregar o relatório. Tente aplicar os filtros novamente.</p>}
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
@@ -128,10 +121,10 @@ export function RelatorioMovimentacoes() {
           </div>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
+          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
             <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
           </Button>
-          <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
+          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
             <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
           </Button>
         </div>

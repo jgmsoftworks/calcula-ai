@@ -36,6 +36,35 @@ não uma declaração de lint limpo ou correção funcional.
 ocorrência, reduza sua entrada em mudança revisada. Não há comando de expansão
 automática. Nunca aumentar a baseline para aprovar uma regressão.
 
+## Redução de dívida — 12/11/2026
+
+Base revisada: `aaab4d6cc75294a0005c0f8b479da988c60c0e9e`.
+Esse commit tinha 437 erros e 68 avisos. A manutenção de estoque, movimentação,
+relatórios e componentes compartilhados reduz para **380 erros e 56 avisos**:
+57 erros e 12 avisos removidos neste lote. A baseline foi reduzida, sem novas
+exceções; seus cinco erros adicionais já tinham sido corrigidos antes deste lote.
+
+- Produtos, itens do carrinho, histórico e exportações usam tipos explícitos.
+  A verificação TypeScript de marcas/categorias foi reativada, removendo o
+  `@ts-nocheck` antigo.
+- Consultas usadas em efeitos têm referências estáveis e dependências completas.
+  Respostas de efeitos anteriores não substituem consultas atuais nos relatórios
+  e no carregamento de marcas/categorias.
+- Movimentações por período e ranking enviam datas sem horários duplicados.
+  A conversão para início/fim do dia continua na camada de consulta, no fuso do
+  negócio. Os filtros dos arquivos exportados correspondem à consulta aplicada.
+- Falhas de consulta liberam o carregamento, exibem erro e bloqueiam exportação
+  até uma tentativa bem-sucedida. O botão Aplicar permite repetir os filtros.
+- Regressões cobrem as duas telas, exportação, erro/repetição, resposta atrasada,
+  paginação acima de 500 registros, filtros e falha das fontes do histórico.
+
+Este lote não zera a dívida. Permanecem os diagnósticos da baseline, conflitos
+de peers e o trabalho de dependências/importação/PDF descrito abaixo. Alterações
+de comportamento nas áreas protegidas continuam sujeitas à autorização específica.
+Não há mudança de schema, dados, fórmulas, cobrança, acesso ou infraestrutura.
+Reversão: reverter o commit deste lote (incluindo baseline e testes); publicação
+continua manual pelo Lovable.
+
 ## Isolamento e limites
 
 `scripts/run-isolated.mjs` bloqueia HTTP/fetch/WebSocket em Node e workers, e usa

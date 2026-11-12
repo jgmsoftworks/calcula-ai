@@ -1,3 +1,4 @@
+import type { ProdutoMovimentacao } from '@/types/movimentacao';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProdutoCard } from './ProdutoCard';
@@ -5,10 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
 interface ListaProdutosProps {
-  produtos: any[];
+  produtos: ProdutoMovimentacao[];
   loading: boolean;
   categoriaSelecionada: string | null;
-  onSelectProduto: (produto: any) => void;
+  onSelectProduto: (produto: ProdutoMovimentacao) => void;
   hasMore?: boolean;
   loadingMore?: boolean;
   updating?: boolean;
