@@ -167,6 +167,11 @@ Validação local: `npm run check` aprovado com **568 cenários** (390 frontend,
 `npm run lint` também passou diretamente: **0 erros e 0 avisos**. Resultados
 finais de CI e navegador ficam registrados na PR.
 
+Na primeira rodada de navegador, o preenchimento imediatamente após o arraste
+ocorreu durante a abertura do modal e o campo permaneceu vazio. O cenário agora
+clica no campo (aguardando estabilidade) e exige o valor preenchido antes de
+confirmar, sem espera fixa, retry adicional ou mudança na lógica da produção.
+
 Verificação adicional: os arquivos Edge alterados passaram por TypeScript 5.8.3
 com os tipos locais dos SDKs Supabase 2.57.2, Stripe 22.6.0 e 18.5.0, XLSX e SMTP,
 e declarações mínimas das entradas HTTP/env do Deno. `deno check` remoto não foi

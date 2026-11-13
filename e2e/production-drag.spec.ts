@@ -100,7 +100,12 @@ test('shared page drag uses the existing move API and asks for actual yield befo
   await expect(page.getByRole('dialog')).toBeVisible();expect(moves).toHaveLength(1);
   await page.getByRole('button',{name:'Cancelar',exact:true}).click();expect(moves).toHaveLength(1);
   await drag(page,page.getByRole('heading',{name:'Assar bolos'}),target(page,'Feito',isMobile),isMobile);
-  await page.getByLabel('Quanto rendeu? (un)').fill('11');
+  const rendimento=page.getByLabel('Quanto rendeu? (un)');
+  // Finish the drop/modal transition before typing, as an actual click would.
+  // fill() alone does not wait for element stability after the pointer gesture.
+  await rendimento.click();
+  await rendimento.fill('11');
+  await expect(rendimento).toHaveValue('11');
   await page.getByRole('dialog').getByRole('button',{name:'Finalizar produção',exact:true}).click();
   await expect.poll(()=>moves.length).toBe(2);expect(moves[1].rendimentoReal).toBe(11);
 });
