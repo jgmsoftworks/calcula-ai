@@ -1,3 +1,4 @@
+import { errorMessage } from '../_shared/errors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
 
 const corsHeaders = {
@@ -175,11 +176,11 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in admin-toggle-fornecedor-role:', error);
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error',
+        error: errorMessage(error) || 'Internal server error',
       }),
       {
         status: 400,

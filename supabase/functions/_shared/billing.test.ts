@@ -1,3 +1,5 @@
+import type { AppDatabaseClient } from './database.ts';
+import type Stripe from 'npm:stripe@22.6.0';
 import { it, vi } from 'vitest';
 vi.stubGlobal('Deno', { env: { get: (name: string) => process.env[name], set: (name: string, value: string) => { process.env[name] = value; }, delete: (name: string) => { delete process.env[name]; } } });
 import { checkoutState, subscriptionEnd, invoiceSubscription, maskedEmail } from './billingRules.ts';
@@ -16,19 +18,25 @@ const future = Math.floor(Date.now() / 1000) + 86400;
 const session = { id: 'cs_test_fixture', mode: 'subscription', customer: 'cus_fixture', subscription: 'sub_fixture', status: 'complete', payment_status: 'paid', customer_details: { email: 'BUYER@example.invalid' } };
 const subscription = { id: 'sub_fixture', customer: 'cus_fixture', status: 'active', items: { data: [{ current_period_end: future, price: { id: 'price_fixture', product: 'prod_fixture' } }] } };
 
+type FixtureUser = { id: string; email: string; email_confirmed_at: string | null; last_sign_in_at: string | null; app_metadata?: { billing_signup_id: string } };
+type CreateUserInput = { email: string; password: string; email_confirm: boolean; app_metadata: { billing_signup_id: string }; user_metadata: { full_name: string; created_from_stripe: boolean } };
+type MailPayload = { from: string; to: string[]; subject: string; html: string; text: string; reply_to: string };
+type FixtureRow = Record<string, unknown> & { key?: string; payload?: MailPayload | { password: string; owner: string } | null };
+type QueryResult = { data?: FixtureRow | null; error: { message: string } | null };
+type RpcArgs = { job_key: string; token: string; completed?: boolean };
 // In-memory persistence and Auth doubles; no Stripe, Supabase, or email calls.
 function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpaid?: boolean; failProfile?: boolean; createFailure?: boolean; createResponseLost?: boolean; createRace?: boolean } = {}) {
-  const rows: Record<string, any[]> = { billing_checkouts: [], billing_emails: [], profiles: [] };
-  const users: any[] = options.existingUser ? [{ id: 'user_existing', email: 'buyer@example.invalid', email_confirmed_at: '2026-01-01', last_sign_in_at: '2026-01-01' }] : [];
+  const rows: Record<string, FixtureRow[]> = { billing_checkouts: [], billing_emails: [], profiles: [] };
+  const users: FixtureUser[] = options.existingUser ? [{ id: 'user_existing', email: 'buyer@example.invalid', email_confirmed_at: '2026-01-01', last_sign_in_at: '2026-01-01' }] : [];
   let generated = 0, sent = 0;
-  const creations: any[] = [], messages: any[] = [];
-  const rpcCalls: any[] = [];
-  const db: any = {
-    rpc: (_name: string, args: any) => { rpcCalls.push(args); return Promise.resolve({ data: 'claimed', error: null }); },
+  const creations: CreateUserInput[] = [], messages: MailPayload[] = [];
+  const rpcCalls: RpcArgs[] = [];
+  const db = {
+    rpc: (_name: string, args: RpcArgs) => { rpcCalls.push(args); return Promise.resolve({ data: 'claimed', error: null }); },
     auth: { admin: {
       getUserById: (id: string) => Promise.resolve({ data: { user: users.find(u => u.id === id) }, error: null }),
       listUsers: () => Promise.resolve({ data: { users }, error: null }),
-      createUser: (input: any) => {
+      createUser: (input: CreateUserInput) => {
         creations.push(input);
         if (options.createFailure) return Promise.resolve({ data: {}, error: { message: 'Auth unavailable' } });
         if (options.createRace) {
@@ -39,7 +47,7 @@ function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpai
         users.push(user);
         return Promise.resolve(options.createResponseLost ? { data: {}, error: { message: 'Response lost' } } : { data: { user }, error: null });
       },
-      generateLink: ({ email, type }: any) => {
+      generateLink: ({ email, type }: { email: string; type: 'invite' | 'recovery' }) => {
         generated++;
         let user = users.find(u => u.email === email);
         if (!user) { user = { id: 'user_new', email, email_confirmed_at: null, last_sign_in_at: null }; users.push(user); }
@@ -47,16 +55,18 @@ function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpai
       },
     } },
     from: (table: string) => {
-      let filters: [string, any][] = [], mode = 'select', values: any;
-      const query: any = {
-        select: () => query, eq: (key: string, value: any) => { filters.push([key, value]); return query; },
+      const filters: [string, unknown][] = [];
+      let mode = 'select';
+      let values: FixtureRow = {};
+      const query = {
+        select: () => query, eq: (key: string, value: unknown) => { filters.push([key, value]); return query; },
         maybeSingle: () => query,
-        insert: (v: any) => { mode = 'insert'; values = v; return query; },
-        upsert: (v: any) => { mode = 'upsert'; values = v; return query; },
-        update: (v: any) => { mode = 'update'; values = v; return query; },
-        then: (resolve: any) => {
+        insert: (v: FixtureRow) => { mode = 'insert'; values = v; return query; },
+        upsert: (v: FixtureRow) => { mode = 'upsert'; values = v; return query; },
+        update: (v: FixtureRow) => { mode = 'update'; values = v; return query; },
+        then: (resolve: (value: QueryResult) => unknown) => {
           if (options.failProfile && table === 'profiles' && mode === 'upsert') return resolve({ error: { message: 'DB unavailable' } });
-          const matches = (row: any) => filters.every(([key, value]) => row[key] === value);
+          const matches = (row: FixtureRow) => filters.every(([key, value]) => row[key] === value);
           if (mode === 'insert') rows[table].push({ ...values });
           if (mode === 'upsert') {
             const key = table === 'profiles' ? 'user_id' : 'session_id';
@@ -71,7 +81,7 @@ function fixture(options: { existingUser?: boolean; mailFailure?: boolean; unpai
   };
   const current = { ...session, payment_status: options.unpaid ? 'unpaid' : 'paid' };
   const stripe = { checkout: { sessions: { retrieve: () => Promise.resolve(current) } }, subscriptions: { retrieve: () => Promise.resolve(subscription) }, customers: { retrieve: () => Promise.resolve({ id: 'cus_fixture', email: 'buyer@example.invalid', name: 'Buyer' }) } };
-  return { db, stripe, rows, users, rpcCalls, current, creations, messages, get mail() { return rows.billing_emails.find(row => row.key === `checkout:${session.id}:approved`); }, get generated() { return generated; }, get sent() { return sent; }, fetch: (_url: any, init: any) => { sent++; messages.push(JSON.parse(init.body)); return Promise.resolve(new Response(options.mailFailure ? '{}' : '{"id":"mail_fixture"}', { status: options.mailFailure ? 503 : 200 })); } };
+  return { db: db as unknown as AppDatabaseClient, stripe: stripe as unknown as Stripe, rows, users, rpcCalls, current, creations, messages, get mail() { return rows.billing_emails.find(row => row.key === `checkout:${session.id}:approved`); }, get generated() { return generated; }, get sent() { return sent; }, fetch: (_url: RequestInfo | URL, init?: RequestInit) => { sent++; messages.push(JSON.parse(String(init?.body))); return Promise.resolve(new Response(options.mailFailure ? '{}' : '{"id":"mail_fixture"}', { status: options.mailFailure ? 503 : 200 })); } };
 }
 async function withTransport(f: ReturnType<typeof fixture>, action: () => Promise<void>) {
   const originalFetch = globalThis.fetch;
@@ -201,14 +211,14 @@ it('unconfigured mail cannot return false success', async () => {
 it('Gmail accepts the real SMTP receipt once and closes the transport', async () => {
   const sendMail = vi.fn().mockResolvedValue({ messageId: 'smtp_fixture', accepted: ['buyer@example.invalid'], rejected: [] });
   const close = vi.fn();
-  const create = vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail, close } as any);
+  const create = vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail, close } as ReturnType<typeof nodemailer.createTransport>);
   Deno.env.set('GMAIL_SMTP_PASSWORD', 'fake-smtp-test-password');
   const f = fixture();
   try {
     await run(f); await run(f);
     assert(sendMail.mock.calls.length === 1 && close.mock.calls.length === 1);
     assert(f.mail.provider_id === 'smtp_fixture' && f.mail.payload === null);
-    assert((create.mock.calls[0][0] as any).port === 465 && (create.mock.calls[0][0] as any).secure === true);
+    assert((create.mock.calls[0][0] as { port: number; secure: boolean }).port === 465 && (create.mock.calls[0][0] as { port: number; secure: boolean }).secure === true);
     assert(sendMail.mock.calls[0][0].from === GMAIL_SENDER);
     assert(await smtpMessageId('same-key') === await smtpMessageId('same-key'));
     assert(await smtpMessageId('same-key') !== await smtpMessageId('another-key'));
@@ -221,7 +231,7 @@ it('Gmail failures and rejected recipients remain unsent without leaking provide
       ? vi.fn().mockResolvedValue({ messageId: 'smtp_fixture', accepted: [], rejected: ['buyer@example.invalid'] })
       : vi.fn().mockRejectedValue(new Error('private SMTP server detail'));
     const close = vi.fn();
-    const create = vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail, close } as any);
+    const create = vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail, close } as ReturnType<typeof nodemailer.createTransport>);
     Deno.env.set('GMAIL_SMTP_PASSWORD', 'fake-smtp-test-password');
     const f = fixture();
     try {
@@ -291,4 +301,22 @@ it('pending and failed emails never include credentials; approved and trial give
     assert(message.text.includes('Seu login: buyer@example.invalid') && message.text.includes('Senha inicial: test-password-only'));
     assert(message.text.includes('Perfil do negócio → Segurança da conta → Alterar senha'));
   }
+});
+
+
+it('billing lock releases after failure and preserves the existing error precedence', async () => {
+  const original = new Error('action_failed');
+  for (const releaseError of [null, { message: 'release failed' }]) {
+    const calls: { name: string; completed?: boolean }[] = [];
+    const db = { rpc: (name: string, args: RpcArgs) => {
+      calls.push({ name, completed: args.completed });
+      return Promise.resolve(name === 'claim_billing_job' ? { data: 'claimed', error: null } : { error: releaseError });
+    } };
+    await rejects(() => withBillingLock(db, 'fixture', async () => { throw original; }, true), releaseError ? 'billing_lock_release_failed' : 'action_failed');
+    assert(calls.length === 2 && calls[1].completed === false);
+  }
+  let propagated = false;
+  try { await withBillingLock({ rpc: () => ({ data: 'claimed', error: null }) }, 'fixture', async () => { throw undefined; }); }
+  catch (error) { propagated = true; assert(error === undefined); }
+  assert(propagated, 'undefined rejection must still propagate');
 });

@@ -1,195 +1,25 @@
 import type { BusinessCountry, AppLanguage } from '@/lib/business-region';
-import { authReturnUrl } from '@/lib/acquisition';
-import { startGoogleSignIn } from '@/lib/google-auth';
-import { useState, useEffect, createContext, useContext } from 'react';
+
+import { createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   emailVerified: boolean;
   isAdmin: boolean;
   isFornecedor: boolean;
-  signUp: (email: string, password: string, fullName?: string, businessName?: string, phone?: string, country?: BusinessCountry, language?: AppLanguage) => Promise<{ data: any; error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName?: string, businessName?: string, phone?: string, country?: BusinessCountry, language?: AppLanguage) => Promise<{ data: Awaited<ReturnType<typeof supabase.auth.signUp>>['data']; error: import('@supabase/supabase-js').AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: import('@supabase/supabase-js').AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null; openedInNewTab: boolean }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  resendConfirmation: (email: string) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: import('@supabase/supabase-js').AuthError | null }>;
+  resendConfirmation: (email: string) => Promise<{ error: import('@supabase/supabase-js').AuthError | null }>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  // Mantido para compatibilidade de tipos, mas sempre false
-  const [isFornecedor] = useState(false);
-
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Update email verification status
-        if (session?.user) {
-          setEmailVerified(!!session.user.email_confirmed_at);
-          
-          // Check if user is admin using secure role system
-          setTimeout(async () => {
-            try {
-              // First ensure profile exists
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('user_id')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-
-              if (!profile) {
-                // Create profile if it doesn't exist - trigger will initialize role
-                await supabase
-                  .from('profiles')
-                  .insert({
-                    user_id: session.user.id,
-                    full_name: session.user.user_metadata?.full_name,
-                    business_name: session.user.user_metadata?.business_name,
-                    phone: session.user.user_metadata?.phone,
-                    celular: session.user.user_metadata?.phone,
-                    whatsapp: session.user.user_metadata?.phone,
-                  });
-              } else if (session.user.user_metadata?.phone || session.user.user_metadata?.full_name || session.user.user_metadata?.business_name) {
-                // Backfill profile fields if they are empty (first-time after signup)
-                await supabase
-                  .from('profiles')
-                  .update({
-                    full_name: session.user.user_metadata?.full_name ?? undefined,
-                    business_name: session.user.user_metadata?.business_name ?? undefined,
-                    phone: session.user.user_metadata?.phone ?? undefined,
-                    celular: session.user.user_metadata?.phone ?? undefined,
-                    whatsapp: session.user.user_metadata?.phone ?? undefined,
-                  })
-                  .eq('user_id', session.user.id)
-                  .or('full_name.is.null,phone.is.null,business_name.is.null');
-              }
-
-              // Use security definer function to check admin status
-              const { data: isAdminData, error: adminError } = await supabase
-                .rpc('has_role_or_higher', { 
-                  required_role: 'admin',
-                  check_user_id: session.user.id 
-                });
-
-              if (adminError) {
-                console.error('Error checking admin status:', adminError);
-                setIsAdmin(false);
-              } else {
-                setIsAdmin(isAdminData || false);
-              }
-            } catch (error) {
-              console.error('Error handling profile:', error);
-              setIsAdmin(false);
-            }
-          }, 0);
-        } else {
-          setEmailVerified(false);
-          setIsAdmin(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signUp = async (email: string, password: string, fullName?: string, businessName?: string, phone?: string, country?: BusinessCountry, language?: AppLanguage) => {
-    const redirectUrl = authReturnUrl();
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-          business_name: businessName,
-          phone: phone,
-          business_country: country ?? 'BR',
-          preferred_locale: language ?? (country === 'PT' ? 'pt-PT' : 'pt-BR'),
-        }
-      }
-    });
-    return { data, error };
-  };
-
-  const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/reset-password`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    return { error };
-  };
-
-  const resendConfirmation = async (email: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-      options: {
-        emailRedirectTo: authReturnUrl(),
-      }
-    });
-    return { error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
-  };
-
-  const signInWithGoogle = async () => {
-    return startGoogleSignIn(supabase.auth, authReturnUrl());
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      loading,
-      emailVerified,
-      isAdmin,
-      isFornecedor,
-      signUp,
-      signIn,
-      signInWithGoogle,
-      signOut,
-      resetPassword,
-      resendConfirmation,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -198,4 +28,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

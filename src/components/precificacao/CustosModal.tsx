@@ -1,7 +1,8 @@
+import type { FaturamentoPersistido } from '@/types/configurations';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion, formatMoney } from '@/lib/business-region';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -93,7 +94,11 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     }
   }, [markupBlock]);
 
-  const carregarDados = async () => {
+  // The asynchronous loader reads the latest calculation without reloading data
+  // whenever a calculation input changes. The separate calculation effect reacts to those inputs.
+  const calcularMarkupRef = useRef<((states: Record<string, boolean>) => Partial<MarkupBlock>) | null>(null);
+  const markupBlockId = markupBlock?.id;
+  const carregarDados = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -148,9 +153,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       setEncargosVenda(encargosFormatados);
 
       // Carregar faturamentos históricos - usar a mesma lógica da MediaFaturamento
-      const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+      const configFaturamentos = await loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos');
       if (configFaturamentos && Array.isArray(configFaturamentos)) {
-        const faturamentos = configFaturamentos.map((f: any) => ({
+        const faturamentos = configFaturamentos.map((f) => ({
           ...f,
           mes: new Date(f.mes)
         })).sort((a, b) => {
@@ -164,10 +169,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       }
 
       // Carregar estados dos checkboxes salvos ANTES de calcular
-      const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
+      const configKey = markupBlockId ? `checkbox-states-${markupBlockId}` : 'checkbox-states-default';
       console.log(`🔧 Carregando configuração com chave: ${configKey}`);
       
-      const savedStates = await loadConfiguration(configKey);
+      const savedStates = await loadConfiguration<Record<string, boolean>>(configKey);
       console.log(`📋 Estados salvos carregados:`, savedStates);
       
       let statesParaUsar: Record<string, boolean> = {};
@@ -189,7 +194,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       
       // Calcular markup COM os estados carregados
       console.log(`🧮 Calculando markup inicial com estados:`, statesParaUsar);
-      calcularMarkup(statesParaUsar);
+      calcularMarkupRef.current?.(statesParaUsar);
       
       setHasUnsavedChanges(false);
 
@@ -202,25 +207,14 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadConfiguration, markupBlockId, toast, user]);
 
   useEffect(() => {
     console.log('🔄 Modal aberto:', open, 'markupBlock:', markupBlock?.id || 'NOVO');
     if (open) {
       carregarDados();
     }
-  }, [open, user, markupBlock?.id]);
-
-  // Recalcular markup quando os dados são carregados
-  useEffect(() => {
-    // APENAS recalcular se não estiver criando um novo bloco E se tiver um markupBlock definido
-    if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
-      console.log(`🔄 Recalculando markup com estados:`, tempCheckboxStates);
-      calcularMarkup(tempCheckboxStates);
-    } else if (open && !markupBlock) {
-      console.log(`🆕 Modal aberto para novo bloco - não calculando automaticamente`);
-    }
-  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento, markupBlock]);
+  }, [open, user, markupBlock?.id, carregarDados]);
 
   // Escutar mudanças nos faturamentos históricos em tempo real (otimizado)
   useEffect(() => {
@@ -233,9 +227,9 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       if (isStale) return;
       
       try {
-        const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+        const configFaturamentos = await loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos');
         if (configFaturamentos && Array.isArray(configFaturamentos) && !isStale) {
-          const faturamentos = configFaturamentos.map((f: any) => ({
+          const faturamentos = configFaturamentos.map((f) => ({
             ...f,
             mes: new Date(f.mes)
           })).sort((a, b) => {
@@ -264,7 +258,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       isStale = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [open]);
+  }, [loadConfiguration, open]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(getBusinessRegion().locale, {
@@ -320,7 +314,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [user, open]);
+  }, [user, open, carregarDados]);
 
   const handleCheckboxChange = (itemId: string, checked: boolean) => {
     const newTempStates = { ...tempCheckboxStates, [itemId]: checked };
@@ -479,6 +473,19 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
 
   }, [encargosVenda, despesasFixas, folhaPagamento, getCategoriaByNome, faturamentosHistoricos, markupBlock?.periodo]);
 
+  // Recalcular markup quando os dados são carregados
+  useEffect(() => {
+    // APENAS recalcular se não estiver criando um novo bloco E se tiver um markupBlock definido
+    if (open && markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
+      console.log(`🔄 Recalculando markup com estados:`, tempCheckboxStates);
+      calcularMarkup(tempCheckboxStates);
+    } else if (open && !markupBlock) {
+      console.log(`🆕 Modal aberto para novo bloco - não calculando automaticamente`);
+    }
+  }, [open, tempCheckboxStates, encargosVenda, despesasFixas, folhaPagamento, markupBlock, calcularMarkup]);
+
+  useEffect(() => { calcularMarkupRef.current = calcularMarkup; }, [calcularMarkup]);
+
   // Debounced calculation to avoid excessive re-renders (aumentado o delay)
   const debouncedCalculateMarkup = useMemo(() => {
     let timeoutId: NodeJS.Timeout;
@@ -494,7 +501,7 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
     if (markupBlock && Object.keys(tempCheckboxStates).length > 0 && (encargosVenda.length > 0 || despesasFixas.length > 0 || folhaPagamento.length > 0)) {
       debouncedCalculateMarkup(tempCheckboxStates);
     }
-  }, [tempCheckboxStates, debouncedCalculateMarkup, markupBlock]); // Adiciona markupBlock como dependência
+  }, [tempCheckboxStates, debouncedCalculateMarkup, markupBlock, encargosVenda.length, despesasFixas.length, folhaPagamento.length]); // Adiciona markupBlock como dependência
 
   const handleSalvar = async () => {
     try {
@@ -524,10 +531,10 @@ export function CustosModal({ open, onOpenChange, markupBlock, onMarkupUpdate, g
       
       // IMPORTANTE: Carregar configuração existente ANTES de salvar para preservar outras abas
       const configKey = markupBlock ? `checkbox-states-${markupBlock.id}` : 'checkbox-states-default';
-      const configExistente = await loadConfiguration(configKey);
+      const configExistente = await loadConfiguration<Record<string, boolean>>(configKey);
       
       // Mesclar configuração existente com novos estados (preservar outras abas)
-      let estadosParaSalvar = { ...tempCheckboxStates };
+      const estadosParaSalvar = { ...tempCheckboxStates };
       
       if (configExistente && typeof configExistente === 'object') {
         // Preservar estados existentes que não foram modificados nesta sessão

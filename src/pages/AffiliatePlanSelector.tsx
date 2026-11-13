@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import type { Json, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -31,18 +33,11 @@ const AffiliatePlanSelector = () => {
   const navigate = useNavigate();
   const { planos } = usePlanos();
   const [loading, setLoading] = useState<string | null>(null);
-  const [affiliateData, setAffiliateData] = useState<any>(null);
+  const [affiliateData, setAffiliateData] = useState<Pick<Tables<'affiliates'>, 'name' | 'email'> | null>(null);
 
-  useEffect(() => {
-    if (code) {
-      loadAffiliateData();
-      const expires = new Date();
-      expires.setDate(expires.getDate() + 60);
-      document.cookie = `aff_code=${code}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
-    }
-  }, [code]);
 
-  const loadAffiliateData = async () => {
+
+  const loadAffiliateData = useCallback(async () => {
     try {
       const { data: link } = await supabase
         .from('affiliate_links')
@@ -61,7 +56,16 @@ const AffiliatePlanSelector = () => {
     } catch (error) {
       console.error('Erro ao carregar dados do afiliado:', error);
     }
-  };
+  }, [code]);
+
+useEffect(() => {
+    if (code) {
+      loadAffiliateData();
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 60);
+      document.cookie = `aff_code=${code}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
+    }
+  }, [code, loadAffiliateData]);
 
   const getPlanIcon = (planType: string) => {
     switch (planType) {

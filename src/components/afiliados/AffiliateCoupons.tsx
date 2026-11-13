@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ export function AffiliateCoupons() {
     expiresAt: ''
   });
 
-  const loadCoupons = async () => {
+  const loadCoupons = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('affiliate_coupons')
@@ -86,11 +87,11 @@ export function AffiliateCoupons() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     loadCoupons();
-  }, []);
+  }, [loadCoupons]);
 
   useEffect(() => {
     let filtered = coupons;

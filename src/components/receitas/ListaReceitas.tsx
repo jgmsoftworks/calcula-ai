@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { tiposProdutoKey } from '@/lib/tiposProdutoData';
 import { fetchReceitasPage, fetchTodasReceitas, RECEITAS_PAGE_SIZE } from '@/lib/receitasData';
-import type { Json } from '@/integrations/supabase/types';
+import type { MarkupDetalhado } from '@/types/configurations';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,7 +115,7 @@ export function ListaReceitas() {
       const { data, error } = await supabase.from('user_configurations')
         .select('type, configuration').eq('user_id', user!.id).ilike('type', 'markup_%');
       if (error) throw error;
-      return Object.fromEntries((data || []).map(item => [item.type, item.configuration])) as Record<string, Json>;
+      return Object.fromEntries((data || []).map(item => [item.type, item.configuration])) as Record<string, MarkupDetalhado>;
     },
     enabled: !!user,
     staleTime: 30_000,
@@ -316,4 +316,3 @@ export function ListaReceitas() {
     </>
   );
 }
-

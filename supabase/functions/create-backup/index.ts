@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const logError = (error: unknown, context: string, details?: any) => {
+const logError = (error: unknown, context: string, details?: unknown) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   console.error(`[CREATE-BACKUP ERROR] ${context}`, {
@@ -17,7 +17,7 @@ const logError = (error: unknown, context: string, details?: any) => {
   return errorMessage;
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-BACKUP] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
 };
 
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     console.log(`Created backup record with ID: ${backup.id}`);
 
     // Collect backup data
-    const backupData: Record<string, any> = {};
+    const backupData: Record<string, unknown> = {};
     const recordCounts: Record<string, number> = {};
     const tables = backup.tables_included || [];
 

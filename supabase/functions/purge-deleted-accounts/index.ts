@@ -1,3 +1,4 @@
+import { errorMessage } from '../_shared/errors.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireCronOrAdmin } from '../_shared/authGuard.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
@@ -43,7 +44,7 @@ serve(async (req) => {
 
     if (error) throw error;
 
-    const results: any[] = [];
+    const results: { user_id: string; status: 'purged' | 'error'; error?: string }[] = [];
 
     for (const req of pending ?? []) {
       const userId = req.user_id;
@@ -51,13 +52,13 @@ serve(async (req) => {
         for (const table of USER_ID_TABLES) {
           try {
             await admin.from(table).delete().eq('user_id', userId);
-          } catch (e: any) {
-            console.warn(`[purge] ${table}:`, e.message);
+          } catch (e: unknown) {
+            console.warn(`[purge] ${table}:`, errorMessage(e));
           }
         }
-        try { await admin.from('avaliacoes_fornecedores').delete().eq('cliente_user_id', userId); } catch {}
-        try { await admin.from('orcamentos_fornecedores').delete().eq('cliente_user_id', userId); } catch {}
-        try { await admin.from('affiliate_customers').delete().eq('customer_user_id', userId); } catch {}
+        try { await admin.from('avaliacoes_fornecedores').delete().eq('cliente_user_id', userId); } catch { /* Related legacy tables are best-effort; Auth deletion below remains mandatory. */ }
+        try { await admin.from('orcamentos_fornecedores').delete().eq('cliente_user_id', userId); } catch { /* Related legacy tables are best-effort; Auth deletion below remains mandatory. */ }
+        try { await admin.from('affiliate_customers').delete().eq('customer_user_id', userId); } catch { /* Related legacy tables are best-effort; Auth deletion below remains mandatory. */ }
 
         const { error: delErr } = await admin.auth.admin.deleteUser(userId);
         if (delErr) throw delErr;
@@ -67,9 +68,9 @@ serve(async (req) => {
           .eq('id', req.id);
 
         results.push({ user_id: userId, status: 'purged' });
-      } catch (e: any) {
-        console.error(`[purge] erro user ${userId}:`, e.message);
-        results.push({ user_id: userId, status: 'error', error: e.message });
+      } catch (e: unknown) {
+        console.error(`[purge] erro user ${userId}:`, errorMessage(e));
+        results.push({ user_id: userId, status: 'error', error: errorMessage(e) });
       }
     }
 
@@ -78,9 +79,9 @@ serve(async (req) => {
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[purge-deleted-accounts] erro:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: errorMessage(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

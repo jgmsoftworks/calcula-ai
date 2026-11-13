@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { useReceitas } from '../useReceitas';
-import type { RecipeSaveRequest } from '@/lib/recipe-save';
+import type { RecipeSaveRequest, RecipeSaveComponents } from '@/lib/recipe-save';
 
 const m = vi.hoisted(() => ({
   from: vi.fn(), rpc: vi.fn(), write: vi.fn(), requestAccess: vi.fn(),
@@ -74,13 +74,13 @@ describe('Atomic recipe duplication', () => {
       tempo_preparo_total: 60, tempo_preparo_unidade: 'minutos', tempo_preparo_mao_obra: 30,
       peso_unitario: 80, conservacao: { geladeira: 3 }, markup_id: 'markup',
     });
-    const components = request.p_componentes;
+    const components: RecipeSaveComponents = request.p_componentes;
     expect(components.ingredientes[0]).toEqual({ id: expect.any(String), produto_id: 'flour', quantidade: 200 });
     expect(components.sub_receitas[0]).toMatchObject({ sub_receita_id: 'filling', quantidade: 2 });
     expect(components.embalagens[0]).toMatchObject({ produto_id: 'box', quantidade: 1 });
     expect(components.passos[0]).toMatchObject({ ordem: 1, descricao: 'Assar' });
     expect(components.mao_obra[0]).toMatchObject({ ...children.receita_mao_obra[0], id: expect.any(String) });
-    const ids = Object.values(components).flatMap((items: any) => items.map((item: any) => item.id));
+    const ids = Object.values(components).flatMap((items) => items.map((item) => item.id));
     expect(new Set([...ids, request.p_receita_id, request.p_request_id]).size).toBe(7);
     expect(ids.some(id => ['ingredient', 'sub', 'package', 'step', 'labor'].includes(id as string))).toBe(false);
     expect(children.receita_ingredientes[0].id).toBe('ingredient');

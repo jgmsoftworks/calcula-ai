@@ -3,7 +3,7 @@ import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppLayout } from './AppLayout';
-import { PlanLimitProvider } from '@/contexts/PlanLimitContext';
+import { PlanLimitProvider } from '@/contexts/PlanLimitProvider';
 
 export const AppLayoutRoute = () => { usePortugalTranslation(); return (
   <PlanLimitProvider><AppLayout>

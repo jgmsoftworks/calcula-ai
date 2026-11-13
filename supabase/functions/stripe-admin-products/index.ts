@@ -26,7 +26,7 @@ serve(async (req) => {
       prices: prices.data.map((pr) => ({
         id: pr.id,
         product_id: typeof pr.product === "string" ? pr.product : pr.product.id,
-        product_name: typeof pr.product === "string" ? null : (pr.product as any).name,
+        product_name: typeof pr.product === "string" ? null : ('name' in pr.product ? pr.product.name : undefined),
         unit_amount: (pr.unit_amount ?? 0) / 100,
         currency: pr.currency,
         interval: pr.recurring?.interval ?? null,

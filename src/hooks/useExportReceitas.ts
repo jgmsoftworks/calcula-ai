@@ -1,3 +1,4 @@
+import type { Markup, MarkupDetalhado } from '@/types/configurations';
 import { getBusinessRegion } from '@/lib/business-region';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -26,8 +27,8 @@ export function useExportReceitas() {
       const XLSX = await import('xlsx');
 
       // Buscar configuração do markup se selecionado
-      let markupDetalhes: any = null;
-      let markupBase: any = null;
+      let markupDetalhes: MarkupDetalhado = null;
+      let markupBase: Pick<Markup, 'id' | 'nome' | 'tipo' | 'markup_ideal' | 'margem_lucro' | 'gasto_sobre_faturamento' | 'encargos_sobre_venda'> = null;
       if (markupId && markupNome && user) {
         const configKey = `markup_${markupNome.toLowerCase().replace(/\s+/g, '_')}`;
         const [{ data: configData }, { data: markupData }] = await Promise.all([
@@ -45,7 +46,7 @@ export function useExportReceitas() {
         ]);
 
         if (configData?.configuration) {
-          markupDetalhes = configData.configuration;
+          markupDetalhes = configData.configuration as MarkupDetalhado;
         }
 
         if (markupData) {
@@ -167,9 +168,9 @@ export function useExportReceitas() {
         .like('type', 'markup_%');
 
       // Criar Map para acesso O(1) - muito mais rápido que consultas individuais
-      const markupConfigCache = new Map<string, any>();
+      const markupConfigCache = new Map<string, MarkupDetalhado>();
       todasConfiguracoes?.forEach(config => {
-        markupConfigCache.set(config.type, config.configuration);
+        markupConfigCache.set(config.type, config.configuration as MarkupDetalhado);
       });
 
       // Converter dados para formato Excel (agora síncrono - sem consultas no loop)
@@ -242,7 +243,7 @@ export function useExportReceitas() {
         colsMonetarias.forEach(col => {
           const cellAddress = col + (R + 1);
           if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
-            ws[cellAddress].z = getBusinessRegion().currency === 'EUR' ? '#,##0.00 \"€\"' : '\"R$\" #,##0.00';
+            ws[cellAddress].z = getBusinessRegion().currency === 'EUR' ? '#,##0.00 "€"' : '"R$" #,##0.00';
           }
         });
       }

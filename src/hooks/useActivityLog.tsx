@@ -138,7 +138,7 @@ export const useActivityLog = () => {
         .single();
 
       if (data?.configuration && Array.isArray(data.configuration)) {
-        const formattedActivities = data.configuration.map((log: any) => ({
+        const formattedActivities = (data.configuration as Omit<ActivityLog, 'time'>[]).map((log) => ({
           ...log,
           time: formatTimeAgo(log.created_at)
         }));

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion, currencySymbol } from '@/lib/business-region';
@@ -13,28 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-interface EncargoItem {
-  id?: string;
-  nome: string;
-  valor_percentual: number;
-  valor_fixo: number;
-  categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros';
-  ativo: boolean;
-}
-
-export const EncargosVenda = () => {
-  usePortugalTranslation();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
-  const [encargos, setEncargos] = useState<EncargoItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [modalAberto, setModalAberto] = useState(false);
-  const [encargoEditando, setEncargoEditando] = useState<EncargoItem | null>(null);
-  const [nomeEditando, setNomeEditando] = useState('');
-
-  // Encargos padrão por categoria
-  const encargosDefault = {
+const encargosDefault = {
     impostos: [
       { nome: 'ICMS', valor_percentual: 0, valor_fixo: 0 },
       { nome: 'ISS', valor_percentual: 0, valor_fixo: 0 },
@@ -58,51 +38,7 @@ export const EncargosVenda = () => {
     outros: []
   };
 
-  useEffect(() => {
-    if (user) {
-      carregarEncargos();
-    }
-  }, [user]);
-
-  const carregarEncargos = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('encargos_venda')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('nome');
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const encargosFormatados = data.map(item => ({
-          id: item.id,
-          nome: item.nome,
-          valor_percentual: item.valor_percentual || 0,
-          valor_fixo: item.valor_fixo || 0,
-          categoria: getCategoriaByNome(item.nome),
-          ativo: item.ativo
-        }));
-        setEncargos(encargosFormatados);
-      } else {
-        // Se não há dados, inicializar com encargos padrão
-        await inicializarEncargosDefault();
-      }
-    } catch (error) {
-      console.error('Erro ao carregar encargos:', error);
-      toast({
-        title: "Erro ao carregar dados",
-        description: localizeText("Não foi possível carregar os encargos salvos"),
-        variant: "destructive"
-      });
-    }
-    setLoading(false);
-  };
-
-  const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
+const getCategoriaByNome = (nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
     const impostos = ['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI'];
     const meiosPagamento = ['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento'];
     const comissoes = ['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'];
@@ -113,7 +49,33 @@ export const EncargosVenda = () => {
     return 'outros';
   };
 
-  const inicializarEncargosDefault = async () => {
+
+interface EncargoItem {
+  id?: string;
+  nome: string;
+  valor_percentual: number;
+  valor_fixo: number;
+  categoria: 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros';
+  ativo: boolean;
+}
+
+export const EncargosVenda = () => {
+  usePortugalTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [encargos, setEncargos] = useState<EncargoItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [encargoEditando, setEncargoEditando] = useState<EncargoItem | null>(null);
+  const [nomeEditando, setNomeEditando] = useState('');
+
+  // Encargos padrão por categoria
+
+
+
+
+  const inicializarEncargosDefault = useCallback(async () => {
     if (!user) return;
 
     const todosEncargos = [
@@ -154,7 +116,55 @@ export const EncargosVenda = () => {
     } catch (error) {
       console.error('Erro ao inicializar encargos:', error);
     }
-  };
+  }, [user]);
+
+  const carregarEncargos = useCallback(async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('encargos_venda')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('nome');
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const encargosFormatados = data.map(item => ({
+          id: item.id,
+          nome: item.nome,
+          valor_percentual: item.valor_percentual || 0,
+          valor_fixo: item.valor_fixo || 0,
+          categoria: getCategoriaByNome(item.nome),
+          ativo: item.ativo
+        }));
+        setEncargos(encargosFormatados);
+      } else {
+        // Se não há dados, inicializar com encargos padrão
+        await inicializarEncargosDefault();
+      }
+    } catch (error) {
+      console.error('Erro ao carregar encargos:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: localizeText("Não foi possível carregar os encargos salvos"),
+        variant: "destructive"
+      });
+    }
+    setLoading(false);
+  }, [inicializarEncargosDefault, toast, user]);
+
+  useEffect(() => {
+    if (user) {
+      carregarEncargos();
+    }
+  }, [carregarEncargos, user]);
+
+
+
+
 
   const atualizarValorPercentual = async (nome: string, valor: number) => {
     const encargo = encargos.find(e => e.nome === nome);

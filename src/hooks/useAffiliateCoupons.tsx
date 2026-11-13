@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,7 @@ export function useAffiliateCoupons() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const loadCoupons = async () => {
+  const loadCoupons = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('affiliate_coupons')
@@ -58,7 +59,7 @@ export function useAffiliateCoupons() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const getActiveCouponsForAffiliate = (affiliateId: string): AffiliateCoupon[] => {
     return coupons.filter(coupon => 
@@ -147,7 +148,7 @@ export function useAffiliateCoupons() {
 
   useEffect(() => {
     loadCoupons();
-  }, []);
+  }, [loadCoupons]);
 
   return {
     coupons,

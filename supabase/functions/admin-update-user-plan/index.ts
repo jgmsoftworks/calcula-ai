@@ -1,3 +1,4 @@
+import type { Tables, TablesUpdate, Json } from '../_shared/database.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
@@ -7,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[ADMIN-UPDATE-PLAN] ${step}${detailsStr}`);
 };
@@ -91,7 +92,7 @@ serve(async (req) => {
     }
 
     // Atualizar plano do usuário
-    const updateData: any = {
+    const updateData: TablesUpdate<'profiles'> = {
       plan: newPlan,
       access_mode: 'legacy',
       trial_ends_at: null,

@@ -213,7 +213,7 @@ export function AffiliatesLinks() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {(link as any).source_channel || 'direto'}
+                        {link.source_channel || 'direto'}
                       </Badge>
                     </TableCell>
                     <TableCell>

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
@@ -40,13 +41,9 @@ export const FinancialHealthScore = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      calculateHealthScore();
-    }
-  }, [user]);
 
-  const calculateHealthScore = async () => {
+
+  const calculateHealthScore = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -78,7 +75,7 @@ export const FinancialHealthScore = () => {
       if (recipes && recipes.length > 0) {
         const margens = recipes.map(recipe => {
           // Calcular custo de ingredientes dinamicamente
-          const custoIngredientes = recipe.receita_ingredientes?.reduce((sum: number, i: any) => {
+          const custoIngredientes = recipe.receita_ingredientes?.reduce((sum: number, i) => {
             if (!i.produto) return sum;
             const custoUnitario = i.produto.unidade_uso 
               ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
@@ -87,7 +84,7 @@ export const FinancialHealthScore = () => {
           }, 0) || 0;
 
           // Calcular custo de embalagens dinamicamente
-          const custoEmbalagens = recipe.receita_embalagens?.reduce((sum: number, e: any) => {
+          const custoEmbalagens = recipe.receita_embalagens?.reduce((sum: number, e) => {
             if (!e.produto) return sum;
             const custoUnitario = e.produto.unidade_uso 
               ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
@@ -96,7 +93,7 @@ export const FinancialHealthScore = () => {
           }, 0) || 0;
 
           // Custo de mão de obra
-          const custoMaoObra = recipe.receita_mao_obra?.reduce((sum: number, m: any) => sum + (m.valor_total || 0), 0) || 0;
+          const custoMaoObra = recipe.receita_mao_obra?.reduce((sum: number, m) => sum + (m.valor_total || 0), 0) || 0;
 
           const custoTotal = custoIngredientes + custoEmbalagens + custoMaoObra;
           
@@ -126,81 +123,25 @@ export const FinancialHealthScore = () => {
 
       // 2. Diversificação de Produtos - TEMPORARIAMENTE DESABILITADO
       // (Sistema de estoque foi reconstruído, esta métrica será reimplementada)
-      let diversificacaoScore = 70;
-      let diversificacaoStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
-      let diversificacaoDesc = 'Análise temporariamente indisponível';
+      const diversificacaoScore = 70;
+      const diversificacaoStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
+      const diversificacaoDesc = 'Análise temporariamente indisponível';
 
-      if (false) {
-        const numCategorias = 0;
 
-        if (numCategorias >= 5) {
-          diversificacaoScore = 100;
-          diversificacaoStatus = 'excellent';
-          diversificacaoDesc = `${numCategorias} categorias - portfólio diversificado`;
-        } else if (numCategorias >= 3) {
-          diversificacaoScore = 75;
-          diversificacaoStatus = 'good';
-          diversificacaoDesc = `${numCategorias} categorias - boa diversificação`;
-        } else if (numCategorias >= 2) {
-          diversificacaoScore = 50;
-          diversificacaoStatus = 'warning';
-          diversificacaoDesc = `${numCategorias} categorias - considere diversificar`;
-        } else {
-          diversificacaoScore = 30;
-          diversificacaoStatus = 'critical';
-          diversificacaoDesc = 'Portfólio pouco diversificado';
-        }
-      }
 
       // 3. Consistência de Custos - TEMPORARIAMENTE DESABILITADO
       // (Sistema de estoque foi reconstruído, esta métrica será reimplementada)
-      let consistenciaScore = 70;
-      let consistenciaStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
-      let consistenciaDesc = 'Análise temporariamente indisponível';
+      const consistenciaScore = 70;
+      const consistenciaStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
+      const consistenciaDesc = 'Análise temporariamente indisponível';
 
-      if (false) {
-        const produtosCustos: Record<string, number[]> = {};
 
-        const variacoes = Object.values(produtosCustos)
-          .filter(custos => custos.length >= 2)
-          .map(custos => {
-            const min = Math.min(...custos);
-            const max = Math.max(...custos);
-            return ((max - min) / min) * 100;
-          });
-
-        if (variacoes.length > 0) {
-          const variacaoMedia = variacoes.reduce((a, b) => a + b, 0) / variacoes.length;
-
-          if (variacaoMedia <= 10) {
-            consistenciaScore = 100;
-            consistenciaStatus = 'excellent';
-            consistenciaDesc = `Custos estáveis - variação de ${formatNumber(variacaoMedia, 1)}%`;
-          } else if (variacaoMedia <= 20) {
-            consistenciaScore = 75;
-            consistenciaStatus = 'good';
-            consistenciaDesc = `Custos controlados - variação de ${formatNumber(variacaoMedia, 1)}%`;
-          } else if (variacaoMedia <= 35) {
-            consistenciaScore = 50;
-            consistenciaStatus = 'warning';
-            consistenciaDesc = `Custos variando ${formatNumber(variacaoMedia, 1)}% - atenção`;
-          } else {
-            consistenciaScore = 30;
-            consistenciaStatus = 'critical';
-            consistenciaDesc = `Alta variação de ${formatNumber(variacaoMedia, 1)}% nos custos`;
-          }
-        } else {
-          consistenciaScore = 70;
-          consistenciaStatus = 'good';
-          consistenciaDesc = 'Poucos dados para análise';
-        }
-      }
 
       // 4. Controle de Estoque - TEMPORARIAMENTE DESABILITADO
       // (Sistema de estoque foi reconstruído, esta métrica será reimplementada)
-      let estoqueScore = 70;
-      let estoqueStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
-      let estoqueDesc = 'Análise temporariamente indisponível';
+      const estoqueScore = 70;
+      const estoqueStatus: 'excellent' | 'good' | 'warning' | 'critical' = 'good';
+      const estoqueDesc = 'Análise temporariamente indisponível';
 
       // Código desabilitado - será reimplementado
 
@@ -286,7 +227,13 @@ export const FinancialHealthScore = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+useEffect(() => {
+    if (user) {
+      calculateHealthScore();
+    }
+  }, [calculateHealthScore, user]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600 dark:text-green-400';
@@ -302,16 +249,7 @@ export const FinancialHealthScore = () => {
     return 'Crítico';
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; className: string }> = {
-      excellent: { variant: 'default', className: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
-      good: { variant: 'secondary', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
-      warning: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' },
-      critical: { variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' }
-    };
 
-    return variants[status] || variants.critical;
-  };
 
   if (loading) {
     return (

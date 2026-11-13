@@ -20,7 +20,7 @@ export function AffiliatesDashboard() {
         .select('valor_total')
         .eq('status', 'pending');
       if (data) {
-        setPendingSupportTotal(data.reduce((sum: number, s: any) => sum + (s.valor_total || 0), 0));
+        setPendingSupportTotal(data.reduce((sum: number, s) => sum + (s.valor_total || 0), 0));
       }
     };
     loadSupportTotal();
@@ -56,18 +56,20 @@ export function AffiliatesDashboard() {
       switch (dateFilter) {
         case 'today':
           return saleDate.toDateString() === now.toDateString() && sale.status === 'confirmed';
-        case 'this_week':
+        case 'this_week': {
           const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
           return saleDate >= weekStart && sale.status === 'confirmed';
+        }
         case 'this_month':
           return saleDate.getMonth() === now.getMonth() && 
                  saleDate.getFullYear() === now.getFullYear() &&
                  sale.status === 'confirmed';
-        case 'last_month':
+        case 'last_month': {
           const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
           return saleDate.getMonth() === lastMonth.getMonth() && 
                  saleDate.getFullYear() === lastMonth.getFullYear() &&
                  sale.status === 'confirmed';
+        }
         default:
           return sale.status === 'confirmed';
       }

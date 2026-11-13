@@ -78,7 +78,7 @@ serve(async (req) => {
     console.log('[CREATE-AFFILIATE-COUPON] Criando cupom no Stripe:', couponCode);
 
     // Create coupon in Stripe
-    const stripeCouponData: any = {
+    const stripeCouponData: Stripe.CouponCreateParams = {
       id: couponCode,
       name: `${name} - ${affiliate.name}`,
       duration: expiresAt ? 'once' : 'forever',

@@ -17,6 +17,7 @@ interface PaymentStatus {
 export default function AuthSuccess() {
   usePortugalTranslation();
   const { user } = useAuth();
+  const userId = user?.id;
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const sessionId = params.get('session_id');
@@ -37,11 +38,11 @@ export default function AuthSuccess() {
   useEffect(() => { void check(); }, [check]);
   const approved = result?.status === 'approved' || result?.status === 'trial';
   useEffect(() => {
-    if (approved && result?.access_ready && user) {
-      void queryClient.invalidateQueries({ queryKey: ['account-access', user.id] });
-      void queryClient.invalidateQueries({ queryKey: ['user-plan', user.id] });
+    if (approved && result?.access_ready && userId) {
+      void queryClient.invalidateQueries({ queryKey: ['account-access', userId] });
+      void queryClient.invalidateQueries({ queryKey: ['user-plan', userId] });
     }
-  }, [approved, result?.access_ready, user?.id, queryClient]);
+  }, [approved, result?.access_ready, userId, queryClient]);
   const title = result?.status === 'trial' ? 'Seu período de teste começou!' : approved ? 'Pagamento aprovado!' : result?.status === 'failed' ? 'Pagamento não confirmado' : 'Aguardando aprovação do pagamento';
   return <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-4">
     <Card className="w-full max-w-lg shadow-xl"><CardContent className="p-8 space-y-6 text-center" aria-live="polite">

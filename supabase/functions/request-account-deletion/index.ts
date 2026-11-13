@@ -35,8 +35,8 @@ serve(async (req) => {
     const userId = userData.user.id;
     const email = userData.user.email ?? null;
 
-    let body: any = {};
-    try { body = await req.json(); } catch {}
+    let body: { action?: string; reason?: unknown; confirm?: boolean } = {};
+    try { body = await req.json(); } catch { /* Empty or invalid JSON follows the existing default request path. */ }
     const action = body?.action ?? 'request';
     const reason = typeof body?.reason === 'string' ? body.reason.slice(0, 500) : null;
     const confirm = body?.confirm === true;
@@ -107,7 +107,7 @@ serve(async (req) => {
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[request-account-deletion] erro:', err);
     return new Response(JSON.stringify({ error: 'Erro ao processar solicitação' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

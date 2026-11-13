@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { initialBusinessCountry, isAppLanguage, isBusinessCountry, type BusinessCountry } from '@/lib/business-region';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -38,7 +39,14 @@ import authLogo from '@/assets/logo-calculaai-auth.webp';
 import './Auth.css';
 
 
-const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true, compact = false }: any) => (
+interface InputFieldProps {
+  id: string; label: string; icon: import('lucide-react').LucideIcon;
+  type?: React.HTMLInputTypeAttribute; placeholder?: string; value: string;
+  onChange: React.ChangeEventHandler<HTMLInputElement>; showPassword?: boolean;
+  onTogglePassword?: () => void; required?: boolean; compact?: boolean;
+}
+
+const InputField = ({ id, label, icon: Icon, type = 'text', placeholder, value, onChange, showPassword, onTogglePassword, required = true, compact = false }: InputFieldProps) => (
   <div className={`min-w-0 group ${compact ? 'space-y-1' : 'space-y-1.5'}`}>
     <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
     <div className="relative">
@@ -188,8 +196,8 @@ const Auth = () => {
       }
       toast({ title: t('auth.loginSuccess'), description: t('auth.welcomeBack') });
       completeAuth();
-    } catch (error: any) {
-      toast({ title: t('auth.unexpectedError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: t('auth.unexpectedError'), description: errorMessage(error) || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -232,7 +240,7 @@ const Auth = () => {
           await supabase.from('user_consents').insert([
             { user_id: newUserId, consent_type: 'terms_of_use', accepted: true, version: CONSENT_VERSION, user_agent: ua },
             { user_id: newUserId, consent_type: 'privacy_policy', accepted: true, version: CONSENT_VERSION, user_agent: ua },
-          ] as any);
+          ]);
         } catch (consentErr) {
           console.warn('[auth] Falha ao registrar consentimentos legais', consentErr);
         }
@@ -245,7 +253,7 @@ const Auth = () => {
       }
       toast({ title: t('auth.accountCreated'), description: t('auth.confirmEmail') });
       setShowResendConfirmation(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({ title: t('auth.unexpectedError'), description: t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -261,8 +269,8 @@ const Auth = () => {
       toast({ title: t('auth.emailSent'), description: t('auth.checkYourInbox') });
       setShowForgotPassword(false);
       setResetEmail('');
-    } catch (error: any) {
-      toast({ title: t('auth.sendError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: t('auth.sendError'), description: errorMessage(error) || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -274,8 +282,8 @@ const Auth = () => {
       const { error } = await resendConfirmation(email);
       if (error) throw error;
       toast({ title: t('auth.emailResent'), description: t('auth.checkYourBox') });
-    } catch (error: any) {
-      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: t('common.error'), description: errorMessage(error) || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -291,8 +299,8 @@ const Auth = () => {
       const { error } = await resendConfirmation(loginEmail);
       if (error) throw error;
       toast({ title: t('auth.emailResent'), description: t('auth.checkYourBox') });
-    } catch (error: any) {
-      toast({ title: t('common.error'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: t('common.error'), description: errorMessage(error) || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -307,8 +315,8 @@ const Auth = () => {
       if (openedInNewTab) {
         toast({ title: 'Continue na nova aba', description: 'Conclua o login com o Google e continue usando o aplicativo por lá.' });
       }
-    } catch (error: any) {
-      toast({ title: t('auth.googleError'), description: error.message || t('auth.tryAgain'), variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: t('auth.googleError'), description: errorMessage(error) || t('auth.tryAgain'), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -387,7 +395,7 @@ const Auth = () => {
                     </div>
 
                     <form onSubmit={handleForgotPassword} className="space-y-4">
-                      <InputField id="resetEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={resetEmail} onChange={(e: any) => setResetEmail(e.target.value)} />
+                      <InputField id="resetEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
 
                       <Button type="submit" disabled={loading} className="w-full h-[54px] rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]">
                         {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Mail className="h-4 w-4 mr-2" />{t('auth.sendInstructions')}</>}
@@ -411,8 +419,8 @@ const Auth = () => {
 
                     <TabsContent value="login" className="animate-fade-in space-y-4 mt-0">
                       <form onSubmit={handleLogin} className="space-y-4">
-                        <InputField id="email" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
-                        <InputField id="password" label={t('auth.password')} icon={Lock} placeholder={t('auth.passwordPlaceholder')} value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
+                        <InputField id="email" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+                        <InputField id="password" label={t('auth.password')} icon={Lock} placeholder={t('auth.passwordPlaceholder')} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} showPassword={showLoginPassword} onTogglePassword={() => setShowLoginPassword(!showLoginPassword)} />
 
                         <Button type="submit" disabled={loading} className="w-full h-[54px] rounded-[14px] bg-gradient-brand-horizontal text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]">
                           {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.login')}</span><ArrowRight className="h-4 w-4 ml-2" /></>}
@@ -460,13 +468,13 @@ const Auth = () => {
                             <option value="BR">Brasil · BRL (R$)</option><option value="PT">Portugal · EUR (€)</option>
                           </select>
                         </label>
-                        <InputField compact id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
+                        <InputField compact id="fullName" label={t('auth.fullName')} icon={User} placeholder={t('auth.namePlaceholder')} value={fullName} onChange={(e) => setFullName(e.target.value)} />
                         <div className="grid gap-2.5 sm:grid-cols-2">
-                          <InputField compact id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e: any) => setBusinessName(e.target.value)} />
-                          <InputField compact id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={country === 'PT' ? '+351 912 345 678' : t('auth.phonePlaceholder')} value={phone} onChange={(e: any) => setPhone(e.target.value)} />
+                          <InputField compact id="businessName" label={t('auth.businessName')} icon={Building2} placeholder={t('auth.businessPlaceholder')} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+                          <InputField compact id="phone" label={t('auth.phone')} icon={Phone} type="tel" placeholder={country === 'PT' ? '+351 912 345 678' : t('auth.phonePlaceholder')} value={phone} onChange={(e) => setPhone(e.target.value)} />
                         </div>
-                        <InputField compact id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e: any) => setEmail(e.target.value)} />
-                        <InputField compact id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e: any) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
+                        <InputField compact id="signupEmail" label={t('auth.email')} icon={Mail} type="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(e) => setEmail(e.target.value)} />
+                        <InputField compact id="signupPassword" label={t('auth.password')} icon={Lock} placeholder={t('auth.minChars')} value={password} onChange={(e) => setPassword(e.target.value)} showPassword={showSignupPassword} onTogglePassword={() => setShowSignupPassword(!showSignupPassword)} />
 
                         <div className="space-y-2 pt-1">
                           <label className="flex items-start gap-2 cursor-pointer">

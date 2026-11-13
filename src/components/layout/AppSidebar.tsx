@@ -34,18 +34,8 @@ import {
   CirclePlay,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  useSidebar,
-} from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar-context';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 
@@ -132,7 +122,7 @@ export function AppSidebar() {
     { title: t('nav.configuracoes'), url: '/admin-configuracoes', icon: Building2 },
   ];
 
-  const navigationItems = isAdmin ? adminNavigationItems : businessNavigationItems;
+  const navigationItems: Array<{ title: string; url: string; icon: import('lucide-react').LucideIcon; children?: CollapsibleSubmenuProps['item']['children'] }> = isAdmin ? adminNavigationItems : businessNavigationItems;
   const toolsItems = isAdmin ? adminItems : businessItems;
 
   const isActive = (path: string) => {
@@ -186,18 +176,18 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
-              {navigationItems.map((item: any) => {
-                const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+              {navigationItems.map((item) => {
+                const hasChildren = 'children' in item && Array.isArray(item.children) && item.children.length > 0;
                 const parentMatched =
                   item.url === '/'
                     ? currentPath === '/'
                     : currentPath === item.url || currentPath.startsWith(item.url + '/') || (item.url === '/estoque' && currentPath.startsWith('/movimentacao'));
 
-                if (hasChildren && !isCollapsed) {
+                if (hasChildren && 'children' in item && item.children && !isCollapsed) {
                   return (
                     <SidebarMenuItem key={item.url}>
                       <CollapsibleSubmenu
-                        item={item}
+                        item={{ ...item, children: item.children }}
                         parentMatched={parentMatched}
                         currentPath={currentPath}
                         onNavigate={handleNavigate}
@@ -287,8 +277,8 @@ interface CollapsibleSubmenuProps {
   item: {
     title: string;
     url: string;
-    icon: any;
-    children: Array<{ title: string; url: string; icon: any; exact?: boolean }>;
+    icon: import('lucide-react').LucideIcon;
+    children: Array<{ title: string; url: string; icon: import('lucide-react').LucideIcon; exact?: boolean }>;
   };
   parentMatched: boolean;
   currentPath: string;

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -61,20 +62,7 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
   const [unidadeTempo, setUnidadeTempo] = useState<string>('horas');
   const [valorTotal, setValorTotal] = useState<number>(0);
 
-  useEffect(() => {
-    if (open && user) {
-      fetchFuncionarios();
-      if (!tempMode) {
-        fetchMaoObra();
-      }
-    }
-  }, [open, user, receitaId, tempMode]);
-
-  useEffect(() => {
-    calcularValorTotal();
-  }, [selectedFuncionario, tempo, unidadeTempo]);
-
-  const fetchFuncionarios = async () => {
+  const fetchFuncionarios = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -96,9 +84,9 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
         variant: 'destructive',
       });
     }
-  };
+  }, [toast, user]);
 
-  const fetchMaoObra = async () => {
+  const fetchMaoObra = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -112,9 +100,18 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
     } catch (error) {
       console.error('Erro ao buscar mão de obra:', error);
     }
-  };
+  }, [receitaId, user]);
 
-  const calcularValorTotal = () => {
+  useEffect(() => {
+    if (open && user) {
+      fetchFuncionarios();
+      if (!tempMode) {
+        fetchMaoObra();
+      }
+    }
+  }, [open, user, receitaId, tempMode, fetchFuncionarios, fetchMaoObra]);
+
+  const calcularValorTotal = useCallback(() => {
     if (!selectedFuncionario || tempo <= 0) {
       setValorTotal(0);
       return;
@@ -137,7 +134,11 @@ export const MaoObraModal = ({ receitaId, open, onOpenChange, onUpdate, tempMode
 
     const total = funcionario.custo_por_hora * horas;
     setValorTotal(total);
-  };
+  }, [funcionarios, selectedFuncionario, tempo, unidadeTempo]);
+
+  useEffect(() => {
+    calcularValorTotal();
+  }, [calcularValorTotal, selectedFuncionario, tempo, unidadeTempo]);
 
   const handleAdd = async () => {
     if (!selectedFuncionario || tempo <= 0) {

@@ -1,3 +1,4 @@
+import type { MarkupDetalhado } from '@/types/configurations';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -6,29 +7,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Download, Eye, Package, Copy, Clock, Users, Layers, BoxSelect, Tag, TrendingUp, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Download, Eye, Package, Copy, Clock, Users, Layers, BoxSelect, Tag, TrendingUp } from 'lucide-react';
 import { useReceitas } from '@/hooks/useReceitas';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useExportReceitaPDF } from '@/hooks/useExportReceitaPDF';
 import { supabase } from '@/integrations/supabase/client';
-import { formatBRL } from '@/lib/formatters';
+
 import type { ReceitaComDados, ReceitaCompleta } from '@/types/receitas';
 import { ReceitaPreviewModal } from './ReceitaPreviewModal';
 import { ExcluirReceitaModal } from './ExcluirReceitaModal';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface ReceitaCardProps {
   receita: ReceitaComDados;
   onEdit: (receita: ReceitaComDados) => void;
   onDelete: () => void;
-  preloadedDetalhes?: any | null;
+  preloadedDetalhes?: MarkupDetalhado | null;
   isLoadingPreloaded?: boolean;
 }
 
@@ -57,7 +53,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
   const { fetchReceitaCompleta, duplicarReceita } = useReceitas();
   const { user } = useAuth();
   const { exportarReceitaPDF, exporting: exportingPDF } = useExportReceitaPDF();
-  const [markupDetalhes, setMarkupDetalhes] = useState<any>(null);
+  const [markupDetalhes, setMarkupDetalhes] = useState<MarkupDetalhado>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -100,7 +96,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
         .eq('type', configKey)
         .maybeSingle();
       if (data?.configuration) {
-        setMarkupDetalhes(data.configuration);
+        setMarkupDetalhes(data.configuration as MarkupDetalhado);
       } else {
         setMarkupDetalhes(null);
       }
@@ -184,7 +180,6 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
       setDuplicating(false);
     }
   };
-
 
   return (
     <Card className="group hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 overflow-hidden border-border/40">
@@ -306,7 +301,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
   );
 }
 
-function StatPill({ icon: Icon, label, value }: { icon?: any; label: string; value: string | number }) {
+function StatPill({ icon: Icon, label, value }: { icon?: import('lucide-react').LucideIcon; label: string; value: string | number }) {
   usePortugalTranslation();
   return (
     <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-1 rounded-lg bg-muted/60 text-[10px] md:text-xs">

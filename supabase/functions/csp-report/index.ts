@@ -26,7 +26,15 @@ interface NormalizedReport {
   status_code?: number;
 }
 
-function normalize(payload: any): NormalizedReport[] {
+type CspBody = {
+  documentURL?: string; documentURI?: string; 'document-uri'?: string; referrer?: string;
+  violatedDirective?: string; 'violated-directive'?: string; effectiveDirective?: string; 'effective-directive'?: string;
+  originalPolicy?: string; 'original-policy'?: string; blockedURL?: string; blockedURI?: string; 'blocked-uri'?: string;
+  sourceFile?: string; 'source-file'?: string; lineNumber?: number; 'line-number'?: number;
+  columnNumber?: number; 'column-number'?: number; statusCode?: number; 'status-code'?: number;
+};
+type CspReport = CspBody & { type?: string; body?: CspBody; 'csp-report'?: CspBody };
+function normalize(payload: CspReport | CspReport[] | null): NormalizedReport[] {
   if (!payload) return [];
   // Reporting API: array of reports
   if (Array.isArray(payload)) {
@@ -96,7 +104,7 @@ Deno.serve(async (req) => {
     let payload: unknown;
     try { payload = JSON.parse(text); } catch { return new Response(null, { status: 204, headers: corsHeaders }); }
 
-    const reports = normalize(payload).slice(0, 20); // hard cap por request
+    const reports = normalize(payload as CspReport | CspReport[] | null).slice(0, 20); // hard cap por request
     if (reports.length === 0) return new Response(null, { status: 204, headers: corsHeaders });
 
     const ua = req.headers.get("user-agent") ?? null;

@@ -73,7 +73,7 @@ export function SupportHours() {
         .order("data", { ascending: false });
 
       if (error) throw error;
-      setSupportHours((data as any) || []);
+      setSupportHours(data || []);
     } catch (error) {
       console.error("Erro ao carregar horas de suporte:", error);
     } finally {
@@ -144,7 +144,7 @@ export function SupportHours() {
     setFormData(prev => ({
       ...prev,
       affiliate_id: affiliateId,
-      valor_hora: (affiliate as any)?.support_hourly_rate || 10,
+      valor_hora: affiliate?.support_hourly_rate || 10,
     }));
   };
 

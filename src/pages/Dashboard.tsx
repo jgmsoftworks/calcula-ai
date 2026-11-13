@@ -35,8 +35,8 @@ const Dashboard = () => {
   const { metrics: adminMetrics, refreshMetrics } = useAdminDashboardMetrics();
 
   const displayName =
-    (user?.user_metadata as any)?.business_name ||
-    (user?.user_metadata as any)?.full_name ||
+    user?.user_metadata?.business_name ||
+    user?.user_metadata?.full_name ||
     user?.email?.split('@')[0] ||
     'user';
 

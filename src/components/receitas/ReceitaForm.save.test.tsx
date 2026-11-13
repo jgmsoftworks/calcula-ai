@@ -1,3 +1,7 @@
+import type { ReceitaCompleta, ReceitaFormData, AlterarReceitaForm } from '@/types/receitas';
+
+type FormProps = { formData: ReceitaFormData; onFormChange: AlterarReceitaForm };
+type SaveResult = { data: { id: string; numero_sequencial: number; updated_at: string } | null; error: { code?: string; message?: string; details?: string } | null };
 // Real form, ingredient inputs and hook; RPC responses are controlled in memory.
 // Transaction semantics and RLS are exercised separately against PostgreSQL.
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,13 +20,13 @@ vi.mock('sonner', () => ({ toast: { success: m.success, error: m.error } }));
 vi.mock('@/lib/funnel-analytics', () => ({ trackRecipeCreated: m.track }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (s: string) => s }) }));
 vi.mock('@/components/receitas/GeralTab', () => ({
-  GeralTab: ({formData,onFormChange}: any) => <label>Nome<input value={formData.nome} onChange={e=>onFormChange('nome',e.target.value)} /></label>,
+  GeralTab: ({formData,onFormChange}: FormProps) => <label>Nome<input value={formData.nome} onChange={e=>onFormChange('nome',e.target.value)} /></label>,
 }));
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
 vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: () => <div>Projeção</div> }));
 vi.mock('@/components/receitas/PrecificacaoTab', () => ({
-  PrecificacaoTab: ({formData,onFormChange}: any) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value || null)}>
+  PrecificacaoTab: ({formData,onFormChange}: FormProps) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value || null)}>
     <option value="">Selecione</option><option value="markup-normal">Normal</option><option value="markup-sub">Sub-receita</option>
   </select></label>,
 }));
@@ -30,7 +34,7 @@ vi.mock('@/components/receitas/PrecificacaoTab', () => ({
 const produto = { user_id:m.user.id,id:'chocolate',nome:'Chocolate sintético',custo_unitario:40,unidade_compra:'kg',unidade_uso:'g',fator_conversao:1000,ativo:true };
 const otherProduto = {...produto,id:'cacau',nome:'Cacau sintético'};
 const ingredient = {id:'ingredient-1',receita_id:'recipe-1',produto_id:produto.id,quantidade:100,produto};
-const recipe = {
+const recipe: ReceitaCompleta = {
   id:'recipe-1',user_id:m.user.id,numero_sequencial:1,nome:'Bolo sintético',rendimento_valor:10,
   rendimento_unidade:'un',tempo_preparo_total:30,tempo_preparo_mao_obra:0,conservacao:null,
   observacoes:null,imagem_url:null,markup_id:'markup-normal',preco_venda:40,status:'finalizada',peso_unitario:100,
@@ -48,7 +52,7 @@ beforeEach(() => {
       select:()=>query, eq:()=>query, order:()=>query,
       maybeSingle:async()=>({data:null,error:null}),
       single:async()=>({data:{tipo:'normal'},error:null}),
-      then:(resolve:any)=>Promise.resolve({data,error:null}).then(resolve),
+      then:(resolve:(value: { data: typeof data; error: null }) => unknown)=>Promise.resolve({data,error:null}).then(resolve),
     };
     return query;
   });
@@ -56,7 +60,7 @@ beforeEach(() => {
 afterEach(cleanup);
 function open(create=false, withoutMarkup=false) {
   return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}>
-    <ReceitaForm receita={create?null:{...structuredClone(recipe),markup_id:withoutMarkup?null:recipe.markup_id} as any} onClose={m.close}/>
+    <ReceitaForm receita={create?null:{...structuredClone(recipe),markup_id:withoutMarkup?null:recipe.markup_id}} onClose={m.close}/>
   </QueryClientProvider>);
 }
 async function changeIngredient() {
@@ -97,7 +101,7 @@ describe('Atomic save feedback and retries',()=>{
     expect(screen.getByLabelText('Nome')).toHaveValue('Bolo alterado');
   });
   it('does not show success or accept a second click while the RPC is pending',async()=>{
-    let finish!: (value:any)=>void;
+    let finish!: (value:SaveResult)=>void;
     m.rpc.mockReturnValue(new Promise(resolve=>{finish=resolve;}));
     await changeIngredient();
     for(let i=1;i<5;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));

@@ -6,13 +6,15 @@ import { ProjecaoTab } from '../ProjecaoTab';
 import { tiposProdutoKey } from '@/lib/tiposProdutoData';
 
 type Tipo = { id: string; nome: string };
+type Result = { data?: Tipo | Tipo[] | null; count?: number; error: Error | null };
+type Payload = { nome: string; user_id?: string };
 const db = vi.hoisted(() => ({
   user: { id: 'owner-a' },
   rows: [] as Tipo[],
-  read: vi.fn(),
+  read: vi.fn<(options: { userId: string; signal?: AbortSignal }) => Promise<Result>>(),
   update: vi.fn(),
   remove: vi.fn(),
-  usage: vi.fn(),
+  usage: vi.fn<(...args: unknown[]) => Promise<Result>>(),
   toast: vi.fn(),
 }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: db.user }) }));
@@ -21,7 +23,7 @@ vi.mock('../MaoObraModal', () => ({ MaoObraModal: () => null }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
   from: (table: string) => {
     let action = 'read';
-    let payload: any;
+    let payload: Payload = { nome: '' };
     let signal: AbortSignal | undefined;
     const filters: Record<string, string> = {};
     const execute = async () => {
@@ -43,16 +45,16 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: {
       }
       return db.read({ userId: filters.user_id, signal });
     };
-    const builder: any = {
+    const builder = {
       select: () => builder,
       eq: (key: string, value: string) => { filters[key] = value; return builder; },
       order: () => builder,
       abortSignal: (value: AbortSignal) => { signal = value; return builder; },
-      insert: (value: any) => { action = 'insert'; payload = value; return builder; },
-      update: (value: any) => { action = 'update'; payload = value; return builder; },
+      insert: (value: Payload) => { action = 'insert'; payload = value; return builder; },
+      update: (value: Payload) => { action = 'update'; payload = value; return builder; },
       delete: () => { action = 'delete'; return builder; },
       single: execute,
-      then: (resolve: any, reject: any) => execute().then(resolve, reject),
+      then: (resolve: (value: Result) => unknown, reject?: (reason: unknown) => unknown) => execute().then(resolve, reject),
     };
     return builder;
   },
@@ -74,7 +76,7 @@ function mount(savedName = 'Bolo salvo') {
   function Harness() {
     const [tipo, setTipo] = useState('cake');
     return <ProjecaoTab receita={{ tipo_produto: { id: 'cake', nome: savedName } }}
-      formData={{ tipo_produto_id: tipo }} onFormChange={(field, value) => { if (field === 'tipo_produto_id') setTipo(value); }} />;
+      formData={{ nome: '', tipo_produto_id: tipo, rendimento_valor: 1, rendimento_unidade: 'un', observacoes: '', status: 'finalizada', preco_venda: 0, markup_id: null, markup_tipo: null, peso_unitario: 0, tempo_preparo_total: 0, tempo_preparo_unidade: 'minutos', tempo_preparo_mao_obra: 0, conservacao: null }} onFormChange={(field, value) => { if (field === 'tipo_produto_id' && typeof value === 'string') setTipo(value); }} />;
   }
   const node = () => <QueryClientProvider client={client}><Harness /></QueryClientProvider>;
   const result = render(node());
@@ -83,8 +85,8 @@ function mount(savedName = 'Bolo salvo') {
 const tipoControl = () => screen.getByRole('combobox', { name: 'Tipo de Produto *' });
 const openTypes = () => fireEvent.keyDown(tipoControl(), { key: 'Enter' });
 const deferred = () => {
-  let resolve!: (value: any) => void;
-  const promise = new Promise<any>(r => { resolve = r; });
+  let resolve!: (value: Result) => void;
+  const promise = new Promise<Result>(r => { resolve = r; });
   return { promise, resolve };
 };
 

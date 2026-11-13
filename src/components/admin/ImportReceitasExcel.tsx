@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +10,14 @@ import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2 } from 'luci
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+type ImportResult = { receitas_criadas: number; produtos_criados: number; produtos_existentes: number; erros?: { receita: string; erro: string }[] };
+
 export const ImportReceitasExcel = () => {
   const { toast } = useToast();
   const [clientEmail, setClientEmail] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resultado, setResultado] = useState<any>(null);
+  const [resultado, setResultado] = useState<ImportResult | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,7 +82,7 @@ export const ImportReceitasExcel = () => {
           const fileBase64 = e.target?.result as string;
 
           // Chamar edge function
-          const { data, error } = await supabase.functions.invoke('import-receitas-excel', {
+          const { data, error } = await supabase.functions.invoke<ImportResult>('import-receitas-excel', {
             body: {
               clientUserId,
               fileBase64,
@@ -95,11 +98,11 @@ export const ImportReceitasExcel = () => {
             description: `${data.receitas_criadas} receitas importadas com sucesso`,
           });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Erro ao importar:', error);
           toast({
             title: "Erro na importação",
-            description: error.message || "Erro ao processar o arquivo",
+            description: errorMessage(error) || "Erro ao processar o arquivo",
             variant: "destructive",
           });
         } finally {
@@ -109,11 +112,11 @@ export const ImportReceitasExcel = () => {
 
       reader.readAsDataURL(selectedFile);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro geral:', error);
       toast({
         title: "Erro",
-        description: error.message,
+        description: errorMessage(error),
         variant: "destructive",
       });
       setLoading(false);
@@ -231,7 +234,7 @@ export const ImportReceitasExcel = () => {
                 <AlertDescription>
                   <div className="font-semibold mb-2">Erros encontrados:</div>
                   <ul className="list-disc list-inside space-y-1">
-                    {resultado.erros.map((erro: any, index: number) => (
+                    {resultado.erros.map((erro, index) => (
                       <li key={index}>
                         {erro.receita}: {erro.erro}
                       </li>

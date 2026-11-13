@@ -1,9 +1,20 @@
+import type { FaturamentoPersistido } from '@/types/configurations';
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 import { calculateMarkupMultiplier, isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
+
+const categoriasMap = {
+    'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
+    'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
+    'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
+  };
+
+
+
+
 
 const log = createLogger('markup');
 
@@ -34,11 +45,7 @@ export function useMarkupInitializer(enabled = true) {
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const isInitializing = useRef(false);
 
-  const categoriasMap = {
-    'impostos': new Set(['ICMS', 'ISS', 'PIS/COFINS', 'IRPJ/CSLL', 'IPI']),
-    'meios_pagamento': new Set(['Cartão de débito', 'Cartão de crédito', 'Boleto bancário', 'PIX', 'Gateway de pagamento']),
-    'comissoes': new Set(['Marketing', 'Aplicativo de delivery', 'Plataforma SaaS', 'Colaboradores (comissão)'])
-  };
+
 
   const getCategoriaByNome = useCallback((nome: string): 'impostos' | 'meios_pagamento' | 'comissoes' | 'outros' => {
     if (categoriasMap.impostos.has(nome)) return 'impostos';
@@ -68,7 +75,7 @@ export function useMarkupInitializer(enabled = true) {
       log.debug('🚀 Inicializando markups automaticamente...');
 
       // Carregar blocos de markups
-      const configBlocos = await loadConfiguration('markups_blocos');
+      const configBlocos = await loadConfiguration<MarkupBlock[]>('markups_blocos');
       const blocos: MarkupBlock[] = (configBlocos && Array.isArray(configBlocos)) ? configBlocos as MarkupBlock[] : [];
 
       if (blocos.length === 0) {
@@ -88,11 +95,11 @@ export function useMarkupInitializer(enabled = true) {
         supabase.from('despesas_fixas').select('*').eq('user_id', user.id).eq('ativo', true),
         supabase.from('folha_pagamento').select('*').eq('user_id', user.id).eq('ativo', true),
         supabase.from('encargos_venda').select('*').eq('user_id', user.id).eq('ativo', true),
-        loadConfiguration('faturamentos_historicos')
+        loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos')
       ]);
 
       const todosFaturamentos = (faturamentosConfig && Array.isArray(faturamentosConfig))
-        ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
+        ? faturamentosConfig.map((f) => ({ ...f, mes: new Date(f.mes) }))
         : [];
 
       log.debug(`💰 Dados base carregados:`, {
@@ -105,7 +112,7 @@ export function useMarkupInitializer(enabled = true) {
       // Processar cada bloco
       for (const bloco of blocos) {
         const configKey = `checkbox-states-${bloco.id}`;
-        const config = await loadConfiguration(configKey);
+        const config = await loadConfiguration<Record<string, boolean>>(configKey);
 
         if (!config || typeof config !== 'object') {
           log.debug(`⚠️ Sem configuração para ${bloco.nome}`);
@@ -118,7 +125,7 @@ export function useMarkupInitializer(enabled = true) {
         
         if (periodoSelecionado === 'todos') {
           if (todosFaturamentos.length > 0) {
-            const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+            const totalFaturamentos = todosFaturamentos.reduce((acc: number, f) => acc + f.valor, 0);
             valorFaturamento = totalFaturamentos / todosFaturamentos.length;
           }
         } else {
@@ -126,10 +133,10 @@ export function useMarkupInitializer(enabled = true) {
           const hoje = new Date();
           const dataLimite = new Date(hoje.getFullYear(), hoje.getMonth() - mesesAtras + 1, 1);
 
-          const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+          const faturamentosFiltrados = todosFaturamentos.filter((f) => f.mes >= dataLimite);
           
           if (faturamentosFiltrados.length > 0) {
-            const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+            const total = faturamentosFiltrados.reduce((acc: number, f) => acc + f.valor, 0);
             valorFaturamento = total / faturamentosFiltrados.length;
           }
         }
@@ -277,8 +284,8 @@ export function useMarkupInitializer(enabled = true) {
 
         // Também sincronizar com user_configurations para manter consistência
         try {
-          const blocosConfig = await loadConfiguration('markups_blocos') || [];
-          const blocoIndex = blocosConfig.findIndex((b: any) => b.nome === bloco.nome);
+          const blocosConfig = await loadConfiguration<MarkupBlock[]>('markups_blocos') || [];
+          const blocoIndex = blocosConfig.findIndex((b) => b.nome === bloco.nome);
           
           if (blocoIndex >= 0) {
             // Atualizar bloco existente com valores calculados
@@ -307,7 +314,7 @@ export function useMarkupInitializer(enabled = true) {
     } finally {
       isInitializing.current = false;
     }
-  }, [enabled, user?.id, loadConfiguration, getCategoriaByNome, calcularMarkupIdeal]);
+  }, [enabled, user?.id, loadConfiguration, saveConfiguration, getCategoriaByNome, calcularMarkupIdeal]);
 
   // Executar quando o usuário logar (com debounce e proteção)
   useEffect(() => {

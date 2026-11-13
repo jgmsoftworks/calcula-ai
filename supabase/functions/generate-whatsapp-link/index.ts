@@ -33,7 +33,7 @@ serve(async (req) => {
 
   try {
     const parsed = await parseBody(req, BodySchema, corsHeaders);
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { telefone, fornecedor_nome, produtos, mensagem } = parsed.data;
 
     console.log('[GENERATE-WHATSAPP] Generating link for:', fornecedor_nome);
@@ -47,7 +47,7 @@ serve(async (req) => {
     // Adicionar produtos
     if (produtos && produtos.length > 0) {
       textoMensagem += '*Produtos solicitados:*\n';
-      produtos.forEach((produto: any) => {
+      produtos.forEach((produto: { produto: string; quantidade: number; unidade: string }) => {
         textoMensagem += `• ${produto.produto} - ${produto.quantidade} ${produto.unidade}\n`;
       });
       textoMensagem += '\n';

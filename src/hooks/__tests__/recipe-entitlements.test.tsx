@@ -21,7 +21,7 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue({ data: { user: { id: 'owner' } } });
   mocks.from.mockImplementation(table => {
     const data = table === 'receitas' ? { nome: 'Bolo', receita_ingredientes: [], receita_embalagens: [], receita_sub_receitas: [] } : table === 'profiles' ? {} : [];
-    const query: any = { select: () => query, eq: () => query, order: () => query, single: async () => ({ data, error: null }), then: (resolve: (value: unknown) => void) => Promise.resolve({ data, error: null }).then(resolve) };
+    const query = { select: () => query, eq: () => query, order: () => query, single: async () => ({ data, error: null }), then: (resolve: (value: unknown) => void) => Promise.resolve({ data, error: null }).then(resolve) };
     return query;
   });
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('No image in this test')));

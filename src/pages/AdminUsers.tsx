@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import { errorMessage } from '@/lib/errors';
 import { planDisplayName } from '@/lib/plan-names';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -79,13 +81,9 @@ export default function AdminUsers() {
   const [confirmingEmailUserId, setConfirmingEmailUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<MergedUser | null>(null);
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-  }, [isAdmin]);
 
-  const fetchUsers = async () => {
+
+  const fetchUsers = useCallback(async () => {
     try {
       setLoadingUsers(true);
 
@@ -103,16 +101,22 @@ export default function AdminUsers() {
       if (error) throw error;
 
       setUsers(data.users || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao carregar usuários",
-        description: error.message,
+        description: errorMessage(error),
         variant: "destructive",
       });
     } finally {
       setLoadingUsers(false);
     }
-  };
+  }, [toast]);
+
+useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [fetchUsers, isAdmin]);
 
   const handleToggleFornecedor = async (userId: string, currentStatus: boolean) => {
     try {
@@ -130,10 +134,10 @@ export default function AdminUsers() {
       });
 
       await fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao alterar status",
-        description: error.message,
+        description: errorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -166,10 +170,10 @@ export default function AdminUsers() {
       });
 
       await fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao confirmar email",
-        description: error.message,
+        description: errorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -203,10 +207,10 @@ export default function AdminUsers() {
       });
 
       await fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao excluir usuário",
-        description: error.message,
+        description: errorMessage(error),
         variant: "destructive",
       });
     } finally {

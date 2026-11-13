@@ -145,7 +145,7 @@ export function ProdutoForm({ produto, onCancel, onSuccess }: ProdutoFormProps) 
 
       const result = produto
         ? await updateProduto(produto.id, produtoData)
-        : await createProduto(produtoData);
+        : await createProduto({ ...produtoData, nome: data.nome, codigo_interno: data.codigo_interno, unidade_compra: data.unidade_compra });
 
       if (!result) {
         await Promise.allSettled(uploadedNutritionPaths.map(path => removeNutritionPhoto(path)));

@@ -5,7 +5,7 @@ import { EmbalagensTa } from '../EmbalagensTa';
 import { SubReceitasTab } from '../SubReceitasTab';
 
 afterEach(cleanup);
-const products = Array.from({ length: 100 }, (_, index) => ({ id: String(index), nome: `Produto ${index}`, custo_unitario: 2, unidade_compra: 'un' }));
+const products = Array.from({ length: 100 }, (_, index) => ({ id: String(index), nome: `Produto ${index}`, custo_unitario: 2, unidade_compra: 'un', unidade_uso: null, fator_conversao: 1 }));
 
 describe('editor suggestions', () => {
   it.each([IngredientesTab, EmbalagensTa])('bounds initial product rendering while keeping all products searchable', Component => {
@@ -20,7 +20,7 @@ describe('editor suggestions', () => {
   });
 
   it('renders sub-recipes without a state-update loop and retains search after no matches', () => {
-    render(<SubReceitasTab mode="create" prefetchedSubReceitas={products.map(item => ({ ...item, preco_venda: 2 }))} />);
+    render(<SubReceitasTab mode="create" prefetchedSubReceitas={products.map(item => ({ ...item, preco_venda: 2, rendimento_unidade: 'un', rendimento_valor: 1 }))} />);
     expect(screen.getAllByRole('button', { name: 'Adicionar' })).toHaveLength(20);
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'not found' } });
     expect(screen.getByRole('textbox')).toHaveValue('not found');

@@ -11,8 +11,7 @@ describe('shared plan reads', () => {
   it('loads once for simultaneous consumers, separates accounts and still checks write limits on the server', async () => {
     mocks.from.mockImplementation(() => {
       const account = mocks.userId;
-      const query: any = { maybeSingle: () => Promise.resolve({ data: { plan: account === 'account-a' ? 'enterprise' : 'lite', plan_expires_at: null }, error: null }) };
-      for (const method of ['select', 'eq', 'abortSignal']) query[method] = () => query;
+      const query = { select: () => query, eq: () => query, abortSignal: () => query, maybeSingle: () => Promise.resolve({ data: { plan: account === 'account-a' ? 'enterprise' : 'lite', plan_expires_at: null }, error: null }) };
       return query;
     });
     mocks.rpc.mockResolvedValue({ data: { allowed: false, reason: 'limit_reached', current_count: 5, max_allowed: 5, plan: 'lite' }, error: null });

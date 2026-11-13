@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -115,10 +116,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         title: t('header.emailResent'),
         description: t('header.emailResentDesc'),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: t('header.emailResendError'),
-        description: error.message || t('common.error'),
+        description: errorMessage(error) || t('common.error'),
         variant: "destructive",
       });
     } finally {

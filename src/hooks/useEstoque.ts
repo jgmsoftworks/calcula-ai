@@ -59,14 +59,14 @@ export function useEstoque() {
     }
   }, [user?.id]);
 
-  const createProduto = async (data: Partial<Produto>) => {
+  const createProduto = async (data: Pick<Produto, 'codigo_interno' | 'nome' | 'unidade_compra'> & Partial<Produto>) => {
     if (!user) {
       toast.error('Usuário não autenticado');
       return null;
     }
 
     // Remove user_id do data se existir (será adicionado abaixo)
-    const { user_id, ...produtoData } = data as any;
+    const { user_id, ...produtoData } = data;
 
     const { data: produto, error } = await supabase
       .from('produtos')

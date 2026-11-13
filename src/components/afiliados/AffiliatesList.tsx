@@ -1,3 +1,4 @@
+import type { Affiliate } from '@/hooks/useAffiliates';
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,7 @@ import { MigrateAffiliatesButton } from "./MigrateAffiliatesButton";
 export function AffiliatesList() {
   const { affiliates, loading, createAffiliate, updateAffiliate } = useAffiliates();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAffiliate, setEditingAffiliate] = useState<any>(null);
+  const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -87,7 +88,7 @@ export function AffiliatesList() {
     }
   };
 
-  const handleEdit = (affiliate: any) => {
+  const handleEdit = (affiliate: Affiliate) => {
     setEditingAffiliate(affiliate);
     setFormData({
       name: affiliate.name,
@@ -95,7 +96,7 @@ export function AffiliatesList() {
       phone: affiliate.phone || "",
       document: affiliate.document || "",
       commission_percentage: affiliate.commission_percentage,
-      commission_type: affiliate.commission_type,
+      commission_type: affiliate.commission_type as 'percentage' | 'fixed',
       commission_fixed_amount: affiliate.commission_fixed_amount || 0,
       pix_key: affiliate.pix_key || "",
       bank_details: affiliate.bank_details ? JSON.stringify(affiliate.bank_details) : ""
@@ -190,9 +191,9 @@ export function AffiliatesList() {
                   <TableCell className="font-medium">{affiliate.name}</TableCell>
                   <TableCell>{affiliate.email}</TableCell>
                   <TableCell>{getStatusBadge(affiliate.status)}</TableCell>
-                  <TableCell>{(affiliate as any).commission_first_sale_pct || 40}%</TableCell>
-                  <TableCell>{(affiliate as any).commission_recurring_pct || 20}%</TableCell>
-                  <TableCell>R$ {formatBRL((affiliate as any).support_hourly_rate || 10)}</TableCell>
+                  <TableCell>{affiliate.commission_first_sale_pct || 40}%</TableCell>
+                  <TableCell>{affiliate.commission_recurring_pct || 20}%</TableCell>
+                  <TableCell>R$ {formatBRL(affiliate.support_hourly_rate || 10)}</TableCell>
                   <TableCell>R$ {formatBRL(affiliate.total_sales)}</TableCell>
                   <TableCell>{affiliate.total_customers}</TableCell>
                   <TableCell>
@@ -232,15 +233,15 @@ export function AffiliatesList() {
               <div className="grid grid-cols-3 gap-2 pt-2 border-t text-xs">
                 <div>
                   <p className="text-muted-foreground">1ª Venda</p>
-                  <p className="font-medium">{(affiliate as any).commission_first_sale_pct || 40}%</p>
+                  <p className="font-medium">{affiliate.commission_first_sale_pct || 40}%</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Recorrente</p>
-                  <p className="font-medium">{(affiliate as any).commission_recurring_pct || 20}%</p>
+                  <p className="font-medium">{affiliate.commission_recurring_pct || 20}%</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">R$/hora</p>
-                  <p className="font-medium">R$ {formatBRL((affiliate as any).support_hourly_rate || 10)}</p>
+                  <p className="font-medium">R$ {formatBRL(affiliate.support_hourly_rate || 10)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Vendas</p>

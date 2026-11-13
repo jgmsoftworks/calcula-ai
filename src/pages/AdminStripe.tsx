@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { planDisplayName } from '@/lib/plan-names';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +40,7 @@ export default function AdminStripe() {
   useEffect(() => {
     (async () => {
       if (!user) { setIsAdmin(false); return; }
-      const { data } = await supabase.rpc('has_role_or_higher', { required_role: 'admin' as any, check_user_id: user.id });
+      const { data } = await supabase.rpc('has_role_or_higher', { required_role: 'admin', check_user_id: user.id });
       setIsAdmin(!!data);
     })();
   }, [user]);
@@ -89,7 +90,7 @@ function DashboardTab() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<StripeDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const result = await supabase.functions.invoke('stripe-admin-dashboard');
@@ -98,8 +99,8 @@ function DashboardTab() {
     } catch {
       setData(null); setError('Consulta financeira indisponível. Tente atualizar.');
     } finally { setLoading(false); }
-  };
-  useEffect(() => { void load(); }, []);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
   if (loading && !data) return <LoadingSpinner />;
   return <div className="space-y-4">
     <div className="flex justify-end"><Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -117,7 +118,7 @@ function SubscriptionsTab() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke('stripe-admin-subscriptions', {
       body: { action: 'list', source, status, limit: 100 },
@@ -125,9 +126,9 @@ function SubscriptionsTab() {
     setLoading(false);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     setSubs(data?.subscriptions ?? []);
-  };
+  }, [source, status, toast]);
 
-  useEffect(() => { load(); }, [source, status]);
+  useEffect(() => { load(); }, [load, source, status]);
 
   const cancel = async (id: string, immediate: boolean) => {
     if (!confirm(immediate ? 'Cancelar imediatamente?' : 'Cancelar ao fim do ciclo?')) return;
@@ -152,7 +153,7 @@ function SubscriptionsTab() {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <Label>Conta</Label>
-            <Select value={source} onValueChange={(v: any) => setSource(v)}>
+            <Select value={source} onValueChange={(v) => { if (v === 'current' || v === 'legacy') setSource(v); }}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="current">Atual</SelectItem>
@@ -226,15 +227,15 @@ function PaymentLinksTab() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.from('payment_links').select('*').order('plan_type').order('billing');
     setLoading(false);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     setLinks(data ?? []);
-  };
+  }, [toast]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const update = async (id: string, patch: Partial<PaymentLink>) => {
     const { error } = await supabase.from('payment_links').update(patch).eq('id', id);

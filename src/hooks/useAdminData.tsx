@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,7 +45,7 @@ export const useAdminData = () => {
     loading: true,
   });
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     if (!isAdmin) {
       setData(prev => ({ ...prev, loading: false }));
       return;
@@ -171,7 +172,7 @@ export const useAdminData = () => {
         systemHealth: 'error' 
       }));
     }
-  };
+  }, [isAdmin]);
 
   const refreshData = () => {
     fetchAdminData();
@@ -181,7 +182,7 @@ export const useAdminData = () => {
     if (isAdmin) {
       fetchAdminData();
     }
-  }, [isAdmin]);
+  }, [fetchAdminData, isAdmin]);
 
   return {
     data,

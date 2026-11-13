@@ -1,3 +1,4 @@
+import type { ReceitaFormData, AlterarReceitaForm } from '@/types/receitas';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -13,7 +14,6 @@ import { MaoObraModal } from './MaoObraModal';
 import { useState } from 'react';
 import { useTiposProduto } from '@/hooks/useTiposProduto';
 import { useAuth } from '@/hooks/useAuth';
-import { formatBRL } from '@/lib/formatters';
 
 interface TempMaoObra {
   id: string;
@@ -28,9 +28,9 @@ interface TempMaoObra {
 
 interface ProjecaoTabProps {
   mode?: 'create' | 'edit';
-  receita: Receita | any;
-  formData: any;
-  onFormChange: (field: string, value: any) => void;
+  receita: Partial<Receita>;
+  formData: ReceitaFormData;
+  onFormChange: AlterarReceitaForm;
   tempMaoObra?: TempMaoObra[];
   onAddMaoObraTemp?: (maoObra: Omit<TempMaoObra, 'id'>) => void;
   onRemoveMaoObraTemp?: (id: string) => void;

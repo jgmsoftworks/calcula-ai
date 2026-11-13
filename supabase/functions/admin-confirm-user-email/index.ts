@@ -1,3 +1,4 @@
+import { errorMessage } from '../_shared/errors.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -137,10 +138,10 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error confirming email:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Erro interno do servidor' }),
+      JSON.stringify({ error: errorMessage(error) || 'Erro interno do servidor' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

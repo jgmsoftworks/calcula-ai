@@ -1,3 +1,4 @@
+import { errorMessage } from '../_shared/errors.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
@@ -124,24 +125,24 @@ serve(async (req) => {
         if (error && !error.message?.includes('does not exist') && !error.message?.includes('column')) {
           console.warn(`[ADMIN-DELETE-USER] Aviso ao limpar ${table}:`, error.message);
         }
-      } catch (e: any) {
-        console.warn(`[ADMIN-DELETE-USER] Falha em ${table}:`, e.message);
+      } catch (e: unknown) {
+        console.warn(`[ADMIN-DELETE-USER] Falha em ${table}:`, errorMessage(e));
       }
     }
 
     // Tables with non-standard columns
     try {
       await supabaseAdmin.from('avaliacoes_fornecedores').delete().eq('cliente_user_id', userId);
-    } catch (e) {}
+    } catch (e) { /* Optional legacy cleanup preserves the checked Auth deletion below. */ }
     try {
       await supabaseAdmin.from('orcamentos_fornecedores').delete().eq('cliente_user_id', userId);
-    } catch (e) {}
+    } catch (e) { /* Optional legacy cleanup preserves the checked Auth deletion below. */ }
     try {
       await supabaseAdmin.from('affiliate_customers').delete().eq('customer_user_id', userId);
-    } catch (e) {}
+    } catch (e) { /* Optional legacy cleanup preserves the checked Auth deletion below. */ }
     try {
       await supabaseAdmin.from('admin_actions').delete().eq('target_user_id', userId);
-    } catch (e) {}
+    } catch (e) { /* Optional legacy cleanup preserves the checked Auth deletion below. */ }
 
     // Audit log BEFORE deleting auth user (admin_actions referencing target may already be cleared)
     try {
@@ -156,8 +157,8 @@ serve(async (req) => {
         },
         reason: 'Exclusão completa via painel admin',
       });
-    } catch (e: any) {
-      console.warn('[ADMIN-DELETE-USER] Não foi possível registrar auditoria:', e.message);
+    } catch (e: unknown) {
+      console.warn('[ADMIN-DELETE-USER] Não foi possível registrar auditoria:', errorMessage(e));
     }
 
     // Finally delete the auth user
@@ -183,7 +184,7 @@ serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ADMIN-DELETE-USER] Erro:', error);
     return new Response(
       JSON.stringify({ error: 'Erro interno ao excluir usuário' }),

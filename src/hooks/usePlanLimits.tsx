@@ -1,4 +1,3 @@
-// @ts-nocheck - Arquivo temporariamente desabilitado durante migração de banco de dados
 import { PLAN_NAMES } from '@/lib/plan-names';
 import { useCallback } from 'react';
 import { normalizeLimitResult, type PlanLimitResult } from '@/lib/plan-access';
@@ -144,7 +143,7 @@ export const usePlanLimits = () => {
       console.error('Erro ao verificar limite:', error);
       return { allowed: false, reason: 'check_error' };
     }
-  }, [user?.id, isAdmin]);
+  }, [user, isAdmin]);
 
   const showUpgradeMessage = (featureType: keyof PlanLimits) => {
     let featureName = '';
@@ -202,23 +201,25 @@ export const usePlanLimits = () => {
       let count = 0;
       
       switch (featureType) {
-        case 'produtos':
+        case 'produtos': {
           const { count: produtosCount } = await supabase
             .from('produtos')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id);
           count = produtosCount || 0;
           break;
+        }
           
-        case 'receitas':
+        case 'receitas': {
           const { count: receitasCount } = await supabase
             .from('receitas')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id);
           count = receitasCount || 0;
           break;
+        }
           
-        case 'markups':
+        case 'markups': {
           const { count: markupsCount } = await supabase
             .from('markups')
             .select('*', { count: 'exact', head: true })
@@ -226,6 +227,7 @@ export const usePlanLimits = () => {
             .neq('tipo', 'sub_receita');
           count = markupsCount || 0;
           break;
+        }
           
         default:
           count = 0;
