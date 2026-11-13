@@ -29,17 +29,19 @@ export function AffiliatesReports() {
         switch (selectedPeriod) {
           case 'today':
             return saleDate.toDateString() === now.toDateString();
-          case 'this_week':
+          case 'this_week': {
             const weekStart = new Date(now);
             weekStart.setDate(now.getDate() - now.getDay());
             return saleDate >= weekStart;
+          }
           case 'this_month':
             return saleDate.getMonth() === now.getMonth() && 
                    saleDate.getFullYear() === now.getFullYear();
-          case 'last_month':
+          case 'last_month': {
             const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
             return saleDate.getMonth() === lastMonth.getMonth() && 
                    saleDate.getFullYear() === lastMonth.getFullYear();
+          }
           default:
             return true;
         }

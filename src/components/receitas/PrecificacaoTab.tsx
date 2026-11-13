@@ -1,3 +1,6 @@
+import type { ReceitaFormData, AlterarReceitaForm, ReceitaEmEdicao } from '@/types/receitas';
+import type { Markup, MarkupDetalhado } from '@/types/configurations';
+import { errorMessage } from '@/lib/errors';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -8,21 +11,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkupCard } from './MarkupCard';
 import { MarkupCardTransition } from './MarkupCardTransition';
-import { formatBRL } from '@/lib/formatters';
+
 import { toast } from 'sonner';
 import { Info, AlertTriangle, ChevronDown, Check, TrendingUp, Package, DollarSign, Weight, Scale, Calculator, PieChart } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
-import type { ReceitaCompleta } from '@/types/receitas';
 
 interface PrecificacaoTabProps {
   mode?: 'create' | 'edit';
-  receita: ReceitaCompleta | any;
-  formData: any;
-  onFormChange: (field: string, value: any) => void;
+  receita: ReceitaEmEdicao;
+  formData: ReceitaFormData;
+  onFormChange: AlterarReceitaForm;
   onUpdate?: () => Promise<void>;
 }
 
@@ -30,11 +32,11 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   usePortugalTranslation();
   const { user } = useAuth();
   const [custoTotal, setCustoTotal] = useState(0);
-  const [markups, setMarkups] = useState<any[]>([]);
-  const [markupSubReceita, setMarkupSubReceita] = useState<any | null>(null);
+  const [markups, setMarkups] = useState<Markup[]>([]);
+  const [markupSubReceita, setMarkupSubReceita] = useState<Markup | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, any>>({});
+  const [markupConfigsMap, setMarkupConfigsMap] = useState<Record<string, MarkupDetalhado>>({});
   const [isLoadingConfigs, setIsLoadingConfigs] = useState(true);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       const maoObra = receita?.mao_obra ?? [];
       const subReceitas = receita?.sub_receitas ?? [];
 
-      const custoIngredientes = ingredientes.reduce((sum: number, i: any) => {
+      const custoIngredientes = ingredientes.reduce((sum: number, i) => {
         if (!i.produto) return sum;
         const custoUnitario = i.produto.unidade_uso 
           ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
@@ -52,7 +54,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         return sum + (custoUnitario * i.quantidade);
       }, 0);
       
-      const custoEmbalagens = embalagens.reduce((sum: number, e: any) => {
+      const custoEmbalagens = embalagens.reduce((sum: number, e) => {
         if (!e.produto) return sum;
         const custoUnitario = e.produto.unidade_uso 
           ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
@@ -60,9 +62,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         return sum + (custoUnitario * e.quantidade);
       }, 0);
       
-      const custoMaoObra = maoObra.reduce((sum: number, m: any) => sum + m.valor_total, 0);
+      const custoMaoObra = maoObra.reduce((sum: number, m) => sum + m.valor_total, 0);
       
-      const custoSubReceitas = subReceitas.reduce((sum: number, s: any) => {
+      const custoSubReceitas = subReceitas.reduce((sum: number, s) => {
         if (!s.sub_receita) return sum;
         const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
           ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
@@ -87,7 +89,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         .eq('ativo', true);
       if (error) throw error;
       setMarkups(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar markups:', error);
       toast.error('Erro ao carregar markups');
     }
@@ -105,7 +107,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         .maybeSingle();
       if (error && error.code !== 'PGRST116') throw error;
       setMarkupSubReceita(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar markup de sub-receitas:', error);
     }
   }, [user]);
@@ -125,9 +127,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       
       if (error) throw error;
       
-      const map: Record<string, any> = {};
-      (data || []).forEach((item: any) => {
-        map[item.type] = item.configuration;
+      const map: Record<string, MarkupDetalhado> = {};
+      (data || []).forEach((item) => {
+        map[item.type] = item.configuration as MarkupDetalhado;
       });
       setMarkupConfigsMap(map);
     } catch (error) {
@@ -189,7 +191,7 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
         .eq('type', configKey)
         .maybeSingle();
 
-      const detalhes = data?.configuration as any;
+      const detalhes = data?.configuration as MarkupDetalhado;
       const valorEmReal = detalhes?.valorEmReal ?? 0;
 
       const totalPercentuais = markup.tipo === 'sub_receita'
@@ -241,9 +243,9 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       } else {
         toast.success('Markup selecionado!');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao salvar markup:', error);
-      toast.error('Erro ao salvar o markup: ' + error.message);
+      toast.error('Erro ao salvar o markup: ' + errorMessage(error));
     } finally {
       setIsApplying(false);
     }
@@ -260,22 +262,22 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
   const maoObraResumo = receita?.mao_obra ?? [];
   const subReceitasResumo = receita?.sub_receitas ?? [];
 
-  const custoIngredientes = ingredientesResumo.reduce((sum: number, i: any) => {
+  const custoIngredientes = ingredientesResumo.reduce((sum: number, i) => {
     if (!i.produto) return sum;
     const cu = i.produto.unidade_uso 
       ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
       : i.produto.custo_unitario;
     return sum + (cu * i.quantidade);
   }, 0);
-  const custoEmbalagens = embalagensResumo.reduce((sum: number, e: any) => {
+  const custoEmbalagens = embalagensResumo.reduce((sum: number, e) => {
     if (!e.produto) return sum;
     const cu = e.produto.unidade_uso 
       ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
       : e.produto.custo_unitario;
     return sum + (cu * e.quantidade);
   }, 0);
-  const custoMaoObra = maoObraResumo.reduce((sum: number, m: any) => sum + m.valor_total, 0);
-  const custoSubReceitas = subReceitasResumo.reduce((sum: number, s: any) => {
+  const custoMaoObra = maoObraResumo.reduce((sum: number, m) => sum + m.valor_total, 0);
+  const custoSubReceitas = subReceitasResumo.reduce((sum: number, s) => {
     if (!s.sub_receita) return sum;
     const cu = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
       ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
@@ -607,7 +609,7 @@ function CostItem({ label, value, highlight = false }: { label: string; value: n
 }
 
 function MarkupOption({ markup, isSelected, onSelect, type }: { 
-  markup: any; isSelected: boolean; onSelect: () => void; type: string 
+  markup: Markup; isSelected: boolean; onSelect: () => void; type: string
 }) {
   usePortugalTranslation();
   return (

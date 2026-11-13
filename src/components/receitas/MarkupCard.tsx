@@ -1,3 +1,4 @@
+import type { Markup, MarkupDetalhado } from '@/types/configurations';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -6,33 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Info, Check, Loader2, AlertTriangle } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
-import { formatBRL, formatNumber } from '@/lib/formatters';
+import { formatNumber } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 
-interface MarkupDetalhado {
-  periodo: string;
-  gastoSobreFaturamento: number;
-  impostos: number;
-  taxas: number;
-  comissoes: number;
-  outros: number;
-  valorEmReal: number;
-  lucroDesejado: number;
-  markupIdeal: number;
-}
-
 interface MarkupCardProps {
-  markup: any;
+  markup: Markup;
   custoTotal: number;
   precoVenda: number;
   isSelected: boolean;
@@ -40,7 +24,7 @@ interface MarkupCardProps {
   alwaysExpanded?: boolean;
   isApplying?: boolean;
   rendimentoValor?: number;
-  preloadedDetalhes?: any | null;
+  preloadedDetalhes?: MarkupDetalhado | null;
   isLoadingPreloaded?: boolean;
 }
 
@@ -159,8 +143,8 @@ export function MarkupCard({
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          if (payload.new && (payload.new as any).type === configKey) {
-            setDetalhes((payload.new as any).configuration as unknown as MarkupDetalhado);
+          if (payload.new && ('type' in payload.new ? payload.new.type : undefined) === configKey) {
+            setDetalhes(('configuration' in payload.new ? payload.new.configuration : null) as unknown as MarkupDetalhado);
           }
         }
       )

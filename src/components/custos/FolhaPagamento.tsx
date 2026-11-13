@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion, formatMoney } from '@/lib/business-region';
@@ -102,7 +103,7 @@ export function FolhaPagamento() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const loadFuncionarios = async () => {
+  const loadFuncionarios = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -122,11 +123,11 @@ export function FolhaPagamento() {
         variant: "destructive"
       });
     }
-  };
+  }, [toast, user]);
 
   useEffect(() => {
     loadFuncionarios();
-  }, [user]);
+  }, [loadFuncionarios, user]);
 
   const handleSave = async () => {
     if (!user || !formData.nome || !formData.cargo || !formData.salario_base) {

@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import { errorMessage } from '@/lib/errors';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion } from '@/lib/business-region';
@@ -37,9 +39,9 @@ export default function MinhaPrivacidade() {
   const [reason, setReason] = useState('');
   const [status, setStatus] = useState<DeletionStatus>({ pending: false, scheduledFor: null, reason: null });
 
-  useEffect(() => { void loadStatus(); }, [user?.id]);
 
-  async function loadStatus() {
+
+  const loadStatus = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from('profiles')
@@ -55,7 +57,9 @@ export default function MinhaPrivacidade() {
     } else {
       setStatus({ pending: false, scheduledFor: null, reason: null });
     }
-  }
+  }, [user]);
+
+useEffect(() => { void loadStatus(); }, [loadStatus, user?.id]);
 
   async function handleExport() {
     if (!user) return;
@@ -78,8 +82,8 @@ export default function MinhaPrivacidade() {
       a.click();
       a.remove();
       toast({ title: 'Download iniciado', description: 'Seus dados foram exportados em JSON.' });
-    } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      toast({ title: 'Erro', description: errorMessage(e), variant: 'destructive' });
     } finally {
       setLoadingExport(false);
     }
@@ -100,8 +104,8 @@ export default function MinhaPrivacidade() {
       setConfirmText('');
       setReason('');
       await loadStatus();
-    } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      toast({ title: 'Erro', description: errorMessage(e), variant: 'destructive' });
     } finally {
       setLoadingDelete(false);
     }
@@ -116,8 +120,8 @@ export default function MinhaPrivacidade() {
       if (error) throw error;
       toast({ title: 'Exclusão cancelada', description: 'Sua conta foi mantida.' });
       await loadStatus();
-    } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      toast({ title: 'Erro', description: errorMessage(e), variant: 'destructive' });
     } finally {
       setLoadingCancel(false);
     }

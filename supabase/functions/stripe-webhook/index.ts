@@ -1,14 +1,15 @@
+import type { AppDatabaseClient } from '../_shared/database.ts';
 import { Stripe, billingDb, billingStripe, withBillingLock, fulfillCheckout, syncBillingSubscription, invoiceSubscription, notifyInvoice } from '../_shared/billing.ts';
 import { billingWebhookSecret } from '../_shared/billingWebhook.ts';
 const logStep = (step: string, _details?: unknown) => console.log(`[STRIPE-WEBHOOK] ${step}`);
 const logError = (_error: unknown, context: string, _details?: unknown) => console.error(`[STRIPE-WEBHOOK] ${context}`);
 
 // Existing affiliate accounting is preserved separately from account fulfillment.
-async function recordAffiliateEvent(event: any, stripe: any, supabaseClient: any) {
+async function recordAffiliateEvent(event: Stripe.Event, stripe: Stripe, supabaseClient: AppDatabaseClient) {
   switch (event.type) {
       case 'checkout.session.completed':
-      case 'checkout.session.async_payment_succeeded':
-        const session = await stripe.checkout.sessions.retrieve((event.data.object as any).id);
+      case 'checkout.session.async_payment_succeeded': {
+        const session = await stripe.checkout.sessions.retrieve(event.data.object.id);
         if (session.payment_status !== 'paid') break;
         const { data: recordedSale, error: saleLookupError } = await supabaseClient.from('affiliate_sales').select('id').eq('stripe_session_id', session.id).limit(1).maybeSingle();
         if (saleLookupError) throw new Error('affiliate_lookup_failed');
@@ -136,9 +137,10 @@ async function recordAffiliateEvent(event: any, stripe: any, supabaseClient: any
           }
         }
         break;
+      }
 
-      case 'invoice.payment_succeeded':
-        const invoice = event.data.object as any;
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object;
         
         logStep("Processing successful payment (recurrence)", {
           invoiceId: invoice.id,
@@ -237,6 +239,7 @@ async function recordAffiliateEvent(event: any, stripe: any, supabaseClient: any
           }
         }
         break;
+      }
 
 
   }
@@ -257,16 +260,15 @@ Deno.serve(async req => {
   } catch { return new Response('Invalid signature', { status: 400 }); }
   try {
     await withBillingLock(db, `event:${event.id}`, async () => {
-      const object = event.data.object as any;
-      if (['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'].includes(event.type)) {
-        await fulfillCheckout(db, stripe, object.id, event.type === 'checkout.session.async_payment_failed');
-      } else if (['customer.subscription.updated','customer.subscription.deleted'].includes(event.type)) {
-        await syncBillingSubscription(db, stripe, object.id);
-      } else if (['invoice.payment_succeeded','invoice.payment_failed'].includes(event.type)) {
-        const subscriptionId = invoiceSubscription(object);
+      if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded' || event.type === 'checkout.session.async_payment_failed') {
+        await fulfillCheckout(db, stripe, event.data.object.id, event.type === 'checkout.session.async_payment_failed');
+      } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+        await syncBillingSubscription(db, stripe, event.data.object.id);
+      } else if (event.type === 'invoice.payment_succeeded' || event.type === 'invoice.payment_failed') {
+        const subscriptionId = invoiceSubscription(event.data.object);
         if (subscriptionId) {
           await syncBillingSubscription(db, stripe, subscriptionId);
-          await notifyInvoice(db, stripe, object, event.type === 'invoice.payment_failed');
+          await notifyInvoice(db, stripe, event.data.object, event.type === 'invoice.payment_failed');
           // Retry initial account provisioning if invoice and checkout arrive out of order.
           const sessions = await stripe.checkout.sessions.list({ subscription: subscriptionId, limit: 10 });
           for (const session of sessions.data) {

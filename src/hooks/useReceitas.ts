@@ -119,8 +119,8 @@ export function useReceitas() {
         passos: passos.data || [],
         sub_receitas: subReceitas.data || [],
         mao_obra: maoObra.data || [],
-      } as any as ReceitaCompleta;
-    } catch (error: any) {
+      } as ReceitaCompleta;
+    } catch (error: unknown) {
       console.error('Erro ao buscar receita completa:', error);
       toast.error('Erro ao carregar receita');
       return null;
@@ -167,7 +167,7 @@ export function useReceitas() {
 
       toast.success('Receita criada com sucesso!');
       return receita;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao criar receita:', error);
       if (isPlanLimitError(error)) await requestAccess('receitas');
       else toast.error('Não foi possível criar a receita. Tente novamente.');
@@ -183,7 +183,7 @@ export function useReceitas() {
     setLoading(true);
     try {
       // Remover campos que são JOINs e não devem ser atualizados
-      const { tipo_produto, markup_tipo, ...updateData } = data as any;
+      const { tipo_produto, markup_tipo, ...updateData } = data as Partial<Receita> & { markup_tipo?: string };
       
       const { error } = await supabase
         .from('receitas')
@@ -195,7 +195,7 @@ export function useReceitas() {
 
       toast.success('Receita atualizada com sucesso!');
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao atualizar receita:', error);
       toast.error('Erro ao atualizar receita');
       return false;
@@ -238,7 +238,7 @@ export function useReceitas() {
         .eq('user_id', user.id);
 
       return publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao fazer upload da imagem:', error);
       toast.error('Erro ao fazer upload da imagem');
       return null;
@@ -268,7 +268,7 @@ export function useReceitas() {
         .eq('user_id', user.id);
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao deletar imagem:', error);
       return false;
     }
@@ -294,7 +294,7 @@ export function useReceitas() {
         `).eq('receita_id', receitaId),
       ]);
 
-      const custoIngredientes = ingredientes.data?.reduce((sum, i: any) => {
+      const custoIngredientes = ingredientes.data?.reduce((sum, i) => {
         if (!i.produto) return sum;
         const custoUnitario = i.produto.unidade_uso 
           ? i.produto.custo_unitario / (i.produto.fator_conversao || 1)
@@ -302,7 +302,7 @@ export function useReceitas() {
         return sum + (custoUnitario * i.quantidade);
       }, 0) || 0;
 
-      const custoEmbalagens = embalagens.data?.reduce((sum, e: any) => {
+      const custoEmbalagens = embalagens.data?.reduce((sum, e) => {
         if (!e.produto) return sum;
         const custoUnitario = e.produto.unidade_uso 
           ? e.produto.custo_unitario / (e.produto.fator_conversao || 1)
@@ -310,7 +310,7 @@ export function useReceitas() {
         return sum + (custoUnitario * e.quantidade);
       }, 0) || 0;
 
-      const custoSubReceitas = subReceitas.data?.reduce((sum, s: any) => {
+      const custoSubReceitas = subReceitas.data?.reduce((sum, s) => {
         if (!s.sub_receita) return sum;
         const custoUnitario = s.sub_receita.rendimento_valor && s.sub_receita.rendimento_valor > 0
           ? s.sub_receita.preco_venda / s.sub_receita.rendimento_valor
@@ -325,7 +325,7 @@ export function useReceitas() {
         custoSubReceitas;
 
       return total;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao calcular custo total:', error);
       return 0;
     }

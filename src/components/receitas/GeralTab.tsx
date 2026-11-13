@@ -1,3 +1,4 @@
+import type { ReceitaFormData, AlterarReceitaForm } from '@/types/receitas';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
@@ -24,8 +25,8 @@ interface TempPasso {
 
 interface GeralTabProps {
   receita: ReceitaCompleta | null;
-  formData: any;
-  onFormChange: (field: string, value: any) => void;
+  formData: ReceitaFormData;
+  onFormChange: AlterarReceitaForm;
   onUpdate: () => void;
   onTabChange?: (tab: string) => void;
   mode?: 'create' | 'edit';
@@ -49,7 +50,7 @@ export function GeralTab({
   const [novoPasso, setNovoPasso] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [markupInfo, setMarkupInfo] = useState<any>(null);
+  const [markupInfo, setMarkupInfo] = useState<ReceitaCompleta['markup']>(null);
   const [editandoPasso, setEditandoPasso] = useState<string | null>(null);
   const [textoEdicao, setTextoEdicao] = useState('');
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -105,7 +106,7 @@ export function GeralTab({
       setEditandoPasso(null);
       setTextoEdicao('');
       onUpdate();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao editar passo:', error);
       toast.error('Erro ao editar passo');
     }

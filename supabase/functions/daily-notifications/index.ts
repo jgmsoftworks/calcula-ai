@@ -1,3 +1,4 @@
+import type { AppDatabaseClient, Tables } from '../_shared/database.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
@@ -5,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+type CostMovement = Pick<Tables<'movimentacoes'>, 'produto_id' | 'quantidade' | 'custo_unitario' | 'tipo'> & { produtos: Pick<Tables<'produtos'>, 'nome' | 'user_id'> };
+type SalesMovement = Pick<Tables<'movimentacoes'>, 'produto_id' | 'quantidade'> & { produtos: Pick<Tables<'produtos'>, 'nome' | 'user_id' | 'estoque_atual' | 'estoque_minimo'> };
 
 interface Product {
   id: string;
@@ -31,7 +35,7 @@ interface Movimentacao {
   user_id: string;
 }
 
-interface UserSettings {
+type UserSettings = {
   low_stock: boolean;
   unpriced_recipes: boolean;
   cost_anomalies: boolean;
@@ -40,12 +44,12 @@ interface UserSettings {
   low_margin_alerts: boolean;
 }
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[DAILY-NOTIFICATIONS] ${step}${detailsStr}`);
 };
 
-const getUserSettings = async (supabase: any, userId: string): Promise<UserSettings> => {
+const getUserSettings = async (supabase: AppDatabaseClient, userId: string): Promise<UserSettings> => {
   const { data } = await supabase
     .from('user_configurations')
     .select('configuration')
@@ -53,7 +57,7 @@ const getUserSettings = async (supabase: any, userId: string): Promise<UserSetti
     .eq('type', 'notification_settings')
     .single();
 
-  return data?.configuration || {
+  return data?.configuration as UserSettings || {
     low_stock: true,
     unpriced_recipes: true,
     cost_anomalies: true,
@@ -167,14 +171,14 @@ serve(async (req) => {
       .from('movimentacoes')
       .select('produto_id, produtos!inner(nome, user_id), quantidade, custo_unitario, tipo, data')
       .eq('tipo', 'entrada')
-      .gte('data', sevenDaysAgo);
+      .gte('data', sevenDaysAgo).returns<CostMovement[]>();
 
     logStep("Movimentações recentes analisadas", { count: recentMovements?.length });
 
     // Agrupar por produto e calcular variação de custo
     const costChanges: Record<string, { produto: string, user_id: string, costs: number[], avgChange: number }> = {};
     
-    recentMovements?.forEach((mov: any) => {
+    recentMovements?.forEach((mov: { produto_id: string; produtos: { nome: string; user_id: string }; custo_unitario: number }) => {
       const key = mov.produto_id;
       if (!costChanges[key]) {
         costChanges[key] = {
@@ -236,13 +240,13 @@ serve(async (req) => {
         quantidade
       `)
       .eq('tipo', 'saida')
-      .gte('data', sevenDaysAgo);
+      .gte('data', sevenDaysAgo).returns<SalesMovement[]>();
 
     logStep("Oportunidades de venda analisadas", { count: salesOpportunities?.length });
 
     const productSales: Record<string, { produto: string, user_id: string, vendas: number, estoque: number, estoqueMin: number }> = {};
     
-    salesOpportunities?.forEach((sale: any) => {
+    salesOpportunities?.forEach((sale: { produto_id: string; produtos: { nome: string; user_id: string; estoque_atual: number; estoque_minimo: number }; quantidade: number }) => {
       const key = sale.produto_id;
       if (!productSales[key]) {
         productSales[key] = {
@@ -345,9 +349,9 @@ serve(async (req) => {
 
     for (const recipe of lowMarginRecipes || []) {
       const custoTotal = 
-        (recipe.receita_ingredientes?.reduce((sum: number, i: any) => sum + (i.custo_total || 0), 0) || 0) +
-        (recipe.receita_embalagens?.reduce((sum: number, i: any) => sum + (i.custo_total || 0), 0) || 0) +
-        (recipe.receita_mao_obra?.reduce((sum: number, i: any) => sum + (i.valor_total || 0), 0) || 0);
+        (recipe.receita_ingredientes?.reduce((sum: number, i: { custo_total?: number }) => sum + (i.custo_total || 0), 0) || 0) +
+        (recipe.receita_embalagens?.reduce((sum: number, i: { custo_total?: number }) => sum + (i.custo_total || 0), 0) || 0) +
+        (recipe.receita_mao_obra?.reduce((sum: number, i: { valor_total?: number }) => sum + (i.valor_total || 0), 0) || 0);
 
       const margem = ((recipe.preco_venda - custoTotal) / recipe.preco_venda) * 100;
 

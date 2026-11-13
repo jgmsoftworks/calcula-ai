@@ -1,3 +1,4 @@
+import type { ProdutoReceita } from '@/types/receitas';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -9,14 +10,14 @@ import { NumericInput } from '@/components/ui/numeric-input';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { formatBRL, formatNumber } from '@/lib/formatters';
+
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempIngrediente {
   id: string;
   produto_id: string;
   quantidade: number;
-  produto: any;
+  produto: ProdutoReceita;
 }
 
 interface IngredientesTabProps {
@@ -24,10 +25,10 @@ interface IngredientesTabProps {
   onUpdate?: () => void;
   mode: 'create' | 'edit';
   tempIngredientes?: TempIngrediente[];
-  onAddTemp?: (produto: any, quantidade: number) => void;
+  onAddTemp?: (produto: ProdutoReceita, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
   onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
-  prefetchedProdutos?: any[];
+  prefetchedProdutos?: ProdutoReceita[];
 }
 
 export function IngredientesTab({ 
@@ -51,7 +52,7 @@ export function IngredientesTab({
   }, [search, prefetchedProdutos]);
   const produtos = matches.slice(0, suggestionLimit);
 
-  const handleAddIngrediente = (produto: any) => {
+  const handleAddIngrediente = (produto: ProdutoReceita) => {
     const quantidadeInicial = 1;
     onAddTemp?.(produto, quantidadeInicial);
     setSearch('');
@@ -233,4 +234,3 @@ export function IngredientesTab({
     </div>
   );
 }
-

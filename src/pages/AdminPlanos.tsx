@@ -1,3 +1,5 @@
+import type { Tables } from '@/integrations/supabase/types';
+import { errorMessage } from '@/lib/errors';
 import { PortugalPrices } from '@/components/admin/PortugalPrices';
 import { planDisplayName } from '@/lib/plan-names';
 import { useCallback, useEffect, useState } from 'react';
@@ -39,19 +41,23 @@ interface PlanoAdmin {
   features: string[];
 }
 
+type PlanoHistorico = Tables<'planos_precos_historico'>;
+type PerfilAssinante = Pick<Tables<'profiles'>, 'user_id' | 'full_name' | 'business_name' | 'plan' | 'plan_expires_at' | 'created_at'>;
+type StripeAssinatura = { id: string; email: string | null; amount: number; currency: string | null; price_id: string | null; product_id: string | null; interval: string | null; current_period_end: number; cancel_at_period_end: boolean };
+type AdminResposta = { error?: string; planos?: PlanoAdmin[]; historico?: PlanoHistorico[]; perfis?: PerfilAssinante[]; stripeSubs?: StripeAssinatura[]; novo_price?: boolean };
 const callAdmin = async (body: Record<string, unknown>) => {
-  const { data, error } = await supabase.functions.invoke('admin-planos', { body });
+  const { data, error } = await supabase.functions.invoke<AdminResposta>('admin-planos', { body });
   if (error) throw error;
-  if ((data as any)?.error) throw new Error((data as any).error);
-  return data as any;
+  if (data?.error) throw new Error(data.error);
+  return data;
 };
 
 const AdminPlanos = () => {
   const { toast } = useToast();
   const [planos, setPlanos] = useState<PlanoAdmin[]>([]);
-  const [historico, setHistorico] = useState<any[]>([]);
-  const [perfis, setPerfis] = useState<any[]>([]);
-  const [stripeSubs, setStripeSubs] = useState<any[]>([]);
+  const [historico, setHistorico] = useState<PlanoHistorico[]>([]);
+  const [perfis, setPerfis] = useState<PerfilAssinante[]>([]);
+  const [stripeSubs, setStripeSubs] = useState<StripeAssinatura[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<PlanoAdmin | null>(null);
@@ -76,8 +82,8 @@ const AdminPlanos = () => {
       setHistorico(h.historico || []);
       setPerfis(s.perfis || []);
       setStripeSubs(s.stripeSubs || []);
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message ?? 'Falha ao carregar planos', variant: 'destructive' });
+    } catch (err: unknown) {
+      toast({ title: 'Erro', description: errorMessage(err) ?? 'Falha ao carregar planos', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -124,8 +130,8 @@ const AdminPlanos = () => {
       });
       setEditing(null);
       await loadAll();
-    } catch (err: any) {
-      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao salvar', description: errorMessage(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }

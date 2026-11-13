@@ -18,7 +18,7 @@ let scriptLoading: Promise<void> | null = null;
 function loadScript(): Promise<void> {
   if (!TURNSTILE_ENABLED) return Promise.resolve();
   if (typeof window === "undefined") return Promise.resolve();
-  if ((window as any).turnstile) return Promise.resolve();
+  if (window.turnstile) return Promise.resolve();
   if (scriptLoading) return scriptLoading;
   scriptLoading = new Promise((resolve, reject) => {
     const s = document.createElement("script");
@@ -42,7 +42,7 @@ export async function getTurnstileToken(action = "default"): Promise<string | nu
   try {
     await loadScript();
     return await new Promise<string | null>((resolve) => {
-      const ts = (window as any).turnstile;
+      const ts = window.turnstile;
       if (!ts) return resolve(null);
       const container = document.createElement("div");
       container.style.position = "absolute";

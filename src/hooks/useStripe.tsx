@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useBusinessRegion } from '@/contexts/BusinessRegionContext';
 import { trackFunnel } from '@/lib/funnel-analytics';
 import { useState, useEffect } from 'react';
@@ -27,7 +28,7 @@ export const useStripe = () => {
     subscription_end: null
   });
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -42,7 +43,7 @@ export const useStripe = () => {
     } catch (error) {
       console.error('Erro ao verificar assinatura:', error);
     }
-  };
+  }, [user]);
 
   const createCheckout = async (planType: string, billing: 'monthly' | 'yearly' = 'monthly', affiliateCode?: string) => {
     if (!user) {
@@ -169,7 +170,7 @@ export const useStripe = () => {
     if (user) {
       checkSubscription();
     }
-  }, [user]);
+  }, [checkSubscription, user]);
 
   // Verificar assinatura periodicamente (a cada 30 segundos)
   useEffect(() => {
@@ -177,7 +178,7 @@ export const useStripe = () => {
       const interval = setInterval(checkSubscription, 30000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [checkSubscription, user]);
 
   return {
     subscriptionData,

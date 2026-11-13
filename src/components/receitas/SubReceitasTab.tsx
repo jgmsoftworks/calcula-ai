@@ -1,3 +1,4 @@
+import type { SubReceitaSelecionavel } from '@/types/receitas';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -10,14 +11,14 @@ import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { formatBRL, formatNumber } from '@/lib/formatters';
-import type { ReceitaCompleta, Receita } from '@/types/receitas';
+
+import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempSubReceita {
   id: string;
   sub_receita_id: string;
   quantidade: number;
-  sub_receita: any;
+  sub_receita: SubReceitaSelecionavel;
 }
 
 interface SubReceitasTabProps {
@@ -25,10 +26,10 @@ interface SubReceitasTabProps {
   onUpdate?: () => void;
   mode: 'create' | 'edit';
   tempSubReceitas?: TempSubReceita[];
-  onAddTemp?: (subReceita: any, quantidade: number) => void;
+  onAddTemp?: (subReceita: SubReceitaSelecionavel, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
   onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
-  prefetchedSubReceitas?: any[];
+  prefetchedSubReceitas?: SubReceitaSelecionavel[];
   hasSubReceitaMarkup?: boolean;
 }
 
@@ -54,7 +55,7 @@ export function SubReceitasTab({
   }, [search, prefetchedSubReceitas, mode, receita?.id]);
   const receitas = matches.slice(0, suggestionLimit);
 
-  const handleAddSubReceita = (subReceita: Receita) => {
+  const handleAddSubReceita = (subReceita: SubReceitaSelecionavel) => {
     onAddTemp?.(subReceita, 1);
     setSearch('');
     toast.success('Sub-receita adicionada');

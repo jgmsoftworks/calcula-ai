@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface SystemSettings {
+type SystemSettings = {
   default_commission_percentage: number;
   default_commission_type: 'percentage' | 'fixed';
   default_commission_fixed_amount: number;
@@ -38,11 +39,9 @@ export function AffiliateSystemSettings() {
     require_email_verification: true
   });
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
 
-  const loadSettings = async () => {
+
+  const loadSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('user_configurations')
@@ -53,12 +52,16 @@ export function AffiliateSystemSettings() {
       if (error && error.code !== 'PGRST116') throw error;
       
       if (data?.configuration) {
-        setSettings({ ...settings, ...data.configuration as any });
+        setSettings(previous => ({ ...previous, ...data.configuration as Partial<SystemSettings> }));
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
     }
-  };
+  }, []);
+
+useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const saveSettings = async () => {
     setLoading(true);
@@ -68,9 +71,9 @@ export function AffiliateSystemSettings() {
       const { error } = await supabase
         .from('user_configurations')
         .upsert({
-          user_id: user?.id!,
+          user_id: user?.id,
           type: 'affiliate_system_settings',
-          configuration: settings as any
+          configuration: settings
         });
 
       if (error) throw error;

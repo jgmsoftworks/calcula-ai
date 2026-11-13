@@ -1,3 +1,4 @@
+import type { ProdutoReceita } from '@/types/receitas';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { formatMoney } from '@/lib/business-region';
@@ -9,14 +10,14 @@ import { NumericInput } from '@/components/ui/numeric-input';
 import { Plus, Trash2, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { formatBRL, formatNumber } from '@/lib/formatters';
+
 import type { ReceitaCompleta } from '@/types/receitas';
 
 interface TempEmbalagem {
   id: string;
   produto_id: string;
   quantidade: number;
-  produto: any;
+  produto: ProdutoReceita;
 }
 
 interface EmbalagensTabProps {
@@ -24,10 +25,10 @@ interface EmbalagensTabProps {
   onUpdate?: () => void;
   mode: 'create' | 'edit';
   tempEmbalagens?: TempEmbalagem[];
-  onAddTemp?: (produto: any, quantidade: number) => void;
+  onAddTemp?: (produto: ProdutoReceita, quantidade: number) => void;
   onRemoveTemp?: (id: string) => void;
   onUpdateQuantidadeTemp?: (id: string, quantidade: number) => void;
-  prefetchedProdutos?: any[];
+  prefetchedProdutos?: ProdutoReceita[];
 }
 
 export function EmbalagensTa({ 
@@ -51,7 +52,7 @@ export function EmbalagensTa({
   }, [search, prefetchedProdutos]);
   const produtos = matches.slice(0, suggestionLimit);
 
-  const handleAddEmbalagem = (produto: any) => {
+  const handleAddEmbalagem = (produto: ProdutoReceita) => {
     const quantidadeInicial = 1;
     onAddTemp?.(produto, quantidadeInicial);
     setSearch('');
@@ -226,4 +227,3 @@ export function EmbalagensTa({
     </div>
   );
 }
-

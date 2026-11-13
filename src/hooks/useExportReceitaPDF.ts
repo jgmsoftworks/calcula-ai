@@ -485,10 +485,10 @@ export function useExportReceitaPDF() {
       let modoPreparoY = secaoInicioY;
 
       // === FUNÇÃO AUXILIAR PARA CRIAR TABELAS DE ITENS (COLUNA ESQUERDA) ===
-      const createItemTable = (
+      const createItemTable = <T extends { quantidade: number }>(
         title: string,
-        items: any[],
-        getItemData: (item: any) => { nome: string; unidade: string }
+        items: T[],
+        getItemData: (item: T) => { nome: string; unidade: string }
       ) => {
         if (items.length === 0) return;
 
@@ -647,7 +647,7 @@ export function useExportReceitaPDF() {
         // Usar cursorY para controle de fluxo
         let cursorY = modoPreparoY;
 
-        passos.forEach((passo: any, index: number) => {
+        passos.forEach((passo, index: number) => {
           const numero = passo.ordem ?? index + 1;
           
           // Normalizar descrição: remover quebras de linha e criar array flat

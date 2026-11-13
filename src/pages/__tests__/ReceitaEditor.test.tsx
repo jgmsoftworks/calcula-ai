@@ -1,4 +1,5 @@
-import { PlanLimitProvider } from '@/contexts/PlanLimitContext';
+import type { ReceitaFormData, AlterarReceitaForm } from '@/types/receitas';
+import { PlanLimitProvider } from '@/contexts/PlanLimitProvider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -38,7 +39,7 @@ vi.mock('@/components/receitas/IngredientesTab', () => ({
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub-receitas</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
 vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: () => <div>Projeção</div> }));
-vi.mock('@/components/receitas/PrecificacaoTab', () => ({ PrecificacaoTab: ({formData,onFormChange}: any) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value)}><option value="">Selecione</option><option value="markup">Normal</option></select></label> }));
+vi.mock('@/components/receitas/PrecificacaoTab', () => ({ PrecificacaoTab: ({formData,onFormChange}: { formData: ReceitaFormData; onFormChange: AlterarReceitaForm }) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value)}><option value="">Selecione</option><option value="markup">Normal</option></select></label> }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => ({
     'receitas.newRecipe': 'Nova Receita', 'receitas.searchRecipe': 'Buscar receita',

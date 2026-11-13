@@ -1,3 +1,4 @@
+import type { ProdutoReceita, SubReceitaSelecionavel, ReceitaFormData, AlterarReceitaForm } from '@/types/receitas';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { trackRecipeCreated } from '@/lib/funnel-analytics';
@@ -26,21 +27,21 @@ interface TempIngrediente {
   id: string;
   produto_id: string;
   quantidade: number;
-  produto: any;
+  produto: ProdutoReceita;
 }
 
 interface TempSubReceita {
   id: string;
   sub_receita_id: string;
   quantidade: number;
-  sub_receita: any;
+  sub_receita: SubReceitaSelecionavel;
 }
 
 interface TempEmbalagem {
   id: string;
   produto_id: string;
   quantidade: number;
-  produto: any;
+  produto: ProdutoReceita;
 }
 
 interface TempPasso {
@@ -77,12 +78,12 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [saveError, setSaveError] = useState<string | null>(null);
   
   // Prefetched data for child tabs
-  const [prefetchedProdutos, setPrefetchedProdutos] = useState<any[]>([]);
-  const [prefetchedSubReceitas, setPrefetchedSubReceitas] = useState<any[]>([]);
+  const [prefetchedProdutos, setPrefetchedProdutos] = useState<ProdutoReceita[]>([]);
+  const [prefetchedSubReceitas, setPrefetchedSubReceitas] = useState<SubReceitaSelecionavel[]>([]);
   const [hasSubReceitaMarkup, setHasSubReceitaMarkup] = useState(true);
   const [activeTab, setActiveTab] = useState('geral');
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ReceitaFormData>({
     nome: '',
     tipo_produto_id: null as string | null,
     rendimento_valor: 0,
@@ -118,7 +119,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   
   const isCreating = !receita?.id; // Modo criação se não tem ID
 
-  const handleFormChange = (field: string, value: any) => {
+  const handleFormChange: AlterarReceitaForm = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === 'markup_id' && value) {
       setSaveError(prev => prev === RECIPE_MARKUP_REQUIRED ? null : prev);
@@ -294,7 +295,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     }
   }, [formData.markup_id, formData.markup_tipo]);
 
-  const handleAddIngredienteTemp = (produto: any, quantidade: number) => {
+  const handleAddIngredienteTemp = (produto: ProdutoReceita, quantidade: number) => {
     setTempIngredientes([...tempIngredientes, {
       id: crypto.randomUUID(),
       produto_id: produto.id,
@@ -315,7 +316,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     ));
   };
 
-  const handleAddSubReceitaTemp = (subReceita: any, quantidade: number) => {
+  const handleAddSubReceitaTemp = (subReceita: SubReceitaSelecionavel, quantidade: number) => {
     setTempSubReceitas([...tempSubReceitas, {
       id: crypto.randomUUID(),
       sub_receita_id: subReceita.id,
@@ -336,7 +337,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     ));
   };
 
-  const handleAddEmbalagemTemp = (produto: any, quantidade: number) => {
+  const handleAddEmbalagemTemp = (produto: ProdutoReceita, quantidade: number) => {
     setTempEmbalagens([...tempEmbalagens, {
       id: crypto.randomUUID(),
       produto_id: produto.id,
@@ -603,4 +604,3 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     </section>
   );
 }
-

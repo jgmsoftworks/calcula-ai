@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ConcluirProducaoModal } from '../ConcluirProducaoModal';
 import { ReceitaProducaoFields } from '../ReceitaProducaoFields';
-import { totaisRendimento } from '../RelatorioRendimento';
+import { totaisRendimento } from '@/lib/totaisRendimento';
 import { rendimentoDaTarefa } from '@/lib/producaoRendimento';
 const receita={id:'recipe',nome:'Massa de cenoura',imagem_url:null,rendimento_valor:12,rendimento_unidade:'un'};
 const tarefa={titulo:'Assar bolos',receita_id:'recipe',receita,rendimento_previsto:72,rendimento_unidade:'un',status:'em_producao'};

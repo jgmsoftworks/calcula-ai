@@ -2,7 +2,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import i18n from '@/i18n';
 import { formatMoney, setBusinessRegion } from '@/lib/business-region';
-import { BusinessRegionProvider, useBusinessRegion } from '../BusinessRegionContext';
+import { useBusinessRegion } from '../BusinessRegionContext';
+import { BusinessRegionProvider } from '@/contexts/BusinessRegionProvider';
 const mock = vi.hoisted(() => ({ user: { id: 'owner' }, profile: { business_country: 'BR', preferred_locale: 'pt-BR', region_confirmed: true }, loadError: null as unknown, saveError: null as unknown, update: vi.fn(), signOut: vi.fn() }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: mock.user, loading: false, signOut: mock.signOut }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: () => ({

@@ -16,12 +16,12 @@ const corsHeaders = {
 
 
 // Helper para logs detalhados
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-const logError = (error: unknown, context: string, details?: any) => {
+const logError = (error: unknown, context: string, details?: unknown) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   console.error(`[CREATE-CHECKOUT ERROR] ${context}`, {

@@ -1,3 +1,5 @@
+import type { Tables, TablesUpdate, Json } from '../_shared/database.ts';
+import { errorMessage as readErrorMessage, errorString } from '../_shared/errors.ts';
 import { getAccountMarket } from '../_shared/planos.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
@@ -10,7 +12,7 @@ const corsHeaders = {
 };
 
 // Helper logging function for debugging
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[AFFILIATE-CHECKOUT] ${step}${detailsStr}`);
 };
@@ -33,7 +35,8 @@ serve(async (req) => {
   );
 
   try {
-    let { planType, billing, affiliateCode, direct } = await req.json();
+    const { affiliateCode, direct, ...requestPlan } = await req.json();
+    let { planType, billing } = requestPlan;
     
     // Portugal uses the EUR catalog. BRL affiliate discounts/commissions must never be relabelled.
     const bearer = req.headers.get('Authorization')?.replace('Bearer ', '');
@@ -103,7 +106,7 @@ serve(async (req) => {
         
         const affiliateProducts = linkData.affiliate.affiliate_stripe_products || [];
         const specificProduct = affiliateProducts.find(
-          (p: any) => p.plan_type === planType && p.billing === billing && p.is_active
+          (p: Pick<Tables<'affiliate_stripe_products'>, 'plan_type' | 'billing' | 'is_active' | 'stripe_price_id'>) => p.plan_type === planType && p.billing === billing && p.is_active
         );
 
         // Annual offers always follow public.planos, including older affiliate links.
@@ -164,7 +167,7 @@ serve(async (req) => {
     logStep('Stripe initialized');
 
     // Configure customer based on authentication
-    let customerConfig: any = {};
+    let customerConfig: Pick<Stripe.Checkout.SessionCreateParams, 'customer' | 'customer_email'> = {};
     let accountId: string | undefined;
     
     if (!direct) {
@@ -194,7 +197,7 @@ serve(async (req) => {
     }
 
     // Buscar cupom ativo para o afiliado
-    let discountConfig: any = {};
+    let discountConfig: Pick<Stripe.Checkout.SessionCreateParams, 'discounts'> = {};
     if (effectiveAffiliateCode && affiliateId) {
       logStep('Looking for affiliate coupons', { affiliateId });
       
@@ -282,26 +285,26 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
       logStep('Stripe session creation failed', { 
-        error: stripeError.message,
-        type: stripeError.type,
-        code: stripeError.code,
-        param: stripeError.param
+        error: readErrorMessage(stripeError),
+        type: errorString(stripeError, 'type'),
+        code: errorString(stripeError, 'code'),
+        param: errorString(stripeError, 'param')
       });
       throw stripeError;
     }
-  } catch (error: any) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? readErrorMessage(error) : String(error);
     logStep('ERROR in affiliate-checkout', { 
       message: errorMessage,
-      type: error.type,
-      code: error.code
+      type: errorString(error, 'type'),
+      code: errorString(error, 'code')
     });
     
     return new Response(JSON.stringify({ 
       error: errorMessage,
-      details: error.type || 'unknown_error'
+      details: errorString(error, 'type') || 'unknown_error'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

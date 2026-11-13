@@ -1,4 +1,4 @@
-import { PlanLimitProvider } from '@/contexts/PlanLimitContext';
+import { PlanLimitProvider } from '@/contexts/PlanLimitProvider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';

@@ -1,5 +1,10 @@
 # Verificações e dívida conhecida
 
+**Estado em 13/11/2026:** os 397 diagnósticos revisados (349 erros/48 avisos)
+foram eliminados. `npm run lint` passou com **0 erros e 0 avisos**. A baseline
+está vazia: qualquer novo diagnóstico bloqueia o CI. As seções de lotes anteriores
+abaixo são histórico, não pendências de lint atuais.
+
 | Comando | O que verifica |
 | --- | --- |
 | `npm run typecheck` | Frontend, Vite, configs de teste e E2E; não todo o runtime Deno |
@@ -32,7 +37,7 @@ da ocorrência, adicionar outra regra/arquivo ou aumentar a quantidade falha.
 Erros fatais de parser nunca são aceitos. É uma trava contra aumento da dívida,
 não uma declaração de lint limpo ou correção funcional.
 
-`npm run lint` continua retornando falha enquanto houver dívida. Ao corrigir uma
+`npm run lint` retorna falha se houver novos erros. A baseline vazia também rejeita novos avisos. Ao corrigir uma
 ocorrência, reduza sua entrada em mudança revisada. Não há comando de expansão
 automática. Nunca aumentar a baseline para aprovar uma regressão.
 
@@ -127,10 +132,58 @@ Todas as integrações dos novos testes usam doubles e dados sintéticos.
 
 A API legada de leitura de configurações ainda retorna `null` em caso de erro,
 sem cachear a falha; diferenciar ausência de erro em todos os consumidores e
-tipar os dois contratos públicos restantes exige um lote próprio. Não há alteração
+o contrato de ausência/erro continua como limitação. Os contratos de tipos foram tratados no encerramento abaixo. Não há alteração
 de fórmulas, autenticação, acesso ou cobrança. Não foram executadas migrations,
 escritas em produção, instalação de dependências ou publicação. Reversão: reverter
 o commit deste lote junto da baseline; publicação continua manual pelo Lovable.
+
+## Encerramento da lista revisada — 13/11/2026
+
+Base inicial: `cc2041d7e4bd17fd35b46d72e137760c98b4bd26`. A validação final
+incorpora `260d9c226e72e264e6470abf6670376171783cf9` (categoria na busca da
+Geladeira), preservando esse trabalho independente. **397 → 0 diagnósticos**;
+nenhuma regra desligada, ignore acrescentado ou baseline ampliada.
+
+- Dados de receitas, produtos, markups, configurações, afiliados e administrações
+  usam contratos explícitos/inferência das consultas. O `@ts-nocheck` de limites
+  foi removido. JSON persistido continua JSON; os tipos não alegam validação runtime.
+- Efeitos têm dependências completas e callbacks estáveis. O carregamento do modal
+  de custos não depende dos próprios dados que ele atualiza; o cálculo continua
+  reagindo aos dados/seleções, sem uma nova consulta a cada alteração.
+- Providers, hooks, contextos e variantes visuais ficam em módulos próprios,
+  mantendo os caminhos públicos dos hooks e os limites de atualização do React.
+- Funções Edge usam contratos de requisição/SDK e erros desconhecidos com acesso
+  seguro a campos textuais. O schema de billing do servidor complementa somente
+  os tipos das migrations existentes; o arquivo Supabase gerado permanece intacto.
+- O lock de billing deixa de lançar dentro de `finally`; preserva liberação,
+  propagação da falha original e precedência da falha de liberação, incluindo
+  rejeição com `undefined`. O novo teste verifica essas condições.
+
+Regressões novas cobrem campos de erros, carregamento único/cálculo do modal de
+custos, troca de período sem recarregar os dados e falhas do lock. As suítes
+existentes conferem receitas, estoque, planos, autenticação e persistência.
+Validação local: `npm run check` aprovado com **568 cenários** (390 frontend,
+27 billing, 123 SQL, 20 trial, 6 Portugal e 2 ferramentas), typecheck e build.
+`npm run lint` também passou diretamente: **0 erros e 0 avisos**. Resultados
+finais de CI e navegador ficam registrados na PR.
+
+Na primeira rodada de navegador, o preenchimento imediatamente após o arraste
+ocorreu durante a abertura do modal e o campo permaneceu vazio. O cenário agora
+clica no campo (aguardando estabilidade) e exige o valor preenchido antes de
+confirmar, sem espera fixa, retry adicional ou mudança na lógica da produção.
+
+Verificação adicional: os arquivos Edge alterados passaram por TypeScript 5.8.3
+com os tipos locais dos SDKs Supabase 2.57.2, Stripe 22.6.0 e 18.5.0, XLSX e SMTP,
+e declarações mínimas das entradas HTTP/env do Deno. `deno check` remoto não foi
+concluído por timeout no download; essa checagem adicional não comprova o runtime
+Deno nem substitui teste de integração dos provedores. Ferramentas de auditoria
+foram instaladas fora do projeto com scripts de instalação desativados; o
+`package.json` e o lockfile do aplicativo não mudaram.
+
+Este encerramento se refere à lista de lint revisada, não a toda melhoria possível
+ou garantia de ausência de bugs. Não há migração, escrita de dados reais, alteração
+de fórmulas/políticas de acesso/cobrança ou publicação. Reversão: reverter o commit
+da PR, incluindo a baseline. Publicação continua manual pelo Lovable.
 
 ## Isolamento e limites
 
@@ -156,7 +209,7 @@ ficam na PR, sem contar novamente os testes de `src` repetidos na configuração
 focada de geladeira.
 
 Trabalhos separados: corrigir peers; tratar XLSX/jsPDF com fixtures de importação
-e PDF; reduzir dívida por domínio; ampliar E2E; testar contratos Supabase isolados;
+e PDF; ampliar E2E; testar contratos Supabase isolados;
 reconciliar inventário remoto; definir scans de dependências/segredos. Esses itens
 não estão resolvidos apenas pela criação do CI.
 

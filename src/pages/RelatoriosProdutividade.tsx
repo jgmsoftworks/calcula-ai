@@ -1,4 +1,5 @@
-import { RelatorioRendimento, type LinhaRendimento } from '@/components/producao/RelatorioRendimento';
+import { RelatorioRendimento } from '@/components/producao/RelatorioRendimento';
+import { type LinhaRendimento } from '@/lib/totaisRendimento';
 import { useEffect, useMemo, useState } from 'react';
 import { differenceInCalendarDays, format, startOfMonth } from 'date-fns';
 import { BarChart3, CalendarRange, CheckCircle2, Clock3, Loader2, Users } from 'lucide-react';

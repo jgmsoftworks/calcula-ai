@@ -1,3 +1,4 @@
+import type { FaturamentoPersistido } from '@/types/configurations';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion } from '@/lib/business-region';
@@ -38,9 +39,9 @@ export function MediaFaturamento() {
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+        const configFaturamentos = await loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos');
         if (configFaturamentos && Array.isArray(configFaturamentos)) {
-          const faturamentos = configFaturamentos.map((f: any) => ({
+          const faturamentos = configFaturamentos.map((f) => ({
             ...f,
             mes: new Date(f.mes)
           })).sort((a, b) => {

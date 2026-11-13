@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { planDisplayName } from '@/lib/plan-names';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,7 +57,7 @@ export function PromotionalCoupons() {
     appliesToPlans: ['professional'] as string[]
   });
 
-  const loadCoupons = async () => {
+  const loadCoupons = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('promotional_coupons')
@@ -77,11 +78,11 @@ export function PromotionalCoupons() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     loadCoupons();
-  }, []);
+  }, [loadCoupons]);
 
   useEffect(() => {
     let filtered = coupons;

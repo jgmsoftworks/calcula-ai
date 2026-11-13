@@ -1,3 +1,4 @@
+import type { FaturamentoPersistido } from '@/types/configurations';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion, currencySymbol } from '@/lib/business-region';
@@ -28,6 +29,20 @@ import {
   maxAllowedProfitPercentage,
   sumMarkupPercentages,
 } from '@/lib/markupMath';
+
+const blocoSubreceita: MarkupBlock = {
+    id: 'subreceita-fixo',
+    nome: 'subreceita',
+    gastoSobreFaturamento: 0,
+    impostos: 0,
+    taxasMeiosPagamento: 0,
+    comissoesPlataformas: 0,
+    outros: 0,
+    valorEmReal: 0,
+    lucroDesejado: 0,
+    periodo: 'todos'
+  };
+
 
 interface MarkupBlock {
   id: string;
@@ -85,18 +100,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   const isMarkupSaving = useRef<boolean>(false);
 
   // Bloco fixo para subreceita
-  const blocoSubreceita: MarkupBlock = {
-    id: 'subreceita-fixo',
-    nome: 'subreceita',
-    gastoSobreFaturamento: 0,
-    impostos: 0,
-    taxasMeiosPagamento: 0,
-    comissoesPlataformas: 0,
-    outros: 0,
-    valorEmReal: 0,
-    lucroDesejado: 0,
-    periodo: 'todos'
-  };
+
 
   // Mapeamento de categorias - MESMA LÓGICA DO MODAL
   const categoriasMap = useMemo(() => {
@@ -120,9 +124,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
     try {
       // Carregar faturamentos históricos do mesmo lugar que MediaFaturamento
-      const configFaturamentos = await loadConfiguration('faturamentos_historicos');
+      const configFaturamentos = await loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos');
       if (configFaturamentos && Array.isArray(configFaturamentos)) {
-        const faturamentos = configFaturamentos.map((f: any) => ({
+        const faturamentos = configFaturamentos.map((f) => ({
           data: f.mes, // Usar campo 'mes' como data
           valor: f.valor
         }));
@@ -197,9 +201,9 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     ]);
 
     // Carrega todos os faturamentos aqui, mas o cálculo será feito dentro do loop.
-    const faturamentosConfig = await loadConfiguration('faturamentos_historicos');
+    const faturamentosConfig = await loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos');
     const todosFaturamentos = (faturamentosConfig && Array.isArray(faturamentosConfig))
-        ? faturamentosConfig.map((f: any) => ({ ...f, mes: new Date(f.mes) }))
+        ? faturamentosConfig.map((f) => ({ ...f, mes: new Date(f.mes) }))
         : [];
 
     console.log('📊 Dados base para cálculo (período:', globalPeriod, '):', {
@@ -212,7 +216,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     // Processar cada bloco individualmente
     for (const bloco of blocosAtuais) {
         const configKey = `checkbox-states-${bloco.id}`;
-        const config = await loadConfiguration(configKey);
+        const config = await loadConfiguration<Record<string, boolean>>(configKey);
         
         console.log(`📋 Processando ${bloco.nome} com configuração:`, config);
 
@@ -225,7 +229,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
         if (periodoSelecionado === 'todos') {
             // Para "todos": calcular a média de todos os lançamentos
             if (todosFaturamentos.length > 0) {
-                const totalFaturamentos = todosFaturamentos.reduce((acc: number, f: any) => acc + f.valor, 0);
+                const totalFaturamentos = todosFaturamentos.reduce((acc: number, f) => acc + f.valor, 0);
                 valorFaturamento = totalFaturamentos / todosFaturamentos.length;
             }
         } else {
@@ -235,10 +239,10 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
             const hoje = new Date();
             const dataLimite = new Date(hoje.getFullYear(), hoje.getMonth() - mesesAtras + 1, 1);
 
-            const faturamentosFiltrados = todosFaturamentos.filter((f: any) => f.mes >= dataLimite);
+            const faturamentosFiltrados = todosFaturamentos.filter((f) => f.mes >= dataLimite);
             
             if (faturamentosFiltrados.length > 0) {
-                const total = faturamentosFiltrados.reduce((acc: number, f: any) => acc + f.valor, 0);
+                const total = faturamentosFiltrados.reduce((acc: number, f) => acc + f.valor, 0);
                 valorFaturamento = total / faturamentosFiltrados.length;
             }
         }
@@ -340,11 +344,11 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   useEffect(() => {
     const carregarBlocos = async () => {
       try {
-        const config = await loadConfiguration('markups_blocos');
+        const config = await loadConfiguration<MarkupBlock[]>('markups_blocos');
         let blocosCarregados: MarkupBlock[] = [];
         
         if (config && Array.isArray(config)) {
-          blocosCarregados = config as unknown as MarkupBlock[];
+          blocosCarregados = config;
         }
         
         // ✅ GARANTIR que o bloco de sub-receita esteja sempre presente
@@ -375,18 +379,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
   }, [blocos.length, user?.id, carregarConfiguracoesSalvas]);
 
   // Salvar no banco quando calculatedMarkups for atualizado (com debounce para evitar loops)
-  useEffect(() => {
-    if (calculatedMarkups.size > 0 && blocos.length > 0 && user?.id && !isMarkupSaving.current) {
-      console.log('💾 Salvando markups calculados no banco...');
-      
-      // Debounce para evitar salvamentos excessivos
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      
-      debounceRef.current = setTimeout(() => {
-        salvarMarkupsNoBanco(blocos);
-      }, 300); // ✅ REDUZIDO: de 1000ms para 300ms
-    }
-  }, [calculatedMarkups, blocos, user?.id]);
+
 
 
   // Real-time updates: escutar mudanças na tabela user_configurations (com proteção contra loops)
@@ -409,7 +402,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
           console.log('🔔 Real-time update recebida:', payload);
           
           // Verificar se é uma mudança relacionada aos nossos dados
-          const configType = (payload.new as any)?.type || (payload.old as any)?.type;
+          const configType = ('type' in payload.new ? payload.new.type : undefined) || ('type' in payload.old ? payload.old.type : undefined);
           if (configType && (
                 configType.includes('checkbox-states-') ||
                 configType === 'faturamentos_historicos' ||
@@ -452,23 +445,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     };
   }, []);
 
-  const salvarBlocos = useCallback(async (novosBlocos: MarkupBlock[]) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    debounceRef.current = setTimeout(async () => {
-      try {
-        await saveConfiguration('markups_blocos', novosBlocos);
-        // Salvar também no banco de dados
-        await salvarMarkupsNoBanco(novosBlocos);
-      } catch (error) {
-        console.error('Erro ao salvar blocos:', error);
-      }
-    }, 800);
-  }, [saveConfiguration]);
-
-  const salvarMarkupsNoBanco = async (blocos: MarkupBlock[]) => {
+  const salvarMarkupsNoBanco = useCallback(async (blocos: MarkupBlock[]) => {
     if (!user?.id || isMarkupSaving.current) return;
 
     try {
@@ -523,7 +500,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
 
         // Buscar configuração salva para este bloco
         const configKey = `checkbox-states-${bloco.id}`;
-        const config = await loadConfiguration(configKey);
+        const config = await loadConfiguration<Record<string, boolean>>(configKey);
         
         // Buscar IDs selecionados das tabelas relacionadas
         const despesasFixasSelecionadas = [];
@@ -677,7 +654,38 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
     } finally {
       isMarkupSaving.current = false;
     }
-  };
+  }, [calculatedMarkups, loadConfiguration, saveConfiguration, user?.id]);
+
+  const salvarBlocos = useCallback(async (novosBlocos: MarkupBlock[]) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await saveConfiguration('markups_blocos', novosBlocos);
+        // Salvar também no banco de dados
+        await salvarMarkupsNoBanco(novosBlocos);
+      } catch (error) {
+        console.error('Erro ao salvar blocos:', error);
+      }
+    }, 800);
+  }, [salvarMarkupsNoBanco, saveConfiguration]);
+
+
+
+  useEffect(() => {
+    if (calculatedMarkups.size > 0 && blocos.length > 0 && user?.id && !isMarkupSaving.current) {
+      console.log('💾 Salvando markups calculados no banco...');
+
+      // Debounce para evitar salvamentos excessivos
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      debounceRef.current = setTimeout(() => {
+        salvarMarkupsNoBanco(blocos);
+      }, 300); // ✅ REDUZIDO: de 1000ms para 300ms
+    }
+  }, [calculatedMarkups, blocos, user?.id, salvarMarkupsNoBanco]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(getBusinessRegion().locale, {
@@ -821,7 +829,7 @@ export function Markups({ globalPeriod = "12" }: MarkupsProps) {
       calculated?.outros,
     );
 
-  const atualizarBloco = (id: string, campo: keyof MarkupBlock, valor: any) => {
+  const atualizarBloco = <K extends keyof MarkupBlock>(id: string, campo: K, valor: MarkupBlock[K]) => {
     if (campo === 'lucroDesejado') {
       const calculated = calculatedMarkups.get(id);
       const totalCustos = calcularTotalCustosPercentuais(calculated);

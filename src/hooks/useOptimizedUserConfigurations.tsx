@@ -1,3 +1,4 @@
+import type { FaturamentoParaSalvar, MarkupBlock } from '@/types/configurations';
 import { useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,12 +39,12 @@ export function useOptimizedUserConfigurations() {
     }
   }, [account]);
 
-  const loadConfiguration = useCallback(async (type: string): Promise<any | null> => {
+  const loadConfiguration = useCallback(async <T = Json>(type: string): Promise<T | null> => {
     if (!userId || accountRef.current !== account) return null;
     const cached = account.cache.get(type);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) return cached.data;
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) return cached.data as T;
     const pending = account.pending.get(type);
-    if (pending) return pending.promise;
+    if (pending) return pending.promise as Promise<T>;
 
     const version = account.versions.get(type) ?? 0;
     const request = (async (): Promise<Json> => {
@@ -66,10 +67,10 @@ export function useOptimizedUserConfigurations() {
       }
     })();
     account.pending.set(type, { version, promise: request });
-    return request;
+    return request as Promise<T>;
   }, [account, userId]);
 
-  const saveConfiguration = useCallback(async (type: string, configuration: any): Promise<void> => {
+  const saveConfiguration = useCallback(async (type: string, configuration: Json | FaturamentoParaSalvar[] | MarkupBlock[]): Promise<void> => {
     if (!userId || accountRef.current !== account) throw new Error('Conta indisponível para salvar a configuração.');
     invalidate(account, type);
     const version = account.versions.get(type);
@@ -77,14 +78,14 @@ export function useOptimizedUserConfigurations() {
       const { error } = configuration == null
         ? await supabase.from('user_configurations').delete().eq('user_id', userId).eq('type', type)
         : await supabase.from('user_configurations').upsert({
-          user_id: userId, type, configuration,
+          user_id: userId, type, configuration: configuration as Json,
         }, { onConflict: 'user_id,type' });
       if (error) throw error;
       const unchanged = account.versions.get(type) === version;
       // Reads made during the write may still contain the previous database value.
       invalidate(account, type);
       if (accountRef.current === account && unchanged) {
-        account.cache.set(type, { data: configuration ?? null, timestamp: Date.now() });
+        account.cache.set(type, { data: configuration as Json ?? null, timestamp: Date.now() });
       }
     } catch (error) {
       invalidate(account, type);

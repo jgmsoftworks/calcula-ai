@@ -37,7 +37,7 @@ async function listSubs(stripe: Stripe, status: string, limit: number) {
       currency: item?.price.currency ?? "brl",
       interval: item?.price.recurring?.interval ?? null,
       product_id: typeof item?.price.product === "string" ? item?.price.product : null,
-      current_period_end: s.current_period_end,
+      current_period_end: (s as typeof s & { current_period_end?: number }).current_period_end,
       cancel_at_period_end: s.cancel_at_period_end,
       created: s.created,
     };
@@ -81,10 +81,10 @@ serve(async (req) => {
       case "refund_last_invoice": {
         if (!body.subscription_id) throw new Error("subscription_id obrigatório");
         const sub = await client.subscriptions.retrieve(body.subscription_id);
-        const invoiceId = (sub as any).latest_invoice as string | null;
+        const invoiceId = sub.latest_invoice as string | null;
         if (!invoiceId) throw new Error("Sem fatura recente");
         const invoice = await client.invoices.retrieve(invoiceId);
-        const chargeId = (invoice as any).charge as string | null;
+        const chargeId = (invoice as typeof invoice & { charge?: string | null }).charge as string | null;
         if (!chargeId) throw new Error("Sem cobrança associada");
         const refund = await client.refunds.create({ charge: chargeId });
         return jsonResponse({ refund });

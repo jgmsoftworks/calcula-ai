@@ -375,7 +375,7 @@ export function useExportTutorialPDF() {
 
       // ========== FINAL PAGE ==========
       doc.addPage();
-      let y = PAGE_H / 2 - 30;
+      const y = PAGE_H / 2 - 30;
 
       doc.setFillColor(14, 110, 184);
       doc.roundedRect(MARGIN + 20, y - 10, CONTENT_W - 40, 60, 4, 4, 'F');

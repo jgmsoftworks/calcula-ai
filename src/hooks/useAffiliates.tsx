@@ -1,28 +1,13 @@
+import { useCallback } from 'react';
+import type { Json, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-interface Affiliate {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  document?: string;
-  status: string;
-  commission_percentage: number;
-  commission_type: string;
-  commission_fixed_amount?: number;
-  pix_key?: string;
-  bank_details?: any;
-  total_sales: number;
-  total_commissions: number;
-  total_customers: number;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-}
+export type Affiliate = Tables<'affiliates'>;
 
 interface AffiliateLink {
+  source_channel?: string;
   id: string;
   affiliate_id: string;
   link_code: string;
@@ -62,7 +47,7 @@ interface AffiliateCommission {
   amount: number;
   status: string;
   payment_method?: string;
-  payment_details?: any;
+  payment_details?: Json;
   paid_at?: string;
   cycle_number?: number;
   recurring_from_sale_id?: string;
@@ -98,7 +83,7 @@ export const useAffiliates = () => {
   const [loading, setLoading] = useState(true);
 
   // Carregar afiliados
-  const loadAffiliates = async () => {
+  const loadAffiliates = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('affiliates')
@@ -115,10 +100,10 @@ export const useAffiliates = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   // Carregar links de afiliados
-  const loadAffiliateLinks = async () => {
+  const loadAffiliateLinks = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('affiliate_links')
@@ -138,10 +123,10 @@ export const useAffiliates = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   // Carregar vendas de afiliados
-  const loadAffiliateSales = async () => {
+  const loadAffiliateSales = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('affiliate_sales')
@@ -162,10 +147,10 @@ export const useAffiliates = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   // Carregar comissões
-  const loadAffiliateCommissions = async () => {
+  const loadAffiliateCommissions = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('affiliate_commissions')
@@ -186,10 +171,10 @@ export const useAffiliates = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   // Calcular estatísticas
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const stats = {
       totalAffiliates: affiliates.length,
       activeAffiliates: affiliates.filter(a => a.status === 'active').length,
@@ -203,7 +188,7 @@ export const useAffiliates = () => {
         .reduce((sum, c) => sum + c.amount, 0)
     };
     setAffiliatesStats(stats);
-  };
+  }, [affiliateCommissions, affiliateLinks, affiliateSales, affiliates]);
 
   // Criar afiliado
   const createAffiliate = async (affiliateData: {
@@ -215,7 +200,7 @@ export const useAffiliates = () => {
     commission_type?: string;
     commission_fixed_amount?: number;
     pix_key?: string;
-    bank_details?: any;
+    bank_details?: Json;
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -376,7 +361,7 @@ export const useAffiliates = () => {
   };
 
   // Carregar todos os dados
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([
@@ -388,15 +373,15 @@ export const useAffiliates = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadAffiliateCommissions, loadAffiliateLinks, loadAffiliateSales, loadAffiliates]);
 
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [loadAllData]);
 
   useEffect(() => {
     calculateStats();
-  }, [affiliates, affiliateLinks, affiliateSales, affiliateCommissions]);
+  }, [affiliates, affiliateLinks, affiliateSales, affiliateCommissions, calculateStats]);
 
   return {
     // Estados

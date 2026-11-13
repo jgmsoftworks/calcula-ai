@@ -1,10 +1,11 @@
+import { errorMessage } from '@/lib/errors';
 import { useBusinessRegion } from '@/contexts/BusinessRegionContext';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type PlanSlug = 'lite' | 'professional' | 'enterprise';
 
-export interface PlanoLimites {
+export type PlanoLimites = {
   produtos: number;
   receitas: number;
   markups: number;
@@ -77,7 +78,7 @@ export const usePlanos = (incluirInativos = false) => {
           market_price_available: !!monthly, market_annual_available: !!yearly };
       };
       setPlanos(
-        (data || []).map((p: any) => ({
+        (data || []).map((p) => ({
           ...p,
           ...marketFields(p.slug),
           limites: (p.limites || {}) as PlanoLimites,
@@ -85,9 +86,9 @@ export const usePlanos = (incluirInativos = false) => {
         })) as Plano[],
       );
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao carregar planos:', err);
-      setError(err?.message ?? 'Erro ao carregar planos');
+      setError(errorMessage(err) ?? 'Erro ao carregar planos');
     } finally {
       setLoading(false);
     }

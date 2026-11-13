@@ -1,4 +1,4 @@
-import { BusinessRegionProvider } from '@/contexts/BusinessRegionContext';
+import { BusinessRegionProvider } from '@/contexts/BusinessRegionProvider';
 import { lazy, Suspense } from 'react';
 import { AcquisitionReturn } from '@/components/AcquisitionReturn';
 import '@/i18n';
@@ -8,10 +8,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ActivityProvider } from "@/contexts/ActivityContext";
+import { AuthProvider } from '@/contexts/AuthProvider';
+import { ActivityProvider } from '@/contexts/ActivityProvider';
 import ScrollToTop from "@/components/ScrollToTop";
-import { CookieConsentProvider } from "@/hooks/useCookieConsent";
+import { CookieConsentProvider } from '@/contexts/CookieConsentProvider';
 import { CookieBanner } from "@/components/legal/CookieBanner";
 
 const AppLayoutRoute = lazy(() => import("@/components/layout/AppLayoutRoute"));
@@ -161,6 +161,3 @@ const App = () => (
 );
 
 export default App;
-
-
-

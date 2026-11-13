@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const logError = (error: unknown, context: string, details?: any) => {
+const logError = (error: unknown, context: string, details?: unknown) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   console.error(`[GENERATE-IMAGE-SUGGESTIONS ERROR] ${context}`, {
@@ -22,7 +22,7 @@ const logError = (error: unknown, context: string, details?: any) => {
   return errorMessage;
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   console.log(`[GENERATE-IMAGE-SUGGESTIONS] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
 };
 
@@ -48,7 +48,7 @@ serve(async (req) => {
       }),
       corsHeaders,
     );
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { productName, barcode } = parsed.data;
 
     if (!productName && !barcode) {
@@ -75,7 +75,7 @@ serve(async (req) => {
               p.image_url,
               p.image_ingredients_url,
               p.image_packaging_url,
-            ].filter((u: any) => typeof u === 'string' && u.length > 0);
+            ].filter((u: unknown) => typeof u === 'string' && u.length > 0);
             const unique = Array.from(new Set(candidates));
             if (unique.length > 0) {
               logStep('Imagens OpenFoodFacts encontradas', { count: unique.length });
@@ -136,7 +136,7 @@ serve(async (req) => {
     }
 
     // Pegar as primeiras 4 imagens (tamanho médio)
-    const images = data.hits.slice(0, 4).map((hit: any) => hit.webformatURL);
+    const images = data.hits.slice(0, 4).map((hit: { webformatURL: string }) => hit.webformatURL);
 
     logStep('Imagens encontradas com sucesso', { productName, count: images.length });
 

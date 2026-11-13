@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { ShieldAlert, RefreshCw, Filter } from "lucide-react";
@@ -95,8 +96,8 @@ export default function AdminSecurity() {
       if (error) throw error;
       setRows((data ?? []) as CspViolationRow[]);
       setPage(0);
-    } catch (e: any) {
-      setError(e?.message ?? "Erro ao carregar dados");
+    } catch (e: unknown) {
+      setError(errorMessage(e) ?? "Erro ao carregar dados");
     } finally {
       setLoading(false);
     }

@@ -68,7 +68,7 @@ export function getOrCreateAnonymousId(): string {
  */
 export function applyConsentToGtag(consent: CookieConsent): void {
   if (typeof window === 'undefined') return;
-  const w = window as any;
+  const w = window;
 
   // Garantir dataLayer e gtag stub
   w.dataLayer = w.dataLayer || [];

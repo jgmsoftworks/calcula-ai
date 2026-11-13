@@ -1,3 +1,6 @@
+import { useCallback } from 'react';
+import type { Json, Tables, TablesUpdate } from '@/integrations/supabase/types';
+import { errorMessage } from '@/lib/errors';
 import { planDisplayName } from '@/lib/plan-names';
 import { useEffect, useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -77,7 +80,7 @@ export default function AdminInadimplencia() {
   const [statusDraft, setStatusDraft] = useState<IssueRow['status']>('contacted');
   const [saving, setSaving] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const { data: issuesData, error } = await supabase
@@ -103,20 +106,20 @@ export default function AdminInadimplencia() {
       } else {
         setProfiles({});
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: 'Erro ao carregar',
-        description: e?.message || 'Falha ao buscar inadimplência.',
+        description: errorMessage(e) || 'Falha ao buscar inadimplência.',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     if (isAdmin) fetchData();
-  }, [isAdmin]);
+  }, [fetchData, isAdmin]);
 
   const filtered = useMemo(() => {
     return issues.filter((i) => {
@@ -151,7 +154,7 @@ export default function AdminInadimplencia() {
     if (!editing) return;
     setSaving(true);
     try {
-      const patch: any = {
+      const patch: TablesUpdate<'subscription_issues'> = {
         status: statusDraft,
         admin_notes: notesDraft || null,
         updated_at: new Date().toISOString(),
@@ -170,8 +173,8 @@ export default function AdminInadimplencia() {
       toast({ title: 'Atualizado', description: 'Status do cliente salvo.' });
       setEditing(null);
       fetchData();
-    } catch (e: any) {
-      toast({ title: 'Erro', description: e?.message || 'Falha ao salvar.', variant: 'destructive' });
+    } catch (e: unknown) {
+      toast({ title: 'Erro', description: errorMessage(e) || 'Falha ao salvar.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }

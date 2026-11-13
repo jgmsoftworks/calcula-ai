@@ -1,3 +1,4 @@
+import type { Tables, TablesUpdate, Json } from '../_shared/database.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { requireCronOrAdmin } from "../_shared/authGuard.ts";
@@ -8,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[SYNC-STRIPE-SALES] ${step}${detailsStr}`);
 };
@@ -82,6 +83,7 @@ serve(async (req) => {
         .from('affiliate_links')
         .select('id, affiliate_id, affiliates(id, commission_type, commission_percentage, commission_fixed_amount)')
         .eq('link_code', affiliateCode)
+        .returns<{ id: string; affiliate_id: string; affiliates: Pick<Tables<'affiliates'>, 'id' | 'commission_type' | 'commission_percentage' | 'commission_fixed_amount'>; conversions_count?: number }[]>()
         .maybeSingle();
 
       if (!affiliateLink) {
@@ -89,7 +91,7 @@ serve(async (req) => {
         continue;
       }
 
-      const affiliate = affiliateLink.affiliates as any;
+      const affiliate = affiliateLink.affiliates as Pick<Tables<'affiliates'>, 'id' | 'commission_type' | 'commission_percentage' | 'commission_fixed_amount'>;
 
       // Buscar detalhes do produto
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id);

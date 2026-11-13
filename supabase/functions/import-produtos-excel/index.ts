@@ -1,3 +1,4 @@
+import type { Tables, TablesUpdate, Json } from '../_shared/database.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as XLSX from 'npm:xlsx@0.18.5';
@@ -16,14 +17,14 @@ interface ProdutoRow {
   'unidade_compra*': string;
   'custo_unitario*': number;
   'estoque_atual*': number;
-  estoque_minimo?: number;
+  estoque_minimo?: number | string;
   unidade_uso?: string;
   fator_conversao?: number;
 }
 
 const UNIDADES_VALIDAS = ['cm', 'cx', 'fd', 'g', 'k', 'l', 'm', 'ml', 'pct', 'un'];
 
-function validarLinha(row: any, lineNumber: number): string[] {
+function validarLinha(row: Partial<Record<keyof ProdutoRow, string | number | boolean | null>>, lineNumber: number): string[] {
   const erros: string[] = [];
 
   // Validar codigo_interno obrigatório
@@ -101,7 +102,7 @@ serve(async (req) => {
     console.log(`Processando ${data.length} linhas do Excel`);
 
     const erros: string[] = [];
-    const produtosCriados: any[] = [];
+    const produtosCriados: Tables<'produtos'>[] = [];
     const marcasSet = new Set<string>();
     const categoriasSet = new Set<string>();
 

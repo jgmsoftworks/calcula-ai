@@ -1,3 +1,4 @@
+import type { AppDatabaseClient } from './database.ts';
 import { APP_URL } from './billingRules.ts';
 import { GMAIL_SENDER, sendGmailPayment } from './billingSmtp.ts';
 
@@ -31,7 +32,7 @@ export function paymentEmail(kind: EmailKind, email: string, plan: string, optio
 // The webhook retries on transport failure. A provider acceptance is persisted;
 // repeated Stripe events reuse the same receipt. SMTP has no provider-side
 // idempotency: acceptance followed by a lost receipt can still cause a retry.
-export async function sendPaymentEmail(db: any, key: string, build: () => Promise<{ to: string; subject: string; html: string; text: string }>) {
+export async function sendPaymentEmail(db: AppDatabaseClient, key: string, build: () => Promise<{ to: string; subject: string; html: string; text: string }>) {
   const { data: existing, error: readError } = await db.from('billing_emails').select('*').eq('key', key).maybeSingle();
   if (readError) throw new Error('email_state_read_failed');
   if (existing?.sent_at) return;
@@ -39,7 +40,7 @@ export async function sendPaymentEmail(db: any, key: string, build: () => Promis
   const gmail = !!Deno.env.get('GMAIL_SMTP_PASSWORD');
   const from = gmail ? GMAIL_SENDER : Deno.env.get('PAYMENTS_EMAIL_FROM');
   if (!from || (!gmail && !apiKey)) throw new Error('payment_email_not_configured');
-  let payload = existing?.payload;
+  let payload = existing?.payload as (Parameters<typeof sendGmailPayment>[1] & { from: string }) | null | undefined;
   if (!payload) {
     const content = await build();
     payload = { from, to: [content.to], subject: content.subject, html: content.html, text: content.text, reply_to: 'calculaai.adm@gmail.com' };

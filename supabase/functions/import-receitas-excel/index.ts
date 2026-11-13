@@ -65,6 +65,7 @@ serve(async (req) => {
     
     console.log(`[IMPORT-RECEITAS] Excel parseado: ${workbook.SheetNames.length} páginas`);
 
+    type ExcelCell = string | number | boolean | null;
     const unidadesMap: Record<string, string> = {
       'Grama (g)': 'g',
       'Quilograma (kg)': 'kg',
@@ -77,8 +78,8 @@ serve(async (req) => {
     let receitasCriadas = 0;
     let produtosCriados = 0;
     let produtosExistentes = 0;
-    const detalhes: any[] = [];
-    const erros: any[] = [];
+    const detalhes: { receita: ExcelCell; status: string; id: string }[] = [];
+    const erros: { receita: ExcelCell; erro?: string }[] = [];
 
     // Processar cada página (receita)
     for (const sheetName of workbook.SheetNames) {
@@ -86,7 +87,7 @@ serve(async (req) => {
         console.log(`[IMPORT-RECEITAS] Processando: ${sheetName}`);
         
         const sheet = workbook.Sheets[sheetName];
-        const data: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const data: ExcelCell[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
         // Extrair dados da receita
         const nomeReceita = data[0]?.[0] || sheetName;
@@ -95,16 +96,16 @@ serve(async (req) => {
         let tipoProduto = 'MASSA';
         let rendimentoValor = 0;
         let rendimentoUnidade = 'g';
-        let conservacao: any = {};
+        const conservacao: Partial<Record<'congelado' | 'refrigerado' | 'ambiente', { temperatura: ExcelCell; tempo: ExcelCell }>> = {};
 
         for (let i = 0; i < data.length; i++) {
           const row = data[i];
           if (row[1] === 'Tipo do Produto' && row[2]) {
-            tipoProduto = row[2];
+            tipoProduto = row[2] as string;
           }
           if (row[1] === 'Rendimento' && row[2]) {
-            rendimentoValor = parseFloat(row[2]) || 0;
-            rendimentoUnidade = unidadesMap[row[3]] || row[3] || 'g';
+            rendimentoValor = parseFloat(String(row[2])) || 0;
+            rendimentoUnidade = unidadesMap[row[3] as string] || row[3] as string || 'g';
           }
           if (row[1] === 'Congelado' && row[2] && row[3]) {
             conservacao.congelado = { temperatura: row[2], tempo: row[3] };
@@ -158,8 +159,8 @@ serve(async (req) => {
             if (!row[0] || row[0] === 'EMBALAGEM' || row[0] === 'MODO DE PREPARO') break;
 
             const nomeIngrediente = row[0];
-            const quantidade = parseFloat(row[1]) || 0;
-            const unidade = unidadesMap[row[2]] || row[2] || 'g';
+            const quantidade = parseFloat(String(row[1])) || 0;
+            const unidade = unidadesMap[row[2] as string] || row[2] as string || 'g';
 
             if (!nomeIngrediente || quantidade === 0) continue;
 
@@ -222,8 +223,8 @@ serve(async (req) => {
             if (!row[0] || row[0] === 'MODO DE PREPARO') break;
 
             const nomeEmbalagem = row[0];
-            const quantidade = parseFloat(row[1]) || 0;
-            const unidade = unidadesMap[row[2]] || row[2] || 'un';
+            const quantidade = parseFloat(String(row[1])) || 0;
+            const unidade = unidadesMap[row[2] as string] || row[2] as string || 'un';
 
             if (!nomeEmbalagem || quantidade === 0) continue;
 
@@ -281,7 +282,7 @@ serve(async (req) => {
             const row = data[i];
             const descricao = row[0];
 
-            if (!descricao || descricao.length < 5) continue;
+            if (!descricao || (descricao as string).length < 5) continue;
 
             await supabaseClient
               .from('receita_passos_preparo')

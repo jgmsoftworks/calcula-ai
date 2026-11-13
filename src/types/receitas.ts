@@ -1,3 +1,13 @@
+import type { Tables } from '@/integrations/supabase/types';
+
+export type ConservacaoReceita = Partial<Record<'congelado' | 'refrigerado' | 'ambiente', {
+  temperatura: number; tempo: number; unidade: string;
+}>>;
+export type ProdutoReceita = Pick<Tables<'produtos'>, 'id' | 'nome' | 'custo_unitario' | 'unidade_compra' | 'unidade_uso' | 'fator_conversao'>
+  & Partial<Pick<Tables<'produtos'>, 'marcas' | 'codigo_interno' | 'imagem_url'>>;
+export type SubReceitaSelecionavel = Pick<Tables<'receitas'>, 'id' | 'nome' | 'preco_venda' | 'rendimento_valor' | 'rendimento_unidade'>
+  & Partial<Pick<Tables<'receitas'>, 'numero_sequencial' | 'imagem_url'>>;
+
 export interface Receita {
   id: string;
   user_id: string;
@@ -10,7 +20,7 @@ export interface Receita {
   tempo_preparo_total: number;
   tempo_preparo_unidade?: string | null;
   tempo_preparo_mao_obra: number;
-  conservacao: any;
+  conservacao: ConservacaoReceita | null;
   observacoes: string | null;
   imagem_url: string | null;
   markup_id: string | null;
@@ -30,7 +40,7 @@ export interface ReceitaIngrediente {
   produto?: {
     id: string;
     nome: string;
-    marcas: string[] | null;
+    marcas?: string[] | null;
     custo_unitario: number;
     unidade_compra: string;
     unidade_uso: string | null;
@@ -98,7 +108,7 @@ export interface ReceitaCompleta extends Receita {
   passos: ReceitaPasso[];
   sub_receitas: ReceitaSubReceita[];
   mao_obra: ReceitaMaoObra[];
-  markup?: any;
+  markup?: Pick<Tables<'markups'>, 'id' | 'nome' | 'tipo'> | null;
 }
 
 export interface ReceitaComDados extends Receita {
@@ -115,3 +125,15 @@ export interface ReceitaComDados extends Receita {
     tipo: string;
   };
 }
+
+export type ReceitaFormData = Pick<Receita, 'nome' | 'tipo_produto_id' | 'rendimento_valor' | 'rendimento_unidade' |
+  'observacoes' | 'status' | 'preco_venda' | 'markup_id' | 'peso_unitario' | 'tempo_preparo_total' |
+  'tempo_preparo_unidade' | 'tempo_preparo_mao_obra' | 'conservacao'> & { markup_tipo: string | null };
+export type AlterarReceitaForm = <K extends keyof ReceitaFormData>(field: K, value: ReceitaFormData[K]) => void;
+export type ComponentesEmEdicao = {
+  ingredientes: Omit<ReceitaIngrediente, 'receita_id'>[];
+  embalagens: Omit<ReceitaEmbalagem, 'receita_id'>[];
+  sub_receitas: Omit<ReceitaSubReceita, 'receita_id'>[];
+  mao_obra: Omit<ReceitaMaoObra, 'receita_id' | 'created_at' | 'updated_at'>[];
+};
+export type ReceitaEmEdicao = Partial<Omit<ReceitaCompleta, keyof ComponentesEmEdicao>> & Partial<ComponentesEmEdicao>;

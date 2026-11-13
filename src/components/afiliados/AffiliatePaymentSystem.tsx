@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import type { Json, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +26,7 @@ interface PaymentRequest {
   status: 'pending' | 'processing' | 'completed' | 'rejected';
   requested_at: string;
   processed_at?: string;
-  payment_details?: any;
+  payment_details?: Json;
   notes?: string;
 }
 
@@ -39,11 +41,9 @@ export function AffiliatePaymentSystem() {
     notes: ''
   });
 
-  useEffect(() => {
-    loadPaymentRequests();
-  }, []);
 
-  const loadPaymentRequests = async () => {
+
+  const loadPaymentRequests = useCallback(async () => {
     try {
       // Buscar comissões pendentes que podem ser pagas
       const { data: commissions, error } = await supabase
@@ -58,7 +58,7 @@ export function AffiliatePaymentSystem() {
       if (error) throw error;
 
       // Agrupar por afiliado
-      const groupedCommissions = commissions?.reduce((acc: any, commission: any) => {
+      const groupedCommissions = commissions?.reduce<Record<string, PaymentRequest & { commissions: typeof commissions }>>((acc, commission) => {
         const affiliateId = commission.affiliate_id;
         if (!acc[affiliateId]) {
           acc[affiliateId] = {
@@ -88,7 +88,11 @@ export function AffiliatePaymentSystem() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+useEffect(() => {
+    loadPaymentRequests();
+  }, [loadPaymentRequests]);
 
   const processPayment = async (paymentRequest: PaymentRequest) => {
     if (!paymentForm.transaction_id.trim()) {

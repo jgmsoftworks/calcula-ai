@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ const AdminSettings = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchSystemData = async () => {
+  const fetchSystemData = useCallback(async () => {
     if (!isAdmin) return;
     
     try {
@@ -75,13 +76,13 @@ const AdminSettings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, toast]);
 
   useEffect(() => {
     if (isAdmin) {
       fetchSystemData();
     }
-  }, [isAdmin]);
+  }, [fetchSystemData, isAdmin]);
 
   const handleCreateBackup = async () => {
     try {

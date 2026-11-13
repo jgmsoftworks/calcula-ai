@@ -1,3 +1,4 @@
+import { errorMessage } from '../_shared/errors.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireCronOrAdmin } from '../_shared/authGuard.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
@@ -32,8 +33,8 @@ serve(async (req) => {
           .delete({ count: 'exact' })
           .lt('created_at', cutoff);
         result[table] = error ? `error: ${error.message}` : (count ?? 0);
-      } catch (e: any) {
-        result[table] = `error: ${e.message}`;
+      } catch (e: unknown) {
+        result[table] = `error: ${errorMessage(e)}`;
       }
     }
 
@@ -45,15 +46,15 @@ serve(async (req) => {
         .eq('status', 'purged')
         .lt('purged_at', cutoff);
       result['account_deletion_requests_purged'] = error ? `error: ${error.message}` : (count ?? 0);
-    } catch (e: any) {
-      result['account_deletion_requests_purged'] = `error: ${e.message}`;
+    } catch (e: unknown) {
+      result['account_deletion_requests_purged'] = `error: ${errorMessage(e)}`;
     }
 
     return new Response(JSON.stringify({ success: true, result }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err: unknown) {
+    return new Response(JSON.stringify({ error: errorMessage(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

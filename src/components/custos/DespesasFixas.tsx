@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion } from '@/lib/business-region';
@@ -55,7 +56,7 @@ export function DespesasFixas() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const loadDespesas = async () => {
+  const loadDespesas = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -75,9 +76,9 @@ export function DespesasFixas() {
         variant: "destructive"
       });
     }
-  };
+  }, [toast, user]);
 
-  const loadCategorias = async () => {
+  const loadCategorias = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -93,12 +94,12 @@ export function DespesasFixas() {
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     loadDespesas();
     loadCategorias();
-  }, [user]);
+  }, [loadCategorias, loadDespesas, user]);
 
   const handleSave = async () => {
     if (!user || !formData.nome || !formData.valor) {

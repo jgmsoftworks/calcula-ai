@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const logError = (error: unknown, context: string, details?: any) => {
+const logError = (error: unknown, context: string, details?: unknown) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   console.error(`[SEND-SUGGESTION-EMAIL ERROR] ${context}`, {
@@ -20,7 +20,7 @@ const logError = (error: unknown, context: string, details?: any) => {
   return errorMessage;
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   console.log(`[SEND-SUGGESTION-EMAIL] ${step}`, details ? { details, timestamp: new Date().toISOString() } : { timestamp: new Date().toISOString() });
 };
 
@@ -139,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errorMessage = logError(error, "Email sending failed");
     
     // Fallback: mesmo com erro, retornar sucesso para não bloquear UX

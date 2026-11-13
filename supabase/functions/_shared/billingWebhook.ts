@@ -1,6 +1,6 @@
 // The server can read either an Edge secret or the encrypted Supabase Vault.
 // The RPC is SECURITY INVOKER and executable only by service_role.
-export async function billingWebhookSecret(db: any): Promise<string> {
+export async function billingWebhookSecret(db: { rpc(name: 'billing_webhook_signing_secret'): PromiseLike<{ data?: unknown; error?: unknown }> | { data?: unknown; error?: unknown } }): Promise<string> {
   const configured = Deno.env.get('STRIPE_WEBHOOK_SECRET');
   if (configured) return configured;
   const { data, error } = await db.rpc('billing_webhook_signing_secret');

@@ -1,3 +1,4 @@
+import { errorMessage } from '../_shared/errors.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 import { enforceRateLimit } from "../_shared/rateLimit.ts";
@@ -109,8 +110,8 @@ serve(async (req) => {
         }
         exportData[table] = data ?? [];
         counts[table] = data?.length ?? 0;
-      } catch (e: any) {
-        console.warn(`[export-my-data] falha ${table}:`, e.message);
+      } catch (e: unknown) {
+        console.warn(`[export-my-data] falha ${table}:`, errorMessage(e));
       }
     }
 
@@ -137,7 +138,7 @@ serve(async (req) => {
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[export-my-data] erro:', err);
     return new Response(JSON.stringify({ error: 'Erro ao exportar dados' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

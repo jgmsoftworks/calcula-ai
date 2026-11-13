@@ -1,3 +1,4 @@
+import type { Json, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { planDisplayName } from '@/lib/plan-names';
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -44,11 +45,11 @@ export function AffiliatesCommissions() {
     );
   };
 
-  const updateCommissionStatus = async (commissionId: string, status: string, paymentDetails?: any) => {
+  const updateCommissionStatus = async (commissionId: string, status: string, paymentDetails?: Json) => {
     setProcessingCommission(commissionId);
     
     try {
-      const updateData: any = { status };
+      const updateData: TablesUpdate<'affiliate_commissions'> = { status };
       
       if (status === 'paid') {
         updateData.paid_at = new Date().toISOString();

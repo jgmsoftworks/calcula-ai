@@ -7,16 +7,15 @@ describe("cspReporter", () => {
   });
 
   it("envia relatório quando o navegador dispara securitypolicyviolation", () => {
-    const beacon = vi.fn().mockReturnValue(true);
-    vi.spyOn(navigator, "sendBeacon").mockImplementation(beacon as any);
+    const beacon = vi.fn<typeof navigator.sendBeacon>().mockReturnValue(true);
+    vi.spyOn(navigator, "sendBeacon").mockImplementation(beacon);
 
     initCspReporter();
 
-    const evt = new Event("securitypolicyviolation") as any;
-    evt.documentURI = "https://app.example/";
-    evt.violatedDirective = "script-src";
-    evt.effectiveDirective = "script-src";
-    evt.blockedURI = "https://evil.example/x.js";
+    const evt = Object.assign(new Event("securitypolicyviolation"), {
+      documentURI: "https://app.example/", violatedDirective: "script-src",
+      effectiveDirective: "script-src", blockedURI: "https://evil.example/x.js",
+    });
     window.dispatchEvent(evt);
 
     expect(beacon).toHaveBeenCalledTimes(1);
