@@ -30,6 +30,45 @@ async function open() {
   await screen.findAllByText('Recheio de Ninho');
 }
 describe('Geladeira interaction', () => {
+  it('distinguishes same-name recipes by category, searches it and keeps the selected category', async () => {
+    const recipes = [
+      { ...recipe, id: 'cake', nome: 'Choconinho', numero_sequencial: 21, tipo_produto: { id: 'cakes', nome: 'Bolos no pote' } },
+      { ...recipe, id: 'slice', nome: 'Choconinho', numero_sequencial: 22, tipo_produto: { id: 'slices', nome: 'Fatias' } },
+      { ...recipe, id: 'uncategorized', nome: 'Choconinho', numero_sequencial: 23, tipo_produto: null },
+    ];
+    mocks.from.mockImplementation(table => {
+      const data = table === 'receitas' ? recipes : [];
+      const query = { select:()=>query,eq:()=>query,order:()=>query,range:()=>query,abortSignal:()=>query,
+        then:(resolve: (r:unknown)=>unknown) => Promise.resolve({ data, count:data.length, error:null }).then(resolve) };
+      return query;
+    });
+    render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><Geladeira /></BrowserRouter></QueryClientProvider>);
+    await screen.findByText('Sua Geladeira está vazia');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Adicionar receita' })[0]);
+    const selector = await screen.findByRole('combobox', { name: 'Selecionar receita' });
+    await waitFor(() => expect(selector).not.toBeDisabled());
+    fireEvent.keyDown(selector, { key: 'Enter' });
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(3);
+    expect(options[0]).toHaveTextContent('Categoria: Bolos no pote');
+    expect(options[1]).toHaveTextContent('Categoria: Fatias');
+    expect(options[2]).toHaveTextContent('Categoria: Sem categoria');
+    expect(options[0]).toHaveTextContent('#21 · Sub-receita');
+    expect(options[0].querySelector('img')).toHaveAttribute('src', '/recheio.jpg');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar receita' }), { target: { value: 'fatias' } });
+    const matching = screen.getAllByRole('option');
+    expect(matching).toHaveLength(1);
+    fireEvent.keyDown(matching[0], { key: 'Enter' });
+    expect(screen.getByRole('region', { name: 'Dados da receita selecionada' })).toHaveTextContent('Categoria: Fatias');
+    fireEvent.keyDown(selector, { key: 'Enter' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar receita' }), { target: { value: '23' } });
+    fireEvent.keyDown(screen.getByRole('option'), { key: 'Enter' });
+    const details = screen.getByRole('region', { name: 'Dados da receita selecionada' });
+    expect(details).toHaveTextContent('Categoria: Sem categoria');
+    expect(details).not.toHaveTextContent('Fatias');
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar à Geladeira' }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cadastrar_item_geladeira', { p_receita_id: 'uncategorized', p_estoque_minimo: 0 }));
+  });
   it('opens the complete recipe with its saved photo without editing or moving stock', async () => {
     await open();
     expect(screen.getAllByRole('img',{name:recipe.nome})[0]).toHaveAttribute('src','/recheio.jpg');

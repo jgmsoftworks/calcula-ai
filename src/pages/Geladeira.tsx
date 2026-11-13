@@ -174,14 +174,15 @@ export default function Geladeira() {
                   <SelectTrigger id="geladeira-receita" aria-label="Selecionar receita">
                     <SelectValue placeholder={recipesQuery.isPending ? 'Carregando receitas…' : 'Selecione uma receita'}>{selected?.nome}</SelectValue>
                   </SelectTrigger>
-                  <SelectContent searchable searchPlaceholder="Buscar por nome ou código…" searchLabel="Buscar receita"
+                  <SelectContent searchable searchPlaceholder="Buscar por nome, código ou categoria…" searchLabel="Buscar receita"
                     className="max-h-[min(300px,var(--radix-select-content-available-height,300px))]"
                     viewportClassName="max-h-52" collisionPadding={16}>
-                    {pickerRecipes.map(r => <SelectItem key={r.id} value={r.id} disabled={!receitaPodeEntrar(r)} textValue={`${r.nome} ${r.numero_sequencial} ${r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}`}>
+                    {pickerRecipes.map(r => <SelectItem key={r.id} value={r.id} disabled={!receitaPodeEntrar(r)} textValue={`${r.nome} ${r.numero_sequencial} ${r.tipo_produto?.nome?.trim() || 'Sem categoria'} ${r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}`}>
                       <span className="flex min-w-0 items-center gap-3">
                         {r.imagem_url ? <img src={r.imagem_url} alt="" loading="lazy" decoding="async" className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ChefHat aria-hidden="true" className="h-5 w-5" /></span>}
                         <span className="min-w-0 whitespace-normal">
                           <span className="block break-words font-medium leading-snug">{r.nome}</span>
+                          <span className="mt-0.5 block break-words text-xs font-medium text-primary">Categoria: {r.tipo_produto?.nome?.trim() || 'Sem categoria'}</span>
                           <span className="mt-0.5 block text-xs font-normal text-muted-foreground">#{r.numero_sequencial} · {r.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}{!receitaPodeEntrar(r) ? ' · Ajuste o rendimento na receita' : ''}</span>
                         </span>
                       </span>
@@ -196,6 +197,7 @@ export default function Geladeira() {
                   {selected.imagem_url ? <img key={selected.id} src={selected.imagem_url} alt={selected.nome} className="h-14 w-14 shrink-0 rounded-lg object-cover" /> : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ChefHat aria-hidden="true" className="h-6 w-6" /></div>}
                   <div className="min-w-0">
                     <h3 className="break-words text-sm font-semibold leading-snug">{selected.nome}</h3>
+                    <p className="mt-1 break-words text-xs font-medium text-primary">Categoria: {selected.tipo_produto?.nome?.trim() || 'Sem categoria'}</p>
                     <p className="mt-1 text-xs text-muted-foreground">#{selected.numero_sequencial} · {selected.markup?.tipo === 'sub_receita' ? 'Sub-receita' : 'Receita final'}</p>
                   </div>
                 </div>
