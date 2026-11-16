@@ -118,3 +118,34 @@ Reversão operacional: em transação, remover os sete gatilhos `historico_custo
 adicionados por esta migration. Isso interrompe novas capturas; conservar a tabela
 e as funções de leitura para não perder o que já foi registrado. Registrar a
 lacuna se o acompanhamento for retomado. Não alterar as fórmulas de precificação.
+
+## Ativação em 16/11/2026
+
+Ativado no Supabase do aplicativo às **18:40:40, America/Sao_Paulo**. O serviço
+registrou a migration como `20261116214040_receita_custos_historico`; corresponde
+ao arquivo local `20261116212837_receita_custos_historico.sql`, SHA-256
+`fa17fe7b043d234b5f4698b312e47ddd278a02968e651a60f723e3df206b8ca7`.
+Não reaplicar nem reparar o histórico por causa dessa diferença de identificador.
+
+Conferência somente de leitura depois da ativação: **407 registros iniciais**,
+407 receitas/sub-receitas acompanhadas, zero divergências de custo ou base de
+cálculo, sete gatilhos habilitados e diferidos, RLS ativo, cliente sem permissão
+de alterar o histórico. As seis funções existentes de cálculo/propagação e
+salvamento mantiveram exatamente suas definições anteriores. As duas consultas
+de leitura responderam; hoje foi corretamente identificado como dia parcial.
+Os 20 rendimentos inválidos mantêm custo total e custo unitário NULL; os dois
+registros sem conta de autenticação não foram incluídos.
+
+`npm run check` passou: tipos, lint com zero diagnósticos, **594 cenários**
+(390 frontend, 27 billing, 149 SQL, 20 trial, 6 Portugal, 2 ferramentas) e build.
+Dos cenários SQL, 26 são novos para este histórico. A primeira execução isolada
+teve um timeout na criação de uma instância de teste; a repetição e a suíte
+completa passaram. Não houve teste de escrita em produção, publicação de
+frontend nem teste de navegador, pois a mudança é somente no banco.
+
+O advisor acrescentou um aviso de [descoberta do schema no GraphQL por usuários
+autenticados](https://supabase.com/docs/guides/database/database-linter?lint=0027_pg_graphql_authenticated_table_exposed),
+consequência esperada do SELECT necessário à leitura via API. A permissão não
+libera linhas de outras contas: a política de dono/acesso permanece obrigatória,
+testada, e não há leitura anônima. Essa exposição de metadados foi mantida
+intencionalmente; os demais avisos já existiam antes da alteração.
