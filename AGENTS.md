@@ -15,6 +15,10 @@ automático de arquivos de configuração de outro cliente.
 - Consulte [arquitetura](docs/architecture.md), [ambiente](docs/setup.md),
   [qualidade](docs/quality.md) e [decisão de adoção](docs/toolkit-adoption.md).
 
+Para o piloto de ferramentas de agentes (Graphify, Ponytail, RTK e Caveman),
+consulte [docs/agent-tooling-pilot.md](docs/agent-tooling-pilot.md). Nenhum desses
+plugins é pré-requisito nem está presumidamente instalado no Work ou no CI.
+
 ## Trabalho e validação
 
 1. Confira branch, commit e alterações existentes; preserve trabalho alheio.
