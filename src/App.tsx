@@ -55,6 +55,7 @@ const AffiliateRedirect = lazy(() => import("./pages/AffiliateRedirect"));
 const AffiliatePlanSelector = lazy(() => import("./pages/AffiliatePlanSelector"));
 const NotificacoesPainel = lazy(() => import("./pages/NotificacoesPainel"));
 const Tutorial = lazy(() => import("./pages/Tutorial"));
+const Integracoes = lazy(() => import("./pages/Integracoes"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const MinhaPrivacidade = lazy(() => import("./pages/MinhaPrivacidade"));
 const AdminSecurity = lazy(() => import("./pages/AdminSecurity"));
@@ -144,6 +145,7 @@ const App = () => (
                   <Route path="/perfil" element={<PerfilNegocio />} />
                   <Route path="/notificacoes" element={<NotificacoesPainel />} />
                   <Route path="/tutorial" element={<Tutorial />} />
+                  <Route path="/integracoes" element={<Integracoes />} />
                   <Route path="/minha-privacidade" element={<MinhaPrivacidade />} />
                 </Route>
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
