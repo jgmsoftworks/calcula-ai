@@ -1,0 +1,3 @@
+# Consultas limitadas por padrao; argumentos CLI podem sobrescrever.
+query_budget=3000
+query_depth=3

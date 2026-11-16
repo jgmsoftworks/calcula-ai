@@ -40,3 +40,14 @@ No Work via GitHub, ler explicitamente AGENTS e fontes é o procedimento verific
 Nenhuma configuração local de outro cliente foi apresentada como integração ativa.
 Reavaliar esta decisão se stack, cliente de desenvolvimento, publicação ou
 necessidade de revisão mudar.
+
+
+## Piloto de ferramentas de agentes — 16/11/2026
+
+A pedido do responsável pelo produto, o repositório passa a oferecer configuração
+local opcional de Graphify, instruções operacionais Ponytail e orientações de RTK
+e Caveman. É um piloto separado do Vibe Coding Toolkit anterior, documentado em
+[agent-toolchain.md](agent-toolchain.md). Não muda a stack, dependências de runtime,
+CI, credenciais, banco, produção ou publicação. A configuração versionada não
+comprova instalação ou economia de tokens: medir no ambiente do Codex antes de
+adotar hooks globais, proxy ou SaaS. Reverter pelos arquivos desta PR.

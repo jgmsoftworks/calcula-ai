@@ -31,3 +31,7 @@ dist-ssr
 # Browser verification output (may contain local fixture data)
 playwright-report/
 test-results/
+
+# Outputs locais do Graphify (não versionar grafo com caminhos/dados locais)
+graphify-out/
+.graphify_labels.json.sig

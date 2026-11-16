@@ -56,3 +56,18 @@ automático de arquivos de configuração de outro cliente.
   o mesmo módulo ou operar o mesmo banco em paralelo.
 - Achados precisam de cenário e referência de código; deduplique e confirme.
   Quantidade de agentes não substitui testes.
+
+
+## Piloto opcional de ferramentas para agentes (16/11/2026)
+
+- Referência operacional: [Graphify, Ponytail, RTK e Caveman](docs/agent-toolchain.md).
+- Ao alterar fluxos entre módulos, se houver Graphify instalado e grafo atualizado,
+  consulte conexões relevantes, mas confirme as inferências no código e nos testes.
+  Sem Graphify, use pesquisa e leitura normal; não alegue ter consultado o grafo.
+- Princípio Ponytail: menor alteração segura, sem abstração ou dependência extra
+  sem motivo. Preserve e amplie testes para comportamentos de risco.
+- RTK e Caveman são ferramentas opcionais do agente/terminal, não dependências do
+  aplicativo. Saídas compactadas não substituem erros completos, evidências de
+  segurança, logs de testes ou resultados brutos do CI.
+- Plugins, skills e hooks locais do Codex não são ativados automaticamente pelo
+  GitHub, ChatGPT Work ou por este repositório; validar instalação no ambiente.

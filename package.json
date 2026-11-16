@@ -21,7 +21,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.tools.json",
     "lint:check": "node scripts/check-lint.mjs",
     "check": "npm run typecheck && npm run lint:check && npm test && npm run build",
-    "check:all": "npm run check && npm run test:e2e"
+    "check:all": "npm run check && npm run test:e2e",
+    "agents:doctor": "node scripts/agent-tools-doctor.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
