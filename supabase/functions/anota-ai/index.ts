@@ -85,6 +85,24 @@ async function partnerRequest(path: string, pageId?: string, pageToken?: string)
   }
   return payload;
 }
+// O retorno do vínculo é dado pelo servidor da Anota AI, não pelo usuário.
+// Caso não venha um JWT de loja com idpage, falhar fechado: o pageId digitado
+// sozinho não comprova que a pessoa administra aquele estabelecimento.
+function linkedPageId(linkPayload: DataObject): string | null {
+  const jwt = asObject(linkPayload.info).token;
+  if (typeof jwt !== 'string') return null;
+  const part = jwt.split('.')[1];
+  if (!part) return null;
+  try {
+    const base64 = part.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - part.length % 4) % 4);
+    const parsed = asObject(JSON.parse(atob(base64)));
+    const pageId = parsed.idpage;
+    return typeof pageId === 'string' && STORE_ID_PATTERN.test(pageId) ? pageId.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
 async function ping(pageId: string): Promise<void> {
   // Endpoint de leitura; o retorno pode conter pedidos e dados pessoais.
   // Deliberadamente descartado sem log ou persistência.
@@ -127,7 +145,19 @@ Deno.serve(async (req) => {
           Date.now() - Date.parse(existing.last_checked_at) < CHECK_INTERVAL_MS) {
         throw new ApiError('Aguarde 30 segundos antes de verificar a loja novamente.', 429);
       }
-      await partnerRequest('/integ/integ-public-core/v2/integration-partner/linkpage-by-token', undefined, pageToken);
+      const linkResult = await partnerRequest(
+        '/integ/integ-public-core/v2/integration-partner/linkpage-by-token', undefined, pageToken,
+      );
+      const linkedId = linkedPageId(linkResult);
+      if (!linkedId) {
+        throw new ApiError(
+          'A Anota AI não retornou um identificador de loja verificável. Confirme o vínculo no Portal de Integração.',
+          422,
+        );
+      }
+      if (linkedId !== pageId) {
+        throw new ApiError('O ID informado não corresponde à chave de integração desta loja.', 400);
+      }
       await ping(pageId);
       const stamp = new Date().toISOString();
       const fields = { active: true, last_checked_at: stamp, last_error: null, updated_at: stamp };
