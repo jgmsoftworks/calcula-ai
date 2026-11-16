@@ -16,8 +16,11 @@ Fonte consultada em 16/11/2026:
 4. Cada lojista busca **ID da loja** (idpage, ObjectId de 24 caracteres)
    e **Chave de integração** no admin Anota AI > Configurações > Integrações.
 5. A Calcula Aí chama `linkpage-by-token` com a chave e o OAuth de parceiro,
-   valida leitura com `GET /api-old/partnerauth/v2/ping/list` e guarda apenas
-   o vínculo do proprietário e o ID da loja.
+   exige que o token JWT retornado pela Anota AI contenha `idpage` igual ao
+   ID informado, valida leitura com `GET /api-old/partnerauth/v2/ping/list`
+   e guarda apenas o vínculo do proprietário e o ID da loja. Se o retorno
+   do vínculo não contiver JWT com `idpage`, a conexão falha de forma segura
+   até a confirmação do contrato pelo time de integração.
 
 Não compartilhar chaves em issues, chats, screenshots, repositório ou logs.
 O token OAuth do parceiro expira após uma hora; a função reutiliza-o enquanto
