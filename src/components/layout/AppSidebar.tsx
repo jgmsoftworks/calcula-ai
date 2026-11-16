@@ -32,6 +32,7 @@ import {
   Activity,
   Layers,
   CirclePlay,
+  Plug,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from '@/components/ui/sidebar';
@@ -101,6 +102,7 @@ export function AppSidebar() {
   ];
 
   const businessItems = [
+    { title: 'Integrações', url: '/integracoes', icon: Plug },
     { title: t('nav.perfil'), url: '/perfil', icon: Building2 },
     { title: t('nav.planos'), url: '/planos', icon: Crown },
     { title: 'Minha Privacidade', url: '/minha-privacidade', icon: ShieldCheck },

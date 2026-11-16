@@ -39,3 +39,7 @@ verify_jwt = false
 
 [functions.producao-compartilhada]
 verify_jwt = false
+
+# Integração com provedores externos: o JWT do usuário é validado no gateway e no handler.
+[functions.anota-ai]
+verify_jwt = true
