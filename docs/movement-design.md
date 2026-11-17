@@ -60,3 +60,14 @@ largura do documento, rolagem até o último produto, carrinho preenchido, açã
 visível, avisos de acesso, redimensionamento e navegação a uma página comum.
 Não há alteração de dados, schema, preços ou regras de estoque. Reversão: reverter
 este ajuste de interface. Publicação continua manual na Lovable.
+
+## Suporte no cabeçalho em todo o aplicativo
+
+17/11/2026, base `5385ef35346c59dc7e14ebca41e4469a928e6376`.
+O suporte agora permanece no cabeçalho compartilhado em todas as rotas do
+AppLayout, sem botão flutuante duplicado. O verde pulsa suavemente entre 80% e
+100% de opacidade a cada três segundos; a preferência de movimento reduzido
+desativa a animação. Destino e mensagem de atendimento permanecem iguais.
+O E2E existente verifica posição após navegar e rolar, unicidade e movimento
+reduzido em desktop/mobile. Sem alteração de dados. Reversão pelo frontend;
+publicação manual na Lovable.

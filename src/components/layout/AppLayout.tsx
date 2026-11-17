@@ -217,7 +217,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </Tooltip>
               )}
               <NotificationCenter />
-              {(isProductEditor || isMovementWorkspace) && <WhatsAppSupportButton inline />}
+              <WhatsAppSupportButton />
 
               {/* User menu */}
               <DropdownMenu>
@@ -278,7 +278,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </main>
         </div>
 
-        {!isProductEditor && !isMovementWorkspace && <WhatsAppSupportButton />}
       </div>
       </SubscriptionStatusGate>
     </SidebarProvider>
