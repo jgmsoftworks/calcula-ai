@@ -2,17 +2,17 @@ import type { FaturamentoPersistido } from '@/types/configurations';
 import { localizeText } from '@/i18n/localizeText';
 import { useTranslation as usePortugalTranslation } from 'react-i18next';
 import { getBusinessRegion } from '@/lib/business-region';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2, BarChart3 } from 'lucide-react';
+import { CalendarDays, TrendingUp, DollarSign, Plus, Trash2, BarChart3, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useOptimizedUserConfigurations } from '@/hooks/useOptimizedUserConfigurations';
 import { useToast } from '@/hooks/use-toast';
 import { NumericInputPtBr } from '@/components/ui/numeric-input-ptbr';
@@ -34,10 +34,14 @@ export function MediaFaturamento() {
   });
   const { loadConfiguration, saveConfiguration } = useOptimizedUserConfigurations();
   const { toast } = useToast();
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
+    let cancelado = false;
     const carregarDados = async () => {
+      setCarregando(true);
+      setFaturamentosHistoricos([]);
       try {
         const configFaturamentos = await loadConfiguration<FaturamentoPersistido[]>('faturamentos_historicos');
         if (configFaturamentos && Array.isArray(configFaturamentos)) {
@@ -49,22 +53,31 @@ export function MediaFaturamento() {
             if (dateCompare !== 0) return dateCompare;
             return parseInt(b.id) - parseInt(a.id);
           });
-          setFaturamentosHistoricos(faturamentos);
+          if (!cancelado) setFaturamentosHistoricos(faturamentos);
         }
       } catch (error) {
         console.error('Erro ao carregar faturamentos:', error);
+      } finally {
+        if (!cancelado) setCarregando(false);
       }
     };
     carregarDados();
+    return () => { cancelado = true; };
   }, [loadConfiguration]);
 
   const salvarFaturamentos = useCallback(async (faturamentos: FaturamentoHistorico[]) => {
+    setSalvando(true);
     try {
       await saveConfiguration('faturamentos_historicos', faturamentos);
-    } catch (error) {
-      console.error('Erro ao salvar faturamentos:', error);
+      setFaturamentosHistoricos(faturamentos);
+      return true;
+    } catch {
+      toast({ title: localizeText('Não foi possível salvar'), description: 'Tente novamente. Seus lançamentos foram mantidos.', variant: 'destructive' });
+      return false;
+    } finally {
+      setSalvando(false);
     }
-  }, [saveConfiguration]);
+  }, [saveConfiguration, toast]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(getBusinessRegion().locale, { style: 'currency', currency: getBusinessRegion().currency }).format(value);
@@ -81,7 +94,8 @@ export function MediaFaturamento() {
     return isNaN(parsed) ? 0 : Math.max(0, parsed);
   };
 
-  const adicionarFaturamento = () => {
+  const adicionarFaturamento = async () => {
+    if (carregando || salvando) return;
     if (!novoFaturamento.valor || !novoFaturamento.mes || !novoFaturamento.ano) {
       toast({ title: "Dados incompletos", description: "Preencha o valor, mês e ano", variant: "destructive" });
       return;
@@ -103,16 +117,15 @@ export function MediaFaturamento() {
         return parseInt(b.id) - parseInt(a.id);
       });
     
-    setFaturamentosHistoricos(novosFaturamentos);
-    salvarFaturamentos(novosFaturamentos);
+    if (!await salvarFaturamentos(novosFaturamentos)) return;
     setNovoFaturamento({ valor: '', mes: new Date().getMonth() + 1, ano: new Date().getFullYear() });
     toast({ title: localizeText("Faturamento adicionado"), description: localizeText("Dados salvos com sucesso") });
   };
 
-  const removerFaturamento = (id: string) => {
+  const removerFaturamento = async (id: string) => {
+    if (carregando || salvando) return;
     const novosFaturamentos = faturamentosHistoricos.filter(f => f.id !== id);
-    setFaturamentosHistoricos(novosFaturamentos);
-    salvarFaturamentos(novosFaturamentos);
+    if (!await salvarFaturamentos(novosFaturamentos)) return;
     toast({ title: localizeText("Faturamento removido"), description: "Item removido com sucesso" });
   };
 
@@ -141,251 +154,133 @@ export function MediaFaturamento() {
     valor: { label: localizeText("Faturamento"), color: "hsl(var(--primary))" },
   };
 
+  const ocupado = carregando || salvando;
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Formulário */}
-      <Card className="glass-card overflow-hidden">
-        <div className="h-1 bg-gradient-brand-horizontal" />
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">{localizeText("Lançar Faturamento")}</CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">{localizeText("Adicione os faturamentos mensais que já aconteceram")}</p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">{localizeText("Valor do Faturamento")}</Label>
-              <NumericInputPtBr
-                tipo="valor"
-                value={parseInputValue(novoFaturamento.valor)}
-                onChange={(valor) => setNovoFaturamento({ ...novoFaturamento, valor: formatCurrencyInput(valor) })}
-                min={0}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Mês/Ano</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Select 
-                  value={novoFaturamento.mes.toString()} 
-                  onValueChange={(value) => setNovoFaturamento({ ...novoFaturamento, mes: parseInt(value) })}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Mês" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Jan</SelectItem>
-                    <SelectItem value="2">Fev</SelectItem>
-                    <SelectItem value="3">Mar</SelectItem>
-                    <SelectItem value="4">Abr</SelectItem>
-                    <SelectItem value="5">Mai</SelectItem>
-                    <SelectItem value="6">Jun</SelectItem>
-                    <SelectItem value="7">Jul</SelectItem>
-                    <SelectItem value="8">Ago</SelectItem>
-                    <SelectItem value="9">Set</SelectItem>
-                    <SelectItem value="10">Out</SelectItem>
-                    <SelectItem value="11">Nov</SelectItem>
-                    <SelectItem value="12">Dez</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  value={novoFaturamento.ano}
-                  onChange={(e) => setNovoFaturamento({ ...novoFaturamento, ano: parseInt(e.target.value) || new Date().getFullYear() })}
-                  placeholder="Ano"
-                  min="2020"
-                  max="2030"
-                  className="h-9 text-sm"
-                />
+    <div className="mx-auto w-full max-w-7xl space-y-5 animate-fade-in">
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="Resumo do faturamento">
+        {[
+          { label: 'Média mensal', value: formatters.valor(mediaFaturamento), icon: TrendingUp },
+          { label: 'Total registrado', value: formatters.valor(totalFaturamento), icon: DollarSign },
+          { label: 'Lançamentos', value: formatNumber(faturamentosHistoricos.length), icon: CalendarDays },
+        ].map(({ label, value, icon: Icon }, index) => (
+          <Card key={label} className={`rounded-2xl border shadow-sm ${index === 0 ? 'border-primary/20 bg-primary/5' : 'border-border/60 bg-card'}`}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">{localizeText(label)}</p>
+                <p className="mt-1 break-words text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{carregando ? '—' : value}</p>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-            <Button onClick={adicionarFaturamento} className="h-9 gap-1.5 rounded-xl sm:col-span-2 xl:col-span-1 xl:px-8">
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats + Gráfico */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* Média Mensal */}
-        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
-          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-start justify-between">
-              <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Média Mensal
-                </p>
-                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground xl:text-3xl">
-                  {formatters.valor(mediaFaturamento)}
-                </p>
+      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
+        <Card className="min-w-0 rounded-2xl border-border/60 bg-card shadow-sm">
+          <CardHeader className="space-y-1 pb-5">
+            <CardTitle className="text-base font-semibold">{localizeText('Novo lançamento')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{localizeText('Registre o faturamento de cada mês.')}</p>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-5" onSubmit={event => { event.preventDefault(); void adicionarFaturamento(); }}>
+              <div className="space-y-2">
+                <Label htmlFor="faturamento-valor">{localizeText('Valor do faturamento')}</Label>
+                <NumericInputPtBr id="faturamento-valor" tipo="valor" value={parseInputValue(novoFaturamento.valor)}
+                  onChange={valor => setNovoFaturamento({ ...novoFaturamento, valor: formatCurrencyInput(valor) })}
+                  min={0} disabled={ocupado} className="h-12 text-lg font-semibold" />
               </div>
-              <div className="shrink-0 rounded-xl bg-[#0483e4]/10 p-3 transition-transform group-hover:scale-110">
-                <TrendingUp className="h-6 w-6 text-[#0483e4]" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="faturamento-mes">Mês</Label>
+                  <Select value={novoFaturamento.mes.toString()} disabled={ocupado}
+                    onValueChange={value => setNovoFaturamento({ ...novoFaturamento, mes: parseInt(value) })}>
+                    <SelectTrigger id="faturamento-mes" className="h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((mes, i) => (
+                        <SelectItem key={mes} value={String(i + 1)}>{mes}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="faturamento-ano">Ano</Label>
+                  <Input id="faturamento-ano" type="number" value={novoFaturamento.ano} disabled={ocupado}
+                    onChange={event => setNovoFaturamento({ ...novoFaturamento, ano: parseInt(event.target.value) || new Date().getFullYear() })}
+                    min="2020" max="2030" className="h-11" />
+                </div>
               </div>
-            </div>
+              <Button type="submit" disabled={ocupado} className="h-11 w-full gap-2 rounded-xl">
+                {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {salvando ? 'Salvando…' : 'Adicionar lançamento'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
-        {/* Total */}
-        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
-          <div className="h-1 bg-gradient-to-r from-[#16a34a] to-[#15803d]" />
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-start justify-between">
-              <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Total do Período
-                </p>
-                <p className="break-words font-display text-2xl font-bold leading-tight text-foreground xl:text-3xl">
-                  {formatters.valor(totalFaturamento)}
-                </p>
+        <Card className="min-w-0 rounded-2xl border-border/60 bg-card shadow-sm">
+          <CardHeader className="space-y-1 pb-2">
+            <CardTitle className="text-base font-semibold">{localizeText('Evolução do faturamento')}</CardTitle>
+            <p className="text-sm text-muted-foreground">Últimos 6 lançamentos</p>
+          </CardHeader>
+          <CardContent className="px-3 pb-4 sm:px-6">
+            {dadosGrafico.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[250px] w-full" aria-label="Gráfico dos últimos seis lançamentos">
+                <AreaChart accessibilityLayer data={dadosGrafico} margin={{ left: 0, right: 12, top: 20, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 5" />
+                  <XAxis dataKey="mes" tickLine={false} axisLine={false} tickMargin={12} minTickGap={20} />
+                  <YAxis tickLine={false} axisLine={false} width={64} tickFormatter={value => new Intl.NumberFormat(getBusinessRegion().locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={value => formatCurrency(Number(value))} />} />
+                  <Area type="monotone" dataKey="valor" stroke="var(--color-valor)" fill="var(--color-valor)" fillOpacity={0.08} strokeWidth={2.5}
+                    dot={{ r: 4, fill: 'var(--color-valor)', strokeWidth: 2, stroke: 'hsl(var(--card))' }} activeDot={{ r: 5 }} />
+                </AreaChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-[250px] flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+                <BarChart3 className="h-8 w-8 text-primary/50" />
+                <p className="max-w-64 text-sm">{carregando ? 'Carregando faturamento…' : 'Seus lançamentos aparecerão aqui.'}</p>
               </div>
-              <div className="shrink-0 rounded-xl bg-[#16a34a]/10 p-3 transition-transform group-hover:scale-110">
-                <DollarSign className="h-6 w-6 text-[#16a34a]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Lançamentos */}
-        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
-          <div className="h-1 bg-gradient-to-r from-[#7328b1] to-[#af1188]" />
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-start justify-between">
-              <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Lançamentos
-                </p>
-                <p className="font-display text-2xl font-bold leading-tight text-foreground xl:text-3xl">
-                  {faturamentosHistoricos.length}
-                </p>
-              </div>
-              <div className="shrink-0 rounded-xl bg-[#7328b1]/10 p-3 transition-transform group-hover:scale-110">
-                <CalendarDays className="h-6 w-6 text-[#7328b1]" />
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfico */}
-      <Card className="glass-card overflow-hidden">
-        <div className="h-1 bg-gradient-brand-horizontal" />
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-display">{localizeText("Evolução do Faturamento")}</CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Últimos 6 meses lançados
-          </p>
+      <Card className="overflow-hidden rounded-2xl border-border/60 bg-card shadow-sm">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-base font-semibold">Histórico de lançamentos</CardTitle>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium tabular-nums text-primary">{faturamentosHistoricos.length}</span>
         </CardHeader>
-        <CardContent className="px-2 pb-4 pt-0 sm:px-6 sm:pb-6">
-          <div className="h-64">
-            {dadosGrafico.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-full w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={dadosGrafico} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-                    <XAxis 
-                      dataKey="mes" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      interval={0}
-                    />
-                    <YAxis 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      tickFormatter={(value) => `${formatNumber(value / 1000, 0)}k`}
-                      width={40}
-                    />
-                    <ChartTooltip 
-                      content={<ChartTooltipContent />}
-                      formatter={(value: number) => [formatters.valor(value), "Faturamento"]}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "12px",
-                        padding: "8px 12px",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="valor" 
-                      stroke="#7328b1"
-                      strokeWidth={3}
-                      dot={{ fill: "#7328b1", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "#7328b1", strokeWidth: 2, fill: "hsl(var(--card))" }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center space-y-2">
-                  <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
-                  <p className="text-xs">{localizeText("Adicione faturamentos para ver o gráfico")}</p>
-                </div>
-              </div>
-            )}
+        {faturamentosHistoricos.length > 0 ? (
+          <div className="max-h-[420px] overflow-y-auto overscroll-contain">
+            <table className="w-full text-sm" aria-label="Lançamentos de faturamento">
+              <thead className="sticky top-0 bg-muted/95 text-xs text-muted-foreground">
+                <tr><th scope="col" className="px-4 py-3 text-left font-medium sm:px-6">Mês de referência</th>
+                  <th scope="col" className="px-2 py-3 text-right font-medium">Faturamento</th>
+                  <th scope="col" className="w-14 px-2 py-3"><span className="sr-only">Ações</span></th></tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {faturamentosHistoricos.map(faturamento => {
+                  const mes = format(faturamento.mes, 'MMMM/yyyy', { locale: ptBR });
+                  return <tr key={faturamento.id} className="transition-colors hover:bg-muted/30">
+                    <th scope="row" className="px-4 py-4 text-left font-medium capitalize sm:px-6">{mes}</th>
+                    <td className="px-2 py-4 text-right font-semibold tabular-nums">{formatCurrency(faturamento.valor)}</td>
+                    <td className="px-2 py-3"><Button variant="ghost" size="icon" type="button" disabled={ocupado}
+                      aria-label={`Excluir lançamento de ${mes} de ${formatCurrency(faturamento.valor)}`}
+                      onClick={() => void removerFaturamento(faturamento.id)}
+                      className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                      <Trash2 className="h-4 w-4" /></Button></td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
           </div>
-        </CardContent>
+        ) : (
+          <div role="status" className="flex flex-col items-center gap-3 border-t border-border/50 px-6 py-10 text-center">
+            <span className="rounded-2xl bg-primary/5 p-3 text-primary"><CalendarDays className="h-6 w-6" /></span>
+            <p className="text-sm text-muted-foreground">{carregando ? 'Carregando lançamentos…' : 'Nenhum lançamento registrado. Adicione o primeiro acima.'}</p>
+          </div>
+        )}
       </Card>
-
-      {/* Lista de Faturamentos */}
-      {faturamentosHistoricos.length > 0 && (
-        <Card className="glass-card overflow-hidden">
-          <div className="h-1 bg-gradient-brand-horizontal" />
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">{localizeText("Faturamentos Lançados")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {faturamentosHistoricos.map((faturamento, i) => (
-                <div 
-                  key={faturamento.id} 
-                  className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/30 hover:border-border/60 transition-all animate-slide-up"
-                  style={{ animationDelay: `${i * 50}ms` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-[#0483e4]/10">
-                      <CalendarDays className="h-4 w-4 text-[#0483e4]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium font-display">
-                        {format(faturamento.mes, "MMMM 'de' yyyy", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatters.valor(faturamento.valor)}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removerFaturamento(faturamento.id)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {faturamentosHistoricos.length === 0 && (
-        <Card className="glass-card overflow-hidden">
-          <div className="h-1 bg-gradient-brand-horizontal" />
-          <CardContent className="p-12 text-center">
-            <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-30" />
-            <h3 className="text-sm font-medium font-display mb-1">{localizeText("Nenhum faturamento lançado")}</h3>
-            <p className="text-xs text-muted-foreground">{localizeText("Adicione seus faturamentos mensais para calcular a média histórica")}</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

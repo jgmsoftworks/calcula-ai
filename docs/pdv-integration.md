@@ -98,3 +98,19 @@ exclusão de sub-receitas com PDV, mudança de classificação e preservação d
 histórico temporal, repetição/rollback), endpoint com doubles e formulário real.
 `npm run test:e2e` confere o campo abaixo da imagem em desktop/mobile usando
 fixture sintética, sem sessão de cliente ou escrita em produção.
+
+## Tipo de produto no catálogo — 17/11/2026
+
+A migração `20261117190000_exportar_tipo_produto_painel.sql` acrescenta
+`tipo_produto: { id, nome } | null` ao contrato v1. A consulta usa o tipo atual
+selecionado na receita e exige o mesmo proprietário; não deduz tipos pelo nome.
+Renomear/trocar o tipo é refletido na próxima consulta do painel. Esse metadado
+não é um histórico de classificação mensal. Custos históricos, chaves e filtro
+que exclui sub-receitas permanecem iguais. A Edge Function já repassa o JSON da
+RPC, portanto não exige republicação para este campo aditivo.
+
+Verificação isolada: tipo preenchido/ausente, renomeação e referência de outra
+conta, além dos casos existentes de histórico, PDV e exclusão de sub-receitas.
+Aplicar somente esta migração; não executar replay do histórico remoto. Para
+reverter a API, restaurar a definição de `exportar_receitas_painel` da migração
+`20261117134100_excluir_subreceitas_catalogo_painel.sql`; nenhum dado é alterado.
