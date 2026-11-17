@@ -186,3 +186,20 @@ Equivalência verificada antes da aplicação: `md5(prosrc)` da RPC instalada é
 `cc4189e6c029038bf9f51c3b7c6523ed`, correspondente à migration anterior. Aplicar
 somente esta nova migration após testes isolados; não executar db push/replay.
 Reversão: restaurar a RPC da migration `20261117203000_simulacao_credito_painel.sql`.
+
+## Sugestão CRÉDITO no painel — 17/11/2026
+
+Abaixo do custo unitário, o painel passa a mostrar uma sugestão de preço usando
+o CRÉDITO atual, por solicitação expressa do proprietário. A migration
+`20261117224000_sugestao_credito_painel.sql` acrescenta
+`markup_multiplicador` (markups.markup_ideal) e `lucro_desejado_percentual`
+(markups.margem_lucro) no cenário já limitado ao dono da integração.
+São os componentes usados em `src/components/receitas/MarkupCard.tsx`:
+sem taxa fixa, custo unitário × markup ideal; com taxa, (custo + taxa) dividido
+por (1 − fixos% − encargos% − lucro alvo%). A sugestão não entra como custo no
+lucro realizado estimado. Não modifica receitas, markups ou frontend.
+
+RPC anterior conferida por md5(prosrc)=ebf138a04f7701b198fcff056c3c3b49.
+Aplicar somente a nova migration após testes isolados; sem db push/replay.
+Permissões e catálogo permanecem iguais. Reversão: restaurar a RPC da migration
+20261117210000_percentual_fixos_credito_painel.sql. Lovable continua manual.
