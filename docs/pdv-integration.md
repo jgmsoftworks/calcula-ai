@@ -8,7 +8,11 @@ precificação, planos, autenticação de usuários ou permissões do editor.
 ## Identidade e formulário
 
 Código PDV opcional, abaixo da imagem na aba Geral, salvo junto de toda a receita
-pela RPC atômica. É texto de até 64 caracteres; espaços nas pontas são removidos,
+pela RPC atômica. O campo mostra somente o rótulo, sem texto de ajuda. Na largura
+em que os blocos ficam lado a lado, a borda inferior do campo PDV alinha com a
+borda do quadro de conservação; no celular os blocos são empilhados. Ajuste visual
+de 16/11/2026 sobre `45abf8bcc5af3a29137d43df22b79d0fc4a9bcbb`, com publicação
+manual pelo proprietário no Lovable. É texto de até 64 caracteres; espaços nas pontas são removidos,
 branco vira null e caracteres de controle são rejeitados. `0471` e `471` são
 códigos distintos. Unicidade por conta é garantida por índice no banco, inclusive
 entre gravações concorrentes. Nomes nunca identificam o vínculo.

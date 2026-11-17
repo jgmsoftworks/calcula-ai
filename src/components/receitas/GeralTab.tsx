@@ -242,7 +242,7 @@ export function GeralTab({
       <div className="recipe-general-grid grid grid-cols-1 gap-4 md:gap-6">
 
         {/* Upload de Imagem */}
-        <div className="w-full max-w-[280px] space-y-2">
+        <div className="flex w-full max-w-[280px] flex-col gap-2">
           <Label>Imagem da Receita</Label>
           <div className="relative aspect-square bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors">
             {imagePreview || receita?.imagem_url ? (
@@ -303,7 +303,7 @@ export function GeralTab({
               </div>
             )}
           </div>
-          <div className="space-y-2 pt-3">
+          <div className="mt-auto space-y-2 pt-3">
             <Label htmlFor="codigo-pdv">Código PDV</Label>
             <Input
               id="codigo-pdv"
@@ -313,19 +313,14 @@ export function GeralTab({
               maxLength={64}
               autoComplete="off"
               spellCheck={false}
-              placeholder="Ex.: 471"
-              aria-describedby="codigo-pdv-hint"
             />
-            <p id="codigo-pdv-hint" className="text-xs text-muted-foreground leading-relaxed">
-              Use o mesmo código do produto no seu sistema de vendas. O vínculo é feito pelo código, mesmo que os nomes sejam diferentes.
-            </p>
           </div>
         </div>
 
         {/* Conservação */}
-        <div className="space-y-3">
+        <div className="flex min-w-0 flex-col gap-2">
           <Label>Conservação</Label>
-          <div className="space-y-4 border rounded-lg p-3 md:p-4">
+          <div className="recipe-preservation-panel flex flex-1 flex-col justify-between gap-4 border rounded-lg p-3 md:p-4">
             {/* Congelado */}
             <div className="recipe-preservation-grid grid grid-cols-2 gap-2 md:gap-4 items-end">
               <Label className="text-sm font-medium pb-0 md:pb-2 recipe-preservation-wide col-span-2">Congelado</Label>
