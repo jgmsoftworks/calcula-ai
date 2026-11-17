@@ -87,8 +87,10 @@ for (const tabela of ['marcas', 'categorias']) {
     const option = page.getByRole('option', { name: 'Nova com foto', exact: true });
     await expect(option.locator('img')).toHaveAttribute('src', new RegExp(`/${tabela}/.+\\.jpg$`));
     await option.click();
-    await page.getByRole('combobox', { name: '1 selecionada(s)', exact: true }).click();
-    await expect(page.getByRole('combobox')).toHaveText('1 selecionada(s)');
+    const productSelector = page.getByRole('main').getByRole('combobox');
+    await expect(productSelector).toHaveText('1 selecionada(s)');
+    await productSelector.click();
+    await expect(page.getByRole('option', { name: 'Nova com foto', exact: true })).toHaveCount(0);
     await expect(page.getByLabel('Produto salvo')).toHaveText('0');
     await page.reload();
     failRead = true;
