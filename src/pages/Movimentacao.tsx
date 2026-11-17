@@ -83,7 +83,7 @@ export default function Movimentacao() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex shrink-0 flex-col gap-2 rounded-2xl border border-border/60 bg-card p-2.5 sm:flex-row sm:items-center sm:gap-4 sm:p-3">
+      <div className={`${mobilePanel === 'catalogo' ? 'flex' : 'hidden lg:flex'} shrink-0 flex-col gap-2 rounded-2xl border border-border/60 bg-card p-2.5 sm:flex-row sm:items-center sm:gap-4 sm:p-3`}>
       <div className="flex shrink-0 gap-1 rounded-xl bg-muted/60 p-1" role="group" aria-label="Local do estoque">
         <Button variant={origem === 'produto' ? 'default' : 'outline'} onClick={() => { setOrigem('produto'); setCategoriaSelecionada(null); }}>Lista de Produtos</Button>
         <Button variant={exibindoGeladeira ? 'default' : 'outline'} onClick={() => { setOrigem('geladeira'); setCategoriaSelecionada(null); }}>Geladeira</Button>

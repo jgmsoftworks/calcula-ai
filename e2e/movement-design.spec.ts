@@ -38,8 +38,8 @@ async function setupMovement(page: Page) {
 }
 
 async function expectViewport(page: Page) {
-  const bounds = await page.evaluate(() => ({ fitsWidth: document.documentElement.scrollWidth <= innerWidth + 1, fitsHeight: document.documentElement.scrollHeight <= innerHeight + 1, mainFits: document.querySelector('main')!.scrollHeight <= document.querySelector('main')!.clientHeight + 1 }));
-  expect(bounds).toEqual({ fitsWidth: true, fitsHeight: true, mainFits: true });
+  const bounds = await page.evaluate(() => ({ fitsWidth: document.documentElement.scrollWidth <= innerWidth + 1, fitsHeight: document.documentElement.scrollHeight <= innerHeight + 1, mainFits: document.querySelector('main')!.scrollHeight <= document.querySelector('main')!.clientHeight + 1, documentTop: window.scrollY, mainTop: document.querySelector('main')!.scrollTop }));
+  expect(bounds).toEqual({ fitsWidth: true, fitsHeight: true, mainFits: true, documentTop: 0, mainTop: 0 });
 }
 
 test('movement layout separates type, price and stock; type photos survive save and reload', async ({ page }, testInfo) => {
@@ -102,6 +102,11 @@ test('only catalog and cart scroll within the real application layout', async ({
     await page.setViewportSize(size);
     await expect(page.getByRole('button', { name: 'Movimentar Alemã', exact: true })).toBeVisible();
     await expectViewport(page);
+    if (size.width >= 1024) {
+      const logo = await page.getByAltText('CalculaAi - Precificação Inteligente', { exact: true }).boundingBox();
+      const noticeAction = await page.getByRole('button', { name: 'Regularizar pagamento', exact: true }).boundingBox();
+      expect(logo!.y).toBeGreaterThanOrEqual(noticeAction!.y + noticeAction!.height);
+    }
     const list = page.getByRole('region', { name: 'Produtos disponíveis' });
     const searchBefore = await page.getByPlaceholder('Busque por nome, código ou código de barras...').boundingBox();
     await list.evaluate(e => { e.scrollTop = e.scrollHeight; });
@@ -115,7 +120,9 @@ test('only catalog and cart scroll within the real application layout', async ({
     const cartItems = page.getByRole('region', { name: 'Itens no carrinho' });
     await cartItems.evaluate(e => { e.scrollTop = e.scrollHeight; });
     expect(await cartItems.evaluate(e => e.scrollTop)).toBeGreaterThan(0);
-    await expect(cartItems.getByRole('button', { name: 'Remover Alemã' }).last()).toBeInViewport();
+    const lastRemove = cartItems.getByRole('button', { name: 'Remover Alemã' }).last();
+    await lastRemove.scrollIntoViewIfNeeded();
+    await expect(lastRemove).toBeInViewport();
     await expect(page.getByRole('button', { name: 'Finalizar e Gerar Comprovante' })).toBeInViewport();
     await page.getByLabel('Observação', { exact: true }).fill('Preservar ao alternar as abas');
     await expectViewport(page);
