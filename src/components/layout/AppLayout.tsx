@@ -161,7 +161,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider className={isMovementWorkspace ? 'h-dvh min-h-0 flex-col overflow-hidden' : undefined}>
       <SubscriptionStatusGate>
-      <div className={`flex w-full min-w-0 bg-background ${isMovementWorkspace ? 'relative min-h-0 flex-1 overflow-hidden' : isProductEditor ? 'h-dvh overflow-hidden' : 'min-h-svh overflow-x-hidden'}`}>
+      <div className={`flex w-full min-w-0 bg-background ${isMovementWorkspace ? 'relative min-h-0 flex-1 overflow-hidden' : isProductEditor ? 'h-dvh overflow-hidden' : 'min-h-svh overflow-x-clip'}`}>
         <AppSidebar contained={isMovementWorkspace} />
         
         <div className={`flex min-w-0 flex-1 flex-col ${isProductEditor || isMovementWorkspace ? 'min-h-0' : 'min-h-svh'}`}>
