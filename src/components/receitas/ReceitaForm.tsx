@@ -66,6 +66,8 @@ interface ReceitaFormProps {
   onClose: () => void;
 }
 
+const RECIPE_TYPE_REQUIRED = 'Selecione o tipo de produto na etapa Projeção antes de salvar a receita.';
+
 export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   usePortugalTranslation();
   const { saveReceitaCompleta, fetchReceitaCompleta, loading } = useReceitas();
@@ -124,6 +126,9 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === 'markup_id' && value) {
       setSaveError(prev => prev === RECIPE_MARKUP_REQUIRED ? null : prev);
+    }
+    if (field === 'tipo_produto_id' && value) {
+      setSaveError(prev => prev === RECIPE_TYPE_REQUIRED ? null : prev);
     }
   };
 
@@ -392,6 +397,12 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
     if (savingRef.current) return;
     if (!formData.nome.trim()) {
       toast.error('Nome da receita é obrigatório');
+      return;
+    }
+    if (!formData.tipo_produto_id?.trim()) {
+      setActiveTab('projecao');
+      setSaveError(RECIPE_TYPE_REQUIRED);
+      toast.error(localizeText(RECIPE_TYPE_REQUIRED));
       return;
     }
     if (!formData.markup_id?.trim()) {
