@@ -20,7 +20,8 @@ e outro Supabase; configurações não são intercambiáveis.
 
 ## Documentos canônicos
 
-- Receitas: [salvamento atômico](atomic-recipe-save.md), [performance](recipe-performance-2026-10-12.md).
+- Receitas: [salvamento atômico](atomic-recipe-save.md), [performance](recipe-performance-2026-10-12.md),
+  [histórico de custos](recipe-cost-history.md).
 - Estoque: [editor](stock-product-editor.md), [nutrição](stock-nutrition-stage1.md),
   [marcas](stock-nutrition-brands.md), [performance](product-pages-performance-2026-10-21.md).
 - Acesso/planos: [pagamento](payment-access-flow.md), [trial](lite-trial.md),
