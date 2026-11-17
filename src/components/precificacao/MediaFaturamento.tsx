@@ -162,7 +162,7 @@ export function MediaFaturamento() {
         {[
           { label: 'Média mensal', value: formatters.valor(mediaFaturamento), icon: TrendingUp },
           { label: 'Total registrado', value: formatters.valor(totalFaturamento), icon: DollarSign },
-          { label: 'Lançamentos', value: formatNumber(faturamentosHistoricos.length), icon: CalendarDays },
+          { label: 'Lançamentos', value: formatNumber(faturamentosHistoricos.length, 0), icon: CalendarDays },
         ].map(({ label, value, icon: Icon }, index) => (
           <Card key={label} className={`rounded-2xl border shadow-sm ${index === 0 ? 'border-primary/20 bg-primary/5' : 'border-border/60 bg-card'}`}>
             <CardContent className="flex items-center gap-4 p-5">
@@ -231,7 +231,7 @@ export function MediaFaturamento() {
                   <XAxis dataKey="mes" tickLine={false} axisLine={false} tickMargin={12} minTickGap={20} />
                   <YAxis tickLine={false} axisLine={false} width={64} tickFormatter={value => new Intl.NumberFormat(getBusinessRegion().locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)} />
                   <ChartTooltip content={<ChartTooltipContent formatter={value => formatCurrency(Number(value))} />} />
-                  <Area type="monotone" dataKey="valor" stroke="var(--color-valor)" fill="var(--color-valor)" fillOpacity={0.08} strokeWidth={2.5}
+                  <Area isAnimationActive={false} type="monotone" dataKey="valor" stroke="var(--color-valor)" fill="var(--color-valor)" fillOpacity={0.08} strokeWidth={2.5}
                     dot={{ r: 4, fill: 'var(--color-valor)', strokeWidth: 2, stroke: 'hsl(var(--card))' }} activeDot={{ r: 5 }} />
                 </AreaChart>
               </ChartContainer>
