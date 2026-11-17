@@ -28,6 +28,7 @@ async function setupMovement(page: Page) {
         data = catalog.find(t => t.id === url.searchParams.get('id')?.replace('eq.', ''));
       } else data = catalog;
     }
+    if (table === 'categorias') data = [{ id: 'category', nome: types[0].nome, ativo: true, imagem_url: photo('#008cf0') }];
     if (table === 'get_my_access') data = { can_access: true, reason: 'active', server_now: new Date().toISOString(), access_mode: 'legacy', plan: 'Empresarial', trial_ends_at: null, subscription_status: page.url().includes('grace') ? 'past_due' : 'active', grace_period_ends_at: new Date(Date.now() + 86400000).toISOString(), access_blocked_at: null, is_admin: false, has_subscription: true };
     if (table === 'folha_pagamento') data = [{ id: 'employee', nome: 'Pessoa de teste' }];
     if (table === 'listar_produtos_pagina') data = { produtos: products, total: products.length, totalBusca: products.length, pagina: 1, categorias: types.map(t => ({ nome: t.nome, imagem: t.imagem_url, count: 1 })) };
@@ -48,6 +49,8 @@ test('movement layout separates type, price and stock; type photos survive save 
   const card = page.getByRole('button', { name: 'Movimentar Alemã', exact: true });
   await expect(card).toBeVisible();
   await expect(card.getByText('Categoria:')).toBeVisible();
+  await expect(page.getByAltText('Fatia suprema', { exact: true })).toHaveAttribute('src', photo('#008cf0'));
+  await expect(page.getByAltText('Bolo no pote', { exact: true })).toHaveAttribute('src', types[1].imagem_url);
   await expect(card.getByText('Custo / un')).toBeVisible();
   await expect(card.getByText('Em estoque')).toBeVisible();
   const checkOverflow = () => expectViewport(page);

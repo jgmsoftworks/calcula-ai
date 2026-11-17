@@ -69,3 +69,11 @@ jobs:
           path: test-results/**/recipe-pdv.png
           if-no-files-found: ignore
           retention-days: 7
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: catalog-photos-qa
+          path: test-results/**/catalog-*.png
+          if-no-files-found: ignore
+          retention-days: 7

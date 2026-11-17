@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Settings2, X, ChevronDown } from 'lucide-react';
 import { MarcasModal } from './MarcasModal';
-import { useMarcasCategorias } from '@/hooks/useMarcasCategorias';
+import { useMarcasCategorias, type Marca } from '@/hooks/useMarcasCategorias';
 import {
   Popover,
   PopoverContent,
@@ -22,7 +22,7 @@ interface MarcasSelectorProps {
 export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
   usePortugalTranslation();
   const { fetchMarcas } = useMarcasCategorias();
-  const [marcas, setMarcas] = useState<{ id: string; nome: string }[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -55,6 +55,7 @@ export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
+              type="button"
               variant="outline"
               role="combobox"
               aria-expanded={open}
@@ -87,6 +88,7 @@ export function MarcasSelector({ value, onChange }: MarcasSelectorProps) {
                           <path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77248 11.3931 6.58989 11.3354 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd" />
                         </svg>
                       </div>
+                      {marca.imagem_url && <img src={marca.imagem_url} alt="" className="mr-2 h-8 w-8 shrink-0 rounded-lg object-cover" />}
                       <span>{marca.nome}</span>
                     </div>
                   </CommandItem>

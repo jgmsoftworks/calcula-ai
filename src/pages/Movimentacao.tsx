@@ -5,6 +5,7 @@ import { fetchGeladeira, geladeiraComoProduto } from '@/lib/geladeiraData';
 import { useCallback, useState } from 'react';
 import { useProdutosMovimentacao } from '@/hooks/useProdutosPage';
 import { useTiposProduto } from '@/hooks/useTiposProduto';
+import { catalogoEstoqueKey, fetchCatalogoEstoque } from '@/lib/catalogoEstoqueData';
 import type { CategoriaResumo } from '@/lib/produtosPageData';
 import { CategoriasFiltro } from '@/components/movimentacao/CategoriasFiltro';
 import { ListaProdutos } from '@/components/movimentacao/ListaProdutos';
@@ -22,6 +23,7 @@ export default function Movimentacao() {
   const [origem, setOrigem] = useState<'produto' | 'geladeira'>('produto');
   const exibindoGeladeira = origem === 'geladeira';
   const tiposProduto = useTiposProduto(exibindoGeladeira);
+  const categorias = useQuery({ queryKey: catalogoEstoqueKey('categorias', user?.id), enabled: !!user && !exibindoGeladeira, queryFn: ({ signal }) => fetchCatalogoEstoque('categorias', user!.id, signal) });
   const geladeira = useQuery({ queryKey: ['geladeira', user?.id], enabled: !!user, queryFn: ({ signal }) => fetchGeladeira(user!.id, signal), staleTime: 0 });
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +55,8 @@ export default function Movimentacao() {
   const itensVisiveis = exibindoGeladeira
     ? itensGeladeira.filter(item => !categoriaSelecionada || (item.receita.tipo_produto?.id || 'sem-tipo') === categoriaSelecionada)
     : produtos;
+  const fotosCategorias = new Map(categorias.data?.map(categoria => [categoria.nome, categoria.imagem_url]));
+  const resumoProdutos = resumo?.categorias.map(categoria => ({ ...categoria, imagem: fotosCategorias.get(categoria.nome) || categoria.imagem }));
   const erroAtual = exibindoGeladeira ? geladeira.isError || tiposProduto.isError : isError;
   const loadMore = useCallback(() => { void fetchNextPage({ cancelRefetch: false }); }, [fetchNextPage]);
 
@@ -115,7 +119,7 @@ export default function Movimentacao() {
           <div className="shrink-0 border-b border-border/60 px-2">
             <CategoriasFiltro
               produtos={itensVisiveis}
-              resumo={exibindoGeladeira ? resumoGeladeira : resumo?.categorias}
+              resumo={exibindoGeladeira ? resumoGeladeira : resumoProdutos}
               total={exibindoGeladeira ? itensGeladeira.length : resumo?.totalBusca}
               categoriaSelecionada={categoriaSelecionada}
               onSelectCategoria={setCategoriaSelecionada}
