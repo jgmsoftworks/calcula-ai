@@ -72,7 +72,7 @@ export function SubscriptionStatusGate({ children }: { children: React.ReactNode
     </main>
   );
   return <>
-    {access.showWarning && access.inGracePeriod && <div className="sticky top-0 z-40 border-b border-amber-500/30 bg-amber-500/15">
+    {access.showWarning && access.inGracePeriod && <div className="relative z-40 shrink-0 border-b border-amber-500/30 bg-amber-500/15">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
         <p className="text-sm"><strong>Pagamento em atraso.</strong> Regularize para continuar usando.
           {access.graceEndsAt && <> Prazo: {new Date(access.graceEndsAt).toLocaleDateString(getBusinessRegion().locale)}.</>}

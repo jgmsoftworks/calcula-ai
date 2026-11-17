@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes support-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .support-pulse { animation: support-pulse 3s ease-in-out infinite; }
+}
+
 @keyframes trial-glow {
   0%, 100% { box-shadow: 0 0 0 2px #0483e420, 0 0 9px #0483e440; }
   50% { box-shadow: 0 0 0 3px #7328b125, 0 0 17px #7328b160; }
@@ -266,7 +274,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
-    overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior-x: none;
   }
 

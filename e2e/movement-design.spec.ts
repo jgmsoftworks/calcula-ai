@@ -141,8 +141,18 @@ test('only catalog and cart scroll within the real application layout', async ({
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Abrir menu principal' }).click();
   await page.getByRole('link', { name: 'Receitas', exact: true }).click();
   await expect(page.getByText('Lista de receitas de teste', { exact: true })).toBeVisible();
+  const support = page.getByRole('link', { name: 'Suporte via WhatsApp', exact: true });
+  await expect(support).toHaveCount(1);
+  await expect(page.locator('header').getByRole('link', { name: 'Suporte via WhatsApp' })).toBeVisible();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(support).toHaveCSS('animation-name', 'support-pulse');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(support).toHaveCSS('animation-name', 'none');
   const lastRow = page.getByText('Fim da lista de receitas de teste', { exact: true });
   await lastRow.scrollIntoViewIfNeeded();
   await expect(lastRow).toBeInViewport();
+  await expect(support).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('movement-support-header.png'), fullPage: false, animations: 'disabled' });
   expect(await page.evaluate(() => window.scrollY > 0 || document.querySelector('main')!.scrollTop > 0)).toBe(true);
 });
