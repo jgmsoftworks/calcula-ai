@@ -15,7 +15,7 @@ export default function Fixture() {
   return <AuthContext.Provider value={auth}><QueryClientProvider client={client}><MemoryRouter initialEntries={['/estoque/movimentacoes']}><AppLayout>
     <Routes>
       <Route path="/estoque/movimentacoes" element={<Movimentacao />} />
-      <Route path="/receitas" element={<div className="min-h-[1800px]">Lista de receitas de teste</div>} />
+      <Route path="/receitas" element={<div><p>Lista de receitas de teste</p><div style={{ height: 1800 }} /><p>Fim da lista de receitas de teste</p></div>} />
     </Routes>
     <TiposProdutoModal open={open} onOpenChange={setOpen} />
   </AppLayout></MemoryRouter></QueryClientProvider></AuthContext.Provider>;

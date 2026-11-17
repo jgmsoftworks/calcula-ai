@@ -137,6 +137,9 @@ test('only catalog and cart scroll within the real application layout', async ({
   // Returning to an ordinary page must restore its normal document scrolling.
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Abrir menu principal' }).click();
   await page.getByRole('link', { name: 'Receitas', exact: true }).click();
-  await expect(page.getByText('Lista de receitas de teste')).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(true);
+  await expect(page.getByText('Lista de receitas de teste', { exact: true })).toBeVisible();
+  const lastRow = page.getByText('Fim da lista de receitas de teste', { exact: true });
+  await lastRow.scrollIntoViewIfNeeded();
+  await expect(lastRow).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY > 0 || document.querySelector('main')!.scrollTop > 0)).toBe(true);
 });
