@@ -54,6 +54,14 @@ jobs:
             test-results/
           retention-days: 7
 
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        if: always()
+        with:
+          name: movement-design-qa
+          path: test-results/**/movement-*.png
+          if-no-files-found: ignore
+          retention-days: 7
+
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with:

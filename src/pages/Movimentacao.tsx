@@ -35,7 +35,7 @@ export default function Movimentacao() {
   const itensGeladeira = (geladeira.data || []).map(geladeiraComoProduto).filter(item =>
     `${item.nome} ${item.codigo_interno}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()));
   const categoriasGeladeira = new Map<string, CategoriaResumo & { id: string }>(
-    (tiposProduto.data || []).map(tipo => [tipo.id, { ...tipo, imagem: null, count: 0 }]),
+    (tiposProduto.data || []).map(tipo => [tipo.id, { ...tipo, imagem: tipo.imagem_url || null, count: 0 }]),
   );
   if (geladeira.data?.some(item => !item.receita.tipo_produto?.id)) {
     categoriasGeladeira.set('sem-tipo', { id: 'sem-tipo', nome: 'Sem tipo', imagem: null, count: 0 });
@@ -81,13 +81,14 @@ export default function Movimentacao() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex gap-2" role="group" aria-label="Local do estoque">
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-3 sm:flex-row sm:items-center sm:p-4">
+      <div className="flex shrink-0 gap-1 rounded-xl bg-muted/60 p-1" role="group" aria-label="Local do estoque">
         <Button variant={origem === 'produto' ? 'default' : 'outline'} onClick={() => { setOrigem('produto'); setCategoriaSelecionada(null); }}>Lista de Produtos</Button>
         <Button variant={exibindoGeladeira ? 'default' : 'outline'} onClick={() => { setOrigem('geladeira'); setCategoriaSelecionada(null); }}>Geladeira</Button>
       </div>
       {/* Search */}
-      <div className="glass-card flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
+      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border/60 bg-background px-3">
         <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
           placeholder={exibindoGeladeira ? 'Buscar na Geladeira...' : t('movimentacao.searchPlaceholder')}
@@ -100,6 +101,7 @@ export default function Movimentacao() {
             <X className="h-4 w-4" />
           </Button>
         )}
+      </div>
       </div>
 
       {erroAtual && <div role="alert" className="rounded-xl border p-4 text-sm">
@@ -116,8 +118,8 @@ export default function Movimentacao() {
       />
 
       {/* Main Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0">
           <ListaProdutos 
             produtos={itensVisiveis}
             loading={exibindoGeladeira ? geladeira.isPending || tiposProduto.isPending : loading}
@@ -133,7 +135,7 @@ export default function Movimentacao() {
           />
         </div>
 
-        <div className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)]">
+        <div className="xl:sticky xl:top-4 xl:self-start">
           <CarrinhoMovimentacao 
             carrinho={carrinho} 
             onCarrinhoChange={setCarrinho}

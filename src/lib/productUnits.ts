@@ -8,3 +8,8 @@ export function productUnit(value?: string | null) {
     label: key === 'k' ? 'Quilo (kg)' : UNIDADES_LABELS[key as UnidadeMedida] || raw || 'Não informada',
   };
 }
+
+// Compact presentation for movement cards; does not alter the stored unit or quantities.
+export function compactProductUnit(value?: string | null) {
+  return productUnit(value?.trim().match(/\(([^)]+)\)$/)?.[1] || value).symbol || '—';
+}

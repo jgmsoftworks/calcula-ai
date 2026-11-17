@@ -51,11 +51,11 @@ export function CategoriasFiltro({
   }, [produtos, resumo]);
   const totalProdutos = total ?? produtos.length;
   return <ScrollArea className="w-full">
-      <div className="flex gap-4 px-1 py-3 pb-5 sm:gap-5 sm:px-4 sm:py-4 sm:pb-6">
+      <div className="flex gap-3 px-1 py-3 pb-4 sm:gap-4 sm:px-2">
         {/* Botão Todos */}
         <button aria-pressed={categoriaSelecionada === null} onClick={() => onSelectCategoria(null)} className="flex w-24 shrink-0 flex-col items-center gap-2">
           <div className={`relative ${!categoriaSelecionada ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
-            <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
+            <Avatar className="h-16 w-16 border-2 border-background sm:h-[72px] sm:w-[72px]">
               <AvatarFallback className="bg-primary/10">
                 <Package className="h-8 w-8 text-primary" />
               </AvatarFallback>
@@ -74,7 +74,7 @@ export function CategoriasFiltro({
           const value = categoria.id ?? categoria.nome;
           return <button key={value} aria-pressed={categoriaSelecionada === value} onClick={() => onSelectCategoria(value)} className="flex w-24 shrink-0 flex-col items-center gap-2">
             <div className={`relative ${categoriaSelecionada === value ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
-              <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
+              <Avatar className="h-16 w-16 border-2 border-background sm:h-[72px] sm:w-[72px]">
                 {categoria.imagem ? <AvatarImage src={categoria.imagem} alt={categoria.nome} className="object-cover" /> : <AvatarFallback className="bg-muted">
                     {categoria.nome.substring(0, 2).toUpperCase()}
                   </AvatarFallback>}
@@ -83,7 +83,7 @@ export function CategoriasFiltro({
                 {categoria.count}
               </Badge>
             </div>
-            <span className="w-full whitespace-normal break-words text-center text-xs font-medium leading-snug">
+            <span className={`w-full rounded-lg px-1 py-1 whitespace-normal break-words text-center text-xs font-medium leading-snug ${categoriaSelecionada === value ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}>
               {categoria.nome}
             </span>
           </button>;
