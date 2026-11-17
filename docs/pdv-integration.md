@@ -63,6 +63,10 @@ e nunca viram custo zero. O valor de venda continua vindo exclusivamente do Yoog
 
 Aplicar somente `20261117012133_receitas_pdv_integracao.sql`, depois de confirmar
 as funções existentes e a equivalência da migração de histórico local/remota.
+A função de salvamento remota ainda não tem a validação SQL de markup presente
+no arquivo local `require_recipe_markup`. Esta migração preserva cada versão
+instalada e acrescenta somente os dois trechos de PDV, com conferência dos pontos
+de inserção. Não publica regras pendentes de outra funcionalidade.
 Não replay/reset/db push. Implantar `receitas-pdv` e provisionar a chave pelo
 servidor, associando o hash exclusivamente ao proprietário autorizado. Não gravar
 chaves em código, documentação, histórico git ou logs. A rotação gera nova chave
