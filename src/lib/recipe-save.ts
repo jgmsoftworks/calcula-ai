@@ -35,7 +35,7 @@ export function recipeDuplicateRequest(recipe: ReceitaCompleta, name: string): R
   const copy = <T extends { id: string }>(items: T[]) =>
     items.map(item => ({ ...item, id: crypto.randomUUID() }));
   return {
-    ...recipeSavePayload(crypto.randomUUID(), true, null, { ...recipe, nome: name }, {
+    ...recipeSavePayload(crypto.randomUUID(), true, null, { ...recipe, nome: name, codigo_pdv: null }, {
       ingredientes: copy(recipe.ingredientes),
       sub_receitas: copy(recipe.sub_receitas),
       embalagens: copy(recipe.embalagens),
@@ -61,6 +61,7 @@ export function recipeSavePayload(id: string, creating: boolean, expectedUpdated
       embalagens: versions(original.embalagens), passos: versions(original.passos), mao_obra: versions(original.mao_obra),
     } : null,
     p_receita: {
+      codigo_pdv: recipe.codigo_pdv?.trim() || null,
       nome: recipe.nome?.trim() || '', tipo_produto_id: recipe.tipo_produto_id || null,
       rendimento_valor: recipe.rendimento_valor ?? null, rendimento_unidade: recipe.rendimento_unidade || 'un',
       observacoes: recipe.observacoes ?? '', status: recipe.status || 'finalizada',
@@ -90,6 +91,10 @@ export function savedRecipeResponse(value: Json, expectedId: string): SavedRecip
 }
 
 export function recipeSaveError(error: unknown): string {
+  if (error && typeof error === 'object' && 'message' in error &&
+      typeof error.message === 'string' && error.message.includes('receitas_user_codigo_pdv_uidx')) {
+    return 'Este código PDV já está vinculado a outra receita da sua conta. Use um código diferente.';
+  }
   if (isRecipeMarkupRequired(error)) return RECIPE_MARKUP_REQUIRED;
   if (error && typeof error === 'object' && 'code' in error && error.code === '40001') {
     return 'Esta receita mudou desde que você abriu o editor. Suas alterações continuam aqui. Confira a versão salva antes de tentar novamente.';

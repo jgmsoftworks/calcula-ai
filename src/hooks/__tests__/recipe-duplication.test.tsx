@@ -69,7 +69,7 @@ describe('Atomic recipe duplication', () => {
     expect(name).toBe('salvar_receita_completa');
     expect(request).toMatchObject({ p_criar: true, p_expected_updated_at: null, p_expected_components: null });
     expect(request.p_receita).toEqual({
-      nome: 'Bolo (Cópia)', tipo_produto_id: 'tipo', rendimento_valor: 12, rendimento_unidade: 'un',
+      codigo_pdv: null, nome: 'Bolo (Cópia)', tipo_produto_id: 'tipo', rendimento_valor: 12, rendimento_unidade: 'un',
       observacoes: 'Receita de teste', status: 'rascunho', preco_venda: 9.9,
       tempo_preparo_total: 60, tempo_preparo_unidade: 'minutos', tempo_preparo_mao_obra: 30,
       peso_unitario: 80, conservacao: { geladeira: 3 }, markup_id: 'markup',

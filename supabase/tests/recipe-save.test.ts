@@ -16,7 +16,7 @@ let componentVersions: Record<string, unknown>;
 let payload: ReturnType<typeof makePayload>;
 function makePayload() {
   return {
-    recipe: {nome:'Bolo atualizado',rendimento_valor:10,rendimento_unidade:'un',status:'finalizada',preco_venda:77,markup_id:markup},
+    recipe: {codigo_pdv:null as string|null,nome:'Bolo atualizado',rendimento_valor:10,rendimento_unidade:'un',status:'finalizada',preco_venda:77,markup_id:markup},
     components: {
       ingredientes:[{id:id(100),produto_id:product,quantidade:200}],
       sub_receitas:[{id:id(101),sub_receita_id:sub,quantidade:1}],
@@ -67,6 +67,7 @@ beforeAll(async()=>{
   if (!migration) throw new Error('Recipe save migration not found');
   await db.exec(readFileSync(`supabase/migrations/${migration}`,'utf8'));
   await db.exec(readFileSync('supabase/migrations/20261105134000_require_recipe_markup.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261117012133_receitas_pdv_integracao.sql','utf8').split('-- Only the Calcula Aí server')[0]);
 },30000);
 afterAll(async()=>{await db?.close();});
 beforeEach(async()=>{
@@ -90,6 +91,19 @@ beforeEach(async()=>{
   payload=makePayload();
 });
 describe('Atomic recipe save in PostgreSQL with RLS and plan triggers',()=>{
+  it('saves PDV with the transaction, rejects duplicate codes and clears PDV when duplicating',async()=>{
+    payload.recipe.codigo_pdv=' 00471 ';
+    const request=await prepareCopy();
+    expect((await db.query('select codigo_pdv from receitas where id=$1',[original])).rows).toEqual([{codigo_pdv:'00471'}]);
+    expect(request.p_receita).toMatchObject({codigo_pdv:null});
+    await db.query('update receitas set codigo_pdv=$1 where id=$2',['777',sub]);
+    const before=await snapshot();
+    const current=(await db.query<{v:string}>('select updated_at::text as v from receitas where id=$1',[original])).rows[0].v;
+    payload.recipe.codigo_pdv='777';
+    await expect(save(original,false,randomUUID(),current)).rejects.toMatchObject({code:'23505'});
+    expect(await snapshot()).toEqual(before);
+  });
+
   it('saves every component, preserves step image/IDs and manual price',async()=>{
     const result=await save();expect(result.id).toBe(original);
     for(const table of tables) expect((await db.query<{n:number}>(`select count(*)::int as n from ${table} where receita_id=$1`,[original])).rows[0].n).toBe(1);
