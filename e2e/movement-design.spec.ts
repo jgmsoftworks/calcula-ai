@@ -152,5 +152,7 @@ test('only catalog and cart scroll within the real application layout', async ({
   await lastRow.scrollIntoViewIfNeeded();
   await expect(lastRow).toBeInViewport();
   await expect(support).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('movement-support-header.png'), fullPage: false, animations: 'disabled' });
   expect(await page.evaluate(() => window.scrollY > 0 || document.querySelector('main')!.scrollTop > 0)).toBe(true);
 });

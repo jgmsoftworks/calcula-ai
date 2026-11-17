@@ -70,6 +70,10 @@ AppLayout, sem botão flutuante duplicado. O verde pulsa suavemente entre 80% e
 desativa a animação. Destino e mensagem de atendimento permanecem iguais.
 O recorte horizontal usa `clip` no corpo e no contêiner de páginas comuns, para
 não criar um ancestral de rolagem que impeça o cabeçalho sticky de acompanhar a janela.
+Avisos de acesso ocupam uma linha acima do aplicativo, em vez de comprimir o
+cabeçalho lateralmente no celular. Nas páginas comuns, acompanham a rolagem;
+nas áreas de altura restrita, permanecem acima da área de trabalho. Condições,
+mensagens e ações de acesso não mudam.
 O E2E existente verifica posição após navegar e rolar, unicidade e movimento
 reduzido em desktop/mobile. Sem alteração de dados. Reversão pelo frontend;
 publicação manual na Lovable.
