@@ -8,7 +8,7 @@ preservam o formulário e o cadastro anterior. O catálogo compartilhado é atua
 após a confirmação do banco. O tipo criado continua sendo selecionado na receita.
 
 Movimentações mantém a paleta do aplicativo e separa nome, etiqueta de tipo ou
-categoria, custo por unidade e estoque. Os cartões têm largura mínima de 210 px
+categoria, custo por unidade e estoque. Os cartões têm largura mínima de 190 px
 no desktop e organização horizontal no celular. A foto do tipo tem prioridade nas
 bolinhas, com a foto de um item como alternativa. Unidades abreviadas são somente
 apresentação; quantidades, custos, filtros e finalização mantêm suas regras.
@@ -40,3 +40,23 @@ O cenário `e2e/movement-design.spec.ts` usa componentes reais, conta sintética
 respostas locais para todas as APIs: desktop/mobile, overflow, abas, recorte,
 upload, reabertura e remoção, com capturas para revisão visual. Nenhum teste escreve
 em produção. Executar `npm run check` e `npm run test:e2e` antes de integrar.
+
+
+## Área de trabalho sem rolagem geral
+
+17/11/2026, revisão sobre `16bc37583ff5b3f5c7c8aa1d7052fe7c12d4e228`.
+A rota `/estoque/movimentacoes` ocupa a altura dinâmica disponível da janela.
+O cabeçalho, a busca e os filtros permanecem visíveis; o catálogo e os itens do
+carrinho rolam internamente. O carrinho usa a altura inteira ao lado do catálogo,
+com ação de finalizar fixa na base. Em telas estreitas, Produtos e Carrinho são
+painéis alternáveis que mantêm o estado. O suporte passa ao cabeçalho para não
+encobrir as ações. Avisos de acesso continuam presentes e entram no cálculo do
+espaço disponível, sem alterações de autenticação ou concessão de acesso.
+
+Removidas alturas mínimas arbitrárias que ultrapassavam a janela. O layout
+restrito é exclusivo dessa rota; as demais páginas mantêm a rolagem normal.
+O E2E agora monta o AppLayout real com conta e APIs sintéticas, verifica altura e
+largura do documento, rolagem até o último produto, carrinho preenchido, ação
+visível, avisos de acesso, redimensionamento e navegação a uma página comum.
+Não há alteração de dados, schema, preços ou regras de estoque. Reversão: reverter
+este ajuste de interface. Publicação continua manual na Lovable.

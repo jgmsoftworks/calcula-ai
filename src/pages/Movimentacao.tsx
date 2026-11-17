@@ -10,7 +10,7 @@ import { CategoriasFiltro } from '@/components/movimentacao/CategoriasFiltro';
 import { ListaProdutos } from '@/components/movimentacao/ListaProdutos';
 import { MovimentacaoModal } from '@/components/movimentacao/MovimentacaoModal';
 import { CarrinhoMovimentacao } from '@/components/movimentacao/CarrinhoMovimentacao';
-import { Search, X } from 'lucide-react';
+import { Package, Search, ShoppingCart, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ export default function Movimentacao() {
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [carrinho, setCarrinho] = useState<ItemCarrinhoVisual[]>([]);
+  const [mobilePanel, setMobilePanel] = useState<'catalogo' | 'carrinho'>('catalogo');
   const [modalOpen, setModalOpen] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] = useState<ProdutoMovimentacao | null>(null);
 
@@ -81,8 +82,8 @@ export default function Movimentacao() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-3 sm:flex-row sm:items-center sm:p-4">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className={`${mobilePanel === 'catalogo' ? 'flex' : 'hidden lg:flex'} shrink-0 flex-col gap-2 rounded-2xl border border-border/60 bg-card p-2.5 sm:flex-row sm:items-center sm:gap-4 sm:p-3`}>
       <div className="flex shrink-0 gap-1 rounded-xl bg-muted/60 p-1" role="group" aria-label="Local do estoque">
         <Button variant={origem === 'produto' ? 'default' : 'outline'} onClick={() => { setOrigem('produto'); setCategoriaSelecionada(null); }}>Lista de Produtos</Button>
         <Button variant={exibindoGeladeira ? 'default' : 'outline'} onClick={() => { setOrigem('geladeira'); setCategoriaSelecionada(null); }}>Geladeira</Button>
@@ -104,22 +105,22 @@ export default function Movimentacao() {
       </div>
       </div>
 
-      {erroAtual && <div role="alert" className="rounded-xl border p-4 text-sm">
+      {erroAtual && <div role="alert" className="shrink-0 rounded-xl border p-2 text-sm">
         Não foi possível atualizar os itens. <Button variant="link" onClick={() => { void (exibindoGeladeira ? Promise.all([geladeira.refetch(), tiposProduto.refetch()]) : loadProdutos()); }}>Tentar novamente</Button>
       </div>}
 
-      {/* Category Filter */}
-      <CategoriasFiltro 
-        produtos={itensVisiveis}
-        resumo={exibindoGeladeira ? resumoGeladeira : resumo?.categorias}
-        total={exibindoGeladeira ? itensGeladeira.length : resumo?.totalBusca}
-        categoriaSelecionada={categoriaSelecionada}
-        onSelectCategoria={setCategoriaSelecionada}
-      />
-
       {/* Main Layout */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section aria-label="Catálogo de movimentação" className={`${mobilePanel === 'catalogo' ? 'flex' : 'hidden'} min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card lg:flex`}>
+          <div className="shrink-0 border-b border-border/60 px-2">
+            <CategoriasFiltro
+              produtos={itensVisiveis}
+              resumo={exibindoGeladeira ? resumoGeladeira : resumo?.categorias}
+              total={exibindoGeladeira ? itensGeladeira.length : resumo?.totalBusca}
+              categoriaSelecionada={categoriaSelecionada}
+              onSelectCategoria={setCategoriaSelecionada}
+            />
+          </div>
           <ListaProdutos 
             produtos={itensVisiveis}
             loading={exibindoGeladeira ? geladeira.isPending || tiposProduto.isPending : loading}
@@ -133,15 +134,20 @@ export default function Movimentacao() {
             resetKey={`${origem}:${searchTerm}:${categoriaSelecionada || ''}`}
             hasError={erroAtual}
           />
-        </div>
+        </section>
 
-        <div className="xl:sticky xl:top-4 xl:self-start">
+        <section aria-label="Carrinho de movimentação" className={`${mobilePanel === 'carrinho' ? 'block' : 'hidden'} min-h-0 min-w-0 lg:block`}>
           <CarrinhoMovimentacao 
             carrinho={carrinho} 
             onCarrinhoChange={setCarrinho}
             onSuccess={() => { void loadProdutos(); void geladeira.refetch(); }}
           />
-        </div>
+        </section>
+      </div>
+
+      <div className="grid shrink-0 grid-cols-2 gap-2 rounded-xl border border-border/60 bg-card p-1 lg:hidden" role="group" aria-label="Área de movimentação">
+        <Button variant={mobilePanel === 'catalogo' ? 'default' : 'ghost'} aria-pressed={mobilePanel === 'catalogo'} onClick={() => setMobilePanel('catalogo')}><Package className="mr-2 h-4 w-4" />Produtos</Button>
+        <Button variant={mobilePanel === 'carrinho' ? 'default' : 'ghost'} aria-pressed={mobilePanel === 'carrinho'} onClick={() => setMobilePanel('carrinho')}><ShoppingCart className="mr-2 h-4 w-4" />Carrinho{carrinho.length > 0 && <span className="ml-2 rounded-md bg-primary/10 px-1.5 text-xs">{carrinho.length}</span>}</Button>
       </div>
 
       <MovimentacaoModal

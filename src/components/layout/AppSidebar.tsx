@@ -39,7 +39,7 @@ import { useSidebar } from '@/components/ui/sidebar-context';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 
-export function AppSidebar() {
+export function AppSidebar({ contained = false }: { contained?: boolean }) {
   usePortugalTranslation();
   const { t } = useTranslation();
   const { state, isMobile, setOpenMobile } = useSidebar();
@@ -132,7 +132,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${isCollapsed ? 'w-14' : 'w-64'} max-w-[88vw] transition-smooth border-r-0`}
+      className={`${isCollapsed ? 'w-14' : 'w-64'} max-w-[88vw] transition-smooth border-r-0 ${contained ? 'absolute h-full' : ''}`}
       collapsible="icon"
     >
       {/* Brand line at top */}
