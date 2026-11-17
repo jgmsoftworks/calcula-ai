@@ -166,3 +166,23 @@ autorizou CRÉDITO para todas as vendas como simulação provisória; os víncul
 canal/pagamento serão uma etapa separada. Aplicar somente essa migration, após
 verificação isolada; não executar db push/replay. Reversão: restaurar a definição
 anterior de `exportar_receitas_painel` sem remover históricos.
+
+
+## Percentual de fixos do CRÉDITO — 17/11/2026
+
+Por confirmação do proprietário, o lucro estimado do painel deve usar os
+componentes percentuais do markup, incluindo os fixos, em vez de abater toda a
+base mensal no faturamento parcial. A migration
+`20261117210000_percentual_fixos_credito_painel.sql` adiciona somente o campo
+`simulacao_credito.fixos_percentuais`, lendo `gasto_sobre_faturamento` do mesmo
+CRÉDITO único e ativo do dono da integração. A folha já está representada nesse
+percentual. Não altera markups, preços, históricos, frontend nem permissões.
+
+O painel abate custo da quantidade vendida, encargos e fixos percentuais do total
+vendido já descontado. Não usa o multiplicador como custo nem subtrai a meta de
+lucro. A configuração é atual, inclusive ao consultar meses anteriores.
+
+Equivalência verificada antes da aplicação: `md5(prosrc)` da RPC instalada é
+`cc4189e6c029038bf9f51c3b7c6523ed`, correspondente à migration anterior. Aplicar
+somente esta nova migration após testes isolados; não executar db push/replay.
+Reversão: restaurar a RPC da migration `20261117203000_simulacao_credito_painel.sql`.
