@@ -1,17 +1,15 @@
-import { localizeText } from '@/i18n/localizeText';
-import { useTranslation as usePortugalTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTiposProduto } from '@/hooks/useTiposProduto';
-import { ordenarTiposProduto, tiposProdutoKey, type TipoProduto } from '@/lib/tiposProdutoData';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ordenarTiposProduto, salvarTipoProduto, tiposProdutoKey, type TipoProduto } from '@/lib/tiposProdutoData';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Shapes } from 'lucide-react';
+import { TipoProdutoEditor } from './TipoProdutoEditor';
 
 interface TiposProdutoModalProps {
   open: boolean;
@@ -19,18 +17,23 @@ interface TiposProdutoModalProps {
   onSelect?: (tipoId: string) => void;
 }
 
-export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProdutoModalProps) => {
-  usePortugalTranslation();
+export function TiposProdutoModal(props: TiposProdutoModalProps) {
+  const { user } = useAuth();
+  return <TiposProdutoContent key={`${user?.id}:${props.open}`} {...props} />;
+}
+
+function TiposProdutoContent({ open, onOpenChange, onSelect }: TiposProdutoModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tiposQuery = useTiposProduto(open);
   const tipos = tiposQuery.data || [];
   const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingNome, setEditingNome] = useState('');
-  const [newNome, setNewNome] = useState('');
-  const [creating, setCreating] = useState(false);
+  const busy = useRef(false);
+  const [editor, setEditor] = useState<TipoProduto | 'new' | null>(null);
+  const [search, setSearch] = useState('');
+  const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const visible = tipos.filter(tipo => normalize(tipo.nome).includes(normalize(search)));
 
   const syncTipos = async (update: (previous: TipoProduto[]) => TipoProduto[]) => {
     if (!user) return;
@@ -39,258 +42,63 @@ export const TiposProdutoModal = ({ open, onOpenChange, onSelect }: TiposProduto
     queryClient.setQueryData<TipoProduto[]>(queryKey, previous => ordenarTiposProduto(update(previous || [])));
     void queryClient.invalidateQueries({ queryKey });
     void queryClient.invalidateQueries({ queryKey: ['receitas-lista', user.id] });
+    void queryClient.invalidateQueries({ queryKey: ['geladeira', user.id] });
   };
-
-  const handleCreate = async () => {
-    if (!user || !newNome.trim()) return;
-
-    setLoading(true);
+  const save = async (input: Pick<TipoProduto, 'nome' | 'imagem_url'>) => {
+    if (!user || busy.current) return;
+    const existing = editor && editor !== 'new' ? editor : undefined;
+    busy.current = true; setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('tipos_produto')
-        .insert({ user_id: user.id, nome: newNome.trim() })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: 'Sucesso',
-        description: 'Tipo de produto criado com sucesso.',
-      });
-
-      await syncTipos(previous => [...previous.filter(tipo => tipo.id !== data.id), { id: data.id, nome: data.nome }]);
-      setNewNome('');
-      setCreating(false);
-
-      if (onSelect && data) {
-        onSelect(data.id);
-      }
+      const data = await salvarTipoProduto(user.id, input, existing?.id);
+      await syncTipos(previous => [...previous.filter(tipo => tipo.id !== data.id), data]);
+      setEditor(null);
+      toast({ title: 'Sucesso', description: 'Tipo de produto salvo com sucesso.' });
+      if (!existing) onSelect?.(data.id);
     } catch (error) {
-      console.error('Erro ao criar tipo:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível criar o tipo de produto.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+      console.error('Erro ao salvar tipo:', error);
+      toast({ title: 'Erro', description: 'Não foi possível salvar o tipo de produto. Tente novamente.', variant: 'destructive' });
+    } finally { busy.current = false; setLoading(false); }
   };
-
-  const handleUpdate = async (id: string) => {
-    if (!user || !editingNome.trim()) return;
-
-    setLoading(true);
+  const remove = async (tipo: TipoProduto) => {
+    if (!user || busy.current || !confirm(`Excluir o tipo “${tipo.nome}”?`)) return;
+    busy.current = true; setLoading(true);
     try {
-      const { error } = await supabase
-        .from('tipos_produto')
-        .update({ nome: editingNome.trim() })
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Sucesso',
-        description: 'Tipo de produto atualizado com sucesso.',
-      });
-
-      await syncTipos(previous => previous.map(t => t.id === id ? { ...t, nome: editingNome.trim() } : t));
-      setEditingId(null);
-      setEditingNome('');
-    } catch (error) {
-      console.error('Erro ao atualizar tipo:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o tipo de produto.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!user) return;
-    if (!confirm('Tem certeza que deseja excluir este tipo de produto?')) return;
-
-    setLoading(true);
-    try {
-      // Verificar se está em uso
-      const { count, error: usageError } = await supabase
-        .from('receitas')
-        .select('*', { count: 'exact', head: true })
-        .eq('tipo_produto_id', id)
-        .eq('user_id', user.id);
-
+      const { count, error: usageError } = await supabase.from('receitas').select('*', { count: 'exact', head: true }).eq('tipo_produto_id', tipo.id).eq('user_id', user.id);
       if (usageError) throw usageError;
-      if (count && count > 0) {
-        toast({
-          title: localizeText("Não é possível excluir"),
-          description: `Este tipo está sendo usado em ${count} receita(s).`,
-          variant: 'destructive',
-        });
+      if (count) {
+        toast({ title: 'Não é possível excluir', description: `Este tipo está sendo usado em ${count} receita(s).`, variant: 'destructive' });
         return;
       }
-
-      const { error } = await supabase
-        .from('tipos_produto')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
+      const { error } = await supabase.from('tipos_produto').delete().eq('id', tipo.id).eq('user_id', user.id);
       if (error) throw error;
-
-      toast({
-        title: 'Sucesso',
-        description: 'Tipo de produto excluído com sucesso.',
-      });
-
-      await syncTipos(previous => previous.filter(t => t.id !== id));
+      await syncTipos(previous => previous.filter(t => t.id !== tipo.id));
+      toast({ title: 'Sucesso', description: 'Tipo de produto excluído.' });
     } catch (error) {
       console.error('Erro ao excluir tipo:', error);
-      toast({
-        title: 'Erro',
-        description: localizeText("Não foi possível excluir o tipo de produto."),
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+      toast({ title: 'Erro', description: 'Não foi possível excluir o tipo de produto.', variant: 'destructive' });
+    } finally { busy.current = false; setLoading(false); }
   };
 
-  const startEdit = (tipo: TipoProduto) => {
-    setEditingId(tipo.id);
-    setEditingNome(tipo.nome);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingNome('');
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Gerenciar Tipos de Produto</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Criar novo */}
-          {creating ? (
-            <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-              <Label htmlFor="new-tipo">Novo Tipo de Produto</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="new-tipo"
-                  value={newNome}
-                  onChange={(e) => setNewNome(e.target.value)}
-                  placeholder="Ex: Bolo, Pão, Doce..."
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                  autoFocus
-                />
-                <Button
-                  size="icon"
-                  aria-label="Criar tipo de produto"
-                  onClick={handleCreate}
-                  disabled={loading || !newNome.trim()}
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    setCreating(false);
-                    setNewNome('');
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setCreating(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Novo Tipo
-            </Button>
-          )}
-
-          {/* Lista de tipos */}
-          <div className="space-y-2">
-            {tiposQuery.isPending ? <p role="status" className="py-8 text-center text-sm text-muted-foreground">{localizeText("Carregando tipos de produto…")}</p> : tiposQuery.isError && !tipos.length ? (
-              <div role="alert" className="space-y-2 py-4 text-center text-sm">
-                <p>Não foi possível carregar os tipos de produto.</p>
-                <Button type="button" variant="outline" disabled={tiposQuery.isFetching} onClick={() => void tiposQuery.refetch()}>Tentar novamente</Button>
-              </div>
-            ) : tipos.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">{localizeText("Nenhum tipo de produto cadastrado")}</div>
-            ) : (
-              tipos.map((tipo) => (
-                <div
-                  key={tipo.id}
-                  className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  {editingId === tipo.id ? (
-                    <>
-                      <Input
-                        value={editingNome}
-                        onChange={(e) => setEditingNome(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleUpdate(tipo.id)}
-                        className="flex-1"
-                        autoFocus
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label={localizeText("Salvar tipo de produto")}
-                        onClick={() => handleUpdate(tipo.id)}
-                        disabled={loading}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={cancelEdit}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex-1">{tipo.nome}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label={`Editar ${tipo.nome}`}
-                        onClick={() => startEdit(tipo)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label={`Excluir ${tipo.nome}`}
-                        onClick={() => handleDelete(tipo.id)}
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+  return <Dialog open={open} onOpenChange={value => { if (!busy.current) onOpenChange(value); }}>
+    <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+      <DialogHeader className="border-b px-5 py-5 text-left sm:px-6">
+        <DialogTitle className="flex items-center gap-3 pr-6"><span className="rounded-xl bg-primary/10 p-2 text-primary"><Shapes className="h-5 w-5" /></span>Tipos de produto</DialogTitle>
+        <DialogDescription className="pt-1">Organize suas receitas com nomes e fotos fáceis de identificar.</DialogDescription>
+      </DialogHeader>
+      <div className="min-h-0 space-y-4 overflow-y-auto p-5 sm:p-6">
+        {editor ? <TipoProdutoEditor key={editor === 'new' ? 'new' : editor.id} tipo={editor === 'new' ? undefined : editor} saving={loading} onSave={input => void save(input)} onCancel={() => setEditor(null)} /> : <Button className="w-full" onClick={() => setEditor('new')} disabled={loading}><Plus className="mr-2 h-4 w-4" />Criar Novo Tipo</Button>}
+        <div className="relative"><Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar tipos de produto" placeholder="Buscar tipo..." value={search} onChange={event => setSearch(event.target.value)} className="pl-9" /></div>
+        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground"><span>TIPOS CADASTRADOS</span><span>{tipos.length}</span></div>
+        {tiposQuery.isError && <div role="alert" className="rounded-xl border border-destructive/20 p-3 text-sm"><p>Não foi possível carregar os tipos de produto.</p><Button variant="link" disabled={tiposQuery.isFetching} onClick={() => void tiposQuery.refetch()}>Tentar novamente</Button></div>}
+        {tiposQuery.isPending ? <p role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando tipos de produto…</p> : !tiposQuery.isError && !visible.length ? <p className="py-8 text-center text-sm text-muted-foreground">{search ? 'Nenhum tipo encontrado.' : 'Nenhum tipo de produto cadastrado'}</p> : <div className="space-y-2">
+          {visible.map(tipo => <div key={tipo.id} className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:border-primary/25">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/5 text-primary">{tipo.imagem_url ? <img src={tipo.imagem_url} alt={`Foto de ${tipo.nome}`} loading="lazy" className="h-full w-full object-cover" /> : <Shapes className="h-5 w-5" />}</div>
+            <span className="min-w-0 flex-1 break-words text-sm font-semibold">{tipo.nome}</span>
+            <Button size="icon" variant="ghost" aria-label={`Editar ${tipo.nome}`} disabled={loading} onClick={() => setEditor(tipo)}><Edit2 className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label={`Excluir ${tipo.nome}`} disabled={loading} onClick={() => void remove(tipo)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+          </div>)}
+        </div>}
+      </div>
+    </DialogContent>
+  </Dialog>;
+}

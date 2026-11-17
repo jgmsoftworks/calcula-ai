@@ -58,8 +58,8 @@ export function ListaProdutos({
   }
 
   return (
-    <div ref={scrollRef} className="max-h-[52dvh] overflow-y-auto pr-1 sm:max-h-[580px] sm:pr-2" aria-busy={updating}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6">
+    <div ref={scrollRef} className="max-h-[62dvh] overflow-y-auto pr-1 lg:max-h-[calc(100dvh-22rem)] lg:min-h-[420px] lg:pr-2" aria-busy={updating}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))]">
         {produtos.map((produto) => (
           <ProdutoCard
             key={produto.id}

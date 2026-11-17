@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
-import { productUnit } from '@/lib/productUnits';
+import { compactProductUnit } from '@/lib/productUnits';
 import { formatters } from '@/lib/formatters';
 
 interface ItemCarrinhoProps {
@@ -13,7 +13,7 @@ interface ItemCarrinhoProps {
 
 export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
   return (
-    <Card>
+    <Card className="rounded-xl border-border/60 shadow-none">
       <CardContent className="p-3">
         <div className="flex gap-3">
           {item.imagem_url && (
@@ -24,7 +24,7 @@ export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
             />
           )}
 
-          <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex-1 min-w-0 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <h4 className="font-semibold text-sm line-clamp-2">
                 {item.produto_nome}
@@ -32,7 +32,8 @@ export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 flex-shrink-0"
+                className="h-8 w-8 p-0 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label={`Remover ${item.produto_nome}`}
                 onClick={onRemove}
               >
                 <X className="h-4 w-4" />
@@ -60,9 +61,9 @@ export function ItemCarrinho({ item, onRemove }: ItemCarrinhoProps) {
               </p>
             )}
 
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              <div>Qtd: {formatters.quantidadeContinua(item.quantidade)} {productUnit(item.unidade_compra).symbol}</div>
-              <div>Unit: {formatters.valor(item.custo_aplicado)}{item.unidade_compra ? ` / ${productUnit(item.unidade_compra).symbol}` : ''}</div>
+            <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
+              <div>Quantidade<p className="mt-1 font-medium text-foreground">{formatters.quantidadeContinua(item.quantidade)} {compactProductUnit(item.unidade_compra)}</p></div>
+              <div className="text-right">Custo unitário<p className="mt-1 font-medium text-foreground">{formatters.valor(item.custo_aplicado)}{item.unidade_compra ? ` / ${compactProductUnit(item.unidade_compra)}` : ''}</p></div>
             </div>
 
             <div className="text-sm font-bold text-primary">
