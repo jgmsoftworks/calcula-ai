@@ -6,7 +6,7 @@ const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')
 const owner=id(1), other=id(2), first=id(10), second=id(11), foreign=id(12);
 const hash='a'.repeat(64), otherHash='b'.repeat(64);
 let db: PGlite;
-type Catalog = { simulacao_credito: null | { nome: string; despesas_fixas_mensais: number; folha_mensal: number; encargos_percentuais: number; encargo_fixo_unitario: number }; receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
+type Catalog = { simulacao_credito: null | { nome: string; despesas_fixas_mensais: number; folha_mensal: number; fixos_percentuais: number; encargos_percentuais: number; encargo_fixo_unitario: number }; receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
 async function catalog(month='2026-03', key=hash) {
   await db.exec('set role service_role');
   return (await db.query<{ data: Catalog }>('select public.exportar_receitas_painel($1,$2) as data',[key,month])).rows[0].data;
@@ -18,6 +18,7 @@ beforeEach(async () => {
   await db.exec(`create role service_role bypassrls;
     alter table tipos_produto add column nome text;
     alter table markups add column nome text, add column ativo boolean default true,
+      add column gasto_sobre_faturamento numeric default 0,
       add column despesas_fixas_selecionadas jsonb default '[]', add column folha_pagamento_selecionada jsonb default '[]',
       add column encargos_venda_selecionados jsonb default '[]';
     create table despesas_fixas(id uuid, user_id uuid, valor numeric, ativo boolean default true);
@@ -41,6 +42,7 @@ beforeEach(async () => {
   await db.exec(readFileSync('supabase/migrations/20261117134100_excluir_subreceitas_catalogo_painel.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261117190000_exportar_tipo_produto_painel.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261117203000_simulacao_credito_painel.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261117210000_percentual_fixos_credito_painel.sql','utf8'));
   await db.exec(`insert into receita_integracoes(user_id,nome,token_hash) values ('${owner}','Painel teste','${hash}'),('${other}','Outra conta','${otherHash}');`);
 });
 afterEach(async () => { await db?.close(); });
@@ -127,12 +129,15 @@ describe('current credit scenario export', () => {
         ('${id(70)}','${owner}',1000,20,10,8,999,0,5),('${id(71)}','${other}',999,0,0,0,0,0,0);
       insert into markups(id,user_id,tipo,markup_aplicado,nome,despesas_fixas_selecionadas,folha_pagamento_selecionada,encargos_venda_selecionados)
       values ('${id(80)}','${owner}','normal',3,'CRÉDITO','["${id(50)}","${id(51)}","${id(52)}"]','["${id(70)}","${id(71)}"]','["${id(60)}","${id(61)}","${id(62)}"]');`);
+    await db.exec(`update markups set gasto_sobre_faturamento=60.57 where id='${id(80)}';`);
     const result = (await catalog()).simulacao_credito;
-    expect(result).toMatchObject({ nome: 'CRÉDITO', despesas_fixas_mensais: 100, folha_mensal: 1095, encargos_percentuais: 11.7, encargo_fixo_unitario: 1.5 });
+    expect(result).toMatchObject({ nome: 'CRÉDITO', despesas_fixas_mensais: 100, folha_mensal: 1095, fixos_percentuais: 60.57, encargos_percentuais: 11.7, encargo_fixo_unitario: 1.5 });
     expect(JSON.stringify(result)).not.toContain(id(70));
     expect((await catalog('2026-02')).simulacao_credito).toMatchObject({ despesas_fixas_mensais: 100, folha_mensal: 1095 });
     await db.exec(`reset role; update despesas_fixas set valor=200 where id='${id(50)}';`);
-    expect((await catalog()).simulacao_credito?.despesas_fixas_mensais).toBe(200);
+    expect((await catalog()).simulacao_credito).toMatchObject({despesas_fixas_mensais:200,fixos_percentuais:60.57});
+    await db.exec(`reset role; update markups set gasto_sobre_faturamento=45 where id='${id(80)}';`);
+    expect((await catalog()).simulacao_credito?.fixos_percentuais).toBe(45);
     expect((await catalog('2026-03',otherHash)).simulacao_credito).toBeNull();
   });
   it('fails closed for missing, ambiguous or inactive CREDIT instead of picking another markup', async () => {
