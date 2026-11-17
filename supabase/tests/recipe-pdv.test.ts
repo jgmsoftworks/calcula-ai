@@ -6,7 +6,7 @@ const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')
 const owner=id(1), other=id(2), first=id(10), second=id(11), foreign=id(12);
 const hash='a'.repeat(64), otherHash='b'.repeat(64);
 let db: PGlite;
-type Catalog = { receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string }[] };
+type Catalog = { receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
 async function catalog(month='2026-03', key=hash) {
   await db.exec('set role service_role');
   return (await db.query<{ data: Catalog }>('select public.exportar_receitas_painel($1,$2) as data',[key,month])).rows[0].data;
@@ -16,6 +16,7 @@ beforeEach(async () => {
   await db.exec(readFileSync('supabase/tests/fixtures/recipe_save.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261103144515_atomic_recipe_save.sql','utf8'));
   await db.exec(`create role service_role bypassrls;
+    alter table tipos_produto add column nome text;
     create table auth.users(id uuid primary key);
     insert into auth.users values ('${owner}'),('${other}');
     insert into profiles values ('${owner}','lite','trial'),('${other}','lite','trial');
@@ -23,13 +24,14 @@ beforeEach(async () => {
     create table receita_custos_historico(id bigint generated always as identity, user_id uuid, receita_id uuid,
       custo_unitario numeric, registrado_em timestamptz, rendimento_unidade text, moeda text, excluida boolean default false);
     grant usage on schema public to service_role;
-    grant select on receitas,receita_custos_historico,markups to service_role;
+    grant select on receitas,receita_custos_historico,markups,tipos_produto to service_role;
     insert into receitas(id,user_id,nome) values ('${first}','${owner}','Nome diferente do PDV'),('${second}','${owner}','Sem código'),('${foreign}','${other}','Outra conta');
     insert into receita_custos_historico(user_id,receita_id,custo_unitario,registrado_em,rendimento_unidade,moeda) values
       ('${owner}','${first}',10,'2026-03-16 15:00Z','un','BRL'),('${owner}','${first}',12,'2026-04-01 03:00Z','un','BRL'),
       ('${other}','${foreign}',99,'2026-03-16 15:00Z','un','BRL');`);
   await db.exec(migration);
   await db.exec(readFileSync('supabase/migrations/20261117134100_excluir_subreceitas_catalogo_painel.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261117190000_exportar_tipo_produto_painel.sql','utf8'));
   await db.exec(`insert into receita_integracoes(user_id,nome,token_hash) values ('${owner}','Painel teste','${hash}'),('${other}','Outra conta','${otherHash}');`);
 });
 afterEach(async () => { await db?.close(); });
@@ -61,6 +63,16 @@ describe('PDV identity and owner-scoped catalog SQL', () => {
     expect((await catalog()).receitas.map(r=>r.id)).toEqual([second]);
     await db.exec(`reset role; update markups set tipo='normal' where id='${id(30)}';`);
     expect((await catalog()).receitas).toHaveLength(2);
+  });
+  it('exports the current product type, updates renamed types and never exposes another owner type', async () => {
+    await db.exec(`insert into tipos_produto(id,user_id,nome) values ('${id(40)}','${owner}','Fatia suprema'),('${id(41)}','${other}','Privado');
+      update receitas set tipo_produto_id='${id(40)}' where id='${first}';`);
+    expect((await catalog()).receitas.find(r => r.id === first)?.tipo_produto).toEqual({ id: id(40), nome: 'Fatia suprema' });
+    expect((await catalog()).receitas.find(r => r.id === second)?.tipo_produto).toBeNull();
+    await db.exec(`reset role; update tipos_produto set nome='Bolo gelado' where id='${id(40)}';`);
+    expect((await catalog()).receitas.find(r => r.id === first)?.tipo_produto?.nome).toBe('Bolo gelado');
+    await db.exec(`reset role; update receitas set tipo_produto_id='${id(41)}' where id='${first}';`);
+    expect((await catalog()).receitas.find(r => r.id === first)?.tipo_produto).toBeNull();
   });
   it('enforces exact unique codes only within an account, preserving zeroes and allowing multiple blanks', async () => {
     await db.exec(`update receitas set codigo_pdv='471' where id in ('${first}','${foreign}');`);
