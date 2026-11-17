@@ -41,16 +41,21 @@ Referência: [autenticação Edge](https://supabase.com/docs/guides/functions/au
 
 ## Catálogo e atualização
 
-A resposta agrega todas as receitas em um JSON, inclusive sem PDV, sem vendas ou
-rascunhos, sem depender do limite padrão de mil linhas da API REST. Inclui ID,
+A resposta agrega as receitas de venda em um JSON, inclusive sem PDV, sem vendas ou
+rascunhos, sem depender do limite padrão de mil linhas da API REST. Desde o ajuste
+de 17/11/2026, receitas cujo markup tem `tipo='sub_receita'` ficam fora da exportação,
+mesmo que tenham PDV. A classificação é consultada a cada chamada; mudar o markup
+atualiza a inclusão no painel. Receitas sem markup continuam incluídas. Sub-receitas
+permanecem na Calcula Aí, no histórico e no cálculo dos custos das receitas finais.
+Inclui ID,
 nome, PDV, status e custo/unidade/moeda/data do histórico. Não copia registros
 para outro banco nem depende de eventos que possam se perder: o painel consulta
 a fonte ao abrir/trocar mês e a cada 30 segundos enquanto visível. Retomar a tela
 atualiza também. Criar, editar, preencher/remover PDV e excluir uma receita se
 refletem na próxima consulta. Fechar a tela não interrompe o histórico no banco.
 
-Receitas não encontradas nas vendas aparecem com quantidade e total vendido zero;
-valor de venda unitário fica vazio. Ao preencher o mesmo PDV, o painel une a receita
+Receitas não encontradas nas vendas aparecem com “Sem vínculo PDV” nos campos de
+quantidade, total vendido e valor de venda unitário. Ao preencher o mesmo PDV, o painel une a receita
 à venda e deixa de exibir a linha separada. A venda conserva seu nome no Yooga.
 
 ## Custo por mês
@@ -80,7 +85,16 @@ Frontend segue publicação manual pelo Lovable depois da integração revisada.
 Reversão: restaurar frontend/painel anteriores e revogar a integração. Conservar
 as colunas e o histórico aditivos; não apagar receitas ou custos.
 
+O ajuste de catálogo usa somente
+`20261117134100_excluir_subreceitas_catalogo_painel.sql`, após conferir a definição
+instalada de `exportar_receitas_painel`. Substitui apenas essa RPC; não altera
+autenticação, fórmulas, registros ou a função de salvamento. A API já publicada
+passa a usar a regra na próxima consulta, sem publicação frontend na Lovable.
+Para reverter o filtro, restaurar apenas a definição anterior dessa RPC presente
+na migração de PDV, preservando seus grants; não reaplicar a migração inicial inteira.
+
 Validação: `npm run check`, SQL PGlite (isolamento/ACL, códigos, catálogo completo,
+exclusão de sub-receitas com PDV, mudança de classificação e preservação do custo final,
 histórico temporal, repetição/rollback), endpoint com doubles e formulário real.
 `npm run test:e2e` confere o campo abaixo da imagem em desktop/mobile usando
 fixture sintética, sem sessão de cliente ou escrita em produção.
