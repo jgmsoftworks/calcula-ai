@@ -37,6 +37,9 @@ envio, reabertura e persistência SQL na criação e na edição.
 A coluna Tipo da Geladeira e o resumo mobile exibem `tipo_produto.nome`, com
 “Sem tipo” quando ausente. A distinção receita final/sub-receita continua na
 classificação do markup e no filtro Tipo de receita. Custos e saldos não mudam.
+Em Movimentações, os cartões dos itens da Geladeira também mostram esse tipo
+abaixo do nome, no lugar do texto genérico “Geladeira”, com a mesma indicação
+“Sem tipo” quando ausente. O dado vem da receita já carregada na consulta.
 Esta entrega requer somente publicação manual do frontend pelo proprietário na
 Lovable; nenhuma migração ou correção automática de registros é necessária.
 

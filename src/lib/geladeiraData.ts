@@ -41,6 +41,7 @@ export function geladeiraComoProduto(item: GeladeiraItem) {
     custo_unitario: custoUnitarioGeladeira(item.receita) ?? 0,
     custo_indisponivel: custoUnitarioGeladeira(item.receita) === null,
     imagem_url: item.receita.imagem_url, marcas: [], codigos_barras: [], ativo: true,
+    tipo_produto_nome: item.receita.tipo_produto?.nome ?? null,
     categorias: [item.receita.markup?.tipo === 'sub_receita' ? 'Sub-receitas' : 'Receitas finais'],
     origem_estoque: 'geladeira' as const,
   };
