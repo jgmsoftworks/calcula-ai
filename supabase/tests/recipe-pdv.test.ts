@@ -6,7 +6,7 @@ const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')
 const owner=id(1), other=id(2), first=id(10), second=id(11), foreign=id(12);
 const hash='a'.repeat(64), otherHash='b'.repeat(64);
 let db: PGlite;
-type Catalog = { receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
+type Catalog = { simulacao_credito: null | { nome: string; despesas_fixas_mensais: number; folha_mensal: number; encargos_percentuais: number; encargo_fixo_unitario: number }; receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
 async function catalog(month='2026-03', key=hash) {
   await db.exec('set role service_role');
   return (await db.query<{ data: Catalog }>('select public.exportar_receitas_painel($1,$2) as data',[key,month])).rows[0].data;
@@ -17,6 +17,14 @@ beforeEach(async () => {
   await db.exec(readFileSync('supabase/migrations/20261103144515_atomic_recipe_save.sql','utf8'));
   await db.exec(`create role service_role bypassrls;
     alter table tipos_produto add column nome text;
+    alter table markups add column nome text, add column ativo boolean default true,
+      add column despesas_fixas_selecionadas jsonb default '[]', add column folha_pagamento_selecionada jsonb default '[]',
+      add column encargos_venda_selecionados jsonb default '[]';
+    create table despesas_fixas(id uuid, user_id uuid, valor numeric, ativo boolean default true);
+    create table encargos_venda(id uuid, user_id uuid, valor_percentual numeric, valor_fixo numeric, ativo boolean default true);
+    create table folha_pagamento(id uuid, user_id uuid, salario_base numeric, adicional numeric, desconto numeric, ativo boolean default true,
+      ${['fgts','inss','rat','ferias','vale_transporte','vale_alimentacao','vale_refeicao','plano_saude','outros'].flatMap(k=>[k+'_percent numeric',k+'_valor numeric']).join(',')});
+    grant select on despesas_fixas,encargos_venda,folha_pagamento to service_role;
     create table auth.users(id uuid primary key);
     insert into auth.users values ('${owner}'),('${other}');
     insert into profiles values ('${owner}','lite','trial'),('${other}','lite','trial');
@@ -32,6 +40,7 @@ beforeEach(async () => {
   await db.exec(migration);
   await db.exec(readFileSync('supabase/migrations/20261117134100_excluir_subreceitas_catalogo_painel.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261117190000_exportar_tipo_produto_painel.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261117203000_simulacao_credito_painel.sql','utf8'));
   await db.exec(`insert into receita_integracoes(user_id,nome,token_hash) values ('${owner}','Painel teste','${hash}'),('${other}','Outra conta','${otherHash}');`);
 });
 afterEach(async () => { await db?.close(); });
@@ -44,7 +53,7 @@ describe('PDV identity and owner-scoped catalog SQL', () => {
     expect((await catalog()).receitas).toMatchObject([{id:first,codigo_pdv:null}]);
   });
   it('excludes sub-recipes even with a PDV code, preserving the parent cost and its ingredients', async () => {
-    await db.exec(`insert into markups values ('${id(30)}','${owner}','normal',3),('${id(31)}','${owner}','sub_receita',1);
+    await db.exec(`insert into markups(id,user_id,tipo,markup_aplicado) values ('${id(30)}','${owner}','normal',3),('${id(31)}','${owner}','sub_receita',1);
       update receitas set markup_id='${id(30)}' where id='${first}';
       update receitas set markup_id='${id(31)}',codigo_pdv='471' where id='${second}';
       insert into receita_sub_receitas(receita_id,sub_receita_id,quantidade) values ('${first}','${second}',2);`);
@@ -56,7 +65,7 @@ describe('PDV identity and owner-scoped catalog SQL', () => {
     expect((await db.query('select count(*)::int as n from receita_custos_historico')).rows[0].n).toBe(3);
   });
   it('uses the current markup type and keeps unclassified sale recipes in the catalog', async () => {
-    await db.exec(`insert into markups values ('${id(30)}','${owner}','normal',3);
+    await db.exec(`insert into markups(id,user_id,tipo,markup_aplicado) values ('${id(30)}','${owner}','normal',3);
       update receitas set markup_id='${id(30)}' where id='${first}';`);
     expect((await catalog()).receitas).toHaveLength(2);
     await db.exec(`reset role; update markups set tipo='sub_receita' where id='${id(30)}';`);
@@ -107,5 +116,33 @@ describe('PDV identity and owner-scoped catalog SQL', () => {
   it('returns catalogs above the normal REST row limit without losing recipes', async () => {
     await db.exec(`insert into receitas(user_id,nome) select '${owner}','Receita '||n from generate_series(1,1100) n;`);
     expect((await catalog()).receitas).toHaveLength(1102);
+  });
+});
+
+describe('current credit scenario export', () => {
+  it('exports selected active owner components with exact payroll rounding and no employee identities', async () => {
+    await db.exec(`insert into despesas_fixas values ('${id(50)}','${owner}',100,true),('${id(51)}','${other}',999,true),('${id(52)}','${owner}',999,false);
+      insert into encargos_venda values ('${id(60)}','${owner}',11.7,1.5,true),('${id(61)}','${owner}',50,99,false),('${id(62)}','${other}',90,99,true);
+      insert into folha_pagamento(id,user_id,salario_base,adicional,desconto,fgts_percent,fgts_valor,inss_percent,inss_valor) values
+        ('${id(70)}','${owner}',1000,20,10,8,999,0,5),('${id(71)}','${other}',999,0,0,0,0,0,0);
+      insert into markups(id,user_id,tipo,markup_aplicado,nome,despesas_fixas_selecionadas,folha_pagamento_selecionada,encargos_venda_selecionados)
+      values ('${id(80)}','${owner}','normal',3,'CRÉDITO','["${id(50)}","${id(51)}","${id(52)}"]','["${id(70)}","${id(71)}"]','["${id(60)}","${id(61)}","${id(62)}"]');`);
+    const result = (await catalog()).simulacao_credito;
+    expect(result).toMatchObject({ nome: 'CRÉDITO', despesas_fixas_mensais: 100, folha_mensal: 1095, encargos_percentuais: 11.7, encargo_fixo_unitario: 1.5 });
+    expect(JSON.stringify(result)).not.toContain(id(70));
+    expect((await catalog('2026-02')).simulacao_credito).toMatchObject({ despesas_fixas_mensais: 100, folha_mensal: 1095 });
+    await db.exec(`reset role; update despesas_fixas set valor=200 where id='${id(50)}';`);
+    expect((await catalog()).simulacao_credito?.despesas_fixas_mensais).toBe(200);
+    expect((await catalog('2026-03',otherHash)).simulacao_credito).toBeNull();
+  });
+  it('fails closed for missing, ambiguous or inactive CREDIT instead of picking another markup', async () => {
+    expect((await catalog()).simulacao_credito).toBeNull();
+    await db.exec(`reset role; insert into markups(id,user_id,tipo,markup_aplicado,nome) values
+      ('${id(80)}','${owner}','normal',3,'CRÉDITO'),('${id(81)}','${owner}','normal',3,'credito');`);
+    expect((await catalog()).simulacao_credito).toBeNull();
+    await db.exec(`reset role; update markups set ativo=false where id='${id(81)}';`);
+    expect((await catalog()).simulacao_credito?.nome).toBe('CRÉDITO');
+    await db.exec(`reset role; update markups set ativo=false;`);
+    expect((await catalog()).simulacao_credito).toBeNull();
   });
 });

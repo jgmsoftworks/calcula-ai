@@ -149,3 +149,20 @@ consequência esperada do SELECT necessário à leitura via API. A permissão n�
 libera linhas de outras contas: a política de dono/acesso permanece obrigatória,
 testada, e não há leitura anônima. Essa exposição de metadados foi mantida
 intencionalmente; os demais avisos já existiam antes da alteração.
+
+## Cenário CRÉDITO para o painel — 17/11/2026
+
+A migration `20261117203000_simulacao_credito_painel.sql` amplia somente a
+exportação. Mantém custos e tipos existentes e adiciona `simulacao_credito`:
+markup único ativo chamado CRÉDITO, data da consulta, soma das despesas fixas e
+folha selecionadas e ativas, soma dos encargos percentuais e fixos selecionados.
+Todas as leituras são limitadas ao dono da chave, inclusive IDs selecionados.
+A folha usa a mesma precedência de percentual/valor fixo e arredondamento do
+helper `calcularCustoTotalFuncionario`. Não exporta nomes ou salários individuais.
+
+O campo é NULL se o markup faltar ou for ambíguo. Configuração é atual, não
+histórica. Não altera preços, markups, custos gravados ou outras telas. Usuário
+autorizou CRÉDITO para todas as vendas como simulação provisória; os vínculos por
+canal/pagamento serão uma etapa separada. Aplicar somente essa migration, após
+verificação isolada; não executar db push/replay. Reversão: restaurar a definição
+anterior de `exportar_receitas_painel` sem remover históricos.
