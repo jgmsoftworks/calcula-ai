@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchGeladeira, geladeiraComoProduto } from '@/lib/geladeiraData';
 import { useCallback, useState } from 'react';
 import { useProdutosMovimentacao } from '@/hooks/useProdutosPage';
+import { useTiposProduto } from '@/hooks/useTiposProduto';
+import type { CategoriaResumo } from '@/lib/produtosPageData';
 import { CategoriasFiltro } from '@/components/movimentacao/CategoriasFiltro';
 import { ListaProdutos } from '@/components/movimentacao/ListaProdutos';
 import { MovimentacaoModal } from '@/components/movimentacao/MovimentacaoModal';
@@ -18,6 +20,8 @@ export default function Movimentacao() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [origem, setOrigem] = useState<'produto' | 'geladeira'>('produto');
+  const exibindoGeladeira = origem === 'geladeira';
+  const tiposProduto = useTiposProduto(exibindoGeladeira);
   const geladeira = useQuery({ queryKey: ['geladeira', user?.id], enabled: !!user, queryFn: ({ signal }) => fetchGeladeira(user!.id, signal), staleTime: 0 });
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,13 +30,29 @@ export default function Movimentacao() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<ProdutoMovimentacao | null>(null);
 
   const { produtos, resumo, isPending: loading, isError, isFetching, isFetchingNextPage, isPlaceholderData, searching, hasNextPage, fetchNextPage, refetch: loadProdutos } = useProdutosMovimentacao({
-    search: searchTerm, categorias: categoriaSelecionada ? [categoriaSelecionada] : [],
+    search: searchTerm, categorias: !exibindoGeladeira && categoriaSelecionada ? [categoriaSelecionada] : [],
   });
   const itensGeladeira = (geladeira.data || []).map(geladeiraComoProduto).filter(item =>
     `${item.nome} ${item.codigo_interno}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()));
-  const exibindoGeladeira = origem === 'geladeira';
-  const itensVisiveis = exibindoGeladeira ? itensGeladeira : produtos;
-  const erroAtual = exibindoGeladeira ? geladeira.isError : isError;
+  const categoriasGeladeira = new Map<string, CategoriaResumo & { id: string }>(
+    (tiposProduto.data || []).map(tipo => [tipo.id, { ...tipo, imagem: null, count: 0 }]),
+  );
+  if (geladeira.data?.some(item => !item.receita.tipo_produto?.id)) {
+    categoriasGeladeira.set('sem-tipo', { id: 'sem-tipo', nome: 'Sem tipo', imagem: null, count: 0 });
+  }
+  for (const item of itensGeladeira) {
+    const tipo = item.receita.tipo_produto;
+    const id = tipo?.id || 'sem-tipo';
+    const categoria = categoriasGeladeira.get(id) || { id, nome: tipo?.nome?.trim() || 'Sem tipo', imagem: null, count: 0 };
+    categoria.count++;
+    categoria.imagem ||= item.imagem_url || null;
+    categoriasGeladeira.set(id, categoria);
+  }
+  const resumoGeladeira = [...categoriasGeladeira.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const itensVisiveis = exibindoGeladeira
+    ? itensGeladeira.filter(item => !categoriaSelecionada || (item.receita.tipo_produto?.id || 'sem-tipo') === categoriaSelecionada)
+    : produtos;
+  const erroAtual = exibindoGeladeira ? geladeira.isError || tiposProduto.isError : isError;
   const loadMore = useCallback(() => { void fetchNextPage({ cancelRefetch: false }); }, [fetchNextPage]);
 
   const handleSelectProduto = (produto: ProdutoMovimentacao) => {
@@ -83,13 +103,13 @@ export default function Movimentacao() {
       </div>
 
       {erroAtual && <div role="alert" className="rounded-xl border p-4 text-sm">
-        Não foi possível atualizar os itens. <Button variant="link" onClick={() => { void (exibindoGeladeira ? geladeira.refetch() : loadProdutos()); }}>Tentar novamente</Button>
+        Não foi possível atualizar os itens. <Button variant="link" onClick={() => { void (exibindoGeladeira ? Promise.all([geladeira.refetch(), tiposProduto.refetch()]) : loadProdutos()); }}>Tentar novamente</Button>
       </div>}
 
       {/* Category Filter */}
       <CategoriasFiltro 
         produtos={itensVisiveis}
-        resumo={exibindoGeladeira ? undefined : resumo?.categorias}
+        resumo={exibindoGeladeira ? resumoGeladeira : resumo?.categorias}
         total={exibindoGeladeira ? itensGeladeira.length : resumo?.totalBusca}
         categoriaSelecionada={categoriaSelecionada}
         onSelectCategoria={setCategoriaSelecionada}
@@ -100,12 +120,12 @@ export default function Movimentacao() {
         <div className="lg:col-span-2">
           <ListaProdutos 
             produtos={itensVisiveis}
-            loading={exibindoGeladeira ? geladeira.isPending : loading}
+            loading={exibindoGeladeira ? geladeira.isPending || tiposProduto.isPending : loading}
             categoriaSelecionada={categoriaSelecionada}
             onSelectProduto={handleSelectProduto}
             hasMore={!exibindoGeladeira && !!hasNextPage}
             loadingMore={!exibindoGeladeira && isFetchingNextPage}
-            updating={exibindoGeladeira ? geladeira.isFetching : isFetching || searching}
+            updating={exibindoGeladeira ? geladeira.isFetching || tiposProduto.isFetching : isFetching || searching}
             canLoadMore={!exibindoGeladeira && !isFetching && !isPlaceholderData && !searching && !isError}
             onLoadMore={loadMore}
             resetKey={`${origem}:${searchTerm}:${categoriaSelecionada || ''}`}

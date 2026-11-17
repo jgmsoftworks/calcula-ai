@@ -5,9 +5,10 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
 import type { CategoriaResumo } from '@/lib/produtosPageData';
+type CategoriaFiltro = CategoriaResumo & { id?: string };
 interface CategoriasFiltroProps {
   produtos: ProdutoMovimentacao[];
-  resumo?: CategoriaResumo[];
+  resumo?: CategoriaFiltro[];
   total?: number;
   categoriaSelecionada: string | null;
   onSelectCategoria: (categoria: string | null) => void;
@@ -19,7 +20,7 @@ export function CategoriasFiltro({
   categoriaSelecionada,
   onSelectCategoria
 }: CategoriasFiltroProps) {
-  const categorias = useMemo(() => {
+  const categorias = useMemo<CategoriaFiltro[]>(() => {
     if (resumo) return resumo;
     const categoriasMap = new Map<string, {
       imagem: string | null;
@@ -52,7 +53,7 @@ export function CategoriasFiltro({
   return <ScrollArea className="w-full">
       <div className="flex gap-4 px-1 py-3 pb-5 sm:gap-5 sm:px-4 sm:py-4 sm:pb-6">
         {/* Botão Todos */}
-        <button onClick={() => onSelectCategoria(null)} className="flex w-24 shrink-0 flex-col items-center gap-2">
+        <button aria-pressed={categoriaSelecionada === null} onClick={() => onSelectCategoria(null)} className="flex w-24 shrink-0 flex-col items-center gap-2">
           <div className={`relative ${!categoriaSelecionada ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
             <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
               <AvatarFallback className="bg-primary/10">
@@ -69,8 +70,10 @@ export function CategoriasFiltro({
         </button>
 
         {/* Círculos de Categorias */}
-        {categorias.map(categoria => <button key={categoria.nome} onClick={() => onSelectCategoria(categoria.nome)} className="flex w-24 shrink-0 flex-col items-center gap-2">
-            <div className={`relative ${categoriaSelecionada === categoria.nome ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
+        {categorias.map(categoria => {
+          const value = categoria.id ?? categoria.nome;
+          return <button key={value} aria-pressed={categoriaSelecionada === value} onClick={() => onSelectCategoria(value)} className="flex w-24 shrink-0 flex-col items-center gap-2">
+            <div className={`relative ${categoriaSelecionada === value ? 'ring-2 ring-primary ring-offset-2' : ''} rounded-full transition-all`}>
               <Avatar className="h-16 w-16 border-2 border-muted sm:h-20 sm:w-20">
                 {categoria.imagem ? <AvatarImage src={categoria.imagem} alt={categoria.nome} className="object-cover" /> : <AvatarFallback className="bg-muted">
                     {categoria.nome.substring(0, 2).toUpperCase()}
@@ -83,7 +86,8 @@ export function CategoriasFiltro({
             <span className="w-full whitespace-normal break-words text-center text-xs font-medium leading-snug">
               {categoria.nome}
             </span>
-          </button>)}
+          </button>;
+        })}
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>;

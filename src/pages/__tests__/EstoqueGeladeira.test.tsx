@@ -2,7 +2,7 @@
 import React from 'react';
 import '@/test/setup';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Movimentacao from '../Movimentacao';
 import { RegistrarPerdaModal } from '@/components/estoque/perdas/RegistrarPerdaModal';
@@ -29,6 +29,44 @@ async function select(label:string,option:string) {
   fireEvent.keyDown(await screen.findByRole('option',{name:option}),{key:'Enter'});
 }
 describe('Prepared products in existing stock screens',()=>{
+  it('shows every registered product type and filters fridge cards by type and search without losing the other circles',async()=>{
+    const tipos=[{id:'fillings',nome:'Recheios'},{id:'slices',nome:'Fatias'},{id:'pies',nome:'Tortas'}];
+    const items=[
+      {...item,receita:{...recipe,tipo_produto:tipos[0]}},
+      {...item,id:'i2',receita_id:'r2',receita:{...recipe,id:'r2',nome:'Bolo de chocolate',tipo_produto:tipos[1]}},
+      {...item,id:'i3',receita_id:'r3',receita:{...recipe,id:'r3',nome:'Pão de ló',tipo_produto:null}},
+    ];
+    mocks.from.mockImplementation(table=>{
+      const data=table==='geladeira_itens'?items:table==='tipos_produto'?tipos:[];
+      const q={select:()=>q,eq:()=>q,order:()=>q,range:()=>q,abortSignal:()=>q,
+        then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data,error:null}).then(resolve)};return q;
+    });
+    mount(<Movimentacao />);
+    fireEvent.click(screen.getByRole('button',{name:'Geladeira'}));
+    const circle=(name:string)=>screen.getByRole('button',{name:new RegExp(name)});
+    await screen.findByRole('heading',{name:'Bolo de chocolate'});
+    expect(within(circle('Tortas')).getByText('0')).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:/Sub-receitas|Receitas finais/})).not.toBeInTheDocument();
+    fireEvent.click(circle('Fatias'));
+    expect(circle('Fatias')).toHaveAttribute('aria-pressed','true');
+    expect(screen.getByRole('heading',{name:'Bolo de chocolate'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading',{name:'Recheio de Ninho'})).not.toBeInTheDocument();
+    expect(within(circle('Recheios')).getByText('1')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('Buscar na Geladeira...'),{target:{value:'Ninho'}});
+    expect(screen.getByText('Nenhum produto encontrado')).toBeInTheDocument();
+    expect(within(circle('Fatias')).getByText('0')).toBeInTheDocument();
+    expect(within(circle('Sem tipo')).getByText('0')).toBeInTheDocument();
+    fireEvent.click(circle('Recheios'));
+    expect(screen.getByRole('heading',{name:'Recheio de Ninho'})).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('Buscar na Geladeira...'),{target:{value:''}});
+    fireEvent.click(circle('Sem tipo'));
+    expect(screen.getByRole('heading',{name:'Pão de ló'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading',{name:'Recheio de Ninho'})).not.toBeInTheDocument();
+    fireEvent.click(circle('Todos'));
+    expect(screen.getAllByRole('heading',{level:4})).toHaveLength(3);
+    fireEvent.click(circle('Tortas'));
+    expect(screen.getByText('Nenhum produto encontrado')).toBeInTheDocument();
+  });
   it('adds a fridge item to the shared cart with locked recipe cost and submits its source',async()=>{
     mount(<Movimentacao />);
     fireEvent.click(screen.getByRole('button',{name:'Geladeira'}));

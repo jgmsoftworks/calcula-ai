@@ -40,6 +40,12 @@ classificação do markup e no filtro Tipo de receita. Custos e saldos não muda
 Em Movimentações, os cartões dos itens da Geladeira também mostram esse tipo
 abaixo do nome, no lugar do texto genérico “Geladeira”, com a mesma indicação
 “Sem tipo” quando ausente. O dado vem da receita já carregada na consulta.
+As bolinhas de Movimentações/Geladeira usam o catálogo de tipos da conta,
+incluindo tipos com zero itens. Cada uma filtra pelo ID do tipo, combinando com
+a busca; contagens e fotos vêm dos itens encontrados antes desse filtro, para
+preservar as demais opções. Itens sem tipo ficam em “Sem tipo”. A lista de
+produtos comprados mantém suas próprias categorias. Falhas ao carregar tipos
+oferecem nova tentativa junto dos itens.
 Esta entrega requer somente publicação manual do frontend pelo proprietário na
 Lovable; nenhuma migração ou correção automática de registros é necessária.
 
