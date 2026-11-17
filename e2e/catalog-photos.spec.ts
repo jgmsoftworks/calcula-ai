@@ -80,13 +80,14 @@ for (const tabela of ['marcas', 'categorias']) {
     failSave = false;
     await dialog.getByRole('button', { name: `Salvar ${singular}` }).click();
     await expect(dialog.getByAltText('Foto de Nova com foto')).toBeVisible();
-    await page.keyboard.press('Escape');
+    // A fresh toast consumes Escape; close the dialog through its own control.
+    await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await page.getByRole('combobox').click();
     const option = page.getByRole('option', { name: 'Nova com foto', exact: true });
     await expect(option.locator('img')).toHaveAttribute('src', new RegExp(`/${tabela}/.+\\.jpg$`));
     await option.click();
-    await page.keyboard.press('Escape');
+    await page.getByRole('combobox', { name: '1 selecionada(s)', exact: true }).click();
     await expect(page.getByRole('combobox')).toHaveText('1 selecionada(s)');
     await expect(page.getByLabel('Produto salvo')).toHaveText('0');
     await page.reload();
