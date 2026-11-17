@@ -13,6 +13,7 @@ export interface Receita {
   user_id: string;
   numero_sequencial: number;
   nome: string;
+  codigo_pdv?: string | null;
   tipo_produto?: { id: string; nome: string } | null;
   tipo_produto_id?: string | null;
   rendimento_valor: number | null;
@@ -126,7 +127,7 @@ export interface ReceitaComDados extends Receita {
   };
 }
 
-export type ReceitaFormData = Pick<Receita, 'nome' | 'tipo_produto_id' | 'rendimento_valor' | 'rendimento_unidade' |
+export type ReceitaFormData = Pick<Receita, 'nome' | 'codigo_pdv' | 'tipo_produto_id' | 'rendimento_valor' | 'rendimento_unidade' |
   'observacoes' | 'status' | 'preco_venda' | 'markup_id' | 'peso_unitario' | 'tempo_preparo_total' |
   'tempo_preparo_unidade' | 'tempo_preparo_mao_obra' | 'conservacao'> & { markup_tipo: string | null };
 export type AlterarReceitaForm = <K extends keyof ReceitaFormData>(field: K, value: ReceitaFormData[K]) => void;

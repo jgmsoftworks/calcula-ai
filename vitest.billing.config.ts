@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 export default defineConfig({
-  test: { environment: 'node', include: ['supabase/functions/_shared/billing.test.ts'] },
+  test: { environment: 'node', include: ['supabase/functions/_shared/billing.test.ts', 'supabase/functions/_shared/receitasPdv.test.ts'] },
   resolve: { alias: {
     'npm:nodemailer@10.0.13': path.resolve('tests/billing-smtp-stub.ts'),
     'npm:stripe@22.6.0': path.resolve('tests/billing-runtime-stub.ts'),

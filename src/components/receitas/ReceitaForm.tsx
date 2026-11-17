@@ -85,6 +85,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState<ReceitaFormData>({
     nome: '',
+    codigo_pdv: '',
     tipo_produto_id: null as string | null,
     rendimento_valor: 0,
     rendimento_unidade: 'un',
@@ -186,6 +187,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
       setReceitaCompleta(receita);
       setFormData({
         nome: receita.nome,
+        codigo_pdv: receita.codigo_pdv || '',
         tipo_produto_id: receita.tipo_produto_id || null,
         rendimento_valor: receita.rendimento_valor || 0,
         rendimento_unidade: receita.rendimento_unidade || 'un',

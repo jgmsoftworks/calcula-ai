@@ -303,6 +303,23 @@ export function GeralTab({
               </div>
             )}
           </div>
+          <div className="space-y-2 pt-3">
+            <Label htmlFor="codigo-pdv">Código PDV</Label>
+            <Input
+              id="codigo-pdv"
+              type="text"
+              value={formData.codigo_pdv || ''}
+              onChange={(event) => onFormChange('codigo_pdv', event.target.value)}
+              maxLength={64}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Ex.: 471"
+              aria-describedby="codigo-pdv-hint"
+            />
+            <p id="codigo-pdv-hint" className="text-xs text-muted-foreground leading-relaxed">
+              Use o mesmo código do produto no seu sistema de vendas. O vínculo é feito pelo código, mesmo que os nomes sejam diferentes.
+            </p>
+          </div>
         </div>
 
         {/* Conservação */}

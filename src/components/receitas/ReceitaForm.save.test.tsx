@@ -20,7 +20,7 @@ vi.mock('sonner', () => ({ toast: { success: m.success, error: m.error } }));
 vi.mock('@/lib/funnel-analytics', () => ({ trackRecipeCreated: m.track }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (s: string) => s }) }));
 vi.mock('@/components/receitas/GeralTab', () => ({
-  GeralTab: ({formData,onFormChange}: FormProps) => <label>Nome<input value={formData.nome} onChange={e=>onFormChange('nome',e.target.value)} /></label>,
+  GeralTab: ({formData,onFormChange}: FormProps) => <><label>Nome<input value={formData.nome} onChange={e=>onFormChange('nome',e.target.value)} /></label><label>Código PDV<input value={formData.codigo_pdv || ''} onChange={e=>onFormChange('codigo_pdv',e.target.value)} /></label></>,
 }));
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
@@ -79,6 +79,17 @@ async function save(fromStep=1,create=false,selectMarkup=true) {
   await waitFor(()=>expect(screen.getByRole('button',{name:create?'Criar':'Atualizar'})).toBeEnabled());
 }
 describe('Atomic save feedback and retries',()=>{
+  it('saves an optional PDV with leading zeroes in the same request during create and edit',async()=>{
+    for (const creating of [true,false]) {
+      open(creating);
+      if (creating) fireEvent.change(screen.getByLabelText('Nome'),{target:{value:'Receita nova'}});
+      fireEvent.change(screen.getByLabelText('Código PDV'),{target:{value:' 00471 '}});
+      await save(0,creating);
+      expect(m.rpc.mock.calls.at(-1)?.[1].p_receita.codigo_pdv).toBe('00471');
+      cleanup();
+    }
+  });
+
   it('sends one complete RPC and only then reports success',async()=>{
     await changeIngredient(); await save();
     expect(m.rpc).toHaveBeenCalledTimes(1);
