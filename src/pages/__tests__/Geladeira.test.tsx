@@ -30,6 +30,24 @@ async function open() {
   await screen.findAllByText('Recheio de Ninho');
 }
 describe('Geladeira interaction', () => {
+  it('shows the recipe product type on desktop/mobile, including recipes with no type', async () => {
+    const rows=[
+      {...item,receita:{...recipe,tipo_produto:{id:'fillings',nome:'Recheios'}}},
+      {...item,id:'i2',receita_id:'r2',receita:{...recipe,id:'r2',nome:'Bolo sem tipo',tipo_produto:null,markup:{tipo:'normal'}}},
+    ];
+    mocks.from.mockImplementation(table=>{
+      const data=table==='geladeira_itens'?rows:[];
+      const query={select:()=>query,eq:()=>query,order:()=>query,range:()=>query,abortSignal:()=>query,
+        then:(resolve:(r:unknown)=>unknown)=>Promise.resolve({data,count:data.length,error:null}).then(resolve)};
+      return query;
+    });
+    await open();
+    expect(screen.getAllByText('Recheios')).toHaveLength(2);
+    expect(screen.getAllByText('Sem tipo')).toHaveLength(2);
+    const row=screen.getByRole('row',{name:/Recheio de Ninho/});
+    expect(within(row).getByRole('cell',{name:'Recheios'})).toBeInTheDocument();
+    expect(within(row).queryByText('Sub-receita')).not.toBeInTheDocument();
+  });
   it('distinguishes same-name recipes by category, searches it and keeps the selected category', async () => {
     const recipes = [
       { ...recipe, id: 'cake', nome: 'Choconinho', numero_sequencial: 21, tipo_produto: { id: 'cakes', nome: 'Bolos no pote' } },

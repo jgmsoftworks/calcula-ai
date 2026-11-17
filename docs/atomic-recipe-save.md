@@ -24,6 +24,22 @@ A duplicação conserva o comportamento anterior para imagens: arquivos e URLs d
 
 ## Verificação
 
+### Tipo de produto e Geladeira (17/11/2026)
+
+O editor carrega `tipo_produto_id` e a relação `tipos_produto`; a escolha é enviada
+na mesma RPC da receita. O formulário exige a seleção antes de Criar/Atualizar:
+se estiver vazia, retorna à etapa Projeção, explica o campo pendente e conserva
+os demais dados. Essa validação é do editor, sem alterar o schema ou a duplicação.
+Receitas antigas sem tipo salvo precisam de uma escolha explícita; não se infere
+a categoria pelo nome da receita. Os testes verificam seleção, troca de etapas,
+envio, reabertura e persistência SQL na criação e na edição.
+
+A coluna Tipo da Geladeira e o resumo mobile exibem `tipo_produto.nome`, com
+“Sem tipo” quando ausente. A distinção receita final/sub-receita continua na
+classificação do markup e no filtro Tipo de receita. Custos e saldos não mudam.
+Esta entrega requer somente publicação manual do frontend pelo proprietário na
+Lovable; nenhuma migração ou correção automática de registros é necessária.
+
 ```sh
 npm run test:recipe-db
 npx vitest run src/hooks/__tests__/recipe-duplication.test.tsx src/components/receitas/ReceitaForm.save.test.tsx src/pages/__tests__/ReceitaEditor.test.tsx src/hooks/__tests__/recipe-entitlements.test.tsx src/lib/funnel-analytics.test.ts

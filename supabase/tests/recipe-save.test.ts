@@ -16,7 +16,7 @@ let componentVersions: Record<string, unknown>;
 let payload: ReturnType<typeof makePayload>;
 function makePayload() {
   return {
-    recipe: {codigo_pdv:null as string|null,nome:'Bolo atualizado',rendimento_valor:10,rendimento_unidade:'un',status:'finalizada',preco_venda:77,markup_id:markup},
+    recipe: {codigo_pdv:null as string|null,tipo_produto_id:null as string|null,nome:'Bolo atualizado',rendimento_valor:10,rendimento_unidade:'un',status:'finalizada',preco_venda:77,markup_id:markup},
     components: {
       ingredientes:[{id:id(100),produto_id:product,quantidade:200}],
       sub_receitas:[{id:id(101),sub_receita_id:sub,quantidade:1}],
@@ -91,6 +91,15 @@ beforeEach(async()=>{
   payload=makePayload();
 });
 describe('Atomic recipe save in PostgreSQL with RLS and plan triggers',()=>{
+  it.each([true,false])('persists the selected product type when creating or editing (create=%s)',async creating=>{
+    await db.query('insert into tipos_produto(id,user_id) values ($1,$2)',[id(40),owner]);
+    payload.recipe.tipo_produto_id=id(40);
+    const recipeId=creating?id(99):original;
+    if(creating) keys.forEach((key,i)=>payload.components[key][0].id=id(200+i));
+    await save(recipeId,creating);
+    expect((await db.query('select tipo_produto_id from receitas where id=$1',[recipeId])).rows)
+      .toEqual([{tipo_produto_id:id(40)}]);
+  });
   it('saves PDV with the transaction, rejects duplicate codes and clears PDV when duplicating',async()=>{
     payload.recipe.codigo_pdv=' 00471 ';
     const request=await prepareCopy();

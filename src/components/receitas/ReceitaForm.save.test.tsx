@@ -24,7 +24,6 @@ vi.mock('@/components/receitas/GeralTab', () => ({
 }));
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
-vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: () => <div>Projeção</div> }));
 vi.mock('@/components/receitas/PrecificacaoTab', () => ({
   PrecificacaoTab: ({formData,onFormChange}: FormProps) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value || null)}>
     <option value="">Selecione</option><option value="markup-normal">Normal</option><option value="markup-sub">Sub-receita</option>
@@ -36,6 +35,7 @@ const otherProduto = {...produto,id:'cacau',nome:'Cacau sintético'};
 const ingredient = {id:'ingredient-1',receita_id:'recipe-1',produto_id:produto.id,quantidade:100,produto};
 const recipe: ReceitaCompleta = {
   id:'recipe-1',user_id:m.user.id,numero_sequencial:1,nome:'Bolo sintético',rendimento_valor:10,
+  tipo_produto_id:'cake',tipo_produto:{id:'cake',nome:'Bolo'},
   rendimento_unidade:'un',tempo_preparo_total:30,tempo_preparo_mao_obra:0,conservacao:null,
   observacoes:null,imagem_url:null,markup_id:'markup-normal',preco_venda:40,status:'finalizada',peso_unitario:100,
   created_at:'2026-11-01T00:00:00Z',updated_at:'2026-11-01T00:00:00Z',embalagens:[],sub_receitas:[],passos:[],mao_obra:[],ingredientes:[ingredient],
@@ -47,9 +47,9 @@ beforeEach(() => {
     data: {id:request.p_receita_id,numero_sequencial:1,updated_at:'2026-11-03T00:00:00Z'}, error:null,
   }));
   m.from.mockImplementation(table => {
-    const data = table === 'produtos' ? [produto,otherProduto] : [];
+    const data = table === 'produtos' ? [produto,otherProduto] : table === 'tipos_produto' ? [{id:'cake',nome:'Bolo'},{id:'pie',nome:'Torta'}] : [];
     const query = {
-      select:()=>query, eq:()=>query, order:()=>query,
+      select:()=>query, eq:()=>query, order:()=>query, abortSignal:()=>query,
       maybeSingle:async()=>({data:null,error:null}),
       single:async()=>({data:{tipo:'normal'},error:null}),
       then:(resolve:(value: { data: typeof data; error: null }) => unknown)=>Promise.resolve({data,error:null}).then(resolve),
@@ -58,9 +58,9 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
-function open(create=false, withoutMarkup=false) {
+function open(create=false, withoutMarkup=false, tipo='cake') {
   return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}>
-    <ReceitaForm receita={create?null:{...structuredClone(recipe),markup_id:withoutMarkup?null:recipe.markup_id}} onClose={m.close}/>
+    <ReceitaForm receita={create?null:{...structuredClone(recipe),tipo_produto_id:tipo,tipo_produto:{id:tipo,nome:tipo==='pie'?'Torta':'Bolo'},markup_id:withoutMarkup?null:recipe.markup_id}} onClose={m.close}/>
   </QueryClientProvider>);
 }
 async function changeIngredient() {
@@ -73,12 +73,52 @@ async function changeIngredient() {
   await waitFor(()=>expect(screen.getAllByDisplayValue('200').length).toBeGreaterThan(0));
 }
 async function save(fromStep=1,create=false,selectMarkup=true) {
-  for(let i=fromStep;i<5;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+  for(let i=fromStep;i<5;i++) {
+    fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    if (create && i===3) await selectTipo();
+  }
   if (create && selectMarkup) fireEvent.change(screen.getByLabelText('Markup'),{target:{value:'markup-normal'}});
   fireEvent.click(screen.getByRole('button',{name:create?'Criar':'Atualizar'}));
   await waitFor(()=>expect(screen.getByRole('button',{name:create?'Criar':'Atualizar'})).toBeEnabled());
 }
+async function selectTipo() {
+  const control=await screen.findByRole('combobox',{name:'Tipo de Produto *'});
+  await waitFor(()=>expect(control).toBeEnabled());
+  fireEvent.keyDown(control,{key:'Enter'});
+  fireEvent.keyDown(await screen.findByRole('option',{name:'Bolo'}),{key:'Enter'});
+}
 describe('Atomic save feedback and retries',()=>{
+  it.each([true,false])('requires a product type without discarding the form, then saves the selection (create=%s)',async creating=>{
+    open(creating,false,'');
+    if(creating) fireEvent.change(screen.getByLabelText('Nome'),{target:{value:'Receita sem tipo'}});
+    for(let i=0;i<5;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    if(creating) fireEvent.change(screen.getByLabelText('Markup'),{target:{value:'markup-normal'}});
+    fireEvent.click(screen.getByRole('button',{name:creating?'Criar':'Atualizar'}));
+    expect(m.rpc).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Selecione o tipo de produto na etapa Projeção');
+    await selectTipo();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await save(4,creating,false);
+    expect(m.rpc.mock.calls.at(-1)?.[1].p_receita).toMatchObject({tipo_produto_id:'cake',nome:creating?'Receita sem tipo':'Bolo sintético'});
+  });
+  it('loads the selected product type, keeps a change across tabs, saves and reopens it',async()=>{
+    open();
+    for(let i=0;i<4;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    const control=await screen.findByRole('combobox',{name:'Tipo de Produto *'});
+    await waitFor(()=>expect(control).toHaveTextContent('Bolo'));
+    fireEvent.keyDown(control,{key:'Enter'});
+    fireEvent.keyDown(await screen.findByRole('option',{name:'Torta'}),{key:'Enter'});
+    expect(control).toHaveTextContent('Torta');
+    fireEvent.click(screen.getByRole('button',{name:'Etapa anterior'}));
+    fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    expect(screen.getByRole('combobox',{name:'Tipo de Produto *'})).toHaveTextContent('Torta');
+    await save(4);
+    expect(m.rpc.mock.calls.at(-1)?.[1].p_receita.tipo_produto_id).toBe('pie');
+    cleanup();
+    open(false,false,'pie');
+    for(let i=0;i<4;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    await waitFor(()=>expect(screen.getByRole('combobox',{name:'Tipo de Produto *'})).toHaveTextContent('Torta'));
+  });
   it('saves an optional PDV with leading zeroes in the same request during create and edit',async()=>{
     for (const creating of [true,false]) {
       open(creating);
@@ -174,7 +214,9 @@ describe('Required recipe markup',()=>{
   });
   it('accepts the explicitly selected sub-recipe markup',async()=>{
     open(true);fireEvent.change(screen.getByLabelText('Nome'),{target:{value:'Recheio'}});
-    for(let i=0;i<5;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    for(let i=0;i<4;i++) fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
+    await selectTipo();
+    fireEvent.click(screen.getByRole('button',{name:'Próximo'}));
     fireEvent.change(screen.getByLabelText('Markup'),{target:{value:'markup-sub'}});
     await save(5,true,false);
     expect(m.rpc.mock.calls[0][1].p_receita.markup_id).toBe('markup-sub');

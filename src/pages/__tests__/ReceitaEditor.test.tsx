@@ -38,7 +38,7 @@ vi.mock('@/components/receitas/IngredientesTab', () => ({
 }));
 vi.mock('@/components/receitas/SubReceitasTab', () => ({ SubReceitasTab: () => <div>Sub-receitas</div> }));
 vi.mock('@/components/receitas/EmbalagensTa', () => ({ EmbalagensTa: () => <div>Embalagens</div> }));
-vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: () => <div>Projeção</div> }));
+vi.mock('@/components/receitas/ProjecaoTab', () => ({ ProjecaoTab: ({formData,onFormChange}: {formData:ReceitaFormData;onFormChange:AlterarReceitaForm}) => <label>Tipo de Produto<select value={formData.tipo_produto_id || ''} onChange={e=>onFormChange('tipo_produto_id',e.target.value)}><option value="">Selecione</option><option value="type">Bolo</option></select></label> }));
 vi.mock('@/components/receitas/PrecificacaoTab', () => ({ PrecificacaoTab: ({formData,onFormChange}: { formData: ReceitaFormData; onFormChange: AlterarReceitaForm }) => <label>Markup<select value={formData.markup_id || ''} onChange={e=>onFormChange('markup_id',e.target.value)}><option value="">Selecione</option><option value="markup">Normal</option></select></label> }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => ({
@@ -58,6 +58,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 const recipe: ReceitaCompleta = {
   id: 'recipe-1', user_id: 'owner', numero_sequencial: 1, nome: 'Bolo de teste',
+  tipo_produto_id: 'type', tipo_produto: { id: 'type', nome: 'Bolo' },
   rendimento_valor: 10, rendimento_unidade: 'un', tempo_preparo_total: 30,
   tempo_preparo_mao_obra: 0, conservacao: null, observacoes: null, imagem_url: null,
   markup_id: 'markup', preco_venda: 40, status: 'finalizada', peso_unitario: 100,
@@ -209,7 +210,9 @@ describe('recipe editor navigation', () => {
   it('creates through all six steps and returns only after saving', async () => {
     openPage('/receitas/nova');
     fireEvent.change(await screen.findByLabelText('Nome da Receita *'), { target: { value: 'Bolo novo' } });
-    for (let step = 0; step < 5; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
+    for (let step = 0; step < 4; step++) fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
+    fireEvent.change(screen.getByLabelText('Tipo de Produto'), { target: { value: 'type' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Próximo' }));
     fireEvent.change(screen.getByLabelText('Markup'), { target: { value: 'markup' } });
     fireEvent.click(screen.getByRole('button', { name: 'Criar' }));
     await waitFor(() => expect(mocks.saveReceitaCompleta).toHaveBeenCalledWith(expect.objectContaining({ p_criar: true, p_receita: expect.objectContaining({ nome: 'Bolo novo' }) })));
