@@ -76,62 +76,52 @@ export function CarrinhoMovimentacao({
   };
   const totalItens = carrinho.length;
   const valorTotal = carrinho.reduce((sum, item) => sum + item.subtotal, 0);
-  return <Card className="flex h-auto max-w-full flex-col rounded-2xl border-border/70 p-5 shadow-sm xl:h-[calc(100dvh-22rem)] xl:min-h-[540px] xl:max-h-[760px]">
-      {/* Cabeçalho - fixo */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+  return <Card className="flex h-full min-h-0 max-w-full flex-col overflow-hidden rounded-2xl border-border/70 shadow-sm">
+      <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-4 py-3">
         <span className="rounded-xl bg-primary/10 p-2 text-primary"><ShoppingCart className="h-5 w-5" /></span>
-        <h3 className="font-semibold text-lg">Carrinho</h3>
-        {totalItens > 0 && <span className="ml-auto text-sm text-muted-foreground">
-            {totalItens} {totalItens === 1 ? 'item' : 'itens'}
-          </span>}
+        <h3 className="text-base font-semibold">Carrinho</h3>
+        {totalItens > 0 && <span className="ml-auto rounded-lg bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+          {totalItens} {totalItens === 1 ? 'item' : 'itens'}
+        </span>}
       </div>
 
-      <Separator className="my-4 flex-shrink-0" />
-
-      {/* Área de itens - com scroll */}
-      <div className="max-h-52 min-h-0 flex-1 overflow-y-auto lg:max-h-none">
-        {carrinho.length === 0 ? <div className="flex min-h-40 h-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/20 px-5 py-8 text-center text-sm text-muted-foreground">
-            <ShoppingCart className="h-7 w-7 text-primary/40" />
+      {/* Only the cart contents scroll on shorter screens; the action stays visible. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
+        <div role="region" aria-label="Itens no carrinho" tabIndex={0} className="min-h-24 flex-1 overflow-y-auto overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
+          {carrinho.length === 0 ? <div className="flex h-full min-h-24 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-4 text-center text-sm text-muted-foreground">
+            <ShoppingCart className="h-6 w-6 text-primary/40" />
             <p className="font-medium text-foreground">Nenhum item adicionado</p>
             <p className="max-w-48 text-xs leading-relaxed">Selecione um produto para começar a movimentação.</p>
           </div> : <div className="space-y-2 pr-1">
             {carrinho.map((item, index) => <ItemCarrinho key={`${item.produto_id}-${index}`} item={item} onRemove={() => handleRemoveItem(index)} />)}
           </div>}
+        </div>
+
+        <div className="shrink-0 space-y-3">
+          {carrinho.length > 0 && <div className="flex items-center justify-between rounded-xl bg-primary/5 px-3 py-2 font-semibold">
+            <span className="text-sm">Total</span>
+            <span className="text-lg text-primary">{formatters.valor(valorTotal)}</span>
+          </div>}
+          <Separator />
+          <div className="space-y-1.5">
+            <Label htmlFor="mov-responsavel">Responsável *</Label>
+            <Select value={responsavel} onValueChange={setResponsavel}>
+              <SelectTrigger id="mov-responsavel"><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+              <SelectContent>
+                {funcionarios.map(func => <SelectItem key={func.id} value={func.nome}>{func.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="mov-observacao">Observação</Label>
+            <Textarea id="mov-observacao" value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observações sobre a movimentação..." rows={2} className="min-h-16 resize-none" />
+          </div>
+        </div>
       </div>
 
-      {/* Rodapé - fixo na parte inferior */}
-      <div className="flex-shrink-0 space-y-4 mt-4">
-        {carrinho.length > 0 && <>
-            <Separator />
-            <div className="flex items-center justify-between font-semibold">
-              <span>Total:</span>
-              <span className="text-lg">{formatters.valor(valorTotal)}</span>
-            </div>
-          </>}
-
-        <Separator />
-
-        <div className="space-y-2">
-          <Label>Responsável *</Label>
-          <Select value={responsavel} onValueChange={setResponsavel}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o responsável" />
-            </SelectTrigger>
-            <SelectContent>
-              {funcionarios.map(func => <SelectItem key={func.id} value={func.nome}>
-                  {func.nome}
-                </SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Observação</Label>
-          <Textarea value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Observações sobre a movimentação..." rows={2} />
-        </div>
-
-        <Button onClick={handleFinalizar} disabled={carrinho.length === 0 || !responsavel || finalizing} className="min-h-11 w-full">
-          <FileText className="h-4 w-4 mr-2" />
+      <div className="shrink-0 border-t border-border/60 bg-card p-3">
+        <Button onClick={handleFinalizar} disabled={carrinho.length === 0 || !responsavel || finalizing} className="min-h-11 w-full px-2 text-xs xl:text-sm">
+          <FileText className="mr-2 h-4 w-4 shrink-0" />
           {finalizing ? 'Finalizando...' : 'Finalizar e Gerar Comprovante'}
         </Button>
       </div>

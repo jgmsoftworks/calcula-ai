@@ -19,9 +19,9 @@ export function ProdutoCard({ produto, onSelect }: ProdutoCardProps) {
     <div className="relative h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-primary/5 sm:aspect-[4/3] sm:h-auto sm:w-full">
       {produto.imagem_url ? <img loading="lazy" decoding="async" src={produto.imagem_url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <div className="flex h-full flex-col items-center justify-center gap-2 text-primary/35"><Package className="h-9 w-9" /><span className="text-[10px] font-medium">Sem foto</span></div>}
     </div>
-    <div className="flex min-w-0 flex-1 flex-col sm:px-1 sm:pt-4">
-      <h4 className="break-words text-sm font-semibold leading-relaxed text-foreground sm:min-h-[2.75rem]">{produto.nome}</h4>
-      <div className="mb-4 mt-2.5 flex items-start">
+    <div className="flex min-w-0 flex-1 flex-col sm:px-1 sm:pt-3">
+      <h4 className="break-words text-sm font-semibold leading-relaxed text-foreground sm:min-h-[2.5rem]">{produto.nome}</h4>
+      <div className="mb-3 mt-2 flex items-start">
         <span className="inline-flex max-w-full items-start gap-1.5 rounded-lg border border-primary/15 bg-primary/[0.07] px-2 py-1.5 text-[11px] font-semibold leading-snug text-primary">
           <Tag className="mt-px h-3 w-3 shrink-0" />
           <span className="break-words"><span className="font-normal opacity-75">{fridge ? 'Tipo' : 'Categoria'}: </span>{category}</span>

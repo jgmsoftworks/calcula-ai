@@ -45,6 +45,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const isProductEditor = /^\/estoque\/(novo|[^/]+\/editar)$/.test(location.pathname);
+  const isMovementWorkspace = location.pathname === '/estoque/movimentacoes';
   const [isResending, setIsResending] = useState(false);
   const [hasAuthFragment, setHasAuthFragment] = useState(false);
   const { toast } = useToast();
@@ -158,12 +159,12 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const pageInfo = getPageInfo(location.pathname);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className={isMovementWorkspace ? 'h-dvh min-h-0 flex-col overflow-hidden' : undefined}>
       <SubscriptionStatusGate>
-      <div className={`flex w-full min-w-0 bg-background ${isProductEditor ? 'h-dvh overflow-hidden' : 'min-h-svh overflow-x-hidden'}`}>
+      <div className={`flex w-full min-w-0 bg-background ${isMovementWorkspace ? 'min-h-0 flex-1 overflow-hidden' : isProductEditor ? 'h-dvh overflow-hidden' : 'min-h-svh overflow-x-hidden'}`}>
         <AppSidebar />
         
-        <div className={`flex min-w-0 flex-1 flex-col ${isProductEditor ? 'min-h-0' : 'min-h-svh'}`}>
+        <div className={`flex min-w-0 flex-1 flex-col ${isProductEditor || isMovementWorkspace ? 'min-h-0' : 'min-h-svh'}`}>
           {/* Header — glass morphism */}
           <header className="glass-strong sticky top-0 z-30 shrink-0 border-b border-border/30">
             <div className="flex h-14 min-w-0 items-center gap-1 px-2.5 sm:gap-2 sm:px-4 lg:gap-3 lg:px-6">
@@ -216,7 +217,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </Tooltip>
               )}
               <NotificationCenter />
-              {isProductEditor && <WhatsAppSupportButton inline />}
+              {(isProductEditor || isMovementWorkspace) && <WhatsAppSupportButton inline />}
 
               {/* User menu */}
               <DropdownMenu>
@@ -270,14 +271,14 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className={`mx-auto w-full min-w-0 max-w-full px-3 pt-3 sm:px-6 sm:pt-4 lg:px-8 lg:pt-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12 ${isProductEditor ? 'h-full' : 'pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-6'}`}>
+          <main className={`min-h-0 min-w-0 flex-1 ${isMovementWorkspace ? 'overflow-hidden' : 'overflow-x-hidden overflow-y-auto'}`}>
+            <div className={isMovementWorkspace ? 'h-full min-h-0 min-w-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:p-4' : `mx-auto w-full min-w-0 max-w-full px-3 pt-3 sm:px-6 sm:pt-4 lg:px-8 lg:pt-6 xl:max-w-[1280px] 2xl:max-w-[1480px] 2xl:px-8 3xl:max-w-[1680px] 3xl:px-10 4xl:max-w-[1880px] 4xl:px-12 ${isProductEditor ? 'h-full' : 'pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-6'}`}>
               {children}
             </div>
           </main>
         </div>
 
-        {!isProductEditor && <WhatsAppSupportButton />}
+        {!isProductEditor && !isMovementWorkspace && <WhatsAppSupportButton />}
       </div>
       </SubscriptionStatusGate>
     </SidebarProvider>
