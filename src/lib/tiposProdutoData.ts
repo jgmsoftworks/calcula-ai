@@ -1,3 +1,4 @@
+import { uploadCatalogoFoto } from './catalogoFoto';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface TipoProduto {
@@ -20,17 +21,7 @@ export async function fetchTiposProduto(userId: string, signal?: AbortSignal): P
 
 export async function salvarTipoProduto(userId: string, input: Pick<TipoProduto, 'nome' | 'imagem_url'>, id?: string): Promise<TipoProduto> {
   if (!input.nome.trim()) throw new Error('Informe o nome do tipo.');
-  let imagem_url = input.imagem_url ?? null;
-  if (imagem_url?.startsWith('data:')) {
-    if (!imagem_url.startsWith('data:image/jpeg;base64,')) throw new Error('Ajuste a foto antes de salvar.');
-    const bytes = Uint8Array.from(atob(imagem_url.split(',')[1]), char => char.charCodeAt(0));
-    if (!bytes.length || bytes.length > 5 * 1024 * 1024) throw new Error('A foto deve ter até 5 MB.');
-    const path = `${userId}/tipos-produto/${crypto.randomUUID()}.jpg`;
-    const storage = supabase.storage.from('receitas-images');
-    const { error } = await storage.upload(path, new Blob([bytes], { type: 'image/jpeg' }), { contentType: 'image/jpeg', upsert: false });
-    if (error) throw error;
-    imagem_url = storage.getPublicUrl(path).data.publicUrl;
-  }
+  const imagem_url = await uploadCatalogoFoto(userId, 'tipos-produto', input.imagem_url);
   const payload = { nome: input.nome.trim(), imagem_url };
   const query = id
     ? supabase.from('tipos_produto').update(payload).eq('id', id).eq('user_id', userId)
