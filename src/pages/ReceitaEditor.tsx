@@ -10,7 +10,7 @@ import { useReceitas } from '@/hooks/useReceitas';
 import { NewItemPlanGate } from '@/components/planos/NewItemPlanGate';
 
 export default function ReceitaEditor() {
-  usePortugalTranslation();
+  const { t } = usePortugalTranslation();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { fetchReceitaCompleta } = useReceitas();
@@ -33,14 +33,18 @@ export default function ReceitaEditor() {
     gcTime: 0,
   });
 
-  const voltarParaReceitas = () => {
-    navigate(`/receitas${location.search}`, { replace: true });
+  const fromHome = location.state?.fromPricingHome === true;
+  const backLabel = fromHome ? t('home.back') : 'Voltar para receitas';
+  const voltar = () => {
+    const markup = location.state?.markup;
+    const search = typeof markup === 'string' && markup !== 'saved' ? '?' + new URLSearchParams({ markup }) : '';
+    navigate(fromHome ? '/' + search : `/receitas${location.search}`, { replace: true });
   };
 
   if (id && (isPending || isFetching || isError || !receita)) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={voltarParaReceitas} className="gap-2">
+        <Button variant="ghost" onClick={voltar} className="gap-2">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Voltar para receitas
         </Button>
@@ -62,8 +66,8 @@ export default function ReceitaEditor() {
     );
   }
 
-  if (!id) return <NewItemPlanGate feature="receitas" onBack={voltarParaReceitas}>
-    <ReceitaForm key="nova" receita={null} onClose={voltarParaReceitas} />
+  if (!id) return <NewItemPlanGate feature="receitas" onBack={voltar}>
+    <ReceitaForm key="nova" receita={null} onClose={voltar} />
   </NewItemPlanGate>;
-  return <ReceitaForm key={id} receita={receita!} onClose={voltarParaReceitas} />;
+  return <ReceitaForm key={id} backLabel={backLabel} initialTab={location.hash === '#precificacao' ? 'precificacao' : 'geral'} receita={receita!} onClose={voltar} />;
 }

@@ -30,14 +30,16 @@ export async function fetchReceitaParaVisualizacao(userId: string, receitaId: st
   };
 }
 
-export const RECEITA_CUSTO_SELECT = `
-    *, tipo_produto:tipos_produto(id, nome), markup:markups(id, nome, tipo),
+export const RECEITA_COMPONENTES_CUSTO = `
     ingredientes:receita_ingredientes(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
     embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
     mao_obra:receita_mao_obra(valor_total),
     sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
       quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
     )
+`;
+export const RECEITA_CUSTO_SELECT = `
+    *, tipo_produto:tipos_produto(id, nome), markup:markups(id, nome, tipo), ${RECEITA_COMPONENTES_CUSTO}
 `;
 export interface ReceitaFilters {
   search?: string;

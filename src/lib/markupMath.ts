@@ -1,3 +1,5 @@
+import type { Markup, MarkupDetalhado } from '@/types/configurations';
+
 export const MARKUP_PERCENTAGE_LIMIT = 100;
 
 export function sumMarkupPercentages(
@@ -26,4 +28,18 @@ export function maxAllowedProfitPercentage(costPercentagesTotal: number): number
 
   const available = MARKUP_PERCENTAGE_LIMIT - 0.01 - costPercentagesTotal;
   return Math.max(0, Number(available.toFixed(2)));
+}
+
+export function markupIndirectPercent(markup: Pick<Markup, 'gasto_sobre_faturamento' | 'encargos_sobre_venda'>, details?: MarkupDetalhado | null) {
+  if (!details) return sumMarkupPercentages(markup.gasto_sobre_faturamento, markup.encargos_sobre_venda);
+  return sumMarkupPercentages(details.gastoSobreFaturamento, details.impostos, details.taxas, details.comissoes, details.outros);
+}
+
+/** Net profit per unit at the entered selling price. The desired margin is a target, never a cost. */
+export function netProfitAtPrice(price: number, unitCost: number, fixedFee: number, indirectPercent: number) {
+  const custosDiretos = unitCost + fixedFee;
+  const custosIndiretos = price * (indirectPercent / 100);
+  const lucroLiquido = price - custosDiretos - custosIndiretos;
+  const margemLiquida = price > 0 ? (lucroLiquido / price) * 100 : 0;
+  return { custosDiretos, custosIndiretos, lucroLiquido, margemLiquida };
 }

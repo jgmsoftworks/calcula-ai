@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Info, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
+import { isValidMarkupPercentageTotal, markupIndirectPercent, netProfitAtPrice, sumMarkupPercentages } from '@/lib/markupMath';
 import { formatNumber } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -212,19 +212,9 @@ export function MarkupCard({
   const lucroBruto = precoVenda - custoBase;
   const margemBruta = precoVenda > 0 ? (lucroBruto / precoVenda) * 100 : 0;
 
-  // Calcular lucro líquido considerando TODOS os custos indiretos
-  const gastosReais = precoVenda * ((detalhes?.gastoSobreFaturamento ?? 0) / 100);
-  const impostosReais = precoVenda * ((detalhes?.impostos ?? 0) / 100);
-  const taxasReais = precoVenda * ((detalhes?.taxas ?? 0) / 100);
-  const comissoesReais = precoVenda * ((detalhes?.comissoes ?? 0) / 100);
-  const outrosReais = precoVenda * ((detalhes?.outros ?? 0) / 100);
-
-  const totalCustosIndiretos = gastosReais + impostosReais + taxasReais + comissoesReais + outrosReais;
-  const custosDirectosCompletos = custoBase + valorEmRealBloco;
-
-  // Lucro líquido REAL = Preço - Custos Diretos - Custos Indiretos
-  const lucroLiquido = precoVenda - custosDirectosCompletos - totalCustosIndiretos;
-  const margemLiquida = precoVenda > 0 ? (lucroLiquido / precoVenda) * 100 : 0;
+  const encargos = markupIndirectPercent(markup, detalhes);
+  const { custosDiretos: custosDirectosCompletos, custosIndiretos: totalCustosIndiretos, lucroLiquido, margemLiquida } =
+    netProfitAtPrice(precoVenda, custoBase, valorEmRealBloco, encargos);
 
   return (
     <Card className={cn(

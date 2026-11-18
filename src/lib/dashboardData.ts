@@ -6,7 +6,7 @@ import type { DashboardData } from '@/hooks/useDashboardData';
 const PAGE_SIZE = 500;
 
 // Read every page before calculating totals; never treat a failed page as an empty list.
-async function readAll<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] }> {
+export async function readAll<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[] }> {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await fetchPage(from, from + PAGE_SIZE - 1);
