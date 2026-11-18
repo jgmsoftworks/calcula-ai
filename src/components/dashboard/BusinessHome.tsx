@@ -161,11 +161,11 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
           </Button>}
         </> : <div className="m-4 flex items-center gap-3 rounded-xl bg-muted/50 p-4 text-sm sm:m-5">
           {summary.assessed ? <CheckCircle2 className="size-5 shrink-0 text-emerald-600" /> : <BookOpen className="size-5 shrink-0 text-muted-foreground" />}
-          {t(summary.assessed ? 'home.onTarget' : data.recipes.length ? 'home.noAssessment' : 'home.noRecipes')}
+          {t(summary.assessed ? 'home.onTarget' : summary.total ? 'home.noAssessment' : 'home.noRecipes')}
         </div>)}
 
         {summary && <footer className="space-y-1 border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
-          <p>{t('home.coverage', { assessed: summary.assessed, total: data.recipes.length })}</p>
+          <p>{t('home.coverage', { assessed: summary.assessed, total: summary.total })}</p>
           {summary.skipped > 0 && <details className="home-pending">
             <summary>{t('home.pending', { count: summary.skipped })}</summary>
             <ul className="mt-1 list-inside list-disc space-y-0.5">

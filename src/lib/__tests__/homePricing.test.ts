@@ -4,7 +4,7 @@ import { assessMargins } from '../homePricing';
 
 const credit = { id: 'credit', name: 'Crédito', target: 25, indirect: 12, fixed: 1.5 };
 const pix = { id: 'pix', name: 'Pix', target: 25, indirect: 0, fixed: 0 };
-const recipe = { id: 'cake', name: 'Bolo', image: null, markupId: credit.id, unitCost: 5, price: 10 };
+const recipe = { id: 'cake', name: 'Bolo', image: null, markupType: 'normal', markupId: credit.id, unitCost: 5, price: 10 };
 
 describe('home recipe margins', () => {
   it('uses each saved markup, fixed and percentage fees, and rounds the target price up to a cent', () => {
@@ -24,7 +24,7 @@ describe('home recipe margins', () => {
     const result = assessMargins([recipe, { ...recipe, id: 'loss', price: 2 },
       { ...recipe, price: 0 }, { ...recipe, unitCost: 0 }, { ...recipe, markupId: null }], [credit], null);
     expect(result.alerts.map(r => r.id)).toEqual(['loss', 'cake']);
-    expect(result.skipped).toBe(3);
+    expect(result.skipped).toBe(2);
     expect(assessMargins([recipe], [{ ...credit, target: 88 }], null).average).toBeNull();
   });
 
@@ -45,10 +45,16 @@ describe('home recipe margins', () => {
     }
   });
 
-  it('accepts exact equality and can simulate a sheet with no saved markup', () => {
-    const exact = { ...recipe, unitCost: 7.5, markupId: null };
-    const result = assessMargins([exact], [pix], pix.id);
-    expect(result.average).toBe(25);
-    expect(result.alerts).toEqual([]);
+  it('accepts exact equality and never grants a sale markup to an unclassified sheet in simulation', () => {
+    const exact = { ...recipe, unitCost: 7.5 };
+    const preparation = { ...recipe, price: 1, markupType: 'sub_receita', markupId: 'prep' };
+    const unclassified = { ...recipe, price: 1, markupType: null, markupId: null };
+    for (const selected of [null, credit.id, pix.id]) {
+      const control = assessMargins([exact], [credit, pix], selected);
+      const result = assessMargins([exact, preparation, unclassified], [credit, pix], selected);
+      expect(result).toEqual(control);
+      expect(result.total).toBe(1);
+    }
+    expect(assessMargins([exact], [credit, pix], pix.id)).toMatchObject({ average: 25, alerts: [] });
   });
 });

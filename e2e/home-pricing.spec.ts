@@ -8,15 +8,18 @@ test('home compares recipe margins, simulates another markup and opens the price
     embalagens: [], sub_receitas: [], mao_obra: [],
   });
   const recipes = [
-    makeRecipe('bolo', 'Bolo de cenoura', 10, 6), makeRecipe('torta', 'Torta de limão', 12, 8),
+    makeRecipe('bolo', 'Bolo de cenoura', 10, 6), { ...makeRecipe('torta', 'Torta de limão', 12, 6), sub_receitas: [
+      { quantidade: 10, sub_receita_id: 'base', sub_receita: { preco_venda: 20, rendimento_valor: 10, status: 'finalizada', markup: { tipo: 'sub_receita' } } },
+    ] },
     makeRecipe('bombom', 'Bombom de morango', 8, 4.5), makeRecipe('cookie', 'Cookie de chocolate', 9, 3),
     makeRecipe('brigadeiro', 'Brigadeiro tradicional', 5, 2), makeRecipe('brownie', 'Brownie de cacau', 8, 2.5),
     { ...makeRecipe('zero', 'Exemplo sem rendimento', 0.2, 13), rendimento_valor: 0 },
-    { ...makeRecipe('base', 'Preparo de teste', 2, 2), tipo_produto_id: 'base', markup: { tipo: 'sub_receita' } },
+    { ...makeRecipe('base', 'Preparo de teste', 20, 50), markup_id: 'sub', tipo_produto_id: 'base', markup: { tipo: 'sub_receita' } },
+    { ...makeRecipe('unknown', 'Ficha sem classificação', 1, 50), markup: null, markup_id: null },
     { ...makeRecipe('legacy', 'Preparo importado', 2.58761, 3), tipo_produto_id: 'base' },
     { ...makeRecipe('retail', 'Produto de venda medido por peso', 15.73214, 1), rendimento_unidade: 'Grama (g)', tipo_produto_id: 'base' },
     { ...makeRecipe('kit', 'Kit com componente sem custo', 9, 1), sub_receitas: [
-      { sub_receita_id: 'bolo', quantidade: 5, sub_receita: { preco_venda: 10, rendimento_valor: 1 } },
+      { sub_receita_id: 'bolo', quantidade: 5, sub_receita: { preco_venda: 10, rendimento_valor: 1, status: 'finalizada', markup: { tipo: 'normal' } } },
     ] },
     makeRecipe('pudim', 'Pudim de leite', 12, 4), makeRecipe('trufa', 'Trufa de café', 6, 2),
   ];
@@ -30,8 +33,17 @@ test('home compares recipe margins, simulates another markup and opens the price
     let data: unknown = [];
     if (table === 'get_my_access') data = { can_access: true, reason: 'active', server_now: new Date().toISOString(),
       access_mode: 'legacy', plan: 'Empresarial', is_admin: false, has_subscription: true };
-    if (table === 'receitas') data = url.searchParams.has('id') ? recipes[1] : recipes;
-    if (table === 'markups') data = url.searchParams.get('tipo') === 'eq.sub_receita' ? null : markups;
+    if (table === 'receitas') {
+      if (url.searchParams.has('id')) data = recipes[1];
+      else if (url.searchParams.get('markup.tipo') === 'eq.normal' && url.searchParams.get('select')?.includes('markup:markups!inner(tipo)')) {
+        data = recipes.filter(r => r.markup?.tipo === 'normal');
+      } else data = recipes;
+    }
+    if (table === 'markups') {
+      const sub = { ...markups[0], id: 'sub', tipo: 'sub_receita', nome: 'Sub-receita' };
+      const tipo = url.searchParams.get('tipo');
+      data = tipo === 'eq.sub_receita' ? sub : tipo === 'eq.normal' ? markups : [...markups, sub];
+    }
     if (table === 'user_configurations') data = url.searchParams.get('type')?.startsWith('like.') ? [
       { type: 'markup_crédito', configuration: { gastoSobreFaturamento: 10, taxas: 8, valorEmReal: 1, lucroDesejado: 25 } },
     ] : null;
@@ -45,7 +57,7 @@ test('home compares recipe margins, simulates another markup and opens the price
   const review = page.getByRole('link', { name: 'Revisar preço de Torta de limão' });
   await expect(page.getByRole('heading', { name: 'Receitas abaixo da meta' })).toBeVisible();
   await expect(review).toContainText('15,79');
-  await expect(page.getByText('9 de 12 fichas analisadas.')).toBeVisible();
+  await expect(page.getByText('9 de 12 receitas de venda analisadas.')).toBeVisible();
   await expect(page.getByRole('link', { name: /Produtos ativos/ })).toContainText('29');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('inicio.png'), fullPage: true, animations: 'disabled' });
@@ -67,7 +79,9 @@ test('home compares recipe margins, simulates another markup and opens the price
   await expect(review.getByText(/Ajuste de/)).toBeVisible();
   await details.click();
   await page.getByLabel('Markup da análise').click();
+  await expect(page.getByRole('option', { name: 'Sub-receita', exact: true })).toHaveCount(0);
   await page.getByRole('option', { name: 'Pix', exact: true }).click();
+  await expect(page.getByText('9 de 12 receitas de venda analisadas.')).toBeVisible();
   await expect(page.getByText('Todas as receitas analisadas atingem o lucro desejado.')).toBeVisible();
   await page.getByLabel('Markup da análise').click();
   await page.getByRole('option', { name: 'De cada receita' }).click();

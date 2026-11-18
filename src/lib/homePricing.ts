@@ -12,6 +12,7 @@ interface HomeRecipe {
   unitCost: number | null;
   priceIssue?: 'sale' | 'composition';
   markupId: string | null;
+  markupType: string | null;
 }
 interface HomeMarkup {
   id: string;
@@ -26,8 +27,8 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
     supabase.from('produtos').select('id', { count: 'exact', head: true })
       .eq('user_id', userId).eq('ativo', true).abortSignal(signal),
     readAll((from, to) => supabase.from('receitas')
-      .select(`id, nome, imagem_url, preco_venda, rendimento_valor, rendimento_unidade, markup_id, markup:markups(tipo), ${RECEITA_COMPONENTES_CUSTO}`)
-      .eq('user_id', userId).eq('status', 'finalizada').order('id').range(from, to).abortSignal(signal)),
+      .select(`id, nome, imagem_url, preco_venda, rendimento_valor, rendimento_unidade, markup_id, markup:markups!inner(tipo), ${RECEITA_COMPONENTES_CUSTO}`)
+      .eq('user_id', userId).eq('status', 'finalizada').eq('markup.tipo', 'normal').order('id').range(from, to).abortSignal(signal)),
     readAll((from, to) => supabase.from('markups').select('id, nome, margem_lucro, gasto_sobre_faturamento, encargos_sobre_venda')
       .eq('user_id', userId).eq('ativo', true).eq('tipo', 'normal').order('id').range(from, to).abortSignal(signal)),
     readAll((from, to) => supabase.from('user_configurations').select('type, configuration')
@@ -44,24 +45,20 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
       indirect: markupIndirectPercent(m, d),
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
-  const byId = new Map(recipes.data.map(r => [r.id, r]));
-  const componentIds = new Set(recipes.data.flatMap(r => r.sub_receitas.map(item => item.sub_receita_id)));
-  const catalog: HomeRecipe[] = recipes.data.filter(r => r.markup?.tipo !== 'sub_receita').map(r => {
+  const catalog: HomeRecipe[] = recipes.data.map(r => {
     const c = calcularDadosReceita(r);
     const total = c.custo_ingredientes + c.custo_embalagens + c.custo_mao_obra + c.custo_sub_receitas;
     // A preparation stores its batch cost in preco_venda. Other sheets store a selling price there.
-    const hasUnverifiedComponent = r.sub_receitas.some(item => {
-      const child = byId.get(item.sub_receita_id);
-      return !child || child.markup?.tipo !== 'sub_receita' || !(child.rendimento_valor > 0 && child.preco_venda > 0);
-    });
-    const isUnclassifiedComponent = componentIds.has(r.id) && !r.markup;
+    const hasUnverifiedComponent = r.sub_receitas.some(({ sub_receita: child }) =>
+      child?.status !== 'finalizada' || child.markup?.tipo !== 'sub_receita' ||
+      !(child.rendimento_valor > 0 && child.preco_venda > 0));
     const cents = r.preco_venda * 100;
     const isDiscreteUnit = ['un', 'unidade', 'unidade (un)'].includes(r.rendimento_unidade?.trim().toLowerCase());
     const subcentUnitPrice = isDiscreteUnit && Math.abs(cents - Math.round(cents)) > 1e-7;
     let priceIssue: HomeRecipe['priceIssue'];
     if (hasUnverifiedComponent) priceIssue = 'composition';
-    else if (isUnclassifiedComponent || subcentUnitPrice) priceIssue = 'sale';
-    return { id: r.id, name: r.nome, image: r.imagem_url, price: r.preco_venda, markupId: r.markup_id, priceIssue,
+    else if (subcentUnitPrice) priceIssue = 'sale';
+    return { id: r.id, name: r.nome, image: r.imagem_url, price: r.preco_venda, markupId: r.markup_id, markupType: r.markup?.tipo ?? null, priceIssue,
       unitCost: r.rendimento_valor > 0 ? total / r.rendimento_valor : null };
   });
   return { products: products.count, recipes: catalog, channels };
@@ -70,12 +67,15 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
 export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], overrideId: string | null) {
   const byId = new Map(channels.map(m => [m.id, m]));
   const alerts = [];
+  let total = 0;
   let assessed = 0;
   let missingYield = 0;
   let unconfirmedSale = 0;
   let unconfirmedComposition = 0;
   let sum = 0;
   for (const recipe of recipes) {
+    if (recipe.markupType !== 'normal' || !recipe.markupId) continue;
+    total++;
     if (recipe.unitCost === null) { missingYield++; continue; }
     if (recipe.priceIssue === 'composition') { unconfirmedComposition++; continue; }
     if (recipe.priceIssue === 'sale') { unconfirmedSale++; continue; }
@@ -95,5 +95,5 @@ export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], ove
     }
   }
   alerts.sort((a, b) => b.gap - a.gap || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
-  return { alerts, average: assessed ? sum / assessed : null, assessed, missingYield, unconfirmedSale, unconfirmedComposition, skipped: recipes.length - assessed };
+  return { alerts, total, average: assessed ? sum / assessed : null, assessed, missingYield, unconfirmedSale, unconfirmedComposition, skipped: total - assessed };
 }

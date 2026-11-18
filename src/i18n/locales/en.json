@@ -130,7 +130,7 @@
     "onTarget": "All assessed recipes meet their target margin.",
     "noAssessment": "No recipes have enough data to compare margins yet.",
     "noRecipes": "Create your first recipe sheet to track target profit.",
-    "coverage": "{{assessed}} of {{total}} recipe sheets assessed.",
+    "coverage": "{{assessed}} of {{total}} recipes for sale assessed.",
     "skipped_one": "{{count}} sheet lacks a valid price, cost or markup.",
     "skipped_other": "{{count}} sheets lack a valid price, cost or markup.",
     "manage": "Manage markups",
