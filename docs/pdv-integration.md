@@ -114,3 +114,15 @@ conta, além dos casos existentes de histórico, PDV e exclusão de sub-receitas
 Aplicar somente esta migração; não executar replay do histórico remoto. Para
 reverter a API, restaurar a definição de `exportar_receitas_painel` da migração
 `20261117134100_excluir_subreceitas_catalogo_painel.sql`; nenhum dado é alterado.
+
+## Explicação do lucro no painel — 18/11/2026
+
+`20261118121000_detalhamento_credito_painel.sql` acrescenta somente
+`simulacao_credito.encargos_detalhados` (nome, categoria, percentual, fixo unitário).
+Usa os encargos ativos selecionados no CRÉDITO do proprietário; classifica pelos
+mesmos nomes do cadastro de markups, com personalizados em Outros. Não exporta
+identidades de colaboradores nem credenciais. O lucro desejado segue fora das
+deduções. A Edge Function existente repassa o campo sem republicação Lovable.
+A migração exige o hash da definição anterior conhecida, preserva grants e não
+reexecuta migrations antigas. Reversão: restaurar somente a RPC da migração
+20261117224000; o painel degrada para o total dos encargos quando não há detalhes.

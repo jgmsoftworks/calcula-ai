@@ -6,7 +6,7 @@ const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')
 const owner=id(1), other=id(2), first=id(10), second=id(11), foreign=id(12);
 const hash='a'.repeat(64), otherHash='b'.repeat(64);
 let db: PGlite;
-type Catalog = { simulacao_credito: null | { nome: string; despesas_fixas_mensais: number; folha_mensal: number; fixos_percentuais: number; markup_multiplicador: number; lucro_desejado_percentual: number; encargos_percentuais: number; encargo_fixo_unitario: number }; receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
+type Catalog = { simulacao_credito: null | { encargos_detalhados: {nome:string;categoria:string;percentual:number;fixo_unitario:number}[]; nome: string; despesas_fixas_mensais: number; folha_mensal: number; fixos_percentuais: number; markup_multiplicador: number; lucro_desejado_percentual: number; encargos_percentuais: number; encargo_fixo_unitario: number }; receitas: { id: string; codigo_pdv: string | null; custo_unitario: number | null; nome: string; tipo_produto: { id: string; nome: string } | null }[] };
 async function catalog(month='2026-03', key=hash) {
   await db.exec('set role service_role');
   return (await db.query<{ data: Catalog }>('select public.exportar_receitas_painel($1,$2) as data',[key,month])).rows[0].data;
@@ -22,7 +22,7 @@ beforeEach(async () => {
       add column despesas_fixas_selecionadas jsonb default '[]', add column folha_pagamento_selecionada jsonb default '[]',
       add column encargos_venda_selecionados jsonb default '[]';
     create table despesas_fixas(id uuid, user_id uuid, valor numeric, ativo boolean default true);
-    create table encargos_venda(id uuid, user_id uuid, valor_percentual numeric, valor_fixo numeric, ativo boolean default true);
+    create table encargos_venda(id uuid, user_id uuid, nome text default 'Encargo teste', valor_percentual numeric, valor_fixo numeric, ativo boolean default true);
     create table folha_pagamento(id uuid, user_id uuid, salario_base numeric, adicional numeric, desconto numeric, ativo boolean default true,
       ${['fgts','inss','rat','ferias','vale_transporte','vale_alimentacao','vale_refeicao','plano_saude','outros'].flatMap(k=>[k+'_percent numeric',k+'_valor numeric']).join(',')});
     grant select on despesas_fixas,encargos_venda,folha_pagamento to service_role;
@@ -44,6 +44,7 @@ beforeEach(async () => {
   await db.exec(readFileSync('supabase/migrations/20261117203000_simulacao_credito_painel.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261117210000_percentual_fixos_credito_painel.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261117224000_sugestao_credito_painel.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261118121000_detalhamento_credito_painel.sql','utf8'));
   await db.exec(`insert into receita_integracoes(user_id,nome,token_hash) values ('${owner}','Painel teste','${hash}'),('${other}','Outra conta','${otherHash}');`);
 });
 afterEach(async () => { await db?.close(); });
@@ -125,7 +126,7 @@ describe('PDV identity and owner-scoped catalog SQL', () => {
 describe('current credit scenario export', () => {
   it('exports selected active owner components with exact payroll rounding and no employee identities', async () => {
     await db.exec(`insert into despesas_fixas values ('${id(50)}','${owner}',100,true),('${id(51)}','${other}',999,true),('${id(52)}','${owner}',999,false);
-      insert into encargos_venda values ('${id(60)}','${owner}',11.7,1.5,true),('${id(61)}','${owner}',50,99,false),('${id(62)}','${other}',90,99,true);
+      insert into encargos_venda(id,user_id,valor_percentual,valor_fixo,ativo) values ('${id(60)}','${owner}',11.7,1.5,true),('${id(61)}','${owner}',50,99,false),('${id(62)}','${other}',90,99,true);
       insert into folha_pagamento(id,user_id,salario_base,adicional,desconto,fgts_percent,fgts_valor,inss_percent,inss_valor) values
         ('${id(70)}','${owner}',1000,20,10,8,999,0,5),('${id(71)}','${other}',999,0,0,0,0,0,0);
       insert into markups(id,user_id,tipo,markup_aplicado,nome,despesas_fixas_selecionadas,folha_pagamento_selecionada,encargos_venda_selecionados)
@@ -140,6 +141,22 @@ describe('current credit scenario export', () => {
     await db.exec(`reset role; update markups set gasto_sobre_faturamento=45 where id='${id(80)}';`);
     expect((await catalog()).simulacao_credito?.fixos_percentuais).toBe(45);
     expect((await catalog('2026-03',otherHash)).simulacao_credito).toBeNull();
+  });
+  it('exports each selected active charge with the same markup categories, including custom charges and fixed amounts', async () => {
+    const names=['ICMS','Cartão de crédito','Aplicativo de delivery','CPP','KIT ENTREGA','Não selecionado','Inativo','Outra conta'];
+    await db.exec(`insert into markups(id,user_id,tipo,markup_aplicado,nome,encargos_venda_selecionados) values
+      ('${id(80)}','${owner}','normal',3,'CRÉDITO','${JSON.stringify([0,1,2,3,4,6,7].map(n=>id(90+n)))}');`);
+    for(let n=0;n<names.length;n++) await db.query('insert into encargos_venda(id,user_id,nome,valor_percentual,valor_fixo,ativo) values($1,$2,$3,$4,$5,$6)',[id(90+n),n===7?other:owner,names[n],n+1,n===4?1.25:0,n!==6]);
+    const result=(await catalog()).simulacao_credito!;
+    expect(result.encargos_detalhados).toHaveLength(5);
+    expect(result.encargos_detalhados.find(e=>e.nome==='ICMS')?.categoria).toBe('impostos');
+    expect(result.encargos_detalhados.find(e=>e.nome==='Cartão de crédito')?.categoria).toBe('meios_pagamento');
+    expect(result.encargos_detalhados.find(e=>e.nome==='Aplicativo de delivery')?.categoria).toBe('comissoes');
+    expect(result.encargos_detalhados.find(e=>e.nome==='CPP')?.categoria).toBe('outros');
+    expect(result.encargos_detalhados.reduce((n,e)=>n+e.percentual,0)).toBe(result.encargos_percentuais);
+    expect(result.encargos_detalhados.reduce((n,e)=>n+e.fixo_unitario,0)).toBe(result.encargo_fixo_unitario);
+    await db.exec(`reset role; update encargos_venda set valor_percentual=9 where nome='ICMS';`);
+    expect((await catalog()).simulacao_credito?.encargos_detalhados.find(e=>e.nome==='ICMS')?.percentual).toBe(9);
   });
   it('fails closed for missing, ambiguous or inactive CREDIT instead of picking another markup', async () => {
     expect((await catalog()).simulacao_credito).toBeNull();
