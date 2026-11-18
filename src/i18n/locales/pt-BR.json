@@ -130,7 +130,7 @@
     "onTarget": "Todas as receitas analisadas atingem o lucro desejado.",
     "noAssessment": "Ainda não há receitas com dados suficientes para comparar as margens.",
     "noRecipes": "Crie sua primeira ficha técnica para acompanhar o lucro desejado.",
-    "coverage": "{{assessed}} de {{total}} fichas analisadas.",
+    "coverage": "{{assessed}} de {{total}} receitas de venda analisadas.",
     "skipped_one": "{{count}} ficha sem preço, custo ou markup válido.",
     "skipped_other": "{{count}} fichas sem preço, custo ou markup válido.",
     "manage": "Gerenciar markups",
