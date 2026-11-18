@@ -35,11 +35,35 @@ export function markupIndirectPercent(markup: Pick<Markup, 'gasto_sobre_faturame
   return sumMarkupPercentages(details.gastoSobreFaturamento, details.impostos, details.taxas, details.comissoes, details.outros);
 }
 
+export function sheetBaseCost(batchCost: number, yieldAmount: number | null | undefined, preparation: boolean) {
+  return !preparation && yieldAmount && yieldAmount > 0 ? batchCost / yieldAmount : batchCost;
+}
+
+export function sheetCmvPercent(unitCost: number, price: number) {
+  if (!(price > 0)) return null;
+  const percent = unitCost / price * 100;
+  return Number.isFinite(percent) ? Number(percent.toFixed(1)) : null;
+}
+
+// The pricing sheet displays net margin to one decimal using Intl rounding.
+const sheetMarginFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, useGrouping: false });
+
+export function meanSheetPercent(values: (number | null)[]) {
+  let total = 0;
+  let count = 0;
+  for (const value of values) {
+    if (value === null || !Number.isFinite(value)) continue;
+    total += value;
+    count++;
+  }
+  return { average: count ? total / count : null, count };
+}
+
 /** Net profit per unit at the entered selling price. The desired margin is a target, never a cost. */
 export function netProfitAtPrice(price: number, unitCost: number, fixedFee: number, indirectPercent: number) {
   const custosDiretos = unitCost + fixedFee;
   const custosIndiretos = price * (indirectPercent / 100);
   const lucroLiquido = price - custosDiretos - custosIndiretos;
   const margemLiquida = price > 0 ? (lucroLiquido / price) * 100 : 0;
-  return { custosDiretos, custosIndiretos, lucroLiquido, margemLiquida };
+  return { custosDiretos, custosIndiretos, lucroLiquido, margemLiquida, displayedMargin: Number(sheetMarginFormat.format(margemLiquida)) };
 }

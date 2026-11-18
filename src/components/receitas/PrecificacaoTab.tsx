@@ -18,7 +18,7 @@ import { Info, AlertTriangle, ChevronDown, Check, TrendingUp, Package, DollarSig
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
+import { sheetBaseCost, sheetCmvPercent, isValidMarkupPercentageTotal, sumMarkupPercentages } from '@/lib/markupMath';
 
 interface PrecificacaoTabProps {
   mode?: 'create' | 'edit';
@@ -385,11 +385,8 @@ export function PrecificacaoTab({ mode = 'edit', receita, formData, onFormChange
       {(() => {
         const rendimento = formData.rendimento_valor || receita?.rendimento_valor || 0;
         const isSubReceita = selectedMarkup?.tipo === 'sub_receita';
-        const custoUnitario = isSubReceita || rendimento <= 0
-          ? custoTotal
-          : custoTotal / rendimento;
-        const precoVenda = formData.preco_venda || 0;
-        const cmv = precoVenda > 0 ? (custoUnitario / precoVenda) * 100 : null;
+        const custoUnitario = sheetBaseCost(custoTotal, rendimento, isSubReceita);
+        const cmv = sheetCmvPercent(custoUnitario, formData.preco_venda || 0);
         const cmvColor = cmv === null
           ? 'text-muted-foreground'
           : cmv <= 30

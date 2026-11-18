@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Info, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { isValidMarkupPercentageTotal, markupIndirectPercent, netProfitAtPrice, sumMarkupPercentages } from '@/lib/markupMath';
+import { sheetBaseCost, isValidMarkupPercentageTotal, markupIndirectPercent, netProfitAtPrice, sumMarkupPercentages } from '@/lib/markupMath';
 import { formatNumber } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -178,16 +178,7 @@ export function MarkupCard({
   const configuracaoPercentualValida =
     markup.tipo === 'sub_receita' || isValidMarkupPercentageTotal(totalPercentuais);
 
-  // Determinar o custo base (unitário ou total)
-  let custoBase: number;
-
-  // Se NÃO for markup de sub-receita E tiver rendimento, calcular custo unitário
-  if (markup.tipo !== 'sub_receita' && rendimentoValor && rendimentoValor > 0) {
-    custoBase = custoTotal / rendimentoValor;
-  } else {
-    // Markup de sub-receita OU sem rendimento = usar custo total
-    custoBase = custoTotal;
-  }
+  const custoBase = sheetBaseCost(custoTotal, rendimentoValor, markup.tipo === 'sub_receita');
 
   let precoSugerido: number | null = null;
   let baseCalculo = custoBase;
@@ -213,7 +204,7 @@ export function MarkupCard({
   const margemBruta = precoVenda > 0 ? (lucroBruto / precoVenda) * 100 : 0;
 
   const encargos = markupIndirectPercent(markup, detalhes);
-  const { custosDiretos: custosDirectosCompletos, custosIndiretos: totalCustosIndiretos, lucroLiquido, margemLiquida } =
+  const { custosDiretos: custosDirectosCompletos, custosIndiretos: totalCustosIndiretos, lucroLiquido, margemLiquida, displayedMargin } =
     netProfitAtPrice(precoVenda, custoBase, valorEmRealBloco, encargos);
 
   return (
@@ -447,7 +438,7 @@ export function MarkupCard({
                   {formatMoney(lucroLiquido)}
                 </span>
                 <span className="text-muted-foreground ml-2">
-                  ({formatNumber(margemLiquida, 1)}%)
+                  ({formatNumber(displayedMargin, 1)}%)
                 </span>
               </div>
             </div>

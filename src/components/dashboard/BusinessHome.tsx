@@ -77,13 +77,12 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
   }).format(new Date());
   const percent = new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 2 });
   const pct = (n: number) => percent.format(n / 100);
-  const channelLabel = data?.channels.find(c => c.id === selected)?.name ?? t('home.saved');
   const marginDetails = <>
-    <p>{t('home.marginUnit')}</p><p>{t('home.marginInputs')}</p><p>{t('home.marginMean')}</p>
-    {summary && <p className="font-medium">{t('home.marginBasis', { count: summary.assessed, channel: channelLabel })}</p>}
+    <p>{t('home.marginMean')}</p>
+    {data && <p className="font-medium">{t('home.marginBasis', { count: data.margin.count })}</p>}
   </>;
   const cmvDetails = <>
-    <p>{t('home.cmvMean')}</p><p>{t('home.cmvYield')}</p>
+    <p>{t('home.cmvMean')}</p>
     {cmv.data && <p className="font-medium">{t('home.cmvBasis', { count: cmv.data.count })}</p>}
   </>;
 
@@ -118,8 +117,8 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
 
     <div className="home-stats">
       <HomeStat label={t('home.products')} value={stock.data?.data.length} icon={Package} tone="blue" to="/estoque" pending={stock.isPending} />
-      <HomeStat label={t('home.assessedRecipes')} value={summary?.assessed} icon={ChefHat} tone="violet" to="/receitas" pending={query.isPending} />
-      <HomeStat label={t('home.average')} value={summary?.average != null ? pct(summary.average) : null} icon={Percent} tone="blueRoyal" pending={query.isPending} details={marginDetails} />
+      <HomeStat label={t('home.recipesWithMargin')} value={data?.margin.count} icon={ChefHat} tone="violet" to="/receitas" pending={query.isPending} />
+      <HomeStat label={t('home.average')} value={data?.margin.average != null ? pct(data.margin.average) : null} icon={Percent} tone="blueRoyal" pending={query.isPending} details={marginDetails} />
       <HomeStat label={t('home.below')} value={summary?.assessed ? summary.alerts.length : null} icon={Target} tone="amber" pending={query.isPending} />
     </div>
     <div className="home-stats home-balance">

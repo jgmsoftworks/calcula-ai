@@ -18,6 +18,7 @@ import type { ReceitaComDados, ReceitaCompleta } from '@/types/receitas';
 import { ReceitaPreviewModal } from './ReceitaPreviewModal';
 import { ExcluirReceitaModal } from './ExcluirReceitaModal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { sheetBaseCost, sheetCmvPercent } from '@/lib/markupMath';
 import { cn } from '@/lib/utils';
 
 interface ReceitaCardProps {
@@ -67,9 +68,7 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
                      (receita.custo_mao_obra || 0) + 
                      (receita.custo_sub_receitas || 0);
 
-  const custoBase = (receita.markup?.tipo === 'sub_receita' || !receita.rendimento_valor || receita.rendimento_valor <= 0)
-    ? custoTotal
-    : custoTotal / receita.rendimento_valor;
+  const custoBase = sheetBaseCost(custoTotal, receita.rendimento_valor, receita.markup?.tipo === 'sub_receita');
   const lucroBruto = receita.preco_venda - custoBase;
 
   // Use preloaded data if available, otherwise fallback to individual fetch
@@ -107,9 +106,6 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
 
   const calcularLucroLiquido = () => {
     if (!markupDetalhes || !receita.markup) return 0;
-    const custoBase = receita.markup.tipo === 'sub_receita' 
-      ? custoTotal
-      : (receita.rendimento_valor > 0 ? custoTotal / receita.rendimento_valor : custoTotal);
     const valorEmRealBloco = markupDetalhes.valorEmReal || 0;
     const gastosReais = receita.preco_venda * ((markupDetalhes.gastoSobreFaturamento || 0) / 100);
     const impostosReais = receita.preco_venda * ((markupDetalhes.impostos || 0) / 100);
@@ -136,8 +132,8 @@ export function ReceitaCard({ receita, onEdit, onDelete, preloadedDetalhes, isLo
   let cmvPercentual: number | null = null;
   let cmvDisplay = '—';
   if (precoEfetivo > 0) {
-    cmvPercentual = (custoBase / precoEfetivo) * 100;
-    cmvDisplay = `${cmvPercentual.toFixed(1).replace('.', ',')}%`;
+    cmvPercentual = sheetCmvPercent(custoBase, precoEfetivo);
+    if (cmvPercentual !== null) cmvDisplay = `${cmvPercentual.toFixed(1).replace('.', ',')}%`;
   } else if (custoBase > 0) {
     // Preço de venda zerado mas há custo → prejuízo total
     cmvPercentual = 999;

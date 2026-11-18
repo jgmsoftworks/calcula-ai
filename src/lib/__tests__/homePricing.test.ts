@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { markupIndirectPercent } from '../markupMath';
+import { markupIndirectPercent, meanSheetPercent, netProfitAtPrice, sheetCmvPercent } from '../markupMath';
 import { assessMargins } from '../homePricing';
 
 const credit = { id: 'credit', name: 'Crédito', target: 25, indirect: 12, fixed: 1.5 };
@@ -7,6 +7,16 @@ const pix = { id: 'pix', name: 'Pix', target: 25, indirect: 0, fixed: 0 };
 const recipe = { id: 'cake', name: 'Bolo', image: null, markupType: 'normal', markupId: credit.id, unitCost: 5, price: 10 };
 
 describe('home recipe margins', () => {
+  it('averages the percentage shown on each sheet once, including negative and zero values', () => {
+    const cmvs = Array.from({ length: 100 }, () => sheetCmvPercent(3, 10));
+    expect(meanSheetPercent(cmvs)).toEqual({ count: 100, average: 30 });
+    const margins = [13, 7, 10].map(cost => netProfitAtPrice(10, cost, 0, 0).displayedMargin);
+    expect(margins).toEqual([-30, 30, 0]);
+    expect(meanSheetPercent([...margins, null])).toEqual({ count: 3, average: 0 });
+    expect(meanSheetPercent([sheetCmvPercent(0, 10), sheetCmvPercent(1, 0)])).toEqual({ count: 1, average: 0 });
+    expect(meanSheetPercent([null])).toEqual({ count: 0, average: null });
+  });
+
   it('uses each saved markup, fixed and percentage fees, and rounds the target price up to a cent', () => {
     const result = assessMargins([recipe, { ...recipe, id: 'second', markupId: pix.id }], [credit, pix], null);
     expect(result.assessed).toBe(2);
@@ -14,18 +24,17 @@ describe('home recipe margins', () => {
     expect(result.alerts[0]).toMatchObject({ id: 'cake', targetPrice: 10.32 });
     expect(result.alerts[0].net).toBeCloseTo(2.3);
     expect(result.alerts[0].margin).toBeCloseTo(23);
-    expect(result.average).toBeCloseTo(36.5);
     expect(assessMargins([{ ...recipe, price: 10.32 }], [credit], null).alerts).toHaveLength(0);
     expect(assessMargins([{ ...recipe, price: 10.31 }], [credit], null).alerts).toHaveLength(1);
     expect(assessMargins([recipe], [credit, pix], pix.id).alerts).toHaveLength(0);
   });
 
-  it('sorts negative margins first by shortfall and excludes unpriced or unconfigured sheets from the average', () => {
+  it('sorts negative margins first by shortfall and excludes unpriced or unconfigured sheets from price alerts', () => {
     const result = assessMargins([recipe, { ...recipe, id: 'loss', price: 2 },
       { ...recipe, price: 0 }, { ...recipe, unitCost: 0 }, { ...recipe, markupId: null }], [credit], null);
     expect(result.alerts.map(r => r.id)).toEqual(['loss', 'cake']);
     expect(result.skipped).toBe(2);
-    expect(assessMargins([recipe], [{ ...credit, target: 88 }], null).average).toBeNull();
+    expect(assessMargins([recipe], [{ ...credit, target: 88 }], null).alerts).toHaveLength(0);
   });
 
   it('uses saved aggregate charges for legacy markups and never adds them again to detailed charges', () => {
@@ -41,7 +50,7 @@ describe('home recipe margins', () => {
       const result = assessMargins(rows, [credit, pix], channel);
       expect(result).toMatchObject({ assessed: 1, missingYield: 1, unconfirmedSale: 1, unconfirmedComposition: 1, skipped: 3 });
       expect(result.alerts.map(r => r.id)).toEqual(['valid-loss']);
-      expect(result.average).toBeLessThan(-100);
+      expect(result.alerts[0].margin).toBeLessThan(-100);
     }
   });
 
@@ -55,6 +64,6 @@ describe('home recipe margins', () => {
       expect(result).toEqual(control);
       expect(result.total).toBe(1);
     }
-    expect(assessMargins([exact], [credit, pix], pix.id)).toMatchObject({ average: 25, alerts: [] });
+    expect(assessMargins([exact], [credit, pix], pix.id)).toMatchObject({ assessed: 1, alerts: [] });
   });
 });

@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { MarkupDetalhado } from '@/types/configurations';
 import { calcularDadosReceita, RECEITA_COMPONENTES_CUSTO } from './receitasData';
 import { readAll } from './dashboardData';
-import { isValidMarkupPercentageTotal, markupIndirectPercent, netProfitAtPrice } from './markupMath';
+import { sheetBaseCost, meanSheetPercent, isValidMarkupPercentageTotal, markupIndirectPercent, netProfitAtPrice } from './markupMath';
 
 interface HomeRecipe {
   id: string;
@@ -41,9 +41,14 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
       indirect: markupIndirectPercent(m, d),
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
-  const catalog: HomeRecipe[] = recipes.data.map(r => {
+  const byId = new Map(channels.map(m => [m.id, m]));
+  const catalog = recipes.data.map(r => {
     const c = calcularDadosReceita(r);
     const total = c.custo_ingredientes + c.custo_embalagens + c.custo_mao_obra + c.custo_sub_receitas;
+    const saved = byId.get(r.markup_id);
+    const baseCost = sheetBaseCost(total, r.rendimento_valor, false);
+    const sheetMargin = saved && r.markup?.tipo === 'normal'
+      ? netProfitAtPrice(r.preco_venda, baseCost, saved.fixed, saved.indirect).displayedMargin : null;
     // A preparation stores its batch cost in preco_venda. Other sheets store a selling price there.
     const hasUnverifiedComponent = r.sub_receitas.some(({ sub_receita: child }) =>
       child?.status !== 'finalizada' || child.markup?.tipo !== 'sub_receita' ||
@@ -54,10 +59,10 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
     let priceIssue: HomeRecipe['priceIssue'];
     if (hasUnverifiedComponent) priceIssue = 'composition';
     else if (subcentUnitPrice) priceIssue = 'sale';
-    return { id: r.id, name: r.nome, image: r.imagem_url, price: r.preco_venda, markupId: r.markup_id, markupType: r.markup?.tipo ?? null, priceIssue,
+    return { sheetMargin, id: r.id, name: r.nome, image: r.imagem_url, price: r.preco_venda, markupId: r.markup_id, markupType: r.markup?.tipo ?? null, priceIssue,
       unitCost: r.rendimento_valor > 0 ? total / r.rendimento_valor : null };
   });
-  return { recipes: catalog, channels };
+  return { recipes: catalog, channels, margin: meanSheetPercent(catalog.map(r => r.sheetMargin)) };
 }
 
 export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], overrideId: string | null) {
@@ -68,7 +73,6 @@ export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], ove
   let missingYield = 0;
   let unconfirmedSale = 0;
   let unconfirmedComposition = 0;
-  let sum = 0;
   for (const recipe of recipes) {
     if (recipe.markupType !== 'normal' || !recipe.markupId) continue;
     total++;
@@ -82,7 +86,6 @@ export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], ove
     const { lucroLiquido, margemLiquida } = netProfitAtPrice(recipe.price, recipe.unitCost, m.fixed, m.indirect);
     const gap = m.target - margemLiquida;
     assessed++;
-    sum += margemLiquida;
     if (gap > 1e-8) {
       const exactPrice = (recipe.unitCost + m.fixed) / (1 - (m.indirect + m.target) / 100);
       // Round up to a sellable cent so the displayed price actually meets the target.
@@ -91,5 +94,5 @@ export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], ove
     }
   }
   alerts.sort((a, b) => b.gap - a.gap || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
-  return { alerts, total, average: assessed ? sum / assessed : null, assessed, missingYield, unconfirmedSale, unconfirmedComposition, skipped: total - assessed };
+  return { alerts, total, assessed, missingYield, unconfirmedSale, unconfirmedComposition, skipped: total - assessed };
 }
