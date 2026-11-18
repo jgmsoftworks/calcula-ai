@@ -70,15 +70,10 @@ export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], ove
   const alerts = [];
   let total = 0;
   let assessed = 0;
-  let missingYield = 0;
-  let unconfirmedSale = 0;
-  let unconfirmedComposition = 0;
   for (const recipe of recipes) {
     if (recipe.markupType !== 'normal' || !recipe.markupId) continue;
     total++;
-    if (recipe.unitCost === null) { missingYield++; continue; }
-    if (recipe.priceIssue === 'composition') { unconfirmedComposition++; continue; }
-    if (recipe.priceIssue === 'sale') { unconfirmedSale++; continue; }
+    if (recipe.unitCost === null || recipe.priceIssue) continue;
     const m = byId.get(overrideId ?? recipe.markupId);
     if (!m || !Number.isFinite(recipe.unitCost) ||
         !Number.isFinite(recipe.price) || !(recipe.price > 0 && recipe.unitCost > 0) || m.fixed < 0 || m.target < 0 ||
@@ -94,5 +89,5 @@ export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], ove
     }
   }
   alerts.sort((a, b) => b.gap - a.gap || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
-  return { alerts, total, assessed, missingYield, unconfirmedSale, unconfirmedComposition, skipped: total - assessed };
+  return { alerts, total, assessed };
 }

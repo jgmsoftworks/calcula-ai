@@ -33,7 +33,7 @@ describe('home recipe margins', () => {
     const result = assessMargins([recipe, { ...recipe, id: 'loss', price: 2 },
       { ...recipe, price: 0 }, { ...recipe, unitCost: 0 }, { ...recipe, markupId: null }], [credit], null);
     expect(result.alerts.map(r => r.id)).toEqual(['loss', 'cake']);
-    expect(result.skipped).toBe(2);
+    expect(result.assessed).toBe(2);
     expect(assessMargins([recipe], [{ ...credit, target: 88 }], null).alerts).toHaveLength(0);
   });
 
@@ -48,7 +48,7 @@ describe('home recipe margins', () => {
       { ...recipe, id: 'valid-loss', price: 1, unitCost: 75 }];
     for (const channel of [null, pix.id]) {
       const result = assessMargins(rows, [credit, pix], channel);
-      expect(result).toMatchObject({ assessed: 1, missingYield: 1, unconfirmedSale: 1, unconfirmedComposition: 1, skipped: 3 });
+      expect(result).toMatchObject({ total: 4, assessed: 1 });
       expect(result.alerts.map(r => r.id)).toEqual(['valid-loss']);
       expect(result.alerts[0].margin).toBeLessThan(-100);
     }

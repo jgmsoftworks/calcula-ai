@@ -6,7 +6,7 @@ Base: `b4c556e1351ab9d876955401926a29dfd89cce06`. Publicação pela Lovable fica
 
 Na revisão sobre `7b91282`, cada cartão usa a média aritmética dos percentuais exibidos pelas fichas finalizadas. Cada ficha com um percentual numérico entra uma vez, com o sinal e a precisão mostrados na ficha (uma casa decimal). Zeros entram e percentuais indisponíveis ficam fora do respectivo denominador. As sub-receitas ficam fora dos dois cartões. O CMV vem do indicador CMV da ficha. A margem vem do percentual de lucro líquido real do markup salvo. O detalhe de cada cartão mostra quantas fichas contribuíram. A página inicial e o Resumo de estoque compartilham a média de CMV.
 
-O seletor de canal serve à lista de receitas abaixo da meta. A simulação usa apenas fichas com markup de origem comercial, preço e rendimento adequados e componentes com custo verificável. O preço para atingir a meta arredonda para cima até o centavo. A lista pode usar menos fichas que a média do cadastro.
+A lista de receitas abaixo da meta exibe as cinco maiores diferenças de margem e mostra mais cinco por clique. O seletor de canal simula os alertas dessa lista. A simulação usa apenas fichas com markup de origem comercial, preço e rendimento adequados e componentes com custo verificável. O preço para atingir a meta arredonda para cima até o centavo. A lista pode usar menos fichas que a média do cadastro.
 
 O resumo mensal está em **Relatórios → Resumo de estoque**. As consultas de movimentações só rodam ao abrir esse resumo. No Início, a contagem e o valor em estoque usam a mesma leitura paginada dos produtos ativos. A Geladeira usa o custo das quantidades armazenadas e indica quando o total é parcial.
 

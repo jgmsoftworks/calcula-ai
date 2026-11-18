@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { PlanMascot } from '@/components/planos/PlanMascot';
 import './business-home.css';
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 5;
 
 function HomeStat({ label, value, icon: Icon, tone, pending, to, details, note }: {
   label: string; value?: string | number | null; icon: LucideIcon; tone: string; pending: boolean;
@@ -211,20 +211,6 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
           {t(summary.assessed ? 'home.onTarget' : summary.total ? 'home.noAssessment' : 'home.noRecipes')}
         </div>)}
 
-        {summary && <footer className="space-y-1 border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
-          <p>{t('home.coverage', { assessed: summary.assessed, total: summary.total })}</p>
-          {summary.skipped > 0 && <details className="home-pending">
-            <summary>{t('home.pending', { count: summary.skipped })}</summary>
-            <ul className="mt-1 list-inside list-disc space-y-0.5">
-              {summary.missingYield > 0 && <li>{t('home.missingYield', { count: summary.missingYield })}</li>}
-              {summary.unconfirmedSale > 0 && <li>{t('home.unconfirmedSale', { count: summary.unconfirmedSale })}</li>}
-              {summary.unconfirmedComposition > 0 && <li>{t('home.unconfirmedComposition', { count: summary.unconfirmedComposition })}</li>}
-              {summary.skipped > summary.missingYield + summary.unconfirmedSale + summary.unconfirmedComposition && <li>{t('home.otherPending', {
-                count: summary.skipped - summary.missingYield - summary.unconfirmedSale - summary.unconfirmedComposition,
-              })}</li>}
-            </ul>
-          </details>}
-        </footer>}
       </section>
     </div>
   </div>;
