@@ -26,7 +26,6 @@ a.home-stat:hover { border-color: hsl(var(--stat-color) / .45); }
   background: hsl(var(--stat-color) / .09); color: hsl(var(--stat-color)); flex-shrink: 0; }
 .home-stat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.55rem; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
 .home-panel { min-width: 0; border: 1px solid hsl(var(--border) / .85); border-radius: 1rem; background: hsl(var(--card)); }
-.home-pending summary { cursor: pointer; width: fit-content; font-weight: 500; }
 .home-review { container-type: inline-size; overflow: hidden; }
 .home-toolbar {
   display: flex;
