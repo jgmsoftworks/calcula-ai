@@ -1,13 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen, CalendarDays, CheckCircle2, ChefHat,
-  ChevronDown, ChevronRight, ListPlus, Package, Percent, Plus, RefreshCw, Target,
+  ChevronDown, ChevronRight, ChartPie, Info, ListPlus, Package, Percent, Plus, RefreshCw, Refrigerator, Target, Warehouse, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { fetchActiveStock, fetchRecipeCmv } from '@/lib/dashboardData';
+import { fetchGeladeira, resumoValorGeladeira } from '@/lib/geladeiraData';
+import { calculateEstoqueFinal } from '@/lib/cmvCalculations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney, getBusinessRegion } from '@/lib/business-region';
 import { assessMargins, fetchHomePricing } from '@/lib/homePricing';
@@ -16,6 +20,32 @@ import { PlanMascot } from '@/components/planos/PlanMascot';
 import './business-home.css';
 
 const PAGE_SIZE = 3;
+
+function HomeStat({ label, value, icon: Icon, tone, pending, to, details, note }: {
+  label: string; value?: string | number | null; icon: LucideIcon; tone: string; pending: boolean;
+  to?: string; details?: ReactNode; note?: string;
+}) {
+  const { t } = useTranslation();
+  const content = <>
+    <div className="home-stat-label">
+      <span className="home-stat-icon"><Icon aria-hidden="true" className="size-4" /></span>
+      <span>{label}</span>
+      {details && <Popover><PopoverTrigger asChild>
+        <button type="button" className="home-stat-info" aria-label={t('home.explainMetric', { label })}>
+          <Info className="size-4" aria-hidden="true" />
+        </button>
+      </PopoverTrigger>
+        <PopoverContent aria-label={label} className="space-y-2 text-sm leading-relaxed">
+          <h3 className="font-semibold">{label}</h3>{details}
+        </PopoverContent>
+      </Popover>}
+    </div>
+    {pending ? <Skeleton className="h-7 w-16" /> : <strong className="home-stat-value">{value ?? '—'}</strong>}
+    {note && <span className="text-xs text-muted-foreground">{note}</span>}
+  </>;
+  return to ? <Link className="home-stat" data-tone={tone} to={to}>{content}</Link>
+    : <div className="home-stat" data-tone={tone}>{content}</div>;
+}
 
 export function BusinessHome({ userId, displayName }: { userId: string; displayName?: string }) {
   const { t, i18n } = useTranslation();
@@ -28,6 +58,15 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
     refetchOnMount: 'always',
     retry: 1,
   });
+  const stock = useQuery({ queryKey: ['home-active-stock', userId],
+    queryFn: ({ signal }) => fetchActiveStock(userId, signal), refetchOnMount: 'always' });
+  const fridge = useQuery({ queryKey: ['geladeira', userId], queryFn: ({ signal }) => fetchGeladeira(userId, signal),
+    select: resumoValorGeladeira, refetchOnMount: 'always' });
+  const cmv = useQuery({ queryKey: ['home-recipe-cmv', userId],
+    queryFn: ({ signal }) => fetchRecipeCmv(userId, signal), refetchOnMount: 'always' });
+  const metrics = [query, stock, fridge, cmv];
+  const isRefreshing = metrics.some(metric => metric.isFetching);
+  const refresh = () => { void Promise.all(metrics.map(metric => metric.refetch())); };
   const data = query.data;
   const selectedId = params.get('markup');
   const selected = data?.channels.find(c => c.id === selectedId)?.id ?? 'saved';
@@ -38,12 +77,15 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
   }).format(new Date());
   const percent = new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 2 });
   const pct = (n: number) => percent.format(n / 100);
-  const stats = [
-    { label: 'products', value: data?.products, icon: Package, tone: 'blue', to: '/estoque' },
-    { label: 'assessedRecipes', value: summary?.assessed, icon: ChefHat, tone: 'violet', to: '/receitas' },
-    { label: 'average', value: summary?.average != null ? pct(summary.average) : '—', icon: Percent, tone: 'blueRoyal' },
-    { label: 'below', value: summary?.assessed ? summary.alerts.length : '—', icon: Target, tone: 'amber' },
-  ];
+  const channelLabel = data?.channels.find(c => c.id === selected)?.name ?? t('home.saved');
+  const marginDetails = <>
+    <p>{t('home.marginUnit')}</p><p>{t('home.marginInputs')}</p><p>{t('home.marginMean')}</p>
+    {summary && <p className="font-medium">{t('home.marginBasis', { count: summary.assessed, channel: channelLabel })}</p>}
+  </>;
+  const cmvDetails = <>
+    <p>{t('home.cmvMean')}</p><p>{t('home.cmvYield')}</p>
+    {cmv.data && <p className="font-medium">{t('home.cmvBasis', { count: cmv.data.count })}</p>}
+  </>;
 
   function changeMarkup(value: string) {
     const next = new URLSearchParams(params);
@@ -75,18 +117,24 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
     </header>
 
     <div className="home-stats">
-      {stats.map(({ label, value, icon: Icon, tone, to }) => {
-        const content = <><div className="home-stat-label"><span className="home-stat-icon"><Icon aria-hidden="true" className="size-4" /></span>
-          <span>{t('home.' + label)}</span></div>
-          {query.isPending ? <Skeleton className="mt-2 h-6 w-14" /> : <strong className="home-stat-value">{value ?? '—'}</strong>}</>;
-        return to ? <Link className="home-stat" data-tone={tone} key={label} to={to}>{content}</Link>
-          : <div className="home-stat" data-tone={tone} key={label}>{content}</div>;
-      })}
+      <HomeStat label={t('home.products')} value={stock.data?.data.length} icon={Package} tone="blue" to="/estoque" pending={stock.isPending} />
+      <HomeStat label={t('home.assessedRecipes')} value={summary?.assessed} icon={ChefHat} tone="violet" to="/receitas" pending={query.isPending} />
+      <HomeStat label={t('home.average')} value={summary?.average != null ? pct(summary.average) : null} icon={Percent} tone="blueRoyal" pending={query.isPending} details={marginDetails} />
+      <HomeStat label={t('home.below')} value={summary?.assessed ? summary.alerts.length : null} icon={Target} tone="amber" pending={query.isPending} />
+    </div>
+    <div className="home-stats home-balance">
+      <HomeStat label={t('home.stockValue')} value={stock.data && formatMoney(calculateEstoqueFinal(stock.data.data))}
+        icon={Warehouse} tone="blue" to="/estoque" pending={stock.isPending} />
+      <HomeStat label={t('home.fridgeValue')} value={fridge.data && formatMoney(fridge.data.total)} icon={Refrigerator} tone="violet"
+        to="/estoque/geladeira" pending={fridge.isPending} note={fridge.data?.hasUnknownCost ? t('home.partialFridge') : undefined} />
+      <HomeStat label={t('home.recipeCmv')} value={cmv.data?.average != null ? new Intl.NumberFormat(i18n.language,
+        { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(cmv.data.average / 100) : null}
+        icon={ChartPie} tone="blueRoyal" pending={cmv.isPending} details={cmvDetails} />
     </div>
 
-    {query.isError && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-card p-4 text-sm">
-      {t(data ? 'home.refreshError' : 'home.loadError')}{' '}
-      <button className="font-semibold text-primary underline" onClick={() => void query.refetch()}>{t('home.retry')}</button>
+    {metrics.some(metric => metric.isError) && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-card p-4 text-sm">
+      {t('home.metricsError')}{' '}
+      <button className="font-semibold text-primary underline" onClick={refresh}>{t('home.retry')}</button>
     </p>}
 
     <div className="mt-5">
@@ -95,9 +143,9 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
           <div className="flex min-w-0 items-center gap-2.5">
             <h2 id="price-alerts" className="font-display text-base font-bold tracking-tight sm:text-lg">{t('home.reviewTitle')}</h2>
           </div>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0 text-muted-foreground" disabled={query.isFetching}
-            aria-label={t('dashboard.refresh')} title={t('dashboard.refresh')} onClick={() => void query.refetch()}>
-            <RefreshCw className={cn('size-4', query.isFetching && 'animate-spin')} />
+          <Button variant="ghost" size="icon" className="size-9 shrink-0 text-muted-foreground" disabled={isRefreshing}
+            aria-label={t('dashboard.refresh')} title={t('dashboard.refresh')} onClick={refresh}>
+            <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
           </Button>
         </header>
 

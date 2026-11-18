@@ -7,6 +7,8 @@
 .home-calculeco .plan-mascot { width: 100%; height: 100%; }
 .home-actions { flex-wrap: wrap; gap: .5rem; }
 .home-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; }
+.home-balance { margin-top: .625rem; }
+.home-balance .home-stat:last-child { grid-column: 1 / -1; }
 .home-stat {
   display: flex; flex-direction: column; align-items: start; justify-content: space-between;
   min-width: 0; padding: .8rem 1rem; gap: .4rem; border: 1px solid hsl(var(--border) / .85);
@@ -17,6 +19,9 @@ a.home-stat:hover { border-color: hsl(var(--stat-color) / .45); }
 .home-stat[data-tone="blueRoyal"] { --stat-color: var(--brand-blue); }
 .home-stat[data-tone="amber"] { --stat-color: var(--brand-orange); }
 .home-stat-label { display: flex; align-items: center; gap: .5rem; font-size: .8125rem; font-weight: 500; }
+.home-stat-label { width: 100%; min-width: 0; }
+.home-stat-info { display: inline-grid; place-items: center; margin-left: auto; flex: 0 0 1.5rem; min-height: 1.75rem; border-radius: .35rem; color: hsl(var(--muted-foreground)); }
+.home-stat-info:hover, .home-stat-info:focus-visible { color: hsl(var(--primary)); background: hsl(var(--muted)); }
 .home-stat-icon { display: grid; place-items: center; width: 1.875rem; height: 1.875rem; border-radius: .5rem;
   background: hsl(var(--stat-color) / .09); color: hsl(var(--stat-color)); flex-shrink: 0; }
 .home-stat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.55rem; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
@@ -71,8 +76,13 @@ a.home-stat:hover { border-color: hsl(var(--stat-color) / .45); }
 }
 @container (min-width: 40rem) {
   .home-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+  .home-balance { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: .75rem; }
+  .home-balance .home-stat:last-child { grid-column: auto; }
 }
 @container (max-width: 29rem) {
+  .home-stat { padding: .65rem; }
+  .home-stat-label { gap: .35rem; }
+  .home-stat-value { font-size: clamp(1.05rem, 5cqi, 1.5rem); overflow-wrap: anywhere; }
   .home-greeting { gap: .5rem; }
   .home-calculeco { width: 3.5rem; height: 3.5rem; }
   .home-actions { margin-left: .15rem; }

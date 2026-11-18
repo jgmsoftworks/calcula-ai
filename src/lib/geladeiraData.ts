@@ -15,6 +15,16 @@ export function custoUnitarioGeladeira(receita: ReceitaComDados): number | null 
     + (receita.custo_mao_obra || 0) + (receita.custo_sub_receitas || 0);
   return Number.isFinite(total) && total >= 0 ? total / receita.rendimento_valor : null;
 }
+export function resumoValorGeladeira(items: Pick<GeladeiraItem, 'estoque_atual' | 'receita'>[]) {
+  let total = 0;
+  let hasUnknownCost = false;
+  for (const item of items) {
+    const unitCost = custoUnitarioGeladeira(item.receita);
+    if (unitCost !== null) total += unitCost * item.estoque_atual;
+    else if (item.estoque_atual > 0) hasUnknownCost = true;
+  }
+  return { total, hasUnknownCost };
+}
 export function receitaPodeEntrar(receita: ReceitaComDados) {
   return receita.status === 'finalizada' && !!receita.rendimento_unidade?.trim() && custoUnitarioGeladeira(receita) !== null;
 }

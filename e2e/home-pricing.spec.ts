@@ -13,9 +13,9 @@ test('home compares recipe margins, simulates another markup and opens the price
     ] },
     makeRecipe('bombom', 'Bombom de morango', 8, 4.5), makeRecipe('cookie', 'Cookie de chocolate', 9, 3),
     makeRecipe('brigadeiro', 'Brigadeiro tradicional', 5, 2), makeRecipe('brownie', 'Brownie de cacau', 8, 2.5),
-    { ...makeRecipe('zero', 'Exemplo sem rendimento', 0.2, 13), rendimento_valor: 0 },
+    { ...makeRecipe('zero', 'Exemplo sem rendimento', 10, 0.1), rendimento_valor: 0 },
     { ...makeRecipe('base', 'Preparo de teste', 20, 50), markup_id: 'sub', tipo_produto_id: 'base', markup: { tipo: 'sub_receita' } },
-    { ...makeRecipe('unknown', 'Ficha sem classificação', 1, 50), markup: null, markup_id: null },
+    { ...makeRecipe('unknown', 'Ficha sem classificação', 1, 1.1), markup: null, markup_id: null },
     { ...makeRecipe('legacy', 'Preparo importado', 2.58761, 3), tipo_produto_id: 'base' },
     { ...makeRecipe('retail', 'Produto de venda medido por peso', 15.73214, 1), rendimento_unidade: 'Grama (g)', tipo_produto_id: 'base' },
     { ...makeRecipe('kit', 'Kit com componente sem custo', 9, 1), sub_receitas: [
@@ -47,9 +47,11 @@ test('home compares recipe margins, simulates another markup and opens the price
     if (table === 'user_configurations') data = url.searchParams.get('type')?.startsWith('like.') ? [
       { type: 'markup_crédito', configuration: { gastoSobreFaturamento: 10, taxas: 8, valorEmReal: 1, lucroDesejado: 25 } },
     ] : null;
-    if (table === 'produtos' && route.request().method() === 'HEAD') {
-      return route.fulfill({ status: 200, headers: { 'content-range': '0-28/29', 'access-control-expose-headers': 'Content-Range' } });
-    }
+    if (table === 'produtos') data = Array.from({ length: 29 }, () => ({ estoque_atual: 2, custo_unitario: 4.5 }));
+    if (table === 'geladeira_itens') data = [
+      { id: 'cold-cake', estoque_atual: 2, receita: recipes[0] },
+      { id: 'cold-base', estoque_atual: 0.5, receita: recipes.find(r => r.id === 'base') },
+    ];
     await route.fulfill({ status: 200, json: data });
   });
 
@@ -59,6 +61,17 @@ test('home compares recipe margins, simulates another markup and opens the price
   await expect(review).toContainText('15,79');
   await expect(page.getByText('9 de 12 receitas de venda analisadas.')).toBeVisible();
   await expect(page.getByRole('link', { name: /Produtos ativos/ })).toContainText('29');
+  await expect(page.getByRole('link', { name: /Total em estoque/ })).toContainText('261,00');
+  await expect(page.getByRole('link', { name: /Total na geladeira/ })).toContainText('37,00');
+  const cmv = page.getByRole('button', { name: 'Como é calculado o indicador CMV médio das receitas?' });
+  const margin = page.getByRole('button', { name: 'Como é calculado o indicador Margem líquida média?' });
+  await expect(page.getByText('51,0%', { exact: true })).toBeVisible();
+  await cmv.click();
+  await expect(page.getByRole('dialog', { name: 'CMV médio das receitas' })).toContainText('13 fichas consideradas');
+  await page.keyboard.press('Escape');
+  await margin.click();
+  await expect(page.getByRole('dialog', { name: 'Margem líquida média' })).toContainText('9 receitas analisadas · De cada receita');
+  await page.keyboard.press('Escape');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('inicio.png'), fullPage: true, animations: 'disabled' });
   const alerts = page.getByRole('region', { name: 'Receitas abaixo da meta' });
@@ -82,6 +95,10 @@ test('home compares recipe margins, simulates another markup and opens the price
   await expect(page.getByRole('option', { name: 'Sub-receita', exact: true })).toHaveCount(0);
   await page.getByRole('option', { name: 'Pix', exact: true }).click();
   await expect(page.getByText('9 de 12 receitas de venda analisadas.')).toBeVisible();
+  await expect(page.getByText('51,0%', { exact: true })).toBeVisible();
+  await margin.click();
+  await expect(page.getByRole('dialog', { name: 'Margem líquida média' })).toContainText('9 receitas analisadas · Pix');
+  await page.keyboard.press('Escape');
   await expect(page.getByText('Todas as receitas analisadas atingem o lucro desejado.')).toBeVisible();
   await page.getByLabel('Markup da análise').click();
   await page.getByRole('option', { name: 'De cada receita' }).click();
