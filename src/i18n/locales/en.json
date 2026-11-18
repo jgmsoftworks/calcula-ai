@@ -84,6 +84,18 @@
     }
   },
   "home": {
+    "unconfirmedComposition_one": "{{count}} sheet has an unconfirmed preparation cost.",
+    "unconfirmedComposition_other": "{{count}} sheets have unconfirmed preparation costs.",
+    "schedule": "Schedule",
+    "assessedRecipes": "Recipes assessed",
+    "pending_one": "{{count}} sheet outside this analysis",
+    "pending_other": "{{count}} sheets outside this analysis",
+    "missingYield_one": "{{count}} sheet has no valid yield.",
+    "missingYield_other": "{{count}} sheets have no valid yield.",
+    "unconfirmedSale_one": "{{count}} sheet has no confirmed unit selling price.",
+    "unconfirmedSale_other": "{{count}} sheets have no confirmed unit selling price.",
+    "otherPending_one": "{{count}} sheet lacks a valid cost, price or markup.",
+    "otherPending_other": "{{count}} sheets lack a valid cost, price or markup.",
     "reviewTitle": "Recipes below target",
     "overview": "Your business",
     "details": "Details",
