@@ -17,39 +17,25 @@ export async function readAll<T>(fetchPage: (from: number, to: number) => Promis
   }
 }
 
-export async function fetchDashboardData(userId: string, monthStart: string, monthEnd: string, signal: AbortSignal): Promise<Omit<DashboardData, 'loading' | 'updating' | 'hasData' | 'error'>> {
-  const [allMovimentacoesMes, produtosEstoque, receitasParaCmv] = await Promise.all([
-    readAll((from, to) => supabase.from('movimentacoes')
-      .select('tipo, subtotal, custo_aplicado, quantidade, data_hora, motivo')
-      .eq('user_id', userId).gte('data_hora', monthStart).lte('data_hora', monthEnd)
-      .order('id').range(from, to).abortSignal(signal)),
-    readAll((from, to) => supabase.from('produtos')
-      .select('estoque_atual, custo_unitario')
-      .eq('user_id', userId).eq('ativo', true)
-      .order('id').range(from, to).abortSignal(signal)),
-    readAll((from, to) => supabase.from('receitas')
-      .select(`
-        preco_venda, rendimento_valor, markup:markups(tipo),
-        ingredientes:receita_ingredientes(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
-        embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
-        mao_obra:receita_mao_obra(valor_total),
-        sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
-          quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
-        )
-      `)
-      .eq('user_id', userId).order('id').range(from, to).abortSignal(signal)),
-  ]);
-  const entradasMes = { data: allMovimentacoesMes.data.filter(m => m.tipo === 'entrada') };
-  const saidasMes = { data: allMovimentacoesMes.data.filter(m => m.tipo === 'saida') };
-  // ===== CMV REAL =====
-  const cmvResult = await calcularCmvCompleto(
-    userId,
-    produtosEstoque.data || [],
-    entradasMes.data || [],
-    allMovimentacoesMes.data || [],
-    signal
-  );
+export function fetchActiveStock(userId: string, signal: AbortSignal) {
+  return readAll((from, to) => supabase.from('produtos')
+    .select('estoque_atual, custo_unitario')
+    .eq('user_id', userId).eq('ativo', true)
+    .order('id').range(from, to).abortSignal(signal));
+}
 
+export async function fetchRecipeCmv(userId: string, signal: AbortSignal) {
+  const receitasParaCmv = await readAll((from, to) => supabase.from('receitas')
+    .select(`
+      preco_venda, rendimento_valor, markup:markups(tipo),
+      ingredientes:receita_ingredientes(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
+      embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
+      mao_obra:receita_mao_obra(valor_total),
+      sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
+        quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
+      )
+    `)
+    .eq('user_id', userId).order('id').range(from, to).abortSignal(signal));
   // ===== CMV MÉDIO DAS RECEITAS =====
   // Média simples do CMV já usado nas receitas finais:
   // (custo unitário da receita / preço de venda) * 100.
@@ -82,6 +68,29 @@ export async function fetchDashboardData(userId: string, monthStart: string, mon
     cmvsIndividuais.length > 0
       ? cmvsIndividuais.reduce((sum, value) => sum + value, 0) / cmvsIndividuais.length
       : null;
+
+  return { average: cmvMedioReceitas, count: cmvsIndividuais.length };
+}
+
+export async function fetchDashboardData(userId: string, monthStart: string, monthEnd: string, signal: AbortSignal): Promise<Omit<DashboardData, 'loading' | 'updating' | 'hasData' | 'error'>> {
+  const [allMovimentacoesMes, produtosEstoque, recipeCmv] = await Promise.all([
+    readAll((from, to) => supabase.from('movimentacoes')
+      .select('tipo, subtotal, custo_aplicado, quantidade, data_hora, motivo')
+      .eq('user_id', userId).gte('data_hora', monthStart).lte('data_hora', monthEnd)
+      .order('id').range(from, to).abortSignal(signal)),
+    fetchActiveStock(userId, signal),
+    fetchRecipeCmv(userId, signal),
+  ]);
+  const entradasMes = { data: allMovimentacoesMes.data.filter(m => m.tipo === 'entrada') };
+  const saidasMes = { data: allMovimentacoesMes.data.filter(m => m.tipo === 'saida') };
+  // ===== CMV REAL =====
+  const cmvResult = await calcularCmvCompleto(
+    userId,
+    produtosEstoque.data || [],
+    entradasMes.data || [],
+    allMovimentacoesMes.data || [],
+    signal
+  );
 
   // Valor em estoque (EF)
   const valorEmEstoque = calculateEstoqueFinal(produtosEstoque.data || []);
@@ -128,8 +137,8 @@ export async function fetchDashboardData(userId: string, monthStart: string, mon
 
   return {
     cmvResult,
-    cmvMedioReceitas,
-    cmvReceitasConsideradas: cmvsIndividuais.length,
+    cmvMedioReceitas: recipeCmv.average,
+    cmvReceitasConsideradas: recipeCmv.count,
     valorEmEstoque,
     totalEntradasMes,
     totalSaidasMes,

@@ -23,9 +23,7 @@ interface HomeMarkup {
 }
 
 export async function fetchHomePricing(userId: string, signal: AbortSignal) {
-  const [products, recipes, markups, configs] = await Promise.all([
-    supabase.from('produtos').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).eq('ativo', true).abortSignal(signal),
+  const [recipes, markups, configs] = await Promise.all([
     readAll((from, to) => supabase.from('receitas')
       .select(`id, nome, imagem_url, preco_venda, rendimento_valor, rendimento_unidade, markup_id, markup:markups!inner(tipo), ${RECEITA_COMPONENTES_CUSTO}`)
       .eq('user_id', userId).eq('status', 'finalizada').eq('markup.tipo', 'normal').order('id').range(from, to).abortSignal(signal)),
@@ -34,8 +32,6 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
     readAll((from, to) => supabase.from('user_configurations').select('type, configuration')
       .eq('user_id', userId).like('type', 'markup\\_%').order('type').range(from, to).abortSignal(signal)),
   ]);
-  if (products.error) throw products.error;
-  if (products.count === null) throw new Error('Contagem de produtos indisponível');
 
   const details = new Map(configs.data.map(c => [c.type, c.configuration as MarkupDetalhado | null]));
   const channels: HomeMarkup[] = markups.data.map(m => {
@@ -61,7 +57,7 @@ export async function fetchHomePricing(userId: string, signal: AbortSignal) {
     return { id: r.id, name: r.nome, image: r.imagem_url, price: r.preco_venda, markupId: r.markup_id, markupType: r.markup?.tipo ?? null, priceIssue,
       unitCost: r.rendimento_valor > 0 ? total / r.rendimento_valor : null };
   });
-  return { products: products.count, recipes: catalog, channels };
+  return { recipes: catalog, channels };
 }
 
 export function assessMargins(recipes: HomeRecipe[], channels: HomeMarkup[], overrideId: string | null) {

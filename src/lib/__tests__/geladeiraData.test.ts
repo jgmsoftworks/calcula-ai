@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
-import { custoUnitarioGeladeira, receitaPodeEntrar } from '../geladeiraData';
+import { custoUnitarioGeladeira, receitaPodeEntrar, resumoValorGeladeira } from '../geladeiraData';
 import { calcularDadosReceita } from '../receitasData';
 import type { ReceitaComDados } from '@/types/receitas';
 const recipe = (changes = {}) => ({ rendimento_valor: 10, rendimento_unidade: 'un', status: 'finalizada', preco_venda: 999,
@@ -15,6 +15,13 @@ describe('Fridge costs', () => {
     for (const rendimento_valor of [0, null, -1, NaN, Infinity]) expect(custoUnitarioGeladeira(recipe({ rendimento_valor }))).toBeNull();
     expect(receitaPodeEntrar(recipe({ rendimento_unidade: '' }))).toBe(false);
     expect(receitaPodeEntrar(recipe({ status: 'rascunho' }))).toBe(false);
+  });
+  it('totals held quantities at cost and flags missing yields only for stock on hand', () => {
+    const ready = { receita: recipe(), estoque_atual: 2 };
+    const unknown = { receita: recipe({ rendimento_valor: 0 }), estoque_atual: 3 };
+    expect(resumoValorGeladeira([ready, unknown])).toEqual({ total: 3.4, hasUnknownCost: true });
+    expect(resumoValorGeladeira([ready, { ...unknown, estoque_atual: 0 }])).toEqual({ total: 3.4, hasUnknownCost: false });
+    expect(resumoValorGeladeira([])).toEqual({ total: 0, hasUnknownCost: false });
   });
   it('reuses the recipe component calculation with fractional units', () => {
     const data = calcularDadosReceita({ ...recipe(), ingredientes: [{ quantidade: 500, produto: { custo_unitario: 10, unidade_uso: 'g', fator_conversao: 1000 } }],

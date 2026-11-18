@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchReceitaParaVisualizacao, fetchTodasReceitas } from '@/lib/receitasData';
-import { custoUnitarioGeladeira, fetchGeladeira, receitaPodeEntrar, type GeladeiraItem } from '@/lib/geladeiraData';
+import { custoUnitarioGeladeira, fetchGeladeira, receitaPodeEntrar, resumoValorGeladeira, type GeladeiraItem } from '@/lib/geladeiraData';
 import { ReceitaPreviewModal } from '@/components/receitas/ReceitaPreviewModal';
 import { formatMoney } from '@/lib/business-region';
 import { formatters } from '@/lib/formatters';
@@ -58,8 +58,7 @@ export default function Geladeira() {
   const lastPage = Math.max(0, Math.ceil(filtered.length / 24) - 1);
   const currentPage = Math.min(page, lastPage);
   const visible = filtered.slice(currentPage * 24, currentPage * 24 + 24);
-  const total = filtered.reduce((sum, item) => sum + (custoUnitarioGeladeira(item.receita) ?? 0) * item.estoque_atual, 0);
-  const hasUnknownCost = filtered.some(item => item.estoque_atual > 0 && custoUnitarioGeladeira(item.receita) === null);
+  const { total, hasUnknownCost } = resumoValorGeladeira(filtered);
   const selected = modal?.item?.receita || recipesQuery.data?.find(r => r.id === receitaId);
   const selectedCost = selected ? custoUnitarioGeladeira(selected) : null;
   const selectedUnit = modal?.item?.unidade || selected?.rendimento_unidade || '';
