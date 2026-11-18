@@ -64,11 +64,13 @@ interface TempMaoObra {
 interface ReceitaFormProps {
   receita: ReceitaCompleta | null;
   onClose: () => void;
+  backLabel?: string;
+  initialTab?: 'geral' | 'precificacao';
 }
 
 const RECIPE_TYPE_REQUIRED = 'Selecione o tipo de produto na etapa Projeção antes de salvar a receita.';
 
-export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
+export function ReceitaForm({ receita, onClose, backLabel = 'Voltar para receitas', initialTab = 'geral' }: ReceitaFormProps) {
   usePortugalTranslation();
   const { saveReceitaCompleta, fetchReceitaCompleta, loading } = useReceitas();
   const { user } = useAuth();
@@ -83,7 +85,7 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
   const [prefetchedProdutos, setPrefetchedProdutos] = useState<ProdutoReceita[]>([]);
   const [prefetchedSubReceitas, setPrefetchedSubReceitas] = useState<SubReceitaSelecionavel[]>([]);
   const [hasSubReceitaMarkup, setHasSubReceitaMarkup] = useState(true);
-  const [activeTab, setActiveTab] = useState('geral');
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [receitaCompleta, setReceitaCompleta] = useState<ReceitaCompleta | null>(null);
   const [formData, setFormData] = useState<ReceitaFormData>({
     nome: '',
@@ -462,8 +464,8 @@ export function ReceitaForm({ receita, onClose }: ReceitaFormProps) {
           onClick={onClose}
           disabled={saving}
           className="shrink-0"
-          aria-label="Voltar para receitas"
-          title="Voltar para receitas"
+          aria-label={backLabel}
+          title={backLabel}
         >
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>

@@ -2,6 +2,12 @@
 
 Base: `b4c556e1351ab9d876955401926a29dfd89cce06`. Publicação pela Lovable fica com o usuário, conforme orientação de seguir entregando pelo GitHub.
 
+## Tela inicial e resumo de estoque em 18/11/2026
+
+A partir da revisão baseada em `2e60b9d`, a página inicial comercial compara o preço de cada ficha finalizada com a meta do markup salvo. O seletor simula outro markup sobre os mesmos preços. A margem média é simples, por ficha avaliada. Sub-receitas e rascunhos ficam fora do catálogo. Fichas sem preço, custo ou markup válido ficam fora da média e dos alertas. O preço para a meta arredonda para cima até o centavo. Os valores são estimativas por unidade.
+
+O resumo mensal descrito abaixo está em **Relatórios → Resumo de estoque**. As consultas de movimentações só rodam ao abrir esse resumo. O início usa uma contagem de produtos ativos e leituras paginadas das fichas, markups e configurações da conta. A análise e a ficha compartilham o cálculo de margem líquida e usam os percentuais agregados quando falta o detalhamento de um markup antigo. Ao mudar a regra da ficha, revisar também os testes de margem da página inicial.
+
 ## Antes e depois para quem usa
 
 | Ação | Antes | Depois |

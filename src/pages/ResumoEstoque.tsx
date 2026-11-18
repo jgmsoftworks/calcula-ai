@@ -1,0 +1,220 @@
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Package,
+  BarChart3,
+  ArrowDownRight,
+  ArrowUpRight,
+  RefreshCcw,
+  Warehouse,
+  TrendingDown,
+  AlertCircle
+} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useTranslation } from 'react-i18next';
+
+const ResumoEstoque = () => {
+  const { t } = useTranslation();
+  const { data, refreshData } = useDashboardData();
+
+  if (data.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4 animate-fade-in">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground text-sm">{t('dashboard.loadingData')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.error && !data.hasData) {
+    return (
+      <div role="alert" className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <AlertCircle className="h-6 w-6 text-primary" />
+        <p>{data.error}</p>
+        <Button variant="outline" onClick={refreshData} disabled={data.updating}>Tentar novamente</Button>
+      </div>
+    );
+  }
+
+  const userStats = [
+    {
+      title: t('dashboard.stockValue'),
+      value: `${formatMoney(data.valorEmEstoque)}`,
+      icon: Package,
+      gradient: 'from-[#0483e4] to-[#2c4dc7]',
+      iconBg: 'bg-[#0483e4]/10',
+      iconColor: 'text-[#0483e4]',
+    },
+    {
+      title: t('dashboard.entriesMonth'),
+      value: `${formatMoney(data.totalEntradasMes)}`,
+      icon: ArrowUpRight,
+      gradient: 'from-[#16a34a] to-[#15803d]',
+      iconBg: 'bg-[#16a34a]/10',
+      iconColor: 'text-[#16a34a]',
+    },
+    {
+      title: t('dashboard.exitsMonth'),
+      value: `${formatMoney(data.totalSaidasMes)}`,
+      icon: ArrowDownRight,
+      gradient: 'from-[#7328b1] to-[#af1188]',
+      iconBg: 'bg-[#7328b1]/10',
+      iconColor: 'text-[#7328b1]',
+    },
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold font-display text-foreground">
+            {t('home.stockReport')}
+          </h1>
+        </div>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Button
+            onClick={refreshData}
+            disabled={data.updating}
+            variant="outline"
+            size="sm"
+            className="h-10 flex-1 gap-1.5 rounded-xl border-border/50 sm:h-9 sm:flex-none"
+          >
+            <RefreshCcw className={`h-3.5 w-3.5 ${data.updating ? 'animate-spin' : ''}`} />
+            {data.updating ? 'Atualizando…' : t('dashboard.refresh')}
+          </Button>
+        </div>
+      </div>
+
+      {data.error && <p role="alert" className="text-sm text-muted-foreground">{data.error} Os últimos dados carregados continuam visíveis.</p>}
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {userStats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.title} className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300 animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
+              <div className={`h-1 bg-gradient-to-r ${stat.gradient}`} />
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.title}</p>
+                    <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">{stat.value}</p>
+                  </div>
+                  <div className={`p-3 rounded-xl ${stat.iconBg} group-hover:scale-110 transition-transform`}>
+                    <Icon className={`h-6 w-6 ${stat.iconColor}`} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Daily Movements Chart */}
+      <Card className="glass-card overflow-hidden">
+        <div className="h-1 bg-gradient-brand-horizontal" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-display">{t('dashboard.dailyMovements')}</CardTitle>
+          <CardDescription className="text-xs mt-0.5">{t('dashboard.dailyMovementsDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent className="px-2 pb-4 pt-0 sm:px-6 sm:pb-6">
+          <div className="h-56 min-w-0 sm:h-64">
+            {data.dailyMovements.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.dailyMovements} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                  <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => formatMoney(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '8px 12px', fontSize: '12px' }}
+                    formatter={(value: number, name: string) => [`${formatMoney(value)}`, name === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')]}
+                    labelFormatter={(label) => `${t('dashboard.day')} ${label}`}
+                  />
+                  <Legend formatter={(value) => value === 'entradas' ? t('dashboard.entries') : t('dashboard.exits')} />
+                  <Bar dataKey="entradas" fill="#16a34a" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="saidas" fill="#7328b1" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center space-y-2">
+                  <BarChart3 className="h-10 w-10 mx-auto opacity-30" />
+                  <p className="text-xs">{t('dashboard.noData')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Saldo Inicial + CMV médio das receitas */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#0483e4] to-[#2c4dc7]" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.initialBalance')}</p>
+                {data.cmvResult.breakdown.estoqueInicial !== null ? (
+                  <div>
+                    <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+                      {formatMoney(data.cmvResult.breakdown.estoqueInicial)}
+                    </p>
+                    {data.cmvResult.breakdown.estoqueInicialEstimado && (
+                      <span className="text-xs text-muted-foreground mt-1 inline-block">{t('dashboard.estimated')}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">{t('dashboard.noEstimateData')}</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-[#0483e4]/10 group-hover:scale-110 transition-transform">
+                <Warehouse className="h-6 w-6 text-[#0483e4]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card overflow-hidden group hover:shadow-elevated transition-all duration-300">
+          <div className="h-1 bg-gradient-to-r from-[#dd0b52] to-[#f96e0c]" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2 flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.cmvPercent')}</p>
+                {data.cmvMedioReceitas !== null ? (
+                  <>
+                    <p className="break-words font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+                      {data.cmvMedioReceitas.toLocaleString(getBusinessRegion().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                    </p>
+                    <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+                      {t('dashboard.cmvAverageHint')}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">{t('dashboard.noPricedRecipes')}</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-[#dd0b52]/10 group-hover:scale-110 transition-transform">
+                <TrendingDown className="h-6 w-6 text-[#dd0b52]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default ResumoEstoque;

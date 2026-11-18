@@ -51,6 +51,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { toast } = useToast();
 
   const getPageInfo = (pathname: string) => {
+    if (pathname === '/' && !isAdmin) return { title: t('home.title') };
+    if (pathname === '/relatorios/resumo-estoque') return { title: t('home.stockReport') };
     if (pathname.startsWith('/producao/cronograma')) return { title: 'Cronograma' };
     if (pathname === '/estoque/geladeira') return { title: 'Geladeira' };
     const pageMap: Record<string, string> = {
