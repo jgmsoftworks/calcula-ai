@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowLeftRight, ArrowRight, BookOpen, CalendarDays, CheckCircle2, ChefHat,
-  ChevronDown, ChevronRight, CircleAlert, ListPlus, Package, Percent, Plus, RefreshCw, SlidersHorizontal,
+  BookOpen, CalendarDays, CheckCircle2, ChefHat,
+  ChevronDown, ChevronRight, ListPlus, Package, Percent, Plus, RefreshCw, Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney, getBusinessRegion } from '@/lib/business-region';
 import { assessMargins, fetchHomePricing } from '@/lib/homePricing';
 import { cn } from '@/lib/utils';
-import kitchen from '@/assets/home-kitchen.webp';
+import { PlanMascot } from '@/components/planos/PlanMascot';
 import './business-home.css';
 
 const PAGE_SIZE = 3;
@@ -39,9 +39,10 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
   const percent = new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 2 });
   const pct = (n: number) => percent.format(n / 100);
   const stats = [
-    { label: 'products', value: data?.products, icon: Package, to: '/estoque' },
-    { label: 'recipes', value: data?.recipes.length, icon: ChefHat, to: '/receitas' },
-    { label: 'average', value: summary?.average != null ? pct(summary.average) : '—', icon: Percent },
+    { label: 'products', value: data?.products, icon: Package, tone: 'blue', to: '/estoque' },
+    { label: 'assessedRecipes', value: summary?.assessed, icon: ChefHat, tone: 'violet', to: '/receitas' },
+    { label: 'average', value: summary?.average != null ? pct(summary.average) : '—', icon: Percent, tone: 'blueRoyal' },
+    { label: 'below', value: summary?.assessed ? summary.alerts.length : '—', icon: Target, tone: 'amber' },
   ];
 
   function changeMarkup(value: string) {
@@ -54,33 +55,45 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
 
   return <div className="business-home mx-auto w-full max-w-[1320px]">
     <header className="home-welcome">
-      <img className="home-welcome-art" src={kitchen} alt="" />
-      <div className="home-welcome-content">
-        <p className="mb-2 flex items-center gap-2 text-sm text-white/80">
-          <CalendarDays aria-hidden="true" className="size-4" /><span className="first-letter:uppercase">{today}</span>
-        </p>
-        <h1 className="break-words font-display text-2xl font-bold leading-tight tracking-tight sm:text-[2rem]">
-          {displayName ? t('dashboard.hello', { name: displayName }) : t('home.title')}
-        </h1>
-        <Button asChild size="sm" className="mt-4 gap-1.5 rounded-lg bg-white px-3.5 font-semibold text-slate-900 hover:bg-white/90">
-          <Link to="/receitas/nova"><Plus aria-hidden="true" className="size-4" />{t('home.newRecipe')}</Link>
-        </Button>
+      <div className="home-greeting">
+        <div className="home-calculeco"><PlanMascot mood="neutral" /></div>
+        <div className="min-w-0">
+          <h1 className="break-words font-display text-xl font-bold leading-tight tracking-tight sm:text-2xl">
+            {displayName ? t('dashboard.hello', { name: displayName }) : t('home.title')}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">{today}</p>
+        </div>
+      </div>
+      <div className="home-actions">
+        <Button asChild size="sm" variant="outline" className="gap-1.5"><Link to="/producao/cronograma">
+          <CalendarDays className="size-4" />{t('home.schedule')}
+        </Link></Button>
+        <Button asChild size="sm" className="gap-1.5"><Link to="/receitas/nova">
+          <Plus className="size-4" />{t('home.newRecipe')}
+        </Link></Button>
       </div>
     </header>
+
+    <div className="home-stats">
+      {stats.map(({ label, value, icon: Icon, tone, to }) => {
+        const content = <><div className="home-stat-label"><span className="home-stat-icon"><Icon aria-hidden="true" className="size-4" /></span>
+          <span>{t('home.' + label)}</span></div>
+          {query.isPending ? <Skeleton className="mt-2 h-6 w-14" /> : <strong className="home-stat-value">{value ?? '—'}</strong>}</>;
+        return to ? <Link className="home-stat" data-tone={tone} key={label} to={to}>{content}</Link>
+          : <div className="home-stat" data-tone={tone} key={label}>{content}</div>;
+      })}
+    </div>
 
     {query.isError && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-card p-4 text-sm">
       {t(data ? 'home.refreshError' : 'home.loadError')}{' '}
       <button className="font-semibold text-primary underline" onClick={() => void query.refetch()}>{t('home.retry')}</button>
     </p>}
 
-    <div className="home-workspace">
+    <div className="mt-5">
       <section aria-labelledby="price-alerts" className="home-panel home-review">
         <header className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
-            <h2 id="price-alerts" className="font-display text-lg font-bold tracking-tight sm:text-xl">{t('home.reviewTitle')}</h2>
-            {summary && summary.assessed > 0 && <span className="rounded-md bg-purple-dark/10 px-2 py-0.5 text-sm font-semibold tabular-nums text-purple-dark dark:text-foreground">
-              {summary.alerts.length}
-            </span>}
+            <h2 id="price-alerts" className="font-display text-base font-bold tracking-tight sm:text-lg">{t('home.reviewTitle')}</h2>
           </div>
           <Button variant="ghost" size="icon" className="size-9 shrink-0 text-muted-foreground" disabled={query.isFetching}
             aria-label={t('dashboard.refresh')} title={t('dashboard.refresh')} onClick={() => void query.refetch()}>
@@ -153,34 +166,19 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
 
         {summary && <footer className="space-y-1 border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
           <p>{t('home.coverage', { assessed: summary.assessed, total: data.recipes.length })}</p>
-          {summary.skipped > 0 && <p className="flex items-start gap-1.5"><CircleAlert className="mt-px size-3.5 shrink-0" />{t('home.skipped', { count: summary.skipped })}</p>}
+          {summary.skipped > 0 && <details className="home-pending">
+            <summary>{t('home.pending', { count: summary.skipped })}</summary>
+            <ul className="mt-1 list-inside list-disc space-y-0.5">
+              {summary.missingYield > 0 && <li>{t('home.missingYield', { count: summary.missingYield })}</li>}
+              {summary.unconfirmedSale > 0 && <li>{t('home.unconfirmedSale', { count: summary.unconfirmedSale })}</li>}
+              {summary.unconfirmedComposition > 0 && <li>{t('home.unconfirmedComposition', { count: summary.unconfirmedComposition })}</li>}
+              {summary.skipped > summary.missingYield + summary.unconfirmedSale + summary.unconfirmedComposition && <li>{t('home.otherPending', {
+                count: summary.skipped - summary.missingYield - summary.unconfirmedSale - summary.unconfirmedComposition,
+              })}</li>}
+            </ul>
+          </details>}
         </footer>}
       </section>
-
-      <aside className="home-side">
-        <section className="home-panel p-4 sm:p-5" aria-labelledby="home-summary">
-          <h2 id="home-summary" className="mb-2 font-display text-base font-bold">{t('home.overview')}</h2>
-          <div className="divide-y divide-border/70">{stats.map(({ label, value, icon: Icon, to }) => {
-            const line = <><Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1 text-sm">{t('home.' + label)}</span>
-              {query.isPending ? <Skeleton className="h-5 w-10" /> : <strong className="font-display text-lg tabular-nums">{value ?? '—'}</strong>}</>;
-            return to ? <Link key={label} to={to} className="home-stat hover:text-primary">{line}</Link> :
-              <div key={label} className="home-stat">{line}</div>;
-          })}</div>
-        </section>
-        <nav aria-labelledby="home-shortcuts" className="home-panel p-4 sm:p-5">
-          <h2 id="home-shortcuts" className="mb-2 font-display text-base font-bold">{t('home.shortcuts')}</h2>
-          {[
-            { to: '/producao/cronograma', label: 'production', icon: CalendarDays },
-            { to: '/estoque/movimentacoes', label: 'moveStock', icon: ArrowLeftRight },
-            { to: '/precificacao/markups', label: 'manage', icon: SlidersHorizontal },
-          ].map(({ to, label, icon: Icon }) => <Link key={to} to={to}
-            className="group flex min-h-11 items-center gap-2.5 rounded-md text-sm font-medium hover:text-primary">
-            <Icon className="size-4 shrink-0 text-primary" />{t('home.' + label)}
-            <ArrowRight className="ml-auto size-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />
-          </Link>)}
-        </nav>
-      </aside>
     </div>
   </div>;
 }

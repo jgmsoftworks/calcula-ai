@@ -35,7 +35,7 @@ export const RECEITA_COMPONENTES_CUSTO = `
     embalagens:receita_embalagens(quantidade, produto:produtos(custo_unitario, unidade_uso, fator_conversao)),
     mao_obra:receita_mao_obra(valor_total),
     sub_receitas:receita_sub_receitas!receita_sub_receitas_receita_id_fkey(
-      quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
+      quantidade, sub_receita_id, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
     )
 `;
 export const RECEITA_CUSTO_SELECT = `

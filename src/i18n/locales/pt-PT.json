@@ -84,6 +84,18 @@
     }
   },
   "home": {
+    "unconfirmedComposition_one": "{{count}} ficha com custo de sub-receita pendente.",
+    "unconfirmedComposition_other": "{{count}} fichas com custo de sub-receita pendente.",
+    "schedule": "Cronograma",
+    "assessedRecipes": "Receitas analisadas",
+    "pending_one": "{{count}} ficha fora da análise",
+    "pending_other": "{{count}} fichas fora da análise",
+    "missingYield_one": "{{count}} ficha sem rendimento válido.",
+    "missingYield_other": "{{count}} fichas sem rendimento válido.",
+    "unconfirmedSale_one": "{{count}} ficha sem preço de venda unitário confirmado.",
+    "unconfirmedSale_other": "{{count}} fichas sem preço de venda unitário confirmado.",
+    "otherPending_one": "{{count}} ficha sem custo, preço ou markup válido.",
+    "otherPending_other": "{{count}} fichas sem custo, preço ou markup válido.",
     "reviewTitle": "Receitas abaixo da meta",
     "overview": "O seu negócio",
     "details": "Detalhes",

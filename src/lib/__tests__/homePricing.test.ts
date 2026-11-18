@@ -34,6 +34,17 @@ describe('home recipe margins', () => {
     expect(markupIndirectPercent(markup, { taxas: 3, impostos: 2, lucroDesejado: 25 })).toBe(5);
   });
 
+  it('keeps missing yields and uncertain preparation prices out of every simulation without suppressing legitimate negative margins', () => {
+    const rows = [{ ...recipe, unitCost: null }, { ...recipe, priceIssue: 'sale' as const }, { ...recipe, priceIssue: 'composition' as const },
+      { ...recipe, id: 'valid-loss', price: 1, unitCost: 75 }];
+    for (const channel of [null, pix.id]) {
+      const result = assessMargins(rows, [credit, pix], channel);
+      expect(result).toMatchObject({ assessed: 1, missingYield: 1, unconfirmedSale: 1, unconfirmedComposition: 1, skipped: 3 });
+      expect(result.alerts.map(r => r.id)).toEqual(['valid-loss']);
+      expect(result.average).toBeLessThan(-100);
+    }
+  });
+
   it('accepts exact equality and can simulate a sheet with no saved markup', () => {
     const exact = { ...recipe, unitCost: 7.5, markupId: null };
     const result = assessMargins([exact], [pix], pix.id);

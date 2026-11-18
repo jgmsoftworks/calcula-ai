@@ -11,6 +11,13 @@ test('home compares recipe margins, simulates another markup and opens the price
     makeRecipe('bolo', 'Bolo de cenoura', 10, 6), makeRecipe('torta', 'Torta de limão', 12, 8),
     makeRecipe('bombom', 'Bombom de morango', 8, 4.5), makeRecipe('cookie', 'Cookie de chocolate', 9, 3),
     makeRecipe('brigadeiro', 'Brigadeiro tradicional', 5, 2), makeRecipe('brownie', 'Brownie de cacau', 8, 2.5),
+    { ...makeRecipe('zero', 'Exemplo sem rendimento', 0.2, 13), rendimento_valor: 0 },
+    { ...makeRecipe('base', 'Preparo de teste', 2, 2), tipo_produto_id: 'base', markup: { tipo: 'sub_receita' } },
+    { ...makeRecipe('legacy', 'Preparo importado', 2.58761, 3), tipo_produto_id: 'base' },
+    { ...makeRecipe('retail', 'Produto de venda medido por peso', 15.73214, 1), rendimento_unidade: 'Grama (g)', tipo_produto_id: 'base' },
+    { ...makeRecipe('kit', 'Kit com componente sem custo', 9, 1), sub_receitas: [
+      { sub_receita_id: 'bolo', quantidade: 5, sub_receita: { preco_venda: 10, rendimento_valor: 1 } },
+    ] },
     makeRecipe('pudim', 'Pudim de leite', 12, 4), makeRecipe('trufa', 'Trufa de café', 6, 2),
   ];
   const markups = [
@@ -38,7 +45,7 @@ test('home compares recipe margins, simulates another markup and opens the price
   const review = page.getByRole('link', { name: 'Revisar preço de Torta de limão' });
   await expect(page.getByRole('heading', { name: 'Receitas abaixo da meta' })).toBeVisible();
   await expect(review).toContainText('15,79');
-  await expect(page.getByText('8 de 8 fichas analisadas.')).toBeVisible();
+  await expect(page.getByText('9 de 12 fichas analisadas.')).toBeVisible();
   await expect(page.getByRole('link', { name: /Produtos ativos/ })).toContainText('29');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('inicio.png'), fullPage: true, animations: 'disabled' });
@@ -46,8 +53,13 @@ test('home compares recipe margins, simulates another markup and opens the price
   await expect(alerts.getByRole('link')).toHaveCount(3);
   await alerts.getByRole('button', { name: 'Mostrar mais receitas' }).click();
   await expect(alerts.getByRole('link')).toHaveCount(4);
+  await expect(alerts.getByRole('link', { name: /Exemplo sem rendimento|Preparo importado|Preparo de teste|Kit com componente/ })).toHaveCount(0);
+  await alerts.getByText('3 fichas fora da análise').click();
+  await expect(alerts.getByText('1 ficha sem rendimento válido.')).toBeVisible();
+  await expect(alerts.getByText('1 ficha sem preço de venda unitário confirmado.')).toBeVisible();
   await alerts.getByRole('button', { name: 'Mostrar menos' }).click();
   await expect(alerts.getByRole('link')).toHaveCount(3);
+  await expect(alerts.getByText('1 ficha com custo de sub-receita pendente.')).toBeVisible();
   const details = alerts.getByRole('button', { name: 'Detalhes' });
   await expect(review.getByText(/Lucro de/)).toHaveCount(0);
   await details.click();
