@@ -21,6 +21,7 @@ test('home compares recipe margins, simulates another markup and opens the price
     { ...makeRecipe('kit', 'Kit com componente sem custo', 9, 1), sub_receitas: [
       { sub_receita_id: 'bolo', quantidade: 5, sub_receita: { preco_venda: 10, rendimento_valor: 1, status: 'finalizada', markup: { tipo: 'normal' } } },
     ] },
+    { ...makeRecipe('draft', 'Rascunho', 1, 500), status: 'rascunho' },
     makeRecipe('pudim', 'Pudim de leite', 12, 4), makeRecipe('trufa', 'Trufa de café', 6, 2),
   ];
   const markups = [
@@ -34,10 +35,11 @@ test('home compares recipe margins, simulates another markup and opens the price
     if (table === 'get_my_access') data = { can_access: true, reason: 'active', server_now: new Date().toISOString(),
       access_mode: 'legacy', plan: 'Empresarial', is_admin: false, has_subscription: true };
     if (table === 'receitas') {
+      const rows = url.searchParams.get('status') === 'eq.finalizada' ? recipes.filter(r => r.status === 'finalizada') : recipes;
       if (url.searchParams.has('id')) data = recipes[1];
       else if (url.searchParams.get('markup.tipo') === 'eq.normal' && url.searchParams.get('select')?.includes('markup:markups!inner(tipo)')) {
-        data = recipes.filter(r => r.markup?.tipo === 'normal');
-      } else data = recipes;
+        data = rows.filter(r => r.markup?.tipo === 'normal');
+      } else data = rows;
     }
     if (table === 'markups') {
       const sub = { ...markups[0], id: 'sub', tipo: 'sub_receita', nome: 'Sub-receita' };
@@ -59,18 +61,20 @@ test('home compares recipe margins, simulates another markup and opens the price
   const review = page.getByRole('link', { name: 'Revisar preço de Torta de limão' });
   await expect(page.getByRole('heading', { name: 'Receitas abaixo da meta' })).toBeVisible();
   await expect(review).toContainText('15,79');
-  await expect(page.getByText('9 de 12 receitas de venda analisadas.')).toBeVisible();
+  await expect(page.getByText('9 de 12 receitas de venda avaliadas para o alerta de preço.')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Receitas com margem/ })).toContainText('12');
   await expect(page.getByRole('link', { name: /Produtos ativos/ })).toContainText('29');
   await expect(page.getByRole('link', { name: /Total em estoque/ })).toContainText('261,00');
   await expect(page.getByRole('link', { name: /Total na geladeira/ })).toContainText('37,00');
   const cmv = page.getByRole('button', { name: 'Como é calculado o indicador CMV médio das receitas?' });
   const margin = page.getByRole('button', { name: 'Como é calculado o indicador Margem líquida média?' });
+  await expect(page.getByText('22,12%', { exact: true })).toBeVisible();
   await expect(page.getByText('51,0%', { exact: true })).toBeVisible();
   await cmv.click();
   await expect(page.getByRole('dialog', { name: 'CMV médio das receitas' })).toContainText('13 fichas consideradas');
   await page.keyboard.press('Escape');
   await margin.click();
-  await expect(page.getByRole('dialog', { name: 'Margem líquida média' })).toContainText('9 receitas analisadas · De cada receita');
+  await expect(page.getByRole('dialog', { name: 'Margem líquida média' })).toContainText('12 fichas com margem líquida');
   await page.keyboard.press('Escape');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('inicio.png'), fullPage: true, animations: 'disabled' });
@@ -94,10 +98,11 @@ test('home compares recipe margins, simulates another markup and opens the price
   await page.getByLabel('Markup da análise').click();
   await expect(page.getByRole('option', { name: 'Sub-receita', exact: true })).toHaveCount(0);
   await page.getByRole('option', { name: 'Pix', exact: true }).click();
-  await expect(page.getByText('9 de 12 receitas de venda analisadas.')).toBeVisible();
+  await expect(page.getByText('9 de 12 receitas de venda avaliadas para o alerta de preço.')).toBeVisible();
+  await expect(page.getByText('22,12%', { exact: true })).toBeVisible();
   await expect(page.getByText('51,0%', { exact: true })).toBeVisible();
   await margin.click();
-  await expect(page.getByRole('dialog', { name: 'Margem líquida média' })).toContainText('9 receitas analisadas · Pix');
+  await expect(page.getByRole('dialog', { name: 'Margem líquida média' })).toContainText('12 fichas com margem líquida');
   await page.keyboard.press('Escape');
   await expect(page.getByText('Todas as receitas analisadas atingem o lucro desejado.')).toBeVisible();
   await page.getByLabel('Markup da análise').click();

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { calculateEstoqueFinal, calcularCmvCompleto } from '@/lib/cmvCalculations';
+import { meanSheetPercent, sheetBaseCost, sheetCmvPercent } from '@/lib/markupMath';
 import { calcularDadosReceita } from '@/lib/receitasData';
 import type { DashboardData } from '@/hooks/useDashboardData';
 
@@ -35,41 +36,15 @@ export async function fetchRecipeCmv(userId: string, signal: AbortSignal) {
         quantidade, sub_receita:receitas!receita_sub_receitas_sub_receita_id_fkey(preco_venda, rendimento_valor)
       )
     `)
-    .eq('user_id', userId).order('id').range(from, to).abortSignal(signal));
-  // ===== CMV MÉDIO DAS RECEITAS =====
-  // Média simples do CMV já usado nas receitas finais:
-  // (custo unitário da receita / preço de venda) * 100.
-  // Sub-receitas e receitas sem custo/preço válidos não entram na média.
-  const cmvsIndividuais = receitasParaCmv.data
-    .map(receita => calcularDadosReceita(receita))
-    .filter((r) => r.markup?.tipo !== 'sub_receita')
-    .map((r): number | null => {
-      const custoTotal =
-        (r.custo_ingredientes || 0) +
-        (r.custo_embalagens || 0) +
-        (r.custo_mao_obra || 0) +
-        (r.custo_sub_receitas || 0);
-
-      const custoBase =
-        !r.rendimento_valor || r.rendimento_valor <= 0
-          ? custoTotal
-          : custoTotal / r.rendimento_valor;
-
-      const precoVenda = r.preco_venda || 0;
-
-      if (custoBase <= 0 || precoVenda <= 0) return null;
-
-      const cmv = (custoBase / precoVenda) * 100;
-      return Number.isFinite(cmv) ? cmv : null;
-    })
-    .filter((cmv: number | null): cmv is number => cmv !== null);
-
-  const cmvMedioReceitas =
-    cmvsIndividuais.length > 0
-      ? cmvsIndividuais.reduce((sum, value) => sum + value, 0) / cmvsIndividuais.length
-      : null;
-
-  return { average: cmvMedioReceitas, count: cmvsIndividuais.length };
+    .eq('user_id', userId).eq('status', 'finalizada').order('id').range(from, to).abortSignal(signal));
+  const percentages = receitasParaCmv.data
+    .filter(r => r.markup?.tipo !== 'sub_receita')
+    .map(row => {
+      const r = calcularDadosReceita(row);
+      const total = r.custo_ingredientes + r.custo_embalagens + r.custo_mao_obra + r.custo_sub_receitas;
+      return sheetCmvPercent(sheetBaseCost(total, r.rendimento_valor, false), r.preco_venda);
+    });
+  return meanSheetPercent(percentages);
 }
 
 export async function fetchDashboardData(userId: string, monthStart: string, monthEnd: string, signal: AbortSignal): Promise<Omit<DashboardData, 'loading' | 'updating' | 'hasData' | 'error'>> {
