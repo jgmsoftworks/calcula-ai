@@ -1,10 +1,11 @@
+import { MetricCard } from '@/components/ui/metric-card';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownLeft, ArrowUpRight, Package, RefreshCw, Warehouse, Percent } from 'lucide-react';
 import { BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { formatMoney, getBusinessRegion } from '@/lib/business-region';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { ReportHeading, ReportMetric, ReportState } from './ReportLayout';
+import { ReportHeading, ReportState } from './ReportLayout';
 
 export function RelatorioResumo() {
   const { t, i18n } = useTranslation();
@@ -23,12 +24,13 @@ export function RelatorioResumo() {
     {!data.hasData ? <ReportState loading={data.loading} error={!!data.error} empty={t('dashboard.noData')} retry={refreshData} /> : <>
       {data.error && <p role="alert">{t('home.refreshError')}</p>}
       <div className="report-metrics">
-        <ReportMetric label={t('dashboard.stockValue')} value={formatMoney(data.valorEmEstoque)} icon={Package} tone="primary" />
-        <ReportMetric label={t('dashboard.entries')} value={formatMoney(data.totalEntradasMes)} icon={ArrowDownLeft} tone="in" />
-        <ReportMetric label={t('dashboard.exits')} value={formatMoney(data.totalSaidasMes)} icon={ArrowUpRight} tone="out" />
+        <MetricCard label={t('dashboard.stockValue')} value={formatMoney(data.valorEmEstoque)} icon={Package} tone="azure" />
+        <MetricCard label={t('dashboard.entries')} value={formatMoney(data.totalEntradasMes)} icon={ArrowDownLeft} tone="azure" />
+        <MetricCard label={t('dashboard.exits')} value={formatMoney(data.totalSaidasMes)} icon={ArrowUpRight} tone="purple" />
       </div>
       <div className="report-overview">
         <section className="report-panel min-w-0">
+          <div className="brand-line" aria-hidden="true" />
           <div className="report-panel-heading"><h2>{t('stockReports.daily')}</h2>
             <div className="report-legend"><span>{t('dashboard.entries')}</span><span>{t('dashboard.exits')}</span></div>
           </div>
@@ -40,26 +42,26 @@ export function RelatorioResumo() {
                 <YAxis stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} fontSize={11}
                   width={64} tickFormatter={v => formatMoney(v, { notation: 'compact', maximumFractionDigits: 1 })} />
                 <Tooltip cursor={{ fill: 'hsl(var(--muted))' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
                   contentStyle={{ borderRadius: 10, background: 'hsl(var(--card))', borderColor: 'hsl(var(--border))' }}
                   labelFormatter={day => t('dashboard.day') + ' ' + day}
                   formatter={(value: number, name: string) => [formatMoney(value), t(name === 'entradas' ? 'dashboard.entries' : 'dashboard.exits')]} />
-                <Bar isAnimationActive={false} dataKey="entradas" fill="var(--stock-in)" radius={[3, 3, 0, 0]} maxBarSize={14} />
-                <Bar isAnimationActive={false} dataKey="saidas" fill="var(--stock-out)" radius={[3, 3, 0, 0]} maxBarSize={14} />
+                <Bar isAnimationActive={false} dataKey="entradas" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={14} />
+                <Bar isAnimationActive={false} dataKey="saidas" fill="hsl(var(--accent))" radius={[3, 3, 0, 0]} maxBarSize={14} />
               </BarChart>
             </ResponsiveContainer>
           </div> : <ReportState loading={false} empty={t('stockReports.noDaily')} />}
         </section>
-        <section className="report-panel report-reference">
-          <div className="report-panel-heading"><h2>{t('stockReports.indicators')}</h2></div>
-          <ReportMetric label={t('stockReports.opening')} icon={Warehouse}
+        <section className="report-reference" aria-label={t('stockReports.indicators')}>
+          <MetricCard label={t('stockReports.opening')} icon={Warehouse}
             value={estoqueInicial === null ? '—' : formatMoney(estoqueInicial)}
             note={estoqueInicial === null ? t('dashboard.noEstimateData') : estoqueInicialEstimado ? t('dashboard.estimated') : undefined} />
-          <ReportMetric label={t('dashboard.cmvPercent')} icon={Percent}
+          <MetricCard label={t('dashboard.cmvPercent')} icon={Percent} tone="blue"
             value={data.cmvMedioReceitas === null ? '—' : new Intl.NumberFormat(getBusinessRegion().locale, {
               style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1,
             }).format(data.cmvMedioReceitas / 100)}
             note={data.cmvMedioReceitas === null ? t('dashboard.noPricedRecipes') : undefined}
-            hint={t('dashboard.cmvAverageHint')} />
+            details={t('dashboard.cmvAverageHint')} detailsLabel={t('stockReports.about', { label: t('dashboard.cmvPercent') })} />
         </section>
       </div>
     </>}

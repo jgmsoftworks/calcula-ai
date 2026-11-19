@@ -1,14 +1,14 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen, CalendarDays, CheckCircle2, ChefHat,
-  ChevronDown, ChevronRight, ChartPie, Info, ListPlus, Package, Percent, Plus, RefreshCw, Refrigerator, Target, Warehouse, type LucideIcon,
+  ChevronDown, ChevronRight, ChartPie, ListPlus, Package, Percent, Plus, RefreshCw, Refrigerator, Target, Warehouse,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MetricCard } from '@/components/ui/metric-card';
 import { fetchActiveStock, fetchRecipeCmv } from '@/lib/dashboardData';
 import { fetchGeladeira, resumoValorGeladeira } from '@/lib/geladeiraData';
 import { calculateEstoqueFinal } from '@/lib/cmvCalculations';
@@ -20,32 +20,6 @@ import { PlanMascot } from '@/components/planos/PlanMascot';
 import './business-home.css';
 
 const PAGE_SIZE = 5;
-
-function HomeStat({ label, value, icon: Icon, tone, pending, to, details, note }: {
-  label: string; value?: string | number | null; icon: LucideIcon; tone: string; pending: boolean;
-  to?: string; details?: ReactNode; note?: string;
-}) {
-  const { t } = useTranslation();
-  const content = <>
-    <div className="home-stat-label">
-      <span className="home-stat-icon"><Icon aria-hidden="true" className="size-4" /></span>
-      <span>{label}</span>
-      {details && <Popover><PopoverTrigger asChild>
-        <button type="button" className="home-stat-info" aria-label={t('home.explainMetric', { label })}>
-          <Info className="size-4" aria-hidden="true" />
-        </button>
-      </PopoverTrigger>
-        <PopoverContent aria-label={label} className="space-y-2 text-sm leading-relaxed">
-          <h3 className="font-semibold">{label}</h3>{details}
-        </PopoverContent>
-      </Popover>}
-    </div>
-    {pending ? <Skeleton className="h-7 w-16" /> : <strong className="home-stat-value">{value ?? '—'}</strong>}
-    {note && <span className="text-xs text-muted-foreground">{note}</span>}
-  </>;
-  return to ? <Link className="home-stat" data-tone={tone} to={to}>{content}</Link>
-    : <div className="home-stat" data-tone={tone}>{content}</div>;
-}
 
 export function BusinessHome({ userId, displayName }: { userId: string; displayName?: string }) {
   const { t, i18n } = useTranslation();
@@ -116,19 +90,19 @@ export function BusinessHome({ userId, displayName }: { userId: string; displayN
     </header>
 
     <div className="home-stats">
-      <HomeStat label={t('home.products')} value={stock.data?.data.length} icon={Package} tone="blue" to="/estoque" pending={stock.isPending} />
-      <HomeStat label={t('home.recipesWithMargin')} value={data?.margin.count} icon={ChefHat} tone="violet" to="/receitas" pending={query.isPending} />
-      <HomeStat label={t('home.average')} value={data?.margin.average != null ? pct(data.margin.average) : null} icon={Percent} tone="blueRoyal" pending={query.isPending} details={marginDetails} />
-      <HomeStat label={t('home.below')} value={summary?.assessed ? summary.alerts.length : null} icon={Target} tone="amber" pending={query.isPending} />
+      <MetricCard label={t('home.products')} value={stock.data?.data.length} icon={Package} tone="azure" to="/estoque" pending={stock.isPending} />
+      <MetricCard label={t('home.recipesWithMargin')} value={data?.margin.count} icon={ChefHat} tone="purple" to="/receitas" pending={query.isPending} />
+      <MetricCard label={t('home.average')} value={data?.margin.average != null ? pct(data.margin.average) : null} icon={Percent} tone="blue" pending={query.isPending} details={marginDetails} />
+      <MetricCard label={t('home.below')} value={summary?.assessed ? summary.alerts.length : null} icon={Target} tone="orange" pending={query.isPending} />
     </div>
     <div className="home-stats home-balance">
-      <HomeStat label={t('home.stockValue')} value={stock.data && formatMoney(calculateEstoqueFinal(stock.data.data))}
-        icon={Warehouse} tone="blue" to="/estoque" pending={stock.isPending} />
-      <HomeStat label={t('home.fridgeValue')} value={fridge.data && formatMoney(fridge.data.total)} icon={Refrigerator} tone="violet"
+      <MetricCard label={t('home.stockValue')} value={stock.data && formatMoney(calculateEstoqueFinal(stock.data.data))}
+        icon={Warehouse} tone="azure" to="/estoque" pending={stock.isPending} />
+      <MetricCard label={t('home.fridgeValue')} value={fridge.data && formatMoney(fridge.data.total)} icon={Refrigerator} tone="purple"
         to="/estoque/geladeira" pending={fridge.isPending} note={fridge.data?.hasUnknownCost ? t('home.partialFridge') : undefined} />
-      <HomeStat label={t('home.recipeCmv')} value={cmv.data?.average != null ? new Intl.NumberFormat(i18n.language,
+      <MetricCard label={t('home.recipeCmv')} value={cmv.data?.average != null ? new Intl.NumberFormat(i18n.language,
         { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(cmv.data.average / 100) : null}
-        icon={ChartPie} tone="blueRoyal" pending={cmv.isPending} details={cmvDetails} />
+        icon={ChartPie} tone="blue" pending={cmv.isPending} details={cmvDetails} />
     </div>
 
     {metrics.some(metric => metric.isError) && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-card p-4 text-sm">

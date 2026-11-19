@@ -10,6 +10,8 @@ A lista de receitas abaixo da meta exibe as cinco maiores diferenças de margem 
 
 Na revisão de 19/11/2026 sobre `bf9246f`, o resumo mensal passou a abrir em **Relatórios → Estoque → Resumo**, junto de Posição, Movimentações e Ranking. O endereço anterior redireciona para essa aba. As consultas de movimentações só rodam ao abrir esse resumo. No Início, a contagem e o valor em estoque usam a mesma leitura paginada dos produtos ativos. A Geladeira usa o custo das quantidades armazenadas e indica quando o total é parcial.
 
+Na revisão visual sobre `742047c`, os relatórios passaram a usar o mesmo cartão de indicador do Início. Entradas usam o azure e saídas usam o roxo, como no registro de movimentações. A fonte das cores é o [manual da marca](brand-colors.md).
+
 ## Antes e depois para quem usa
 
 | Ação | Antes | Depois |

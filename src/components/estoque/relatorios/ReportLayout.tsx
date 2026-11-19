@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { useId } from 'react';
-import { Info, FileSpreadsheet, FileText, type LucideIcon } from 'lucide-react';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -15,28 +14,15 @@ export function ReportHeading({ title, context, children }: { title: string; con
   </header>;
 }
 
-export function ReportMetric({ label, value, icon: Icon, tone = 'neutral', note, hint }: {
-  label: string; value: string; icon: LucideIcon; tone?: 'primary' | 'in' | 'out' | 'neutral'; note?: string; hint?: string;
-}) {
-  const { t } = useTranslation();
-  return <div className={'report-metric metric-' + tone}>
-    <div className="metric-label"><Icon size={17} aria-hidden="true" />{label}
-      {hint && <Popover><PopoverTrigger asChild><button type="button" aria-label={t('stockReports.about', { label })} className="report-help">
-        <Info size={15} /></button></PopoverTrigger><PopoverContent className="max-w-[85vw] text-sm">{hint}</PopoverContent></Popover>}
-    </div>
-    <strong>{value}</strong>{note && <small>{note}</small>}
-  </div>;
-}
-
 export function ReportExports({ busy, disabled, excel, pdf }: {
   busy: 'excel' | 'pdf' | null; disabled: boolean; excel: () => void; pdf: () => void;
 }) {
   const { t } = useTranslation();
   return <div className="report-exports" role="group" aria-label={t('stockReports.export')}>
-    <Button variant="ghost" size="sm" disabled={disabled || !!busy} aria-busy={busy === 'excel'} onClick={excel}>
+    <Button variant="outline" size="sm" disabled={disabled || !!busy} aria-busy={busy === 'excel'} onClick={excel}>
       <FileSpreadsheet size={15} />{busy === 'excel' ? t('stockReports.generating') : 'Excel'}
     </Button>
-    <Button variant="ghost" size="sm" disabled={disabled || !!busy} aria-busy={busy === 'pdf'} onClick={pdf}>
+    <Button variant="outline" size="sm" disabled={disabled || !!busy} aria-busy={busy === 'pdf'} onClick={pdf}>
       <FileText size={15} />{busy === 'pdf' ? t('stockReports.generating') : 'PDF'}
     </Button>
   </div>;
