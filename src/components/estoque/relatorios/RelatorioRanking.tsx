@@ -1,40 +1,22 @@
-import { localizeText } from '@/i18n/localizeText';
-import { useTranslation as usePortugalTranslation } from 'react-i18next';
-import { formatMoney } from '@/lib/business-region';
 import { useMemo, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
+import { formatInTimeZone } from 'date-fns-tz';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileSpreadsheet, FileText, Trophy } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useHistoricoRelatorio } from '@/hooks/useHistoricoRelatorio';
 import type { FiltrosHistoricoEstoque } from '@/lib/historicoEstoqueData';
-import { formatBRL, formatNumber } from '@/lib/formatters';
-import {
-  useExportRelatorioEstoque,
-  type ColunaExport,
-} from '@/hooks/useExportRelatorioEstoque';
-
-function firstDayOfMonth() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-const COLORS = ['#0483e4', '#1c93d8', '#36a3cc', '#50b3c0', '#6ac3b4', '#84d3a8', '#9ee39c', '#b8f390', '#d2ff84', '#f96e0c'];
+import { formatNumber } from '@/lib/formatters';
+import { useExportRelatorioEstoque, type ColunaExport } from '@/hooks/useExportRelatorioEstoque';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getBusinessRegion, formatMoney } from '@/lib/business-region';
+import { ReportExports, ReportHeading, ReportPeriodFilters, ReportState } from './ReportLayout';
 
 export function RelatorioRanking() {
-  usePortugalTranslation();
+  const { t } = useTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
-  const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
-  const [dataFim, setDataFim] = useState(today());
+  const [dataInicio, setDataInicio] = useState(() => formatInTimeZone(new Date(), getBusinessRegion().timeZone, "yyyy-MM-01"));
+  const [dataFim, setDataFim] = useState(() => formatInTimeZone(new Date(), getBusinessRegion().timeZone, "yyyy-MM-dd"));
   const [tipo, setTipo] = useState<string>('saida');
-  const [topN, setTopN] = useState<string>('10');
+  const [topN, setTopN] = useState('10');
   const readFilters = (): FiltrosHistoricoEstoque => ({
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
@@ -75,104 +57,38 @@ export function RelatorioRanking() {
     `Top ${topN}`,
   ];
 
-  const chartData = rows.slice(0, 10).map((r) => ({ name: r.produto.length > 22 ? r.produto.slice(0, 22) + '…' : r.produto, qtd: r.qtd }));
-
-  return (
-    <div className="space-y-4">
-      {error && <p role="alert" className="text-sm text-destructive">Não foi possível carregar o relatório. Tente aplicar os filtros novamente.</p>}
-      <Card className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Data início</Label>
-            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Data fim</Label>
-            <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Tipo</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="entrada">Entradas</SelectItem>
-                <SelectItem value="saida">Saídas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Top</Label>
-            <Select value={topN} onValueChange={setTopN}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">Top 10</SelectItem>
-                <SelectItem value="25">Top 25</SelectItem>
-                <SelectItem value="50">Top 50</SelectItem>
-                <SelectItem value="100">Top 100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-end">
-            <Button onClick={load} className="w-full">Aplicar filtros</Button>
-          </div>
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
-            <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
-          </Button>
-          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt }, colunas, rows)}>
-            <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
-          </Button>
-        </div>
-      </Card>
-
-      {chartData.length > 0 && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-500" />Top 10 — visualização</h3>
-          <div className="h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={160} />
-                <Tooltip formatter={(v) => formatNumber(Number(v), 2)} />
-                <Bar dataKey="qtd" radius={[0, 6, 6, 0]}>
-                  {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      )}
-
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto max-h-[600px]">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead className="w-12 text-center">#</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-right">Quantidade</TableHead>
-                <TableHead className="text-right">Movimentações</TableHead>
-                <TableHead className="text-right">Valor Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{localizeText("Carregando...")}</TableCell></TableRow>}
-              {!loading && rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Sem dados para o período</TableCell></TableRow>}
-              {rows.map((r) => (
-                <TableRow key={r.posicao}>
-                  <TableCell className="text-center font-bold text-muted-foreground">{r.posicao}</TableCell>
-                  <TableCell className="font-medium">{r.produto}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatNumber(r.qtd, 2)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{r.vezes}</TableCell>
-                  <TableCell className="text-right">{formatMoney(r.valor)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
-    </div>
-  );
+  const meta = { titulo: 'Produtos Mais Movimentados', filtros: filtrosTxt };
+  const maxQuantity = Math.max(rows[0]?.qtd ?? 0, 0);
+  return <div className="report-view">
+    <ReportHeading title={t('stockReports.rankingTitle')}>
+      <ReportExports busy={exportando} disabled={loading || error}
+        excel={() => exportarRelatorioExcel(meta, colunas, rows)} pdf={() => exportarRelatorioPDF(meta, colunas, rows)} />
+    </ReportHeading>
+    <ReportPeriodFilters start={dataInicio} end={dataFim} type={tipo} setStart={setDataInicio}
+      setEnd={setDataFim} setType={setTipo} apply={load}>
+      <div><Label htmlFor="report-rank-limit">{t('stockReports.show')}</Label>
+        <Select value={topN} onValueChange={setTopN}>
+          <SelectTrigger id="report-rank-limit"><SelectValue /></SelectTrigger>
+          <SelectContent>{['10', '25', '50', '100'].map(limit =>
+            <SelectItem key={limit} value={limit}>{t('stockReports.productCount', { count: Number(limit) })}</SelectItem>)}</SelectContent>
+        </Select></div>
+    </ReportPeriodFilters>
+    <section className="report-panel">
+      {!loading && !error && rows.length ? <div className="report-list">
+        <table className="report-table report-ranking"><caption className="sr-only">{t('stockReports.rankingTitle')}</caption>
+          <thead><tr>{['product', 'quantity', 'movimentacoes', 'total'].map(key =>
+            <th key={key} scope="col">{t('stockReports.' + key)}</th>)}</tr></thead>
+          <tbody>{rows.map(r => <tr key={r.posicao}>
+            <th scope="row"><div className="report-rank-name"><span className="report-rank-number">{r.posicao}</span><strong>{r.produto}</strong></div></th>
+            <td data-label={t('stockReports.quantity')}><div className="report-ranked-quantity">
+              <div aria-hidden="true" className="report-bar"><i style={{ width: (maxQuantity ? Math.max(r.qtd, 0) / maxQuantity * 100 : 0) + '%' }} /></div>
+              <b>{formatNumber(r.qtd, 2)}</b>
+            </div></td>
+            <td data-label={t('stockReports.movimentacoes')}>{formatNumber(r.vezes, 0)}</td>
+            <td data-label={t('stockReports.total')}>{formatMoney(r.valor)}</td>
+          </tr>)}</tbody>
+        </table>
+      </div> : <ReportState loading={loading} error={error} retry={load} empty={t('stockReports.noMovement')} />}
+    </section>
+  </div>;
 }

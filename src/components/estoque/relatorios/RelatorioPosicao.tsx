@@ -1,44 +1,22 @@
-import { localizeText } from '@/i18n/localizeText';
-import { useTranslation as usePortugalTranslation } from 'react-i18next';
-import { formatMoney } from '@/lib/business-region';
-import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, Boxes, Package, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Search, FileSpreadsheet, FileText, Package, AlertTriangle } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useEstoque, type Produto } from '@/hooks/useEstoque';
-import { formatBRL, formatNumber } from '@/lib/formatters';
-import {
-  useExportRelatorioEstoque,
-  type ColunaExport,
-} from '@/hooks/useExportRelatorioEstoque';
+import { Switch } from '@/components/ui/switch';
+import { formatMoney } from '@/lib/business-region';
+import { formatNumber } from '@/lib/formatters';
+import { useProdutos } from '@/hooks/useProdutos';
+import { useExportRelatorioEstoque, type ColunaExport } from '@/hooks/useExportRelatorioEstoque';
+import { ReportExports, ReportHeading, ReportMetric, ReportState } from './ReportLayout';
 
 export function RelatorioPosicao() {
-  usePortugalTranslation();
+  const { t } = useTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
-  const { fetchProdutos } = useEstoque();
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { produtos, isPending: loading, isError: error, refetch } = useProdutos();
   const [search, setSearch] = useState('');
   const [soAbaixoMin, setSoAbaixoMin] = useState(false);
   const [ocultarZero, setOcultarZero] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      const data = await fetchProdutos();
-      if (active) {
-        setProdutos(data);
-        setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [fetchProdutos]);
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -55,6 +33,7 @@ export function RelatorioPosicao() {
         if ((p.estoque_atual || 0) <= 0) status = 'Zerado';
         else if (p.estoque_minimo > 0 && p.estoque_atual < p.estoque_minimo) status = 'Abaixo';
         return {
+          id: p.id,
           codigo_interno: p.codigo_interno,
           nome: p.nome,
           categoria: (p.categorias || []).join(', '),
@@ -104,145 +83,44 @@ export function RelatorioPosicao() {
     colunas, rows, totaisExport,
   );
 
-  return (
-    <div className="space-y-4">
-      <Card className="p-4 space-y-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-          <div className="min-w-0 flex-1">
-            <Label className="text-xs text-muted-foreground mb-1.5 block">{localizeText("Buscar produto")}</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nome ou código"
-                className="pl-9"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 min-[400px]:flex-row min-[400px]:items-center">
-            <div className="flex items-center gap-2">
-              <Switch id="abaixo" checked={soAbaixoMin} onCheckedChange={setSoAbaixoMin} />
-              <Label htmlFor="abaixo" className="text-sm cursor-pointer">Abaixo do mínimo</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch id="zero" checked={ocultarZero} onCheckedChange={setOcultarZero} />
-              <Label htmlFor="zero" className="text-sm cursor-pointer">Ocultar zero</Label>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" onClick={handleExcel} className="flex-1 gap-2 xl:flex-none">
-              <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
-            </Button>
-            <Button disabled={loading || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" onClick={handlePDF} className="flex-1 gap-2 xl:flex-none">
-              <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
-          <div className="rounded-xl bg-primary/5 p-3 flex items-center gap-3">
-            <Package className="h-5 w-5 text-primary" />
-            <div>
-              <p className="text-xs text-muted-foreground">SKUs ativos</p>
-              <p className="text-lg font-bold">{formatNumber(totais.skus, 0)}</p>
-            </div>
-          </div>
-          <div className="rounded-xl bg-emerald-500/10 p-3">
-            <p className="text-xs text-muted-foreground">{localizeText("Valor total em estoque")}</p>
-            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(totais.valorTotal)}</p>
-          </div>
-        </div>
-      </Card>
-
-      <div className="space-y-2 xl:hidden">
-        {loading && (
-          <Card className="p-8 text-center text-sm text-muted-foreground">{localizeText("Carregando...")}</Card>
-        )}
-        {!loading && rows.length === 0 && (
-          <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum produto encontrado</Card>
-        )}
-        {!loading && rows.map((r) => (
-          <Card key={r.codigo_interno} className="min-w-0 p-3">
-            <div className="flex min-w-0 items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-mono text-[11px] text-muted-foreground">Código {r.codigo_interno}</p>
-                <h3 className="break-words text-sm font-semibold leading-snug">{r.nome}</h3>
-                <p className="mt-1 break-words text-xs text-muted-foreground">{r.categoria || 'Sem categoria'}</p>
-              </div>
-              <div className="shrink-0">
-                {r.status === 'OK' && <Badge variant="secondary" className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">OK</Badge>}
-                {r.status === 'Abaixo' && <Badge variant="secondary" className="gap-1 border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3 w-3" />Abaixo</Badge>}
-                {r.status === 'Zerado' && <Badge variant="secondary" className="border-0 bg-rose-500/15 text-rose-700 dark:text-rose-400">Zerado</Badge>}
-              </div>
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border/50 pt-3 text-sm">
-              <div>
-                <p className="text-[11px] text-muted-foreground">Saldo</p>
-                <p className="font-semibold">{formatNumber(r.estoque_atual, 2)} <span className="text-xs font-normal uppercase text-muted-foreground">{r.unidade}</span></p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">{localizeText("Estoque mínimo")}</p>
-                <p className="font-semibold">{formatNumber(r.estoque_minimo, 2)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Custo unitário</p>
-                <p className="font-semibold">{formatMoney(r.custo_unitario)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">{localizeText("Valor em estoque")}</p>
-                <p className="font-semibold">{formatMoney(r.valor_estoque)}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="hidden overflow-hidden xl:block">
-        <div className="overflow-x-auto max-h-[600px]">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead className="w-20">Código</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-center">Un.</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead className="text-right">Mínimo</TableHead>
-                <TableHead className="text-right">Custo Un.</TableHead>
-                <TableHead className="text-right">{localizeText("Valor Estoque")}</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{localizeText("Carregando...")}</TableCell></TableRow>
-              )}
-              {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</TableCell></TableRow>
-              )}
-              {rows.map((r) => (
-                <TableRow key={r.codigo_interno}>
-                  <TableCell className="font-mono text-xs">{r.codigo_interno}</TableCell>
-                  <TableCell className="font-medium">{r.nome}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{r.categoria || '-'}</TableCell>
-                  <TableCell className="text-center text-sm uppercase">{r.unidade}</TableCell>
-                  <TableCell className="text-right">{formatNumber(r.estoque_atual, 2)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatNumber(r.estoque_minimo, 2)}</TableCell>
-                  <TableCell className="text-right">{formatMoney(r.custo_unitario)}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatMoney(r.valor_estoque)}</TableCell>
-                  <TableCell className="text-center">
-                    {r.status === 'OK' && <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-0">OK</Badge>}
-                    {r.status === 'Abaixo' && <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-0 gap-1"><AlertTriangle className="h-3 w-3" />Abaixo</Badge>}
-                    {r.status === 'Zerado' && <Badge variant="secondary" className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-0">Zerado</Badge>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+  const below = rows.filter(row => row.estoque_minimo > 0 && row.estoque_atual < row.estoque_minimo).length;
+  const ready = !loading && !error;
+  return <div className="report-view">
+    <ReportHeading title={t('stockReports.positionTitle')}>
+      <ReportExports busy={exportando} disabled={!ready} excel={handleExcel} pdf={handlePDF} />
+    </ReportHeading>
+    <div className="report-metrics">
+      <ReportMetric icon={Package} tone="primary" label={t('stockReports.value')} value={ready ? formatMoney(totais.valorTotal) : '—'} />
+      <ReportMetric icon={Boxes} label={t('stockReports.products')} value={ready ? formatNumber(totais.skus, 0) : '—'} />
+      <ReportMetric icon={AlertTriangle} tone="out" label={t('stockReports.below')} value={ready ? formatNumber(below, 0) : '—'} />
     </div>
-  );
+    <section className="report-panel">
+      <div className="report-stock-filters">
+        <div className="relative min-w-0">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <Input aria-label={t('stockReports.search')} placeholder={t('stockReports.search')} className="pl-9"
+            value={search} onChange={event => setSearch(event.target.value)} />
+        </div>
+        <div className="report-switch"><Switch id="abaixo" checked={soAbaixoMin} onCheckedChange={setSoAbaixoMin} />
+          <Label htmlFor="abaixo">{t('stockReports.below')}</Label></div>
+        <div className="report-switch"><Switch id="zero" checked={ocultarZero} onCheckedChange={setOcultarZero} />
+          <Label htmlFor="zero">{t('stockReports.hideZero')}</Label></div>
+      </div>
+      {ready && rows.length ? <div className="report-list">
+        <table className="report-table"><caption className="sr-only">{t('stockReports.positionTitle')}</caption>
+          <thead><tr>{['product', 'status', 'balance', 'minimum', 'cost', 'value'].map(key =>
+            <th key={key} scope="col">{t('stockReports.' + key)}</th>)}</tr></thead>
+          <tbody>{rows.map(r => <tr key={r.id}>
+            <th scope="row"><strong>{r.nome}</strong><small>{['#' + r.codigo_interno, r.categoria].filter(Boolean).join(' · ')}</small></th>
+            <td className="report-tag-cell"><span className={'report-tag ' + (r.status === 'OK' ? 'status-ok' : r.status === 'Abaixo' ? 'status-low' : 'status-zero')}>
+              {t('stockReports.' + r.status)}</span></td>
+            <td data-label={t('stockReports.balance')}>{formatNumber(r.estoque_atual, 2)} {r.unidade}</td>
+            <td data-label={t('stockReports.minimum')}>{formatNumber(r.estoque_minimo, 2)} {r.unidade}</td>
+            <td data-label={t('stockReports.cost')}>{formatMoney(r.custo_unitario)}</td>
+            <td data-label={t('stockReports.value')}><b>{formatMoney(r.valor_estoque)}</b></td>
+          </tr>)}</tbody>
+        </table>
+      </div> : <ReportState loading={loading} error={error} retry={() => refetch()} empty={t('stockReports.noProduct')} />}
+    </section>
+  </div>;
 }

@@ -1,36 +1,21 @@
-import { localizeText } from '@/i18n/localizeText';
-import { useTranslation as usePortugalTranslation } from 'react-i18next';
-import { getBusinessRegion, formatMoney } from '@/lib/business-region';
 import { useMemo, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
+import { formatInTimeZone } from 'date-fns-tz';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileSpreadsheet, FileText, ArrowDown, ArrowUp } from 'lucide-react';
 import { useHistoricoRelatorio } from '@/hooks/useHistoricoRelatorio';
 import type { FiltrosHistoricoEstoque } from '@/lib/historicoEstoqueData';
-import { formatBRL, formatNumber } from '@/lib/formatters';
-import {
-  useExportRelatorioEstoque,
-  type ColunaExport,
-} from '@/hooks/useExportRelatorioEstoque';
-
-function firstDayOfMonth() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { formatNumber } from '@/lib/formatters';
+import { useExportRelatorioEstoque, type ColunaExport } from '@/hooks/useExportRelatorioEstoque';
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Scale } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { getBusinessRegion, formatMoney, formatRegionalDate } from '@/lib/business-region';
+import { ReportExports, ReportHeading, ReportMetric, ReportPeriodFilters, ReportState } from './ReportLayout';
 
 export function RelatorioMovimentacoes() {
-  usePortugalTranslation();
+  const { t } = useTranslation();
   const { exportando, exportarRelatorioExcel, exportarRelatorioPDF } = useExportRelatorioEstoque();
-  const [dataInicio, setDataInicio] = useState(firstDayOfMonth());
-  const [dataFim, setDataFim] = useState(today());
+  const [dataInicio, setDataInicio] = useState(() => formatInTimeZone(new Date(), getBusinessRegion().timeZone, "yyyy-MM-01"));
+  const [dataFim, setDataFim] = useState(() => formatInTimeZone(new Date(), getBusinessRegion().timeZone, "yyyy-MM-dd"));
   const [tipo, setTipo] = useState<string>('todos');
   const [responsavel, setResponsavel] = useState('');
   const readFilters = (): FiltrosHistoricoEstoque => ({
@@ -44,7 +29,8 @@ export function RelatorioMovimentacoes() {
   const load = () => setFiltrosAplicados(readFilters());
 
   const rows = useMemo(() => movs.map((m) => ({
-    data: new Date(m.data_hora).toLocaleString(getBusinessRegion().locale),
+    id: m.origem_estoque + m.id,
+    data: formatRegionalDate(m.data_hora, { dateStyle: "short", timeStyle: "short" }),
     produto: m.produtos?.nome || '-',
     tipo: m.tipo,
     quantidade: m.quantidade || 0,
@@ -88,107 +74,43 @@ export function RelatorioMovimentacoes() {
     [`Saldo líquido (${getBusinessRegion().currency})`]: `${formatMoney(resumo.valEntrada - resumo.valSaida)}`,
   };
 
-  return (
-    <div className="space-y-4">
-      {error && <p role="alert" className="text-sm text-destructive">Não foi possível carregar o relatório. Tente aplicar os filtros novamente.</p>}
-      <Card className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Data início</Label>
-            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Data fim</Label>
-            <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Tipo</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="entrada">Entradas</SelectItem>
-                <SelectItem value="saida">Saídas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Responsável</Label>
-            <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome" />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={load} className="w-full">Aplicar filtros</Button>
-          </div>
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioExcel({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
-            <FileSpreadsheet className="h-4 w-4" /> {exportando === 'excel' ? 'Gerando…' : 'Excel'}
-          </Button>
-          <Button disabled={loading || error || !!exportando} aria-busy={!!exportando} variant="outline" size="sm" className="gap-2" onClick={() => exportarRelatorioPDF({ titulo: 'Movimentações por Período', filtros: filtrosTxt }, colunas, rows, totaisExport)}>
-            <FileText className="h-4 w-4" /> {exportando === 'pdf' ? 'Gerando…' : 'PDF'}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-xl bg-emerald-500/10 p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDown className="h-3 w-3 text-emerald-600" />Entradas</p>
-            <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(resumo.valEntrada)}</p>
-            <p className="text-xs text-muted-foreground">{formatNumber(resumo.qtdEntrada, 2)} un.</p>
-          </div>
-          <div className="rounded-xl bg-rose-500/10 p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowUp className="h-3 w-3 text-rose-600" />Saídas</p>
-            <p className="text-base font-bold text-rose-700 dark:text-rose-400">{formatMoney(resumo.valSaida)}</p>
-            <p className="text-xs text-muted-foreground">{formatNumber(resumo.qtdSaida, 2)} un.</p>
-          </div>
-          <div className="rounded-xl bg-primary/5 p-3 col-span-2 lg:col-span-1">
-            <p className="text-xs text-muted-foreground">Saldo líquido</p>
-            <p className="text-base font-bold">{formatMoney(resumo.valEntrada - resumo.valSaida)}</p>
-          </div>
-          <div className="rounded-xl bg-muted/40 p-3 col-span-2 lg:col-span-1">
-            <p className="text-xs text-muted-foreground">Total de movimentações</p>
-            <p className="text-base font-bold">{formatNumber(rows.length, 0)}</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto max-h-[600px]">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-center">Tipo</TableHead>
-                <TableHead className="text-right">Qtd.</TableHead>
-                <TableHead className="text-right">Custo Un.</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Motivo</TableHead>
-                <TableHead>Responsável</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{localizeText("Carregando...")}</TableCell></TableRow>}
-              {!loading && rows.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</TableCell></TableRow>}
-              {rows.map((r, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-sm whitespace-nowrap">{r.data}</TableCell>
-                  <TableCell className="font-medium">{r.produto}</TableCell>
-                  <TableCell className="text-center">
-                    {r.tipo === 'entrada'
-                      ? <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-0">Entrada</Badge>
-                      : <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-0">Saída</Badge>}
-                  </TableCell>
-                  <TableCell className="text-right">{formatNumber(r.quantidade, 2)}</TableCell>
-                  <TableCell className="text-right">{formatMoney(r.custo)}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatMoney(r.valor)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.motivo}</TableCell>
-                  <TableCell className="text-sm">{r.responsavel}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+  const meta = { titulo: 'Movimentações por Período', filtros: filtrosTxt };
+  const ready = !loading && !error;
+  return <div className="report-view">
+    <ReportHeading title={t('stockReports.movementsTitle')}>
+      <ReportExports busy={exportando} disabled={!ready}
+        excel={() => exportarRelatorioExcel(meta, colunas, rows, totaisExport)}
+        pdf={() => exportarRelatorioPDF(meta, colunas, rows, totaisExport)} />
+    </ReportHeading>
+    <ReportPeriodFilters start={dataInicio} end={dataFim} type={tipo} setStart={setDataInicio}
+      setEnd={setDataFim} setType={setTipo} apply={load}>
+      <div><Label htmlFor="report-person">{t('stockReports.person')}</Label>
+        <Input id="report-person" value={responsavel} onChange={e => setResponsavel(e.target.value)} placeholder={t('stockReports.name')} /></div>
+    </ReportPeriodFilters>
+    <div className="report-metrics">
+      <ReportMetric label={t('dashboard.entries')} value={ready ? formatMoney(resumo.valEntrada) : '—'} icon={ArrowDownLeft} tone="in"
+        note={ready ? t('stockReports.movedQuantity', { quantity: formatNumber(resumo.qtdEntrada, 2) }) : undefined} />
+      <ReportMetric label={t('dashboard.exits')} value={ready ? formatMoney(resumo.valSaida) : '—'} icon={ArrowUpRight} tone="out"
+        note={ready ? t('stockReports.movedQuantity', { quantity: formatNumber(resumo.qtdSaida, 2) }) : undefined} />
+      <ReportMetric label={t('stockReports.net')} value={ready ? formatMoney(resumo.valEntrada - resumo.valSaida) : '—'} icon={Scale} />
+      <ReportMetric label={t('stockReports.movimentacoes')} value={ready ? formatNumber(rows.length, 0) : '—'} icon={ArrowLeftRight} />
     </div>
-  );
+    <section className="report-panel">
+      {ready && rows.length ? <div className="report-list">
+        <table className="report-table"><caption className="sr-only">{t('stockReports.movementsTitle')}</caption>
+          <thead><tr>{['productDate', 'type', 'quantity', 'cost', 'total', 'personReason'].map(key =>
+            <th key={key} scope="col">{t('stockReports.' + key)}</th>)}</tr></thead>
+          <tbody>{rows.map(r => <tr key={r.id}>
+            <th scope="row"><strong>{r.produto}</strong><small>{r.data}</small></th>
+            <td className="report-tag-cell"><span className={'report-tag ' + (r.tipo === 'entrada' ? 'status-ok' : 'status-low')}>
+              {t(r.tipo === 'entrada' ? 'stockReports.entry' : 'stockReports.exit')}</span></td>
+            <td data-label={t('stockReports.quantity')}>{formatNumber(r.quantidade, 2)}</td>
+            <td data-label={t('stockReports.cost')}>{formatMoney(r.custo)}</td>
+            <td data-label={t('stockReports.total')}><b>{formatMoney(r.valor)}</b></td>
+            <td className="report-detail" data-label={t('stockReports.personReason')}>{r.responsavel}<small>{r.motivo}</small></td>
+          </tr>)}</tbody>
+        </table>
+      </div> : <ReportState loading={loading} error={error} retry={load} empty={t('stockReports.noMovement')} />}
+    </section>
+  </div>;
 }

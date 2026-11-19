@@ -8,7 +8,7 @@ Na revisão sobre `7b91282`, cada cartão usa a média aritmética dos percentua
 
 A lista de receitas abaixo da meta exibe as cinco maiores diferenças de margem e mostra mais cinco por clique. O seletor de canal simula os alertas dessa lista. A simulação usa apenas fichas com markup de origem comercial, preço e rendimento adequados e componentes com custo verificável. O preço para atingir a meta arredonda para cima até o centavo. A lista pode usar menos fichas que a média do cadastro.
 
-O resumo mensal está em **Relatórios → Resumo de estoque**. As consultas de movimentações só rodam ao abrir esse resumo. No Início, a contagem e o valor em estoque usam a mesma leitura paginada dos produtos ativos. A Geladeira usa o custo das quantidades armazenadas e indica quando o total é parcial.
+Na revisão de 19/11/2026 sobre `bf9246f`, o resumo mensal passou a abrir em **Relatórios → Estoque → Resumo**, junto de Posição, Movimentações e Ranking. O endereço anterior redireciona para essa aba. As consultas de movimentações só rodam ao abrir esse resumo. No Início, a contagem e o valor em estoque usam a mesma leitura paginada dos produtos ativos. A Geladeira usa o custo das quantidades armazenadas e indica quando o total é parcial.
 
 ## Antes e depois para quem usa
 

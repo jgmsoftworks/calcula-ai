@@ -1,41 +1,42 @@
-import { localizeText } from '@/i18n/localizeText';
-import { useTranslation as usePortugalTranslation } from 'react-i18next';
-import { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Package, ArrowLeftRight, TrendingUp } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeftRight, Boxes, ChartBarDecreasing, LayoutDashboard } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RelatorioResumo } from '@/components/estoque/relatorios/RelatorioResumo';
 import { RelatorioPosicao } from '@/components/estoque/relatorios/RelatorioPosicao';
 import { RelatorioMovimentacoes } from '@/components/estoque/relatorios/RelatorioMovimentacoes';
 import { RelatorioRanking } from '@/components/estoque/relatorios/RelatorioRanking';
+import '@/components/estoque/relatorios/relatorios.css';
+
+const views = [
+  { id: 'resumo', icon: LayoutDashboard, component: RelatorioResumo },
+  { id: 'posicao', icon: Boxes, component: RelatorioPosicao },
+  { id: 'movimentacoes', icon: ArrowLeftRight, component: RelatorioMovimentacoes },
+  { id: 'ranking', icon: ChartBarDecreasing, component: RelatorioRanking },
+];
 
 export default function RelatoriosEstoque() {
-  usePortugalTranslation();
-  const [tab, setTab] = useState('posicao');
-
+  const { t } = useTranslation();
+  const [params, setParams] = useSearchParams();
+  const active = views.find(view => view.id === params.get('aba'))?.id ?? 'resumo';
+  function selectView(id: string) {
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (id === 'resumo') next.delete('aba');
+      else next.set('aba', id);
+      return next;
+    });
+  }
   return (
-    <div className="space-y-6">
-      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger value="posicao" className="gap-2 py-2.5">
-            <Package className="h-4 w-4" />
-            <span className="hidden sm:inline">{localizeText("Posição de Estoque")}</span>
-            <span className="sm:hidden">Posição</span>
+    <Tabs value={active} onValueChange={selectView} className="stock-reports" activationMode="manual">
+      <TabsList className="stock-tabs" aria-label={t('stockReports.title')}>
+        {views.map(({ id, icon: Icon }) => (
+          <TabsTrigger key={id} value={id} className="stock-tab">
+            <Icon aria-hidden="true" size={16} />{t('stockReports.' + id)}
           </TabsTrigger>
-          <TabsTrigger value="movimentacoes" className="gap-2 py-2.5">
-            <ArrowLeftRight className="h-4 w-4" />
-            <span className="hidden sm:inline">Movimentações por Período</span>
-            <span className="sm:hidden">Mov.</span>
-          </TabsTrigger>
-          <TabsTrigger value="ranking" className="gap-2 py-2.5">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Mais Movimentados</span>
-            <span className="sm:hidden">Ranking</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="posicao"><RelatorioPosicao /></TabsContent>
-        <TabsContent value="movimentacoes"><RelatorioMovimentacoes /></TabsContent>
-        <TabsContent value="ranking"><RelatorioRanking /></TabsContent>
-      </Tabs>
-    </div>
+        ))}
+      </TabsList>
+      {views.map(({ id, component: View }) => <TabsContent key={id} value={id} className="stock-tab-body"><View /></TabsContent>)}
+    </Tabs>
   );
 }

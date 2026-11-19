@@ -52,7 +52,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   const getPageInfo = (pathname: string) => {
     if (pathname === '/' && !isAdmin) return { title: t('home.title') };
-    if (pathname === '/relatorios/resumo-estoque') return { title: t('home.stockReport') };
     if (pathname.startsWith('/producao/cronograma')) return { title: 'Cronograma' };
     if (pathname === '/estoque/geladeira') return { title: 'Geladeira' };
     const pageMap: Record<string, string> = {
@@ -83,7 +82,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       const titleMap: Record<string, string> = {
         '/estoque/historico': 'Histórico Geral',
         '/estoque/perdas': 'Perdas',
-        '/relatorios/estoque': 'Relatórios de Estoque',
+        '/relatorios/estoque': t('stockReports.title'),
         '/relatorios/perdas': 'Relatórios de Perdas',
         '/relatorios/produtividade': 'Produtividade',
         '/producao/agenda': 'Agenda de Produção',

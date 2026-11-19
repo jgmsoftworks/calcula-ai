@@ -93,8 +93,7 @@ export function AppSidebar({ contained = false }: { contained?: boolean }) {
       url: '/relatorios',
       icon: BarChart3,
       children: [
-        { title: t('home.stockReport'), url: '/relatorios/resumo-estoque', icon: BarChart3 },
-        { title: localizeText("Estoque"), url: '/relatorios/estoque', icon: Package },
+        { title: t('nav.estoque'), url: '/relatorios/estoque', icon: Package },
         { title: 'Perdas', url: '/relatorios/perdas', icon: AlertOctagon },
         { title: 'Produtividade', url: '/relatorios/produtividade', icon: Activity },
       ],
