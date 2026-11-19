@@ -12,6 +12,16 @@ Na revisão de 19/11/2026 sobre `bf9246f`, o resumo mensal passou a abrir em **R
 
 Na revisão visual sobre `742047c`, os relatórios passaram a usar o mesmo cartão de indicador do Início. Entradas usam o azure e saídas usam o roxo, como no registro de movimentações. A fonte das cores é o [manual da marca](brand-colors.md).
 
+## Recuperação do fechamento de estoque em 19/11/2026
+
+Na revisão sobre `e3d7086`, o fechamento dependia de uma execução no primeiro minuto do mês. A migração `20261119130338_recuperar_fechamento_estoque.sql` inicia um histórico privado por conta no mês de ativação ou de confirmação da região. Cada operação de estoque grava, na mesma transação, a diferença de valor e de quantidade de produtos ativos no mês local. O valor usa a quantidade em estoque multiplicada pelo custo unitário de cada produto ativo. A data de registro no banco determina o mês da alteração.
+
+O mesmo agendamento horário procura todos os meses anteriores cobertos pelo histórico. Meses sem movimentação carregam o último saldo. Uma tentativa interrompida pode ser repetida. Fechamentos existentes são preservados e meses anteriores à cobertura continuam dependendo de um inventário da época.
+
+Em PostgreSQL 17.6 local, uma interrupção do processo após uma compra preservou o fechamento de R$ 30,00. Uma compra já no novo mês elevou o estoque para R$ 75,00 antes da recuperação. Em duas conexões simultâneas, o fechamento também aguardou a confirmação de uma compra do mês anterior.
+
+Na implantação, conferir o agendamento `auto-fechamento-mensal` e verificar a primeira competência coberta. Para pausar somente a geração dos fechamentos, desativar o agendamento e manter a captura das alterações de estoque. Ao reativá-lo, os meses pendentes são recuperados.
+
 ## Antes e depois para quem usa
 
 | Ação | Antes | Depois |

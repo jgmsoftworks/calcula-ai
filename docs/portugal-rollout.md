@@ -10,7 +10,7 @@ Entrada: `https://calculaaibr.com/auth?mode=signup&trial=1&source=landing&countr
 - Idioma e moeda são independentes. A moeda fica fixa após a confirmação e não existe conversão cambial automática.
 - O teste continua com 7 dias e limites do Iniciante. Pagamento confirmado converte a mesma conta em assinatura; expiração preserva dados.
 - Os formatos de moeda foram centralizados para receitas, stock, custos, relatórios e exportações. Os identificadores internos e cabeçalhos necessários à importação mantêm os nomes anteriores.
-- O fechamento mensal automático usa a meia-noite do país, considera o horário de verão de Lisboa e preserva snapshots já existentes. Desde a migração `20261119124000_fecha_estoque_no_banco.sql`, o pg_cron grava o saldo diretamente no PostgreSQL. O relatório usa o fechamento do mês anterior e exibe a ausência do registro quando a virada não foi capturada.
+- O fechamento de estoque segue o mês local de Brasília ou Lisboa. A migração `20261119130338_recuperar_fechamento_estoque.sql` registra o saldo na ativação e as variações mensais posteriores. O agendamento recupera meses pendentes com esses valores, inclusive quando já houve compras no mês seguinte.
 
 ## Cobrança
 
