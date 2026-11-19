@@ -7,6 +7,7 @@ import { AppLayout } from '../../src/components/layout/AppLayout';
 import MediaFaturamentoPage from '../../src/pages/precificacao/MediaFaturamentoPage';
 import { Toaster } from '../../src/components/ui/toaster';
 import Dashboard from '../../src/pages/Dashboard';
+import RelatoriosEstoque from '../../src/pages/RelatoriosEstoque';
 import { PlanLimitProvider } from '../../src/contexts/PlanLimitProvider';
 import ReceitaEditor from '../../src/pages/ReceitaEditor';
 import Movimentacao from '../../src/pages/Movimentacao';
@@ -18,11 +19,12 @@ const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }
 export default function Fixture() {
   const [open, setOpen] = useState(new URLSearchParams(window.location.search).has('types'));
   const params = new URLSearchParams(window.location.search);
-  const initialPath = params.has('home') ? '/' : params.has('revenue') ? '/precificacao/media-faturamento' : '/estoque/movimentacoes';
+  const initialPath = params.has('reports') ? '/relatorios/estoque' : params.has('home') ? '/' : params.has('revenue') ? '/precificacao/media-faturamento' : '/estoque/movimentacoes';
   return <AuthContext.Provider value={auth}><QueryClientProvider client={client}><MemoryRouter initialEntries={[initialPath]}><AppLayout>
     <Toaster />
     <Routes>
       <Route path="/" element={<Dashboard />} />
+      <Route path="/relatorios/estoque" element={<RelatoriosEstoque />} />
       <Route path="/receitas/:id/editar" element={<PlanLimitProvider><ReceitaEditor /></PlanLimitProvider>} />
       <Route path="/precificacao/media-faturamento" element={<MediaFaturamentoPage />} />
       <Route path="/estoque/movimentacoes" element={<Movimentacao />} />

@@ -30,7 +30,6 @@ const Geladeira = lazy(() => import("./pages/Geladeira"));
 const Estoque = lazy(() => import("./pages/Estoque"));
 const ProdutoEditor = lazy(() => import("./pages/ProdutoEditor"));
 const EstoqueHistorico = lazy(() => import("./pages/EstoqueHistorico"));
-const ResumoEstoque = lazy(() => import("./pages/ResumoEstoque"));
 const RelatoriosEstoque = lazy(() => import("./pages/RelatoriosEstoque"));
 const RelatoriosPerdas = lazy(() => import("./pages/RelatoriosPerdas"));
 const RelatoriosProdutividade = lazy(() => import("./pages/RelatoriosProdutividade"));
@@ -119,7 +118,7 @@ const App = () => (
                   <Route path="/estoque/perdas" element={<Perdas />} />
                   <Route path="/estoque/relatorios" element={<Navigate to="/relatorios/estoque" replace />} />
                   <Route path="/relatorios" element={<Navigate to="/relatorios/estoque" replace />} />
-                  <Route path="/relatorios/resumo-estoque" element={<ResumoEstoque />} />
+                  <Route path="/relatorios/resumo-estoque" element={<Navigate to="/relatorios/estoque" replace />} />
                   <Route path="/relatorios/estoque" element={<RelatoriosEstoque />} />
                   <Route path="/relatorios/perdas" element={<RelatoriosPerdas />} />
                   <Route path="/relatorios/produtividade" element={<RelatoriosProdutividade />} />
