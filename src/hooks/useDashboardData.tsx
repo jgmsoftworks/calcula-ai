@@ -51,7 +51,7 @@ const EMPTY_DATA: DashboardData = {
     cmvDisponivel: false,
     cmvValor: null,
     cmvPercentual: null,
-    breakdown: { estoqueInicial: null, estoqueInicialEstimado: false, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
+    breakdown: { estoqueInicial: null, comprasLiquidas: 0, estoqueFinal: 0, faturamentoLiquido: null },
   },
   cmvMedioReceitas: null,
   cmvReceitasConsideradas: 0,

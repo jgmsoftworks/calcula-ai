@@ -10,7 +10,7 @@ import { ReportHeading, ReportState } from './ReportLayout';
 export function RelatorioResumo() {
   const { t, i18n } = useTranslation();
   const { data, refreshData } = useDashboardData();
-  const { estoqueInicial, estoqueInicialEstimado } = data.cmvResult.breakdown;
+  const { estoqueInicial } = data.cmvResult.breakdown;
   const month = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
     month: 'long', year: 'numeric', timeZone: getBusinessRegion().timeZone,
   }).format(new Date());
@@ -55,7 +55,7 @@ export function RelatorioResumo() {
         <section className="report-reference" aria-label={t('stockReports.indicators')}>
           <MetricCard label={t('stockReports.opening')} icon={Warehouse}
             value={estoqueInicial === null ? '—' : formatMoney(estoqueInicial)}
-            note={estoqueInicial === null ? t('dashboard.noEstimateData') : estoqueInicialEstimado ? t('dashboard.estimated') : undefined} />
+            note={estoqueInicial === null ? t('stockReports.missingClosing') : t('stockReports.previousClosing')} />
           <MetricCard label={t('dashboard.cmvPercent')} icon={Percent} tone="blue"
             value={data.cmvMedioReceitas === null ? '—' : new Intl.NumberFormat(getBusinessRegion().locale, {
               style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1,
