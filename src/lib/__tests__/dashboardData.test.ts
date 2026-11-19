@@ -95,12 +95,13 @@ describe('dashboard totals with shared movement data', () => {
     expect(result.cmvResult).toMatchObject({
       cmvDisponivel: true,
       cmvValor: 22,
-      breakdown: { estoqueInicial: 120, estoqueInicialEstimado: false, comprasLiquidas: 32, estoqueFinal: 130, faturamentoLiquido: 33 },
+      breakdown: { estoqueInicial: 120, comprasLiquidas: 32, estoqueFinal: 130, faturamentoLiquido: 33 },
     });
     expect(result.cmvResult.cmvPercentual).toBeCloseTo((22 / 33) * 100);
     expect(result.dailyMovements.find(day => day.day === '21')).toEqual({ day: '21', entradas: 64, saidas: 33 });
     expect(mocks.requests).toHaveLength(4);
     expect(mocks.requests.filter(r => r.table === 'movimentacoes')).toHaveLength(1);
+    expect(mocks.requests.find(r => r.table === 'estoque_fechamentos_mensais')?.filters).toContainEqual(['competencia', '2026-09']);
     for (const request of mocks.requests) {
       expect(request.filters).toContainEqual(['user_id', 'account-a']);
       expect(request.signal).toBe(signal);
@@ -132,7 +133,8 @@ describe('dashboard totals with shared movement data', () => {
     expect(result).toMatchObject({ valorEmEstoque: 1001, totalEntradasMes: 1000, totalSaidasMes: 14 });
     expect(result.cmvMedioReceitas).toBeCloseTo((1000 * 20 + 50) / 1001);
     expect(result.cmvReceitasConsideradas).toBe(1001);
-    expect(result.cmvResult.breakdown.faturamentoLiquido).toBe(14);
+    expect(result.cmvResult.breakdown).toMatchObject({ estoqueInicial: 0, faturamentoLiquido: 14 });
+    expect(result.cmvResult.cmvDisponivel).toBe(true);
     for (const table of ['produtos', 'movimentacoes', 'receitas']) {
       const pages = mocks.requests.filter(r => r.table === table);
       expect(pages.map(r => [r.from, r.to])).toEqual([[0, 499], [500, 999], [1000, 1499]]);
@@ -140,12 +142,12 @@ describe('dashboard totals with shared movement data', () => {
     }
   });
 
-  it('retains the previous estimation and no-revenue behavior when there is no monthly closing', async () => {
+  it('leaves the opening balance and stock CMV unavailable when the previous closing is missing', async () => {
     mocks.tables = { produtos: [{ estoque_atual: 10, custo_unitario: 2 }], movimentacoes: [movement({ quantidade: 5, custo_aplicado: 2, subtotal: 10 })] };
     const result = await fetch();
     expect(result.cmvResult).toEqual({
-      cmvDisponivel: true, cmvValor: 0, cmvPercentual: null,
-      breakdown: { estoqueInicial: 10, estoqueInicialEstimado: true, comprasLiquidas: 10, estoqueFinal: 20, faturamentoLiquido: null },
+      cmvDisponivel: false, cmvValor: null, cmvPercentual: null,
+      breakdown: { estoqueInicial: null, comprasLiquidas: 10, estoqueFinal: 20, faturamentoLiquido: null },
     });
     expect(result.cmvMedioReceitas).toBeNull();
     expect(result.cmvReceitasConsideradas).toBe(0);

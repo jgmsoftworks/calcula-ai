@@ -25,7 +25,7 @@ O cache do painel é separado por usuário, mês e estado dos filtros, dura até
 
 Produtos, receitas e movimentações do painel são lidos em lotes de 500 até o fim, ordenados por ID. Não há paginação adicional visível nos cards e nenhum total é calculado somente sobre a primeira página. Em conjunto pequeno, são quatro consultas em vez de sete. Conjuntos maiores exigem páginas adicionais; não se deve anunciar quatro requisições para toda conta.
 
-As fórmulas de estoque, compras, faturamento, estimativa de fechamento e média de CMV das receitas foram mantidas. A falta de fechamento anterior continua permitindo a estimativa existente. Erro ao consultar o fechamento passa a interromper a atualização, em vez de parecer falta de fechamento. Ao ultrapassar o antigo limite da API, os totais passam a incluir os registros que antes podiam ficar fora da resposta.
+As fórmulas de estoque, compras, faturamento, estimativa de fechamento e média de CMV das receitas foram mantidas. Na versão de outubro, a falta de fechamento anterior permitia estimar o saldo. Desde 19/11/2026, a abertura usa exclusivamente o fechamento registrado no mês anterior. Erro ao consultar o fechamento passa a interromper a atualização, em vez de parecer falta de fechamento. Ao ultrapassar o antigo limite da API, os totais passam a incluir os registros que antes podiam ficar fora da resposta.
 
 Excel e PDF mantêm linhas, filtros e totais fornecidos pelo relatório. O estado de exportação bloqueia cliques repetidos enquanto carrega e permite tentar novamente após falha. Não modifica quais registros cada relatório consulta.
 

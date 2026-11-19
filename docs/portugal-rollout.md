@@ -10,7 +10,7 @@ Entrada: `https://calculaaibr.com/auth?mode=signup&trial=1&source=landing&countr
 - Idioma e moeda são independentes. A moeda fica fixa após a confirmação e não existe conversão cambial automática.
 - O teste continua com 7 dias e limites do Iniciante. Pagamento confirmado converte a mesma conta em assinatura; expiração preserva dados.
 - Os formatos de moeda foram centralizados para receitas, stock, custos, relatórios e exportações. Os identificadores internos e cabeçalhos necessários à importação mantêm os nomes anteriores.
-- O fechamento mensal automático usa a meia-noite do país, considera o horário de verão de Lisboa e preserva snapshots já existentes. O cron verifica a cada hora e só processa o mercado cuja virada mensal chegou.
+- O fechamento mensal automático usa a meia-noite do país, considera o horário de verão de Lisboa e preserva snapshots já existentes. Desde a migração `20261119124000_fecha_estoque_no_banco.sql`, o pg_cron grava o saldo diretamente no PostgreSQL. O relatório usa o fechamento do mês anterior e exibe a ausência do registro quando a virada não foi capturada.
 
 ## Cobrança
 
@@ -35,6 +35,6 @@ Antes de anunciar vendas: conectar a conta Stripe de produção, criar os três 
 
 ## Publicação e reversão
 
-Aplicar a migração antes de publicar o frontend. Publicar as funções que importam `_shared/planos.ts` direta ou indiretamente, além de `admin-planos`, `affiliate-checkout` e `auto-fechamento-mensal`. Publicar o site pelo Lovable.
+Aplicar a migração antes de publicar o frontend. Publicar as funções que importam `_shared/planos.ts` direta ou indiretamente, além de `admin-planos` e `affiliate-checkout`. Publicar o site pelo Lovable.
 
 Para reverter o frontend, manter os campos e dados de região no banco. Não remover nem reclassificar contas EUR como BRL. Desativar preços de Portugal impede novas contratações sem apagar assinaturas ou o histórico dos preços.

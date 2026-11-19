@@ -39,6 +39,7 @@ test('stock reports share one menu destination and expose all four views', async
   const tabs = page.getByRole('tablist', { name: 'Relatórios de estoque' });
   await expect(tabs.getByRole('tab', { selected: true })).toHaveText('Resumo');
   await expect(panel.getByText('144,00', { exact: false }).first()).toBeVisible();
+  await expect(panel.getByText('Sem fechamento do mês anterior')).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Movimentação diária' })).toBeVisible();
   await expect.poll(() => panel.locator('.recharts-bar-rectangle path').evaluateAll(paths =>
     paths.some(path => path.getBoundingClientRect().height > 5))).toBe(true);

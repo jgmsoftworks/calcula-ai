@@ -64,7 +64,8 @@ export async function fetchDashboardData(userId: string, monthStart: string, mon
     produtosEstoque.data || [],
     entradasMes.data || [],
     allMovimentacoesMes.data || [],
-    signal
+    signal,
+    { start: monthStart, end: monthEnd },
   );
 
   // Valor em estoque (EF)

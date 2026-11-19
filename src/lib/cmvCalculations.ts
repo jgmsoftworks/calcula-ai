@@ -18,7 +18,6 @@ const MOTIVOS_EXCLUIDOS = ['ajuste', 'inventário', 'transferência', 'bonifica�
 
 export interface CmvBreakdown {
   estoqueInicial: number | null;
-  estoqueInicialEstimado: boolean;
   comprasLiquidas: number;
   estoqueFinal: number;
   faturamentoLiquido: number | null;
@@ -72,8 +71,7 @@ export function getCurrentMonthRange(): { start: string; end: string } {
 // getCompetenciaAnterior
 // Retorna a competência do mês anterior no formato "YYYY-MM"
 // -------------------------------------------------------
-export function getCompetenciaAnterior(): string {
-  const now = new Date();
+export function getCompetenciaAnterior(now = new Date()): string {
   const nowBrasilia = toZonedTime(now, getBusinessRegion().timeZone);
   const year = nowBrasilia.getFullYear();
   const month = nowBrasilia.getMonth(); // 0-indexed, já é o mês anterior ao atual
@@ -218,12 +216,13 @@ export async function calcularCmvCompleto(
   entradasMes: Movimentacao[],
   todasMovimentacoesMes?: MovimentacaoComTipo[],
   signal?: AbortSignal,
+  periodo = getCurrentMonthRange(),
 ): Promise<CmvResult> {
-  const competenciaAnterior = getCompetenciaAnterior();
-  const { start, end } = getCurrentMonthRange();
+  const { start, end } = periodo;
+  const competenciaAnterior = getCompetenciaAnterior(new Date(start));
 
   // Buscar EI real e faturamento em paralelo
-  const [estoqueInicialReal, faturamentoLiquido] = await Promise.all([
+  const [estoqueInicial, faturamentoLiquido] = await Promise.all([
     getEstoqueInicialReal(userId, competenciaAnterior, signal),
     todasMovimentacoesMes !== undefined
       ? calculateFaturamentoLiquido(todasMovimentacoesMes.filter(m => m.tipo === 'saida'))
@@ -234,33 +233,13 @@ export async function calcularCmvCompleto(
   const estoqueFinal = calculateEstoqueFinal(produtosAtivos);
   const comprasLiquidas = calculateComprasLiquidas(entradasMes);
 
-  // Se não há fechamento anterior, estimar EI via fórmula reversa
-  let estoqueInicial = estoqueInicialReal;
-  let estoqueInicialEstimado = false;
-
-  if (estoqueInicial === null && todasMovimentacoesMes) {
-    // EI estimado = EF atual - entradas_mes_a_custo + saidas_mes_a_custo
-    const entradasValor = todasMovimentacoesMes
-      .filter(m => m.tipo === 'entrada')
-      .reduce((sum, m) => sum + ((m.custo_aplicado || 0) * (m.quantidade || 0)), 0);
-
-    const saidasValor = todasMovimentacoesMes
-      .filter(m => m.tipo === 'saida')
-      .reduce((sum, m) => sum + ((m.custo_aplicado || 0) * (m.quantidade || 0)), 0);
-
-    estoqueInicial = estoqueFinal - entradasValor + saidasValor;
-    estoqueInicialEstimado = true;
-  }
-
   const breakdown: CmvBreakdown = {
     estoqueInicial,
-    estoqueInicialEstimado,
     comprasLiquidas,
     estoqueFinal,
     faturamentoLiquido,
   };
 
-  // Se EI ainda é null (sem movimentações para estimar), CMV indisponível
   if (estoqueInicial === null) {
     return {
       cmvDisponivel: false,
