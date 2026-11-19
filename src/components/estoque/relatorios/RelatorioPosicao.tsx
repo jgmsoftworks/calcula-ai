@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MetricCard } from '@/components/ui/metric-card';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Boxes, Package, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { formatMoney } from '@/lib/business-region';
 import { formatNumber } from '@/lib/formatters';
 import { useProdutos } from '@/hooks/useProdutos';
 import { useExportRelatorioEstoque, type ColunaExport } from '@/hooks/useExportRelatorioEstoque';
-import { ReportExports, ReportHeading, ReportMetric, ReportState } from './ReportLayout';
+import { ReportExports, ReportHeading, ReportState } from './ReportLayout';
 
 export function RelatorioPosicao() {
   const { t } = useTranslation();
@@ -90,9 +91,9 @@ export function RelatorioPosicao() {
       <ReportExports busy={exportando} disabled={!ready} excel={handleExcel} pdf={handlePDF} />
     </ReportHeading>
     <div className="report-metrics">
-      <ReportMetric icon={Package} tone="primary" label={t('stockReports.value')} value={ready ? formatMoney(totais.valorTotal) : '—'} />
-      <ReportMetric icon={Boxes} label={t('stockReports.products')} value={ready ? formatNumber(totais.skus, 0) : '—'} />
-      <ReportMetric icon={AlertTriangle} tone="out" label={t('stockReports.below')} value={ready ? formatNumber(below, 0) : '—'} />
+      <MetricCard icon={Package} tone="azure" label={t('stockReports.value')} value={ready ? formatMoney(totais.valorTotal) : '—'} />
+      <MetricCard icon={Boxes} tone="blue" label={t('stockReports.products')} value={ready ? formatNumber(totais.skus, 0) : '—'} />
+      <MetricCard icon={AlertTriangle} tone="orange" label={t('stockReports.below')} value={ready ? formatNumber(below, 0) : '—'} />
     </div>
     <section className="report-panel">
       <div className="report-stock-filters">

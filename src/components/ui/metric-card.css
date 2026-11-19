@@ -1,0 +1,23 @@
+.metric-card {
+  display: flex; flex-direction: column; align-items: start; justify-content: space-between;
+  min-width: 0; padding: .8rem 1rem; gap: .4rem; border: 1px solid hsl(var(--border) / .85);
+  border-radius: .875rem; background: hsl(var(--card)); --stat-color: var(--brand-azure);
+}
+a.metric-card:hover { border-color: hsl(var(--stat-color) / .45); }
+.metric-card[data-tone="purple"] { --stat-color: var(--brand-purple); }
+.metric-card[data-tone="blue"] { --stat-color: var(--brand-blue); }
+.metric-card[data-tone="orange"] { --stat-color: var(--brand-orange); }
+.metric-card-label { display: flex; align-items: center; gap: .5rem; font-size: .8125rem; font-weight: 500; }
+.metric-card-label { width: 100%; min-width: 0; }
+.metric-card-info { display: inline-grid; place-items: center; margin-left: auto; flex: 0 0 1.5rem; min-height: 1.75rem; border-radius: .35rem; color: hsl(var(--muted-foreground)); }
+.metric-card-info:hover, .metric-card-info:focus-visible { color: hsl(var(--primary)); background: hsl(var(--muted)); }
+.metric-card-info:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.metric-card-icon { display: grid; place-items: center; width: 1.875rem; height: 1.875rem; border-radius: .5rem;
+  background: hsl(var(--stat-color) / .09); color: hsl(var(--stat-color)); flex-shrink: 0; }
+.metric-card-value { font-family: var(--font-display); font-size: 1.55rem; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+
+@container (max-width: 29rem) {
+  .metric-card { padding: .65rem; }
+  .metric-card-label { gap: .35rem; }
+  .metric-card-value { font-size: clamp(1.05rem, 5cqi, 1.5rem); overflow-wrap: anywhere; }
+}

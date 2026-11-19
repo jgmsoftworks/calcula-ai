@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MetricCard } from '@/components/ui/metric-card';
 import { useTranslation } from 'react-i18next';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,7 @@ import { useExportRelatorioEstoque, type ColunaExport } from '@/hooks/useExportR
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Scale } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { getBusinessRegion, formatMoney, formatRegionalDate } from '@/lib/business-region';
-import { ReportExports, ReportHeading, ReportMetric, ReportPeriodFilters, ReportState } from './ReportLayout';
+import { ReportExports, ReportHeading, ReportPeriodFilters, ReportState } from './ReportLayout';
 
 export function RelatorioMovimentacoes() {
   const { t } = useTranslation();
@@ -88,12 +89,12 @@ export function RelatorioMovimentacoes() {
         <Input id="report-person" value={responsavel} onChange={e => setResponsavel(e.target.value)} placeholder={t('stockReports.name')} /></div>
     </ReportPeriodFilters>
     <div className="report-metrics">
-      <ReportMetric label={t('dashboard.entries')} value={ready ? formatMoney(resumo.valEntrada) : '—'} icon={ArrowDownLeft} tone="in"
+      <MetricCard label={t('dashboard.entries')} value={ready ? formatMoney(resumo.valEntrada) : '—'} icon={ArrowDownLeft} tone="azure"
         note={ready ? t('stockReports.movedQuantity', { quantity: formatNumber(resumo.qtdEntrada, 2) }) : undefined} />
-      <ReportMetric label={t('dashboard.exits')} value={ready ? formatMoney(resumo.valSaida) : '—'} icon={ArrowUpRight} tone="out"
+      <MetricCard label={t('dashboard.exits')} value={ready ? formatMoney(resumo.valSaida) : '—'} icon={ArrowUpRight} tone="purple"
         note={ready ? t('stockReports.movedQuantity', { quantity: formatNumber(resumo.qtdSaida, 2) }) : undefined} />
-      <ReportMetric label={t('stockReports.net')} value={ready ? formatMoney(resumo.valEntrada - resumo.valSaida) : '—'} icon={Scale} />
-      <ReportMetric label={t('stockReports.movimentacoes')} value={ready ? formatNumber(rows.length, 0) : '—'} icon={ArrowLeftRight} />
+      <MetricCard label={t('stockReports.net')} value={ready ? formatMoney(resumo.valEntrada - resumo.valSaida) : '—'} icon={Scale} tone="blue" />
+      <MetricCard label={t('stockReports.movimentacoes')} value={ready ? formatNumber(rows.length, 0) : '—'} icon={ArrowLeftRight} />
     </div>
     <section className="report-panel">
       {ready && rows.length ? <div className="report-list">
@@ -102,7 +103,7 @@ export function RelatorioMovimentacoes() {
             <th key={key} scope="col">{t('stockReports.' + key)}</th>)}</tr></thead>
           <tbody>{rows.map(r => <tr key={r.id}>
             <th scope="row"><strong>{r.produto}</strong><small>{r.data}</small></th>
-            <td className="report-tag-cell"><span className={'report-tag ' + (r.tipo === 'entrada' ? 'status-ok' : 'status-low')}>
+            <td className="report-tag-cell"><span className={'report-tag ' + (r.tipo === 'entrada' ? 'movement-in' : 'movement-out')}>
               {t(r.tipo === 'entrada' ? 'stockReports.entry' : 'stockReports.exit')}</span></td>
             <td data-label={t('stockReports.quantity')}>{formatNumber(r.quantidade, 2)}</td>
             <td data-label={t('stockReports.cost')}>{formatMoney(r.custo)}</td>
