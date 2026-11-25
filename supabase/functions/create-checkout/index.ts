@@ -81,7 +81,7 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { userId: user.id });
 
     // Processar dados da requisição
     const requestBody = await req.json();
@@ -136,7 +136,7 @@ serve(async (req) => {
     }
 
     // Verificar se já existe um cliente Stripe
-    logStep("Searching for existing customer", { email: user.email });
+    logStep("Searching for existing customer");
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     

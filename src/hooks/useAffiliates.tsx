@@ -204,12 +204,24 @@ export const useAffiliates = () => {
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
+      // O afiliado é vinculado à conta do próprio afiliado (pelo e-mail), nunca à de quem cadastra.
+      const { data: authUsers, error: lookupError } = await supabase.rpc('get_users_auth_info');
+      if (lookupError) throw lookupError;
+      const emailAfiliado = affiliateData.email.trim().toLowerCase();
+      const contaAfiliado = (authUsers ?? []).find((u) => u.email?.toLowerCase() === emailAfiliado);
+      if (!contaAfiliado) {
+        throw new Error('O afiliado precisa ter uma conta no Calcula Aí com este e-mail antes de ser cadastrado.');
+      }
+      if (contaAfiliado.user_id === user?.id) {
+        throw new Error('Você não pode cadastrar a si mesmo como afiliado.');
+      }
+
       const { data, error } = await supabase
         .from('affiliates')
         .insert([{
           ...affiliateData,
-          user_id: user?.id
+          user_id: contaAfiliado.user_id
         }])
         .select()
         .single();

@@ -79,7 +79,7 @@ serve(async (req) => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    console.log('[ADMIN-DELETE-USER] Iniciando exclusão de:', userId, targetEmail);
+    console.log('[ADMIN-DELETE-USER] Iniciando exclusão de:', userId);
 
     // Cleanup tables that reference user_id directly
     const userIdTables = [

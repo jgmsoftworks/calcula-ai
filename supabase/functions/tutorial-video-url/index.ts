@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!video) return json({ error: "Vídeo indisponível" }, 404);
     }
-    const { data, error } = await admin.storage.from("tutorial-videos").createSignedUrl(path, 3600);
+    const { data, error } = await admin.storage.from("tutorial-videos").createSignedUrl(path, 900);
     if (error || !data?.signedUrl) return json({ error: "Vídeo indisponível" }, 404);
     return json({ signedUrl: data.signedUrl });
   } catch (e) {

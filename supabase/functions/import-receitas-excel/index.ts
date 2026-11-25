@@ -22,8 +22,14 @@ serve(async (req) => {
     );
 
     // Verificar autenticação
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const token = authHeader.slice(7);
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
@@ -327,8 +333,7 @@ serve(async (req) => {
     console.error('[IMPORT-RECEITAS] Erro geral:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.stack 
+        error: error instanceof Error ? error.message : 'Erro ao importar receitas',
       }),
       {
         status: 400,

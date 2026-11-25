@@ -78,7 +78,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('[GET-USER-BY-EMAIL] Buscando usuário com email:', email);
+    console.log('[GET-USER-BY-EMAIL] Buscando usuário por email');
 
     // Buscar usuário no auth.users usando o admin client
     const { data: authUsers, error: searchError } = await supabaseAdmin.auth.admin.listUsers();

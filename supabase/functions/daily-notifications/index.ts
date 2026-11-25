@@ -1,6 +1,7 @@
 import type { AppDatabaseClient, Tables } from '../_shared/database.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { requireCronOrAdmin } from "../_shared/authGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +72,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const denied = await requireCronOrAdmin(req, corsHeaders);
+  if (denied) return denied;
 
   try {
     logStep("Iniciando verificação diária de notificações");

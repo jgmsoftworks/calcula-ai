@@ -13,6 +13,8 @@ Deno.serve(async req => {
     const stripe = billingStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.mode !== 'subscription') return json({ error: 'Compra não reconhecida.' }, 400);
+    // O link de confirmação só vale por 24h após a compra.
+    if (Date.now() / 1000 - session.created > 86400) return json({ error: 'Este link de confirmação expirou. Entre na sua conta para ver seu plano.' }, 410);
     const subId = objectId(session.subscription);
     const subscription = subId ? await stripe.subscriptions.retrieve(subId) : null;
     const state = checkoutState(session, subscription);

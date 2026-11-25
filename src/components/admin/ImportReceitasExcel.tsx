@@ -49,7 +49,7 @@ export const ImportReceitasExcel = () => {
 
     try {
       // Buscar o usuário usando a edge function que acessa auth.users
-      console.log('Buscando usuário com email:', clientEmail);
+      console.log('Buscando usuário por email');
       
       const { data: userInfo, error: userError } = await supabase.functions.invoke('get-user-by-email', {
         body: { email: clientEmail }
@@ -68,7 +68,7 @@ export const ImportReceitasExcel = () => {
       const clientUserId = userInfo.user_id;
       const userName = userInfo.full_name || userInfo.business_name || userInfo.email;
       
-      console.log('Usuário encontrado:', userName, '(ID:', clientUserId, ')');
+      console.log('Usuário encontrado (ID:', clientUserId, ')');
       
       toast({
         title: "Usuário encontrado",

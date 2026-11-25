@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { enforceRateLimit } from "../_shared/rateLimit.ts";
+import { safeAppOrigin } from "../_shared/appOrigin.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,13 +116,19 @@ serve(async (req) => {
           logStep('Using affiliate specific price', { priceId });
         }
 
-        // Atualizar contador de cliques
-        await supabaseClient
-          .from('affiliate_links')
-          .update({ clicks_count: (linkData.clicks_count || 0) + 1 })
-          .eq('link_code', effectiveAffiliateCode);
-        
-        logStep('Click count updated');
+        // Atualizar contador de cliques: no máximo 1 clique por visitante, por link, a cada 24h
+        const repeatedClick = await enforceRateLimit(
+          req,
+          { bucket: `affiliate-click:${effectiveAffiliateCode}`, limit: 1, windowSeconds: 86400 },
+          corsHeaders,
+        );
+        if (!repeatedClick) {
+          await supabaseClient
+            .from('affiliate_links')
+            .update({ clicks_count: (linkData.clicks_count || 0) + 1 })
+            .eq('link_code', effectiveAffiliateCode);
+          logStep('Click count updated');
+        }
       } else {
         logStep('Affiliate not found');
       }
@@ -179,7 +186,7 @@ serve(async (req) => {
         
         if (user?.email) {
           accountId = user.id;
-          logStep('User authenticated', { userId: user.id, email: user.email });
+          logStep('User authenticated', { userId: user.id });
           
           // Check if customer already exists in Stripe
           const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -188,7 +195,7 @@ serve(async (req) => {
             logStep('Existing Stripe customer found', { customerId: customers.data[0].id });
           } else {
             customerConfig = { customer_email: user.email };
-            logStep('New customer, will use email', { email: user.email });
+            logStep('New customer, will use account email');
           }
         }
       }
@@ -263,7 +270,7 @@ serve(async (req) => {
         }],
         mode: "subscription",
         success_url: `https://calculaaibr.com/auth/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.get("origin")}/planos`,
+        cancel_url: `${safeAppOrigin(req)}/planos`,
         metadata: {
           ...(accountId ? { user_id: accountId } : {}),
           affiliate_code: effectiveAffiliateCode || "",

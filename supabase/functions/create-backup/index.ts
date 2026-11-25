@@ -1,5 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0'
 
+// Somente estas tabelas podem entrar em um backup.
+const BACKUP_TABLES = [
+  'profiles', 'produtos', 'receitas', 'receita_ingredientes',
+  'receita_embalagens', 'receita_mao_obra', 'receita_sub_receitas',
+  'receita_passos_preparo', 'user_configurations', 'despesas_fixas',
+  'folha_pagamento', 'encargos_venda', 'markups', 'movimentacoes',
+  'movimentacoes_receitas', 'estoque_receitas', 'categorias',
+  'marcas', 'fornecedores', 'tipos_produto',
+];
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -87,14 +97,9 @@ Deno.serve(async (req) => {
       .insert({
         backup_type: requestData.backup_type || 'full',
         status: 'in_progress',
-        tables_included: requestData.tables || [
-          'profiles', 'produtos', 'receitas', 'receita_ingredientes',
-          'receita_embalagens', 'receita_mao_obra', 'receita_sub_receitas',
-          'receita_passos_preparo', 'user_configurations', 'despesas_fixas',
-          'folha_pagamento', 'encargos_venda', 'markups', 'movimentacoes',
-          'movimentacoes_receitas', 'estoque_receitas', 'categorias',
-          'marcas', 'fornecedores', 'tipos_produto'
-        ],
+        tables_included: Array.isArray(requestData.tables) && requestData.tables.length > 0
+          ? requestData.tables.filter((t) => BACKUP_TABLES.includes(t))
+          : BACKUP_TABLES,
         created_by: user?.id
       })
       .select()
