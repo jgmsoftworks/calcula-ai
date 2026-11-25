@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   isAdmin: false,
   toast: vi.fn(),
   signedUrl: vi.fn(),
+  invoke: vi.fn(),
   upload: vi.fn(),
   remove: vi.fn(),
   insert: vi.fn(),
@@ -18,7 +19,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'owner' }, isAdmin: mocks.isAdmin }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mocks.toast }) }));
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: mocks.from, storage: { from: () => ({ createSignedUrl: mocks.signedUrl, upload: mocks.upload, remove: mocks.remove }) } },
+  supabase: {
+    from: mocks.from,
+    functions: { invoke: (name: string, options: { body: { storagePath: string } }) => mocks.invoke(name, options) },
+    storage: { from: () => ({ createSignedUrl: mocks.signedUrl, upload: mocks.upload, remove: mocks.remove }) } },
 }));
 
 const lesson = (id: string, category = 'module-1') => ({
@@ -35,6 +39,7 @@ beforeEach(() => {
     tutorial_categories: [{ id: 'module-1', title: 'Primeiros passos', description: null, sort_order: 0, is_published: true }],
     tutorial_videos: [lesson('1'), lesson('2')],
   };
+  mocks.invoke.mockImplementation((_name: string, options: { body: { storagePath: string } }) => mocks.signedUrl(options.body.storagePath));
   mocks.signedUrl.mockImplementation(async (path: string) => ({ data: { signedUrl: `https://example.com/${path}` }, error: null }));
   mocks.upload.mockResolvedValue({ error: null });
   mocks.remove.mockResolvedValue({ error: null });
@@ -65,6 +70,7 @@ describe('course lessons', () => {
     const { container } = render(<Tutorial />);
     await screen.findByLabelText('Aula 1');
     expect(mocks.signedUrl).toHaveBeenCalledTimes(1);
+    expect(mocks.invoke).toHaveBeenCalledWith('tutorial-video-url', { body: { storagePath: '1.mp4' } });
     expect(container.querySelectorAll('video')).toHaveLength(1);
     expect(screen.getByLabelText('Aula 1')).toHaveAttribute('playsinline');
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
