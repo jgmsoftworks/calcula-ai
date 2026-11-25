@@ -11,6 +11,7 @@ import RelatoriosEstoque from '../../src/pages/RelatoriosEstoque';
 import { PlanLimitProvider } from '../../src/contexts/PlanLimitProvider';
 import ReceitaEditor from '../../src/pages/ReceitaEditor';
 import Estoque from '../../src/pages/Estoque';
+import Geladeira from '../../src/pages/Geladeira';
 import Movimentacao from '../../src/pages/Movimentacao';
 import { TiposProdutoModal } from '../../src/components/receitas/TiposProdutoModal';
 import '../../src/index.css';
@@ -29,6 +30,7 @@ export default function Fixture() {
       <Route path="/receitas/:id/editar" element={<PlanLimitProvider><ReceitaEditor /></PlanLimitProvider>} />
       <Route path="/precificacao/media-faturamento" element={<MediaFaturamentoPage />} />
       <Route path="/estoque" element={<PlanLimitProvider><Estoque /></PlanLimitProvider>} />
+      <Route path="/estoque/geladeira" element={<Geladeira />} />
       <Route path="/estoque/movimentacoes" element={<Movimentacao />} />
       <Route path="/receitas" element={<div><p>Lista de receitas de teste</p><div style={{ height: 1800 }} /><p>Fim da lista de receitas de teste</p></div>} />
     </Routes>

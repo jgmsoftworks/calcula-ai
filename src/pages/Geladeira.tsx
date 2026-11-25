@@ -1,13 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChefHat, Pencil, Plus, Refrigerator, Search, Trash2 } from 'lucide-react';
+import { ChefHat, Download, Pencil, Plus, Refrigerator, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useExportRelatorioEstoque } from '@/hooks/useExportRelatorioEstoque';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchReceitaParaVisualizacao, fetchTodasReceitas } from '@/lib/receitasData';
 import { custoUnitarioGeladeira, fetchGeladeira, receitaPodeEntrar, resumoValorGeladeira, type GeladeiraItem } from '@/lib/geladeiraData';
 import { ReceitaPreviewModal } from '@/components/receitas/ReceitaPreviewModal';
-import { formatMoney } from '@/lib/business-region';
+import { currencySymbol, formatMoney } from '@/lib/business-region';
 import { formatters } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ type Modal = { tipo: 'cadastro' | 'edicao' | 'remocao'; item?: GeladeiraItem };
 
 export default function Geladeira() {
   const { user } = useAuth();
+  const { exportando, exportarRelatorioExcel } = useExportRelatorioEstoque();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [tipo, setTipo] = useState('todos');
@@ -64,6 +66,35 @@ export default function Geladeira() {
   const selectedUnit = modal?.item?.unidade || selected?.rendimento_unidade || '';
   const quantidadeModal = modal?.tipo === 'edicao' ? quantidadeAtual : saldoInicial;
   const pickerRecipes = (recipesQuery.data || []).filter(r => !items.some(item => item.receita_id === r.id));
+
+  function exportarGeladeira() {
+    const moeda = currencySymbol();
+    const filtros: string[] = [];
+    if (search) filtros.push(`Busca: ${search}`);
+    if (tipo !== 'todos') filtros.push(tipo === 'sub' ? 'Sub-receitas' : 'Receitas finais');
+    if (saldo !== 'todos') filtros.push(saldo === 'baixo' ? 'Abaixo do mínimo' : 'Com saldo');
+
+    const linhas = filtered.map(item => {
+      const custo = custoUnitarioGeladeira(item.receita);
+      return {
+        codigo: item.receita.numero_sequencial, receita: item.receita.nome,
+        tipo: item.receita.tipo_produto?.nome?.trim() || 'Sem tipo', unidade: item.unidade,
+        quantidade: item.estoque_atual, minimo: item.estoque_minimo,
+        custoUnitario: custo ?? 'Indisponível',
+        custoArmazenado: custo === null ? 'Indisponível' : custo * item.estoque_atual,
+      };
+    });
+    return exportarRelatorioExcel({ titulo: 'Geladeira', filtros }, [
+      { key: 'receita', header: 'Receita', excel: { width: 42 } },
+      { key: 'codigo', header: 'Código' },
+      { key: 'tipo', header: 'Tipo', excel: { width: 24 } },
+      { key: 'unidade', header: 'Unidade', excel: { width: 18 } },
+      { key: 'quantidade', header: 'Quantidade' },
+      { key: 'minimo', header: 'Mínimo' },
+      { key: 'custoUnitario', header: `Custo por unidade (${moeda})`, excel: { numberFormat: '#,##0.00##' } },
+      { key: 'custoArmazenado', header: `Custo armazenado (${moeda})`, excel: { numberFormat: '#,##0.00' } },
+    ], linhas, { [`${hasUnknownCost ? 'Total parcial' : 'Custo total armazenado'} (${moeda})`]: total });
+  }
 
   function openModal(tipo: Modal['tipo'], item?: GeladeiraItem) {
     setModal({ tipo, item }); setReceitaId(item?.receita_id || '');
@@ -132,8 +163,12 @@ export default function Geladeira() {
   return <div className="min-w-0 space-y-5">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="max-w-xl text-sm text-muted-foreground">Receitas prontas e sub-receitas armazenadas, com custo atualizado pela ficha técnica.</p>
-      <div className="flex shrink-0 gap-2">
-        <Button className="min-h-11 flex-1" disabled={itemsQuery.isPending || itemsQuery.isError} onClick={() => openModal('cadastro')}><Plus className="mr-2 h-4 w-4" />Adicionar receita</Button></div>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        <Button variant="outline" className="min-h-11 flex-1" disabled={!filtered.length || itemsQuery.isError || !!exportando} onClick={exportarGeladeira}>
+          <Download className="mr-2 h-4 w-4" />{exportando ? 'Exportando…' : 'Exportar Excel'}
+        </Button>
+        <Button className="min-h-11 flex-1" disabled={itemsQuery.isPending || itemsQuery.isError} onClick={() => openModal('cadastro')}><Plus className="mr-2 h-4 w-4" />Adicionar receita</Button>
+      </div>
     </div>
     <div className="flex flex-col gap-3 sm:flex-row">
       <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar na Geladeira" placeholder="Buscar por receita ou código..." className="h-11 pl-9" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /></div>
