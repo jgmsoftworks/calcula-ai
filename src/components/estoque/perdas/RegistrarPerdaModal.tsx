@@ -54,6 +54,7 @@ interface ReceitaOpt {
   rendimento_unidade: string | null;
   imagem_url: string | null;
   tipo_produto: string | null;
+  tipo_produto_nome: string | null;
   peso_unitario: number | null;
   preco_venda: number | null;
   custo_total: number;
@@ -65,6 +66,13 @@ interface ItemPerda {
   nome: string;
   quantidade: number;
   custoUnitario: number;
+  tipoProdutoNome?: string | null;
+}
+
+function TipoProdutoReceita({ nome }: { nome?: string | null }) {
+  return <Badge variant="secondary" className="max-w-full whitespace-normal break-words text-xs">
+    {nome ? `Tipo: ${nome}` : 'Sem tipo'}
+  </Badge>;
 }
 
 const RESPONSAVEL_OUTRO = '__outro__';
@@ -153,7 +161,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
           .select('id, nome, custo_unitario, unidade_compra, estoque_atual, estoque_minimo, imagem_url, marcas, categorias')
           .eq('user_id', user.id).eq('ativo', true).order('nome'),
         supabase.from('receitas')
-          .select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade, imagem_url, tipo_produto, peso_unitario, preco_venda')
+          .select('id, nome, numero_sequencial, rendimento_valor, rendimento_unidade, imagem_url, tipo_produto, tipo_cadastrado:tipos_produto(nome), peso_unitario, preco_venda')
           .eq('user_id', user.id).order('nome'),
         supabase.from('folha_pagamento')
           .select('id, nome, cargo')
@@ -163,7 +171,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
       setProdutos(ps || []);
       const receitasComCusto = await Promise.all((rs || []).map(async (receita) => {
         const { data: custo } = await supabase.rpc('calcular_custo_receita', { p_receita_id: receita.id });
-        return { ...receita, custo_total: Number(custo) || 0 };
+        return { ...receita, tipo_produto_nome: receita.tipo_cadastrado?.nome?.trim() || null, custo_total: Number(custo) || 0 };
       }));
       if (active) {
         setReceitas(receitasComCusto);
@@ -226,7 +234,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
     if (tipo !== 'receita') {
       return produtosDisponiveis.filter(p => correspondeBusca([p.nome, ...(p.marcas || []), ...(p.categorias || [])], busca));
     }
-    return receitas.filter(r => correspondeBusca([r.nome, r.numero_sequencial, r.tipo_produto], busca));
+    return receitas.filter(r => correspondeBusca([r.nome, r.numero_sequencial, r.tipo_produto, r.tipo_produto_nome || 'Sem tipo'], busca));
   }, [busca, produtosDisponiveis, receitas, tipo]);
 
   const custoUnit = tipo !== 'receita'
@@ -275,6 +283,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
         id: selecionado.id,
         tipo,
         nome: selecionado.nome,
+        tipoProdutoNome: receitaSel?.tipo_produto_nome,
         quantidade,
         custoUnitario: custoUnit,
       }];
@@ -412,7 +421,7 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               <Input
                 value={busca}
                 onChange={event => setBusca(event.target.value)}
-                placeholder={`Buscar ${tipo !== 'receita' ? 'produto, marca ou categoria' : 'receita ou categoria'}...`}
+                placeholder={`Buscar ${tipo !== 'receita' ? 'produto, marca ou categoria' : 'receita, código ou tipo de produto'}...`}
                 className="pl-9"
               />
             </div>
@@ -442,19 +451,20 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 (itensFiltrados as ReceitaOpt[]).length === 0 ? (
                   <p className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Nenhuma receita encontrada.</p>
                 ) : (itensFiltrados as ReceitaOpt[]).map(receita => (
-                  <div key={receita.id} className="flex h-[5.5rem] w-full items-center gap-3 overflow-hidden rounded-xl border bg-background p-3">
+                  <div key={receita.id} className="flex min-h-[5.5rem] w-full items-center gap-3 overflow-hidden rounded-xl border bg-background p-3">
                     {receita.imagem_url
                       ? <img src={receita.imagem_url} alt={receita.nome} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
                       : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600"><ChefHat className="h-6 w-6" /></span>}
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">#{receita.numero_sequencial} {receita.nome}</p>
                       <div className="mt-1 flex flex-wrap gap-1">
+                        <TipoProdutoReceita nome={receita.tipo_produto_nome} />
                         {receita.tipo_produto && <Badge variant="outline" className="text-[10px]">{receita.tipo_produto}</Badge>}
                         {receita.rendimento_valor && <Badge variant="secondary" className="text-[10px]">Rende {receita.rendimento_valor} {receita.rendimento_unidade || 'un'}</Badge>}
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">Custo da produção: {formatBRL(receita.custo_total)}{receita.rendimento_valor && receita.rendimento_valor > 0 ? ` · ${formatBRL(receita.custo_total / receita.rendimento_valor)} por ${receita.rendimento_unidade || 'un'}` : ''}</p>
                     </div>
-                    <Button type="button" size="icon" onClick={() => abrirItemParaAdicionar(receita.id)} aria-label={`Adicionar ${receita.nome}`} className="h-9 w-9 shrink-0 rounded-full">
+                    <Button type="button" size="icon" onClick={() => abrirItemParaAdicionar(receita.id)} aria-label={`Adicionar ${receita.nome}, ${receita.tipo_produto_nome || 'Sem tipo'}, código ${receita.numero_sequencial}`} className="h-9 w-9 shrink-0 rounded-full">
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
@@ -471,7 +481,11 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
               ) : itens.map(item => (
                 <div key={item.id} className="flex items-center gap-2 rounded-lg bg-background p-2">
                   {item.tipo !== 'receita' ? <Package className="h-4 w-4 shrink-0 text-blue-600" /> : <ChefHat className="h-4 w-4 shrink-0 text-orange-600" />}
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.nome}</p><p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p></div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{item.nome}</p>
+                    {item.tipo === 'receita' && <TipoProdutoReceita nome={item.tipoProdutoNome} />}
+                    <p className="text-xs text-muted-foreground">Retirada: {item.quantidade} · {formatBRL(item.quantidade * item.custoUnitario)}</p>
+                  </div>
                   <Button type="button" variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                 </div>
               ))}
@@ -558,7 +572,12 @@ export function RegistrarPerdaModal({ open, onOpenChange, onSaved }: Props) {
                 {receitaSel.imagem_url
                   ? <img src={receitaSel.imagem_url} alt={receitaSel.nome} className="h-16 w-16 rounded-xl object-cover" />
                   : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600"><ChefHat className="h-7 w-7" /></span>}
-                <div className="min-w-0"><p className="truncate font-semibold">#{receitaSel.numero_sequencial} {receitaSel.nome}</p><p className="text-sm text-muted-foreground">Rendimento: {receitaSel.rendimento_valor || 1} {receitaSel.rendimento_unidade || 'un'}</p><p className="text-sm text-muted-foreground">Custo da produção: {formatBRL(receitaSel.custo_total)}</p></div>
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate font-semibold">#{receitaSel.numero_sequencial} {receitaSel.nome}</p>
+                  <TipoProdutoReceita nome={receitaSel.tipo_produto_nome} />
+                  <p className="text-sm text-muted-foreground">Rendimento: {receitaSel.rendimento_valor || 1} {receitaSel.rendimento_unidade || 'un'}</p>
+                  <p className="text-sm text-muted-foreground">Custo da produção: {formatBRL(receitaSel.custo_total)}</p>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Quantidade retirada</Label><NumericInputPtBr tipo="quantidade_continua" value={quantidade} onChange={setQuantidade} /></div>
