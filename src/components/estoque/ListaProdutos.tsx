@@ -212,6 +212,25 @@ export function ListaProdutos() {
     }
   };
 
+  // O resumo considera os produtos de todas as páginas, inclusive categorias sem cadastro.
+  const nomesCategorias = new Set(categorias.map(categoria => categoria.nome));
+  for (const categoria of data?.categorias ?? []) nomesCategorias.add(categoria.nome);
+  if (categoriaSelecionada !== 'todas') nomesCategorias.add(categoriaSelecionada);
+  const nomesOrdenados = [...nomesCategorias]
+    .filter(nome => nome?.trim() && nome !== 'todas')
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const filtroCategoria = (
+    <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
+      <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+      <SelectContent searchable>
+        <SelectItem value="todas">Todas as Categorias</SelectItem>
+        {nomesOrdenados.map((nome) => (
+          <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   const filtrosInternos = (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -228,15 +247,7 @@ export function ListaProdutos() {
       </div>
       <div className="space-y-2">
         <Label>Categoria</Label>
-        <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
-          <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as Categorias</SelectItem>
-            {categorias.map((categoria) => (
-              <SelectItem key={categoria.id} value={categoria.nome}>{categoria.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {filtroCategoria}
       </div>
       <div className="space-y-2">
         <Label>Unidade</Label>
@@ -291,15 +302,7 @@ export function ListaProdutos() {
             </SelectContent>
           </Select>
 
-          <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
-            <SelectTrigger><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as Categorias</SelectItem>
-              {categorias.map((categoria) => (
-                <SelectItem key={categoria.id} value={categoria.nome}>{categoria.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {filtroCategoria}
 
           <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
             <SelectTrigger><SelectValue placeholder="Todas as unidades" /></SelectTrigger>

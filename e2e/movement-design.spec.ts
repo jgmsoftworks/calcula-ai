@@ -156,3 +156,38 @@ test('only catalog and cart scroll within the real application layout', async ({
   await page.screenshot({ path: testInfo.outputPath('movement-support-header.png'), fullPage: false, animations: 'disabled' });
   expect(await page.evaluate(() => window.scrollY > 0 || document.querySelector('main')!.scrollTop > 0)).toBe(true);
 });
+
+test('stock can search and select a category used only by products beyond the first page', async ({ page, isMobile }) => {
+  await setupMovement(page);
+  const natal = 'EMBALAGEM NATAL';
+  const registered = ['BEBIDA', 'CONFEITOS NATAL', 'DECORAÇÃO', 'EMBALAGEM', 'EMBALAGEM SAZONAL'];
+  const packages = Array.from({ length: 9 }, (_, i) => ({
+    ...products[0], id: `package-${i}`, codigo_interno: 41 + i, nome: `Caixa de presente ${i + 1}`, categorias: [natal],
+  }));
+  await page.route('**/rest/v1/categorias?**', route => route.fulfill({
+    json: registered.map(nome => ({ id: nome, nome, ativo: true })),
+  }));
+  await page.route('**/rpc/listar_produtos_pagina', route => {
+    const selected = route.request().postDataJSON().p_categorias.includes(natal);
+    return route.fulfill({ json: {
+      produtos: selected ? packages : products.map(p => ({ ...p, categorias: ['EMBALAGEM'] })),
+      total: selected ? 9 : 49, totalBusca: 49, pagina: 1,
+      categorias: [{ nome: 'EMBALAGEM', count: 40, imagem: null }, { nome: natal, count: 9, imagem: null }],
+    } });
+  });
+
+  await page.goto('/e2e/fixtures/movement-design.html');
+  await expect(page.getByRole('button', { name: new RegExp(natal) })).toBeVisible();
+  if (isMobile) await page.getByRole('button', { name: 'Abrir menu principal' }).click();
+  await page.locator('a[href="/estoque"]:visible').click();
+  await expect(page.getByText('1–40 de 49 produtos')).toBeVisible();
+  if (isMobile) await page.getByRole('button', { name: 'Filtros' }).click();
+  await page.getByRole('combobox').filter({ hasText: 'Todas as Categorias' }).click();
+  await expect(page.getByRole('option', { name: 'EMBALAGEM', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('option', { name: 'EMBALAGEM SAZONAL' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Buscar opção' }).fill('natal');
+  await page.getByRole('option', { name: natal, exact: true }).click({ timeout: 5000 });
+  if (isMobile) await page.keyboard.press('Escape');
+  await expect(page.getByText('1–9 de 9 produtos')).toBeVisible();
+  await expect(page.getByText('Caixa de presente 9', { exact: true }).filter({ visible: true })).toBeVisible();
+});
