@@ -14,6 +14,7 @@ export interface ColunaExport {
   key: string;
   header: string;
   width?: number; // PDF width
+  excel?: { width?: number; numberFormat?: string };
   align?: 'left' | 'right' | 'center';
   format?: 'text' | 'number' | 'currency' | 'int';
 }
@@ -50,7 +51,13 @@ export async function exportarRelatorioExcel(
   headerLines.push([]);
   headerLines.push(colunas.map(c => c.header));
 
-  const dataLines = rows.map(r => colunas.map(c => fmtExcelCell(r[c.key], c.format)));
+  const dataLines = rows.map(row => colunas.map(column => {
+    const value = fmtExcelCell(row[column.key], column.format);
+    if (typeof value === 'number' && column.excel?.numberFormat) {
+      return { t: 'n', v: value, z: column.excel.numberFormat };
+    }
+    return value;
+  }));
   const allLines = [...headerLines, ...dataLines];
 
   if (totais) {
@@ -60,7 +67,7 @@ export async function exportarRelatorioExcel(
   }
 
   const ws = XLSX.utils.aoa_to_sheet(allLines);
-  ws['!cols'] = colunas.map(c => ({ wch: Math.max(c.header.length + 2, 14) }));
+  ws['!cols'] = colunas.map(c => ({ wch: c.excel?.width ?? Math.max(c.header.length + 2, 14) }));
   XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
 
   const fileName = `${meta.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;

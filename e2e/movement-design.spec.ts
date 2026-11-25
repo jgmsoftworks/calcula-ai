@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { read, utils } from 'xlsx';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../playwright-fixture';
 
@@ -190,4 +192,58 @@ test('stock can search and select a category used only by products beyond the fi
   if (isMobile) await page.keyboard.press('Escape');
   await expect(page.getByText('1–9 de 9 produtos')).toBeVisible();
   await expect(page.getByText('Caixa de presente 9', { exact: true }).filter({ visible: true })).toBeVisible();
+});
+
+test('downloads every matching fridge recipe to Excel with numeric costs and quantities', async ({ page, isMobile }) => {
+  await setupMovement(page);
+  const items = Array.from({ length: 27 }, (_, i) => ({
+    id: `item-${i}`, receita_id: `receita-${i}`, unidade: 'kg',
+    estoque_atual: i === 25 ? 1.5 : 4, estoque_minimo: 2,
+    receita: {
+      id: `receita-${i}`, nome: i < 24 ? `Bolo ${i}` : 'Recheio de Natal', numero_sequencial: 100 + i,
+      tipo_produto: i === 26 ? null : { nome: 'Recheios' },
+      markup: { tipo: i >= 25 ? 'sub_receita' : 'normal' }, rendimento_valor: i === 26 ? null : 2,
+      ingredientes: [{ quantidade: 1, produto: { custo_unitario: 12.2532 } }],
+    },
+  }));
+  await page.route('**/rest/v1/geladeira_itens?**', route => route.fulfill({ json: items }));
+  await page.goto('/e2e/fixtures/movement-design.html');
+  if (isMobile) await page.getByRole('button', { name: 'Abrir menu principal' }).click();
+  await page.getByRole('link', { name: 'Geladeira', exact: true }).click();
+
+  const button = page.getByRole('button', { name: 'Exportar Excel' });
+  async function downloadSheet() {
+    const downloading = page.waitForEvent('download');
+    await button.click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toMatch(/^geladeira_\d{4}-\d{2}-\d{2}\.xlsx$/);
+    const workbook = read(await readFile((await download.path())!), { cellNF: true });
+    return workbook.Sheets[workbook.SheetNames[0]];
+  }
+
+  await expect(page.getByText('1 de 2', { exact: true })).toBeVisible();
+  const allRows = utils.sheet_to_json<unknown[]>(await downloadSheet(), { header: 1 });
+  expect(allRows.filter(row => row.length === 8 && typeof row[1] === 'number')).toHaveLength(27);
+  expect(allRows).toContainEqual(['Recheio de Natal', 126, 'Sem tipo', 'kg', 4, 2, 'Indisponível', 'Indisponível']);
+  expect(allRows.find(row => row[0] === 'Total parcial (R$)')?.[1]).toEqual(expect.any(Number));
+
+  const search = page.getByRole('textbox', { name: 'Buscar na Geladeira' });
+  await search.fill('natal');
+  await page.getByRole('combobox', { name: 'Tipo de receita' }).click();
+  await page.getByRole('option', { name: 'Sub-receitas' }).click();
+  await page.getByRole('combobox', { name: 'Filtrar saldo' }).click();
+  await page.getByRole('option', { name: 'Abaixo do mínimo' }).click();
+  const sheet = await downloadSheet();
+  const rows = utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
+  expect(rows).toContainEqual(['Receita', 'Código', 'Tipo', 'Unidade', 'Quantidade', 'Mínimo', 'Custo por unidade (R$)', 'Custo armazenado (R$)']);
+  const cost = 12.2532 / 2;
+  expect(rows.filter(row => row.length === 8 && typeof row[1] === 'number')).toEqual([
+    ['Recheio de Natal', 125, 'Recheios', 'kg', 1.5, 2, cost, 1.5 * cost],
+  ]);
+  const rowNumber = rows.findIndex(row => row[1] === 125) + 1;
+  expect(sheet[`G${rowNumber}`]).toMatchObject({ t: 'n', z: '#,##0.00##' });
+  expect(sheet[`H${rowNumber}`]).toMatchObject({ t: 'n', z: '#,##0.00' });
+  expect(rows).toContainEqual(['Custo total armazenado (R$)', 1.5 * cost]);
+  await search.fill('sem resultado');
+  await expect(button).toBeDisabled();
 });
