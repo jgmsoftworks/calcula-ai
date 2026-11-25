@@ -43,3 +43,6 @@ verify_jwt = false
 # Opaque integration key validated by the function; never accepts a user_id.
 [functions.receitas-pdv]
 verify_jwt = false
+
+[functions.tutorial-video-url]
+verify_jwt = false

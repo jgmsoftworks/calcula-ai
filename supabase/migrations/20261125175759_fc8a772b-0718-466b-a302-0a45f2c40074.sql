@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Authenticated users stream published tutorial videos" ON storage.objects;
+CREATE POLICY "Admins read tutorial videos" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'tutorial-videos' AND public.has_role_or_higher('admin'::app_role, auth.uid()));

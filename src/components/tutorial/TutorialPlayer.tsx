@@ -46,9 +46,9 @@ function StoredTutorialPlayer({ storagePath, title }: { storagePath: string; tit
     setFailed(false);
     async function prepareVideo() {
       try {
-        const { data, error } = await supabase.storage
-          .from('tutorial-videos')
-          .createSignedUrl(storagePath, 60 * 60);
+        const { data, error } = await supabase.functions.invoke<{ signedUrl?: string }>('tutorial-video-url', {
+          body: { storagePath },
+        });
         if (cancelled) return;
         if (error || !data?.signedUrl) throw error || new Error('Vídeo indisponível');
         setSource({ path: storagePath, url: data.signedUrl });
