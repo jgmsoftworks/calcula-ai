@@ -10,107 +10,10 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
-      geladeira_itens: {
-        Row: {
-          id: string
-          user_id: string
-          receita_id: string
-          unidade: string
-          estoque_atual: number
-          estoque_minimo: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string
-          receita_id?: string
-          unidade?: string
-          estoque_atual?: number
-          estoque_minimo?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          receita_id?: string
-          unidade?: string
-          estoque_atual?: number
-          estoque_minimo?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [{ foreignKeyName: "geladeira_itens_receita_id_fkey"; columns: ["receita_id"]; isOneToOne: true; referencedRelation: "receitas"; referencedColumns: ["id"] }]
-      }
-      geladeira_movimentacoes: {
-        Row: {
-          comprovante_id: string | null
-          responsavel: string | null
-          motivo: string | null
-          id: string
-          user_id: string
-          item_id: string | null
-          receita_id: string | null
-          receita_nome: string
-          unidade: string
-          tipo: string
-          quantidade: number
-          saldo_anterior: number
-          saldo_atual: number
-          custo_unitario: number | null
-          observacao: string | null
-          request_id: string
-          solicitacao: Json
-          created_at: string
-        }
-        Insert: {
-          comprovante_id?: string | null
-          responsavel?: string | null
-          motivo?: string | null
-          id?: string
-          user_id?: string
-          item_id?: string | null
-          receita_id?: string | null
-          receita_nome?: string
-          unidade?: string
-          tipo?: string
-          quantidade?: number
-          saldo_anterior?: number
-          saldo_atual?: number
-          custo_unitario?: number | null
-          observacao?: string | null
-          request_id?: string
-          solicitacao?: Json
-          created_at?: string
-        }
-        Update: {
-          comprovante_id?: string | null
-          responsavel?: string | null
-          motivo?: string | null
-          id?: string
-          user_id?: string
-          item_id?: string | null
-          receita_id?: string | null
-          receita_nome?: string
-          unidade?: string
-          tipo?: string
-          quantidade?: number
-          saldo_anterior?: number
-          saldo_atual?: number
-          custo_unitario?: number | null
-          observacao?: string | null
-          request_id?: string
-          solicitacao?: Json
-          created_at?: string
-        }
-        Relationships: [{ foreignKeyName: "geladeira_movimentacoes_comprovante_id_fkey"; columns: ["comprovante_id"]; isOneToOne: false; referencedRelation: "comprovantes"; referencedColumns: ["id"] }]
-      }
-
       account_deletion_requests: {
         Row: {
           cancelled_at: string | null
@@ -684,11 +587,93 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_checkouts: {
+        Row: {
+          customer_id: string
+          email: string
+          needs_password_setup: boolean
+          plan: string | null
+          session_id: string
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          customer_id: string
+          email: string
+          needs_password_setup?: boolean
+          plan?: string | null
+          session_id: string
+          status: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          customer_id?: string
+          email?: string
+          needs_password_setup?: boolean
+          plan?: string | null
+          session_id?: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      billing_emails: {
+        Row: {
+          created_at: string
+          key: string
+          payload: Json | null
+          provider_id: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          payload?: Json | null
+          provider_id?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          payload?: Json | null
+          provider_id?: string | null
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
+      billing_jobs: {
+        Row: {
+          completed_at: string | null
+          key: string
+          lease_token: string
+          lease_until: string
+        }
+        Insert: {
+          completed_at?: string | null
+          key: string
+          lease_token: string
+          lease_until: string
+        }
+        Update: {
+          completed_at?: string | null
+          key?: string
+          lease_token?: string
+          lease_until?: string
+        }
+        Relationships: []
+      }
       categorias: {
         Row: {
           ativo: boolean
           created_at: string
           id: string
+          imagem_url: string | null
           nome: string
           updated_at: string
           user_id: string
@@ -697,6 +682,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           id?: string
+          imagem_url?: string | null
           nome: string
           updated_at?: string
           user_id: string
@@ -705,6 +691,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           id?: string
+          imagem_url?: string | null
           nome?: string
           updated_at?: string
           user_id?: string
@@ -743,9 +730,9 @@ export type Database = {
       }
       comprovantes: {
         Row: {
-          geladeira_solicitacao: Json | null
           created_at: string
           data_hora: string
+          geladeira_solicitacao: Json | null
           id: string
           numero: number
           observacao: string | null
@@ -754,9 +741,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          geladeira_solicitacao?: Json | null
           created_at?: string
           data_hora?: string
+          geladeira_solicitacao?: Json | null
           id?: string
           numero: number
           observacao?: string | null
@@ -765,9 +752,9 @@ export type Database = {
           user_id: string
         }
         Update: {
-          geladeira_solicitacao?: Json | null
           created_at?: string
           data_hora?: string
+          geladeira_solicitacao?: Json | null
           id?: string
           numero?: number
           observacao?: string | null
@@ -948,6 +935,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      diagnostic_email_bridge: {
+        Row: {
+          enabled: boolean
+          id: number
+          token_sha256: string
+        }
+        Insert: {
+          enabled?: boolean
+          id: number
+          token_sha256: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: number
+          token_sha256?: string
+        }
+        Relationships: []
+      }
+      diagnostic_email_receipts: {
+        Row: {
+          attempts: number
+          created_at: string
+          last_error: string | null
+          locked_at: string | null
+          payload_sha256: string
+          provider_id: string | null
+          result_id: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          last_error?: string | null
+          locked_at?: string | null
+          payload_sha256: string
+          provider_id?: string | null
+          result_id: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          last_error?: string | null
+          locked_at?: string | null
+          payload_sha256?: string
+          provider_id?: string | null
+          result_id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       encargos_venda: {
         Row: {
@@ -1213,11 +1254,138 @@ export type Database = {
         }
         Relationships: []
       }
+      geladeira_itens: {
+        Row: {
+          created_at: string
+          estoque_atual: number
+          estoque_minimo: number
+          id: string
+          receita_id: string
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          id?: string
+          receita_id: string
+          unidade: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          id?: string
+          receita_id?: string
+          unidade?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geladeira_itens_receita_id_fkey"
+            columns: ["receita_id"]
+            isOneToOne: true
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geladeira_movimentacoes: {
+        Row: {
+          comprovante_id: string | null
+          created_at: string
+          custo_unitario: number | null
+          id: string
+          item_id: string | null
+          motivo: string | null
+          observacao: string | null
+          quantidade: number
+          receita_id: string | null
+          receita_nome: string
+          request_id: string
+          responsavel: string | null
+          saldo_anterior: number
+          saldo_atual: number
+          solicitacao: Json
+          tipo: string
+          unidade: string
+          user_id: string
+        }
+        Insert: {
+          comprovante_id?: string | null
+          created_at?: string
+          custo_unitario?: number | null
+          id?: string
+          item_id?: string | null
+          motivo?: string | null
+          observacao?: string | null
+          quantidade: number
+          receita_id?: string | null
+          receita_nome: string
+          request_id: string
+          responsavel?: string | null
+          saldo_anterior: number
+          saldo_atual: number
+          solicitacao: Json
+          tipo: string
+          unidade: string
+          user_id: string
+        }
+        Update: {
+          comprovante_id?: string | null
+          created_at?: string
+          custo_unitario?: number | null
+          id?: string
+          item_id?: string | null
+          motivo?: string | null
+          observacao?: string | null
+          quantidade?: number
+          receita_id?: string | null
+          receita_nome?: string
+          request_id?: string
+          responsavel?: string | null
+          saldo_anterior?: number
+          saldo_atual?: number
+          solicitacao?: Json
+          tipo?: string
+          unidade?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geladeira_movimentacoes_comprovante_id_fkey"
+            columns: ["comprovante_id"]
+            isOneToOne: false
+            referencedRelation: "comprovantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geladeira_movimentacoes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "geladeira_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geladeira_movimentacoes_receita_id_fkey"
+            columns: ["receita_id"]
+            isOneToOne: false
+            referencedRelation: "receitas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marcas: {
         Row: {
           ativo: boolean
           created_at: string
           id: string
+          imagem_url: string | null
           nome: string
           updated_at: string
           user_id: string
@@ -1226,6 +1394,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           id?: string
+          imagem_url?: string | null
           nome: string
           updated_at?: string
           user_id: string
@@ -1234,6 +1403,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           id?: string
+          imagem_url?: string | null
           nome?: string
           updated_at?: string
           user_id?: string
@@ -1721,69 +1891,76 @@ export type Database = {
       }
       perdas: {
         Row: {
-          origem_estoque: string | null
-          unidade: string | null
-          geladeira_item_id: string | null
           created_at: string
           custo_total: number
           custo_unitario: number
           data_perda: string
+          geladeira_item_id: string | null
           id: string
           motivo: string
           motivo_outro: string | null
           nome_item: string
           observacao: string | null
+          origem_estoque: string | null
           produto_id: string | null
           quantidade: number
           receita_id: string | null
           responsavel: string | null
           tipo: string
+          unidade: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          origem_estoque?: string | null
-          unidade?: string | null
-          geladeira_item_id?: string | null
           created_at?: string
           custo_total?: number
           custo_unitario?: number
           data_perda?: string
+          geladeira_item_id?: string | null
           id?: string
           motivo: string
           motivo_outro?: string | null
           nome_item: string
           observacao?: string | null
+          origem_estoque?: string | null
           produto_id?: string | null
           quantidade: number
           receita_id?: string | null
           responsavel?: string | null
           tipo: string
+          unidade?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          origem_estoque?: string | null
-          unidade?: string | null
-          geladeira_item_id?: string | null
           created_at?: string
           custo_total?: number
           custo_unitario?: number
           data_perda?: string
+          geladeira_item_id?: string | null
           id?: string
           motivo?: string
           motivo_outro?: string | null
           nome_item?: string
           observacao?: string | null
+          origem_estoque?: string | null
           produto_id?: string | null
           quantidade?: number
           receita_id?: string | null
           responsavel?: string | null
           tipo?: string
+          unidade?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "perdas_geladeira_item_id_fkey"
+            columns: ["geladeira_item_id"]
+            isOneToOne: false
+            referencedRelation: "geladeira_itens"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "perdas_produto_id_fkey"
             columns: ["produto_id"]
@@ -1801,10 +1978,48 @@ export type Database = {
         ]
       }
       plan_market_prices: {
-        Row: { id: string; plan_slug: string; country_code: string; currency: string; billing: string; amount_cents: number; stripe_price_id: string; active: boolean; created_at: string }
-        Insert: { id?: string; plan_slug: string; country_code: string; currency?: string; billing: string; amount_cents: number; stripe_price_id: string; active?: boolean; created_at?: string }
-        Update: { active?: boolean }
-        Relationships: []
+        Row: {
+          active: boolean
+          amount_cents: number
+          billing: string
+          country_code: string
+          created_at: string
+          currency: string
+          id: string
+          plan_slug: string
+          stripe_price_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount_cents: number
+          billing: string
+          country_code: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_slug: string
+          stripe_price_id: string
+        }
+        Update: {
+          active?: boolean
+          amount_cents?: number
+          billing?: string
+          country_code?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_slug?: string
+          stripe_price_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_market_prices_plan_slug_fkey"
+            columns: ["plan_slug"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       planos: {
         Row: {
@@ -1997,19 +2212,14 @@ export type Database = {
       }
       producao_tarefas: {
         Row: {
-          cancelado_em: string | null
-          duplicada_de: string | null
-          criacao_chave: string | null
-          tempo_producao_segundos: number | null
-          etapa_iniciada_em: string | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
-          rendimento_unidade?: string | null
-          receita_nome?: string | null
           area_id: string | null
+          cancelado_em: string | null
           concluido_em: string | null
           created_at: string
+          criacao_chave: string | null
           data_producao: string
+          duplicada_de: string | null
+          etapa_iniciada_em: string | null
           fim_previsto: string | null
           funcionario_id: string
           id: string
@@ -2019,26 +2229,26 @@ export type Database = {
           ordem: number
           quantidade: number | null
           receita_id: string | null
+          receita_nome: string | null
           recorrente_id: string | null
+          rendimento_previsto: number | null
+          rendimento_real: number | null
+          rendimento_unidade: string | null
           status: Database["public"]["Enums"]["producao_status"]
+          tempo_producao_segundos: number | null
           titulo: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          cancelado_em?: string | null
-          duplicada_de?: string | null
-          criacao_chave?: string | null
-          tempo_producao_segundos?: number | null
-          etapa_iniciada_em?: string | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
-          rendimento_unidade?: string | null
-          receita_nome?: string | null
           area_id?: string | null
+          cancelado_em?: string | null
           concluido_em?: string | null
           created_at?: string
+          criacao_chave?: string | null
           data_producao: string
+          duplicada_de?: string | null
+          etapa_iniciada_em?: string | null
           fim_previsto?: string | null
           funcionario_id: string
           id?: string
@@ -2048,26 +2258,26 @@ export type Database = {
           ordem?: number
           quantidade?: number | null
           receita_id?: string | null
+          receita_nome?: string | null
           recorrente_id?: string | null
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           status?: Database["public"]["Enums"]["producao_status"]
+          tempo_producao_segundos?: number | null
           titulo: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          cancelado_em?: string | null
-          duplicada_de?: string | null
-          criacao_chave?: string | null
-          tempo_producao_segundos?: number | null
-          etapa_iniciada_em?: string | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
-          rendimento_unidade?: string | null
-          receita_nome?: string | null
           area_id?: string | null
+          cancelado_em?: string | null
           concluido_em?: string | null
           created_at?: string
+          criacao_chave?: string | null
           data_producao?: string
+          duplicada_de?: string | null
+          etapa_iniciada_em?: string | null
           fim_previsto?: string | null
           funcionario_id?: string
           id?: string
@@ -2077,8 +2287,13 @@ export type Database = {
           ordem?: number
           quantidade?: number | null
           receita_id?: string | null
+          receita_nome?: string | null
           recorrente_id?: string | null
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           status?: Database["public"]["Enums"]["producao_status"]
+          tempo_producao_segundos?: number | null
           titulo?: string
           updated_at?: string
           user_id?: string
@@ -2089,6 +2304,13 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "producao_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tarefas_duplicada_de_fkey"
+            columns: ["duplicada_de"]
+            isOneToOne: false
+            referencedRelation: "producao_tarefas"
             referencedColumns: ["id"]
           },
           {
@@ -2116,11 +2338,8 @@ export type Database = {
       }
       producao_tarefas_historico: {
         Row: {
-          detalhes: Json | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
-          rendimento_unidade?: string | null
           de_status: Database["public"]["Enums"]["producao_status"] | null
+          detalhes: Json | null
           evento_tipo: string
           funcionario_anterior_id: string | null
           funcionario_novo_id: string | null
@@ -2129,15 +2348,15 @@ export type Database = {
           movido_por: string | null
           origem: string
           para_status: Database["public"]["Enums"]["producao_status"]
+          rendimento_previsto: number | null
+          rendimento_real: number | null
+          rendimento_unidade: string | null
           tarefa_id: string
           user_id: string
         }
         Insert: {
-          detalhes?: Json | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
-          rendimento_unidade?: string | null
           de_status?: Database["public"]["Enums"]["producao_status"] | null
+          detalhes?: Json | null
           evento_tipo?: string
           funcionario_anterior_id?: string | null
           funcionario_novo_id?: string | null
@@ -2146,15 +2365,15 @@ export type Database = {
           movido_por?: string | null
           origem?: string
           para_status: Database["public"]["Enums"]["producao_status"]
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           tarefa_id: string
           user_id: string
         }
         Update: {
-          detalhes?: Json | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
-          rendimento_unidade?: string | null
           de_status?: Database["public"]["Enums"]["producao_status"] | null
+          detalhes?: Json | null
           evento_tipo?: string
           funcionario_anterior_id?: string | null
           funcionario_novo_id?: string | null
@@ -2163,6 +2382,9 @@ export type Database = {
           movido_por?: string | null
           origem?: string
           para_status?: Database["public"]["Enums"]["producao_status"]
+          rendimento_previsto?: number | null
+          rendimento_real?: number | null
+          rendimento_unidade?: string | null
           tarefa_id?: string
           user_id?: string
         }
@@ -2271,8 +2493,6 @@ export type Database = {
       }
       produtos: {
         Row: {
-          rotulo_nutricional: Json | null
-          rotulos_nutricionais: Json | null
           ativo: boolean
           categorias: string[] | null
           codigo_interno: number
@@ -2286,14 +2506,14 @@ export type Database = {
           imagem_url: string | null
           marcas: string[] | null
           nome: string
+          rotulo_nutricional: Json | null
+          rotulos_nutricionais: Json | null
           unidade_compra: string
           unidade_uso: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          rotulo_nutricional?: Json | null
-          rotulos_nutricionais?: Json | null
           ativo?: boolean
           categorias?: string[] | null
           codigo_interno: number
@@ -2307,14 +2527,14 @@ export type Database = {
           imagem_url?: string | null
           marcas?: string[] | null
           nome: string
+          rotulo_nutricional?: Json | null
+          rotulos_nutricionais?: Json | null
           unidade_compra?: string
           unidade_uso?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          rotulo_nutricional?: Json | null
-          rotulos_nutricionais?: Json | null
           ativo?: boolean
           categorias?: string[] | null
           codigo_interno?: number
@@ -2328,6 +2548,8 @@ export type Database = {
           imagem_url?: string | null
           marcas?: string[] | null
           nome?: string
+          rotulo_nutricional?: Json | null
+          rotulos_nutricionais?: Json | null
           unidade_compra?: string
           unidade_uso?: string | null
           updated_at?: string
@@ -2337,14 +2559,11 @@ export type Database = {
       }
       profiles: {
         Row: {
-          business_country: string
-          business_currency: string
-          preferred_locale: string
-          region_confirmed: boolean
-          access_mode: string
-          trial_started_at: string | null
           access_blocked_at: string | null
+          access_mode: string
           bairro: string | null
+          business_country: string
+          business_currency: string | null
           business_name: string | null
           business_type: string | null
           celular: string | null
@@ -2380,8 +2599,10 @@ export type Database = {
           plan: string | null
           plan_expires_at: string | null
           porte_empresa: string | null
+          preferred_locale: string
           razao_social: string | null
           regime_tributario: string | null
+          region_confirmed: boolean
           responsavel_cargo: string | null
           responsavel_cpf: string | null
           responsavel_email: string | null
@@ -2392,20 +2613,18 @@ export type Database = {
           subscription_status: string
           telefone_comercial: string | null
           trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
           user_id: string
           website: string | null
           whatsapp: string | null
         }
         Insert: {
-          business_country?: string
-          business_currency?: string
-          preferred_locale?: string
-          region_confirmed?: boolean
-          access_mode?: string
-          trial_started_at?: string | null
           access_blocked_at?: string | null
+          access_mode?: string
           bairro?: string | null
+          business_country?: string
+          business_currency?: string | null
           business_name?: string | null
           business_type?: string | null
           celular?: string | null
@@ -2441,8 +2660,10 @@ export type Database = {
           plan?: string | null
           plan_expires_at?: string | null
           porte_empresa?: string | null
+          preferred_locale?: string
           razao_social?: string | null
           regime_tributario?: string | null
+          region_confirmed?: boolean
           responsavel_cargo?: string | null
           responsavel_cpf?: string | null
           responsavel_email?: string | null
@@ -2453,20 +2674,18 @@ export type Database = {
           subscription_status?: string
           telefone_comercial?: string | null
           trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           user_id: string
           website?: string | null
           whatsapp?: string | null
         }
         Update: {
-          business_country?: string
-          business_currency?: string
-          preferred_locale?: string
-          region_confirmed?: boolean
-          access_mode?: string
-          trial_started_at?: string | null
           access_blocked_at?: string | null
+          access_mode?: string
           bairro?: string | null
+          business_country?: string
+          business_currency?: string | null
           business_name?: string | null
           business_type?: string | null
           celular?: string | null
@@ -2502,8 +2721,10 @@ export type Database = {
           plan?: string | null
           plan_expires_at?: string | null
           porte_empresa?: string | null
+          preferred_locale?: string
           razao_social?: string | null
           regime_tributario?: string | null
+          region_confirmed?: boolean
           responsavel_cargo?: string | null
           responsavel_cpf?: string | null
           responsavel_email?: string | null
@@ -2514,6 +2735,7 @@ export type Database = {
           subscription_status?: string
           telefone_comercial?: string | null
           trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           user_id?: string
           website?: string | null
@@ -2668,6 +2890,63 @@ export type Database = {
         }
         Relationships: []
       }
+      receita_custos_historico: {
+        Row: {
+          base_calculo: Json
+          custo_total: number
+          custo_unitario: number | null
+          estado_receita: string | null
+          excluida: boolean
+          formula_versao: number
+          id: number
+          moeda: string | null
+          motivo: string
+          receita_id: string
+          receita_nome: string
+          registrado_em: string
+          rendimento_unidade: string | null
+          rendimento_valor: number | null
+          transacao_id: number
+          user_id: string
+        }
+        Insert: {
+          base_calculo: Json
+          custo_total: number
+          custo_unitario?: number | null
+          estado_receita?: string | null
+          excluida?: boolean
+          formula_versao?: number
+          id?: never
+          moeda?: string | null
+          motivo: string
+          receita_id: string
+          receita_nome: string
+          registrado_em: string
+          rendimento_unidade?: string | null
+          rendimento_valor?: number | null
+          transacao_id: number
+          user_id: string
+        }
+        Update: {
+          base_calculo?: Json
+          custo_total?: number
+          custo_unitario?: number | null
+          estado_receita?: string | null
+          excluida?: boolean
+          formula_versao?: number
+          id?: never
+          moeda?: string | null
+          motivo?: string
+          receita_id?: string
+          receita_nome?: string
+          registrado_em?: string
+          rendimento_unidade?: string | null
+          rendimento_valor?: number | null
+          transacao_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       receita_embalagens: {
         Row: {
           created_at: string
@@ -2751,6 +3030,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      receita_integracoes: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          revoked_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       receita_mao_obra: {
         Row: {
@@ -2876,12 +3182,13 @@ export type Database = {
       }
       receitas: {
         Row: {
+          codigo_pdv: string | null
           conservacao: Json | null
           created_at: string
           id: string
           imagem_url: string | null
-          last_save_request_id: string | null
           last_save_payload_hash: string | null
+          last_save_request_id: string | null
           markup_id: string | null
           nome: string
           numero_sequencial: number
@@ -2900,12 +3207,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          codigo_pdv?: string | null
           conservacao?: Json | null
           created_at?: string
           id?: string
           imagem_url?: string | null
-          last_save_request_id?: string | null
           last_save_payload_hash?: string | null
+          last_save_request_id?: string | null
           markup_id?: string | null
           nome: string
           numero_sequencial: number
@@ -2924,12 +3232,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          codigo_pdv?: string | null
           conservacao?: Json | null
           created_at?: string
           id?: string
           imagem_url?: string | null
-          last_save_request_id?: string | null
           last_save_payload_hash?: string | null
+          last_save_request_id?: string | null
           markup_id?: string | null
           nome?: string
           numero_sequencial?: number
@@ -3279,6 +3588,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          imagem_url: string | null
           nome: string
           updated_at: string | null
           user_id: string
@@ -3286,6 +3596,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          imagem_url?: string | null
           nome: string
           updated_at?: string | null
           user_id: string
@@ -3293,6 +3604,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          imagem_url?: string | null
           nome?: string
           updated_at?: string | null
           user_id?: string
@@ -3583,51 +3895,53 @@ export type Database = {
       }
     }
     Functions: {
-      criar_tarefa_producao: { Args: { p_data: string; p_chave: string; p_input: Json }; Returns: Json }
-      editar_tarefa_producao: { Args: { p_tarefa_id: string; p_expected_updated_at: string; p_input: Json }; Returns: Json }
-      cancelar_tarefa_producao: { Args: { p_tarefa_id: string; p_expected_updated_at: string; p_restaurar?: boolean }; Returns: Json }
-      reordenar_tarefas_producao: { Args: { p_data: string; p_status: Database["public"]["Enums"]["producao_status"]; p_ids: string[]; p_versions: Json }; Returns: undefined }
-
-      materializar_cronograma_producao: { Args: { p_data: string; p_timezone?: string }; Returns: number }
-      mover_tarefa_producao: { Args: { p_tarefa_id: string; p_status: Database["public"]["Enums"]["producao_status"]; p_expected_updated_at: string; p_rendimento_real?: number | null }; Returns: Json }
-      avancar_producao_compartilhada: { Args: { p_link_id: string; p_tarefa_id: string; p_expected_updated_at: string; p_rendimento_real?: number | null }; Returns: Json }
-      listar_usos_receita: { Args: { p_receita_id: string }; Returns: Json }
-      excluir_receita_com_vinculos: { Args: { p_receita_id: string; p_expected_updated_at: string; p_usos: Json }; Returns: undefined }
-      cadastrar_item_geladeira: { Args: { p_receita_id: string; p_estoque_minimo?: number }; Returns: string }
-      remover_item_da_geladeira: { Args: { p_receita_id: string; p_request_id: string }; Returns: string }
-      cadastrar_item_geladeira_com_saldo: { Args: { p_receita_id: string; p_saldo_inicial: number; p_estoque_minimo: number; p_request_id: string }; Returns: string }
-      finalizar_movimentacao_integrada: { Args: { p_itens: Json; p_responsavel: string; p_observacao: string | null; p_request_id: string }; Returns: Json }
-      registrar_perdas_geladeira: { Args: { p_itens: Json; p_motivo: string; p_motivo_outro: string | null; p_observacao: string | null; p_responsavel: string | null; p_baixar_estoque: boolean; p_request_id: string }; Returns: number }
-
-      movimentar_geladeira: {
-        Args: { p_receita_id: string; p_tipo: string; p_quantidade: number; p_request_id: string; p_estoque_minimo?: number | null; p_observacao?: string | null; p_saldo_esperado?: number | null }
-        Returns: string
-      }
-
-      salvar_receita_completa: {
+      activate_portugal_price: {
         Args: {
-          p_receita_id: string
-          p_request_id: string
-          p_receita: Json
-          p_componentes: Json
-          p_criar?: boolean
-          p_expected_updated_at?: string | null
-          p_expected_components?: Json
+          p_amount: number
+          p_billing: string
+          p_price_id: string
+          p_slug: string
         }
-        Returns: Json
-      }
-      get_my_access: { Args: Record<PropertyKey, never>; Returns: Json }
-      listar_produtos_pagina: {
-        Args: { p_busca?: string; p_marcas?: string[]; p_categorias?: string[]; p_unidade?: string; p_abaixo_minimo?: boolean; p_pagina?: number; p_tamanho?: number }
-        Returns: Json
+        Returns: undefined
       }
       atualizar_preco_receita: {
         Args: { p_receita_id: string }
         Returns: undefined
       }
+      avancar_producao_compartilhada: {
+        Args: {
+          p_expected_updated_at: string
+          p_link_id: string
+          p_rendimento_real?: number
+          p_tarefa_id: string
+        }
+        Returns: Json
+      }
+      billing_webhook_signing_secret: { Args: never; Returns: string }
+      cadastrar_item_geladeira: {
+        Args: { p_estoque_minimo?: number; p_receita_id: string }
+        Returns: string
+      }
+      cadastrar_item_geladeira_com_saldo: {
+        Args: {
+          p_estoque_minimo: number
+          p_receita_id: string
+          p_request_id: string
+          p_saldo_inicial: number
+        }
+        Returns: string
+      }
       calcular_custo_receita: {
         Args: { p_receita_id: string }
         Returns: number
+      }
+      cancelar_tarefa_producao: {
+        Args: {
+          p_expected_updated_at: string
+          p_restaurar?: boolean
+          p_tarefa_id: string
+        }
+        Returns: Json
       }
       check_plan_limits: {
         Args: {
@@ -3637,12 +3951,106 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_billing_job: {
+        Args: { job_key: string; token: string }
+        Returns: string
+      }
       consume_pdf_export: { Args: never; Returns: Json }
       count_user_suggestions_24h: {
         Args: { check_user_id: string }
         Returns: number
       }
       create_system_backup: { Args: { backup_type?: string }; Returns: string }
+      criar_tarefa_producao: {
+        Args: { p_chave: string; p_data: string; p_input: Json }
+        Returns: Json
+      }
+      custo_receita_em: {
+        Args: { p_instante?: string; p_receita_id: string }
+        Returns: {
+          base_calculo: Json
+          custo_total: number
+          custo_unitario: number | null
+          estado_receita: string | null
+          excluida: boolean
+          formula_versao: number
+          id: number
+          moeda: string | null
+          motivo: string
+          receita_id: string
+          receita_nome: string
+          registrado_em: string
+          rendimento_unidade: string | null
+          rendimento_valor: number | null
+          transacao_id: number
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "receita_custos_historico"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      custos_receita_por_dia: {
+        Args: {
+          p_fim: string
+          p_fuso?: string
+          p_inicio: string
+          p_receita_id: string
+        }
+        Returns: {
+          cobertura_desde: string
+          custo_total: number
+          custo_unitario: number
+          dia: string
+          dia_parcial: boolean
+          disponivel: boolean
+          moeda: string
+          registrado_em: string
+          registro_id: number
+          rendimento_unidade: string
+          rendimento_valor: number
+        }[]
+      }
+      editar_tarefa_producao: {
+        Args: {
+          p_expected_updated_at: string
+          p_input: Json
+          p_tarefa_id: string
+        }
+        Returns: Json
+      }
+      excluir_receita_com_vinculos: {
+        Args: {
+          p_expected_updated_at: string
+          p_receita_id: string
+          p_usos: Json
+        }
+        Returns: undefined
+      }
+      exportar_receitas_painel: {
+        Args: { p_mes: string; p_token_hash: string }
+        Returns: Json
+      }
+      finalizar_movimentacao_estoque: {
+        Args: {
+          p_itens: Json
+          p_observacao: string
+          p_request_id: string
+          p_responsavel: string
+        }
+        Returns: Json
+      }
+      finalizar_movimentacao_integrada: {
+        Args: {
+          p_itens: Json
+          p_observacao: string
+          p_request_id: string
+          p_responsavel: string
+        }
+        Returns: Json
+      }
       generate_affiliate_link_code: { Args: never; Returns: string }
       gerar_numero_comanda: { Args: { p_user_id: string }; Returns: string }
       gerar_proximo_codigo_interno: {
@@ -3654,6 +4062,7 @@ export type Database = {
         Returns: number
       }
       gerar_proximo_numero_op: { Args: { p_user_id: string }; Returns: number }
+      get_account_access: { Args: { account_id: string }; Returns: Json }
       get_backup_data: { Args: { backup_id: string }; Returns: Json }
       get_employee_basic_info: {
         Args: never
@@ -3681,6 +4090,7 @@ export type Database = {
         Args: { fornecedor_uuid: string }
         Returns: number
       }
+      get_my_access: { Args: never; Returns: Json }
       get_roadmap_vote_counts: {
         Args: never
         Returns: {
@@ -3716,8 +4126,58 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      listar_produtos_pagina: {
+        Args: {
+          p_abaixo_minimo?: boolean
+          p_busca?: string
+          p_categorias?: string[]
+          p_marcas?: string[]
+          p_pagina?: number
+          p_tamanho?: number
+          p_unidade?: string
+        }
+        Returns: Json
+      }
+      listar_usos_receita: { Args: { p_receita_id: string }; Returns: Json }
+      materializar_cronograma_producao: {
+        Args: { p_data: string; p_timezone?: string }
+        Returns: number
+      }
+      mover_tarefa_producao: {
+        Args: {
+          p_expected_updated_at: string
+          p_rendimento_real?: number
+          p_status: Database["public"]["Enums"]["producao_status"]
+          p_tarefa_id: string
+        }
+        Returns: Json
+      }
+      movimentar_geladeira: {
+        Args: {
+          p_estoque_minimo?: number
+          p_observacao?: string
+          p_quantidade: number
+          p_receita_id: string
+          p_request_id: string
+          p_saldo_esperado?: number
+          p_tipo: string
+        }
+        Returns: string
+      }
       recalcular_todas_receitas: {
         Args: { p_user_id?: string }
+        Returns: number
+      }
+      registrar_perdas_geladeira: {
+        Args: {
+          p_baixar_estoque: boolean
+          p_itens: Json
+          p_motivo: string
+          p_motivo_outro: string
+          p_observacao: string
+          p_request_id: string
+          p_responsavel: string
+        }
         Returns: number
       }
       registrar_perdas_transacional: {
@@ -3731,13 +4191,50 @@ export type Database = {
         }
         Returns: number
       }
+      release_billing_job: {
+        Args: { completed?: boolean; job_key: string; token: string }
+        Returns: undefined
+      }
+      remover_item_da_geladeira: {
+        Args: { p_receita_id: string; p_request_id: string }
+        Returns: string
+      }
+      reordenar_tarefas_producao: {
+        Args: {
+          p_data: string
+          p_ids: string[]
+          p_status: Database["public"]["Enums"]["producao_status"]
+          p_versions: Json
+        }
+        Returns: undefined
+      }
       reset_monthly_pdf_counter: { Args: never; Returns: undefined }
+      salvar_receita_completa: {
+        Args: {
+          p_componentes: Json
+          p_criar?: boolean
+          p_expected_components?: Json
+          p_expected_updated_at?: string
+          p_receita: Json
+          p_receita_id: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       user_is_admin: { Args: never; Returns: boolean }
       user_is_affiliate_owner: {
         Args: { affiliate_id: string }
         Returns: boolean
       }
       user_is_fornecedor: { Args: { check_user_id?: string }; Returns: boolean }
+      validar_rotulo_nutricional: {
+        Args: { proprietario: string; rotulo: Json }
+        Returns: boolean
+      }
+      validar_rotulos_nutricionais: {
+        Args: { proprietario: string; rotulos: Json }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
