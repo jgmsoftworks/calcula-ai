@@ -1,6 +1,6 @@
 import type { AppDatabaseClient } from './database.ts';
 import type Stripe from 'npm:stripe@22.6.0';
-import { it, vi } from 'vitest';
+import { afterEach, beforeEach, it, vi } from 'vitest';
 vi.stubGlobal('Deno', { env: { get: (name: string) => process.env[name], set: (name: string, value: string) => { process.env[name] = value; }, delete: (name: string) => { delete process.env[name]; } } });
 import { checkoutState, subscriptionEnd, invoiceSubscription, maskedEmail } from './billingRules.ts';
 import { paymentEmail, sendPaymentEmail } from './billingEmails.ts';
@@ -8,6 +8,13 @@ import { fulfillCheckout, withBillingLock, initialBillingPassword } from './bill
 import nodemailer from 'npm:nodemailer@10.0.13';
 import { GMAIL_SENDER, smtpMessageId } from './billingSmtp.ts';
 import { billingWebhookSecret } from './billingWebhook.ts';
+
+// Each test starts with no mail/billing credentials from the host environment;
+// tests set only the fictitious values they need. The live-SMTP guard stays active.
+const ISOLATED_ENV = ['GMAIL_SMTP_PASSWORD', 'RESEND_API_KEY', 'PAYMENTS_EMAIL_FROM', 'STRIPE_WEBHOOK_SECRET'] as const;
+let savedEnv: Record<string, string | undefined> = {};
+beforeEach(() => { savedEnv = Object.fromEntries(ISOLATED_ENV.map(name => [name, process.env[name]])); for (const name of ISOLATED_ENV) delete process.env[name]; });
+afterEach(() => { for (const name of ISOLATED_ENV) { const value = savedEnv[name]; if (value === undefined) delete process.env[name]; else process.env[name] = value; } });
 
 function assert(condition: unknown, message = 'assertion failed'): asserts condition { if (!condition) throw new Error(message); }
 async function rejects(action: () => Promise<unknown>, expected: string) {
